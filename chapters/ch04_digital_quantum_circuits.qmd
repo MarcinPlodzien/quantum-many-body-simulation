@@ -1,0 +1,29 @@
+---
+title: "4 · Digital quantum circuits"
+code-tools: false
+---
+
+![](../assets/thumbs/ch04.png){width=60% fig-align=center fig-alt="Digital quantum circuits"}
+
+Quantum gates are small unitaries on one or two qubits, which makes a quantum circuit a special case of the engine
+of Chapter 3. The first notebook introduces rotations as exponentials of Pauli matrices, the standard gate set,
+circuits as data that can be compiled with `jit`, circuit identities, and a Trotter step written as a circuit.
+
+The second notebook turns to randomness: Haar-random states and unitaries, the Porter–Thomas distribution of output
+probabilities, random brick-wall circuits and the growth of their entanglement, the single-qubit Clifford group,
+and cross-entropy benchmarking of random circuit sampling.
+
+## Notebooks in this chapter
+
+::: {.nb-item}
+[Quantum gates and circuits — the digital viewpoint](../ch04_digital_quantum_circuits/09_quantum_gates_and_circuits.ipynb)
+
+Qubits are spins and gates are small unitaries: rotations as exponentials of Pauli matrices, circuits as lists of einsum contractions, jit-compiled circuits, circuit identities, a Trotter step as a circuit, and noisy circuits on the density tensor.
+:::
+
+::: {.nb-item}
+[Random unitaries and random circuits](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb)
+
+Haar-random states and unitaries (Mezzadri's QR recipe and why its phase fix matters), the Porter-Thomas distribution, random brick-wall circuits and the growth of entanglement to the Page value, the single-qubit Clifford group, random circuit sampling and cross-entropy benchmarking.
+:::
+

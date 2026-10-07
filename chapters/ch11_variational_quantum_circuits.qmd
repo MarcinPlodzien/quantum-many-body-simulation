@@ -1,0 +1,54 @@
+---
+title: "11 · Variational quantum circuits"
+code-tools: false
+---
+
+![](../assets/thumbs/ch11.png){width=60% fig-align=center fig-alt="Variational quantum circuits"}
+
+A variational quantum algorithm adjusts the angles of a parametrised circuit to minimise a cost function. The
+chapter derives four ways to obtain gradients (finite differences, the parameter-shift rule, SPSA and automatic
+differentiation), compares optimisers from plain gradient descent to the quantum natural gradient, and applies
+them in the variational quantum eigensolver to ground states of spin chains, checked against Lanczos.
+
+The remaining notebooks address what a real device adds: the number of measurements a cost evaluation needs,
+including classical shadows inside the optimisation loop; gate noise and its effect on landscapes, training and
+error mitigation; and the quantum autoencoder as a variational compression task.
+
+## Notebooks in this chapter
+
+::: {.nb-item}
+[Parametrized gates and gradients — differentiating a quantum circuit four ways](../ch11_variational_quantum_circuits/40_parametrized_gates_and_gradients.ipynb)
+
+What a variational quantum algorithm is, how parametrized gates and ansätze are built from Pauli exponentials, why the cost along one angle is a pure sinusoid, and four ways to get its gradient — finite differences, the parameter-shift rule, SPSA and reverse-mode automatic differentiation — with measured accuracy, cost, shot-noise behaviour and the barren-plateau variance scaling.
+:::
+
+::: {.nb-item}
+[Optimisers for variational circuits — from the update equation to a measured benchmark](../ch11_variational_quantum_circuits/41_optimizers.ipynb)
+
+Gradient descent, heavy-ball momentum, Adam, SPSA with Spall's gain sequences, the SPSA–Adam hybrid and the quantum natural gradient, each derived from its update equation, compiled into lax.scan training loops, vmapped over random initialisations, and benchmarked on GHZ state preparation and on the ground energy of a transverse-field Ising chain with exact and shot-noisy costs.
+:::
+
+::: {.nb-item}
+[The variational quantum eigensolver — ground states of spin chains from a trained circuit](../ch11_variational_quantum_circuits/42_variational_quantum_eigensolver.ipynb)
+
+The Rayleigh-Ritz principle proved, the error relations a practitioner needs (energy error second order in the state error, and bounded below by the gap times the infidelity), and the full VQE loop applied to XXZ, XY and transverse-field Ising chains: energy, fidelity, entanglement, magnetisations and bond correlators against Lanczos, depth and symmetry studies, the phase diagram, an excited state by deflation, and a shot-noise comparison at equal measurement budget.
+:::
+
+::: {.nb-item}
+[VQE with classical shadows — the measurement cost of a variational algorithm](../ch11_variational_quantum_circuits/43_vqe_with_classical_shadows.ipynb)
+
+How many runs of a quantum machine does one VQE iteration cost? Term-by-term estimation, qubit-wise-commuting grouping and classical shadows compared through their exact estimator variances at a fixed shot budget and verified by simulation; then shadow-estimated energies inside the optimisation loop, the bias that noisy cost estimates inject into the answer, and a full shadow characterisation of the converged state with bootstrap error bars.
+:::
+
+::: {.nb-item}
+[Noisy variational circuits — landscapes, plateaus, training and error mitigation](../ch11_variational_quantum_circuits/44_noisy_variational_circuits.ipynb)
+
+Gate noise as a channel after every gate, the dictionary between measured error rates and channel parameters, two exact-in-expectation simulators (density tensor and quantum trajectories) shown to agree, the contraction of the cost landscape derived and measured, the exact invariance of the minimum under global depolarising noise and its shift under amplitude damping, noise-induced barren plateaus, training with density-tensor gradients against SPSA on trajectory costs, optimal-parameter resilience, the depth trade-off and zero-noise extrapolation.
+:::
+
+::: {.nb-item}
+[The quantum autoencoder — compressing quantum data with a variational circuit](../ch11_variational_quantum_circuits/45_quantum_autoencoder.ipynb)
+
+The encoder–trash–decoder construction, the exact relation between trash fidelity and reconstruction fidelity derived and verified, the eigenvalue criterion that says exactly how well an ensemble can be compressed (proved and checked against training), the Schmidt-rank folklore re-examined, two executions of the compression channel (exact partial trace and measure-and-reset trajectories) shown consistent, training with automatic differentiation and with SPSA on trajectory estimates, generalisation to unseen inputs, and the effect of gate noise.
+:::
+

@@ -1,0 +1,85 @@
+---
+title: "10 · Quantum metrology protocols"
+code-tools: false
+---
+
+![](../assets/thumbs/ch10.png){width=60% fig-align=center fig-alt="Quantum metrology protocols"}
+
+Quantum metrology asks how precisely a parameter imprinted on a quantum state can be estimated. The chapter starts
+from estimation theory, the Cramér–Rao bound and the quantum Fisher information, computes the latter for pure and
+mixed states (through the symmetric logarithmic derivative), and then simulates complete protocols: Ramsey
+interferometry at the standard quantum limit, GHZ interferometry at the Heisenberg limit, and spin squeezing and
+cat-state generation by one-axis twisting.
+
+The later notebooks study what happens to metrological usefulness under scrambling dynamics, particle loss and
+noise, how the quantum Fisher information can be measured with classical shadows, and how it spreads in quenched
+spin chains.
+
+## Notebooks in this chapter
+
+::: {.nb-item}
+[Quantum Fisher information — how precisely can a quantum state measure a parameter?](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb)
+
+A from-scratch course on parameter estimation and its quantum limit: estimators, the classical Fisher information and the Cramér–Rao bound derived by Cauchy–Schwarz, the quantum Fisher information as the best measurement's Fisher information, the pure-state formula 4 Var(G), the standard quantum limit versus the Heisenberg limit with proofs, a zoo of many-body states, the 3x3 collective QFI matrix and its optimal direction, QFI as an entanglement witness, and QFI under noise and particle loss.
+:::
+
+::: {.nb-item}
+[QFI from the symmetric logarithmic derivative — prepare, encode, estimate](../ch10_quantum_metrology_protocols/30_qfi_from_the_sld_prepare_encode_estimate.ipynb)
+
+The complete metrology pipeline for mixed states: encode a parameter unitarily on a density tensor, get the derivative three ways (commutator, finite differences, jax.jacfwd), solve the Lyapunov equation for the symmetric logarithmic derivative, evaluate the quantum Fisher information and cross-check it against 4 Var(G), the engine, and the Bures fidelity susceptibility, build the optimal measurement from the eigenbasis of the SLD and verify by simulated maximum-likelihood experiments that it, and only it, saturates the quantum Cramér–Rao bound.
+:::
+
+::: {.nb-item}
+[Ramsey interferometry — the standard quantum limit, simulated end to end](../ch10_quantum_metrology_protocols/31_ramsey_interferometry.ipynb)
+
+The complete Ramsey protocol of an atomic clock — coherent spin state, phase encoding, second pulse, atom counting — with the signal and the projection noise derived, phase estimators built from sampled bit strings, the measured sensitivity checked against the Cramer-Rao bound, and dephasing during the interrogation fixing the optimal interrogation time.
+:::
+
+::: {.nb-item}
+[GHZ interferometry and the Heisenberg limit — gain, ambiguity, fragility](../ch10_quantum_metrology_protocols/32_ghz_interferometry_heisenberg_limit.ipynb)
+
+The maximally entangled interferometer end to end: GHZ preparation, N-fold phase encoding, parity readout, phase estimation from sampled records reaching Delta phi = 1/N, the 2 pi/N ambiguity, the collapse of the advantage under dephasing, depolarising, damping and particle loss, the Huelga argument that Markovian dephasing removes the asymptotic gain, and phase estimation from randomised measurements after scrambling.
+:::
+
+::: {.nb-item}
+[Spin squeezing by one-axis twisting](../ch10_quantum_metrology_protocols/33_spin_squeezing_one_axis_twisting.ipynb)
+
+Coherent spin states and their isotropic projection noise, the one-axis-twisting Hamiltonian and its two exact implementations, the shearing mechanism, the Kitagawa–Ueda and Wineland squeezing parameters derived from Ramsey error propagation, the analytic OAT moments verified numerically, the N^(-2/3) scaling of the optimal squeezing, a squeezed Ramsey interferometer simulated end to end from sampled bit strings, Husimi-Q maps on the Bloch sphere, and the point where squeezing stops measuring the metrological gain.
+:::
+
+::: {.nb-item}
+[From one-axis twisting to GHZ — the full metrology protocol](../ch10_quantum_metrology_protocols/34_oat_to_ghz_full_metrology_protocol.ipynb)
+
+The complete pipeline prepare-twist-encode-read out: the exact derivation that one-axis twisting turns a coherent spin state into a GHZ-like cat at chi t = pi/2 (for even and for odd N), the cat axis tracked numerically with the 3x3 QFI matrix along the whole evolution, the N^2/2 plateau of the multi-component cats, parity readout reaching the Heisenberg limit from sampled data, the SLD quantum Fisher information under dephasing, amplitude damping and depolarising noise, the exponential fragility of the cat derived and verified, the optimal stopping time under noise, and a final comparison of the sensitivity of Ramsey, squeezed, GHZ and one-axis-twisting interferometry.
+:::
+
+::: {.nb-item}
+[Scrambling a metrological probe — entanglement is necessary but not sufficient](../ch10_quantum_metrology_protocols/35_oat_plus_haar_scrambling.ipynb)
+
+What a scrambler does to metrologically useful entanglement: one-axis-twisting probes pushed through global Haar unitaries and random brick-wall circuits, the Page curve derived and measured, the Haar average of the collective quantum Fisher information N d/(d+1) derived and verified, the gate-by-gate collapse of the cat's quantum Fisher information in a brick-wall circuit derived, quantum Fisher information optimised over site-dependent local generators with jax.grad and Adam, the unitary-invariance identity that shows where the information went, the Pauli weight of the scrambled generator, and the quantum Fisher information of a subsystem as the metrological analogue of the Page curve.
+:::
+
+::: {.nb-item}
+[Measuring the quantum Fisher information with classical shadows](../ch10_quantum_metrology_protocols/36_qfi_with_classical_shadows.ipynb)
+
+How the quantum Fisher information of a collective generator is estimated from one randomised-measurement data set: the expansion of 4 Var(G) in one- and two-body Pauli expectation values, the O(N^2) observable count, a collapse of the estimator to six numbers per snapshot, the exact bias of the plug-in estimator and its U-statistic correction, bootstrap error bars and their scaling with the number of snapshots and the system size, the 3x3 matrix and the optimal direction from data, the snapshot budget needed to certify entanglement and entanglement depth, and what happens for mixed states — the gap between 4 Var(G) and the true quantum Fisher information, and a converging series of polynomial lower bounds that randomised measurements can reach.
+:::
+
+::: {.nb-item}
+[Particle loss, magic and encoded probes — what survives when qubits go missing?](../ch10_quantum_metrology_protocols/37_qfi_particle_loss_and_magic.ipynb)
+
+How much metrological usefulness survives the loss of k particles: the quantum Fisher information of a reduced state derived and computed three ways, exact loss laws for product, GHZ, W and Dicke probes, the loss budget of squeezed and random probes, the stabilizer Rényi entropy of every probe family, and phase-imprinted GHZ states protected by a Clifford erasure code — an all-or-nothing loss threshold, its trade-off against sensitivity to a local generator, and what magic changes about it.
+:::
+
+::: {.nb-item}
+[Scramblers and the locking of metrological information — analog, digital, and the Haar limit](../ch10_quantum_metrology_protocols/38_scramblers_and_qfi.ipynb)
+
+How fast a scrambler hides the phase written on a metrological probe, and where the information goes: the locking curve of the quantum Fisher information of a subsystem, a chaotic spin chain as an analog scrambler and brick-wall circuits of Haar, Clifford and H-T-CNOT layers as digital ones, the Haar-random reference curve and its half-system threshold, the volume law as the mechanism, and the measured fact that entanglement saturates well before the metrological information is locked.
+:::
+
+::: {.nb-item}
+[The spreading of metrological usefulness — quantum Fisher information in quenched spin chains](../ch10_quantum_metrology_protocols/39_qfi_spreading_in_spin_chains.ipynb)
+
+How useful entanglement is built and transported by a spin chain: the exact identity between the quantum Fisher information and the connected correlations, the QFI density and the certified entanglement depth after global quenches of the transverse-field Ising and XXZ chains, uniform against staggered generators, and the light cone of the block-resolved and two-site QFI after a local encoding — with a one-magnon closed form as the analytic anchor, a measured front velocity and its threshold bias, and an animation of the metrological resource travelling down the chain.
+:::
+

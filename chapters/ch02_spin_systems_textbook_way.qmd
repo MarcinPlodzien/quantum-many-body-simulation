@@ -1,0 +1,30 @@
+---
+title: "2 · Quantum many-body spin systems: the textbook way"
+code-tools: false
+---
+
+![](../assets/thumbs/ch02.png){width=60% fig-align=center fig-alt="Quantum many-body spin systems: the textbook way"}
+
+A chain of $N$ spins-1/2 is put on the computer the way textbooks do it. Operators acting on one spin are lifted to
+the full $2^N$-dimensional space with Kronecker products, model Hamiltonians (transverse-field Ising, Heisenberg)
+are assembled as matrices, and their ground states and spectra follow from exact diagonalisation.
+
+The second notebook solves the time-dependent Schrödinger equation with the same dense matrices: the exact
+propagator, the explicit Euler and Runge–Kutta integrators and their stability, and Trotterization derived from
+scratch with its error measured. Both notebooks end at the same place, the memory and time cost of a $2^N\times 2^N$
+matrix, which is the reason for the matrix-free approach of Chapter 3.
+
+## Notebooks in this chapter
+
+::: {.nb-item}
+[Quantum many-body spin systems — the textbook (dense-matrix) way](../ch02_spin_systems_textbook_way/03_quantum_many_body_spin_systems.ipynb)
+
+From one spin-1/2 to interacting spin chains: tensor products, Kronecker-product operators, model Hamiltonians, exact diagonalisation of the transverse-field Ising and Heisenberg chains, and the exponential wall.
+:::
+
+::: {.nb-item}
+[Time evolution the textbook way — propagators, ODE solvers and Trotterization](../ch02_spin_systems_textbook_way/04_time_evolution_the_textbook_way.ipynb)
+
+Solving the many-body Schrödinger equation with dense matrices: exact propagators, why Euler fails and what RK4 does, Trotterization derived from scratch with measured error scaling, a transverse-field Ising quench, and the cost wall that motivates matrix-free methods.
+:::
+

@@ -1,0 +1,70 @@
+---
+title: "1 · Computational toolbox"
+code-tools: false
+---
+
+![](../assets/thumbs/ch01.png){width=60% fig-align=center fig-alt="Computational toolbox"}
+
+The course opens with complete simulations of one particle in one dimension, where every number can be checked
+against an exact solution. A free Gaussian wave packet on a ring is propagated with finite differences and with the
+Fourier method; the harmonic oscillator is discretised, diagonalised, and propagated by spectral decomposition, by its
+matrix exponential and with the Runge–Kutta and Crank–Nicolson integrators. In both, the numerical error is measured
+against the analytic result and explained. Two further notebooks carry the same machinery into a
+nonlinear problem, the bright solitons of the Gross–Pitaevskii equation: their ground state by imaginary-time
+relaxation, their real-time motion with a split-step integrator, and their collisions.
+
+A third single-particle problem removes the continuum altogether. Notebook 49 follows one excitation hopping on a
+chain of sites, whose Hamiltonian is the three-point Laplacian of notebook 00a read as an exact model rather than as
+an approximation. Its cosine band, its light cone and its closed-form propagator, a Bessel function, are solved on a
+ring and on an open chain, and the same matrix returns in the spin-chain and tensor-network chapters as a reference
+solution. It needs only notebook 00a and can be read directly after it. The two soliton notebooks are not needed
+later in the course and can be left for a second reading.
+
+The chapter closes with the two tools used everywhere afterwards. JAX turns NumPy-style code into compiled
+(`jit`), batched (`vmap`), looped (`lax.scan`) and differentiable (`grad`) programs, and `einsum` expresses every
+contraction of the course in index notation, from matrix products to partial traces.
+
+## Notebooks in this chapter
+
+::: {.nb-item}
+[A first quantum simulation — a free Gaussian wave packet on a ring](../ch01_computational_toolbox/00a_free_particle_gaussian_wave_packet.ipynb)
+
+The very first notebook of the course: we non-dimensionalise the free Schrödinger equation, solve it exactly on paper, then solve it on a computer with finite differences and with the Fourier method, and watch the packet spread, move and interfere with itself on a ring — with animations and a full numerics-versus-analytics error analysis.
+:::
+
+::: {.nb-item}
+[A first quantum simulation — the 1D harmonic oscillator](../ch01_computational_toolbox/00b_first_quantum_simulation_harmonic_oscillator.ipynb)
+
+The second simulation, after 00a: turn the Schrödinger equation of a 1D harmonic oscillator into a matrix, diagonalise it, evolve it in time, quench the trap, and check every number against the exact analytic solution.
+:::
+
+::: {.nb-item}
+[Bright solitons — imaginary-time ground states and real-time dynamics of the nonlinear Schrödinger equation](../ch01_computational_toolbox/00c_bright_soliton_imaginary_time_nonlinear_schroedinger.ipynb)
+
+A mean-field argument turns the linear Schrödinger equation into the nonlinear Gross-Pitaevskii equation; we derive its bright-soliton solution in closed form, find it numerically by imaginary-time relaxation, and propagate it in real time with a split-step Fourier integrator — a wave packet that moves without spreading, with full error analysis and animations.
+:::
+
+::: {.nb-item}
+[Two-soliton collisions — particle-like scattering in the nonlinear Schrödinger equation](../ch01_computational_toolbox/00d_two_soliton_collisions.ipynb)
+
+Two bright solitons are launched at each other in the Gross-Pitaevskii equation; they pass through one another and re-emerge with their shapes, norms and velocities intact, leaving behind only a position shift and a phase shift that we measure and compare with the inverse-scattering prediction, and we then break integrability and watch the collisions turn inelastic.
+:::
+
+::: {.nb-item}
+[JAX from scratch — NumPy that compiles, batches and differentiates](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)
+
+The JAX foundation of the course: from NumPy to JAX (jit, vmap, scan, grad, PRNG keys, precision and honest timing), ending with a Rabi-oscillation mini-project.
+:::
+
+::: {.nb-item}
+[Index notation and einsum from scratch](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb)
+
+From sums over indices to einsum, reshape/transpose, Kronecker products, partial traces, contraction cost and programmatically built einsum strings - the array language of the whole course.
+:::
+
+::: {.nb-item}
+[A single excitation on a lattice](../lecture_notes_notebooks/49_single_excitation_on_a_lattice.ipynb)
+
+One excitation hopping on N sites, the smallest quantum problem in the course whose lattice is not an approximation to a continuum. Both solvable cases worked out in full — the ring by plane waves, giving the Bessel propagator $G_n(t) = (-i)^n J_n(2wt)$; the open chain by hard-wall standing waves, giving the sine sum. The light cone, its velocity 2w, and the Airy edge. This same N×N matrix returns later as the one-magnon sector of the XX chain and as free fermions, and it is the benchmark that validates the matrix-product-state machinery.
+:::
+

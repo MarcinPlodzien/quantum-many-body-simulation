@@ -1,0 +1,23 @@
+---
+title: "7 · Tensor networks"
+code-tools: false
+---
+
+![](../assets/thumbs/ch07.png){width=60% fig-align=center fig-alt="Tensor networks"}
+
+Matrix product states store a weakly entangled state of a long chain with memory that grows linearly in its
+length. The notebook constructs them from repeated singular value decompositions, explains canonical forms and
+truncation, and builds two-site DMRG element by element: the Hamiltonian as a matrix product operator, the
+environments, the effective Hamiltonian applied matrix-free, Lanczos as the local solver, and the sweeps.
+
+Time evolution follows with a compiled TEBD two-site update at fixed bond dimension, validated against
+state-vector evolution and then applied to quenches of chains far longer than a state vector can hold.
+
+## Notebooks in this chapter
+
+::: {.nb-item}
+[Beyond the state vector — matrix product states, DMRG and TEBD](../ch07_tensor_networks/18_mps_tebd.ipynb)
+
+Matrix product states from repeated SVDs, canonical forms and truncation, ground states by two-site DMRG built element by element (MPO, environments, effective Hamiltonian, Lanczos, sweeps), a jit-compiled TEBD two-site update with static (zero-padded) bond dimension, validation against state-vector TEBD, and quenches of 40-60 spins that no state vector can hold.
+:::
+

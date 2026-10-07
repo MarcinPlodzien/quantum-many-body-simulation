@@ -1,0 +1,7 @@
+jax>=0.4.30        # for NVIDIA GPUs:  pip install -U "jax[cuda12]"
+numpy
+scipy
+matplotlib
+jupyter
+nbformat
+nbclient

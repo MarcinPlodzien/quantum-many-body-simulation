@@ -1,0 +1,21 @@
+---
+title: "12 · Quantum reservoir computing"
+code-tools: false
+---
+
+![](../assets/thumbs/ch12.png){width=60% fig-align=center fig-alt="Quantum reservoir computing"}
+
+In quantum reservoir computing the many-body dynamics itself is left untrained: an input sequence is written into
+a spin system, the Hamiltonian evolution acts as a nonlinear feature map with fading memory, and only a linear
+readout is fitted by ridge regression. The notebook measures the memory capacity of the reservoir, applies it to
+standard benchmark tasks, and compares density-tensor and trajectory simulations under finite measurement
+statistics and decoherence.
+
+## Notebooks in this chapter
+
+::: {.nb-item}
+[Quantum reservoir computing — many-body dynamics as a machine for time series](../ch12_quantum_reservoir_computing/46_quantum_reservoir_computing.ipynb)
+
+A driven many-body spin system as a trainable machine: input encoding by qubit reset, Hamiltonian dynamics as a nonlinear feature map with fading memory, ridge-regression readout, memory capacity, NARMA and Santa Fe laser prediction, density tensor versus trajectories, finite measurement statistics and decoherence.
+:::
+

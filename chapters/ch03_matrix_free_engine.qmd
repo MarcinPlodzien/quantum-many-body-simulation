@@ -1,0 +1,42 @@
+---
+title: "3 · The matrix-free engine"
+code-tools: false
+---
+
+![](../assets/thumbs/ch03.png){width=60% fig-align=center fig-alt="The matrix-free engine"}
+
+This chapter builds the simulator used by the rest of the course. A state of $N$ spins is stored as a rank-$N$
+tensor with one index of dimension two per spin, and an operator on one or two spins acts on it through a single
+`einsum` contraction, so the $2^N\times 2^N$ matrix is never formed. The same idea gives the Hamiltonian applied to
+a state, and with it the first matrix-free time evolution of a chain of twenty spins.
+
+The following notebooks add what is needed to extract physics from such a state: expectation values, correlators
+and Pauli strings; reduced density matrices and entanglement entropies; density tensors with unitary and Kraus
+evolution for mixed states; and projective measurements with sampled bit strings and shot noise.
+
+## Notebooks in this chapter
+
+::: {.nb-item}
+[Matrix-free operators — acting on a many-body state with einsum](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb)
+
+The core lecture: one- and two-site operators act on a rank-N state tensor through einsum, the 2^N x 2^N matrix is never built; from hand-written index strings to apply_gate, matrix-free H|psi> and the first matrix-free time evolution of 20 spins.
+:::
+
+::: {.nb-item}
+[States, observables and entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb)
+
+A zoo of many-body states as tensors, reduced density matrices by einsum, correlators and Pauli strings, Schmidt decomposition, entanglement entropies, the Page value, and area law versus volume law.
+:::
+
+::: {.nb-item}
+[Density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb)
+
+Mixed states from ensembles and from entanglement, the rank-2N density tensor, unitaries and Kraus channels as single einsums, the noise-channel zoo on the Bloch sphere, GHZ states under local noise, and the stochastic unravelling of channels into pure-state trajectories.
+:::
+
+::: {.nb-item}
+[Measurements — Born rule, collapse, sampling and shot noise](../ch03_matrix_free_engine/08_measurements.ipynb)
+
+Projective measurements of single spins in any Pauli basis, jit/vmap-compatible stochastic code with explicit PRNG keys, sampling bit strings, shot-noise statistics with error bars, reset and mid-circuit measurements.
+:::
+

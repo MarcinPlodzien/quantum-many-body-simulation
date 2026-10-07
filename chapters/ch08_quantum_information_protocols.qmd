@@ -1,0 +1,54 @@
+---
+title: "8 · Quantum information protocols"
+code-tools: false
+---
+
+![](../assets/thumbs/ch08.png){width=60% fig-align=center fig-alt="Quantum information protocols"}
+
+One protocol per notebook, each derived, simulated shot by shot and then exposed to noise. Bell states and the
+CHSH inequality come first, with the local-hidden-variable and Tsirelson bounds derived. Teleportation, entanglement
+swapping and superdense coding use mid-circuit Bell measurements with classical feed-forward. GHZ states are
+prepared, certified and degraded by local noise.
+
+The last two notebooks turn to learning a state from measurements: quantum state tomography by linear inversion,
+least squares and maximum likelihood, and classical shadows, which predict many observables from randomised
+measurements without reconstructing the full density matrix.
+
+## Notebooks in this chapter
+
+::: {.nb-item}
+[Bell states and the CHSH inequality — from entanglement to a measured violation](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb)
+
+The four Bell states and the circuit that makes them, their correlations and maximally mixed marginals, a full derivation of the local-hidden-variable bound |S| <= 2 and of Tsirelson's bound 2*sqrt(2), a simulated shot-by-shot CHSH experiment with error bars, and the fate of the violation under white noise, dephasing and imperfect detectors.
+:::
+
+::: {.nb-item}
+[Quantum teleportation — no-cloning, Bell measurement and classical feed-forward](../ch08_quantum_information_protocols/20_quantum_teleportation.ipynb)
+
+A complete derivation and simulation of quantum teleportation: the no-cloning theorem with proof, the Bell-basis algebra of the protocol, a jit/vmap-compatible mid-circuit measurement with classical feed-forward, uniform outcome statistics and no-signalling, the classical 2/3 benchmark derived from a Haar-averaging identity, teleportation through a noisy Bell pair on the density tensor and via trajectories, and the deferred-measurement circuit.
+:::
+
+::: {.nb-item}
+[Entanglement swapping and superdense coding](../ch08_quantum_information_protocols/21_entanglement_swapping_and_superdense_coding.ipynb)
+
+Two protocols that turn entanglement into a resource: swapping entanglement between particles that never met (with the complete four-qubit algebra, mid-circuit Bell measurement, feed-forward, noisy Werner links and the repeater chain), and sending two classical bits down one qubit, with decoding statistics, the Holevo bound, and the rate and capacity of a noisy shared pair.
+:::
+
+::: {.nb-item}
+[GHZ states and decoherence — genuine multipartite entanglement and its fragility](../ch08_quantum_information_protocols/22_ghz_states_and_decoherence.ipynb)
+
+Building N-qubit GHZ states with a CNOT cascade and with a log-depth tree, certifying them through stabilisers, parity oscillations and the fidelity witness, and then watching local dephasing, depolarising and amplitude damping destroy them — analytically, on the density tensor, and with quantum trajectories up to twelve qubits.
+:::
+
+::: {.nb-item}
+[Quantum state tomography — linear inversion, least squares and maximum likelihood](../ch08_quantum_information_protocols/23_quantum_state_tomography.ipynb)
+
+How to reconstruct an unknown density matrix from measured click statistics: the Pauli/Bloch linear model and its design matrix, ordinary and weighted least squares with error propagation, the unphysical-estimate problem and its projection fix, the RρR and gradient-based maximum-likelihood estimators, and an honest accuracy-versus-shots assessment up to four qubits.
+:::
+
+::: {.nb-item}
+[Classical shadows — tomography without the $4^N$ wall](../ch08_quantum_information_protocols/24_classical_shadows.ipynb)
+
+Randomised measurements turned into an unbiased classical description of a quantum state: the measurement channel and its inverse derived for random Pauli bases and for global Clifford ensembles, the single-snapshot estimator and its variance (the shadow norm), median of means, and many observables — correlators, an energy, a fidelity, a reconstructed density matrix — predicted from one data set.
+:::
+

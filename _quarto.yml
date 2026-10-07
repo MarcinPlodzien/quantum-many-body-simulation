@@ -1,0 +1,240 @@
+project:
+  type: website
+  output-dir: _site
+  render:
+    - index.qmd
+    - engine.qmd
+    - "chapters/*.qmd"
+    - "ch*/*.ipynb"
+    - "lecture_notes_notebooks/*.ipynb"
+
+execute:
+  enabled: false   # use the outputs stored in the notebooks; rebuild them with tools/build_nb.py
+
+website:
+  title: "Quantum Many-Body Simulation"
+  site-url: "https://marcinplodzien.github.io/quantum-many-body-simulation/"
+  repo-url: "https://github.com/MarcinPlodzien/quantum-many-body-simulation"
+  description: "Self-study lecture notes on simulating quantum many-body systems with a matrix-free JAX engine."
+  page-navigation: true
+  navbar:
+    background: primary
+    search: true
+    pinned: true
+    left:
+      - text: "Start here"
+        href: index.qmd
+      - text: "Chapters"
+        menu:
+          - text: "1 · Computational toolbox"
+            href: chapters/ch01_computational_toolbox.qmd
+          - text: "2 · Quantum many-body spin systems: the textbook way"
+            href: chapters/ch02_spin_systems_textbook_way.qmd
+          - text: "3 · The matrix-free engine"
+            href: chapters/ch03_matrix_free_engine.qmd
+          - text: "4 · Digital quantum circuits"
+            href: chapters/ch04_digital_quantum_circuits.qmd
+          - text: "5 · Ground states and unitary dynamics"
+            href: chapters/ch05_ground_states_and_unitary_dynamics.qmd
+          - text: "6 · Open quantum systems"
+            href: chapters/ch06_open_quantum_systems.qmd
+          - text: "7 · Tensor networks"
+            href: chapters/ch07_tensor_networks.qmd
+          - text: "8 · Quantum information protocols"
+            href: chapters/ch08_quantum_information_protocols.qmd
+          - text: "9 · Entanglement and complexity diagnostics"
+            href: chapters/ch09_entanglement_and_complexity.qmd
+          - text: "10 · Quantum metrology protocols"
+            href: chapters/ch10_quantum_metrology_protocols.qmd
+          - text: "11 · Variational quantum circuits"
+            href: chapters/ch11_variational_quantum_circuits.qmd
+          - text: "12 · Quantum reservoir computing"
+            href: chapters/ch12_quantum_reservoir_computing.qmd
+          - text: "13 · Quantum phase transitions"
+            href: chapters/ch13_quantum_phase_transitions.qmd
+      - text: "The engine"
+        href: engine.qmd
+    right:
+      - icon: github
+        href: "https://github.com/MarcinPlodzien"
+        aria-label: GitHub
+      - icon: house
+        href: "http://chaos.if.uj.edu.pl/ZOA/marcinplodzien"
+        aria-label: Homepage
+  sidebar:
+    logo: assets/qusml_logo.svg
+    style: floating
+    search: true
+    collapse-level: 1
+    contents:
+      - text: "Start here"
+        href: index.qmd
+      - section: "1 · Computational toolbox"
+        href: chapters/ch01_computational_toolbox.qmd
+        contents:
+          - href: ch01_computational_toolbox/00a_free_particle_gaussian_wave_packet.ipynb
+            text: "A first quantum simulation — a free Gaussian wave packet on a ring"
+          - href: ch01_computational_toolbox/00b_first_quantum_simulation_harmonic_oscillator.ipynb
+            text: "A first quantum simulation — the 1D harmonic oscillator"
+          - href: ch01_computational_toolbox/00c_bright_soliton_imaginary_time_nonlinear_schroedinger.ipynb
+            text: "Bright solitons — imaginary-time ground states and real-time dynamics of the nonlinear Schrödinger equation"
+          - href: ch01_computational_toolbox/00d_two_soliton_collisions.ipynb
+            text: "Two-soliton collisions — particle-like scattering in the nonlinear Schrödinger equation"
+          - href: ch01_computational_toolbox/01_jax_from_scratch.ipynb
+            text: "JAX from scratch — NumPy that compiles, batches and differentiates"
+          - href: ch01_computational_toolbox/02_einsum_from_scratch.ipynb
+            text: "Index notation and einsum from scratch"
+          - href: lecture_notes_notebooks/49_single_excitation_on_a_lattice.ipynb
+            text: "A single excitation on a lattice"
+      - section: "2 · Quantum many-body spin systems: the textbook way"
+        href: chapters/ch02_spin_systems_textbook_way.qmd
+        contents:
+          - href: ch02_spin_systems_textbook_way/03_quantum_many_body_spin_systems.ipynb
+            text: "Quantum many-body spin systems — the textbook (dense-matrix) way"
+          - href: ch02_spin_systems_textbook_way/04_time_evolution_the_textbook_way.ipynb
+            text: "Time evolution the textbook way — propagators, ODE solvers and Trotterization"
+      - section: "3 · The matrix-free engine"
+        href: chapters/ch03_matrix_free_engine.qmd
+        contents:
+          - href: ch03_matrix_free_engine/05_matrix_free_operators.ipynb
+            text: "Matrix-free operators — acting on a many-body state with einsum"
+          - href: ch03_matrix_free_engine/06_states_observables_entanglement.ipynb
+            text: "States, observables and entanglement"
+          - href: ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb
+            text: "Density matrices and quantum channels"
+          - href: ch03_matrix_free_engine/08_measurements.ipynb
+            text: "Measurements — Born rule, collapse, sampling and shot noise"
+      - section: "4 · Digital quantum circuits"
+        href: chapters/ch04_digital_quantum_circuits.qmd
+        contents:
+          - href: ch04_digital_quantum_circuits/09_quantum_gates_and_circuits.ipynb
+            text: "Quantum gates and circuits — the digital viewpoint"
+          - href: ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb
+            text: "Random unitaries and random circuits"
+      - section: "5 · Ground states and unitary dynamics"
+        href: chapters/ch05_ground_states_and_unitary_dynamics.qmd
+        contents:
+          - href: ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb
+            text: "Hamiltonians and ground states — from the power method to Lanczos"
+          - href: ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb
+            text: "Time evolution I — TEBD: Trotter–Suzuki evolution of a state vector"
+          - href: ch05_ground_states_and_unitary_dynamics/13_chebyshev_propagation.ipynb
+            text: "Time evolution II — Chebyshev propagation"
+          - href: ch05_ground_states_and_unitary_dynamics/14_krylov_and_integrator_comparison.ipynb
+            text: "Time evolution III — Krylov propagation and the integrator shoot-out"
+          - href: ch05_ground_states_and_unitary_dynamics/15_quench_dynamics_spin_chains.ipynb
+            text: "Quench dynamics in spin chains — light cones, entanglement growth, relaxation"
+      - section: "6 · Open quantum systems"
+        href: chapters/ch06_open_quantum_systems.qmd
+        contents:
+          - href: ch06_open_quantum_systems/16_lindblad_master_equation.ipynb
+            text: "Open quantum systems I — the Lindblad master equation on a density tensor"
+          - href: ch06_open_quantum_systems/17_monte_carlo_wave_function.ipynb
+            text: "Open quantum systems II — quantum trajectories (Monte-Carlo wave function)"
+      - section: "7 · Tensor networks"
+        href: chapters/ch07_tensor_networks.qmd
+        contents:
+          - href: ch07_tensor_networks/18_mps_tebd.ipynb
+            text: "Beyond the state vector — matrix product states, DMRG and TEBD"
+      - section: "8 · Quantum information protocols"
+        href: chapters/ch08_quantum_information_protocols.qmd
+        contents:
+          - href: ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb
+            text: "Bell states and the CHSH inequality — from entanglement to a measured violation"
+          - href: ch08_quantum_information_protocols/20_quantum_teleportation.ipynb
+            text: "Quantum teleportation — no-cloning, Bell measurement and classical feed-forward"
+          - href: ch08_quantum_information_protocols/21_entanglement_swapping_and_superdense_coding.ipynb
+            text: "Entanglement swapping and superdense coding"
+          - href: ch08_quantum_information_protocols/22_ghz_states_and_decoherence.ipynb
+            text: "GHZ states and decoherence — genuine multipartite entanglement and its fragility"
+          - href: ch08_quantum_information_protocols/23_quantum_state_tomography.ipynb
+            text: "Quantum state tomography — linear inversion, least squares and maximum likelihood"
+          - href: ch08_quantum_information_protocols/24_classical_shadows.ipynb
+            text: "Classical shadows — tomography without the $4^N$ wall"
+      - section: "9 · Entanglement and complexity diagnostics"
+        href: chapters/ch09_entanglement_and_complexity.qmd
+        contents:
+          - href: ch09_entanglement_and_complexity/25_entanglement_negativity.ipynb
+            text: "Entanglement negativity"
+          - href: ch09_entanglement_and_complexity/26_many_body_bell_correlators.ipynb
+            text: "Many-body Bell correlators"
+          - href: ch09_entanglement_and_complexity/27_stabilizer_renyi_entropy.ipynb
+            text: "Stabilizer Renyi entropy: measuring the magic of a quantum state"
+          - href: ch09_entanglement_and_complexity/28_quantum_circuit_complexity.ipynb
+            text: "Quantum circuit complexity — entanglement, magic and spectral statistics of random circuits"
+          - href: lecture_notes_notebooks/48_quantifying_entanglement.ipynb
+            text: "Quantifying entanglement of quantum states"
+      - section: "10 · Quantum metrology protocols"
+        href: chapters/ch10_quantum_metrology_protocols.qmd
+        contents:
+          - href: ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb
+            text: "Quantum Fisher information — how precisely can a quantum state measure a parameter?"
+          - href: ch10_quantum_metrology_protocols/30_qfi_from_the_sld_prepare_encode_estimate.ipynb
+            text: "QFI from the symmetric logarithmic derivative — prepare, encode, estimate"
+          - href: ch10_quantum_metrology_protocols/31_ramsey_interferometry.ipynb
+            text: "Ramsey interferometry — the standard quantum limit, simulated end to end"
+          - href: ch10_quantum_metrology_protocols/32_ghz_interferometry_heisenberg_limit.ipynb
+            text: "GHZ interferometry and the Heisenberg limit — gain, ambiguity, fragility"
+          - href: ch10_quantum_metrology_protocols/33_spin_squeezing_one_axis_twisting.ipynb
+            text: "Spin squeezing by one-axis twisting"
+          - href: ch10_quantum_metrology_protocols/34_oat_to_ghz_full_metrology_protocol.ipynb
+            text: "From one-axis twisting to GHZ — the full metrology protocol"
+          - href: ch10_quantum_metrology_protocols/35_oat_plus_haar_scrambling.ipynb
+            text: "Scrambling a metrological probe — entanglement is necessary but not sufficient"
+          - href: ch10_quantum_metrology_protocols/36_qfi_with_classical_shadows.ipynb
+            text: "Measuring the quantum Fisher information with classical shadows"
+          - href: ch10_quantum_metrology_protocols/37_qfi_particle_loss_and_magic.ipynb
+            text: "Particle loss, magic and encoded probes — what survives when qubits go missing?"
+          - href: ch10_quantum_metrology_protocols/38_scramblers_and_qfi.ipynb
+            text: "Scramblers and the locking of metrological information — analog, digital, and the Haar limit"
+          - href: ch10_quantum_metrology_protocols/39_qfi_spreading_in_spin_chains.ipynb
+            text: "The spreading of metrological usefulness — quantum Fisher information in quenched spin chains"
+      - section: "11 · Variational quantum circuits"
+        href: chapters/ch11_variational_quantum_circuits.qmd
+        contents:
+          - href: ch11_variational_quantum_circuits/40_parametrized_gates_and_gradients.ipynb
+            text: "Parametrized gates and gradients — differentiating a quantum circuit four ways"
+          - href: ch11_variational_quantum_circuits/41_optimizers.ipynb
+            text: "Optimisers for variational circuits — from the update equation to a measured benchmark"
+          - href: ch11_variational_quantum_circuits/42_variational_quantum_eigensolver.ipynb
+            text: "The variational quantum eigensolver — ground states of spin chains from a trained circuit"
+          - href: ch11_variational_quantum_circuits/43_vqe_with_classical_shadows.ipynb
+            text: "VQE with classical shadows — the measurement cost of a variational algorithm"
+          - href: ch11_variational_quantum_circuits/44_noisy_variational_circuits.ipynb
+            text: "Noisy variational circuits — landscapes, plateaus, training and error mitigation"
+          - href: ch11_variational_quantum_circuits/45_quantum_autoencoder.ipynb
+            text: "The quantum autoencoder — compressing quantum data with a variational circuit"
+      - section: "12 · Quantum reservoir computing"
+        href: chapters/ch12_quantum_reservoir_computing.qmd
+        contents:
+          - href: ch12_quantum_reservoir_computing/46_quantum_reservoir_computing.ipynb
+            text: "Quantum reservoir computing — many-body dynamics as a machine for time series"
+      - section: "13 · Quantum phase transitions"
+        href: chapters/ch13_quantum_phase_transitions.qmd
+        contents:
+          - href: ch13_quantum_phase_transitions/47_quantum_phase_transitions.ipynb
+            text: "Quantum phase transitions — mapping a phase diagram from finite chains"
+      - text: "The engine"
+        href: engine.qmd
+  page-footer:
+    border: true
+    left: "© 2026 Marcin Płodzień · Institute of Theoretical Physics, Jagiellonian University"
+    right: >-
+      [Homepage](http://chaos.if.uj.edu.pl/ZOA/marcinplodzien) · [Email](mailto:mplodzien@gmail.com) · [ORCID](https://orcid.org/0000-0002-0835-1644) · [Scholar](https://scholar.google.com/citations?user=eC9nCmgAAAAJ&hl=en) · [GitHub](https://github.com/MarcinPlodzien) · [Scopus](https://www.scopus.com/authid/detail.uri?authorId=55031869100) · [WoS](https://www.webofscience.com/wos/author/record/K-7326-2017)
+
+format:
+  html:
+    theme:
+      light: [cosmo, assets/qusml.scss]
+      dark: [darkly, assets/qusml-dark.scss]
+    toc: true
+    toc-depth: 3
+    number-sections: false
+    code-fold: show
+    code-tools: true
+    code-copy: true
+    code-overflow: wrap
+    highlight-style: github
+    html-math-method: mathjax
+    grid:
+      sidebar-width: 340px
