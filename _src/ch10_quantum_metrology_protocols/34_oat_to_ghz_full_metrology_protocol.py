@@ -27,7 +27,7 @@
 #
 # **Road map.**
 #
-# * **Section 4.** The cat state, derived exactly. $e^{-i\frac{\pi}{2}J_z^2}$ multiplies the amplitude of every
+# * **Section 4.** The cat state at $\mu=\pi/2$ in closed form. $e^{-i\frac{\pi}{2}J_z^2}$ multiplies the amplitude of every
 #   $J_z$ eigenvalue $m$ by $e^{-i\frac{\pi}{2}m^2}$. For even $N$, $m$ is an integer and $e^{-i\frac{\pi}{2}m^2}$ takes
 #   only two values, which recombine into the identity and the parity operator — producing a cat along $\hat x$. For odd
 #   $N$, $m$ is a half-integer, the phase has period $4$ in $m$, and the cat comes out along $\hat y$. Both results are
@@ -35,8 +35,10 @@
 # * **Section 5.** The evolution implemented twice — diagonal phases and a circuit of commuting $ZZ$ gates — and shown
 #   identical, as in notebook 33.
 # * **Section 6.** The $3\times3$ QFI matrix evaluated at every twisting angle: its largest eigenvalue is $F_Q^{\max}(\mu)$
-#   and its eigenvector is the axis of the cat. We identify four features — $F_Q=N$ at $\mu=0$, the squeezing growth
-#   $\approx N/\xi_R^2$, a plateau near $N^2/2$, and $F_Q=N^2$ at $\mu=\pi/2$ — and measure how each scales with $N$.
+#   and its eigenvector is the axis of the cat. We identify four features — $F_Q=N$ at $\mu=0$, the squeezing regime,
+#   where $F_Q$ lies above the Wineland bound $N/\xi_R^2$ by the factor $V_{\min}V_{\max}/(\vert\langle\mathbf J\rangle\vert^2/4)$
+#   of notebook 33, Eq. (26a) ($1.19$–$1.26$ at the optimum for $N=6$–$16$, tending to $3/2$), a plateau near $N^2/2$,
+#   and $F_Q=N^2$ at $\mu=\pi/2$ — and measure how each scales with $N$.
 # * **Section 7.** At $\mu=\pi/q$ the state is a superposition of $q$ coherent states. Husimi-$Q$ maps for
 #   $q=2,3,4,5,6,8$.
 # * **Section 8.** The readout. Encoding with the optimal generator and measuring the parity $\prod_qZ_q$ gives a fringe
@@ -48,6 +50,12 @@
 #   $F_Q=N^2(1-2p)^{2N}$ under dephasing in the cat basis; why the axis of the noise relative to the cat matters; and the
 #   optimal stopping time, which under the noise strengths studied here lies in the squeezing regime, well before the cat.
 # * **Section 12.** A final comparison of the four protocols of this chapter at equal $N$.
+# * **Section 13.** The readouts actually used. The classical Fisher information of spin counting and of parity along
+#   the whole evolution, compared with $F_Q$ at the same state: where each readout saturates the bound and where it
+#   falls short.
+# * **Section 14.** The interaction-based (echo) readout: twist, encode, un-twist, measure $J_x$. It reaches $F_Q$ at
+#   every twisting angle in the noiseless limit, and at the cat time it keeps that value under detection noise that
+#   destroys the parity signal.
 #
 # ### What you will learn
 #
@@ -58,7 +66,9 @@
 #   direction in which the state is "large";
 # * why a multi-component cat gives $F_Q\approx N^2/2$ rather than $N^2$;
 # * why the Heisenberg-limited state is exponentially fragile — the decoherence rate of an $N$-body coherence is $N$
-#   times the single-qubit rate — and what the optimal compromise looks like.
+#   times the single-qubit rate — and what the optimal compromise looks like;
+# * how much of $F_Q$ the readouts actually used (spin counting, parity, the interaction-based echo) capture, and why
+#   un-twisting before the measurement protects the cat's signal against detection errors.
 #
 # *Numerical methods*
 # * Gauss sums and the finite Fourier analysis of $e^{-i\frac{\pi}{2}m^2}$, checked by state fidelity;
@@ -69,7 +79,7 @@
 # *Implementation practice*
 # * `jax.jit` on a whole noisy evolution step; static channel/qubit structure and traced parameters;
 # * reusing derived functions across notebooks instead of re-deriving them;
-# * honest budget management: pure states to $N=16$, density tensors to $N=6$.
+# * working within a time budget: pure states to $N=16$, density tensors to $N=6$.
 #
 # ### Prerequisites
 # * [29 — quantum Fisher information](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb):
@@ -93,7 +103,7 @@
 # From the engine: the state constructors, `apply_gate` and `apply_kraus_dm`, the two-qubit rotation `rzz`, the Kraus
 # channels, `spin_moments`, `spin_squeezing`, `collective_dense`, `qfi_mixed`, `oat_evolve` and `sample_bitstrings`.
 # The symmetric-logarithmic-derivative routines of notebook 30 and the Husimi-$Q$ machinery of notebook 33 are
-# re-created below, so this notebook stands alone.
+# re-created below.
 
 # %%
 #@engine: apply_gate, apply_kraus_dm, to_dm, dm_matrix, product_state, ghz_state, rzz, I2, X, Y, Z, spin_moments, spin_squeezing, collective_dense, qfi_mixed, oat_evolve, sample_bitstrings, kraus_dephasing, kraus_bit_flip, kraus_depolarizing, kraus_amplitude_damping, purity
@@ -211,7 +221,7 @@ print("helpers ready")
 # Section 4 turns this counting argument into an exact identity.
 
 # %% [markdown]
-# ## 4. The cat state at $\mu=\pi/2$, derived
+# ## 4. The cat state at $\mu=\pi/2$
 #
 # ### 4.1 Even $N$: a cat along $\hat x$
 #
@@ -290,7 +300,7 @@ print("helpers ready")
 # Same structure, different axis: for odd $N$ the cat lies along $\hat y$, rotated by $90^\circ$ from the even case. The
 # reason is the half-integer spectrum — the same reason a spin-$1/2$ needs a $4\pi$ rotation to return to itself.
 #
-# ### 4.3 Verification
+# ### 4.3 Fidelity and global phase of Eqs. (3) and (5)
 #
 # Equations (3) and (5) are exact statements about a specific state vector. We check them by fidelity,
 # $F=\vert\langle\psi_{\rm predicted}\vert\psi_{\rm simulated}\rangle\vert^2$, which must be $1$ to machine precision —
@@ -344,7 +354,7 @@ for N in range(4, 12):
 # > entanglement involves all $N$ qubits but is *of the simplest possible kind*: the two branches are orthogonal product
 # > states on both sides of any cut, so the state has Schmidt rank $2$ with equal weights across every bipartition, i.e.
 # > exactly one bit of entanglement entropy — far below the $\min(N_A,N_B)$ bits a cut allows — while carrying $F_Q=N^2$. Metrological usefulness is not
-# > entanglement entropy (notebook 29, Section 12).
+# > entanglement entropy (notebook 29, Section 13).
 
 # %% [markdown]
 # ## 5. The same state from a circuit of commuting $ZZ$ gates
@@ -499,12 +509,17 @@ for N in N_GROW:
     vals = np.array([[float(x) for x in track_step(N, float(m))[::2]] for m in grid])   # (F_Q, xi_R^2)
     mu_star = refine_argmin(grid, vals[:, 1])            # best Wineland squeezing, refined
     F_star, xi_star = (float(x) for x in track_step(N, mu_star)[::2])
-    rows_grow.append((N, mu_star, xi_star, F_star, N / xi_star))
+    # notebook 33, Eq. (26a): F_Q / (N/xi_R^2) = V_min V_max / (|<J>|^2/4), from the transverse (y,z) covariance block
+    mean_s, cov_s = spin_moments(oat_evolve(product_state("+" * N), mu_star))
+    v_min, v_max = (float(x) for x in jnp.linalg.eigvalsh(cov_s[1:, 1:]))
+    excess = v_min * v_max / (float(jnp.linalg.norm(mean_s)) ** 2 / 4)
+    rows_grow.append((N, mu_star, xi_star, F_star, N / xi_star, excess))
 print(f"{'N':>4s} | {'mu_opt':>8s} {'xi_R^2':>9s} {'F_Q at mu_opt':>14s} {'N/xi_R^2':>10s} "
-      f"{'F/N':>8s} {'F/N^2':>8s}")
-for N, m, x, F, b in rows_grow:
-    print(f"{N:4d} | {m:8.5f} {x:9.5f} {F:14.4f} {b:10.4f} {F / N:8.4f} {F / N ** 2:8.4f}")
+      f"{'F/N':>8s} {'F/N^2':>8s} | {'F_Q xi_R^2/N':>13s} {'Eq.(26a) of nb 33':>18s}")
+for N, m, x, F, b, ex in rows_grow:
+    print(f"{N:4d} | {m:8.5f} {x:9.5f} {F:14.4f} {b:10.4f} {F / N:8.4f} {F / N ** 2:8.4f} | {F / b:13.6f} {ex:18.6f}")
     assert F >= b * (1 - 1e-8)                      # F_Q >= N/xi_R^2 (quantum Cramer-Rao bound, notebook 33)
+    assert abs(F / b - ex) < 1e-8 * ex              # the gap is exactly the uncertainty-product excess
 Ng = np.array([r[0] for r in rows_grow], dtype=float)
 sl_F = np.polyfit(np.log(Ng), np.log([r[3] for r in rows_grow]), 1)[0]
 sl_b = np.polyfit(np.log(Ng), np.log([r[4] for r in rows_grow]), 1)[0]
@@ -585,7 +600,10 @@ fig.tight_layout(); plt.show()
 #   slow $N^{-1/3}$ corrections of Section 6.2. The quantity $N/\xi_R^2$ at the same twisting angle has the smaller
 #   fitted exponent $1.607$, with local slopes rising from $1.56$ to $1.65$. The bound $F_Q\ge N/\xi_R^2$ is respected
 #   at every size (the cell asserts it) and is not tight even at the Wineland optimum: the two columns differ by $19\%$
-#   at $N=6$ and by $26\%$ at $N=16$, on their way to the asymptotic ratio $3/2$ derived in Section 6.2.
+#   at $N=6$ and by $26\%$ at $N=16$, on their way to the asymptotic ratio $3/2$ derived in Section 6.2. The last two
+#   columns of the table show where the gap comes from: the ratio $F_Q\xi_R^2/N$ equals the excess
+#   $V_{\min}V_{\max}/(\vert\langle\mathbf J\rangle\vert^2/4)$ of the transverse uncertainty product over its minimum,
+#   notebook 33, Eq. (26a), and the cell asserts the identity to $10^{-8}$ at every size.
 #
 # > **Numerical practice.** "Read the eigenvector as well as the eigenvalue." The $3\times3$ QFI matrix costs three
 # > applications of a collective operator, and it answers two questions at once: *how good* the state is and *what to do
@@ -909,7 +927,7 @@ fig.tight_layout(); plt.show()
 # extrema of the fringe, where $\cos^2(N\theta)=0$ and the readout carries no information at all (the dashed curve on
 # the right axis is flat at $1$ and drops vertically to $0$ at $\theta=\pm\pi/(2N)$). The drop occurs at a single point,
 # where one outcome has probability exactly $0$, the score is undefined, and $I$ need not equal the limit of its
-# neighbours — the irregular model of notebook 29, Section 5.2. The table confirms it: $I=100.000$
+# neighbours — the irregular model of notebook 29, Section 4.7. The table confirms it: $I=100.000$
 # at $\theta=0$, $0.0393$ and $0.0785$, and $0$ at $\theta=\pi/(2N)$. At the working point $I/F_Q=1.00000000$ — the
 # parity measurement is *exactly* optimal, with no need to build the SLD basis.
 #
@@ -1383,15 +1401,33 @@ for N in (3, 4, 5, 6):
     # w still holds the g = 0.10 spectrum: its second eigenvalue belongs to a generator PERPENDICULAR to the cat axis
     print(f"{N:4d} | " + " ".join(f"{v:10.4f}" for v in vals) + f" | {N ** 2:6d} {N:4d} | {float(w[-2]):23.4f}")
 
-print("\nratio F_Q(g)/F_Q(0), the exponential fit  F_Q/N^2 = exp(-kappa N),  and kappa from Eq. (14):")
+print("\nratio F_Q(g)/F_Q(0), the exponential fit  F_Q/N^2 = exp(-kappa N),  and kappa from Eq. (14a):")
 for j, g in enumerate((0.02, 0.05, 0.10)):
     r = np.array([row[1][j + 1] / row[1][0] for row in frag_rows])
     Nv = np.array([row[0] for row in frag_rows], dtype=float)
     kappa = -np.polyfit(Nv, np.log(r), 1)[0]
     kappa_th = -np.log((1 - 4 * g / 3) ** 2 / (1 - 2 * g / 3))
     print(f"   gamma = {g:.2f}:  ratios " + " ".join(f"{x:.4f}" for x in r)
-          + f"   ->  decay exp(-{kappa:.4f} N) per qubit;   Eq. (14): kappa = {kappa_th:.4f}")
+          + f"   ->  decay exp(-{kappa:.4f} N) per qubit;   Eq. (14a): kappa = {kappa_th:.4f}")
     assert abs(kappa - kappa_th) < 0.02 * kappa_th
+
+
+def depol_cat_exact(N, g):
+    """Eq. (14): F_Q(J_cat)/N^2 = (1-4g/3)^(2N) / [ (1-2g/3)^N + (2g/3)^N ]  (exact, every N and g)."""
+    return (1 - 4 * g / 3) ** (2 * N) / ((1 - 2 * g / 3) ** N + (2 * g / 3) ** N)
+
+
+print("\nEq. (14) (exact) and the geometric law Eq. (14a) against the computed F_Q^max / N^2:")
+print(f"{'N':>4s} {'gamma':>6s} | {'F_Q/N^2 computed':>17s} {'Eq. (14)':>12s} {'|diff|':>9s} | "
+      f"{'Eq. (14a)':>12s} {'rel. diff':>10s} {'[2g/(3-2g)]^N':>14s}")
+for N, vals in frag_rows:
+    for j, g in enumerate((0.02, 0.05, 0.10)):
+        Fn = vals[j + 1] / N ** 2
+        ex, geo = depol_cat_exact(N, g), ((1 - 4 * g / 3) ** 2 / (1 - 2 * g / 3)) ** N
+        print(f"{N:4d} {g:6.2f} | {Fn:17.12f} {ex:12.9f} {abs(Fn - ex):9.1e} | {geo:12.9f} "
+              f"{(geo - Fn) / Fn:10.2e} {(2 * g / (3 - 2 * g)) ** N:14.2e}")
+        assert abs(Fn - ex) < 1e-10                                 # Eq. (14) is exact
+        assert abs((geo - Fn) / Fn - (2 * g / (3 - 2 * g)) ** N) < 1e-8   # Eq. (14a) misses exactly this term
 
 # %% [markdown]
 # The ratio $F_Q(\gamma)/F_Q(0)$ at the cat time falls geometrically with $N$: each additional qubit multiplies the
@@ -1399,14 +1435,30 @@ for j, g in enumerate((0.02, 0.05, 0.10)):
 # $x$-cat, a depolarising $X$ error (probability $\gamma/3$) flips the relative sign of the branches, a $Z$ error
 # ($\gamma/3$) moves the cat onto another pair of strings, and a $Y\propto ZX$ error ($\gamma/3$) does both. Once a qubit
 # has suffered a $Y$ or a $Z$ error, the two equally likely signs cancel the coherence of that pair completely, so only
-# the strings with no $Y$ or $Z$ error, of total probability $(1-\tfrac{2\gamma}{3})^N$, contribute. Among those, each
-# qubit carries an $X$ error with conditional probability $\tfrac{\gamma/3}{1-2\gamma/3}$, so the coherence is
-# $\big[(1-\tfrac{4\gamma}{3})/(1-\tfrac{2\gamma}{3})\big]^N$, and, up to the complementary-set corrections of Eq. (13),
+# the strings with no $Y$ or $Z$ error contribute to the coherence. Per qubit the error-free and the $X$ terms add with
+# opposite signs, so the coherence between the two branches is multiplied by exactly $1-\tfrac{4\gamma}{3}$ per qubit,
+# i.e. by $(1-\tfrac{4\gamma}{3})^N$ in total. The *population* of the original pair has two parts: the strings with no
+# $Y$ or $Z$ error, probability $(1-\tfrac{2\gamma}{3})^N$, and the strings in which *every* qubit has a $Y$ or a $Z$
+# error, probability $(\tfrac{2\gamma}{3})^N$, which move the pair onto itself with the branches exchanged (this is the
+# complementary set $S^c=$ all qubits of Section 10.2). The second part carries no net coherence, because its $Y$ and
+# $Z$ contributions cancel qubit by qubit. All other strings land on other pairs, carry no coherence there, and do not
+# contribute, since $J_{\mathbf n_{\rm cat}}$ is diagonal in the cat basis. The two-level formula $F_Q=N^2C^2/t$ of
+# notebook 32, Eq. (16a), with coherence $C=(1-\tfrac{4\gamma}{3})^N$ and pair weight $t$, then gives the exact result
 #
-# $$\frac{F_Q(J_{\mathbf n_{\rm cat}})}{N^2}=\left[\frac{(1-\tfrac{4\gamma}{3})^2}{1-\tfrac{2\gamma}{3}}\right]^N
-#   \equiv e^{-\kappa N}. \tag{14}$$
+# $$\frac{F_Q(J_{\mathbf n_{\rm cat}})}{N^2}
+#   =\frac{(1-\tfrac{4\gamma}{3})^{2N}}{(1-\tfrac{2\gamma}{3})^N+(\tfrac{2\gamma}{3})^N}. \tag{14}$$
 #
-# This is the $(1-2p)^{2N}$ of Eq. (12) with the depolarising error budget. It gives $\kappa=0.0406$, $0.1041$, $0.2172$
+# The depolarising channel is isotropic, so the same expression holds for the $x$-cat of this notebook and the $z$-cat of
+# notebook 32. Dropping the second term of the denominator gives the geometric law
+#
+# $$\frac{F_Q(J_{\mathbf n_{\rm cat}})}{N^2}\simeq\left[\frac{(1-\tfrac{4\gamma}{3})^2}{1-\tfrac{2\gamma}{3}}\right]^N
+#   \equiv e^{-\kappa N}, \tag{14a}$$
+#
+# which overestimates Eq. (14) by the relative amount $\big[2\gamma/(3-2\gamma)\big]^N$. Equation (14a) is therefore exact
+# only at $\gamma=0$ and is otherwise an asymptotic law, accurate to $3.7\times10^{-4}$ or better for all entries of
+# the table ($N\ge3$, $\gamma\le0.1$); the second table confirms Eq. (14) to machine precision and resolves the
+# deviation of Eq. (14a) at exactly the predicted size. Equation (14a) is the $(1-2p)^{2N}$ of Eq. (12) with the
+# depolarising error budget. It gives $\kappa=0.0406$, $0.1041$, $0.2172$
 # for $\gamma=0.02$, $0.05$, $0.10$, and the fits to the four sizes reproduce these values (the cell asserts agreement to
 # $2\%$). At $5\%$ depolarising noise the cat retains $73\%$ of its ideal $F_Q$ at $N=3$ and $54\%$ at $N=6$; at $10\%$
 # the per-qubit factor is $e^{-0.217}=0.80$ and only $27\%$ survives at $N=6$.
@@ -1414,7 +1466,7 @@ for j, g in enumerate((0.02, 0.05, 0.10)):
 # The exponential law describes the cat axis only. The last column is the second eigenvalue of the QFI matrix at
 # $\gamma=0.10$, which belongs to a generator perpendicular to the cat axis; there the two branches act as two
 # depolarised coherent spin states, and the value grows linearly, $4.50$ at $N=6$, close to $N(1-\tfrac{4\gamma}{3})^2=0.751N$
-# (the Bloch vector of every qubit shrinks by $1-\tfrac{4\gamma}{3}$). Extrapolating Eq. (14) to $N=30$ at $\gamma=0.1$ leaves
+# (the Bloch vector of every qubit shrinks by $1-\tfrac{4\gamma}{3}$). Extrapolating Eq. (14a) to $N=30$ at $\gamma=0.1$ leaves
 # $F_Q\approx900\,e^{-0.217\times30}\approx1.3$ along the cat axis, while the perpendicular direction offers about
 # $0.75\times30\approx22$; the two cross near $N\approx13$. Beyond that size the best this state offers is a degraded
 # standard-quantum-limit measurement: the Heisenberg advantage of the cat is gone entirely.
@@ -1541,7 +1593,621 @@ fig.tight_layout(); plt.show()
 # > entanglement-enhanced atom interferometers use spin-squeezed states.
 
 # %% [markdown]
-# ## 13. Key takeaways
+# ## 13. The readouts actually used: classical Fisher information versus $F_Q$
+#
+# Every number of Sections 6–12 is a quantum Fisher information, a bound over *all* measurements. An experiment performs
+# one particular measurement, and what it achieves is the classical Fisher information of that measurement's outcome
+# distribution. This section computes it for the two readouts available in a spin ensemble, counting and parity, along
+# the whole twisting evolution, and compares it with $F_Q$ of the same state.
+#
+# ### 13.1 Fisher information of a projective measurement
+#
+# A projective measurement $\{P_x\}$ of the encoded state $\rho_\theta=e^{-i\theta G}\rho\,e^{i\theta G}$ produces the
+# outcome $x$ with probability $p_x(\theta)=\mathrm{Tr}(P_x\rho_\theta)$. The information that one outcome carries about
+# $\theta$ is the score $\partial_\theta\ln p_x$, and the classical Fisher information is its mean square
+# (notebook 29, Eq. (13)):
+#
+# $$F_C(\theta)=\sum_xp_x\left(\frac{\partial_\theta p_x}{p_x}\right)^2=\sum_{x:\,p_x>0}\frac{(\partial_\theta p_x)^2}{p_x}. \tag{15}$$
+#
+# Only the probabilities and their derivatives enter. The code obtains $\partial_\theta p_x$ exactly with `jax.jacfwd`,
+# through the whole chain encode $\to$ rotate $\to$ $\vert\psi\vert^2$, which is what `classical_fisher` of Step 6 does.
+# The Braunstein–Caves inequality, proved in notebook 29, Section 5.3, states $F_C\le F_Q$ for every measurement. We
+# test it below on every readout and on random measurements.
+#
+# A second inequality organises the comparison between readouts. Suppose the recorded outcome $y=f(x)$ is a function of a
+# finer outcome $x$ (the parity is a function of the count, a thresholded count is a function of the count). Then
+# $p_y=\sum_{x\in y}p_x$, and by the Cauchy–Schwarz inequality
+# $(\sum_{x\in y}\partial p_x)^2=(\sum_{x\in y}\sqrt{p_x}\,\partial p_x/\sqrt{p_x})^2\le p_y\sum_{x\in y}(\partial p_x)^2/p_x$,
+# so that
+#
+# $$F_C[\,y\,]=\sum_y\frac{(\partial_\theta p_y)^2}{p_y}\;\le\;\sum_x\frac{(\partial_\theta p_x)^2}{p_x}=F_C[\,x\,]. \tag{16}$$
+#
+# Discarding information about the outcome can only lose Fisher information. In particular, the parity measured along an
+# axis $\mathbf s$ can never beat full spin counting along the same axis at the same phase.
+#
+# ### 13.2 The two readouts
+#
+# For a measurement axis $\mathbf s$, *spin counting* records the number $k$ of spins found in the $-1$ eigenstate of
+# $\mathbf s\cdot\boldsymbol\sigma$, i.e. $J_{\mathbf s}=N/2-k$; in the laboratory it is a collective rotation carrying
+# $\mathbf s$ to $\hat z$ followed by the ordinary population measurement. The *parity* along $\mathbf s$ is
+# $\Pi_{\mathbf s}=\prod_q(\mathbf s\cdot\boldsymbol\sigma)_q=(-1)^k$, the readout of Section 8 for $\mathbf s=\hat z$.
+# The encoding uses the optimal generator $G=\mathbf n_{\rm opt}\cdot\mathbf J$ of Section 6, and $\mathbf s$ is taken on
+# the circle perpendicular to $\mathbf n_{\rm opt}$ (measuring along $\mathbf n_{\rm opt}$ itself gives $F_C=0$,
+# because the distribution of $G$ does not depend on $\theta$).
+#
+# **Parity along the mean spin as $\theta\to0$.** Before the eigenvalue crossing of Section 6 ($\mu\lesssim0.30\pi$) the optimal
+# generator is transverse, $G=n_yJ_y+n_zJ_z$. Take the parity along the mean spin, $\Pi_x=\prod_qX_q$. Two facts hold
+# exactly: $\Pi_x$ commutes with $J_z^2$ and leaves $\vert+x\rangle^{\otimes N}$ invariant, so $\Pi_x\vert\psi(\mu)\rangle=\vert\psi(\mu)\rangle$;
+# and $\Pi_x$ anticommutes with every transverse generator, $\Pi_xG\Pi_x=-G$, so $\Pi_xe^{-i\theta G}=e^{+i\theta G}\Pi_x$.
+# Then $\langle\Pi_x\rangle_\theta=\langle\psi\vert e^{i\theta G}\Pi_xe^{-i\theta G}\vert\psi\rangle=\langle\psi\vert e^{2i\theta G}\vert\psi\rangle$,
+# and the same symmetry gives $\langle G\rangle=0$. Expanding to second order,
+#
+# $$p(\Pi_x=-1)=\frac{1-\langle\Pi_x\rangle_\theta}{2}=\theta^2\langle G^2\rangle+O(\theta^4),\qquad
+#   F_C=\frac{(\partial_\theta p_-)^2}{p_-(1-p_-)}\;\xrightarrow[\theta\to0]{}\;4\langle G^2\rangle=4\,\mathrm{Var}(G)=F_Q. \tag{17}$$
+#
+# (The $O(\theta^3)$ term vanishes because $\langle\Pi_x\rangle$ is real.) So the parity along the mean spin saturates the
+# quantum Fisher information of every state of the squeezing side of the evolution, but only in the limit $\theta\to0$,
+# where the informative outcome $\Pi_x=-1$ becomes rare. After the crossing the optimal generator is $J_x$, which
+# *commutes* with $\Pi_x$, and the same readout carries no information at all. At the cat the parity along $\hat z$ takes
+# over (Section 8). Counting along $\hat x$ is a refinement of $\Pi_x$ (the parity is $(-1)^k$), so by Eq. (16) it also
+# reaches $F_Q$ as $\theta\to0$ before the crossing.
+#
+# The derivation of Eq. (17) does not use the parity of $N$; the crossing does. The crossing, and with it everything said
+# below about the region after it, belongs to even $N$, the case computed here ($N=8$). For odd $N$ the cat lies along
+# $\hat y$ (Section 4.2), the optimal generator stays transverse all the way to $\mu=\pi/2$, there is no crossing, and
+# Eq. (17) applies at every twisting angle: setting `N_RD = 7` in Step 13 gives $F_C(\Pi_x)/F_Q=1$ at all $41$ angles,
+# the cat included.
+#
+# ### 13.3 Counting and parity along the twisting evolution at $N=8$
+#
+# For $N=8$ and $41$ twisting angles from $0$ to $\pi/2$ the cell computes $F_Q$ and $\mathbf n_{\rm opt}$, and then
+# the classical Fisher information of: spin counting along the best axis of the perpendicular circle (a $7.5^\circ$ grid)
+# at the best working point in $\vert\theta\vert\le\pi/N$ ($17$ phases); parity along the best axis, on the same grid;
+# parity along the mean spin $\hat x$ at $\theta=10^{-3}$ (Eq. 17); and parity along $\hat z$, the readout of Section 8.
+# The checks are Eq. (16) at every grid point, $F_C\le F_Q$ for every readout, Eq. (17) before the crossing and $F_C=0$
+# for $\Pi_x$ after it. As the deliberately non-optimal control we measure $20$ random *product* bases at each of five
+# states (each qubit along its own random axis, all $2^N$ outcomes kept): they must stay below $F_Q$. A test that cannot
+# fail proves nothing, so the cell also checks that the same comparison against a wrongly normalised bound, $\mathrm{Var}(G)$
+# instead of $4\mathrm{Var}(G)$, is violated.
+
+# %%
+# ==============================================================================
+# STEP 13: classical Fisher information of counting and parity along the OAT evolution
+# ==============================================================================
+# PARAMETERS ------------------------------------------------------------------
+N_RD     = 8                                         # qubits (2^8 = 256 amplitudes)
+MU_RD    = np.linspace(0.0, np.pi / 2, 41)           # twisting angles
+BETA_RD  = np.linspace(0.0, np.pi, 25)[:-1]          # measurement axis on the circle perpendicular to n_opt
+THETA_RD = np.linspace(-np.pi / N_RD, np.pi / N_RD, 17)   # working points
+TH_SMALL = 1e-3                                      # "theta -> 0" for Eq. (17) and the echo of Section 14
+N_RANDOM = 20                                        # random product bases per control state
+# -----------------------------------------------------------------------------
+_W_RD = jnp.asarray(np.eye(N_RD + 1)[[bin(i).count("1") for i in range(2 ** N_RD)]])   # basis index -> k (one-hot)
+_PAR_K = jnp.asarray((-1.0) ** np.arange(N_RD + 1))                                  # parity (-1)^k
+X_AXIS, Z_AXIS = jnp.array([1.0, 0.0, 0.0]), jnp.array([0.0, 0.0, 1.0])
+
+
+def axis_to_z(s):
+    """(angle, axis) of the rotation that carries the unit vector s onto +z.
+
+    MATH   rotate about s x z by the angle arccos(s_z); for s = -z any perpendicular axis works (x is used).
+    """
+    s = jnp.asarray(s, dtype=RDTYPE)
+    ax = jnp.cross(s, Z_AXIS)
+    nrm = jnp.linalg.norm(ax)
+    ax = jnp.where(nrm > 1e-12, ax / jnp.where(nrm > 1e-12, nrm, 1.0), X_AXIS)
+    return jnp.arccos(jnp.clip(s[2], -1.0, 1.0)), ax
+
+
+def count_probs(psi, s):
+    """Spin counting along s: p(k) = probability that k spins are found in the -1 eigenstate of s.sigma.
+
+    MATH   rotate s -> z collectively, then p(k) = sum_{basis states with k ones} |psi|^2  (one matrix-vector product).
+    """
+    ang, ax = axis_to_z(s)
+    return (jnp.abs(collective_rotation(psi, ang, ax).reshape(-1)) ** 2) @ _W_RD
+
+
+def parity_probs_k(p):
+    """Coarse-grain a count distribution p(k) into the parity (-1)^k: [p(+1), p(-1)]."""
+    pe = jnp.sum(jnp.where(_PAR_K > 0, p, 0.0))
+    return jnp.stack([pe, 1.0 - pe])
+
+
+def perp_circle(n, betas):
+    """Unit vectors cos(b) a + sin(b) c on the great circle perpendicular to n."""
+    n = np.asarray(n, dtype=float)
+    a = np.cross(n, [0.0, 0.0, 1.0]) if abs(n[2]) < 0.9 else np.cross(n, [1.0, 0.0, 0.0])
+    a /= np.linalg.norm(a)
+    c = np.cross(n, a)
+    return jnp.asarray(np.cos(betas)[:, None] * a + np.sin(betas)[:, None] * c)
+
+
+@jax.jit
+def fisher_grids(psi, n, S, thetas):
+    """F_C of counting and of parity on the grid (axis S[i], working point thetas[j]); both share the same p(k)."""
+    def one(s, th):
+        cnt = lambda t: count_probs(collective_rotation(psi, t, n), s)
+        return classical_fisher(cnt, th), classical_fisher(lambda t: parity_probs_k(cnt(t)), th)
+    return jax.vmap(jax.vmap(one, in_axes=(None, 0)), in_axes=(0, None))(S, thetas)
+
+
+@jax.jit
+def fisher_parity_axis(psi, n, s, theta):
+    """F_C of the parity along a FIXED axis s at the phase theta."""
+    return classical_fisher(lambda t: parity_probs_k(count_probs(collective_rotation(psi, t, n), s)), theta)
+
+
+@jax.jit
+def fisher_echo(psi, n, mu, theta):
+    """Echo readout of Section 14: encode, un-twist with exp(+i mu J_z^2), count along x (J_x)."""
+    return classical_fisher(lambda t: count_probs(oat_evolve(collective_rotation(psi, t, n), -mu), X_AXIS), theta)
+
+
+def local_basis_probs(psi, S):
+    """All 2^N outcome probabilities when qubit q is measured along its own axis S[q] (a product basis)."""
+    for q in range(psi.ndim):
+        ang, ax = axis_to_z(S[q])
+        U = jnp.cos(ang / 2) * I2 - 1j * jnp.sin(ang / 2) * pauli_direction(ax)
+        psi = apply_gate(psi, U, [q])
+    return jnp.abs(psi.reshape(-1)) ** 2
+
+
+@jax.jit
+def fisher_product_basis(psi, n, S, theta):
+    return classical_fisher(lambda t: local_basis_probs(collective_rotation(psi, t, n), S), theta)
+
+
+t0 = time.time()
+rd = {key: [] for key in ("FQ", "nx", "count", "parity", "parity_x", "parity_z", "echo", "gen")}
+psi_rd0 = product_state("+" * N_RD)
+thetas_rd = jnp.asarray(THETA_RD)
+for mu in MU_RD:
+    psi = oat_evolve(psi_rd0, float(mu))
+    F, n = optimal_direction(psi)
+    F = float(F)
+    fc, fp = (np.array(a) for a in fisher_grids(psi, n, perp_circle(n, BETA_RD), thetas_rd))
+    assert np.all(fp <= fc + 1e-9 * F)                         # Eq. (16): parity is a coarse-graining of the count
+    f_pz = max(float(fisher_parity_axis(psi, n, Z_AXIS, float(t))) for t in THETA_RD)
+    vals = dict(FQ=F, nx=abs(float(n[0])), count=fc.max(), parity=fp.max(),
+                parity_x=float(fisher_parity_axis(psi, n, X_AXIS, TH_SMALL)), parity_z=f_pz,
+                echo=float(fisher_echo(psi, n, float(mu), TH_SMALL)),
+                gen=float(classical_fisher(lambda t: count_probs(collective_rotation(psi, t, n), n), 0.3)))
+    for key, v in vals.items():
+        rd[key].append(v)
+rd = {key: np.array(v) for key, v in rd.items()}
+print(f"(41 twisting angles x {len(BETA_RD)} axes x {len(THETA_RD)} phases, N = {N_RD}, "
+      f"in {time.time() - t0:.1f} s)\n")
+
+print(f"{'mu':>7s} {'mu/pi':>6s} {'F_Q':>8s} | {'count, best':>11s} {'parity, best':>13s} "
+      f"{'Pi_x, th->0':>12s} {'Pi_z (Sec. 8)':>14s} {'echo J_x':>9s}   (all as F_C / F_Q)")
+for i in range(0, len(MU_RD), 4):
+    F = rd["FQ"][i]
+    print(f"{MU_RD[i]:7.4f} {MU_RD[i] / np.pi:6.3f} {F:8.3f} | {rd['count'][i] / F:11.5f} "
+          f"{rd['parity'][i] / F:13.5f} {rd['parity_x'][i] / F:12.5f} {rd['parity_z'][i] / F:14.5f} "
+          f"{rd['echo'][i] / F:9.5f}")
+
+before = rd["nx"] < 1e-6                     # optimal generator transverse (before the crossing)
+after = rd["nx"] > 1 - 1e-6                  # optimal generator = J_x (after the crossing)
+assert np.all(before | after)                # the x block decouples: one of the two always holds
+ratios = {key: rd[key] / rd["FQ"] for key in ("count", "parity", "parity_x", "parity_z", "echo")}
+for key, r in ratios.items():
+    assert np.all(r <= 1 + 1e-9), key        # Braunstein-Caves: F_C <= F_Q for every readout
+assert np.all(np.abs(ratios["parity_x"][before] - 1) < 1e-4)   # Eq. (17)
+assert np.all(ratios["parity_x"][after] < 1e-8)                # Pi_x commutes with J_x: no information
+assert np.all(np.abs(ratios["echo"] - 1) < 1e-4)               # Eq. (18) of Section 14
+assert np.all(rd["gen"] < 1e-10 * rd["FQ"])                     # counting along the generator: F_C = 0
+assert abs(rd["parity_z"][-1] - N_RD ** 2) < 1e-6 * N_RD ** 2   # Section 8 at the cat
+mu_cross = MU_RD[np.argmax(after)] if after.any() else None    # odd N: no crossing (cat along y)
+if mu_cross is None:
+    print(f"\noptimal generator transverse at all {len(MU_RD)} angles: no eigenvalue crossing (odd N)")
+else:
+    print(f"\noptimal generator transverse for mu <= {MU_RD[before].max() / np.pi:.3f} pi, along x from "
+          f"mu = {mu_cross / np.pi:.3f} pi")
+print(f"before the crossing: max |F_C(Pi_x, theta=1e-3)/F_Q - 1| = {np.max(np.abs(ratios['parity_x'][before] - 1)):.1e}"
+      + (f";  after: max F_C(Pi_x)/F_Q = {np.max(ratios['parity_x'][after]):.1e}" if after.any() else ""))
+print(f"before the crossing: best-axis counting >= {ratios['count'][before].min():.5f}, best-axis parity in "
+      f"[{ratios['parity'][before].min():.5f}, {ratios['parity'][before].max():.5f}], "
+      f"parity Pi_z <= {ratios['parity_z'][before].max():.4f}")
+print(f"best-axis counting: min F_C/F_Q over the evolution = {ratios['count'].min():.4f} "
+      f"at mu/pi = {MU_RD[np.argmin(ratios['count'])] / np.pi:.3f}")
+if after.any():
+    print(f"best-axis parity  : min F_C/F_Q after the crossing = {ratios['parity'][after].min():.4f} "
+          f"at mu/pi = {MU_RD[after][np.argmin(ratios['parity'][after])] / np.pi:.3f}")
+print(f"echo J_x at theta = 1e-3: max |F_C/F_Q - 1| = {np.max(np.abs(ratios['echo'] - 1)):.1e}")
+
+# --- CONTROL: random product bases (deliberately non-optimal) must stay below F_Q ---------------
+print(f"\nrandom product bases ({N_RANDOM} per state, random phase in |theta| < pi/N):")
+key_rd = jax.random.PRNGKey(34)
+worst_ratio = 0.0
+for i in (0, 8, 16, 28, 40):
+    psi = oat_evolve(psi_rd0, float(MU_RD[i]))
+    F, n = optimal_direction(psi)
+    k1, k2, key_rd = jax.random.split(key_rd, 3)
+    axes_r = jax.random.normal(k1, (N_RANDOM, N_RD, 3))
+    axes_r = axes_r / jnp.linalg.norm(axes_r, axis=-1, keepdims=True)
+    ths = jax.random.uniform(k2, (N_RANDOM,), minval=-np.pi / N_RD, maxval=np.pi / N_RD)
+    fr = np.array([float(fisher_product_basis(psi, n, axes_r[j], ths[j])) for j in range(N_RANDOM)])
+    worst_ratio = max(worst_ratio, float(fr.max() / F))
+    print(f"   mu/pi = {MU_RD[i] / np.pi:5.3f}  F_Q = {float(F):7.3f}   F_C/F_Q: mean {fr.mean() / float(F):.3f}, "
+          f"max {fr.max() / float(F):.3f}")
+    assert np.all(fr <= float(F) * (1 + 1e-9))
+# --- WRONG CONTROL: the same test against a wrongly normalised bound, Var(G) = F_Q/4, must fail ----
+violations = int(np.sum(rd["parity_z"] > rd["FQ"] / 4 * (1 + 1e-9)) + np.sum(rd["count"] > rd["FQ"] / 4 * (1 + 1e-9)))
+print(f"largest F_C/F_Q over all random product bases: {worst_ratio:.3f}  (<= 1, as required)")
+print(f"wrong control: comparing with Var(G) instead of 4 Var(G) flags {violations} of {2 * len(MU_RD)} "
+      f"readout values as violations -> the test can fail")
+assert violations > 0
+
+# %%
+# ==============================================================================
+# FIGURE: which readout reaches F_Q where
+# ==============================================================================
+fig, ax = plt.subplots(figsize=(8.6, 4.2))
+x = MU_RD / np.pi
+ax.plot(x, ratios["count"], "o-", color=PALETTE[0], ms=4, lw=1.6, label=r"spin counting, best axis $\perp\mathbf{n}_{\rm opt}$ and phase")
+ax.plot(x, ratios["parity"], "s-", color=PALETTE[1], ms=4, lw=1.4, label=r"parity, best axis $\perp\mathbf{n}_{\rm opt}$ and phase")
+ax.plot(x, ratios["parity_x"], "^--", color=PALETTE[2], ms=4, lw=1.2,
+        label=r"parity $\Pi_x$ along the mean spin, $\theta\to0$ (Eq. 17)")
+ax.plot(x, ratios["parity_z"], "D:", color=PALETTE[3], ms=4, lw=1.2, label=r"parity $\Pi_z$ (Section 8), best phase")
+ax.plot(x, ratios["echo"], "-", color=PALETTE[5], lw=2.2, alpha=0.6, label=r"echo, $J_x$ after un-twisting (Section 14)")
+if mu_cross is not None:                     # even N only
+    ax.axvline(mu_cross / np.pi, color="0.6", ls=":", lw=1.0)
+    ax.text(mu_cross / np.pi + 0.005, 0.08, "eigenvalue crossing", fontsize=8, color="0.35")
+ax.set_xlabel(r"$\mu/\pi$"); ax.set_ylabel(r"$F_C/F_Q$"); ax.set_ylim(-0.03, 1.08)
+ax.set_title(f"Classical Fisher information of each readout relative to $F_Q$ ($N={N_RD}$, no detection noise)")
+ax.legend(fontsize=7.5, loc="lower left")
+fig.tight_layout(); plt.show()
+
+# %% [markdown]
+# The table and the figure separate the evolution into three regions, with the eigenvalue crossing at
+# $\mu\approx0.31\pi$ (transverse optimal generator up to $0.300\pi$, $J_x$ from the next grid point, $0.3125\pi$).
+#
+# * **Squeezing side, $\mu\le0.30\pi$.** Every readout except $\Pi_z$ is essentially optimal. The parity along the mean
+#   spin reaches $F_C/F_Q=1$ to $6\times10^{-6}$ at $\theta=10^{-3}$, as Eq. (17) requires, from the coherent state
+#   ($F_Q=8$) through the squeezed states to the edge of the plateau ($F_Q=36.1$ at $\mu=0.30\pi$). On the finite phase
+#   grid, whose smallest non-zero $\vert\theta\vert$ is $\pi/(8N)$, the best-axis parity stays at $0.998$–$0.999$, and best-axis
+#   counting is at least $0.9997$; both shortfalls are set by the grid, since $\Pi_x$, and by Eq. (16) counting along
+#   $\hat x$, reach $F_Q$ as $\theta\to0$. The parity along $\hat z$, the readout that is optimal at the cat, captures at most
+#   $35\%$ of $F_Q$ here.
+# * **Plateau, $0.31\pi\lesssim\mu<\pi/2$.** The optimal generator is now $J_x$, which commutes with $\Pi_x$, and the
+#   mean-spin parity carries no information ($F_C/F_Q<10^{-30}$). Among the axes of the perpendicular circle, just after
+#   the crossing a tilted axis gives the best parity, and from $\mu\approx0.35\pi$ on it is the parity along $\hat z$;
+#   the best parity on the grid falls to $0.373$ of $F_Q$ at $\mu=0.338\pi$ and is $0.377$ at $0.35\pi$. These two
+#   numbers belong to the restricted search: parity axes with a component along $\mathbf n_{\rm opt}$ and phases outside
+#   $\vert\theta\vert\le\pi/N$ were not searched and can do better. Counting along the best axis does
+#   much better but no longer saturates the bound: its minimum on the grid is $0.963$ at $\mu=0.425\pi$. The
+#   multi-component states of Section 7 spread their information over many outcomes and many directions, and a single
+#   axis captures most but not all of it.
+# * **Cat, $\mu=\pi/2$.** Parity along $\hat z$ and counting both give $F_C=N^2=F_Q$, the result of Section 8.
+#
+# Equation (16) holds at every one of the $41\times24\times17$ grid points, and $F_C\le F_Q$ holds for every readout. The
+# random product bases are far from optimal (mean $F_C/F_Q$ between $0.07$ and $0.52$, largest single value $0.744$, at
+# the coherent state) and all stay below $F_Q$, while the same comparison against the wrongly normalised bound
+# $\mathrm{Var}(G)$ flags $62$ of the $82$ readout values, so the test has the power to fail. Counting along the
+# generator itself gives $F_C=0$ (asserted).
+#
+# The purple line along $F_C/F_Q=1$ (partly hidden under the others before the crossing) is the echo readout of the
+# next section. It is the only readout in the figure that reaches $F_Q$ at
+# every twisting angle, but like $\Pi_x$ it does so in the limit $\theta\to0$. The next section shows when this limit
+# survives detection noise.
+
+# %% [markdown]
+# ## 14. Interaction-based readout: the echo
+#
+# ### 14.1 The echo protocol and its Fisher information as $\theta\to0$
+#
+# Section 13 found readouts that saturate $F_Q$, among them $\Pi_x$ at $\theta\to0$, which relies on the rare outcome
+# $\Pi_x=-1$, and $\Pi_z$ at the cat, a product over all $N$ spins. The interaction-based readout uses the twisting a second time: after the
+# encoding, the interaction is applied with the opposite sign, which undoes the entangling step, and the spins are then
+# counted along the direction of the initial coherent state,
+#
+# $$\vert+x\rangle^{\otimes N}\;\xrightarrow{\;U_\mu\;}\;\vert\psi\rangle\;\xrightarrow{\;e^{-i\theta G}\;}\;
+#   \xrightarrow{\;U_\mu^\dagger\;}\;\vert\phi_\theta\rangle=U_\mu^\dagger e^{-i\theta G}U_\mu\vert+x\rangle^{\otimes N}
+#   =e^{-i\theta\tilde G}\vert+x\rangle^{\otimes N},\qquad \tilde G=U_\mu^\dagger GU_\mu ,$$
+#
+# with $U_\mu=e^{-i\mu J_z^2}$ and a measurement of $J_x$, i.e. of the number $k$ of spins found in $\vert-x\rangle$.
+# Echo protocols of this kind were proposed by Davis, Bentsen and Schleier-Smith (2016), whose abstract states that the
+# one-axis-twisting interaction "can also amplify the output signal of an entanglement-enhanced interferometer to
+# facilitate readout", and by Macrì, Smerzi and Pezzè (2016), who show that a Loschmidt echo extracts the quantum Fisher
+# information of arbitrary pure states and is stable against detection errors. Colombo *et al.* (2022) realised the
+# reversal experimentally by changing the sign of an optically engineered interaction in an ensemble of $350$
+# ${}^{171}$Yb atoms.
+#
+# The outcome $k=0$ means that the state has returned to $\vert+x\rangle^{\otimes N}$. Its probability is a fidelity,
+# and the same expansion as in Eq. (17) gives
+# $p_0(\theta)=\vert\langle+x\vert^{\otimes N}e^{-i\theta\tilde G}\vert+x\rangle^{\otimes N}\vert^2
+# =1-\theta^2\,\mathrm{Var}_{+x}(\tilde G)+O(\theta^4)$, with $\mathrm{Var}_{+x}(\tilde G)=\mathrm{Var}_\psi(G)=F_Q/4$.
+# The two-outcome readout "returned / not returned" has Fisher information
+# $(\partial_\theta p_0)^2/[p_0(1-p_0)]\to(\theta F_Q/2)^2/(\theta^2F_Q/4)=F_Q$. Counting $k$ is a refinement of that
+# readout, so by Eq. (16) its Fisher information is at least as large, and by the Braunstein–Caves inequality it is at
+# most $F_Q$. Hence
+#
+# $$\lim_{\theta\to0}F_C^{\rm echo}(\theta)=F_Q(\mu)\qquad\text{for every twisting angle }\mu. \tag{18}$$
+#
+# Step 13 confirmed Eq. (18) at all $41$ angles (the purple curve of the last figure). At the cat time more is true. For
+# even $N$, $U_{\pi/2}$ maps $\mathrm{span}\{\vert+x\rangle^{\otimes N},\vert-x\rangle^{\otimes N}\}$ into itself: by
+# Eq. (3), $U\vert+x\rangle^{\otimes N}=\alpha\vert+x\rangle^{\otimes N}+\beta\vert-x\rangle^{\otimes N}$ with
+# $\alpha=e^{-i\pi/4}/\sqrt2$, $\beta=(-1)^{N/2}e^{i\pi/4}/\sqrt2$, and since $\prod_qZ_q$ commutes with $U$ and swaps the
+# two product states, $U\vert-x\rangle^{\otimes N}=\alpha\vert-x\rangle^{\otimes N}+\beta\vert+x\rangle^{\otimes N}$. The
+# encoding $e^{-i\theta J_x}$ multiplies the two branches by $e^{\mp iN\theta/2}$, and the amplitude of
+# $\vert+x\rangle^{\otimes N}$ after $U^\dagger$ is $\vert\alpha\vert^2e^{-iN\theta/2}+\vert\beta\vert^2e^{iN\theta/2}=\cos(N\theta/2)$. The
+# echo therefore produces only $k=0$ or $k=N$,
+#
+# $$p_0=\cos^2\frac{N\theta}{2},\qquad p_N=\sin^2\frac{N\theta}{2},\qquad
+#   F_C^{\rm echo}=\frac{(\partial_\theta p_0)^2}{p_0p_N}=N^2\quad(\theta\ne0\bmod\pi/N). \tag{19}$$
+#
+# The derivation uses the even-$N$ propagator of Eq. (3). For odd $N$ the cat lies along $\hat y$ and the generator is
+# $J_y$; the same two-outcome result holds numerically: with `N_RD = 7` the checks at the start of Step 14 (only $k=0$
+# and $k=N$ occur, $p_0=\cos^2(N\theta/2)$) pass unchanged.
+#
+# ### 14.2 Detection noise
+#
+# Model the detector as misreading each spin independently with probability $\epsilon$. A true count $k$ is then recorded
+# as $k-j+l$, with $j\sim\mathrm{Bin}(k,\epsilon)$ of the $k$ spins found in the $-1$ state misread and $l\sim\mathrm{Bin}(N-k,\epsilon)$
+# of the others, so the recorded distribution is $\tilde p=Tp$ with
+#
+# $$T_{k'k}=\sum_{j,l\,:\,k-j+l=k'}\binom kj\binom{N-k}{l}\epsilon^{j+l}(1-\epsilon)^{N-j-l}. \tag{20}$$
+#
+# The effect on an observable depends on its weight. A single-spin outcome $\sigma=\pm1$ is recorded with mean
+# $(1-2\epsilon)\sigma$, and independent misreads multiply, so the mean of a product of $w$ single-spin outcomes is
+# multiplied by $(1-2\epsilon)^w$. The parity has weight $N$: its visibility in Eq. (7) becomes
+# $\mathcal A=(1-2\epsilon)^N$, and the best Fisher information over the phase is
+#
+# $$F_C^{\rm parity}=N^2(1-2\epsilon)^{2N}. \tag{21}$$
+#
+# For the echo at the cat, the two noiseless outcomes $k=0$ and $k=N$ become the two binomial distributions
+# $a_k=\mathrm{Bin}(k;N,\epsilon)$ and $b_k=a_{N-k}$, and $\tilde p_k=p_0a_k+p_Nb_k$. Writing $m_k=p_0a_k+p_Nb_k$ and
+# using $a_k-b_k=(a_k-m_k)/p_N=(m_k-b_k)/p_0$, a two-line rearrangement of Eq. (15) gives the exact result
+#
+# $$F_C^{\rm echo}=\frac{(\partial_\theta p_0)^2}{p_0p_N}\Big[1-\sum_k\frac{a_kb_k}{p_0a_k+p_Nb_k}\Big]
+#   =N^2\Big[1-\sum_k\frac{a_kb_k}{p_0a_k+p_Nb_k}\Big], \tag{22}$$
+#
+# and since $p_0a_k+p_Nb_k\ge2\sqrt{p_0p_Na_kb_k}$, the loss is bounded by the overlap of the two binomials,
+#
+# $$1-\frac{F_C^{\rm echo}}{N^2}\;\le\;\frac{\sum_k\sqrt{a_kb_k}}{2\sqrt{p_0p_N}}
+#   =\frac{\big[2\sqrt{\epsilon(1-\epsilon)}\big]^N}{2\sqrt{p_0p_N}}
+#   \;\overset{p_0=p_N=1/2}{=}\;\big[4\epsilon(1-\epsilon)\big]^{N/2}. \tag{23}$$
+#
+# This is the mechanism of the robustness. Un-twisting moves the phase information from the relative phase of two
+# branches, readable only through a weight-$N$ observable, into the *sign* of the collective spin $J_x$, i.e. into the
+# populations of two outcomes that differ by $N$ spin flips. A misread spin changes the parity, but it changes $k$ by
+# one, and confusing $k=0$ with $k=N$ needs about $N/2$ misreads. Equation (21) decays like $(1-2\epsilon)^{2N}$;
+# the loss in Eq. (23) is of order $\epsilon^{N/2}$.
+#
+# At every twisting angle the noiseless echo has $p_k(0)=0$ for $k\ge1$ and $p_0(0)=1$, so every $p_k(\theta)$ is
+# extremal at $\theta=0$ and $\partial_\theta p_k(0)=0$. With $\epsilon>0$ every
+# recorded probability $\tilde p_k(0)=T_{k0}$ is positive while every derivative still vanishes, hence
+#
+# $$F_C^{\rm echo}(\theta)\;=\;O(\theta^2)\;\xrightarrow[\theta\to0]{}\;0\qquad(\epsilon>0). \tag{24}$$
+#
+# At the cat this costs nothing, because the fringe of Eq. (19) offers the mid-fringe working point, where the two
+# outcomes are $N$ misreads apart. For $\mu<\pi/2$ the limit of Eq. (18) is lost, the working point must move to a
+# finite $\theta$, and there the signal populates small $k$, one or two misreads away from the background. Step 14
+# measures how much survives.
+
+# %%
+# ==============================================================================
+# STEP 14: the echo readout with detection noise, against parity and direct counting
+# ==============================================================================
+# PARAMETERS ------------------------------------------------------------------
+EPS_RD   = np.linspace(0.0, 0.15, 16)                 # probability of misreading one spin
+MU_MID   = 0.3                                        # an intermediate twisting angle
+TH_ECHO_CAT = np.linspace(0.0, np.pi / N_RD, 65)[1:-1]     # working points inside one echo fringe (mid point included)
+TH_PAR_CAT  = np.linspace(-np.pi / (2 * N_RD), np.pi / (2 * N_RD), 33)   # parity: zero crossing included
+TH_ECHO_MID = np.linspace(TH_SMALL, np.pi / 2, 160)
+# -----------------------------------------------------------------------------
+
+
+def detection_matrix(N, eps):
+    """T[k', k] of Eq. (20): probability to record k' when k spins are truly in |1>."""
+    T = np.zeros((N + 1, N + 1))
+    for k in range(N + 1):
+        for j in range(k + 1):
+            for l in range(N - k + 1):
+                T[k - j + l, k] += (math.comb(k, j) * math.comb(N - k, l)
+                                    * eps ** (j + l) * (1 - eps) ** (N - j - l))
+    return jnp.asarray(T)
+
+
+@jax.jit
+def noisy_fisher_echo(psi, n, mu, T, thetas):
+    f = lambda th: classical_fisher(
+        lambda t: T @ count_probs(oat_evolve(collective_rotation(psi, t, n), -mu), X_AXIS), th)
+    return jax.vmap(f)(thetas)
+
+
+@jax.jit
+def noisy_fisher_grids(psi, n, S, T, thetas):
+    """Counting and parity with detection noise, on the (axis, phase) grid of Step 13."""
+    def one(s, th):
+        cnt = lambda t: T @ count_probs(collective_rotation(psi, t, n), s)
+        return classical_fisher(cnt, th), classical_fisher(lambda t: parity_probs_k(cnt(t)), th)
+    return jax.vmap(jax.vmap(one, in_axes=(None, 0)), in_axes=(0, None))(S, thetas)
+
+
+# --- the cat: two-level structure of the echo, Eq. (19) --------------------------------------
+psi_c = oat_evolve(psi_rd0, np.pi / 2)
+F_c, n_c = optimal_direction(psi_c)
+for th in (0.05, np.pi / (2 * N_RD), 0.3):
+    p = count_probs(oat_evolve(collective_rotation(psi_c, th, n_c), -np.pi / 2), X_AXIS)
+    assert float(jnp.sum(p[1:N_RD])) < 1e4 * TOL                       # only k = 0 and k = N occur
+    assert abs(float(p[0]) - np.cos(N_RD * th / 2) ** 2) < 1e4 * TOL     # p_0 = cos^2(N theta / 2)
+print(f"cat, N = {N_RD}: echo populates only k = 0 and k = N, with p_0 = cos^2(N theta/2)  (checked at 3 phases)\n")
+
+psi_m = oat_evolve(psi_rd0, MU_MID)
+F_m, n_m = optimal_direction(psi_m)
+S_m = perp_circle(n_m, BETA_RD)
+t0 = time.time()
+rows_eps = []
+for eps in EPS_RD:
+    T = detection_matrix(N_RD, float(eps))
+    # cat: parity (Section 8 readout) and echo
+    f_par = max(float(classical_fisher(lambda t: parity_probs_k(T @ count_probs(collective_rotation(psi_c, t, n_c),
+                                                                                    Z_AXIS)), float(th)))
+                for th in TH_PAR_CAT)
+    fe_c = np.array(noisy_fisher_echo(psi_c, n_c, np.pi / 2, T, jnp.asarray(TH_ECHO_CAT)))
+    # Eq. (22) at mid-fringe (p_0 = p_N = 1/2), and the bound Eq. (23)
+    a = np.array([math.comb(N_RD, k) * eps ** k * (1 - eps) ** (N_RD - k) for k in range(N_RD + 1)])
+    eq22 = N_RD ** 2 * (1 - np.sum(np.where(a + a[::-1] > 0, a * a[::-1] / np.where(a + a[::-1] > 0, 0.5 * (a + a[::-1]), 1.0), 0.0)))
+    f_mid = fe_c[len(TH_ECHO_CAT) // 2]
+    # intermediate twisting angle: echo (best phase and theta -> 0), direct counting and parity (best axis and phase)
+    fe_m = np.array(noisy_fisher_echo(psi_m, n_m, MU_MID, T, jnp.asarray(TH_ECHO_MID)))
+    fcm, fpm = (np.array(x) for x in noisy_fisher_grids(psi_m, n_m, S_m, T, thetas_rd))
+    rows_eps.append(dict(eps=float(eps), par_c=f_par, eq21=N_RD ** 2 * (1 - 2 * eps) ** (2 * N_RD),
+                         echo_c=fe_c.max(), echo_mid=f_mid, eq22=eq22,
+                         bound=N_RD ** 2 * (1 - (4 * eps * (1 - eps)) ** (N_RD / 2)),
+                         echo_m=fe_m.max(), th_m=float(TH_ECHO_MID[np.argmax(fe_m)]), echo_m0=float(fe_m[0]),
+                         echo_m_pin=fe_m[TH_ECHO_MID <= np.pi / N_RD].max(),
+                         count_m=fcm.max(), par_m=fpm.max()))
+print(f"(detection-noise scan: {len(EPS_RD)} values of epsilon in {time.time() - t0:.1f} s)\n")
+
+print(f"cat (mu = pi/2), N = {N_RD}, F_Q = {float(F_c):.3f}")
+print(f"{'eps':>6s} | {'parity':>9s} {'Eq. (21)':>9s} | {'echo, best':>10s} {'echo, mid':>10s} {'Eq. (22)':>10s} "
+      f"{'Eq. (23) bound':>15s}")
+for r in rows_eps:
+    print(f"{r['eps']:6.3f} | {r['par_c']:9.4f} {r['eq21']:9.4f} | {r['echo_c']:10.4f} {r['echo_mid']:10.4f} "
+          f"{r['eq22']:10.4f} {r['bound']:15.4f}")
+    assert abs(r["par_c"] - r["eq21"]) < 1e-8 * N_RD ** 2              # Eq. (21)
+    assert abs(r["echo_mid"] - r["eq22"]) < 1e-8 * N_RD ** 2           # Eq. (22)
+    assert r["echo_mid"] >= r["bound"] - 1e-9                          # Eq. (23)
+    assert r["echo_c"] <= float(F_c) * (1 + 1e-9) and r["par_c"] <= float(F_c) * (1 + 1e-9)
+
+print(f"\nmu = {MU_MID}, N = {N_RD}, F_Q = {float(F_m):.3f}   (best axis and phase for counting and parity)")
+print(f"{'eps':>6s} | {'echo, best':>10s} {'at theta':>9s} {'echo, theta=1e-3':>17s} | {'counting':>9s} {'parity':>9s}")
+for r in rows_eps:
+    print(f"{r['eps']:6.3f} | {r['echo_m']:10.4f} {r['th_m']:9.4f} {r['echo_m0']:17.3e} | {r['count_m']:9.4f} "
+          f"{r['par_m']:9.4f}")
+    assert max(r["echo_m"], r["count_m"], r["par_m"]) <= float(F_m) * (1 + 1e-9)
+    if r["eps"] > 0:
+        assert r["echo_m0"] < 1e-2 * float(F_m)                       # Eq. (24): the theta -> 0 limit is lost
+
+# where the signal sits: noiseless echo distribution at the noisy optimum (eps = 0.05)
+r05 = min(rows_eps, key=lambda r: abs(r["eps"] - 0.05))
+print(f"\necho at eps = 0.05 with the working point restricted to theta <= pi/N = {np.pi / N_RD:.3f}: "
+      f"{r05['echo_m_pin']:.4f}  (unrestricted: {r05['echo_m']:.4f} at theta = {r05['th_m']:.3f})")
+p_opt = np.array(count_probs(oat_evolve(collective_rotation(psi_m, r05["th_m"], n_m), -MU_MID), X_AXIS))
+print(f"\nnoiseless echo distribution p(k) at mu = {MU_MID}, theta = {r05['th_m']:.3f} (the eps = 0.05 optimum): "
+      + " ".join(f"{x:.3f}" for x in p_opt))
+
+# %%
+# ==============================================================================
+# STEP 14b: the noise model and the Fisher numbers checked on sampled data (cat, eps = 0.05)
+# ==============================================================================
+# PARAMETERS ------------------------------------------------------------------
+EPS_CHK  = 0.05
+M_CHK    = 20_000             # shots for the histogram check of Eq. (20)
+M_EST, R_EST = 200, 400        # shots per experiment, experiments per readout (maximum likelihood)
+# -----------------------------------------------------------------------------
+T_chk = detection_matrix(N_RD, EPS_CHK)
+th_mid = np.pi / (2 * N_RD)
+phi_mid = oat_evolve(collective_rotation(psi_c, th_mid, n_c), -np.pi / 2)        # echo output state
+ang_x, ax_x = axis_to_z(X_AXIS)
+k_bits, k_flip = jax.random.split(jax.random.PRNGKey(2027))
+bits = np.array(sample_bitstrings(k_bits, collective_rotation(phi_mid, ang_x, ax_x), M_CHK))   # x-basis shots
+flips = np.array(jax.random.bernoulli(k_flip, EPS_CHK, bits.shape)).astype(int)
+k_noisy, k_clean = (bits ^ flips).sum(axis=1), bits.sum(axis=1)
+p_pred = np.array(T_chk @ count_probs(phi_mid, X_AXIS))
+ok = M_CHK * p_pred >= 20                                                           # bins with >= 20 expected counts
+hist_n = np.bincount(k_noisy, minlength=N_RD + 1)
+hist_c = np.bincount(k_clean, minlength=N_RD + 1)
+z_n = (hist_n - M_CHK * p_pred) / np.sqrt(M_CHK * p_pred * (1 - p_pred))
+z_c = (hist_c - M_CHK * p_pred) / np.sqrt(M_CHK * p_pred * (1 - p_pred))
+print(f"{M_CHK} sampled echo shots at the cat, theta = pi/(2N), each spin misread with probability {EPS_CHK}:")
+print(f"   {'k':>3s} " + " ".join(f"{k:8d}" for k in range(N_RD + 1)))
+print(f"   {'Tp':>3s} " + " ".join(f"{M_CHK * x:8.1f}" for x in p_pred))
+print(f"   {'obs':>3s} " + " ".join(f"{x:8d}" for x in hist_n))
+print(f"largest |z| over the {int(ok.sum())} bins with >= 20 expected counts: {np.max(np.abs(z_n[ok])):.2f}")
+print(f"wrong control (misreads not applied): largest |z| = {np.max(np.abs(z_c[ok])):.0f}  -> must fail")
+assert np.max(np.abs(z_n[ok])) < 4.0
+assert np.max(np.abs(z_c[ok])) > 10.0
+
+
+def ml_spread(prob_fn, theta_true, grid, key):
+    """R_EST experiments of M_EST noisy shots each; maximum-likelihood estimate on `grid`; returns the estimates."""
+    logp = jnp.log(jnp.clip(jax.vmap(prob_fn)(grid), 1e-300, None))           # (grid, outcomes)
+    lp_true = jnp.log(jnp.clip(prob_fn(theta_true), 1e-300, None))
+
+    def one(k):
+        counts = jnp.bincount(jax.random.categorical(k, lp_true, shape=(M_EST,)), length=lp_true.shape[0])
+        return grid[jnp.argmax(logp @ counts)]
+
+    return np.array(jax.vmap(one)(jax.random.split(key, R_EST)))
+
+
+echo_noisy = lambda t: T_chk @ count_probs(oat_evolve(collective_rotation(psi_c, t, n_c), -np.pi / 2), X_AXIS)
+par_noisy = lambda t: parity_probs_k(T_chk @ count_probs(collective_rotation(psi_c, t, n_c), Z_AXIS))
+k_e, k_p = jax.random.split(jax.random.PRNGKey(2028))
+est_e = ml_spread(echo_noisy, th_mid, jnp.linspace(0.0, np.pi / N_RD, 801), k_e)
+est_p = ml_spread(par_noisy, 0.0, jnp.linspace(-th_mid, th_mid, 801), k_p)
+se_rel = np.sqrt(2 / (R_EST - 1))
+print(f"\nmaximum likelihood, {R_EST} experiments x {M_EST} shots, eps = {EPS_CHK} (relative s.e. of a variance "
+      f"{se_rel:.3f}):")
+for name, est, th_true, fn in (("echo  ", est_e, th_mid, echo_noisy), ("parity", est_p, 0.0, par_noisy)):
+    Fc = float(classical_fisher(fn, th_true))
+    v = float(np.var(est))
+    print(f"   {name}: F_C = {Fc:7.3f}   bias {np.mean(est) - th_true:+.5f} +- {np.sqrt(v / R_EST):.5f}   "
+          f"Delta theta = {np.sqrt(v):.5f}   1/sqrt(M F_C) = {1 / np.sqrt(M_EST * Fc):.5f}   M F_C Var = {M_EST * Fc * v:.3f}")
+    assert abs(M_EST * Fc * v - 1) < 4 * se_rel
+print(f"   measured variance ratio parity/echo = {np.var(est_p) / np.var(est_e):.2f}   "
+      f"(Fisher prediction {float(classical_fisher(echo_noisy, th_mid)) / float(classical_fisher(par_noisy, 0.0)):.2f})")
+
+# %%
+# ==============================================================================
+# FIGURE: detection noise -- parity against the echo
+# ==============================================================================
+fig, axes = plt.subplots(1, 2, figsize=(12.4, 4.3))
+e = np.array([r["eps"] for r in rows_eps])
+ef = np.linspace(0, EPS_RD[-1], 200)
+axes[0].plot(e, [r["par_c"] / N_RD ** 2 for r in rows_eps], "s", color=PALETTE[1], ms=6, label="parity $\\Pi_z$")
+axes[0].plot(ef, (1 - 2 * ef) ** (2 * N_RD), "-", color=PALETTE[1], lw=1.2, label="Eq. (21)")
+axes[0].plot(e, [r["echo_c"] / N_RD ** 2 for r in rows_eps], "o", color=PALETTE[5], ms=6, label="echo, $J_x$")
+axes[0].plot(ef, 1 - (4 * ef * (1 - ef)) ** (N_RD / 2), "--", color=PALETTE[5], lw=1.2, label="Eq. (23) lower bound")
+axes[0].set_xlabel(r"misread probability per spin $\epsilon$"); axes[0].set_ylabel(r"$F_C/F_Q$")
+axes[0].set_title(f"cat, $\\mu=\\pi/2$, $N={N_RD}$"); axes[0].legend(fontsize=8); axes[0].set_ylim(-0.03, 1.05)
+for key, lab, mk, col in (("echo_m", "echo, $J_x$", "o-", PALETTE[5]), ("count_m", r"spin counting, best axis $\perp\mathbf{n}_{\rm opt}$", "^-",
+                                                                         PALETTE[0]),
+                          ("par_m", r"parity, best axis $\perp\mathbf{n}_{\rm opt}$", "s-", PALETTE[1])):
+    axes[1].plot(e, [r[key] / float(F_m) for r in rows_eps], mk, color=col, ms=5, lw=1.4, label=lab)
+axes[1].set_xlabel(r"misread probability per spin $\epsilon$"); axes[1].set_ylabel(r"$F_C/F_Q$ (best phase)")
+axes[1].set_title(f"intermediate twisting, $\\mu={MU_MID}$, $N={N_RD}$"); axes[1].legend(fontsize=8)
+axes[1].set_ylim(-0.03, 1.05)
+fig.tight_layout(); plt.show()
+
+# %% [markdown]
+# The two tables of Step 14 and the sampling checks of Step 14b give the following.
+#
+# * **The cat is protected.** At $\epsilon=0.05$ the parity has lost $81\%$ of its Fisher information, $11.86$
+#   against $64$, exactly Eq. (21), while the echo keeps $63.97$, exactly Eq. (22) and above the bound $63.92$ of
+#   Eq. (23). At $\epsilon=0.15$ the parity is down to $0.21$, below the value $1$ of a single unentangled spin,
+#   and the echo still delivers $62.1$, $97\%$ of the Heisenberg limit. The best echo working point is the
+#   mid-fringe $\theta=\pi/(2N)$ at every $\epsilon$ (the best and mid-fringe columns coincide).
+# * **Away from the cat the echo degrades.** At $\mu=0.3$ ($F_Q=33.39$) the echo falls to $20.23$ at $\epsilon=0.05$
+#   and $9.75$ at $\epsilon=0.15$. As Eq. (24) predicts, its value at $\theta=10^{-3}$ collapses ($1.2\times10^{-3}$ at
+#   $\epsilon=0.05$), and the best working point moves out to $\theta\approx0.42$, i.e. $N\theta\approx3.3$. The noiseless
+#   distribution printed at that point shows where the signal sits: $p(k=1)=0.55$ and $p(k=0)=0.17$, so most of the
+#   information is in outcomes one misread away from each other. The echo is still the best of the three readouts
+#   at this angle: direct counting along the best axis gives $10.93$ and the best parity $4.02$ at $\epsilon=0.05$.
+#   (Restricting the echo working point to $\theta\le\pi/N=0.393$, the phase range of the other two readouts, gives
+#   $20.09$ on the same grid instead of $20.23$, because the optimum lies just outside it; the echo remains the best
+#   readout.)
+# * **The noise model and the Fisher numbers survive sampling.** The histogram of $20\,000$ simulated noisy shots matches
+#   $Tp$ of Eq. (20) in all eight bins with at least $20$ expected counts (largest deviation $1.1$ standard
+#   deviations); the same shots without misreads deviate by $57$ standard deviations from the noisy prediction. Maximum
+#   likelihood on $400$ experiments of $200$ noisy shots each gives $MF_C\,\mathrm{Var}=1.008$ for the echo and $1.001$
+#   for the parity, both within one standard error ($0.071$) of the Cramér–Rao value, with no detectable bias. The
+#   measured variance ratio parity/echo is $5.36$ against the Fisher prediction $5.39$: at $5\%$ misreads the parity
+#   readout needs about $5.4$ times more repetitions for the same error bar.
+#
+# > **Physics insight.** The cat stores its phase in a coherence between two branches that differ on every spin, and only
+# > an observable that touches every spin, the parity, can read it directly; that observable inherits a factor
+# > $1-2\epsilon$ from each spin. Running the interaction backwards converts the coherence into a population difference
+# > between $\vert+x\rangle^{\otimes N}$ and $\vert-x\rangle^{\otimes N}$, which a coarse detector resolves easily. The
+# > protection is specific to the cat time: at intermediate twisting the echo still beats the other readouts, but the
+# > signal lands on small $k$, next to the bright outcome $k=0$, and the misreads blur it.
+
+# %% [markdown]
+# ## 15. Key takeaways
 #
 # * $e^{-i\frac{\pi}{2}J_z^2}$ acting on a coherent spin state produces a **GHZ-like cat**, exactly. For even $N$ the
 #   propagator collapses to $\frac{e^{-i\pi/4}}{\sqrt2}\mathbb 1+\frac{e^{i\pi/4}}{\sqrt2}(-1)^{N/2}\prod_qZ_q$ and the cat
@@ -1568,14 +2234,27 @@ fig.tight_layout(); plt.show()
 #   laboratory noise is deadly depends on the cat's orientation — the OAT cat lies along $\hat x$, and at $N=6$ its
 #   $F_Q$ under $Z$ dephasing beats the value under $X$-type noise by a factor $1.5$ at $p=0.02$, $3.0$ at $p=0.05$
 #   and $4.2$ at $p=0.10$, following the polynomial law of Eq. (13) instead of the exponential law of Eq. (12).
-#   Under depolarising noise the cat-axis QFI decays as $e^{-\kappa N}$ with $\kappa$ given by Eq. (14).
+#   Under depolarising noise the cat-axis QFI follows Eq. (14) exactly, and the geometric law $e^{-\kappa N}$ of Eq. (14a) up to a relative correction $[2\gamma/(3-2\gamma)]^N$.
 # * With depolarising or amplitude-damping noise at $\gamma\ge0.2$ the maximum of $F_Q(\mu)$ moves out of the cat and
 #   into the squeezing regime ($\xi_R^2<1$ at the stopping angle). Measured at $N=6$, $\gamma=0.2$: the depolarising optimum sits at $\mu=0.393$ with
 #   $F_Q=13.6$, while the cat at $\mu=\pi/2$ has fallen to $4.47$, below the standard quantum limit $N=6$.
 # * The unitary/dissipative splitting is first order in $\delta\mu$; the $32$-step value used in the sweeps is about
-#   $6\%$ below the Richardson extrapolation, which is reported rather than hidden.
+#   $6\%$ below the Richardson extrapolation.
+# * Under depolarising noise the exact cat-axis law is Eq. (14); the geometric law (14a) misses the term $(2\gamma/3)^N$
+#   of the pair population, a relative error $[2\gamma/(3-2\gamma)]^N$ that the table resolves at its predicted size.
+# * The readouts actually used, $N=8$: before the eigenvalue crossing the parity along the mean spin saturates $F_Q$ as
+#   $\theta\to0$ (Eq. 17, verified to $6\times10^{-6}$); on the plateau no parity on the searched axes does (down to
+#   $0.37\,F_Q$ on the grid) and the best
+#   single-axis count reaches $0.96$–$1.00\,F_Q$; at the cat parity and counting both give $N^2$. Every readout, and
+#   $20$ random product bases at each of five states, obeys $F_C\le F_Q$.
+# * The echo readout (twist, encode, un-twist, count $J_x$) reaches $F_Q$ at every twisting angle as $\theta\to0$
+#   (Eq. 18). At the cat it maps the phase onto the two outcomes $k=0$ and $k=N$ (Eq. 19), and detection noise costs at
+#   most $[4\epsilon(1-\epsilon)]^{N/2}$ of it (Eqs. 22–23): $63.97$ against $11.86$ for the parity at $\epsilon=0.05$,
+#   confirmed by maximum likelihood on sampled noisy data (variance ratio $5.36$, predicted $5.39$). At $\mu=0.3$ the echo
+#   is still the best readout but degrades, $33.39\to20.23$ at $\epsilon=0.05$, because the limit of Eq. (18) does not
+#   survive detection noise (Eq. 24).
 #
-# ## 14. Exercises
+# ## 16. Exercises
 #
 # 1. **(★)** Evaluate $e^{-i\mu J_z^2}$ at $\mu=\pi$ for even $N$ and show, from the argument of Section 3.2, that the
 #    state is again a coherent spin state. Which one? Verify numerically with the Husimi map.
@@ -1605,13 +2284,13 @@ fig.tight_layout(); plt.show()
 #    Trotterised noisy evolution to find $\mu^\star=\arg\max_\mu F_Q(\mu)$ by gradient ascent rather than by scanning.
 #    Compare the cost with the scan, and check that the eigenvalue derivative is well behaved when the top eigenvalue of
 #    the QFI matrix is nearly degenerate.
-# 8. **(★★★)** Interaction-based readout. Instead of the parity, apply the *inverse* twisting $e^{+i\mu J_z^2}$ after the
-#    encoding (with the optimal generator $\mathbf n_{\rm opt}(\mu)\cdot\mathbf J$), then a $\pi/2$ pulse about $\hat y$, and count the qubits in $\vert1\rangle$ — i.e. measure $J_x$, the
-#    direction of the initial coherent state. Show numerically, for $N=8$ and several $\mu$ between $0.1$ and $\pi/2$,
-#    that the classical Fisher information of this echo protocol at small $\theta$ equals $F_Q^{\max}(\mu)$, not only at
-#    the cat time. Then flip every detected bit independently with probability $\epsilon=0.01$–$0.05$ and compare, at
-#    $\mu=\pi/2$, the best classical Fisher information over $\theta$ of the echo readout with that of the parity readout.
-#    (Echo protocols of this kind: Davis, Bentsen and Schleier-Smith 2016; Macrì, Smerzi and Pezzè 2016.)
+# 8. **(★★★)** Imperfect time reversal. Section 14 assumed that the un-twisting exactly inverts the twisting. Replace
+#    $U_\mu^\dagger$ by $e^{+i(1+\delta)\mu J_z^2}$ at the cat time $\mu=\pi/2$, $N=8$. (a) Show that the output state is
+#    $e^{+i\delta\mu J_z^2}$ applied to the two-level state of Eq. (19), so that the outcomes are no longer restricted to
+#    $k\in\{0,N\}$. (b) Compute the best $F_C$ of the $J_x$ count over $\theta\in(0,\pi/N)$ for $\delta$ between $0$ and
+#    $0.3$, without detection noise and with $\epsilon=0.05$, and explain why the noiseless value stays close to $N^2$
+#    for small $\delta$. (c) Find the $\delta$ at which the echo with $\epsilon=0.05$ falls to the parity value with
+#    $\epsilon=0.01$ of Step 14, $46.3$, i.e. how precisely the interaction must be reversed for the echo to be worth it.
 #
 # ## References
 #
@@ -1634,6 +2313,8 @@ fig.tight_layout(); plt.show()
 # * E. Davis, G. Bentsen and M. Schleier-Smith, *Approaching the Heisenberg limit without single-particle detection*,
 #   Physical Review Letters **116**, 053601 (2016).
 # * T. Macrì, A. Smerzi and L. Pezzè, *Loschmidt echo for quantum metrology*, Physical Review A **94**, 010102 (2016).
+# * S. Colombo, E. Pedrozo-Peñafiel, A. F. Adiyatullin, Z. Li, E. Mendez, C. Shu and V. Vuletić, *Time-reversal-based
+#   quantum metrology with many-body entangled states*, Nature Physics **18**, 925 (2022).
 # * W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes: The Art of Scientific
 #   Computing*, 3rd ed., Cambridge University Press (2007) — Section 10.3 for the parabolic refinement of a
 #   discrete minimum used in Step 4, and Section 17.3 for Richardson's deferred approach to the limit used in the
