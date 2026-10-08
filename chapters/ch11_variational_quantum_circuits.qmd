@@ -16,6 +16,8 @@ error mitigation; and the quantum autoencoder as a variational compression task.
 
 ## Notebooks in this chapter
 
+### Variational circuits: gradients, optimisers, VQE and noise
+
 ::: {.nb-item}
 [Parametrized gates and gradients — differentiating a quantum circuit four ways](../ch11_variational_quantum_circuits/40_parametrized_gates_and_gradients.ipynb)
 
@@ -50,5 +52,13 @@ Gate noise as a channel after every rotation pair and every two-qubit gate, the 
 [The quantum autoencoder — compressing quantum data with a variational circuit](../ch11_variational_quantum_circuits/45_quantum_autoencoder.ipynb)
 
 The encoder–trash–decoder construction, the exact relation between trash fidelity and reconstruction fidelity derived and verified, the eigenvalue criterion that says exactly how well an ensemble can be compressed (proved and checked against training), the Schmidt-rank folklore re-examined, two executions of the compression channel (exact partial trace and measure-and-reset trajectories) shown consistent, training with automatic differentiation and with SPSA on trajectory estimates, generalisation to unseen inputs, and the effect of gate noise.
+:::
+
+### Unsupervised discovery of phase boundaries with a quantum autoencoder
+
+::: {.nb-item}
+[Unsupervised discovery of phase boundaries with a quantum autoencoder](../ch11_variational_quantum_circuits/45b_quantum_anomaly_detection_phase_boundaries.ipynb)
+
+A quantum autoencoder trained on the ground state at one point of the XXZ chain in a transverse field is applied, without retraining, to the ground states of the whole parameter plane. Its local trash cost maps the region of states the frozen encoder can still compress; the map is compared with exact observables, with untrained encoders and with other reference points.
 :::
 

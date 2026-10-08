@@ -146,7 +146,7 @@ print(f"energy = {cost(theta):.4f}, gradient has {g.size} components")
 
 ## Chapters {#chapters}
 
-13 chapters, each a short overview page followed by runnable notebooks (54 in total). The notebooks are numbered globally; each one carries the engine functions it uses in a folded *Engine recap* cell and ends with exercises, so any notebook also runs and can be studied on its own.
+13 chapters, each a short overview page followed by runnable notebooks (55 in total). The notebooks are numbered globally; each one carries the engine functions it uses in a folded *Engine recap* cell and ends with exercises, so any notebook also runs and can be studied on its own.
 
 ::: {.chapter-grid}
 ::: {.chapter-card}
@@ -246,7 +246,7 @@ Compute quantum Fisher information and simulate metrology protocols from prepara
 
 Train parametrised quantum circuits: gradients, optimisers, VQE, measurement cost and noise.
 
-<span class="nbcount">6 notebooks</span>
+<span class="nbcount">7 notebooks</span>
 :::
 ::: {.chapter-card}
 [![](assets/thumbs/ch12.png){fig-alt="Quantum reservoir computing"}](chapters/ch12_quantum_reservoir_computing.qmd)

@@ -45,6 +45,31 @@ FOOTER_LINKS = ("[Homepage](" + HOMEPAGE + ") · "
 
 # Companion notebooks of the LaTeX lecture notes live in _src/lecture_notes_notebooks/ (the book links to them there);
 # on the website they are listed inside the chapter whose topic they share.
+# Subsections inside a website chapter: notebook number -> subsection title (notebooks not listed come first,
+# under the chapter's default subsection title, if the chapter has subsections at all).
+SITE_SECTION = {
+    "45b": "Unsupervised discovery of phase boundaries with a quantum autoencoder",
+    "44b": "Variational quantum metrology",
+    "45c": "Quantum approximate optimisation",
+}
+SITE_SECTION_DEFAULT = {"ch11_variational_quantum_circuits": "Variational circuits: gradients, optimisers, VQE and noise"}
+
+
+def nb_number(path):
+    return pathlib.Path(path).name.split("_")[0]
+
+
+def grouped(folder, items):
+    """[(subsection title or None, [items])] in reading order: default group first, then SITE_SECTION order."""
+    groups = {}
+    for it in items:
+        groups.setdefault(SITE_SECTION.get(nb_number(it[0])), []).append(it)
+    if list(groups) == [None]:
+        return [(None, items)]
+    order = [None] + list(dict.fromkeys(SITE_SECTION.values()))
+    return [(SITE_SECTION_DEFAULT.get(folder) if k is None else k, groups[k]) for k in order if k in groups]
+
+
 SITE_CHAPTER = {
     "49_single_excitation_on_a_lattice": "ch01_computational_toolbox",
     "48_quantifying_entanglement": "ch09_entanglement_and_complexity",
@@ -141,8 +166,11 @@ def main():
         if (ROOT / thumb).exists():
             pg += [f"![](../{thumb}){{width=60% fig-align=center fig-alt={q(name)}}}", ""]
         pg += [intro, "", "## Notebooks in this chapter", ""]
-        for path, title, desc in part["items"]:
-            pg += ["::: {.nb-item}", f"[{title}](../{path})", "", desc, ":::", ""]
+        for sec, its in grouped(d, part["items"]):
+            if sec:
+                pg += [f"### {sec}", ""]
+            for path, title, desc in its:
+                pg += ["::: {.nb-item}", f"[{title}](../{path})", "", desc, ":::", ""]
         (ROOT / page).write_text("\n".join(pg) + "\n")
     # ---------------------------------------------------------------- _quarto.yml
     y = ["project:", "  type: website", "  output-dir: _site", "  render:", "    - index.qmd", "    - engine.qmd", "    - about.qmd",
@@ -165,8 +193,13 @@ def main():
           '      - text: "Start here"', "        href: index.qmd"]
     for d, num, name, goal, page, items in chapters:
         y += [f"      - section: {q(f'{num} · {name}')}", f"        href: {page}", "        contents:"]
-        for path, title, _ in items:
-            y += [f"          - href: {path}", f"            text: {q(title)}"]
+        for sec, its in grouped(d, items):
+            ind = "          "
+            if sec:
+                y += [f"          - section: {q(sec)}", "            contents:"]
+                ind = "              "
+            for path, title, _ in its:
+                y += [f"{ind}- href: {path}", f"{ind}  text: {q(title)}"]
     y += ['      - text: "Engine source code"', "        href: engine.qmd",
           "  page-footer:", "    border: true", f"    left: {q(f'© 2026 {AUTHOR}, PhD')}",
           "    right: >-", f"      {FOOTER_LINKS}", "",
