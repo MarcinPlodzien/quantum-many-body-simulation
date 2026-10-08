@@ -231,6 +231,10 @@ website:
             contents:
               - href: ch11_variational_quantum_circuits/45c_quantum_approximate_optimisation.ipynb
                 text: "The quantum approximate optimisation algorithm — MaxCut and number partitioning on graphs of up to ten vertices"
+          - section: "Quantum kernel methods"
+            contents:
+              - href: ch11_variational_quantum_circuits/45d_quantum_kernel_methods_classification.ipynb
+                text: "Quantum kernel methods — classifying data with a quantum feature map and a support vector machine"
       - section: "12 · Quantum reservoir computing"
         href: chapters/ch12_quantum_reservoir_computing.qmd
         contents:

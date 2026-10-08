@@ -88,3 +88,11 @@ A probe-preparation circuit trained by gradient ascent on the quantum Fisher inf
 Binary optimisation problems written as diagonal Ising Hamiltonians, the QAOA circuit simulated with the cost layer as one phase per bit string, the depth-one expectation value in closed form for any unweighted graph and checked against simulation, gradients by automatic differentiation and by a gate-level parameter-shift rule, the approximation ratio and the probability of the optimal cut up to depth six, interpolation-based initialisation, the Trotterised-annealing limit, parameter transfer between graphs, and sampling against classical baselines.
 :::
 
+### Quantum kernel methods
+
+::: {.nb-item}
+[Quantum kernel methods — classifying data with a quantum feature map and a support vector machine](../ch11_variational_quantum_circuits/45d_quantum_kernel_methods_classification.ipynb)
+
+Two-dimensional data on concentric rings are encoded into up to ten qubits by a circuit of Hadamard, Rz and ZZ gates; the overlaps of the encoded states form a kernel matrix that a support vector machine, solved in JAX from its dual problem, turns into a classifier. The notebook measures the kernel by the inversion and swap tests, projects the data by kernel principal component analysis, compares accuracies with tuned classical kernels over random splits, and quantifies the concentration of kernel values with the number of qubits and the cost of finite shots.
+:::
+
