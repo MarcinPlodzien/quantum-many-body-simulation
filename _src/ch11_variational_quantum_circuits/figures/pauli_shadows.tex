@@ -1,0 +1,17 @@
+% One snapshot of Pauli classical shadows (collect_pauli_shadows / shadow_snapshots in notebook 43), drawn for N = 6.
+% Every qubit gets an independent uniformly random basis c_q in {X, Y, Z}; the rotation U_{c_q} maps that Pauli's
+% eigenbasis to the computational basis (U_X = H, U_Y = H S^dagger, U_Z = 1); then all qubits are measured in Z.
+% Record of one snapshot: the codes (c_0..c_5) and the bits (b_0..b_5).
+\documentclass[tikz,border=4pt]{standalone}
+\usepackage{amsmath,amssymb}
+\usetikzlibrary{quantikz}
+\begin{document}
+\begin{quantikz}[row sep=0.3cm, column sep=0.4cm]
+\lstick[wires=6]{$\ket{\psi(\boldsymbol\theta)}$} & \qw & \gate{U_{c_0}}\gategroup[6,steps=1,style={dashed,rounded corners,inner xsep=2pt},background,label style={label position=above,anchor=south,yshift=0.1cm,align=center}]{random basis\\ $c_q\in\{X,Y,Z\}$} & \meter{} & \cw \rstick{$b_0$}\\
+ & \qw & \gate{U_{c_1}} & \meter{} & \cw \rstick{$b_1$}\\
+ & \qw & \gate{U_{c_2}} & \meter{} & \cw \rstick{$b_2$}\\
+ & \qw & \gate{U_{c_3}} & \meter{} & \cw \rstick{$b_3$}\\
+ & \qw & \gate{U_{c_4}} & \meter{} & \cw \rstick{$b_4$}\\
+ & \qw & \gate{U_{c_5}} & \meter{} & \cw \rstick{$b_5$}
+\end{quantikz}
+\end{document}

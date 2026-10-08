@@ -47,12 +47,6 @@ Gate noise as a channel after every rotation pair and every two-qubit gate, the 
 :::
 
 ::: {.nb-item}
-[Variational quantum metrology — optimising probe states and measurements under noise with automatic differentiation](../ch11_variational_quantum_circuits/44b_variational_quantum_metrology.ipynb)
-
-A probe-preparation circuit trained by gradient ascent on the quantum Fisher information of its noisy output: an eigendecomposition-free gradient of the mixed-state QFI derived from a variational formula, the Heisenberg limit recovered without noise, optimised probes under local dephasing, amplitude damping and particle loss compared with fairly tuned GHZ, product and one-axis-twisted probes, the anatomy of the optimal states, and readout circuits trained on the classical Fisher information of the measured bit strings.
-:::
-
-::: {.nb-item}
 [The quantum autoencoder — compressing quantum data with a variational circuit](../ch11_variational_quantum_circuits/45_quantum_autoencoder.ipynb)
 
 The encoder–trash–decoder construction, the exact relation between trash fidelity and reconstruction fidelity derived and verified, the eigenvalue criterion that says exactly how well an ensemble can be compressed (proved and checked against training), the Schmidt-rank folklore re-examined, two executions of the compression channel (exact partial trace and measure-and-reset trajectories) shown consistent, training with automatic differentiation and with SPSA on trajectory estimates, generalisation to unseen inputs, and the effect of gate noise.

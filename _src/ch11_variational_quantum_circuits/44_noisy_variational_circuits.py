@@ -381,6 +381,13 @@ fig.tight_layout(); plt.show()
 # For $N=4$ the chain has three bonds, so qubits $0$ and $3$ collect one $CZ$ channel per layer and qubits $1$ and $2$
 # collect two.
 #
+# ![Noisy hardware-efficient ansatz on four qubits: a depolarising channel of strength p1 after each rotation pair and of strength p2 on both qubits of every CZ](figures/noisy_hea.svg)\
+# **Figure 1.** The noisy ansatz as `noisy_hea_dm` and `noisy_hea_mcwf` build it, for the $N=4$ chain of this notebook.
+# Grey boxes are depolarising channels: $\mathcal D_{p_1}$ after the $R_yR_z$ pair on each qubit, and $\mathcal D_{p_2}$
+# on both qubits of each $CZ$, applied right after that gate and before the next $CZ$ of the chain. The dashed layer is
+# repeated $L$ times ($L=2$ by default), and the final rotation block carries its own $\mathcal D_{p_1}$ channels.
+# Sections 7.2 and 10 put dephasing or amplitude damping in the same places instead.
+#
 # ### 4.2 Representation 1: the density tensor
 #
 # $\rho$ is a rank-$2N$ array (notebook 07): $N$ ket axes and $N$ bra axes. A unitary acts as $U$ on the ket axis and

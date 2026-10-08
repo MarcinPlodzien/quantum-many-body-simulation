@@ -1,0 +1,16 @@
+% Noisy hardware-efficient ansatz of notebook 44 (noisy_hea_dm / noisy_hea_mcwf), drawn for N = 4.
+% Per layer: Ry, Rz on each qubit, then a channel D_{p1} on that qubit; then CZ(q,q+1) for q = 0..N-2, each followed
+% by D_{p2} on BOTH of its qubits.  Final rotation block, again followed by D_{p1}.
+\documentclass[tikz,border=4pt]{standalone}
+\usepackage{amsmath,amssymb}
+\usetikzlibrary{quantikz}
+\newcommand{\Da}{\gate[style={fill=black!12}]{\mathcal D_{p_1}}}
+\newcommand{\Db}{\gate[style={fill=black!12}]{\mathcal D_{p_2}}}
+\begin{document}
+\begin{quantikz}[row sep=0.3cm, column sep=0.22cm]
+\lstick{$q_0\colon\ \ket{0}$} & \gate{R_y}\gategroup[4,steps=9,style={dashed,rounded corners,inner xsep=1pt},background,label style={label position=above,anchor=south,yshift=0.1cm}]{layer $l=1,\dots,L$} & \gate{R_z} & \Da & \ctrl{1}   & \Db & \qw        & \qw & \qw        & \qw & \qw & \qw & \gate{R_y}\gategroup[4,steps=3,style={dashed,rounded corners,inner xsep=1pt},background,label style={label position=above,anchor=south,yshift=0.1cm}]{final block} & \gate{R_z} & \Da & \qw \rstick[wires=4]{$\rho(\boldsymbol\theta)$}\\
+\lstick{$q_1\colon\ \ket{0}$} & \gate{R_y} & \gate{R_z} & \Da & \control{} & \Db & \ctrl{1}   & \Db & \qw        & \qw & \qw & \qw & \gate{R_y} & \gate{R_z} & \Da & \qw \\
+\lstick{$q_2\colon\ \ket{0}$} & \gate{R_y} & \gate{R_z} & \Da & \qw        & \qw & \control{} & \Db & \ctrl{1}   & \Db & \qw & \qw & \gate{R_y} & \gate{R_z} & \Da & \qw \\
+\lstick{$q_3\colon\ \ket{0}$} & \gate{R_y} & \gate{R_z} & \Da & \qw        & \qw & \qw        & \qw & \control{} & \Db & \qw & \qw & \gate{R_y} & \gate{R_z} & \Da & \qw
+\end{quantikz}
+\end{document}

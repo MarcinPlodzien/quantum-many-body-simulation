@@ -13,6 +13,7 @@ Then:   quarto preview          # local preview
 """
 import pathlib
 import re
+import subprocess
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -95,6 +96,10 @@ def ensure_front_matter(nb_path, meta):
 def collect():
     parts = {}
     srcs = [q for q in SRC.glob("*/*.py") if q.parent.name[:2] in ("pa", "ch") or q.stem in SITE_CHAPTER]
+    # notebooks still in preparation (sources not yet committed) stay off the site
+    tracked = set(subprocess.run(["git", "ls-files", "_src"], cwd=ROOT, capture_output=True, text=True).stdout.split())
+    if tracked:
+        srcs = [q for q in srcs if q.relative_to(ROOT).as_posix() in tracked]
     for p in sorted(srcs, key=lambda q: (SITE_CHAPTER.get(q.stem, q.parent.name), q.stem)):
         text = p.read_text()
         meta = dict(re.findall(r"^#@(title|part|description):\s*(.+)$", text, flags=re.M))
@@ -240,7 +245,7 @@ def main():
            ("44", "training under gate noise: cost landscapes, noise-induced barren plateaus and error mitigation"),
            ("45", "the quantum autoencoder, compressing quantum data with a variational circuit"),
            ("46", "quantum reservoir computing, many-body dynamics as a machine for time-series prediction")]
-    all_items = {pathlib.Path(path).name[:2]: (path, title) for c in chapters for path, title, _ in c[5]}
+    all_items = {pathlib.Path(path).name.split("_")[0]: (path, title) for c in chapters for path, title, _ in c[5]}
     for nn, what in QML:
         if nn in all_items:
             path, title = all_items[nn]

@@ -297,6 +297,12 @@ def bootstrap_std(key, values, n_boot=200):
 # only if it happened to measure the right axis on all $k$ qubits of the support — probability $3^{-k}$ — and the
 # factor $3^k$ compensates exactly.
 #
+# ![One classical-shadow snapshot on six qubits: a random basis rotation on every qubit followed by a Z measurement of all qubits](figures/pauli_shadows.svg)\
+# **Figure 1.** One snapshot, for the $N=6$ chain of this notebook. Each qubit draws its basis $c_q\in\{X,Y,Z\}$
+# independently and uniformly, the rotation $U_{c_q}$ maps the eigenbasis of that Pauli operator onto
+# $\vert0\rangle,\vert1\rangle$ ($U_X=H$, $U_Y=HS^\dagger$, $U_Z=\mathbb 1$), and all qubits are measured in the $Z$
+# basis. The record of the snapshot is the list of bases $c_q$ and the bits $b_q$.
+#
 # The structural advantage is that the data are collected **before** anyone decides what to estimate. The structural
 # disadvantage is visible in Eq. (4): a weight-2 term carries a second moment of $9$ per snapshot, where a dedicated
 # setting carries at most $1$.

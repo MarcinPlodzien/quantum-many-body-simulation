@@ -228,6 +228,15 @@ def random_starts(n_runs, n_params, seed, scale=jnp.pi):
 # followed by one final rotation block, giving $n=2N(L+1)$ angles. Writing the repeated layers as a `lax.scan` keeps the
 # compiled graph independent of $L$; the decoder is the same scan run over the reversed parameter array with
 # $R_y(\theta)^\dagger=R_y(-\theta)$, $R_z(\theta)^\dagger=R_z(-\theta)$ and $CZ^\dagger=CZ$.
+#
+# ![Quantum autoencoder on six qubits: encoder U(theta), latent register of N-k qubits, k trash qubits measured and reset to zero, decoder U-dagger(theta)](figures/qae_circuit.svg)\
+# **Figure 1.** The autoencoder of this notebook, drawn for $N=6$ and $k=2$; the code uses $N=6$ and studies
+# $k=1,\dots,4$, with the trash always on the last $k$ qubits. The encoder $U(\boldsymbol\theta)$ is the
+# hardware-efficient circuit described above. The trash qubits are measured in the $Z$ basis and reset to
+# $\vert0\rangle$, which realises the same channel as tracing them out and supplying fresh $\vert0\rangle$'s
+# (Section 5). The probability that every trash outcome is $0$ is the trash fidelity $F_{\rm trash}$ on which the encoder
+# is trained (Section 4.1); the overlap of the decoder output with the input is the reconstruction fidelity
+# $F_{\rm rec}$ (Section 4.2).
 
 # %%
 # ==============================================================================

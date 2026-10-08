@@ -1,0 +1,16 @@
+% Hardware-efficient ansatz of the engine (hardware_efficient_ansatz, entangler=CZ, open chain), drawn for N = 6.
+% Per layer l = 1..L: Ry(theta[l,q,0]) then Rz(theta[l,q,1]) on every qubit, then CZ(q,q+1) for q = 0..N-2 in order.
+% Final rotation block l = L+1 without entangler.  n_params = 2N(L+1).
+\documentclass[tikz,border=4pt]{standalone}
+\usepackage{amsmath,amssymb}
+\usetikzlibrary{quantikz}
+\begin{document}
+\begin{quantikz}[row sep=0.32cm, column sep=0.28cm]
+\lstick{$q_0\colon\ \ket{0}$} & \gate{R_y}\gategroup[6,steps=7,style={dashed,rounded corners,inner xsep=1pt},background,label style={label position=above,anchor=south,yshift=0.1cm}]{layer $l=1,\dots,L$} & \gate{R_z} & \ctrl{1} & \qw      & \qw      & \qw      & \qw      & \qw & \qw & \gate{R_y}\gategroup[6,steps=2,style={dashed,rounded corners,inner xsep=1pt},background,label style={label position=above,anchor=south,yshift=0.1cm}]{final block} & \gate{R_z} & \qw \rstick[wires=6]{$\ket{\psi(\boldsymbol\theta)}$}\\
+\lstick{$q_1\colon\ \ket{0}$} & \gate{R_y} & \gate{R_z} & \control{} & \ctrl{1} & \qw      & \qw      & \qw      & \qw & \qw & \gate{R_y} & \gate{R_z} & \qw \\
+\lstick{$q_2\colon\ \ket{0}$} & \gate{R_y} & \gate{R_z} & \qw      & \control{} & \ctrl{1} & \qw      & \qw      & \qw & \qw & \gate{R_y} & \gate{R_z} & \qw \\
+\lstick{$q_3\colon\ \ket{0}$} & \gate{R_y} & \gate{R_z} & \qw      & \qw      & \control{} & \ctrl{1} & \qw      & \qw & \qw & \gate{R_y} & \gate{R_z} & \qw \\
+\lstick{$q_4\colon\ \ket{0}$} & \gate{R_y} & \gate{R_z} & \qw      & \qw      & \qw      & \control{} & \ctrl{1} & \qw & \qw & \gate{R_y} & \gate{R_z} & \qw \\
+\lstick{$q_5\colon\ \ket{0}$} & \gate{R_y} & \gate{R_z} & \qw      & \qw      & \qw      & \qw      & \control{} & \qw & \qw & \gate{R_y} & \gate{R_z} & \qw
+\end{quantikz}
+\end{document}

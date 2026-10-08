@@ -1,0 +1,14 @@
+% Hamiltonian-variational ansatz for the TFIM (hva_tfim in notebook 40, open chain), drawn for N = 4.
+% Reference: Ry(-pi/2) on every qubit (|->^N, h > 0) or Ry(+pi/2) (|+>^N, h < 0).
+% Layer l: Rzz(2 J gamma_l) on bonds (0,1),(1,2),(2,3) in this order, then Rx(2 h beta_l) on every qubit.
+\documentclass[tikz,border=4pt]{standalone}
+\usepackage{amsmath,amssymb}
+\usetikzlibrary{quantikz}
+\begin{document}
+\begin{quantikz}[row sep=0.35cm, column sep=0.3cm]
+\lstick{$q_0\colon\ \ket{0}$} & \gate{R_y(\mp\tfrac{\pi}{2})}\gategroup[4,steps=1,style={dashed,rounded corners,inner xsep=1pt},background,label style={label position=above,anchor=south,yshift=0.1cm}]{$\ket{\pm}^{\otimes N}$} & \qw & \gate[wires=2]{R_{ZZ}(2J\gamma_l)}\gategroup[4,steps=4,style={dashed,rounded corners,inner xsep=1pt},background,label style={label position=above,anchor=south,yshift=0.1cm}]{layer $l=1,\dots,L$} & \qw & \qw & \gate{R_x(2h\beta_l)} & \qw \rstick[wires=4]{$\ket{\psi(\boldsymbol\gamma,\boldsymbol\beta)}$}\\
+\lstick{$q_1\colon\ \ket{0}$} & \gate{R_y(\mp\tfrac{\pi}{2})} & \qw & \qw & \gate[wires=2]{R_{ZZ}(2J\gamma_l)} & \qw & \gate{R_x(2h\beta_l)} & \qw \\
+\lstick{$q_2\colon\ \ket{0}$} & \gate{R_y(\mp\tfrac{\pi}{2})} & \qw & \qw & \qw & \gate[wires=2]{R_{ZZ}(2J\gamma_l)} & \gate{R_x(2h\beta_l)} & \qw \\
+\lstick{$q_3\colon\ \ket{0}$} & \gate{R_y(\mp\tfrac{\pi}{2})} & \qw & \qw & \qw & \qw & \gate{R_x(2h\beta_l)} & \qw
+\end{quantikz}
+\end{document}

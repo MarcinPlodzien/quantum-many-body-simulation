@@ -211,12 +211,8 @@ website:
             text: "VQE with classical shadows — the measurement cost of a variational algorithm"
           - href: ch11_variational_quantum_circuits/44_noisy_variational_circuits.ipynb
             text: "Noisy variational circuits — landscapes, plateaus, training and error mitigation"
-          - href: ch11_variational_quantum_circuits/44b_variational_quantum_metrology.ipynb
-            text: "Variational quantum metrology — optimising probe states and measurements under noise with automatic differentiation"
           - href: ch11_variational_quantum_circuits/45_quantum_autoencoder.ipynb
             text: "The quantum autoencoder — compressing quantum data with a variational circuit"
-          - href: ch11_variational_quantum_circuits/45b_quantum_anomaly_detection_phase_boundaries.ipynb
-            text: "Unsupervised discovery of phase boundaries with a quantum autoencoder"
       - section: "12 · Quantum reservoir computing"
         href: chapters/ch12_quantum_reservoir_computing.qmd
         contents:

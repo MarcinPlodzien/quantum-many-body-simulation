@@ -651,7 +651,15 @@ for name in MODEL_NAMES:
 # [40 — parametrized gates](../ch11_variational_quantum_circuits/40_parametrized_gates_and_gradients.ipynb) starts from
 # $\vert0\rangle^{\otimes N}$ and applies $R_y,R_z$ rotations and $CZ$ gates. The starting state is not an eigenstate of
 # $P$ ($P\vert0\cdots0\rangle=\vert1\cdots1\rangle$), and $R_y(\theta)$ does not commute with $X$, so
-# $\vert\psi(\boldsymbol\theta)\rangle$ has no definite parity for generic angles. We call
+# $\vert\psi(\boldsymbol\theta)\rangle$ has no definite parity for generic angles.
+#
+# ![Hardware-efficient ansatz on six qubits: Ry and Rz on every qubit, a chain of CZ gates, repeated L times, then a final rotation block](figures/hea_ansatz.svg)\
+# **Figure 1.** The ansatz of Sections 5 to 8 on the $N=6$ chain of this notebook. Each dashed layer applies $R_y$ and
+# then $R_z$, each with its own angle, on every qubit, followed by $CZ$ on the bonds $(0,1),\dots,(4,5)$ in that order;
+# a final rotation block closes the circuit. With $L=4$ layers there are $2N(L+1)=60$ angles. Section 10 varies $L$,
+# and Section 9.2 compares it with the Hamiltonian-variational ansatz.
+#
+# We call
 #
 # $$\text{symmetry leakage}\;=\;1-\lvert\langle P\rangle\rvert\;\in[0,1] \tag{8}$$
 #

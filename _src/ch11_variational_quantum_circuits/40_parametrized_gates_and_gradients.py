@@ -16,12 +16,11 @@
 # quantum algorithm*: a hybrid loop in which a quantum device (or, here, a simulator) evaluates the cost and a classical
 # optimiser proposes the next angles.
 #
-# ```text
-#     classical optimiser  --- theta --->  parametrized circuit U(theta)|0..0>
-#            ^                                        |
-#            |                                        v
-#            +------- cost C(theta) <----------  measurement of O
-# ```
+# ![The variational loop: a parametrized circuit prepares a state, a measurement returns the cost, a classical optimiser returns new angles](figures/vqa_loop.svg)\
+# **Figure 1.** The variational loop. The circuit $U(\boldsymbol\theta)$ acts on $N$ qubits initialised in
+# $\vert0\rangle$, the measurement of $\hat O$ turns the prepared state into the single number $C(\boldsymbol\theta)$,
+# and the classical optimiser uses that number and its gradient to choose the angles of the next round. In this
+# notebook the quantum box is our simulator.
 #
 # **Why people study this.** A quantum computer running Shor's or the phase-estimation algorithm on a problem of practical
 # size needs quantum error correction and far more physical qubits than any existing device. The devices that exist now have tens to hundreds of noisy qubits and
@@ -302,6 +301,13 @@ for name, G in [("X/2  (single-qubit rotation)", 0.5 * X),
 # $$n_{\text{params}}(N,L)=\underbrace{(L+1)}_{\text{rotation blocks}}\times\underbrace{N}_{\text{qubits}}
 #   \times\underbrace{2}_{R_y\ \text{and}\ R_z}=2N(L+1). \tag{5}$$
 #
+# ![Hardware-efficient ansatz on six qubits: Ry and Rz on every qubit, a chain of CZ gates, repeated L times, then a final rotation block](figures/hea_ansatz.svg)\
+# **Figure 2.** The hardware-efficient ansatz as `hardware_efficient_ansatz` builds it, drawn for $N=6$. Every rotation
+# box has its own angle: in each block qubit $q$ receives $R_y$ and then $R_z$. The $CZ$ gates follow on the bonds
+# $(0,1),(1,2),\dots,(N-2,N-1)$ in that order, as an open chain; $CZ$ is symmetric in its two qubits, so both ends are
+# drawn as dots. The dashed layer is applied $L$ times and the final rotation block once, which gives the $2N(L+1)$
+# angles of Eq. (5).
+#
 # Two angles per qubit per block is not arbitrary: $R_z(\beta)R_y(\alpha)$ can map $\vert0\rangle$ to *any* point of the
 # Bloch sphere (two angles, two spherical coordinates), so one block can prepare an arbitrary product state. A third
 # angle, $R_z(\gamma)R_y(\beta)R_z(\alpha)$, would be needed for an arbitrary single-qubit *unitary*, but the extra
@@ -335,6 +341,13 @@ for name, G in [("X/2  (single-qubit rotation)", 0.5 * X),
 # Each factor is a product of commuting elementary gates: $H_{ZZ}$ is a sum of commuting $Z_qZ_{q+1}$ terms, so
 # $e^{-i\gamma H_{ZZ}}=\prod_q R_{ZZ}(2J\gamma)$ exactly (compare Eq. (3): $R_{ZZ}(t)=e^{-itZZ/2}$, so the angle to pass
 # is $t=2J\gamma$); likewise $e^{-i\beta H_X}=\prod_q R_x(2h\beta)$.
+#
+# ![Hamiltonian-variational ansatz on four qubits: Ry(-+pi/2) prepares the reference state, then each layer applies RZZ on every bond and Rx on every qubit](figures/hva_tfim.svg)\
+# **Figure 3.** The Hamiltonian-variational ansatz of Eq. (6) as `hva_tfim` builds it, drawn for $N=4$ on an open
+# chain. The first column prepares the reference state: $R_y(-\pi/2)$ on every qubit gives $\vert-\rangle^{\otimes N}$
+# for $h>0$, and $R_y(+\pi/2)$ gives $\vert+\rangle^{\otimes N}$ for $h<0$. Layer $l$ then applies
+# $R_{ZZ}(2J\gamma_l)$ on the bonds $(0,1),(1,2),(2,3)$ and $R_x(2h\beta_l)$ on every qubit. All gates of one factor
+# share the same angle, so the whole circuit has only $2L$ parameters.
 #
 # **Why "problem-inspired".** At large $L$ and with the adiabatic angles the circuit *is* adiabatic state preparation, so
 # for a gapped chain and enough layers the family contains a good approximation of the ground state. The parameter count
