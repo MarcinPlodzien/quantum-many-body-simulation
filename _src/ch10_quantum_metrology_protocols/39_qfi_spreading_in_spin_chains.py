@@ -219,7 +219,7 @@ def timed(f, *args, budget=0.3, min_reps=3, max_reps=200):
 # %%
 # ==============================================================================
 # STEP 1: the quantum Fisher information of a block, from a state and a tangent vector
-#         (derived in notebook 29, Sec. 14; notebook 37 generalises it as used here)
+#         (derived in notebook 29, Sec. 15; notebook 37 generalises it as used here)
 # ==============================================================================
 def qfi_from_derivative(rho, drho, tol=1e-12):
     """SLD quantum Fisher information from a density matrix and its derivative.

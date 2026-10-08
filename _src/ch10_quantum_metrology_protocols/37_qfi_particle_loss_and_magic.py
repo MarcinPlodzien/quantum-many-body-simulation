@@ -208,13 +208,13 @@ def timed(f, *args, budget=0.3, min_reps=3, max_reps=200):
 # both $\rho_A$ and $\partial_\theta\rho_A$ live inside the column span of $\left[\,\Psi\ \ \Phi\,\right]$, a subspace of
 # dimension at most $2\cdot2^{N-K}$. A thin QR decomposition $\left[\,\Psi\ \ \Phi\,\right]=QR$ gives an isometry onto
 # it; projecting with $Q^\dagger$ leaves the non-zero spectrum and every matrix element of Eq. (2) unchanged and drops
-# the cost to $O\!\left(8^{\min(K,N-K)}\right)$. This is the routine derived in notebook 29, Section 14; we copy it and
+# the cost to $O\!\left(8^{\min(K,N-K)}\right)$. This is the routine derived in notebook 29, Section 15; we copy it and
 # generalise it to an arbitrary tangent vector.
 
 # %%
 # ==============================================================================
 # STEP 1: the reduced-state QFI -- three routines
-#   (derived in notebook 29 Sec. 14 and notebook 30 Sec. 6; generalised here to
+#   (derived in notebook 29 Sec. 15 and notebook 30 Sec. 6; generalised here to
 #    an arbitrary tangent vector |phi> = G|psi>)
 # ==============================================================================
 def qfi_from_derivative(rho, drho, tol=1e-12):
@@ -265,7 +265,7 @@ def collective_tangent(psi, n):
 
 
 def qfi_matrix(psi):
-    """3x3 collective QFI matrix, Fcal_ab = 4 C_ab, with F_Q(n) = n^T Fcal n (notebook 29, Sec. 11)."""
+    """3x3 collective QFI matrix, Fcal_ab = 4 C_ab, with F_Q(n) = n^T Fcal n (notebook 29, Sec. 12)."""
     _, cov = spin_moments(psi)
     return 4.0 * cov
 

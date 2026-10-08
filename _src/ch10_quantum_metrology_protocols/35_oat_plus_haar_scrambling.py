@@ -201,7 +201,7 @@ def timed(f, *args, budget=0.3, min_reps=3, max_reps=200):
 # J\rangle\vert^2$ diverges there, because the mean spin vanishes — squeezing stops being a meaningful figure of
 # merit long before $F_Q$ stops growing.
 #
-# We build the four probes and read off their quantum Fisher information from the $3\times3$ matrix of Section 11 of
+# We build the four probes and read off their quantum Fisher information from the $3\times3$ matrix of Section 12 of
 # notebook 29: $F_Q(\mathbf n)=\mathbf n^{\mathsf T}\mathcal{F}\mathbf n$ with
 # $\mathcal{F}_{ab}=4\left[\tfrac12\langle J_aJ_b+J_bJ_a\rangle-\langle J_a\rangle\langle J_b\rangle\right]$, so the
 # best collective direction is the largest eigenvector of $\mathcal{F}$.
@@ -1410,7 +1410,7 @@ fig.tight_layout(); plt.show()
 #
 # Section 5 asked how much *entropy* a subsystem of $k$ qubits has. The metrological question is different: after
 # the phase has been imprinted on all $N$ qubits by $U(\theta)=e^{-i\theta G}$, how much information about $\theta$
-# survives in the reduced state of $k$ of them? This is notebook 29, Section 14: the reduced state
+# survives in the reduced state of $k$ of them? This is notebook 29, Section 15: the reduced state
 #
 # $$\rho_A(\theta)=\mathrm{Tr}_B\left[U(\theta)\vert\psi\rangle\langle\psi\vert U^\dagger(\theta)\right]$$
 #

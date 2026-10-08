@@ -686,7 +686,7 @@ assert 0.9 < est_H.std(ddof=1) / crb_H < 1.12
 #
 # ### 7.3 Bias and efficiency at finite $M$
 #
-# The parity estimator is the single-coin estimator of [notebook 29](./29_quantum_fisher_information.ipynb), Eq. (11a),
+# The parity estimator is the single-coin estimator of [notebook 29](./29_quantum_fisher_information.ipynb), Eq. (36),
 # applied to the rescaled phase $\theta=N\varphi$: $\hat\theta=\arccos(2k/M-1)$ has bias $-\cot\theta/(2M)$ to first order,
 # so $\hat\varphi=\hat\theta/N$ has
 #

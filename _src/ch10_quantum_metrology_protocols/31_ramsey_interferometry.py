@@ -174,7 +174,7 @@ def std_of_std(sigma, n):
 #
 # $$\Delta\varphi\ \ge\ \frac{1}{\sqrt{M\,F(\varphi)}}. \tag{2}$$
 #
-# The bound holds under two conditions (notebook 29, Section 5.2): the estimator is (locally) unbiased,
+# The bound holds under two conditions (notebook 29, Section 4.7): the estimator is (locally) unbiased,
 # $\partial_\varphi\mathbb E[\hat\varphi]=1$ at the working point, and the model is *regular* there, meaning that the set of
 # outcomes with non-zero probability does not change with $\varphi$. It is *attainable* asymptotically: under the same
 # regularity conditions the maximum-likelihood estimator has a bias that falls like $1/M$ and a variance that approaches
@@ -196,7 +196,7 @@ def std_of_std(sigma, n):
 # *jointly* does not beat it, because the quantum Fisher information is additive over independent copies,
 # $F_Q[\rho_\varphi^{\otimes M}]=MF_Q[\rho_\varphi]$.
 #
-# **What is counted.** As in notebook 29 (Section 9.2), the resource is the number of single-atom phase imprints,
+# **What is counted.** As in notebook 29 (Section 7.5), the resource is the number of single-atom phase imprints,
 # $\nu=NM$: each of the $N$ atoms acquires the phase once per repetition, and the protocol is repeated $M$ times. The
 # standard quantum limit is $\Delta\varphi=1/\sqrt\nu$ and the Heisenberg limit $\Delta\varphi=\sqrt M/\nu$. The
 # interrogation time does not enter this count; it enters only in Section 16, where the quantity to be estimated is a
@@ -1007,7 +1007,7 @@ fig.tight_layout(); plt.show()
 # ### 11.1 The bias away from mid-fringe
 #
 # Away from $\varphi=\pi/2$ the symmetry is gone, and the curvature of $\arccos$ produces a bias at finite $NM$. Its size
-# follows from a second-order Taylor expansion (the delta method of notebook 29, Section 5.3) of
+# follows from a second-order Taylor expansion (the delta method of notebook 29, Section 4.8) of
 # $g(\hat p)=\arccos\big[(1-2\hat p)/C\big]$ around $p$, with $\mathbb E[\hat p-p]=0$ and $\mathrm{Var}(\hat p)=p(1-p)/(NM)$.
 # Writing $x=(1-2p)/C=\cos\varphi$, we have $dx/dp=-2/C$ and $d^2\arccos x/dx^2=-x/(1-x^2)^{3/2}$, so
 # $g''(p)=-4\cos\varphi/(C^2\sin^3\varphi)$; with $p(1-p)=\tfrac14(1-C^2\cos^2\varphi)$,
@@ -1016,7 +1016,7 @@ fig.tight_layout(); plt.show()
 # =-\frac{\cos\varphi\,\big(1-C^2\cos^2\varphi\big)}{2NM\,C^2\sin^3\varphi}
 # \ \xrightarrow{\ C=1\ }\ -\frac{\cot\varphi}{2NM}. \tag{14a}$$
 #
-# This is Eq. (11a) of notebook 29 with the $M$ single-atom repetitions there replaced by the $NM$ atom detections here. It
+# This is Eq. (36) of notebook 29 with the $M$ single-atom repetitions there replaced by the $NM$ atom detections here. It
 # vanishes at $\varphi=\pi/2$, as the symmetry argument requires; at $C=1$ it is negative for $\varphi<\pi/2$ and positive
 # for $\varphi>\pi/2$, so it pushes the estimate away from mid-fringe towards the nearer fringe extremum; and it falls like $1/(NM)$, faster than the spread $1/\sqrt{NM}$, so that the ratio bias/spread decays like $1/\sqrt{NM}$.
 # The same expansion to first order reproduces the variance of Eq. (11).

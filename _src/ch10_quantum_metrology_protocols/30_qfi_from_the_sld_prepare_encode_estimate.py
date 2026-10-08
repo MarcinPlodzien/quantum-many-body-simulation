@@ -531,7 +531,7 @@ assert tr_abs < 1e3 * TOL and max_abs(dm - dm.conj().T) < 1e3 * TOL
 #     =4\left(\sum_{\text{all }n}\left\vert\langle\psi\vert G\vert n\rangle\right\vert^2-\left\vert\langle\psi\vert G\vert\psi\rangle\right\vert^2\right)
 #     =4\left(\langle G^2\rangle-\langle G\rangle^2\right),$$
 #
-# using the completeness relation $\sum_n\vert n\rangle\langle n\vert=\mathbb 1$ in the middle step. This is Eq. (14) of
+# using the completeness relation $\sum_n\vert n\rangle\langle n\vert=\mathbb 1$ in the middle step. This is Eq. (75) of
 # notebook 29. $\square$
 #
 # **(c) Convexity.** For any mixture, $F_Q\!\left[\sum_ip_i\rho_i,G\right]\le\sum_ip_iF_Q[\rho_i,G]$. The proof takes two
@@ -756,7 +756,7 @@ assert abs(f_x - var4_x) < 1e4 * TOL
 # factor $8$ versus $4$ is exactly the difference between them — always check which one your fidelity routine computes.
 # For pure states the squared form is immediate:
 # $F=\vert\langle\psi_\theta\vert\psi_{\theta+d\theta}\rangle\vert^2=1-\mathrm{Var}(G)\,d\theta^2+O(d\theta^4)$ and
-# $F_Q=4\mathrm{Var}(G)$ (notebook 29, Section 7.2); for mixed states Eq. (13) is a standard
+# $F_Q=4\mathrm{Var}(G)$ (notebook 29, Section 6.4); for mixed states Eq. (13) is a standard
 # result which we now *test* rather than prove.
 #
 # This gives a completely independent estimator of $F_Q$: no SLD, no eigen-decomposition of $\partial_\theta\rho$, only two
@@ -1121,7 +1121,7 @@ fig.tight_layout(); plt.show()
 #
 # The last form follows from $\ell'=p'/p$, $\ell''=p''/p-(p'/p)^2$, $\ell'''=p'''/p-3p'p''/p^2+2(p'/p)^3$ and
 # $\sum_xp'''_x=0$. For the binary model $p_\pm=(1\pm\cos\theta)/2$ of notebook 29 it gives $b_1=-\cot\theta/2$, the
-# delta-method result of that notebook, Eq. (11a). The code evaluates Eq. (14a) with `jax.jacfwd` applied once and twice to
+# delta-method result of that notebook, Eq. (36). The code evaluates Eq. (14a) with `jax.jacfwd` applied once and twice to
 # the exact outcome probabilities. The bias is of order $1/M$ while the standard deviation is of order $1/\sqrt M$, so it
 # contributes $b_1^2/M^2$ to the mean squared error, negligible against $1/(MI)$ for large $M$.
 
@@ -1719,7 +1719,7 @@ fig.tight_layout(); plt.show()
 #
 # * if the state stays **pure**, use $F_Q=4\,\mathrm{Var}(G)$ — $O(N2^N)$, good to $N\approx20$;
 # * if the state is mixed only because a **few qubits were traced out**, use the Schmidt/QR compression of notebook 29,
-#   Section 14: the rank of the reduced state is bounded by the dimension of what was removed;
+#   Section 15: the rank of the reduced state is bounded by the dimension of what was removed;
 # * if the state is genuinely mixed by noise, either restrict to the **symmetric subspace** (dimension $N+1$ instead of
 #   $2^N$, legitimate whenever state, noise and generator are permutation-invariant; Exercise 7 below) or build the
 #   density matrix from **quantum-trajectory** samples and evaluate $F_Q$ on the averaged state (an exercise of

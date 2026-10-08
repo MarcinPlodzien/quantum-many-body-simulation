@@ -1000,7 +1000,7 @@ fig.tight_layout(); plt.show()
 #
 # For each we report the estimate of $\lambda_{\max}(\mathcal{F})$ with its bootstrap error bar, the entanglement
 # certified by $F_Q>N$, and the entanglement depth certified by the Hyllus–Tóth bound
-# $F_Q\le\lfloor N/k\rfloor k^2+(N\bmod k)^2$ for $k$-producible states (notebook 29, Eq. (21)) — evaluated on the
+# $F_Q\le\lfloor N/k\rfloor k^2+(N\bmod k)^2$ for $k$-producible states (notebook 29, Eq. (122)) — evaluated on the
 # *lower end of the error bar*, so that the claim survives the statistical error.
 
 # %%
@@ -1246,7 +1246,7 @@ assert max(z_rate) < 4.0 and z_rate_wrong > 4.0
 # **Claim.** $F_Q[\rho,G]\le4\,\mathrm{Var}_\rho(G)$ for every state.
 #
 # *Proof.* $F_Q$ is unchanged by $G\to\tilde G=G-\langle G\rangle\mathbb 1$ (a shift of the generator is a global
-# phase, Section 7.3 of notebook 29), so evaluate Eq. (16) with $\tilde G$. For every pair,
+# phase, Section 6.5 of notebook 29), so evaluate Eq. (16) with $\tilde G$. For every pair,
 #
 # $$\frac{(\lambda_m-\lambda_n)^2}{\lambda_m+\lambda_n}\le\lambda_m+\lambda_n,$$
 #
