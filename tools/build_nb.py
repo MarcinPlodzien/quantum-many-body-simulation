@@ -45,7 +45,7 @@ ENGINE = ROOT / "quantum_engine.py"
 SRC = ROOT / "_src"
 
 AUTHOR_BLOCK = (
-    "**Marcin Płodzień** — Institute of Theoretical Physics, Jagiellonian University  \n"
+    "**Marcin Płodzień** — Institute of Theoretical Physics, Jagiellonian University in Kraków  \n"
     "[ORCID 0000-0002-0835-1644](https://orcid.org/0000-0002-0835-1644) · "
     "[github.com/MarcinPlodzien](https://github.com/MarcinPlodzien) · "
     "[www](https://chaos.if.uj.edu.pl/marcinplodzien/)\n\n"
@@ -80,9 +80,7 @@ CONFIG_TAIL = (
 
 FOOTER = (
     "---\n"
-    "**About these lectures.** Written by Marcin Płodzień (Institute of Theoretical Physics, Jagiellonian University; "
-    "[ORCID](https://orcid.org/0000-0002-0835-1644) · [GitHub](https://github.com/MarcinPlodzien) · "
-    "[www](https://chaos.if.uj.edu.pl/marcinplodzien/)) as self-study material for the course "
+    "**About these lectures.** Written by Marcin Płodzień as self-study material for the course "
     "*Quantum Many-Body Simulation: from a single spin to quantum machine learning*.\n\n"
     "**Citation:** M. Płodzień, *Quantum Many-Body Simulation: from a single spin to quantum machine learning* (2026), "
     "https://marcinplodzien.github.io/quantum-many-body-simulation/"

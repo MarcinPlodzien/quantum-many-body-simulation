@@ -13,7 +13,7 @@ code-fold: false
 
 <p class="hero-sub">Starting from an empty Python file, the lectures develop a matrix-free simulation engine and use it to study spin-1/2 systems, quantum circuits, unitary and dissipative dynamics, and quantum machine learning.</p>
 
-<p class="hero-author"><a href="https://chaos.if.uj.edu.pl/marcinplodzien/"><b>Marcin Płodzień</b></a> · Institute of Theoretical Physics, Jagiellonian University</p>
+<p class="hero-author"><a href="https://chaos.if.uj.edu.pl/marcinplodzien/"><b>Marcin Płodzień</b></a> · Institute of Theoretical Physics, Jagiellonian University in Kraków</p>
 
 [Start with notebook 00a](ch01_computational_toolbox/00a_free_particle_gaussian_wave_packet.ipynb){.btn .btn-primary} [Browse the chapters](#chapters){.btn .btn-outline-primary} [The engine](ch03_matrix_free_engine/08b_building_quantum_simulator_engine.ipynb){.btn .btn-outline-primary}
 :::
@@ -84,7 +84,7 @@ The differentiable simulator is used throughout Chapters 11 and 12 to build and 
 - [Optimisers for variational circuits, from gradient descent to the quantum natural gradient](ch11_variational_quantum_circuits/41_optimizers.ipynb) (notebook 41)
 - [The variational quantum eigensolver for ground states of spin chains](ch11_variational_quantum_circuits/42_variational_quantum_eigensolver.ipynb) (notebook 42)
 - [The measurement cost of a variational algorithm, with classical shadows in the training loop](ch11_variational_quantum_circuits/43_vqe_with_classical_shadows.ipynb) (notebook 43)
-- [Training under gate noise: cost landscapes, noise-induced barren plateaus and error mitigation](ch11_variational_quantum_circuits/44_noisy_variational_circuits.ipynb) (notebook 44)
+- [Training under gate noise: cost landscapes, noise-induced barren plateaus and error mitigation](ch11_variational_quantum_circuits/44b_variational_quantum_metrology.ipynb) (notebook 44)
 - [The quantum autoencoder, compressing quantum data with a variational circuit](ch11_variational_quantum_circuits/45_quantum_autoencoder.ipynb) (notebook 45)
 - [Quantum reservoir computing, many-body dynamics as a machine for time-series prediction](ch12_quantum_reservoir_computing/46_quantum_reservoir_computing.ipynb) (notebook 46)
 
@@ -146,7 +146,7 @@ print(f"energy = {cost(theta):.4f}, gradient has {g.size} components")
 
 ## Chapters {#chapters}
 
-13 chapters, each a short overview page followed by runnable notebooks (54 in total). The notebooks are numbered globally; each one carries the engine functions it uses in a folded *Engine recap* cell and ends with exercises, so any notebook also runs and can be studied on its own.
+13 chapters, each a short overview page followed by runnable notebooks (55 in total). The notebooks are numbered globally; each one carries the engine functions it uses in a folded *Engine recap* cell and ends with exercises, so any notebook also runs and can be studied on its own.
 
 ::: {.chapter-grid}
 ::: {.chapter-card}
@@ -246,7 +246,7 @@ Compute quantum Fisher information and simulate metrology protocols from prepara
 
 Train parametrised quantum circuits: gradients, optimisers, VQE, measurement cost and noise.
 
-<span class="nbcount">6 notebooks</span>
+<span class="nbcount">7 notebooks</span>
 :::
 ::: {.chapter-card}
 [![](assets/thumbs/ch12.png){fig-alt="Quantum reservoir computing"}](chapters/ch12_quantum_reservoir_computing.qmd)

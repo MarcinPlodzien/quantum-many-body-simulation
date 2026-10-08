@@ -27,7 +27,7 @@ SITE_TITLE = "Quantum Many-Body Simulation"            # the course (navbar, not
 HERO_TITLE = "From a Single Spin to Quantum Machine Learning"
 SITE_SUBTITLE = "Hands-on lectures on simulating quantum systems in JAX, from scratch"
 AUTHOR = "Marcin Płodzień"
-AFFIL = "Institute of Theoretical Physics, Jagiellonian University"
+AFFIL = "Institute of Theoretical Physics, Jagiellonian University in Kraków"
 ORCID = "https://orcid.org/0000-0002-0835-1644"
 GITHUB = "https://github.com/MarcinPlodzien"
 
@@ -163,7 +163,7 @@ def main():
         for path, title, _ in items:
             y += [f"          - href: {path}", f"            text: {q(title)}"]
     y += ['      - text: "Engine source code"', "        href: engine.qmd",
-          "  page-footer:", "    border: true", f"    left: {q(f'© 2026 {AUTHOR} · {AFFIL}')}",
+          "  page-footer:", "    border: true", f"    left: {q(f'© 2026 {AUTHOR}')}",
           "    right: >-", f"      {FOOTER_LINKS}", "",
           "format:", "  html:", "    theme:", "      light: [cosmo, assets/qusml.scss]", "      dark: [darkly, assets/qusml-dark.scss]", "    toc: true", "    toc-depth: 3",
           "    number-sections: false", "    code-fold: show", "    code-tools: true", "    code-copy: true",
@@ -299,7 +299,7 @@ def main():
           f"[![](assets/qusml_logo.svg){{width=320px fig-alt=\"QuSML: Quantum Systems and Machine Learning\"}}]({HOMEPAGE})", "",
           f"### [Marcin Płodzień]({HOMEPAGE})", "",
           f"[Marcin Płodzień]({HOMEPAGE}) is an Assistant Professor at the Institute of Theoretical Physics, Jagiellonian "
-          "University, working at the intersection of many-body quantum systems, quantum simulation, quantum metrology, "
+          "University in Kraków, working at the intersection of many-body quantum systems, quantum simulation, quantum metrology, "
           "quantum computing and machine learning.", "",
           f"[www]({HOMEPAGE}) · "
           "[Google Scholar](https://scholar.google.com/citations?user=eC9nCmgAAAAJ&hl=en) · "

@@ -6,7 +6,7 @@ Website: **https://marcinplodzien.github.io/quantum-many-body-simulation/**
 
 > The course is under active review: notebooks are being checked and improved, and their content may change.
 
-**Marcin Płodzień** — Institute of Theoretical Physics, Jagiellonian University ·
+**Marcin Płodzień** — Institute of Theoretical Physics, Jagiellonian University in Kraków ·
 [ORCID 0000-0002-0835-1644](https://orcid.org/0000-0002-0835-1644) · [github.com/MarcinPlodzien](https://github.com/MarcinPlodzien)
 
 Self-study lecture notes (Jupyter notebooks) that teach, side by side, the **physics** of quantum many-body systems,

@@ -10,7 +10,7 @@ code-tools: false
 
 ### [Marcin Płodzień](https://chaos.if.uj.edu.pl/marcinplodzien/)
 
-[Marcin Płodzień](https://chaos.if.uj.edu.pl/marcinplodzien/) is an Assistant Professor at the Institute of Theoretical Physics, Jagiellonian University, working at the intersection of many-body quantum systems, quantum simulation, quantum metrology, quantum computing and machine learning.
+[Marcin Płodzień](https://chaos.if.uj.edu.pl/marcinplodzien/) is an Assistant Professor at the Institute of Theoretical Physics, Jagiellonian University in Kraków, working at the intersection of many-body quantum systems, quantum simulation, quantum metrology, quantum computing and machine learning.
 
 [www](https://chaos.if.uj.edu.pl/marcinplodzien/) · [Google Scholar](https://scholar.google.com/citations?user=eC9nCmgAAAAJ&hl=en) · [arXiv](https://arxiv.org/search/?searchtype=author&query=P%C5%82odzie%C5%84%2C+M) · [ORCID](https://orcid.org/0000-0002-0835-1644) · [ResearcherID](https://publons.com/researcher/K-7326-2017/) · [GitHub](https://github.com/MarcinPlodzien) · [LinkedIn](https://www.linkedin.com/in/marcin-plodzien/)
 
