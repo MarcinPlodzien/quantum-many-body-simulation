@@ -215,6 +215,8 @@ website:
             text: "Variational quantum metrology — optimising probe states and measurements under noise with automatic differentiation"
           - href: ch11_variational_quantum_circuits/45_quantum_autoencoder.ipynb
             text: "The quantum autoencoder — compressing quantum data with a variational circuit"
+          - href: ch11_variational_quantum_circuits/45b_quantum_anomaly_detection_phase_boundaries.ipynb
+            text: "Unsupervised discovery of phase boundaries with a quantum autoencoder"
       - section: "12 · Quantum reservoir computing"
         href: chapters/ch12_quantum_reservoir_computing.qmd
         contents:
@@ -229,7 +231,7 @@ website:
         href: engine.qmd
   page-footer:
     border: true
-    left: "© 2026 Marcin Płodzień"
+    left: "© 2026 Marcin Płodzień, PhD"
     right: >-
       [Homepage](https://chaos.if.uj.edu.pl/marcinplodzien/) · [Email](mailto:mplodzien@gmail.com) · [ORCID](https://orcid.org/0000-0002-0835-1644) · [Scholar](https://scholar.google.com/citations?user=eC9nCmgAAAAJ&hl=en) · [GitHub](https://github.com/MarcinPlodzien) · [Scopus](https://www.scopus.com/authid/detail.uri?authorId=55031869100) · [WoS](https://www.webofscience.com/wos/author/record/K-7326-2017)
 

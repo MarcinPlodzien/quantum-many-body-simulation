@@ -163,7 +163,7 @@ def main():
         for path, title, _ in items:
             y += [f"          - href: {path}", f"            text: {q(title)}"]
     y += ['      - text: "Engine source code"', "        href: engine.qmd",
-          "  page-footer:", "    border: true", f"    left: {q(f'© 2026 {AUTHOR}')}",
+          "  page-footer:", "    border: true", f"    left: {q(f'© 2026 {AUTHOR}, PhD')}",
           "    right: >-", f"      {FOOTER_LINKS}", "",
           "format:", "  html:", "    theme:", "      light: [cosmo, assets/qusml.scss]", "      dark: [darkly, assets/qusml-dark.scss]", "    toc: true", "    toc-depth: 3",
           "    number-sections: false", "    code-fold: show", "    code-tools: true", "    code-copy: true",
