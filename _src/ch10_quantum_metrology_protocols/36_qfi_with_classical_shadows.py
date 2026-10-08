@@ -28,7 +28,7 @@
 #   shadows (notebook 24) estimate all of them from a *single* data set, with a variance that does not grow with
 #   $N$. The squared mean is the only nonlinear part, it biases the naive estimator by a computable amount, and a
 #   $U$-statistic removes the bias exactly.
-# * For a **mixed state** $4\,\mathrm{Var}(G)$ is only an upper bound on $F_Q$, and it can be wildly wrong: we will
+# * For a **mixed state** $4\,\mathrm{Var}(G)$ is only an upper bound on $F_Q$, and it can be far from it: we will
 #   exhibit a state whose $4\,\mathrm{Var}(J_z)$ is $N^2$ while its true $F_Q$ is $0.15$. What randomised
 #   measurements can still deliver is a *converging series of lower bounds* $F_0\le F_1\le\cdots\le F_Q$, each a
 #   polynomial in $\rho$, which we derive from a geometric series and verify against the exact
@@ -946,7 +946,10 @@ ax2.tick_params(axis="y", colors=PALETTE[2])
 
 Ns = np.array([r[0] for r in size_rows], dtype=float)
 Nf = np.linspace(Ns[0], Ns[-1], 100)
-axes[1].plot(Ns, [r[3] for r in size_rows], "o", color=PALETTE[0], ms=7, label=r"bootstrap sd of $F_{\max}$")
+axes[1].plot(Ns, [r[3] for r in size_rows], "o", color=PALETTE[0], ms=7, mfc="white",
+             label=r"bootstrap sd of $F_{\max}$ ($B=160$)")
+axes[1].errorbar(Ns, [r[4] / np.sqrt(M_FIX) for r in size_rows], yerr=[r[5] / np.sqrt(M_FIX) for r in size_rows],
+                 fmt="s", color=PALETTE[2], ms=5, capsize=3, label=r"sample sd of $\psi_m$, divided by $\sqrt{M}$")
 axes[1].plot(Nf, sigma1_cat(Nf) / np.sqrt(M_FIX), "k-", lw=1.2, label=r"Eq. (14a), no free parameter")
 axes[1].plot(Nf, c_wrong * (Nf ** 2 + 2 * Nf) / np.sqrt(M_FIX), "--", color=PALETTE[1], lw=1.2,
              label=r"wrong law $\propto F_Q+2N$ (matched at $N=4$)")
@@ -998,7 +1001,7 @@ fig.tight_layout(); plt.show()
 # For each we report the estimate of $\lambda_{\max}(\mathcal{F})$ with its bootstrap error bar, the entanglement
 # certified by $F_Q>N$, and the entanglement depth certified by the Hyllus–Tóth bound
 # $F_Q\le\lfloor N/k\rfloor k^2+(N\bmod k)^2$ for $k$-producible states (notebook 29, Eq. (21)) — evaluated on the
-# *lower end of the error bar*, which is the honest way to make a claim from data.
+# *lower end of the error bar*, so that the claim survives the statistical error.
 
 # %%
 # ==============================================================================
@@ -1073,8 +1076,8 @@ axes[0].errorbar(xs, [r[2] for r in zoo_rows], yerr=[N_SIGMA * r[3] for r in zoo
                  color=PALETTE[0], ms=7, capsize=4, label=rf"shadows, $\pm{N_SIGMA:.0f}\sigma$")
 axes[0].axhline(N_ZOO, color="0.4", ls="--", lw=1.2)
 axes[0].axhline(N_ZOO ** 2, color="0.2", ls=":", lw=1.2)
-axes[0].text(len(zoo_rows) - 0.4, N_ZOO * 1.06, "$N$", fontsize=9, color="0.35", ha="right")
-axes[0].text(len(zoo_rows) - 0.4, N_ZOO ** 2 * 1.03, "$N^2$", fontsize=9, color="0.25", ha="right")
+axes[0].text(len(zoo_rows) - 0.55, N_ZOO * 1.06, "$N$", fontsize=9, color="0.35", ha="right")
+axes[0].text(len(zoo_rows) - 0.55, N_ZOO ** 2 * 1.03, "$N^2$", fontsize=9, color="0.25", ha="right")
 axes[0].set_xticks(xs, [r[0].split(" (")[0] for r in zoo_rows], rotation=25, ha="right", fontsize=8)
 axes[0].set_ylabel(r"$F_Q=\lambda_{\max}(\mathcal{F})$")
 axes[0].set_title(f"$N={N_ZOO}$, $M={M_ZOO}$ snapshots per state"); axes[0].legend(fontsize=9)
@@ -1097,9 +1100,7 @@ fig.tight_layout(); plt.show()
 # control misses every state by many standard deviations except the coherent one. That exception is instructive:
 # without the factor $3$ per qubit, one-body values shrink by $1/3$ and two-body values by $1/9$, so Eq. (5)
 # returns $N+(\mathcal{F}_{aa}-N)/9$, which coincides with the truth whenever $\mathcal{F}_{aa}=N$. A checkpoint on
-# a coherent state alone could never detect this error.
- The right
-# panel makes the point that one data set gives the *whole function*
+# a coherent state alone could never detect this error. The right panel makes the point that one data set gives the *whole function*
 # $F_Q(\mathbf n)$, not one number: the estimated quadratic form tracks the exact one around a full great circle,
 # so the experimentalist can afterwards ask about any collective generator without measuring again.
 #
@@ -1116,7 +1117,6 @@ fig.tight_layout(); plt.show()
 # matrix is the larger of two noisy numbers, so it is biased upwards by a fraction of its standard deviation and the
 # first-order argument of Section 7.2 does not apply. At this $M$ the effect is smaller than the error bar, but a
 # certification near threshold for such a state should take it into account.
-
 
 # %% [markdown]
 # ## 9. The snapshot budget of a certification
@@ -1381,6 +1381,8 @@ print(f"\nCHECKPOINT the exact mixed-state value follows Eq. (17) to {1e4 * TOL:
 # $s=1-q\left(1-2^{1-N}\right)$. Equation (18) then sums a single geometric series, and
 #
 # $$\frac{F_n}{F_Q}=1-\left(1-s\right)^{n+1}\qquad\text{(GHZ + white noise)}. \tag{19a}$$
+#
+# The next cell checks Eq. (19) on six noisy states and Eq. (19a) on the two white-noise states.
 
 # %%
 # ==============================================================================
@@ -1474,7 +1476,7 @@ ax.semilogy(ps, [max(r[1], 1e-6) for r in gap_rows], "-", color=PALETTE[0], lw=7
             solid_capstyle="round", label=r"true $F_Q$ (SLD)")
 ax.semilogy(ps, [max(float(qfi_lower_bound_F0(dm_matrix(apply_local_channel(
     to_dm(ghz_state(N_MIX)), kraus_dephasing, float(p))), G_MIX)), 1e-6) for p in ps], "^--",
-            color=PALETTE[2], ms=8, lw=1.4, label=r"$F_0$ from shadows-accessible polynomials, Eq. (20)")
+            color=PALETTE[2], ms=8, lw=1.4, label=r"$F_0$, Eq. (20), exact (estimable from shadows, Section 10.4)")
 ax.axhline(N_MIX, color="0.4", ls="--", lw=1.2)
 ax.text(0.16, N_MIX * 1.15, "separable bound $N$", fontsize=8, color="0.35")
 ax.set_xlabel("dephasing probability $p$ per qubit")
@@ -1689,7 +1691,6 @@ assert z_split < 4.0 and z_plug > 4.0 and z_plug_pred < 4.0
 # > $\rho$, needs $n+2$ independent snapshot averages. Certification needs the direction that cannot over-claim,
 # > so it pays the polynomial price.
 
-
 # %% [markdown]
 # ## 11. Cost
 #
@@ -1724,12 +1725,12 @@ for N in (4, 6, 8, 10):
           f"| {t_col:26.3f}")
 
 # %% [markdown]
-# The compact estimator wins by a factor that grows with $N$, from about $5$ at $N=4$ to several tens at $N=10$ in
-# this build (individual timings vary by a factor of two or more between runs on a shared CPU, so read the trend,
-# not the digits). The growth is the $K=O(N^2)$ of the literal route: it performs $N$ passes over an $(M,K)$ array,
+# The compact estimator wins by a factor that grows with $N$, from a few at $N=4$ to a few tens at $N=10$
+# (individual timings vary by a factor of two or more between runs on a shared CPU, so read the trend, not the
+# digits). The growth is the $K=O(N^2)$ of the literal route: it performs $N$ passes over an $(M,K)$ array,
 # $O(MKN)$ operations, against six masked sums over the $(M,N)$ data, $O(6MN)$, a naive ratio of about $K/6$
-# ($73$ at $N=10$). The compact time is essentially flat in $N$ at a fraction of a millisecond, which is dispatch
-# overhead rather than work. The decisive advantage is the memory
+# ($73$ at $N=10$). The compact time is essentially flat in $N$ at the millisecond level or below, which is
+# dispatch overhead rather than work. The decisive advantage is the memory
 # the table does not show: the literal route materialises an $(M,K)$ array, $35$ MB at $N=10$ and $M=10^4$ and
 # $3.5$ GB at $M=10^6$, while the compact route stores $6M$ numbers whatever $N$ is. Neither column includes the
 # Python loop over the $K$ strings that assembles Eq. (5), which the compact route does not need at all.
@@ -1749,7 +1750,7 @@ for N in (4, 6, 8, 10):
 #   randomised-measurement data set with variances $3$ and $9$ that do not grow with $N$.
 # * **The estimator collapses to six numbers per snapshot.** Because the weight-$2$ estimator factorises, the sum
 #   over ordered pairs is a product of sums minus its diagonal, Eqs. (7)–(10). Cost $O(MN)$ instead of $O(MN^3)$,
-#   memory $O(M)$ instead of $O(MN^2)$; the measured speed-up grows from about $5$ at $N=4$ to several tens at
+#   memory $O(M)$ instead of $O(MN^2)$; the measured speed-up grows from a few at $N=4$ to a few tens at
 #   $N=10$, with the memory — $35$ MB against $0.5$ MB at $N=10$, $M=10^4$ — the bigger prize, and the two
 #   implementations agree to $10^{-14}$.
 # * **The plug-in estimator is biased by exactly $-(\mathcal{F}_{aa}+2N)/M$**, Eq. (13), derived from

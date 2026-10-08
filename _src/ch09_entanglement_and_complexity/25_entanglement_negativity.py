@@ -274,6 +274,8 @@ print("reduced state of qubit 0, Bell    :\n", np.round(np.asarray(rdm_dm(rho_be
 # `"abAB->AbaB"`. The engine's `partial_transpose` builds this permutation for any subset and calls `jnp.transpose`:
 #
 # ```python
+# rho = as_dm_tensor(rho)          # a (2^N, 2^N) matrix is reshaped to the rank-2N tensor first
+# N = rho.ndim // 2
 # perm = list(range(2 * N))
 # for q in qubits:
 #     perm[q], perm[N + q] = perm[N + q], perm[q]
@@ -320,10 +322,32 @@ print("trace preserved?    ", abs(float(jnp.real(jnp.trace(pt_engine))) - 1.0) <
 print("eigenvalues of rho  :", np.round(np.linalg.eigvalsh(np.asarray(rho_mat)), 6))
 print("eigenvalues of rho^T_A:", np.round(np.linalg.eigvalsh(np.asarray(pt_engine)), 6))
 
+# WRONG CONTROL: transposing the whole 4x4 matrix instead of the A axes only.  The full transpose has the
+# spectrum of rho itself, so it reports zero negativity for every state -- even for the Bell state.
+bell_mat = dm_matrix(to_dm(bell_state("phi+")))
+mu_full = np.linalg.eigvalsh(np.asarray(bell_mat.T))
+mu_part = np.linalg.eigvalsh(np.asarray(dm_matrix(partial_transpose(bell_mat, [0]))))   # matrix input is accepted
+print("\nBell state, full transpose   : eigenvalues", np.round(mu_full, 6),
+      f"-> negativity {np.sum(np.abs(mu_full) - mu_full) / 2:.6f}")
+print("Bell state, partial transpose: eigenvalues", np.round(mu_part, 6),
+      f"-> negativity {np.sum(np.abs(mu_part) - mu_part) / 2:.6f}")
+assert mu_full.min() > -TOL and abs(mu_part.min() + 0.5) < TOL
+
 # %% [markdown]
 # Three independent implementations agree to machine precision, so Eq. (3) and the axis permutation really are the same
 # operation. The partial transpose keeps Hermiticity and the trace, so its eigenvalues are real and sum to $1$ — but for this
 # particular entangled state one of them came out negative, and a matrix with a negative eigenvalue is not a density matrix.
+#
+# The last two lines are a control that must fail. Transposing the *whole* $4\times4$ matrix of the Bell state gives back the
+# spectrum of $\rho$ itself, $(0,0,0,1)$, and therefore zero negativity, while the partial transpose gives
+# $(-\tfrac12,\tfrac12,\tfrac12,\tfrac12)$.
+#
+# > **Common pitfall.** `rdm` and `dm_matrix` return a $2^N\times2^N$ *matrix*, and the channel functions work with the
+# > rank-$2N$ *tensor*. Swapping "axis $q$ with axis $N+q$" on the matrix form means swapping its only two axes, which is the
+# > full transpose: the eigenvalues do not change, and the negativity comes out as exactly zero with no error message. The
+# > engine's `partial_transpose` therefore reshapes a matrix to the tensor first (`as_dm_tensor`). In this notebook every
+# > conversion is also written out explicitly with `dm_tensor`, so each call site shows which layout it passes. When a
+# > negativity is exactly zero for a state you expect to be entangled, test the code on a Bell state first.
 #
 # ### 4.3 Transposing $A$ or transposing $B$ gives the same spectrum
 #
@@ -492,17 +516,19 @@ print(f"E_N(pair 1)            = {e1:.10f}")
 print(f"E_N(pair 2)            = {e2:.10f}")
 print(f"E_N(pair 1) + E_N(2)   = {e1 + e2:.10f}")
 print(f"E_N(pair 1 (x) pair 2) = {e12:.10f}   -> additive to {abs(e12 - e1 - e2):.2e}")
-print(f"N(pair 1) * N(pair 2)  = {n1 * n2:.10f}   (N itself is NOT additive: N(1(x)2) = {n12:.10f})")
-assert abs(e12 - e1 - e2) < 1e3 * TOL
+print(f"N(pair 1) + N(pair 2)  = {n1 + n2:.10f}   (N itself is NOT additive: N(1(x)2) = {n12:.10f})")
+print(f"2 N1 N2 + N1 + N2      = {2 * n1 * n2 + n1 + n2:.10f}   (prediction from ||.||_1 = 2N + 1 being multiplicative)")
+assert abs(e12 - e1 - e2) < 1e3 * TOL and abs(n12 - (2 * n1 * n2 + n1 + n2)) < 1e3 * TOL
+assert abs(n12 - (n1 + n2)) > 0.1                  # control: the additivity of N itself must FAIL
 
 nb, eb = neg_of_matrix(dm_matrix(rho_bell), 1, 1)
 print(f"\nBell state: N = {nb:.10f} (expected 1/2),  E_N = {eb:.10f} ebit (expected 1)")
 assert abs(nb - 0.5) < 1e3 * TOL and abs(eb - 1.0) < 1e3 * TOL
 
 # %% [markdown]
-# $E_{\mathcal N}$ adds to machine precision while $\mathcal N$ does not: for two pairs it comes out as
-# $2\mathcal N_1\mathcal N_2+\mathcal N_1+\mathcal N_2$, which is exactly what $2\mathcal N+1=\lVert\cdot\rVert_1$ and
-# multiplicativity of the trace norm predict. The Bell state sits at $\mathcal N=1/2$, $E_{\mathcal N}=1$ ebit.
+# $E_{\mathcal N}$ adds to machine precision while $\mathcal N$ does not: $\mathcal N_1+\mathcal N_2=0.625$, but the pair of
+# pairs has $\mathcal N=0.795=2\mathcal N_1\mathcal N_2+\mathcal N_1+\mathcal N_2$, which is exactly what
+# $2\mathcal N+1=\lVert\cdot\rVert_1$ and the multiplicativity of the trace norm predict. The Bell state sits at $\mathcal N=1/2$, $E_{\mathcal N}=1$ ebit.
 #
 # ### 6.3 Werner states and the threshold $W=1/3$
 #
@@ -574,8 +600,10 @@ fig.tight_layout(); plt.show()
 #
 # The upper bound is saturated by pure states. Indeed, for a pure two-qubit state with Schmidt coefficients
 # $\lambda_1,\lambda_2$ we will show in Section 7 that $\mathcal N=\lambda_1\lambda_2$, while Wootters' formula gives
-# $C=2\lambda_1\lambda_2$; hence $2\mathcal N=C$ exactly. The lower bound is saturated by the states that are "as mixed as
-# possible" at a given concurrence. Inequality (8) says that for two qubits the two measures *order* states almost, but not
+# $C=2\lambda_1\lambda_2$; hence $2\mathcal N=C$ exactly. The lower bound is reached as well, for example by the rank-2 family
+# $\rho_x=x\vert\Phi^+\rangle\langle\Phi^+\vert+(1-x)\vert01\rangle\langle01\vert$. Its partial transpose contains the block
+# $\begin{pmatrix}1-x&x/2\\x/2&0\end{pmatrix}$ on $\{\vert01\rangle,\vert10\rangle\}$, whose negative eigenvalue gives
+# $2\mathcal N=\sqrt{(1-x)^2+x^2}-(1-x)$, and Wootters' formula gives $C=x$. Inequality (8) says that for two qubits the two measures *order* states almost, but not
 # quite, in the same way: they agree on which states are entangled, and they can disagree on which of two states is more
 # entangled.
 
@@ -627,6 +655,27 @@ far = C_arr > 0.05
 print(f"restricted to C > 0.05 ({far.sum()} states): min (2N - lower bound) = {np.min((2*N_arr - lower)[far]):+.4f}"
       f"   -> the lower edge of Eq. (8) is NOT probed by Hilbert-Schmidt-random states")
 assert upper_violation < 1e3 * TOL and lower_violation > -1e3 * TOL
+# The pure-state EQUALITY 2N = C is what can catch a factor-2 convention error (N/2 or 2N in place of N
+# would still satisfy "2N <= C" on one side), so it is asserted separately.
+assert np.max(np.abs(2 * N_arr - C_arr)[rank_arr == 1]) < 1e-6
+
+
+# The lower edge, probed with a family that sits ON it:  rho_x = x |Phi+><Phi+| + (1-x) |01><01|.
+# Its partial transpose has the 2x2 block [[1-x, x/2], [x/2, 0]] on {|01>,|10>}, so
+# 2N = sqrt((1-x)^2 + x^2) - (1-x), and its concurrence is C = x: the lower bound of Eq. (8) with equality.
+def edge_state(x):
+    e01 = jnp.zeros(4, dtype=CDTYPE).at[1].set(1.0)
+    return werner_matrix(1.0) * x + (1 - x) * jnp.outer(e01, e01)
+
+
+xs_edge = np.linspace(0.05, 0.95, 19)
+C_edge = np.array([concurrence(edge_state(float(x))) for x in xs_edge])
+N_edge = np.array([neg_of_matrix(edge_state(float(x)), 1, 1)[0] for x in xs_edge])
+gap_edge = np.max(np.abs(2 * N_edge - (np.sqrt((1 - C_edge) ** 2 + C_edge ** 2) - (1 - C_edge))))
+print(f"edge family x|Phi+><Phi+| + (1-x)|01><01|: max |C - x| = {np.max(np.abs(C_edge - xs_edge)):.1e}, "
+      f"max |2N - lower bound| = {gap_edge:.1e}")
+print(f"   control: the same family against the UPPER bound, min (C - 2N) = {np.min(C_edge - 2 * N_edge):.4f}")
+assert np.max(np.abs(C_edge - xs_edge)) < 1e-6 and gap_edge < 1e-6 and np.min(C_edge - 2 * N_edge) > 0.01
 
 fig, ax = plt.subplots(figsize=(5.4, 4.4))
 for r in (1, 2, 3, 4):
@@ -635,6 +684,7 @@ for r in (1, 2, 3, 4):
 cc = np.linspace(0, 1, 200)
 ax.plot(cc, cc, "k-", lw=1.2, label=r"upper bound $2\mathcal{N}=C$")
 ax.plot(cc, np.sqrt((1 - cc) ** 2 + cc ** 2) - (1 - cc), "k--", lw=1.2, label="lower bound, Eq. (8)")
+ax.plot(C_edge, 2 * N_edge, "kx", ms=5, label=r"$x\,\Phi^+ + (1-x)\,\vert 01\rangle\langle 01\vert$")
 ax.set_xlabel(r"concurrence $C(\rho)$"); ax.set_ylabel(r"$2\,\mathcal{N}(\rho)$")
 ax.set_title("negativity vs concurrence, 400 random two-qubit states")
 ax.legend(fontsize=8, loc="upper left")
@@ -647,12 +697,14 @@ fig.tight_layout(); plt.show()
 # higher the rank, the further a state can fall below the diagonal: mixing degrades the negativity faster than it degrades the
 # concurrence.
 #
-# The two checks are not equally informative, and the cell says so. The upper bound is *saturated* by the pure states, so
-# "max $(2\mathcal N-C)\approx0$" tests it sharply, and a factor-2 error in the convention — writing $\mathcal N$ where
-# $2\mathcal N$ belongs — would show up at once as a gap of $\tfrac12 C$ on the rank-1 line. The lower bound is saturated only
-# at $C=0$, where both sides vanish; restricted to the states with $C>0.05$ the closest approach in this sample is still far
-# from the dashed curve. Hilbert-Schmidt-random states simply do not populate the lower edge, which belongs to the specially
-# constructed family of Verstraete et al. Passing that check therefore shows consistency, not tightness.
+# The random sample does not test the two bounds equally well. The upper bound is *saturated* by the pure states, and the
+# cell asserts the equality $\vert2\mathcal N-C\vert<10^{-6}$ on the rank-1 states separately. That separate assert matters:
+# a factor-2 error in the convention, writing $\mathcal N$ where $2\mathcal N$ belongs, would still pass "$2\mathcal N\le C$"
+# and would only show up as a gap of $\tfrac12C$ on the rank-1 line. In the random sample the lower bound is approached only
+# at $C=0$, where both sides vanish; restricted to $C>0.05$ the closest approach is $0.003$ above the dashed curve.
+# Hilbert–Schmidt-random states do not populate the lower edge. The crosses are the family $\rho_x$ derived above, which sits
+# on the edge to $10^{-8}$ (the accuracy of $C$). The same family misses the upper bound by more than $0.01$ for every $x$
+# in the scan, so the check can tell the two edges apart.
 #
 # > **Common pitfall.** The band in Eq. (8) has finite width, so "negativity $A$ > negativity $B$" does **not** imply
 # > "concurrence $A$ > concurrence $B$". Different entanglement measures induce different orderings of mixed states; they agree
@@ -739,7 +791,8 @@ def negativity_pure(psi, subsystem):
     IMPLEMENTATION  `schmidt_values` transposes the A axes to the front, reshapes to a matrix and takes its
            singular values -- the density matrix is never formed.
     COST   O(2^N) memory, O(2^{|A|} 2^N) for the SVD, against O(4^N) memory and O(8^N) time for the
-           brute-force partial transpose.  This is the difference between N = 24 and N = 7.
+           brute-force partial transpose.  Measured in Section 11: the brute-force route needs about 40 s
+           (one thread) at N = 12, the SVD route is limited only by the 2^N state vector.
     """
     lam = schmidt_values(psi, subsystem)
     s = jnp.sum(lam)
@@ -782,7 +835,7 @@ print(f"\nlargest Schmidt-vs-brute-force discrepancy: {worst:.2e}")
 assert worst < 1e3 * TOL
 
 # %% [markdown]
-# The two routes agree to $10^{-15}$ on every state and every cut, the column $E_{\mathcal N}$ reproduces $S_{1/2}$ digit for
+# The two routes agree to a few $10^{-15}$ on every state and every cut, the column $E_{\mathcal N}$ reproduces $S_{1/2}$ digit for
 # digit (Eq. (12)), and $E_{\mathcal N}\ge S$ holds everywhere, with equality only where the Schmidt spectrum is flat — the GHZ
 # state, whose two Schmidt values are both $1/\sqrt2$, has $E_{\mathcal N}=S=1$ ebit at every cut.
 #
@@ -871,7 +924,10 @@ fig.tight_layout(); plt.show()
 # * **Dicke** with $m=N/2$ reaches $\mathcal N=1.53$ at the half cut, three times the GHZ value, because its Schmidt rank grows
 #   with the block size instead of staying at $2$.
 # * The **Haar-random** state reaches $\mathcal N=11.16$ at the half cut, growing roughly by a factor of two for every spin
-#   added to the smaller block ($0.499$, $1.49$, $3.43$, $6.98$, $11.16$ for $k=1,\dots,5$). Exponential growth with
+#   added to the smaller block ($0.499$, $1.49$, $3.43$, $6.98$, $11.16$ for $k=1,\dots,5$). For $k\ll N/2$ this is what
+#   Eq. (11) gives for a nearly maximally mixed $\rho_A$: all $2^k$ Schmidt values close to $2^{-k/2}$, so
+#   $\sum_k\lambda_k\approx2^{k/2}$ and $\mathcal N\approx(2^k-1)/2=0.5,\ 1.5,\ 3.5,\ 7.5$. The estimate overshoots at
+#   $k=4$ ($7.5$ against $6.98$) because $\rho_A$ is then no longer close to maximally mixed. Exponential growth with
 #   $\min(k,N-k)$ is the signature of volume-law entanglement. On the right panel $E_{\mathcal N}$ (solid) lies above $S$
 #   (dotted) for every state and every cut, as Eq. (12) requires; in the $N=8$ table above, the half cut of the random state
 #   gives $E_{\mathcal N}=3.5480$ ebit against $S=3.3144$ bit, while for GHZ the two coincide at $1$ because its Schmidt
@@ -1076,7 +1132,8 @@ fig.tight_layout(); plt.show()
 # N      = negativity(rho_AB, A)       (eigenvalues of a 2^{|A|+|B|} matrix)
 # ```
 #
-# The decisive point is the middle line. The full density tensor of $N=12$ spins would need $4^{12}\cdot16\,$B $=4.3\,$GB; the
+# The decisive point is the middle line. The full density tensor of $N=12$ spins would need $4^{12}\cdot16\,$B $=268\,$MB
+# ($4.3\,$GB at $N=14$); the
 # reduced state of four spins needs $16\times16$ complex numbers. Because we only ever ask about small blocks, the cost of the
 # negativity is set by $\vert A\vert+\vert B\vert$ and not by $N$ at all.
 #
@@ -1141,6 +1198,17 @@ for h_t in (0.6, 1.0):
     assert ov > 1 - 1e-8 and parity_expectation(psi_l) > 1 - 1e-8
     cat_vs_broken[h_t] = (psi_even, psi_brk)
 
+# CONTROL: the sector is a property of the solver run, not a guarantee.  The start vector is Haar random and
+# contains both parities.  At N = 12, h = 0.2 the doublet splitting is ~1e-8; a single short Lanczos pass
+# cannot separate the two members and returns a mixture of them, which the parity check must detect.
+P_start = parity_expectation(haar_state(jax.random.PRNGKey(0), 12))
+_, psi_short = lanczos_ground_state(tfim_terms(12, 0.2), 12, m=20, restarts=1)
+_, psi_full = lanczos_ground_state(tfim_terms(12, 0.2), 12, m=50, restarts=2)
+print(f"\nN = 12, h = 0.2:  <P> of the start vector = {P_start:+.4f}")
+print(f"   one pass, m = 20      : <P> = {parity_expectation(psi_short):+.6f}   (a mixture of both parity sectors)")
+print(f"   m = 50, two restarts  : <P> = {parity_expectation(psi_full):+.6f}   (the settings of the sweeps below)")
+assert parity_expectation(psi_short) < 0.99 and parity_expectation(psi_full) > 1 - 1e-8
+
 print(f"\n{'h':>5s} {'state':>8s} {'N(3,4)':>10s} {'N(3,5)':>10s} {'N(2,3)|(4,5)':>13s} {'S(N/2) [bit]':>13s}")
 for h_t in (0.6, 1.0):
     for lbl, psi_t in zip(("cat", "broken"), cat_vs_broken[h_t]):
@@ -1150,9 +1218,16 @@ for h_t in (0.6, 1.0):
 
 # %% [markdown]
 # The Lanczos energy matches the dense one to $10^{-14}$, and the second table settles the state question. At both fields the
-# Lanczos vector has $\langle P\rangle=+1$ and overlap $1.0000000000$ with the exact parity-even eigenvector, so **everything
-# computed in Sections 9 and 10.1 is a property of the parity-even ground state**, the cat-like superposition of the two
-# ferromagnets, and never of a single broken branch. This is also the state whose correlators the exact solution of the infinite
+# Lanczos vector has $\langle P\rangle=+1$ and overlap $1.0000000000$ with the exact parity-even eigenvector. The field sweeps
+# below check $\langle P\rangle$ at every field and assert that it equals $1$ to $10^{-8}$, so **everything computed in
+# Section 9 is a property of the parity-even ground state**, the cat-like superposition of the two ferromagnets, and never of
+# a single broken branch.
+#
+# This is a measured property of the solver settings, not a guarantee. The Haar-random start vector has
+# $\langle P\rangle=-0.035$, so it contains both sectors in comparable amounts. At $N=12$, $h=0.2$ the doublet splitting is
+# about $10^{-8}$, and a single Lanczos pass of $m=20$ steps cannot tell the two members apart: it returns a mixture of them,
+# as the control line shows. With $m=50$ and two restarts, the settings used in the sweeps, the full reorthogonalisation
+# resolves the doublet and the lower, even member wins. This is also the state whose correlators the exact solution of the infinite
 # chain provides, so it is the right one for comparison with the literature.
 #
 # The comparison in the third table shows that the distinction is not academic. At $h=0.6$, where the two states are separated
@@ -1191,16 +1266,21 @@ def pt_min_eigenvalue(rho_mat, n_A, n_B):
 ZZ_ = jnp.kron(Z, Z)
 print("\nsingle spins: A = {5}, B = {5+d}")
 print(f"{'d':>3s} {'negativity':>12s} {'E_N [ebit]':>12s} {'concurrence':>12s} {'C / N':>8s} "
-      f"{'min spec(PT)':>13s} {'<Z_5 Z_{5+d}>':>14s}")
+      f"{'min spec(PT)':>13s} {'<Z_5 Z_{5+d}>':>14s} {'p(+-) - p(-+)':>14s}")
+HH_ = jnp.kron(H, H)                                   # rotates both spins to the X basis
 single = []
 for d in range(1, 7):
     n, e = block_negativity(psi_c, (5,), (5 + d,))
     rho_d = rdm(psi_c, (5, 5 + d))
     c = concurrence(rho_d)
     zz = float(jnp.real(jnp.vdot(psi_c, apply_gate(psi_c, ZZ_, [5, 5 + d]))))
-    single.append((d, n, e, c))
+    rx = HH_ @ rho_d @ HH_                             # X-basis populations: |++>, |+->, |-+>, |-->
+    dp = float(jnp.real(rx[1, 1] - rx[2, 2]))
+    single.append((d, n, e, c, dp))
     print(f"{d:3d} {n:12.8f} {e:12.8f} {c:12.8f} {(c/n if n > 1e-12 else float('nan')):8.5f} "
-          f"{pt_min_eigenvalue(rho_d, 1, 1):13.3e} {zz:14.6f}")
+          f"{pt_min_eigenvalue(rho_d, 1, 1):13.3e} {zz:14.6f} {dp:+14.2e}")
+# C = 2N exactly for the reflection-symmetric pair (5,6); NOT for (5,7), whose populations differ (see text)
+assert abs(single[0][3] / single[0][1] - 2) < 1e-6 and abs(single[0][4]) < 1e-10 and abs(single[1][4]) > 1e-4
 
 print("\ntwo-spin blocks with g spins in between, placed symmetrically about the chain centre")
 pairs = []
@@ -1221,9 +1301,17 @@ for g in (0, 1, 2, 3, 4):
 # is not a negative eigenvalue rounded away — the reduced state sits comfortably inside the PPT set. The last column shows that
 # the $ZZ$ correlator at the same distance is $0.395$, nowhere near zero. Since two qubits are a $2\times2$ system,
 # Section 5.3 applies with full force: PPT here really does mean *separable*. The pairwise entanglement of a critical spin chain
-# is genuinely short-ranged, while classical correlations are not. The column $C/\mathcal N$ shows that the concurrence is
-# exactly twice the negativity for every one of these states (it stays $2.00000$ over the whole field sweep as well), so both
-# measures die at the same distance; this is the same range statement that Osterloh, Amico, Falci and Fazio (2002) report from
+# is genuinely short-ranged, while classical correlations are not. The column $C/\mathcal N$ is $2.00000$ for the
+# nearest-neighbour pair and $2.00003$ at $d=2$. The difference is far above round-off and has a reason. Parity symmetry and a real
+# Hamiltonian make every two-site state here real and block diagonal in the $X$ basis: populations $p_{++},p_{+-},p_{-+},p_{--}$,
+# with coherences only between $\vert{+}{+}\rangle,\vert{-}{-}\rangle$ ($z$) and between $\vert{+}{-}\rangle,\vert{-}{+}\rangle$
+# ($y$). The negativity is then the larger of $\sqrt{(p_{+-}-p_{-+})^2/4+z^2}-(p_{+-}+p_{-+})/2$ and the same expression
+# with $(p_{++},p_{--},y)$, and Wootters' formula gives the larger of $2(\vert z\vert-\sqrt{p_{+-}p_{-+}})$ and
+# $2(\vert y\vert-\sqrt{p_{++}p_{--}})$. The two agree, $C=2\mathcal N$, exactly when the relevant pair of populations is equal. The pair
+# $(5,6)$ sits symmetrically about the centre of the open chain, so reflection makes $p_{+-}=p_{-+}$; the pair $(5,7)$ does
+# not: the last column shows its populations differ by $1.4\cdot10^{-3}$, and $C$ exceeds $2\mathcal N$ by a relative
+# $1.4\cdot10^{-5}$. Both measures still die at the same distance, since for two qubits both vanish exactly on the separable
+# states. This is the same range statement that Osterloh, Amico, Falci and Fazio (2002) report from
 # the exact solution, where the concurrence of the infinite Ising chain vanishes beyond next-nearest neighbours at every field.
 #
 # **Two-spin blocks.** Making the blocks bigger extends the reach, but only by one site: the adjacent pair of two-spin blocks
@@ -1251,9 +1339,10 @@ for g in (0, 1, 2, 3, 4):
 N_sw = 12
 h_grid = np.round(np.arange(0.20, 2.01, 0.05), 3)
 t0 = time.time()
-records = []
+records, parity_sweep = [], []
 for h in h_grid:
     _, psi_h = lanczos_ground_state(tfim_terms(N_sw, float(h)), N_sw, m=50, restarts=2)
+    parity_sweep.append(parity_expectation(psi_h))          # which sector?  checked at EVERY field
     records.append((
         block_negativity(psi_h, (5,), (6,))[0],            # nearest neighbours
         block_negativity(psi_h, (5,), (7,))[0],            # next-nearest neighbours
@@ -1262,7 +1351,8 @@ for h in h_grid:
         float(entanglement_entropy(psi_h, tuple(range(N_sw // 2)))),
     ))
 nn, nnn, bb, bb2, S_half = map(np.array, zip(*records))
-print(f"{len(h_grid)} ground states in {time.time()-t0:.1f} s")
+print(f"{len(h_grid)} ground states in {time.time()-t0:.1f} s;  smallest <P> over the sweep = {min(parity_sweep):.10f}")
+assert min(parity_sweep) > 1 - 1e-8
 
 def peak(x):
     i = int(np.argmax(x)); return h_grid[i], x[i]
@@ -1312,12 +1402,12 @@ fig.tight_layout(); plt.show()
 # quantities — the next-nearest pair and the blocks separated by two spins — at $h=0.85$. A maximum whose position depends on
 # which pair of blocks one happens to ask about cannot be a signature of criticality, and it is not one.
 #
-# The two long-ranged curves also switch off completely at the upper end of the window, as the printed windows show and the
-# left panel makes visible as a vertical drop: at $N=12$ the negativity of the $(3,4)\vert(7,8)$ blocks is exactly zero for
-# $h$ beyond the value printed above. Deep in the paramagnetic phase the ground state approaches the product
-# $\vert+\cdots+\rangle$, so all entanglement at any separation must vanish; the longest-ranged quantities reach zero first,
-# and they reach it exactly, not asymptotically. A logarithmic axis cannot show the difference, which is why the window is
-# printed as a number.
+# The two long-ranged curves end differently, and the printed windows say how. The next-nearest pair stays entangled over the
+# whole sweep, $0.20\le h\le2.00$; it is small at both ends but never zero. The $(3,4)\vert(7,8)$ blocks switch off
+# completely above $h=1.15$, which the left panel shows as a vertical drop. Deep in the paramagnetic phase the ground state
+# approaches the product $\vert+\cdots+\rangle$, so the entanglement at every separation decreases. The block negativity at a
+# separation of three sites reaches zero exactly, at a finite field, where its partial transpose becomes positive. A
+# logarithmic axis cannot show the difference between small and zero, which is why the window is printed as a number.
 #
 # What does carry the critical information is the **derivative**. On this grid $\vert d\mathcal N_{\rm nn}/dh\vert$ is largest
 # at $h=0.85$, i.e. below the critical field. That is the finite-size version of the structure Osterloh, Amico, Falci and
@@ -1334,22 +1424,25 @@ fig.tight_layout(); plt.show()
 # > Both comparisons come out right only because the inversion was applied; quoting "the maximum lies below the critical
 # > coupling" without saying in which variable would reverse the physics. Two further differences of convention are worth
 # > keeping in mind: they use a periodic chain and the thermodynamic limit, and their quantity is the concurrence, which for
-# > these two-site states equals $2\mathcal N$ exactly (verified in Section 9.2), so $\vert dC/dh\vert=2\vert d\mathcal N/dh\vert$
+# > the nearest-neighbour pair at the chain centre equals $2\mathcal N$ exactly (Section 9.2: reflection symmetry), so $\vert dC/dh\vert=2\vert d\mathcal N/dh\vert$
 # > and the two curves have their extrema at the same $h$.
 #
 # The half-chain entropy in the right panel is the pure-state counterpart, and it behaves quite differently. It sits on a
-# plateau of almost exactly one bit through the whole ferromagnetic side (the nominal maximum, $1.0041$ bit at $h=0.55$, is a
-# small bump on that plateau) and then falls monotonically through the transition into the paramagnetic phase. The plateau is
-# the signature of the parity-even ground state identified in Section 9.1: a cat state carries exactly one bit across any cut,
-# on top of whatever entanglement each branch has by itself, and in the ordered phase each branch has almost none.
+# plateau within $0.5\,\%$ of one bit for $h\le0.70$. The nominal maximum, $1.0041$ bit at $h=0.55$, is a small bump on
+# that plateau. Beyond it the entropy falls monotonically, steeply from $h\approx0.75$ (still on the ordered side of the
+# transition) and on into the paramagnetic phase. The plateau is the signature of the parity-even ground state identified in Section 9.1. When the two
+# ferromagnetic branches are distinguishable on each half of the chain, the cat carries one bit across the cut on top of the
+# small entanglement of each branch. On six sites the branches become less distinguishable as the magnetisation drops, and the
+# bit is lost before $h=1$. Section 9.1 shows the same effect at $N=8$, $h=0.6$: $0.97$ bit for the cat, below the $1+0.014$ bit that independent branches would give.
 #
 # > **Numerical practice.** At $h<1$ the open TFIM has two eigenstates of opposite parity separated by a gap that closes
 # > exponentially with $N$, and every quantity in this section depends on which of them — or which combination — is used.
 # > It is tempting to assume that the solver picks an arbitrary combination and that short-range quantities are insensitive to
-# > the choice. Both halves of that assumption are wrong here, and Section 9.1 measured it: the restarted Lanczos returns the
-# > exact parity-even eigenvector (overlap $1.0000000000$, $\langle P\rangle=+1$) even at $h=0.6$, and the nearest-neighbour
-# > negativity of the cat is more than twice that of a broken branch at $h=1$, while the next-nearest-neighbour one is non-zero
-# > for the cat and exactly zero for the branch. The lesson is not "short-range observables are safe" but "state the symmetry
+# > the choice. Section 9.1 measured both halves. With the settings used here the restarted Lanczos returns the exact
+# > parity-even eigenvector at every field of the sweep, down to $h=0.2$ where the splitting is $\sim10^{-8}$, but a single
+# > short pass returns a mixture of the two sectors. And the short-range quantities are not insensitive: at $h=0.6$ the
+# > nearest-neighbour negativity of the cat is $1.55$ times that of a broken branch ($0.0398$ against $0.0257$), and the
+# > next-nearest-neighbour one is non-zero for the cat and exactly zero for the branch. The lesson is not "short-range observables are safe" but "state the symmetry
 # > sector, and check it with an operator" — here one line, $\langle\prod_iX_i\rangle$.
 
 # %%
@@ -1361,8 +1454,9 @@ drift = {}
 t0 = time.time()
 for Nf in (8, 10):
     c = Nf // 2
-    y = np.array([block_negativity(lanczos_ground_state(tfim_terms(Nf, float(h)), Nf, m=50, restarts=2)[1],
-                                   (c - 1,), (c,))[0] for h in h_fine])
+    psis = [lanczos_ground_state(tfim_terms(Nf, float(h)), Nf, m=50, restarts=2)[1] for h in h_fine]
+    assert min(parity_expectation(p) for p in psis) > 1 - 1e-8          # parity-even at every field, as at N = 12
+    y = np.array([block_negativity(p, (c - 1,), (c,))[0] for p in psis])
     drift[Nf] = (y, np.gradient(y, h_fine))
 # N = 12 is already in the big sweep; restrict it to the same window for a fair comparison
 mask = (h_grid >= h_fine[0] - 1e-9) & (h_grid <= h_fine[-1] + 1e-9)
@@ -1453,16 +1547,14 @@ for j, (A, B, ell) in enumerate(configs):
 # Is the onset an artefact of the threshold?  The only honest way to answer is to vary it.
 # ------------------------------------------------------------------------------
 print(f"\nonset time t_on as a function of the detection threshold\n{'threshold':>10s}" +
-      "".join(f"{'l = %d' % c[2]:>9s}" for c in configs[:3]) + f"{'front speed':>13s}")
+      "".join(f"{'l = %d' % c[2]:>9s}" for c in configs[:3]))
 for thr_scan in (1e-2, 1e-3, 1e-4, 1e-6, 1e-8, 1e-10):
     t_on = []
     for j in range(3):
         idx = np.flatnonzero(traj[:, j] > thr_scan)
         t_on.append(ts_q[idx[0]] if idx.size else np.inf)
-    v_front = (configs[2][2] - configs[1][2]) / (t_on[2] - t_on[1]) if t_on[2] > t_on[1] else np.nan
-    print(f"{thr_scan:10.0e}" + "".join(f"{t:9.2f}" for t in t_on) + f"{v_front:13.2f}")
-print(f"  quasiparticle prediction: t_on = l/(2 v_max) = l/4 -> {0.25:.2f} {0.75:.2f} {1.25:.2f}"
-      f"   front speed 2 v_max = {4.0:.2f}")
+    print(f"{thr_scan:10.0e}" + "".join(f"{t:9.2f}" for t in t_on))
+print(f"  quasiparticle estimate: t_on = l/(2 v_max) = l/4 -> {0.25:.2f} {0.75:.2f} {1.25:.2f}")
 print(f"  N is EXACTLY zero before the front arrives: largest value on (l=3) before t = 0.75 is "
       f"{traj[ts_q < 0.75, 1].max():.1e}")
 assert traj[ts_q < 0.70, 1].max() == 0.0 and traj[ts_q < 1.20, 2].max() == 0.0
@@ -1478,37 +1570,92 @@ axes[1].set_title(r"two 4-spin halves of the chain, spins $8,9$ traced out")
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# The onset times measured with a threshold of $10^{-4}$ are $t_{\rm on}=0.05$, $0.80$ and $1.65$ for separations
-# $\ell=1$, $3$, $5$, against the quasiparticle estimate $\ell/(2v_{\max})=\ell/4$, which gives $0.25$, $0.75$ and $1.25$.
-# Before reading anything into those differences, the threshold itself has to be put on trial, and the second table does that
-# by sweeping it over eight decades.
+# Ten spins is a short chain for a front that moves four sites per unit time, so before interpreting these onsets we check
+# which of them survive a change of $N$. The next cell repeats the quench for the same three block pairs, always centred, in
+# chains of $N=10$, $14$ and $18$ spins. Next to the onset of the negativity (first step with $\mathcal N>0$) it records the
+# first time at which the correlator $\langle Z_iZ_j\rangle$ between the two nearest members of the blocks exceeds $10^{-2}$.
+# The quench starts from a parity-even state, so $\langle Z_i\rangle=0$ at all times and this correlator is already the
+# connected one. A property of the light cone must not depend on $N$; a finite-size effect must.
+
+# %%
+# ==============================================================================
+# STEP 14b: the same quench in longer chains -- which onsets are light-cone physics?
+# ==============================================================================
+def quench_onsets(N, n_steps=120):
+    """Onset of N(A:B) > 0, first time |<Z_i Z_j>| > 1e-2 (i, j = nearest members), and time of the largest N,
+    for centred block pairs at separations l = 1, 3, 5 after the quench |+>^N -> TFIM(h=1)."""
+    c = N // 2
+    cfg = [((c - 2 - k, c - 1 - k), (c + k, c + 1 + k)) for k in (0, 1, 2)]       # l = 2k + 1
+
+    def obs(psi):
+        out = []
+        for A, B in cfg:
+            out.append(negativity(dm_tensor(rdm(psi, A + B), 4), [0, 1])[0])
+            out.append(jnp.real(jnp.vdot(psi, apply_gate(psi, ZZ_, [A[1], B[0]]))))
+        return jnp.stack(out)
+
+    _, tr = tebd_evolve(product_state("+" * N), tfim_terms(N, 1.0), dt_q, n_steps, order=2, observe=obs)
+    tr = np.asarray(jax.block_until_ready(tr))
+    ts = np.arange(1, n_steps + 1) * dt_q
+    first = lambda mask: ts[np.flatnonzero(mask)[0]] if mask.any() else np.inf
+    return [(first(tr[:, 2 * j] > 0.0), first(np.abs(tr[:, 2 * j + 1]) > 1e-2), ts[int(np.argmax(tr[:, 2 * j]))])
+            for j in range(3)]
+
+
+t0 = time.time()
+size_scan = {N: quench_onsets(N) for N in (10, 14, 18)}
+print(f"three quenches (N = 10, 14, 18) in {time.time()-t0:.1f} s\n")
+print(f"{'N':>3s}" + "".join(f"{'l=%d: N>0' % l:>11s}{'|ZZ|>1e-2':>11s}{'max N at':>10s}" for l in (1, 3, 5)))
+for N, rows in size_scan.items():
+    print(f"{N:3d}" + "".join(f"{a:11.2f}{b:11.2f}{c:10.2f}" for a, b, c in rows))
+# the l = 1 and l = 3 onsets and the correlator front at l = 5 are the same for every N ...
+assert all(size_scan[N][j][0] == size_scan[10][j][0] for N in (14, 18) for j in (0, 1))
+assert all(abs(size_scan[N][2][1] - size_scan[10][2][1]) < 1.5 * dt_q for N in (14, 18))
+# ... while the l = 5 NEGATIVITY onset is not: reading it as a light-cone time is a hypothesis that fails
+assert size_scan[18][2][0] - size_scan[10][2][0] > 2.0
+
+# %% [markdown]
+# In the $N=10$ run, a threshold of $10^{-4}$ gives onset times $t_{\rm on}=0.05$, $0.80$ and $1.65$ for separations
+# $\ell=1$, $3$, $5$. The quasiparticle estimate $\ell/(2v_{\max})=\ell/4$ gives $0.25$, $0.75$ and $1.25$. Two checks decide
+# what these numbers mean. The threshold sweep of Step 14 shows which onsets depend on the detection level. The size scan of
+# Step 14b shows which ones depend on the length of the chain.
 #
-# The result is that the three separations behave in three different ways.
+# The three separations behave in three different ways.
 #
-# * At $\ell=3$ the onset is $t_{\rm on}=0.80$ for **every** threshold from $10^{-3}$ down to $10^{-10}$. There is nothing to
-#   correct: the negativity is *exactly* $0$ at every earlier step, as the last printed line confirms, and it jumps to
-#   $3.3\cdot10^{-3}$ in a single step of $dt=0.05$. Against $\ell/4=0.75$ this is agreement to one time step. The explanation
-#   "the front is there but too weak to cross the threshold" is therefore wrong for this configuration, and the sweep is what
-#   shows it: a genuinely threshold-limited onset moves when the threshold moves.
-# * At $\ell=5$ the threshold does matter: $t_{\rm on}=1.75$, $1.65$, $1.35$, $1.35$ as the threshold is lowered through
-#   $10^{-2}$, $10^{-3}$, $10^{-5}$ and below. Here the arriving front really is weak — a first pulse of height $3\cdot10^{-5}$
-#   — so the $10^{-4}$ figure of the first table is $0.30$ too late, and the converged value $1.35$ misses $\ell/4=1.25$ by two
-#   time steps. The front speed read off from the pair $\ell=3,5$ moves from $2.4$ to $3.6$ sites per unit time as the
-#   threshold is lowered, against $2v_{\max}=4$.
+# * At $\ell=3$ the onset is $t_{\rm on}=0.80$ for **every** threshold from $10^{-3}$ down to $10^{-10}$, and for $N=10$, $14$
+#   and $18$ alike. The negativity is *exactly* $0$ at every earlier step, as the last printed line of Step 14 confirms. It
+#   jumps to $3.3\cdot10^{-3}$ in a single step of $dt=0.05$. Against $\ell/4=0.75$ this is agreement to one time step. A
+#   front that is present but too weak to cross the threshold would move when the threshold moves, and this one does not. The
+#   zero is exact for the following reason. Within the first steps each block becomes entangled with its own neighbours, so
+#   the reduced state of $A\cup B$ is mixed and the eigenvalues of its partial transpose move from zero to positive values.
+#   The exponentially small correlations between $A$ and $B$ ahead of the front cannot make one of them negative. The
+#   negativity switches on only when the correlations carried by the front exceed that margin.
+# * At $\ell=5$ the $N=10$ onset depends on the threshold: $1.75$, $1.65$, $1.65$ and $1.35$ for thresholds $10^{-2}$,
+#   $10^{-3}$, $10^{-4}$ and $10^{-6}$ (unchanged below), with a first pulse of height $\sim3\cdot10^{-5}$ at $t=1.35$. It
+#   also depends on the size, and Step 14b shows this is the decisive fact. The onset moves from $1.35$ at $N=10$ to
+#   $4.50$ at $N=18$. In the longer chains it lies close to the time of the largest negativity, which grows with $N$ as well.
+#   The correlator between the same two sites is the same in all three chains: it passes $10^{-2}$ at $t=1.05$, before
+#   $\ell/4=1.25$. So the light cone does reach these blocks on time, but in a long chain it carries too little to make two
+#   two-site blocks five sites apart NPT. Their negativity appears only later, at a time set by the chain length, which marks
+#   a finite-size revival. The $N=10$ onsets at $\ell=5$, and any front speed computed from them,
+#   are finite-size numbers. Whether such blocks ever become NPT in an infinite chain cannot be decided from $N\le18$.
 # * At $\ell=1$ the two blocks are *adjacent*: sites $4$ and $5$ share a bond, the very first Trotter gate acts across it, and
-#   $t_{\rm on}=0.05=dt$ at every threshold. This is earlier than $\ell/4=0.25$, and no threshold argument can move it. The
-#   quasiparticle formula is an asymptotic statement about distances large compared with a lattice spacing; at $\ell=1$ the
-#   onset is set by the time step, not by the light cone.
+#   $t_{\rm on}=0.05=dt$ at every threshold and every $N$. This is earlier than $\ell/4=0.25$, and no threshold argument can
+#   move it. The quasiparticle formula is an asymptotic statement about distances large compared with a lattice spacing; at
+#   $\ell=1$ the onset is set by the time step, not by the light cone.
 #
-# What the data establish cleanly, then, is that the onset is **delayed in proportion to the separation** with a front speed
-# of the expected order: there is a light cone, and blocks outside it carry no entanglement at all — exactly zero, not merely
-# little.
+# What the data establish, then, is a light cone for the *correlations*. The correlator front reaches the $\ell=5$ pair at
+# the same time in every chain. Block negativity of small blocks follows it only where the arriving correlations are strong
+# enough, here up to $\ell=3$. Before the onset the negativity is exactly zero. For these $4\times4$ blocks
+# that is a statement about the partial transpose and not a proof of separability (Section 5.3).
 #
-# The block negativity then rises to a maximum and falls back, repeatedly. This is not decoherence — the state is pure and the
-# evolution unitary — but redistribution: a quasiparticle pair that entangles $A$ with $B$ keeps travelling and ends up
-# entangling $A$ with spins outside $B$, and monogamy forces $\mathcal N(A{:}B)$ back down. The right panel, where $A\cup B$ is
-# eight of the ten spins, shows the same oscillation on top of a much larger value, because far more quasiparticle pairs are
-# shared.
+# The block negativity then rises and falls back, repeatedly. This is not decoherence — the state is pure and the evolution
+# unitary. In the long chains, $N\ge14$, the adjacent blocks ($\ell=1$) reach their largest value at $t=0.55$ and then lose
+# it. A quasiparticle pair that entangles $A$ with $B$ keeps travelling and ends up entangling $A$ with spins outside $B$, and
+# monogamy forces $\mathcal N(A{:}B)$ back down. The large maxima near $t\approx2.9$ in the $N=10$ figure are of a different
+# kind. Step 14b shows the time of the largest negativity growing with the chain length, which is the signature of
+# quasiparticles reflected at the open ends. The right panel, where $A\cup B$ is eight of the ten spins, shows the same
+# oscillation on top of a much larger value, because far more quasiparticle pairs are shared.
 
 # %% [markdown]
 # ### 10.2 Entanglement sudden death
@@ -1622,7 +1769,9 @@ fig.tight_layout(); plt.show()
 #
 # > **Physics insight.** Nothing singular happens to the state at $t^*$: the coherence $\rho_{00,11}$ is still non-zero and
 # > decays smoothly to zero only as $t\to\infty$. What happens is that the *populations* $\rho_{01,01}$ and $\rho_{10,10}$
-# > fed by single decay events grow fast enough to outweigh it, and once a separable decomposition exists it exists for good.
+# > fed by single decay events grow fast enough to outweigh it. In this model the state stays separable after $t^*$: the
+# > evolution from $t^*$ to any later time is again a product of local channels, which map separable states to separable
+# > states. Section 10.3 shows that this argument fails once the qubits also interact, and there the negativity can return.
 # > Sudden death is a property of the boundary of the set of separable states, not of any physical process being switched off.
 # > It has been observed in photonic and atomic experiments; Yu and Eberly (2009) review them.
 #
@@ -1675,6 +1824,25 @@ for g in gammas:
     print(f"{g:6.2f} {y.max():10.6f} {ts_n[int(np.argmax(y))]:9.2f} {t_d:9.2f} "
           f"{g*t_d if np.isfinite(t_d) else np.inf:16.3f}")
 
+
+def death_time(y):
+    nz = np.flatnonzero(y > 1e-12)
+    return ts_n[nz[-1]] if (nz.size and nz[-1] < len(y) - 1) else np.inf
+
+
+# Is the scatter of gamma * t_death caused by the oscillation, as the text claims?  Then t_death must change in
+# JUMPS (the last crossing moves to an earlier lobe) and drift smoothly in between.  A finer gamma grid decides.
+g_fine = np.round(np.arange(0.10, 1.001, 0.05), 3)
+td_fine = np.array([death_time(np.asarray(noisy_quench(rho0_n, kraus_dephasing(g * dt_n / 2))[1])) for g in g_fine])
+print("\nfine scan:  gamma   t_death   gamma * t_death")
+for g, td in zip(g_fine, td_fine):
+    print(f"           {g:5.2f}  {td:8.2f}  {g * td:10.3f}")
+# a smooth t_death ~ c / gamma would keep gamma * t_death flat; a sawtooth (slow rise, sudden drop) means jumps between lobes
+gt = g_fine * td_fine
+drops = [(g_fine[i], g_fine[i + 1], gt[i] - gt[i + 1]) for i in range(len(gt) - 1) if gt[i] - gt[i + 1] > 0.05]
+print(f"gamma * t_death spans {gt.min():.2f} ... {gt.max():.2f}; drops larger than 0.05: "
+      + ", ".join(f"{a:.2f}->{b:.2f} ({d:.2f})" for a, b, d in drops))
+
 fig, ax = plt.subplots(figsize=(6.4, 4.2))
 for g in gammas:
     ax.plot(ts_n, out[g], lw=2, label=rf"$\gamma={g}$")
@@ -1687,9 +1855,13 @@ fig.tight_layout(); plt.show()
 # Without noise the block negativity keeps oscillating for the whole run and is still non-zero at $t=10$. With dephasing it is
 # cut off for good at a finite time: $t_{\rm death}=5.60$, $2.40$, $1.00$ and $0.70$ for $\gamma=0.1$, $0.3$, $0.6$ and $1.0$.
 # The products $\gamma\,t_{\rm death}=0.56$, $0.72$, $0.60$, $0.70$ are constant to within $30\,\%$ across a factor of ten in
-# rate — so here too what decides the death is roughly the accumulated dephasing, not the elapsed time. The spread is larger
+# rate, so here too what decides the death is roughly the accumulated dephasing, not the elapsed time. The spread is larger
 # than in the two-qubit model because the unitary part makes the curve oscillate: the last crossing can fall on a different
-# lobe when the envelope is shifted slightly, which moves $t_{\rm death}$ by a whole oscillation period.
+# lobe when the envelope is shifted slightly. The fine scan tests this explanation. Over $0.10\le\gamma\le1$ the product
+# $\gamma\,t_{\rm death}$ spans $0.48$–$0.77$, so the four-point table understates the scatter. The product traces a
+# sawtooth: it rises slowly while the last crossing stays on one lobe, then drops when the
+# crossing moves to an earlier lobe, between $\gamma=0.10$ and $0.15$ and again between $0.35$ and $0.45$, as printed. A
+# smooth $t_{\rm death}\propto1/\gamma$ would keep the product flat.
 #
 # > **Common pitfall.** With an oscillating signal, "the first time the quantity reaches zero" is not the death time: the
 # > curve can touch zero in a trough and come back, as the $\gamma=0.1$ curve does twice before $t=5.6$. The cell above
@@ -1702,9 +1874,10 @@ fig.tight_layout(); plt.show()
 # Two very different price tags appear in this notebook.
 #
 # * **Full density tensor.** $\rho$ has $4^N$ complex entries ($16\cdot4^N$ bytes in double precision: $16\,$MB at $N=10$,
-#   $4.3\,$GB at $N=14$), and the eigenvalues of its partial transpose cost $O(8^N)$. In practice this restricts exact
-#   mixed-state negativity to $N\lesssim7$ within a few seconds, $N\lesssim10$ if you are patient, and never beyond $N\approx13$
-#   on a workstation. This is the route used in Sections 8 and 10.3.
+#   $4.3\,$GB at $N=14$), and the eigenvalues of its partial transpose cost $O(8^N)$: every extra qubit multiplies the time
+#   by $8$ and the memory by $4$. On one CPU thread the full negativity of a random $N$-qubit state takes about $0.7\,$s at
+#   $N=10$, $5\,$s at $N=11$ and $40\,$s at $N=12$ (compilation included), so $N=13$ costs minutes and $N=14$ needs
+#   $4\,$GiB for the tensor alone. This is the route used in Sections 8 and 10.3.
 # * **Pure state, small blocks.** The state is $2^N$ numbers. The reduced state of $A\cup B$ costs one einsum,
 #   $O(2^N2^{\vert A\vert+\vert B\vert})$, and its partial transpose costs $O(8^{\vert A\vert+\vert B\vert})$ — independent of
 #   $N$. For $\vert A\vert+\vert B\vert=4$ that second term is the diagonalisation of a $16\times16$ matrix, which is free. The
@@ -1761,11 +1934,12 @@ print(f"  the full density tensor of {N_big} spins would need {16*4**N_big/2**30
 # The Schmidt route is faster at every size measured, and the last column shows that it computes the same number: the two
 # routes agree to $10^{-12}$ or better wherever both were run. The speed-up column, however, should be read with care. It is a
 # ratio of two wall-clock times on a shared machine, each of them dominated at small $N$ by dispatch overhead rather than by
-# arithmetic, and it need not even be monotone in $N$ — compare the $N=6$ and $N=8$ entries. Do not read a
-# scaling exponent off three noisy ratios. What is solid is the cost formula: the brute-force route touches $4^N$ numbers and
-# diagonalises a $2^N\times2^N$ matrix at $O(8^N)$, the Schmidt route touches $2^N$ numbers and takes one SVD, and by $N=10$
-# that difference is already worth two orders of magnitude in this measurement, while $N=12$ is out of reach for the
-# brute-force route at all (256 MB for the density tensor alone).
+# arithmetic, and it changes from one execution of this notebook to the next: the $N=10$ entry has come out anywhere from a
+# few hundred to about two thousand. Do not read a scaling exponent off three noisy ratios. What is solid is the cost
+# formula: the brute-force route touches $4^N$ numbers and diagonalises a $2^N\times2^N$ matrix at $O(8^N)$, the Schmidt
+# route touches $2^N$ numbers and takes one SVD. By $N=10$ that difference is worth at least two orders of magnitude. $N=12$
+# is skipped for the brute-force route only to keep this notebook fast: it needs $256\,$MB for the density tensor and about
+# $40\,$s on one thread for the diagonalisation.
 #
 # The last lines are the block route at $N=14$, where the density tensor would need $4.0\,$GiB. Two adjacent two-spin blocks
 # of a cluster state have $\mathcal N=1/2$ exactly, one full ebit, computed in a fraction of a second; the same two blocks of
@@ -1776,8 +1950,8 @@ print(f"  the full density tensor of {N_big} spins would need {16*4**N_big/2**30
 #
 # > **Numerical practice.** Ask the smallest question that answers your physics. If the state is pure and you want the
 # > negativity across a *cut*, use Eq. (11). If the state is pure and you want the negativity between two *blocks*, reduce
-# > first and transpose second. Build the full density tensor only when the state itself is mixed, and then expect
-# > $N\lesssim7$.
+# > first and transpose second. Build the full density tensor only when the state itself is mixed, and then expect the
+# > negativity to cost seconds at $N=11$ and minutes at $N=13$.
 
 # %% [markdown]
 # ## 12. Key takeaways
@@ -1803,20 +1977,23 @@ print(f"  the full density tensor of {N_big} spins would need {16*4**N_big/2**30
 # * **In the critical Ising chain** (the parity-even ground state, verified to be what Lanczos returns) the negativity between
 #   single spins is exactly zero beyond distance $2$ — with the smallest eigenvalue of the partial transpose at $+1.6\cdot
 #   10^{-2}$, far from borderline — and between two-spin blocks beyond two spacer spins: pairwise entanglement is short ranged
-#   even where the $ZZ$ correlator ($0.395$ at distance $3$) is not. The concurrence equals $2\mathcal N$ exactly for these
-#   two-site states. The measured maxima of the negativity sit at $h=1.25$ (nearest neighbours) and $h=1.15$ (adjacent blocks),
+#   even where the $ZZ$ correlator ($0.395$ at distance $3$) is not. The concurrence equals $2\mathcal N$ exactly for a
+#   reflection-symmetric pair and exceeds it slightly otherwise ($C/\mathcal N=2.00003$ at distance $2$). The measured maxima of the negativity sit at $h=1.25$ (nearest neighbours) and $h=1.15$ (adjacent blocks),
 #   not at $h=1$, and they do not move towards $h=1$ as $N$ grows. The critical point announces itself in the **derivative**,
 #   whose peak is measured at $h=0.75$, $0.80$, $0.85$ for $N=8$, $10$, $12$ — drifting towards $h=1$ with system size, on the
 #   side that Osterloh et al. predict once their $\lambda=J/2h$ is inverted.
-# * **Dynamics**: after a quench, block negativity switches on with a delay proportional to the block separation (a light cone)
-#   and then oscillates because monogamy redistributes it. The onset at separation $\ell=3$ is $t=0.80$ against the
-#   quasiparticle value $\ell/(2v_{\max})=0.75$ and does not move when the detection threshold is swept over eight decades,
-#   because the negativity is exactly zero before the front arrives. Under local noise it reaches exactly zero at a finite time —
-#   **entanglement sudden death** — with $\Gamma t^*=-\ln(1-\sqrt{a/b})$ for the two-qubit model (verified to the grid step)
-#   and $\gamma\,t_{\rm death}=0.56$–$0.72$ for the dephased chain over a factor of ten in rate.
-# * **Cost**: $O(8^N)$ and $16\cdot4^N$ bytes for a genuinely mixed state of $N$ qubits ($N\lesssim7$ comfortably); $O(2^N)$
-#   via the Schmidt formula for a pure state (two orders of magnitude faster than the brute-force partial transpose at $N=10$
-#   in this measurement, though the ratio of two wall-clock times is far too noisy to read a scaling exponent from); and, for
+# * **Dynamics**: after a quench, correlations spread inside a light cone, and block negativity is exactly zero until the
+#   correlations arriving at the blocks are strong enough to make the partial transpose negative. For two-spin blocks at
+#   separation $\ell=3$ the onset is $t=0.80$ against the quasiparticle value $\ell/(2v_{\max})=0.75$, independent of the
+#   detection threshold and of the chain length ($N=10$–$18$). At $\ell=5$ the correlator front arrives on time, but the
+#   negativity onset moves from $1.35$ to $4.50$ as $N$ grows from $10$ to $18$, a finite-size effect.
+#   Under local noise the negativity reaches exactly zero at a finite time — **entanglement sudden death** — with
+#   $\Gamma t^*=-\ln(1-\sqrt{a/b})$ for the two-qubit model (verified to the grid step) and $\gamma\,t_{\rm death}$ between
+#   $0.48$ and $0.77$ for the dephased chain over a factor of ten in rate, a sawtooth caused by the oscillating signal.
+# * **Cost**: $O(8^N)$ and $16\cdot4^N$ bytes for a genuinely mixed state of $N$ qubits (about $40\,$s on one thread at
+#   $N=12$); $O(2^N)$ via the Schmidt formula for a pure state (at least two orders of magnitude faster than the brute-force
+#   partial transpose at $N=10$, though the ratio of two wall-clock times is far too noisy to read a scaling exponent from);
+#   and, for
 #   two small blocks of a pure state, a cost set by
 #   $\vert A\vert+\vert B\vert$ alone, which is why the $N=14$ block negativity took a fraction of a second while its density
 #   tensor would have needed $4\,$GiB.

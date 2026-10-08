@@ -14,13 +14,13 @@
 # In 1964 John Bell turned the philosophy into an **experimentally testable inequality**. If the
 # outcomes are fixed in advance by some hidden variable $\lambda$ carried by the particles, and if what happens at Alice's detector
 # does not depend on the knob setting at Bob's, then a certain combination of measured correlations is bounded by a number.
-# Quantum mechanics predicts a *larger* number. There is no interpretation involved: you build the apparatus, you count clicks, and
-# nature tells you which side is right. The form of the inequality used in every real experiment since is the one written down by
+# Quantum mechanics predicts a *larger* number. The question is thereby moved from interpretation to the laboratory: the apparatus
+# is built, the clicks are counted, and the measured combination either respects the bound or exceeds it. The form of the inequality used in every real experiment since is the one written down by
 # Clauser, Horne, Shimony and Holt in 1969:
 #
 # $$S=E(a,b)+E(a,b')+E(a',b)-E(a',b') ,\qquad \vert S\vert\le 2 \quad\text{(local hidden variables)}.$$
 #
-# Quantum mechanics allows $\vert S\vert$ up to $2\sqrt2\approx2.828$ (Tsirelson's bound) and not one bit more. Experiments — Aspect
+# Quantum mechanics allows $\vert S\vert$ up to $2\sqrt2\approx2.828$ (Tsirelson's bound) and no larger value. Experiments — Aspect
 # and co-workers in the early 1980s, and the loophole-free experiments of 2015 — measure a violation. The 2022 Nobel Prize in Physics
 # went to Aspect, Clauser and Zeilinger for this line of work. Today the same inequality is a *tool*: a CHSH violation certifies that a
 # device really produces entanglement, and it is the security foundation of device-independent quantum key distribution.
@@ -35,7 +35,7 @@
 # 3. **The quantum prediction.** Derive $E(a,b)=\cos(\theta_a-\theta_b)$ for $\vert\Phi^+\rangle$ from the correlators of Section 4,
 #    prove Tsirelson's bound from the operator identity $S^2=4-[A,A']\otimes[B,B']$, and find the optimal angles geometrically
 #    (Sections 6–8).
-# 4. **The experiment.** Simulate it honestly: rotate into the measurement basis, draw single shots from the Born rule with explicit
+# 4. **The experiment.** Simulate it shot by shot: rotate into the measurement basis, draw single shots from the Born rule with explicit
 #    PRNG keys, `vmap` over the four settings and over shots, and watch $\hat S$ converge to $2\sqrt2$ with a $1/\sqrt{n}$ error bar.
 #    Compute how many shots are needed to exceed the classical bound by five standard errors — and check that number by Monte Carlo
 #    (Sections 9–10).
@@ -47,19 +47,20 @@
 # ### What you will learn
 #
 # *Physics*
-# * what a local hidden-variable model is, and exactly which assumption quantum mechanics violates;
+# * what a local hidden-variable model is, and which assumptions enter the bound that quantum mechanics violates;
 # * why the four Bell states form a basis, why their marginals are maximally mixed, and how that "randomness" carries the correlation;
-# * Tsirelson's bound as a statement about non-commuting observables, not about probability;
-# * that entanglement and Bell nonlocality are *different* resources: the Werner thresholds $1/3$ and $1/\sqrt2$;
-# * why the critical visibility for the CHSH violation depends on whether you re-optimise the measurement angles.
+# * Tsirelson's bound as a consequence of the commutator algebra of $\pm1$-valued observables;
+# * that entanglement and Bell nonlocality are *different* resources: the Werner thresholds $1/3$ (entanglement) and $1/\sqrt2$ (CHSH violation);
+# * why the critical visibility for the CHSH violation depends on whether the measurement angles are re-optimised.
 #
 # *Numerical methods*
 # * estimating a correlator from finite samples: variance $1-E^2$, standard error $1/\sqrt{n}$, error propagation into $S$;
-# * sample-size planning: how many shots for a $5\sigma$ result, and why "expected $5\sigma$" is not "$5\sigma$ every time";
+# * sample-size planning: the number of shots for a $5\sigma$ result, and the difference between an *expected* $5\sigma$ and a $5\sigma$
+#   result in every repetition;
 # * maximising a bilinear form over unit vectors (the Horodecki criterion) instead of running a blind four-parameter search.
 #
 # *Implementation practice*
-# * measuring a rotated observable as `rotate -> measure Z` with `apply_gate`, on state vectors and on density tensors;
+# * measuring a rotated observable as `rotate -> measure Z`, with `apply_gate` on state vectors and `apply_gate_dm` on density tensors;
 # * `jax.vmap` over measurement settings, over shots and over whole repeated experiments; explicit `jax.random` key splitting;
 # * no Python `if` on random data: detector losses and outcome assignment via `jnp.where`;
 # * a validation ladder — exact correlator vs sampled correlator, operator identity, analytic error bars vs measured scatter.
@@ -135,7 +136,7 @@ def max_abs(a):
 # fact constantly, here and in the teleportation notebook.
 #
 # All four are **maximally entangled**: we prove below that tracing out either qubit leaves the maximally mixed state $\mathbb 1/2$.
-# $\vert\Psi^-\rangle$ is the famous **singlet**, the only one that is invariant (up to a phase) under $U\otimes U$ for every
+# $\vert\Psi^-\rangle$ is the **singlet**, the only one that is invariant (up to a phase) under $U\otimes U$ for every
 # single-qubit unitary $U$.
 #
 # ### 3.2 The preparation circuit
@@ -150,8 +151,8 @@ def max_abs(a):
 #   \frac{\vert00\rangle+\vert11\rangle}{\sqrt2}=\vert\Phi^{+}\rangle ,$$
 #
 # because CNOT flips qubit 1 exactly when qubit 0 is $\vert1\rangle$. The intermediate state is still a *product*,
-# $\left(\tfrac{1}{\sqrt2}(\vert0\rangle+\vert1\rangle)\right)\otimes\vert0\rangle$ — the entanglement is created by the CNOT, not by
-# the Hadamard. Repeating the same two lines for the other three inputs gives
+# $\left(\tfrac{1}{\sqrt2}(\vert0\rangle+\vert1\rangle)\right)\otimes\vert0\rangle$; the entanglement is created by the CNOT, and the
+# Hadamard only prepares the superposition on which the CNOT acts. Repeating the same two lines for the other three inputs gives
 #
 # | input | output |
 # |---|---|
@@ -162,7 +163,7 @@ def max_abs(a):
 #
 # so the circuit is a **unitary map from the computational basis onto the Bell basis**. Run backwards
 # ($H_0$ after $\text{CNOT}_{0\to1}$) it is a *Bell measurement*: it rotates the Bell basis onto the computational basis, where an
-# ordinary detector can read it out. That is exactly how teleportation works.
+# ordinary detector can read it out. Teleportation (next notebook) uses this Bell measurement.
 #
 # ### 3.3 Code
 #
@@ -214,7 +215,7 @@ for (b0, b1), name, key in zip([(0, 0), (0, 1), (1, 0), (1, 1)], BELL_NAMES, BEL
 # amplitude from $\vert10\rangle$ to $\vert11\rangle$. The four preparations match the engine's Bell states to machine precision.
 
 # %% [markdown]
-# ## 4. Correlations and marginals: what makes a Bell state special
+# ## 4. Correlations and marginals of the Bell states
 #
 # ### 4.1 The correlators
 #
@@ -239,10 +240,10 @@ for (b0, b1), name, key in zip([(0, 0), (0, 1), (1, 0), (1, 1)], BELL_NAMES, BEL
 #
 # $$T\left(\Phi^{+}\right)=\mathrm{diag}(+1,-1,+1) .$$
 #
-# **This is the whole mystery in one line.** $\langle ZZ\rangle=+1$ says: measure both qubits along $z$ and the results always agree.
+# **These two entries already pose the puzzle.** $\langle ZZ\rangle=+1$ says: measure both qubits along $z$ and the results always agree.
 # $\langle XX\rangle=+1$ says: measure both along $x$ and the results *also* always agree. A classical object carrying instructions
-# would have to carry a definite $z$-value *and* a definite $x$-value for each particle — and section 5 shows that no such list of
-# instructions can reproduce the intermediate angles.
+# would have to carry a definite $z$-value *and* a definite $x$-value for each particle; Sections 5–8 show that no such list of
+# instructions reproduces the correlations at intermediate angles.
 #
 # ### 4.2 The marginals
 #
@@ -254,8 +255,9 @@ for (b0, b1), name, key in zip([(0, 0), (0, 1), (1, 0), (1, 1)], BELL_NAMES, BEL
 # because the cross terms $\vert0\rangle\langle1\vert\,\mathrm{Tr}\!\left(\vert0\rangle\langle1\vert\right)$ vanish. The local Bloch
 # vector is zero: **each qubit on its own is completely random**, every local measurement gives $\pm1$ with probability $1/2$ whatever
 # axis you choose. All the information sits in the correlations. That combination — perfectly random locally, perfectly correlated
-# jointly — is the definition of maximal entanglement, and it is what forbids signalling: Alice cannot tell from her own statistics
-# what Bob did.
+# jointly — is the definition of maximal entanglement for a pure state. Alice's local statistics are also unchanged by anything
+# Bob does on his qubit; this no-signalling property holds for every two-party state, because Bob's local operations leave Alice's
+# reduced density matrix unchanged.
 
 # %%
 # ==============================================================================
@@ -310,8 +312,8 @@ assert max_abs(G - jnp.eye(4)) < TOL
 # %% [markdown]
 # The table confirms the hand calculation and adds the other three states: the signs of $(\langle XX\rangle,\langle YY\rangle,
 # \langle ZZ\rangle)$ are $(+,-,+)$ for $\Phi^+$, $(+,+,-)$ for $\Psi^+$, $(-,+,+)$ for $\Phi^-$ and $(-,-,-)$ for the singlet
-# $\Psi^-$. Every Bell state has an **odd** number of minus signs, i.e. the product of the three entries is always $-1$. That is not
-# a coincidence: the three operators $X\otimes X$, $Y\otimes Y$, $Z\otimes Z$ commute with each other and multiply to
+# $\Psi^-$. Every Bell state has an **odd** number of minus signs, i.e. the product of the three entries is always $-1$. The reason is
+# algebraic: the three operators $X\otimes X$, $Y\otimes Y$, $Z\otimes Z$ commute with each other and multiply to
 # $-\mathbb 1\otimes\mathbb 1$ (use $XY=iZ$ on each factor, so the phases $i\cdot i=-1$), so their four common eigenvectors — the
 # Bell states — can only carry sign patterns whose product is $-1$. These are the *stabilisers* of the Bell states, and specifying
 # two of the three signs already identifies the state uniquely.
@@ -321,8 +323,8 @@ assert max_abs(G - jnp.eye(4)) < TOL
 #
 # > **Physics insight.** A Bell state is a state of *perfect knowledge about a relation* combined with *zero knowledge about the
 # > parts*. Classically that is impossible: if I know that two bits are equal and I know nothing else, I can still list the two
-# > possibilities, and each of them assigns definite values. The quantum state is not a list of possibilities — and the next section
-# > turns that slogan into an inequality that nature can settle.
+# > possibilities, and each of them assigns definite values. A Bell state cannot be read as such a list, and the next section
+# > turns this statement into an inequality that nature can settle.
 
 # %% [markdown]
 # ## 5. Local hidden variables and the CHSH inequality
@@ -353,7 +355,7 @@ assert max_abs(G - jnp.eye(4)) < TOL
 #
 # Assumption 1 looks stronger than it is. Suppose instead that the model is **stochastic**: given $\lambda$ it only specifies
 # probabilities $P(A\vert a,\lambda)$ and $P(B\vert b,\lambda)$, and the two outcomes are conditionally independent,
-# $P(A,B\vert a,b,\lambda)=P(A\vert a,\lambda)P(B\vert b,\lambda)$ (this conditional factorisation is the honest statement of
+# $P(A,B\vert a,b,\lambda)=P(A\vert a,\lambda)P(B\vert b,\lambda)$ (this conditional factorisation is the precise statement of
 # locality). Then enlarge the hidden variable to $\tilde\lambda=(\lambda,u_A,u_B)$, where $u_A,u_B$ are two independent numbers drawn
 # uniformly on $[0,1]$ and shipped with the particles. Alice's outcome is now the *deterministic* function "return $+1$ if
 # $u_A<P(+1\vert a,\lambda)$, else $-1$", and likewise for Bob; the new model reproduces exactly the same statistics. So every
@@ -377,8 +379,8 @@ assert max_abs(G - jnp.eye(4)) < TOL
 # \tag{2}$$
 #
 # That is the whole derivation. Nothing was assumed about the physics of the particles, about what $\lambda$ is, or about the
-# number of settings the experimenters could have chosen. Only the three assumptions above entered, and it is worth seeing exactly
-# where each one is used. **Locality** is in writing $B(b,\lambda)$ with no $a$ in it, so that the same $B(b,\lambda)$ appears in the
+# number of settings the experimenters could have chosen. Only the three assumptions above entered, each at one identifiable
+# place. **Locality** is in writing $B(b,\lambda)$ with no $a$ in it, so that the same $B(b,\lambda)$ appears in the
 # terms $E(a,b)$ and $E(a',b)$ and can be factored out of the bracket. **Realism** is in having a single number
 # $A(a,\lambda)\in\{-1,+1\}$ to factor out at all. **Measurement independence** is in writing the four integrals with one common
 # $\rho(\lambda)$, which is what makes $S$ the average of the *single* function $s(\lambda)$.
@@ -423,8 +425,8 @@ assert worst <= 2 + 1e-12
 # Every one of the 16 deterministic strategies gives exactly $S=+2$ or $S=-2$ — never $\pm4$, and never anything in between. That is
 # the bracket argument in tabular form: one bracket is always $0$ and the other always $\pm2$. Eight strategies sit on the face
 # $S=+2$ and eight on $S=-2$. Random mixtures interpolate between them and, as the maximum over 20000 of them shows, can approach
-# but never exceed $2$. The classical bound is therefore not a statistical statement that holds "on average": it is a hard geometric
-# fact about the polytope of local correlations, and $S=2$ is one of its faces.
+# but never exceed $2$. The classical bound therefore holds for every local model individually, as a geometric property of the
+# polytope of local correlations, and $S=2$ is one of its faces.
 
 # %% [markdown]
 # ## 6. The quantum prediction: $E(a,b)=\cos(\theta_a-\theta_b)$
@@ -472,7 +474,7 @@ assert worst <= 2 + 1e-12
 #
 # $$R_y(\theta)\,Z\,R_y(\theta)^{\dagger}=\cos\theta\,Z+\sin\theta\,X=A(\theta),\qquad R_y(\theta)=e^{-i\theta Y/2},$$
 #
-# which just says that conjugation by $R_y$ rotates the Bloch sphere about the $y$ axis by $\theta$, carrying $\hat z$ into
+# which states that conjugation by $R_y$ rotates the Bloch sphere about the $y$ axis by $\theta$, carrying $\hat z$ into
 # $\cos\theta\,\hat z+\sin\theta\,\hat x$. Therefore
 #
 # $$\langle\psi\vert A(\theta)\vert\psi\rangle=\langle\phi\vert Z\vert\phi\rangle,\qquad
@@ -531,7 +533,7 @@ assert err_max < 1e3 * TOL
 # (measuring along orthogonal axes gives completely uncorrelated results).
 
 # %% [markdown]
-# ## 7. Tsirelson's bound: why $2\sqrt2$ and not $4$
+# ## 7. Tsirelson's bound from an operator identity
 #
 # The algebraic maximum of $S=E_1+E_2+E_3-E_4$ with each $\vert E_i\vert\le1$ is $4$. Local models are stuck at $2$. Quantum mechanics
 # reaches $2\sqrt2$ — strictly in between. Where does that number come from? From the fact that Alice's two observables *do not
@@ -559,8 +561,8 @@ assert err_max < 1e3 * TOL
 #
 # $$\mathcal S^2=4\,\mathbb 1\otimes\mathbb 1-[A,A']\otimes[B,B'] . \tag{4}$$
 #
-# (The sign in front of the commutator product depends on where you put the minus sign in $\mathcal S$; what matters is the size of
-# the term, not its sign.) Take operator norms. For unitaries-squaring-to-one, $\lVert A\rVert=1$, hence
+# (The sign in front of the commutator product depends on where the minus sign sits in $\mathcal S$; only the norm of the term enters
+# the bound below.) Take operator norms. A Hermitian operator with $A^2=\mathbb 1$ is unitary, so $\lVert A\rVert=1$, hence
 # $\lVert[A,A']\rVert\le\lVert AA'\rVert+\lVert A'A\rVert\le2$, and the same for $B$. Therefore
 #
 # $$\lVert\mathcal S^2\rVert\le4+2\cdot2=8\quad\Longrightarrow\quad\lVert\mathcal S\rVert\le2\sqrt2
@@ -568,8 +570,8 @@ assert err_max < 1e3 * TOL
 #
 # Equation (4) explains the size of the bound. If Alice's two observables commute, $[A,A']=0$, the correction vanishes and we are back to
 # $\vert S\vert\le2$: **commuting observables behave classically**. The violation is bought with non-commutativity, and the price is
-# capped because a product of two $\pm1$ observables still has norm 1. No property of the *state* was used: $2\sqrt2$
-# is a bound for all states and all dimensions, not just for two qubits.
+# capped because a product of two $\pm1$ observables still has norm 1. No property of the *state* entered, so $2\sqrt2$
+# bounds $\vert S\vert$ for every state and in every Hilbert-space dimension.
 
 # %%
 # ==============================================================================
@@ -633,14 +635,17 @@ print(f"\n  largest operator norm found in {6} random trials: {norm_max:.6f}   (
 #
 # $$S_{\max}=2\sqrt{t_1^2+t_2^2} , \tag{6}$$
 #
-# where $t_1\ge t_2$ are the two largest singular values of $T$. This is the **Horodecki criterion**: a two-qubit state violates CHSH
+# where $t_1\ge t_2$ are the two largest singular values of $T$. All three inequalities are saturated at once: take
+# $\hat e_1,\hat e_2$ along the eigenvectors of $T^{\mathsf T}T$ that belong to $t_1^2,t_2^2$, choose $\tan(\delta/2)=t_2/t_1$
+# (equality in Cauchy–Schwarz), and point $\hat a,\hat a'$ along $T(\hat b\pm\hat b')$. Eq. (6) is therefore the attained maximum
+# over all settings. This is the **Horodecki criterion**: a two-qubit state violates CHSH
 # (for some choice of settings) if and only if the sum of the two largest squared singular values of its correlation matrix exceeds 1.
 #
 # ### 8.2 The maximally entangled case
 #
 # For $\vert\Phi^+\rangle$, $T=\mathrm{diag}(1,-1,1)$ has all singular values equal to 1, so $S_{\max}=2\sqrt2$ — Tsirelson's bound is
 # reached by a two-qubit state. The optimum has $\lVert T\hat e_1\rVert=\lVert T\hat e_2\rVert$, hence $\delta=\pi/2$: **Bob's two
-# settings must be $90^\circ$ apart**, and Alice's must bisect them. In the $x$–$z$ plane one standard choice is
+# settings must be $90^\circ$ apart**, and Alice's point along $\hat b+\hat b'$ and $\hat b-\hat b'$. In the $x$–$z$ plane one standard choice is
 #
 # $$\theta_a=0\;(Z),\qquad \theta_{a'}=\frac{\pi}{2}\;(X),\qquad \theta_b=\frac{\pi}{4},\qquad \theta_{b'}=-\frac{\pi}{4},$$
 #
@@ -704,7 +709,7 @@ print(f"   max deviation of the sweep from Eq. (7) 2*sqrt(2) sin(phi + pi/4): "
 phis_np = np.asarray(phis)
 fig, ax = plt.subplots(figsize=(7.4, 4.4))
 ax.plot(phis_np / np.pi, S_sweep, "-", color=PALETTE[0], lw=2, label=r"quantum, Eq. (7): $2\sqrt{2}\sin(\varphi+\pi/4)$")
-ax.axhline(2.0, color=PALETTE[1], ls=":", lw=1.8, label="local hidden variables: $S\\leq 2$")
+ax.axhline(2.0, color=PALETTE[1], ls=":", lw=1.8, label="local hidden variables: $|S|\\leq 2$")
 ax.axhline(-2.0, color=PALETTE[1], ls=":", lw=1.8)
 ax.axhline(2 * np.sqrt(2), color=PALETTE[2], ls="--", lw=1.3, label=r"Tsirelson: $|S|\leq 2\sqrt{2}$")
 ax.axhline(-2 * np.sqrt(2), color=PALETTE[2], ls="--", lw=1.3)
@@ -723,7 +728,7 @@ plt.show()
 
 # %% [markdown]
 # The four correlators are $\pm1/\sqrt2$ as predicted, their CHSH combination is $2\sqrt2$ to machine precision, and the sweep
-# reproduces Eq. (7) exactly, with its maximum at $\varphi=\pi/4$. The shaded lobe is the whole story of this notebook: for
+# reproduces Eq. (7) exactly, with its maximum at $\varphi=\pi/4$. The shaded lobe is the region the rest of this notebook is about: for
 # $0<\varphi<\pi/2$ the quantum prediction lies strictly outside the region accessible to *any* local hidden-variable model, and at
 # $\varphi=\pi/4$ it touches the absolute quantum ceiling $2\sqrt2$. Everything that follows is about measuring that lobe with real
 # (finite, noisy, lossy) data.
@@ -829,6 +834,9 @@ S_ps = float(chsh_sampled_pershot(jax.random.PRNGKey(2024), psi_bell, SHOTS_DEMO
 print(f"\n  per-shot vmap version (one key per run): S = {S_ps:.4f}"
       f"   |difference| from the batched version = {abs(S_ps - float(S_hat)):.4f}"
       f"   (both within ~{float(SE_hat):.4f} of {2 * np.sqrt(2):.4f})")
+# both single estimates must lie within 4 analytic standard errors of 2 sqrt(2) (a 4-sigma test per sampler)
+assert abs(float(S_hat) - 2 * np.sqrt(2)) < 4 * np.sqrt(2 / SHOTS_DEMO)
+assert abs(S_ps - 2 * np.sqrt(2)) < 4 * np.sqrt(2 / SHOTS_DEMO)
 
 # %% [markdown]
 # Both samplers produce an estimate compatible with the exact value within the analytic error bar, and the measured standard error
@@ -836,20 +844,21 @@ print(f"\n  per-shot vmap version (one key per run): S = {S_ps:.4f}"
 # random draws. From here on we use the batched version, which is much cheaper.
 
 # %% [markdown]
-# ## 10. How many shots do we need? Convergence and the $5\sigma$ question
+# ## 10. Shot budget: convergence and the $5\sigma$ criterion
 #
 # ### 10.1 Planning the experiment
 #
-# A referee does not accept "we measured $S=2.1$". They accept "we measured $S=2.83\pm0.02$, which is $40$ standard errors above the
-# classical bound". So: how many runs $n$ per setting are needed for a $k\sigma$ violation? Set the expected excess equal to
+# A measured value such as $S=2.1$ carries no weight without its error bar; the statement a referee accepts has the form "we measured
+# $S=2.83\pm0.02$, which is $40$ standard errors above the classical bound". The planning question is the number of runs $n$ per
+# setting needed for a $k\sigma$ violation. Set the expected excess equal to
 # $k$ standard errors, using Eq. (9) at the optimum:
 #
 # $$2\sqrt2-2=k\,\sqrt{\frac{2}{n}}\qquad\Longrightarrow\qquad n=\frac{2k^2}{\left(2\sqrt2-2\right)^2} . \tag{10}$$
 #
-# For $k=5$ this is $n=50/0.6863=72.9$, i.e. **73 runs per setting, 292 runs in total**. That is a remarkably small number — the
-# reason Bell tests are hard is not statistics, it is closing the loopholes (Section 13).
+# For $k=5$ this is $n=50/0.6863=72.9$, i.e. **73 runs per setting, 292 runs in total**. This is a small number of runs;
+# the experimental difficulty of Bell tests lies in closing the loopholes (Section 13), which more statistics cannot do.
 #
-# Careful with the interpretation, though. Equation (10) makes the *expected* significance equal to $5$; because $\hat S$ itself
+# Equation (10) makes the *expected* significance equal to $5$; because $\hat S$ itself
 # fluctuates, roughly half the experiments at $n=73$ will land below $5\sigma$. We measure that fraction below, and also the $n$ at
 # which a $5\sigma$ result becomes nearly certain.
 
@@ -891,6 +900,23 @@ S73, SE73, _ = jax.vmap(lambda k: chsh_sampled(k, psi_bell, n_plan))(keys)
 sig73 = significance(S73, SE73)
 print(f"  measured at n = {n_plan} over 4000 experiments:  mean significance = {sig73.mean():.2f} sigma, "
       f"fraction above 5 sigma = {np.mean(sig73 > 5):.3f}, fraction above 2 = {np.mean(np.asarray(S73) > 2):.3f}")
+
+# --- CHECKPOINT: Eq. (9) predicts the scatter of S over independent experiments; a wrong error model must fail ---
+# A standard deviation estimated from R samples has a relative standard error of about 1/sqrt(2R) (1.1 % for R = 4000);
+# we allow four of them.  Control: treating each +-1 product as if it had unit variance gives SE = 2/sqrt(n)
+# (the E_i^2 terms of Eq. (9) dropped), which is off by a factor sqrt(2) and must be rejected by the same test.
+S73_np = np.asarray(S73)
+R73 = S73_np.size
+tol_rel = 4 / np.sqrt(2 * R73)
+std73 = float(S73_np.std())
+dev_eq9 = abs(std73 / np.sqrt(2 / n_plan) - 1)
+dev_naive = abs(std73 / (2 / np.sqrt(n_plan)) - 1)
+z_bias = abs(float(S73_np.mean()) - S_TARGET) / (np.sqrt(2 / n_plan) / np.sqrt(R73))
+print(f"\nCHECKPOINT  n = {n_plan}, R = {R73} experiments:  std(S) = {std73:.4f}")
+print(f"            relative deviation from sqrt(2/n) [Eq. (9)]      = {dev_eq9:.4f}   (tolerance {tol_rel:.4f})")
+print(f"            relative deviation from 2/sqrt(n) [wrong control] = {dev_naive:.4f}   (must exceed {tol_rel:.4f})")
+print(f"            |mean S - 2 sqrt(2)| = {z_bias:.2f} standard errors of the mean (unbiased estimator)")
+assert dev_eq9 < tol_rel and dev_naive > tol_rel and z_bias < 4
 for n_try in (150, 300):
     kk = jax.random.split(jax.random.PRNGKey(n_try), 4000)
     S_t, SE_t, _ = jax.vmap(lambda k: chsh_sampled(k, psi_bell, n_try))(kk)
@@ -931,33 +957,38 @@ plt.show()
 # %% [markdown]
 # The mean estimate sits on $2\sqrt2$ at every shot number — the
 # estimator is unbiased — and what shrinks is the scatter. At $n=10$ runs per setting that scatter is $0.39$, about half of the whole
-# $0.83$ gap between the classical and the quantum bound: $97\%$ of such "experiments" land above $2$, but only $4\%$ of them reach
-# $5\sigma$, so a single one of them proves very little. By $n=300$ every single experiment in the sample exceeds $5\sigma$.
+# $0.83$ gap between the classical and the quantum bound: $97$ of the $100$ simulated experiments land above $2$, but only $4$ of
+# them reach $5\sigma$, so a single one of them proves very little. By $n=300$ every experiment in the sample exceeds $5\sigma$.
 #
 # The right panel is the quantitative statement: the measured scatter over independent experiments, the error bar each experiment
 # *reports* from its own data via Eq. (9), and the analytic $\sqrt{2/n}$ all follow the same $n^{-1/2}$ line over three decades.
-# Two small systematic effects are visible and both are understood. First, the reported error bar sits slightly *below*
-# $\sqrt{2/n}$ ($0.419$ against $0.447$ at $n=10$, $0.1401$ against $0.1414$ at $n=100$, equal to four digits from $n=10^3$ on):
-# a plug-in variance estimated from $n$ samples is biased low by the factor $\sqrt{(n-1)/n}$, which is $3\%$ at $n=10$ and
-# $0.05\%$ at $n=10^3$. Second, the measured scatter wanders around $\sqrt{2/n}$ by up to $14\%$ in either direction ($+2\%$ at
-# $n=30$, $-14\%$ at $n=10$ and at $n=10^3$) with no trend in $n$; that is pure
-# sampling noise of the scatter itself, since a standard deviation estimated from only $R=100$ experiments carries a relative
-# uncertainty of about $1/\sqrt{2R}\approx7\%$, so the largest gap is a two-sigma fluctuation. (The exact standard deviation of
-# $\hat S$ really is $\sqrt{2/n}$ for every $n$, because $\mathrm{Var}(\hat E_i)=(1-E_i^2)/n$ holds exactly for a mean of $\pm1$
-# draws.) The checkpoint is that the error bar an experiment computes from its own single data set reproduces the scatter of many
-# independent data sets: neither optimistic nor inflated.
+# Two deviations are visible, one systematic and one statistical. First, the reported error bar sits slightly *below*
+# $\sqrt{2/n}$ ($0.419$ against $0.447$ at $n=10$, $0.1401$ against $0.1414$ at $n=100$, equal to four digits from $n=10^3$ on).
+# The plug-in variance `jnp.var` of $n$ samples has expectation $\tfrac{n-1}{n}$ times the true variance, so its square root is
+# low by about $\sqrt{(n-1)/n}$: $5\%$ at $n=10$, $0.05\%$ at $n=10^3$. Taking the square root of a fluctuating variance adds a
+# further downward bias of order $1/n$ (concavity of $\sqrt{\cdot}$), about $1$–$2\%$ at $n=10$; together they account for the $6\%$
+# gap at $n=10$. Second, the measured scatter wanders around $\sqrt{2/n}$ by up to $14\%$ in either direction ($+2\%$ at
+# $n=30$, $-14\%$ at $n=10$ and at $n=10^3$) with no trend in $n$. This is sampling noise of the scatter itself: a standard
+# deviation estimated from only $R=100$ experiments carries a relative uncertainty of about $1/\sqrt{2R}\approx7\%$, so the largest
+# gap is a two-sigma fluctuation. The exact standard deviation of $\hat S$ is $\sqrt{2/n}$ for every $n$, because
+# $\mathrm{Var}(\hat E_i)=(1-E_i^2)/n$ holds exactly for a mean of $\pm1$ draws.
+#
+# The checkpoint tests this with the larger ensemble of $R=4000$ experiments at $n=73$, where the tolerance is
+# $4/\sqrt{2R}=4.5\%$: the measured scatter matches $\sqrt{2/n}$ to $2.1\%$, while the error model that drops the $E_i^2$ terms of
+# Eq. (9) and uses $2/\sqrt n$ misses by $28\%$ and is rejected. The mean of $\hat S$ over the ensemble lies
+# $0.09$ standard errors from $2\sqrt2$.
 #
 # The planning calculation comes out as predicted: Eq. (10) says $73$ runs per setting, and the Monte Carlo over $4000$ experiments
-# at $n=73$ gives a mean significance of $5.1\sigma$ with exactly $50\%$ of the experiments above $5\sigma$ — the hallmark of a
-# threshold placed at the *expected* value. If you want a $5\sigma$ result to be nearly certain rather than a coin flip, budget two
-# to four times more: at $n=150$ the success rate is $96\%$, at $n=300$ it is $100\%$ of our sample.
+# at $n=73$ gives a mean significance of $5.1\sigma$ with $50.0\%$ of the experiments above $5\sigma$ — the hallmark of a
+# threshold placed at the *expected* value. A $5\sigma$ result that is nearly certain, rather than a coin flip, needs two to four
+# times more runs: at $n=150$ the success rate is $96\%$, at $n=300$ it is $100\%$ of the sample.
 #
-# > **Numerical practice.** The middle column of the table is the one you should internalise. An error bar computed from the sample
-# > variance of *one* data set (what an experiment can do) reproduces the scatter of many independent data sets (what an experiment
-# > cannot do). That is the entire content of the phrase "the standard error".
+# > **Numerical practice.** The comparison of the columns `std(S)` and `mean SE` is the central numerical point of this section.
+# > An error bar computed from the sample variance of *one* data set (what an experiment can do) reproduces the scatter of many
+# > independent data sets (what an experiment cannot do). This is the operational meaning of "the standard error".
 
 # %% [markdown]
-# ## 11. Werner states: entanglement is not the same as nonlocality
+# ## 11. Werner states: the entanglement threshold and the CHSH threshold
 #
 # Real sources are noisy. The standard one-parameter family of noisy Bell pairs is the **Werner state** (Werner 1989), a Bell state
 # mixed with white noise:
@@ -982,10 +1013,14 @@ plt.show()
 #
 # $$v>\frac{1}{3},\qquad \mathcal N(\rho_W)=\max\left(0,\frac{3v-1}{4}\right) .$$
 #
-# **(c) The gap.** For $\tfrac13<v\le\tfrac{1}{\sqrt2}$ the state is **entangled but does not violate CHSH**. This is not a failure of
-# our search over angles: Werner constructed an explicit local hidden-variable model that reproduces *all* projective measurements on
-# these states for $v\le\tfrac12$. So entanglement and Bell nonlocality are genuinely different resources — nonlocality is strictly
-# stronger, and a CHSH test is a *sufficient* but not necessary entanglement witness.
+# **(c) The gap.** For $\tfrac13<v\le\tfrac{1}{\sqrt2}$ the state is **entangled but does not violate CHSH** for any choice of
+# settings, because Eq. (6) is the exact maximum over all angles. Whether such a state violates *some other* Bell inequality is a
+# separate and harder question. Werner constructed an explicit local hidden-variable model that reproduces *all* projective
+# measurements on these states for $v\le\tfrac12$, so in that range they are entangled and local. The exact locality threshold for
+# projective measurements is known only within bounds, $0.6875\le v_c\le0.6961$ (Designolle et al. 2023); Werner states with
+# $0.6961<v\le1/\sqrt2$ therefore violate a Bell inequality with more than two settings per party while satisfying CHSH.
+# Entanglement and Bell nonlocality are different resources — nonlocality is strictly stronger — and a CHSH test is a *sufficient*
+# but not a necessary entanglement witness.
 #
 # On a density tensor, mixing with the identity and measuring correlators uses `apply_gate_dm` (the same einsum applied to the ket and
 # the conjugated bra axes) and the diagonal of the rotated density matrix.
@@ -1059,7 +1094,7 @@ ax.axvline(1 / np.sqrt(2), color=PALETTE[1], ls="-.", lw=1.2)
 ax.axvline(1 / 3, color=PALETTE[2], ls="-.", lw=1.2)
 ax.plot(v_grid, 4 * neg_w, "-", color=PALETTE[2], lw=2, label=r"$4\times$ negativity $\mathcal{N}$")
 ax.fill_betweenx([0, 3], 1 / 3, 1 / np.sqrt(2), color=PALETTE[2], alpha=0.10)
-ax.text(0.345, 2.55, "entangled\nbut local", fontsize=9, color=PALETTE[2])
+ax.text(0.345, 2.40, "entangled,\nno CHSH\nviolation", fontsize=9, color=PALETTE[2])
 ax.text(1 / np.sqrt(2) + 0.01, 0.35, r"$v=1/\sqrt{2}$", fontsize=9, color=PALETTE[1])
 ax.text(1 / 3 - 0.10, 0.35, r"$v=1/3$", fontsize=9, color=PALETTE[2])
 ax.set_xlabel("visibility $v$ of the Werner state")
@@ -1075,8 +1110,8 @@ plt.show()
 # everywhere — for an isotropic mixture the optimal angles do not move, because white noise shrinks all three axes of $T$ equally.
 # The printed table confirms $S=2\sqrt2\,v$ and $\mathcal N=\max(0,(3v-1)/4)$ to machine precision, so the two crossings are exactly
 # at $v=1/\sqrt2$ and $v=1/3$. The shaded strip between them is the physically interesting region: those states are entangled (the
-# negativity is positive, and one can distil and teleport with them — see the next notebook) yet no CHSH experiment will ever see
-# anything non-classical in them.
+# negativity is positive, and the next notebook shows that they teleport better than any classical protocol) yet no CHSH experiment
+# detects anything non-classical in them; for $v\le1/2$ no experiment with projective measurements does.
 #
 # > **Physics insight.** "Entangled" is a statement about the *state* (it is not a tensor product of local states). "Nonlocal" is a
 # > statement about the *correlations it can produce* (they do not fit into any LHV model). The second is strictly stronger.
@@ -1110,17 +1145,19 @@ plt.show()
 #   $p=\tfrac12\left(1-\sqrt{\sqrt2-1}\right)\approx0.1782$.
 #   But if we **re-optimise the angles**, Eq. (6) with $t_1=1$, $t_2=\lambda$ gives
 #   $S_{\max}=2\sqrt{1+\lambda^2}=2\sqrt{1+(1-2p)^4}>2$ for *every* $p<1/2$: a dephased Bell pair violates CHSH at any
-#   dephasing strength short of $p=1/2$, provided you turn the knobs to the right place. Only at $p=1/2$, where the coherence is
+#   dephasing strength short of $p=1/2$, provided the settings are re-optimised. Only at $p=1/2$, where the coherence is
 #   gone and $\lambda=0$, does $S_{\max}$ fall to exactly $2$;
 # * **amplitude damping** with rate $p$ is the one channel with a non-zero local Bloch vector, $\mathbf{t}=(0,0,p)$ and
 #   $\Lambda=\mathrm{diag}(\sqrt{1-p},\sqrt{1-p},1-p)$, and the constant part feeds back into the correlations:
 #   $T\to\Lambda T\Lambda+\mathbf{t}\,\mathbf{t}^{\mathsf T}=\mathrm{diag}\!\left(1-p,\,-(1-p),\,(1-p)^2+p^2\right)$.
 #   At the fixed angles $S=\sqrt2\left[(1-p)^2+p^2+1-p\right]$, which reaches 2 at the root of $2p^2-3p+2-\sqrt2=0$,
 #   $p=\tfrac14\left(3-\sqrt{8\sqrt2-7}\right)\approx0.2308$; re-optimised, the two largest singular values are both $1-p$ for
-#   $p$ in this range, so $S_{\max}=2\sqrt2\,(1-p)$ and the violation ends at $p=1-1/\sqrt2\approx0.2929$.
+#   $p$ in this range, so $S_{\max}=2\sqrt2\,(1-p)$ and the violation ends at $p=1-1/\sqrt2\approx0.2929$. The two largest
+#   singular values now belong to $T_{xx}$ and $T_{yy}$, so the optimal directions lie in the $x$–$y$ plane, outside the $x$–$z$
+#   plane that the $R_y$ parametrisation of Section 6 can reach.
 #
-# The dephasing case is a genuine lesson about experiments: the critical noise level is a property of the *protocol*, not only of the
-# state. We measure all of it below.
+# The dephasing case shows that the critical noise level is a property of the measurement *protocol* as well as of the state.
+# The code below measures all of these predictions.
 
 # %%
 # ==============================================================================
@@ -1215,17 +1252,26 @@ fig, axes = plt.subplots(1, 2, figsize=(11.5, 4.3), sharex=True)
 for k, name in enumerate(CHANNELS):
     S_fix, S_max, neg = curves[name]
     axes[0].plot(p_grid, S_fix, "-", color=PALETTE[k], lw=2, label=f"{name}, fixed angles")
-    axes[0].plot(p_grid, S_max, "--", color=PALETTE[k], lw=1.3, label=f"{name}, best angles")
+    axes[0].plot(p_grid, S_max, "--", color=PALETTE[k], lw=1.3, marker=MARKERS[k], ms=4, markevery=5,
+                 label=f"{name}, best angles")
     axes[1].plot(p_grid, neg, "-", color=PALETTE[k], lw=2, label=name)
 axes[0].axhline(2.0, color="0.3", ls=":", lw=1.6)
-axes[0].text(0.30, 2.04, "classical bound", fontsize=8, color="0.3")
+axes[0].text(0.38, 1.90, "classical bound", fontsize=8, color="0.3")
 axes[0].set_xlabel("noise strength $p$ per qubit")
 axes[0].set_ylabel(r"CHSH value $S$")
 axes[0].set_title(r"CHSH violation of $|\Phi^+\rangle$ under noise")
 axes[0].legend(fontsize=7, loc="lower left")
+# inset: the dephasing S_max stays above 2 up to p = 1/2, by an amount invisible on the linear axis
+axes[0].set_ylim(0.2, 3.65)                                   # head room for the inset
+ins = axes[0].inset_axes([0.50, 0.71, 0.47, 0.23])
+p_in = p_grid[p_grid < 0.5]
+ins.semilogy(p_in, curves["dephasing"][1][p_grid < 0.5] - 2.0, "--", color=PALETTE[1], lw=1.3)
+ins.set_title(r"dephasing, best angles: $S_{\max}-2$", fontsize=7)
+ins.tick_params(labelsize=6)
+ins.set_xlabel("$p$", fontsize=7, labelpad=1)
 axes[1].set_xlabel("noise strength $p$ per qubit")
 axes[1].set_ylabel(r"negativity $\mathcal{N}$")
-axes[1].set_title("Entanglement survives longer than nonlocality")
+axes[1].set_title("Entanglement outlives the CHSH violation")
 axes[1].legend(fontsize=8)
 fig.tight_layout()
 plt.show()
@@ -1239,14 +1285,14 @@ plt.show()
 # * **Dephasing** shows the protocol dependence announced above: with the angles frozen at $\pi/4$ the violation dies at
 #   $p=0.1782$, exactly the predicted $\tfrac12\left(1-\sqrt{\sqrt2-1}\right)$; but re-optimising Bob's angles keeps $S$ above 2 all
 #   the way to $p=1/2$ (at $p=0.30$ the re-optimised value is still $2.025$ while the fixed-angle value has fallen to $1.641$), where
-#   the coherence vanishes entirely and $S_{\max}$ touches exactly 2. If you only ever turn the knobs to the textbook positions, you
-#   will conclude that your source is classical when it is not.
+#   the coherence vanishes entirely and $S_{\max}$ touches exactly 2 (inset of the left panel). An experiment that keeps the
+#   textbook settings sees no violation from a source that does violate CHSH at other settings.
 # * **Amplitude damping** is the most benign of the three at small $p$ — at $p=0.02$ it still gives $S=2.745$ against $2.717$ for
 #   dephasing and $2.680$ for depolarising — and it survives to $p=0.2308$ at fixed angles, $p=0.2929$ with the angles re-optimised,
 #   both matching the closed forms $\tfrac14(3-\sqrt{8\sqrt2-7})$ and $1-1/\sqrt2$. It is also the only
 #   channel here that produces non-zero local Bloch vectors, since it pushes both qubits towards $\vert0\rangle$.
-# * In every case the negativity in the right panel stays positive after $S$ has dropped below 2 — the "entangled but local" region
-#   of Section 11 reappears for every noise model.
+# * In every case in which $S$ drops below 2 for $p<1/2$, the negativity in the right panel is still positive at the crossing — the
+#   region of entangled states without CHSH violation of Section 11 reappears for every noise model.
 
 # %% [markdown]
 # ## 13. The detection loophole
@@ -1267,6 +1313,7 @@ plt.show()
 # $$E_{\rm eff}=\eta^2E+\eta(1-\eta)\langle A\rangle+(1-\eta)\eta\langle B\rangle+(1-\eta)^2 .$$
 #
 # For a Bell state the local marginals vanish, $\langle A\rangle=\langle B\rangle=0$, leaving $E_{\rm eff}=\eta^2E+(1-\eta)^2$.
+# (Assigning $-1$ on both sides gives the same result: the constant term is $(-1)^2(1-\eta)^2$ and the marginal terms vanish.)
 # The constant $(1-\eta)^2$ enters the CHSH combination with the sign pattern $+\,+\,+\,-$, i.e. with total weight $2$:
 #
 # $$S_{\rm eff}(\eta)=2\sqrt2\,\eta^2+2\,(1-\eta)^2 . \tag{11}$$
@@ -1276,12 +1323,15 @@ plt.show()
 # $$\eta_{\rm crit}=\frac{2}{1+\sqrt2}=2\left(\sqrt2-1\right)\approx0.8284 .$$
 #
 # **Below $83\%$ detection efficiency a maximally entangled pair can no longer demonstrate nonlocality this way.** The threshold
-# is tight: Garg and Mermin showed that at $\eta<2(\sqrt2-1)$ an explicit local model reproduces the post-selected data of route 1,
-# so route 1 proves nothing there either (we do not construct that model here). This is the *detection loophole*; it is why the 1980s
-# photon experiments, with efficiencies of a few percent, were not conclusive on their own, and why the loophole-free experiments of
+# holds beyond the $+1$ assignment: Garg and Mermin derived the necessary and sufficient condition for data from
+# two settings per side, undetected events included, to be compatible with local realism without any fair-sampling assumption, and
+# showed that the quantum predictions for a maximally entangled pair satisfy it unless the detection efficiency exceeds $83\%$.
+# Below that efficiency a local model reproduces all the data, the post-selected coincidences of route 1 included (we do not
+# construct it here). This is the *detection loophole*; it is why the 1980s photon experiments, whose overall detection efficiencies
+# were far below this threshold, were not conclusive on their own, and why the loophole-free experiments of
 # 2015 (Hensen and co-workers with entangled spins in diamond, and the photonic experiments of Giustina and of Shalm later the same
-# year) were such an achievement. Eberhard showed in 1993 that with *non-maximally* entangled states and a different inequality the requirement can be
-# relaxed to $\eta>2/3$ — one of the rare cases where less entanglement is better.
+# year) were such an achievement. Eberhard showed in 1993 that with *non-maximally* entangled states the requirement is lowered,
+# towards $\eta=2/3$ in the limit of weak entanglement — one of the rare cases where less entanglement is better.
 #
 # We simulate route 2 directly: draw the outcomes, draw a detection flag per side per run, and replace the undetected outcome by $+1$
 # with `jnp.where` — no Python `if` on random data, so the whole thing stays inside `jit` and `vmap`.
@@ -1332,11 +1382,15 @@ print(f"  critical efficiency:  from the simulated points = {np.interp(2.0, S_et
       f"   analytic 2/(1+sqrt(2)) = {eta_crit:.4f}")
 
 # --- CHECKPOINT: the sampled curve agrees with Eq. (11) within shot noise ------------------------------
-# The worst of 26 independent points is expected around 2-3 standard errors; 5 is a bound that a genuine
-# error in the loss model (e.g. assigning -1, or applying the loss to only one side) would break by far.
+# The worst of 26 independent points is expected around 2-3 standard errors; 5 is the tolerance.
+# Wrong control: losses on ONE side only give E_eff = eta E (the other detector always fires), i.e.
+# S = 2 sqrt(2) eta; the same test must reject it.  (Assigning -1 on BOTH sides is not a valid control:
+# for a Bell state it gives exactly Eq. (11) again, see the markdown above.)
 z_max = float(np.max(np.abs(S_eta - S_eta_theory) / SE_eta))
+z_ctrl = float(np.max(np.abs(S_eta - 2 * np.sqrt(2) * eta_np) / SE_eta))
 print(f"\nCHECKPOINT  largest |simulated - Eq. (11)| in units of its own standard error = {z_max:.2f} sigma")
-assert z_max < 5.0
+print(f"            wrong control (loss on one side, S = 2 sqrt(2) eta):            {z_ctrl:.1f} sigma (must exceed 5)")
+assert z_max < 5.0 and z_ctrl > 5.0
 
 # %%
 # ==============================================================================
@@ -1365,12 +1419,12 @@ plt.show()
 # the classical face, which is precisely why no loophole-free conclusion is possible without high efficiency.
 
 # %% [markdown]
-# ## 14. Performance: why `vmap` and `jit` matter even for two qubits
+# ## 14. Performance of `jit` and `vmap` on a two-qubit Monte Carlo
 #
-# Two qubits are tiny, so the arithmetic is nothing; what costs time is the *number of Python-level operations*. The Monte-Carlo study
+# For two qubits the arithmetic is negligible; the cost is set by the *number of Python-level operations*. The Monte-Carlo study
 # of Section 10 ran $100$ experiments $\times$ $4$ settings $\times$ up to $10^4$ shots at each of seven shot numbers, plus three
-# ensembles of $4000$ experiments for the sample-size planning. Doing that with a Python loop means
-# millions of interpreter steps; `vmap` turns the loop into one array axis and `jit` compiles the whole thing into a single XLA
+# ensembles of $4000$ experiments for the sample-size planning. A Python loop over the experiments makes one jitted call per
+# experiment, and a loop over individual shots would mean millions of interpreter steps; `vmap` turns the loop into one array axis and `jit` compiles the whole thing into a single XLA
 # program. We measure the difference. (Timing rules: call once to trigger compilation, then take the best of several runs, and always
 # `block_until_ready` — JAX is asynchronous and would otherwise time only the dispatch.)
 
@@ -1398,26 +1452,33 @@ best = np.inf
 for _ in range(3):
     t0 = time.perf_counter(); vmap_version(jax.random.PRNGKey(1)).block_until_ready()
     best = min(best, time.perf_counter() - t0)
-t0 = time.perf_counter(); r_l = loop_version(jax.random.PRNGKey(1), BENCH_REPEAT); r_l.block_until_ready()
-t_loop = time.perf_counter() - t0
+t0 = time.perf_counter(); loop_version(jax.random.PRNGKey(2), BENCH_REPEAT).block_until_ready()
+t_loop_first = time.perf_counter() - t0                     # first pass: includes compiling the loop body
+t_loop = np.inf
+for _ in range(3):
+    t0 = time.perf_counter(); r_l = loop_version(jax.random.PRNGKey(1), BENCH_REPEAT); r_l.block_until_ready()
+    t_loop = min(t_loop, time.perf_counter() - t0)
 
 print(f"{BENCH_REPEAT} independent CHSH experiments, {BENCH_SHOTS} shots per setting "
       f"({BENCH_REPEAT * 4 * BENCH_SHOTS} simulated runs in total)")
 print(f"  vmap + jit : {t_compile * 1e3:8.1f} ms first call (incl. compilation), {best * 1e3:8.1f} ms afterwards")
-print(f"  python loop: {t_loop * 1e3:8.1f} ms")
-print(f"  speed-up of the vmapped version over the loop: {t_loop / best:.1f}x")
+print(f"  python loop: {t_loop_first * 1e3:8.1f} ms first pass (incl. compiling the loop body), "
+      f"{t_loop * 1e3:8.1f} ms afterwards")
+print(f"  speed-up of the vmapped version over the loop, both compiled: {t_loop / best:.1f}x")
 print(f"  (sanity: mean S = {float(jnp.mean(r_v)):.4f} vmapped vs {float(jnp.mean(r_l)):.4f} looped, "
       f"expected {2 * np.sqrt(2):.4f})")
 
 # %% [markdown]
-# The compiled, vectorised version pays a one-off compilation cost of a second or two (the exact figure depends on the machine) and
-# then
-# runs the whole ensemble of $8\cdot10^5$ simulated experimental runs in tens of milliseconds — more than an order of magnitude
-# faster than the Python loop, even though each iteration of the loop calls exactly the same jitted function. (The loop pays a
-# dispatch and a small kernel launch per experiment; the vmapped version pays one of each for all 200.) The lesson is general and
-# has nothing to do with quantum mechanics: **the unit of work handed to XLA
-# should be as large as memory allows**. Both versions agree on the physics, as they must — they differ only in how the loop over
-# experiments is expressed.
+# The compiled, vectorised version pays a one-off compilation of about a second and then runs the whole ensemble of
+# $8\cdot10^5$ simulated experimental runs in a few tens of milliseconds ($27$–$34$ ms in our builds; single timings fluctuate with
+# the machine load). Once its body is compiled as well, the Python loop is only modestly slower, by a factor of about $1.5$ ($1.5$–$1.6$ in our builds): each of its
+# $200$ iterations calls the same jitted function, and the loop spends $0.2$–$0.3$ ms per call ($39$–$54$ ms for $200$ calls). The
+# *first* pass of the loop is much slower ($0.6$–$0.8$ s in our builds) because it includes compiling that function; a benchmark without the warm-up
+# call attributes this compilation to the loop and reports a spurious speed-up of an order of magnitude. The relative gain of `vmap`
+# is set by the ratio of the dispatch overhead to the work done per call. Here every call already simulates $4000$ shots, so the
+# overhead is a minor part; a loop over single shots would pay it $4000$ times per experiment, and in that regime handing XLA one
+# large unit of work is what makes the computation feasible. Both versions agree on the physics, as they must — they differ only in
+# how the loop over experiments is expressed.
 
 # %% [markdown]
 # ## 15. Key takeaways
@@ -1427,7 +1488,7 @@ print(f"  (sanity: mean S = {float(jnp.mean(r_v)):.4f} vmapped vs {float(jnp.mea
 # * A Bell state is **locally random and globally correlated**: every one-qubit marginal is exactly $\mathbb 1/2$ (purity $1/2$,
 #   entropy 1 bit, zero Bloch vector), while the correlation matrix has entries of modulus 1. No local statistics change when the
 #   distant party acts, which is why entanglement cannot signal.
-# * **The CHSH bound $\vert S\vert\le2$ needs only four assumptions**: outcomes are $\pm1$; they are predetermined by a shared
+# * **The CHSH bound $\vert S\vert\le2$ for $\pm1$ outcomes rests on three assumptions**: the outcomes are predetermined by a shared
 #   variable $\lambda$ (realism); they do not depend on the distant setting (locality); and $\lambda$ is distributed the same way
 #   whatever settings are chosen (measurement independence). The proof is the observation that
 #   $A(B+B')+A'(B-B')=\pm2$ for every hidden variable, and the 16 deterministic strategies confirm it by enumeration.
@@ -1439,10 +1500,11 @@ print(f"  (sanity: mean S = {float(jnp.mean(r_v)):.4f} vmapped vs {float(jnp.mea
 # * **Statistics are cheap, loopholes are expensive.** Each correlator is a $\pm1$ average with standard error
 #   $\sqrt{(1-E^2)/n}$, so $\mathrm{SE}(\hat S)=\sqrt{2/n}$ at the optimum and about **73 runs per setting** already make the
 #   *expected* violation $5\sigma$ — though, as the Monte Carlo shows, only about half of such experiments actually reach $5\sigma$.
-#   Detector efficiency below $2(\sqrt2-1)\approx0.83$, on the other hand, destroys the conclusion entirely.
+#   For a maximally entangled pair, a detection efficiency below $2(\sqrt2-1)\approx0.83$ removes the conclusion entirely.
 # * **Entanglement $\neq$ nonlocality.** Werner states are entangled for $v>1/3$ but violate CHSH only for $v>1/\sqrt2$; in between
-#   they admit explicit local models. Under dephasing the critical noise level even depends on whether you re-optimise the
-#   measurement angles — the violation is a property of the *protocol*, not only of the state.
+#   no CHSH experiment detects them, for $v\le1/2$ Werner's explicit local model reproduces every projective measurement, and the
+#   true locality threshold lies between $0.6875$ and $0.6961$. Under dephasing the critical noise level even depends on whether
+#   the measurement angles are re-optimised — the violation is a property of the *protocol* as well as of the state.
 # * **Implementation**: measuring a rotated observable is `apply_gate(psi, ry(-theta), [q])` followed by an ordinary $Z$-basis
 #   sample; `vmap` batches settings, shots and whole experiments; `jnp.where` handles detector losses without branching; and every
 #   claim was checked against an independent route (dense operator, analytic formula, or a second sampler).
@@ -1450,19 +1512,22 @@ print(f"  (sanity: mean S = {float(jnp.mean(r_v)):.4f} vmapped vs {float(jnp.mea
 # ## 16. Exercises
 #
 # 1. ★ **The singlet.** Repeat Section 6 for $\vert\Psi^-\rangle$: compute $T$, show $E(\theta_a,\theta_b)=-\cos(\theta_a-\theta_b)$
-#    in the $x$–$z$ plane, and find settings that give $S=-2\sqrt2$. Why can the singlet use *any* plane, while $\vert\Phi^+\rangle$
-#    cannot? (Hint: look at the signs in $T$.)
+#    in the $x$–$z$ plane, and find settings that give $S=-2\sqrt2$. Show that for the singlet the formula $E=-\hat a\cdot\hat b$
+#    holds in *every* plane, while for $\vert\Phi^+\rangle$ the correlator in a plane containing $y$ is no longer a function of
+#    $\theta_a-\theta_b$ alone. (Hint: look at the signs in $T$.)
 # 2. ★ **Error-bar planning.** Using Eq. (10), how many runs per setting are needed for a $10\sigma$ violation with a perfect source?
 #    And with a Werner source of visibility $v$, whose four correlators are $E_i=\pm v/\sqrt2$? Derive the generalisation
-#    $n=k^2(4-2v^2)/(2\sqrt2\,v-2)^2$ of Eq. (10) and evaluate it at $v=0.9$. To check it by sampling you need a sampler for mixed
+#    $n=k^2(4-2v^2)/(2\sqrt2\,v-2)^2$ of Eq. (10) and evaluate it at $v=0.9$ for $k=5$. To check it by sampling you need a sampler for mixed
 #    states: either write `chsh_sampled_dm` (Exercise 5) — `chsh_sampled` takes a *pure* state tensor and will silently produce
 #    nonsense if handed a density tensor — or exploit the structure of the mixture and, in each run, draw from
 #    $\vert\Phi^+\rangle$ with probability $v$ and output a uniformly random $\pm1$ pair otherwise.
 # 3. ★★ **The CHSH polytope (extend the code).** Add the other seven CHSH inequalities (the ones obtained by moving the minus sign to
-#    another term and by flipping the overall sign) and verify that they bound exactly the convex hull of the correlator vectors
-#    $(E_{ab},E_{ab'},E_{a'b},E_{a'b'})$ produced by the 16 deterministic strategies of Section 5. How many *distinct* vertices are
-#    there — the answer is not 16, because flipping all four of $A,A',B,B'$ leaves every product unchanged. How many of the eight
-#    inequalities does $\vert\Phi^+\rangle$ violate at the settings of Section 8?
+#    another term and by flipping the overall sign). Compute the convex hull of the correlator vectors
+#    $(E_{ab},E_{ab'},E_{a'b},E_{a'b'})$ produced by the 16 deterministic strategies of Section 5 (e.g. with
+#    `scipy.spatial.ConvexHull`). How many *distinct* vertices are there? (Flipping all four of $A,A',B,B'$ leaves every product
+#    unchanged.) Which facets bound the hull besides the eight CHSH inequalities? Find a point that satisfies all eight CHSH
+#    inequalities but lies outside the hull, and explain why no quantum correlator vector can be such a point. How many of the
+#    eight CHSH inequalities does $\vert\Phi^+\rangle$ violate at the settings of Section 8?
 # 4. ★★ **Non-maximally entangled states (physics).** For $\vert\psi(\alpha)\rangle=\cos\alpha\vert00\rangle+\sin\alpha\vert11\rangle$
 #    compute $T$, use Eq. (6) to get $S_{\max}(\alpha)$, and plot it together with the entanglement entropy. Confirm that the maximum
 #    violation requires maximal entanglement. Then redo the detection-loophole analysis of Section 13 for these states. Careful:
@@ -1477,7 +1542,10 @@ print(f"  (sanity: mean S = {float(jnp.mean(r_v)):.4f} vmapped vs {float(jnp.mea
 #    correlators, and show that the statistical error falls as $1/\sqrt{M}$ while the memory stays $O(2^N)$ instead of $O(4^N)$.
 # 7. ★★★ **Optimising the angles with `jax.grad`.** Instead of the SVD formula, maximise $S$ over the four angles directly with
 #    gradient ascent (the engine's `adam_update`, `vmap` over random initial angles). Do you always find $2\sqrt{t_1^2+t_2^2}$?
-#    Plot the landscape $S(\theta_b,\theta_{b'})$ at fixed Alice settings and explain the local maxima you see.
+#    Try the dephased and the amplitude-damped pairs of Section 12 with all angles in the $x$–$z$ plane, and explain the result
+#    with the singular vectors of $T$. For $\vert\Phi^+\rangle$, plot the landscape $S(\theta_b,\theta_{b'})$ at fixed Alice
+#    settings, show that it is a sum of two sinusoids, and check whether gradient ascent over all four angles from random starts
+#    ever ends at a local maximum below $2\sqrt2$.
 # 8. ★★★ **A local model for the Werner state (physics).** Werner's model is rotationally covariant, so state it for the *singlet*
 #    family $\rho_W^-(v)=v\vert\Psi^-\rangle\langle\Psi^-\vert+(1-v)\mathbb 1_4/4$, whose correlator is
 #    $E(\hat a,\hat b)=-v\,\hat a\cdot\hat b$ for **any** two directions in three dimensions (use `werner_state(v, "psi-")`).
@@ -1516,5 +1584,8 @@ print(f"  (sanity: mean S = {float(jnp.mean(r_v)):.4f} vmapped vs {float(jnp.mea
 #   photonic loophole-free experiments of the same year.
 # * N. Brunner, D. Cavalcanti, S. Pironio, V. Scarani and S. Wehner, *Bell nonlocality*, Rev. Mod. Phys. **86**, 419 (2014) —
 #   the modern review, including device-independent applications.
+# * S. Designolle, G. Iommazzo, M. Besançon, S. Knebel, P. Gelß and S. Pokutta, *Improved local models and new Bell inequalities via
+#   Frank-Wolfe algorithms*, Phys. Rev. Research **5**, 043059 (2023) — the bounds $0.6875\le v_c\le0.6961$ on the locality threshold
+#   of two-qubit Werner states under projective measurements.
 # * M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information* (Cambridge University Press, 2000), Ch. 2.6 —
 #   textbook treatment of the EPR argument and the CHSH inequality.

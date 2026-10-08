@@ -18,7 +18,7 @@ spin chains.
 ## Notebooks in this chapter
 
 ::: {.nb-item}
-[Quantum Fisher information — how precisely can a quantum state measure a parameter?](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb)
+[Quantum Fisher information — how fast a quantum state changes under a small parameter shift](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb)
 
 A from-scratch course on parameter estimation and its quantum limit: estimators, the classical Fisher information and the Cramér–Rao bound derived by Cauchy–Schwarz, the quantum Fisher information as the best measurement's Fisher information, the pure-state formula 4 Var(G), the standard quantum limit versus the Heisenberg limit with proofs, a zoo of many-body states, the 3x3 collective QFI matrix and its optimal direction, QFI as an entanglement witness, and QFI under noise and particle loss.
 :::
@@ -26,7 +26,7 @@ A from-scratch course on parameter estimation and its quantum limit: estimators,
 ::: {.nb-item}
 [QFI from the symmetric logarithmic derivative — prepare, encode, estimate](../ch10_quantum_metrology_protocols/30_qfi_from_the_sld_prepare_encode_estimate.ipynb)
 
-The complete metrology pipeline for mixed states: encode a parameter unitarily on a density tensor, get the derivative three ways (commutator, finite differences, jax.jacfwd), solve the Lyapunov equation for the symmetric logarithmic derivative, evaluate the quantum Fisher information and cross-check it against 4 Var(G), the engine, and the Bures fidelity susceptibility, build the optimal measurement from the eigenbasis of the SLD and verify by simulated maximum-likelihood experiments that it, and only it, saturates the quantum Cramér–Rao bound.
+The complete metrology pipeline for mixed states: encode a parameter unitarily on a density tensor, get the derivative three ways (commutator, finite differences, jax.jacfwd), solve the Lyapunov equation for the symmetric logarithmic derivative, evaluate the quantum Fisher information and cross-check it against 4 Var(G), the engine, and the Bures fidelity susceptibility, build the optimal measurement from the eigenbasis of the SLD and verify by simulated maximum-likelihood experiments that it saturates the quantum Cramér–Rao bound while a convenient fixed readout does not, with the finite-sample bias of the estimator predicted and measured.
 :::
 
 ::: {.nb-item}
@@ -66,20 +66,20 @@ How the quantum Fisher information of a collective generator is estimated from o
 :::
 
 ::: {.nb-item}
-[Particle loss, magic and encoded probes — what survives when qubits go missing?](../ch10_quantum_metrology_protocols/37_qfi_particle_loss_and_magic.ipynb)
+[Particle loss, magic and encoded probes — the quantum Fisher information of the survivors](../ch10_quantum_metrology_protocols/37_qfi_particle_loss_and_magic.ipynb)
 
-How much metrological usefulness survives the loss of k particles: the quantum Fisher information of a reduced state derived and computed three ways, exact loss laws for product, GHZ, W and Dicke probes, the loss budget of squeezed and random probes, the stabilizer Rényi entropy of every probe family, and phase-imprinted GHZ states protected by a Clifford erasure code — an all-or-nothing loss threshold, its trade-off against sensitivity to a local generator, and what magic changes about it.
+How much metrological usefulness survives the loss of k particles: the quantum Fisher information of a reduced state derived and computed three ways, exact loss laws for product, GHZ, W and Dicke probes, the loss budget of squeezed and random probes, the stabilizer Rényi entropy of every probe family, and phase-imprinted GHZ states protected by a Clifford erasure code — an all-or-nothing loss threshold explained by logical operators, its dependence on which qubits are lost, its trade-off against sensitivity to a local generator, and what magic changes about it.
 :::
 
 ::: {.nb-item}
 [Scramblers and the locking of metrological information — analog, digital, and the Haar limit](../ch10_quantum_metrology_protocols/38_scramblers_and_qfi.ipynb)
 
-How fast a scrambler hides the phase written on a metrological probe, and where the information goes: the locking curve of the quantum Fisher information of a subsystem, a chaotic spin chain as an analog scrambler and brick-wall circuits of Haar, Clifford and H-T-CNOT layers as digital ones, the Haar-random reference curve and its half-system threshold, the volume law as the mechanism, and the measured fact that entanglement saturates well before the metrological information is locked.
+How a scrambler redistributes the phase information of a metrological probe: the locking curve of the quantum Fisher information of a subsystem, derived for Haar-random states (exponential suppression below half the register, the Marchenko-Pastur value 0.198 at the threshold, the standard-quantum-limit share above it) and contrasted with the Hayden-Preskill step of the rotated generator; a chaotic spin chain as an analog scrambler and brick-wall circuits of Haar, Clifford and T-doped Clifford layers as digital ones; the Clifford average equal to Haar with integer-valued realisations; and the volume law as the mechanism, F_k = k ln2 (k - S_k), block by block.
 :::
 
 ::: {.nb-item}
 [The spreading of metrological usefulness — quantum Fisher information in quenched spin chains](../ch10_quantum_metrology_protocols/39_qfi_spreading_in_spin_chains.ipynb)
 
-How useful entanglement is built and transported by a spin chain: the exact identity between the quantum Fisher information and the connected correlations, the QFI density and the certified entanglement depth after global quenches of the transverse-field Ising and XXZ chains, uniform against staggered generators, and the light cone of the block-resolved and two-site QFI after a local encoding — with a one-magnon closed form as the analytic anchor, a measured front velocity and its threshold bias, and an animation of the metrological resource travelling down the chain.
+How useful entanglement is built and transported by a spin chain: the exact identity between the quantum Fisher information and the connected correlations, the QFI density and the certified entanglement depth after global quenches of the transverse-field Ising and XXZ chains, uniform against staggered generators, and the light cone of the block-resolved and two-site QFI after a local encoding — with a one-magnon closed form as the analytic anchor, a measured front velocity and its derived threshold dependence, a magnon trapped at the chain end, and a bound magnon pair carrying the resource at the speed 2/Δ, animated.
 :::
 

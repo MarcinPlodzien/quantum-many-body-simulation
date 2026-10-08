@@ -9,17 +9,18 @@
 # ideas fail:
 #
 # * **Send the qubit.** Often impossible — the qubit may be an atom in a trap, or the channel may destroy photon polarisation.
-# * **Measure it and send the result.** A single measurement of a qubit yields one bit, not the two real numbers that specify
-#   $\vert\psi\rangle$, and it destroys the state. Section 8 shows this strategy caps out at an average fidelity of $2/3$.
-# * **Copy it first, then experiment on the copies.** Forbidden: the **no-cloning theorem** (Section 3).
+# * **Measure it and send the result.** A single measurement of a qubit yields one bit, whereas $\vert\psi\rangle$ is specified by
+#   two real numbers, and the measurement destroys the state. Section 8 shows that this strategy reaches an average fidelity of at
+#   most $2/3$.
+# * **Copy it first, then experiment on the copies.** This is forbidden by the **no-cloning theorem** (Section 3).
 #
 # In 1993 Bennett, Brassard, Crépeau, Jozsa, Peres and Wootters found the way out. If the two parties share one entangled pair
 # beforehand, then Alice can perform a joint measurement on her unknown qubit *and* her half of the pair, send the two classical bits
-# she obtains, and Bob can recover the state exactly by applying one of four fixed single-qubit gates. Nothing physical travels except
-# two classical bits; the state itself is destroyed at Alice's end (as no-cloning demands) and reappears at Bob's. The protocol was
+# she obtains, and Bob can recover the state exactly by applying one of four fixed single-qubit gates. The only thing sent from Alice
+# to Bob is two classical bits; the state itself is destroyed at Alice's end (as no-cloning demands) and reappears at Bob's. The protocol was
 # demonstrated with photons in 1997 and has since been run over 1400 km, from the ground to a satellite.
 #
-# Teleportation is not a curiosity. It is the primitive behind **quantum repeaters** (long-distance entanglement distribution),
+# Teleportation is the primitive behind **quantum repeaters** (long-distance entanglement distribution),
 # **measurement-based quantum computing** (where every gate is a teleportation), **fault-tolerant gate implementations** (magic-state
 # injection), and it is the operational meaning of "we have distributed entanglement of quality $F$": the fidelity a noisy pair
 # supports, Eq. (13) below, is a standard figure of merit for quantum-network hardware.
@@ -36,7 +37,7 @@
 #    Bob's state before the correction is exactly $\mathbb 1/2$. Without the classical bits the fidelity is exactly $1/2$
 #    (Section 7).
 # 5. **The classical benchmark $2/3$**, derived from the Haar-averaging identity $\int d\psi\,(\vert\psi\rangle\langle\psi\vert)^{\otimes2}
-#    =P_{\rm sym}/3$ — the same identity that gives the noisy-teleportation formula (Sections 8–9).
+#    =P_{\rm sym}/3$ (Section 8); the same identity gives the noisy-teleportation formula in Section 10.
 # 6. **Noisy resources.** A Werner/depolarised Bell pair gives average fidelity $\bar F=(2F_{\rm res}+1)/3$; we verify this on the
 #    density tensor *and* with quantum trajectories, and find that the protocol beats the classical $2/3$ exactly when the resource
 #    is entangled (Sections 10–12).
@@ -47,7 +48,8 @@
 #
 # *Physics*
 # * the no-cloning theorem and why linearity alone forbids copying;
-# * the Bell-basis identity that makes teleportation work, and why exactly 2 classical bits are needed;
+# * the Bell-basis identity that makes teleportation work, and the role of the two classical bits (with only one of them the
+#   fidelity drops to the classical $2/3$);
 # * no-signalling as a concrete computation: a maximally mixed conditional state;
 # * the classical measure-and-prepare limit $2/3$ and the entanglement threshold it implies for a noisy resource.
 #
@@ -143,8 +145,8 @@ TEST_INPUTS = {"|0>": (0.0, 0.0), "|1>": (np.pi, 0.0), "|+>": (np.pi / 2, 0.0),
 # $$\vert\psi\rangle\vert\psi\rangle=\alpha^2\vert00\rangle+\alpha\beta\vert01\rangle+\beta\alpha\vert10\rangle+\beta^2\vert11\rangle .$$
 #
 # Comparing coefficients term by term gives $\alpha^2=\alpha$, $\beta^2=\beta$ and $\alpha\beta=0$, so $\{\alpha,\beta\}=\{1,0\}$:
-# the two sides agree only for the basis states themselves. **Linearity, and nothing else, is the obstruction** — the argument never
-# used unitarity, so it rules out any linear machine, not just a unitary one.
+# the two sides agree only for the basis states themselves. **The obstruction is linearity**: the argument never used unitarity,
+# so it rules out every linear machine, unitary or not.
 #
 # ### 3.3 Proof 2: inner products
 #
@@ -167,7 +169,7 @@ TEST_INPUTS = {"|0>": (0.0, 0.0), "|1>": (np.pi, 0.0), "|+>": (np.pi / 2, 0.0),
 #
 # The natural candidate for a copier is CNOT: it maps $\vert0\rangle\vert0\rangle\to\vert00\rangle$ and
 # $\vert1\rangle\vert0\rangle\to\vert11\rangle$, so it *does* copy classical bits. On a superposition it produces, as the proof says,
-# $\alpha\vert00\rangle+\beta\vert11\rangle$ — an **entangled** state, not two copies. With $\alpha=\cos\frac\theta2$,
+# $\alpha\vert00\rangle+\beta\vert11\rangle$, an **entangled** state that differs from $\vert\psi\rangle\vert\psi\rangle$. With $\alpha=\cos\frac\theta2$,
 # $\beta=\sin\frac\theta2$ the overlap with the desired $\vert\psi\rangle\vert\psi\rangle$ is
 # $\alpha^3+\beta^3$, so the joint fidelity is
 #
@@ -333,7 +335,7 @@ plt.show()
 #
 # **Three observations, and they are the whole protocol.**
 #
-# 1. Equation (3) is an *identity*, true before anything happens. Nothing has moved yet.
+# 1. Equation (3) is an *identity* that holds before anything happens; nothing has moved yet.
 # 2. Every term has the same prefactor $1/2$, so **each Bell outcome has probability $\vert1/2\vert^2=1/4$, independently of
 #    $\alpha$ and $\beta$**. Alice's measurement record contains *no information* about $\vert\psi\rangle$ — which is exactly why it
 #    can be broadcast publicly, and why no signal is sent (Section 7).
@@ -341,8 +343,9 @@ plt.show()
 #    applying first $X^{m_2}$ and then $Z^{m_1}$ undoes it:
 #    $Z^{m_1}X^{m_2}\,X^{m_2}Z^{m_1}\vert\psi\rangle=\vert\psi\rangle$. Two classical bits select one of four fixed gates.
 #    The opposite order costs only a sign, $X^{m_2}Z^{m_1}=(-1)^{m_1m_2}Z^{m_1}X^{m_2}$; in *this* protocol that sign is a global
-#    phase of Bob's state in a branch that has already been singled out by the measurement, so it is unobservable. It stops being
-#    unobservable in the coherent version of Section 13, where the four branches are still superposed — so we keep the order fixed.
+#    phase of Bob's state in a branch that has already been singled out by the measurement, so it is unobservable. In the coherent
+#    version of Section 13 the four branches are still superposed and the sign becomes a relative phase on Alice's qubits, so we
+#    keep the order fixed.
 #
 # ### 4.3 The circuit
 #
@@ -379,10 +382,11 @@ plt.show()
 #
 # where $\Pi_0=\vert0\rangle\langle0\vert$, $\Pi_1=\vert1\rangle\langle1\vert$. Two implementation points matter:
 #
-# * the probability comes from the **one-qubit reduced density matrix** — one einsum, no $2^N$ scan;
+# * the probability comes from the **one-qubit reduced density matrix** — one einsum over the state vector ($O(2^N)$ work), with no
+#   $2^N\times2^N$ projector and no $2^N$-long probability vector;
 # * the outcome is a *traced* random number, so we may not write `if m == 1: ...`. Instead `jnp.where(m == 0, P0, P1)` selects the
 #   projector and `jnp.where(m == 1, X, I2)` selects the correction. Both are ordinary array operations, so the whole protocol
-#   compiles into one XLA program and `vmap` gives us thousands of independent runs for free.
+#   compiles into one XLA program and `vmap` turns it into thousands of independent runs in a single compiled call.
 #
 # > **JAX practice.** This is the general pattern for *mid-circuit measurement and classical feed-forward*: replace control flow by
 # > data flow. A Python `if` would force the value of a traced array and raise `ConcretizationTypeError`; `jnp.where` evaluates both
@@ -470,9 +474,10 @@ print(f"          fidelity with the input |+> : {float(fid_state_dm(ket_plus, rd
 # precision. The state has moved from qubit 0 to qubit 2; and qubit 0 has been destroyed by the measurement, as no-cloning requires.
 
 # %% [markdown]
-# ## 6. Does it work for every input? Fidelity over many runs
+# ## 6. Fidelity over many runs and several input states
 #
-# One run proves nothing: the measurement is random, so we must check *all four* branches, for several inputs. We `vmap` the whole
+# A single run tests only one of the four measurement branches. The measurement is random, so we check *all four* branches, for
+# several inputs. We `vmap` the whole
 # protocol over PRNG keys — one key per run, exactly as one experiment per key — and collect the fidelity and the outcome.
 
 # %%
@@ -507,13 +512,17 @@ for i, (name, (th, ph)) in enumerate(TEST_INPUTS.items()):
     print(f"{name:28s} | {float(jnp.mean(F_c)):11.10f} +-{float(jnp.std(F_c)):7.1e} | "
           f"{float(jnp.mean(F_n)):19.6f} | " + " ".join(f"{c:5.3f}" for c in counts))
     assert float(jnp.min(F_c)) > 1 - 1e3 * TOL              # EVERY run must be perfect, not just the average
+    # wrong control: the same test applied to the protocol WITHOUT feed-forward must fail
+    assert float(jnp.min(F_n)) < 1 - 1e3 * TOL and abs(float(jnp.mean(F_n)) - 0.5) < 0.05
 
 print("\nCHECKPOINT  every single run reached fidelity 1 (to machine precision) for every input state.")
+print("            Control: without the corrections the same per-run test fails for every input (mean F close to 1/2).")
 
 # %% [markdown]
-# The fidelity with corrections is $1$ in **every single run** — not on average, exactly, in each of the four branches, for every
-# input including the complex-amplitude one. Without the corrections it collapses to $1/2$ for every input (Section 7 proves that
-# this number is exact and universal), and the four outcomes occur with frequencies compatible with $1/4$ each. The protocol works.
+# The fidelity with corrections is exactly $1$ in **every single run**, in each of the four branches, for every input including
+# the complex-amplitude one. Without the corrections it falls to $1/2$ for every input (Section 7 proves that this number is exact
+# and universal), and the per-run test then fails, which shows that the checkpoint can detect a missing feed-forward. The four
+# outcomes occur with frequencies compatible with $1/4$ each.
 
 # %% [markdown]
 # ## 7. No information, no signal: the outcome statistics
@@ -542,8 +551,8 @@ print("\nCHECKPOINT  every single run reached fidelity 1 (to machine precision) 
 # $$\sum_PP\rho P=\tfrac12\left(4\,\mathbb 1+0\right)=2\,\mathbb 1\quad\Longrightarrow\quad\rho_2=\frac{\mathbb 1}{2}. \tag{5}$$
 #
 # **Bob's qubit is maximally mixed until the classical bits arrive**, no matter what Alice did, and no matter whether she measured at
-# all. Nothing Alice can do changes any local observable of Bob's — no signalling, exactly as relativity requires. The two classical
-# bits are not a formality: they carry the *entire* usefulness of the protocol.
+# all. Nothing Alice can do changes any local observable of Bob's — no signalling, exactly as relativity requires. The entire
+# usefulness of the protocol is carried by the two classical bits.
 #
 # ### 7.3 Without corrections the fidelity is exactly 1/2
 #
@@ -554,8 +563,8 @@ print("\nCHECKPOINT  every single run reached fidelity 1 (to machine precision) 
 #   =\frac14\left(1+\langle X\rangle^2+\langle Y\rangle^2+\langle Z\rangle^2\right)=\frac14\left(1+\lVert\vec r\rVert^2\right)=\frac12 ,
 # \tag{6}$$
 #
-# because a pure qubit state has $\lVert\vec r\rVert=1$. It is exactly $1/2$ for *every* pure input — not an average over inputs, a
-# per-input identity — and $1/2$ is what you get by handing Bob a coin-flipped $\vert0\rangle$ or $\vert1\rangle$.
+# because a pure qubit state has $\lVert\vec r\rVert=1$. This is a per-input identity: the value is exactly $1/2$ for *every* pure
+# input, and it equals the fidelity of handing Bob a coin-flipped $\vert0\rangle$ or $\vert1\rangle$.
 
 # %%
 # ==============================================================================
@@ -566,11 +575,20 @@ print("Outcome frequencies over", N_SHOTS, "runs (expected 0.25 each), Bob's pre
 print(f"{'input':28s} {'p(00)':>7s} {'p(01)':>7s} {'p(10)':>7s} {'p(11)':>7s} "
       f"{'chi2/3':>8s} | {'max|p-1/4| exact':>17s} {'max|rho_2 - 1/2|':>17s} "
       f"{'F(no corr), exact':>18s} {'F(no corr), sampled':>20s}")
+CHI2_18_999 = 42.31          # 99.9 % quantile of the chi-squared distribution with 18 = 6 inputs x 3 degrees of freedom
+chi2_tot, chi2_bad_tot = 0.0, 0.0
 for i, (name, (th, ph)) in enumerate(TEST_INPUTS.items()):
     ket = qubit_state(th, ph)
     F_n, m1, m2 = teleport_batch(jax.random.PRNGKey(500 + i), ket, N_SHOTS, 0)
     counts = np.array([float(jnp.sum((m1 == a) & (m2 == b))) for a in (0, 1) for b in (0, 1)])
     chi2 = float(np.sum((counts - N_SHOTS / 4) ** 2 / (N_SHOTS / 4)))
+    chi2_tot += chi2
+    # wrong control: Alice forgets the Hadamard, so she measures in the wrong basis.  Sample N_SHOTS outcomes from the
+    # exact Born probabilities of that circuit and apply the SAME uniformity test -- it must fail.
+    p_noH = (np.abs(np.asarray(apply_gate(three_qubit_input(ket), CNOT, [0, 1]))).reshape(4, 2) ** 2).sum(axis=1)
+    draws = jax.random.choice(jax.random.PRNGKey(900 + i), 4, (N_SHOTS,), p=jnp.asarray(p_noH, dtype=RDTYPE))
+    counts_bad = np.bincount(np.asarray(draws), minlength=4)
+    chi2_bad_tot += float(np.sum((counts_bad - N_SHOTS / 4) ** 2 / (N_SHOTS / 4)))
     # Bob's state before any correction, computed EXACTLY (no sampling): trace out Alice's two qubits
     psi_pre = alice_bell_measurement_gates(three_qubit_input(ket))
     dev = max_abs(rdm(psi_pre, [2]) - I2 / 2)
@@ -587,13 +605,20 @@ print("\nCHECKPOINT  the four outcome probabilities are exactly 1/4 and Bob's re
 print("            is 1/2 * identity, for every input (no signalling); the exact no-correction fidelity is 1/2")
 print("            for every input, as Eq. (6) predicts.")
 print(f"            (chi2/3 ~ 1 means the four sampled frequencies are compatible with 1/4 at {N_SHOTS} runs.)")
+print(f"\nSTATISTICAL CHECKPOINT  total chi2 over the six inputs (18 degrees of freedom) = {chi2_tot:.1f}"
+      f"   (99.9 % quantile {CHI2_18_999})")
+print(f"            wrong control, Hadamard omitted (Alice measures in the wrong basis): total chi2 = {chi2_bad_tot:.0f}")
+assert chi2_tot < CHI2_18_999 < chi2_bad_tot
 
 # %% [markdown]
 # Every entry confirms the algebra. Bob's pre-correction state is $\mathbb 1/2$ to machine precision for all six inputs, including
 # the ones with complex amplitudes — so no measurement Bob can perform, on any number of copies, reveals anything before he receives
 # the bits. The exact no-correction fidelity is $0.5$ for every input, and the sampled value fluctuates around it with the expected
-# shot noise. The reduced chi-squared statistic of the outcome frequencies hovers around 1, which is what a uniform distribution
-# produces.
+# shot noise. The reduced chi-squared statistic of the outcome frequencies scatters around 1 (its largest value, about $2.4$ with
+# three degrees of freedom, has a tail probability of about $7\%$), and the total over the six inputs lies well below the $99.9\%$
+# quantile of the chi-squared distribution with 18 degrees of freedom. The same test applied to a circuit in which Alice forgets
+# the Hadamard rejects uniformity by a wide margin: for inputs near the poles her outcome then reveals $\vert\alpha\vert^2$ and
+# $\vert\beta\vert^2$, which is exactly the information leak that Section 7.1 excludes for the correct circuit.
 #
 # > **Physics insight.** People sometimes say the state "travels instantaneously" and the classical bits are a bookkeeping detail.
 # > Equation (5) says the opposite: *before* the bits arrive Bob holds literally the maximally mixed state, which is the state of
@@ -763,10 +788,24 @@ strategies = {"measure Z, prepare |0>/|1>": measure_prepare_z,
               "ignore input, send 1/2": prepare_mixed,
               "identity channel (not allowed)": lambda r: r}
 print(f"\n{'classical strategy':32s} {'F_avg (2-design, exact)':>24s} {'F_avg (Haar MC)':>18s}")
+zmax = 0.0
 for name, ch in strategies.items():
     f_exact = avg_fidelity_channel(ch)
     f_mc, se = avg_fidelity_channel_haar(jax.random.PRNGKey(11), ch, 20000)
     print(f"{name:32s} {f_exact:24.6f} {f_mc:12.4f} +-{se:5.4f}")
+    # Eq. (9) checked statistically: Monte Carlo within 4 standard errors of the design value.  A zero spread means the
+    # fidelity is the same for every input; then the two numbers must agree to round-off.
+    zmax = max(zmax, abs(f_mc - f_exact) / se if se > 1e-9 else abs(f_mc - f_exact) / 1e-9)
+assert zmax < 4.0
+
+# wrong control: the four eigenstates of X and Z form a 1-design but NOT a 2-design (the Y axis is missing)
+FOUR_STATES = [product_state(c) for c in "01+-"]
+f_four = float(jnp.mean(jnp.stack([fid_state_dm(v, measure_prepare_z(jnp.outer(v, jnp.conj(v)))) for v in FOUR_STATES])))
+f_mc_z, se_z = avg_fidelity_channel_haar(jax.random.PRNGKey(11), measure_prepare_z, 20000)
+print(f"\nSTATISTICAL CHECKPOINT  largest |F(Haar MC) - F(6-state design)| / SE over the strategies = {zmax:.2f}")
+print(f"            wrong control: 4 states (X and Z eigenstates only) give F = {f_four:.6f} for 'measure Z', "
+      f"{abs(f_four - f_mc_z) / se_z:.0f} SE away from the Haar estimate")
+assert abs(f_four - f_mc_z) / se_z > 10.0
 # every rank-one POVM that prepares what it measured hits 2/3 exactly -- projective or not
 for ch in (measure_prepare_z, measure_prepare_axis([1.0, 1.0, 1.0]), measure_prepare_axis([1.0, 0.0, 0.0]),
            sic_measure_prepare()):
@@ -778,12 +817,18 @@ assert avg_fidelity_channel(measure_z_prepare_flipped) < 2 / 3 - 0.3    # a bad 
 # Haar integral — while $40\,000$ Monte-Carlo samples only get within $\sim10^{-3}$, illustrating the $1/\sqrt n$ price of random
 # sampling. Three projective axes and the four-outcome SIC-POVM all achieve exactly $2/3$: as Eq. (10) predicts, any rank-one POVM
 # saturates the bound as long as it prepares the state it measured, and the axis is irrelevant because the input is isotropic. The
+# Haar Monte-Carlo column agrees with the six-state value within a few standard errors for every strategy, whereas four states that
+# omit the $Y$ axis (a 1-design but not a 2-design) give $0.75$ for "measure $Z$" and are rejected by tens of standard errors. The
 # preparation rule is what matters — the same $Z$ measurement followed by the opposite eigenstate scores $1/3$. Throwing the input
 # away and sending the maximally mixed state gives $1/2$. The identity channel gives 1, but it is not a measure-and-prepare strategy:
 # realising it means physically sending the qubit, which is exactly what the classical channel cannot do. The two numbers $1/2$ and
 # $2/3$ are the benchmarks against which the next sections measure teleportation.
 #
-# The $2/3$ is an *average*: Section 10 shows, state by state, that no classical strategy is uniformly good.
+# The Monte-Carlo standard error of the SIC-POVM row is zero: its fidelity is the same for every input. Indeed, with the four
+# tetrahedral directions $\sum_k\vec n_k\vec n_k^{\,T}=\tfrac43\mathbb 1$, so the SIC strategy shrinks every Bloch vector to
+# $\vec r/3$ and gives $(1+\tfrac13)/2=2/3$ for every pure input. The "measure $Z$" strategy reaches the same average unevenly, with
+# fidelity 1 at the poles and $1/2$ on the equator. No classical strategy can exceed $2/3$ for *every* input, because its smallest
+# fidelity cannot exceed its average. Section 10 compares these strategies with teleportation input by input.
 
 
 # %% [markdown]
@@ -802,7 +847,7 @@ assert avg_fidelity_channel(measure_z_prepare_flipped) < 2 / 3 - 0.3    # a bad 
 # projectors, `rdm_dm` for the partial trace. The sum over the four outcomes is a Python loop over *static* indices, which is
 # perfectly fine under `jit` — only data-dependent branching is forbidden.
 #
-# With a perfect resource, $\Lambda$ is the identity channel; with a noisy one it is not, and Section 11 computes what it is.
+# With a perfect resource, $\Lambda$ is the identity channel; with a noisy one it is not, and Section 10 computes what it is.
 
 # %%
 # ==============================================================================
@@ -862,8 +907,9 @@ print(f"\n   F_avg of the ideal teleportation channel (2-design) = "
 #
 # where $F=\langle\Phi^+\vert\rho_{\rm res}\vert\Phi^+\rangle$ is the overlap of the resource with the Bell state the protocol was
 # designed for. In the literature the quantity $\max_\Phi\langle\Phi\vert\rho\vert\Phi\rangle$ over all maximally entangled
-# $\vert\Phi\rangle$ is called the **singlet fraction** or *fully entangled fraction*; for the resources used below the maximum is
-# attained at $\vert\Phi^+\rangle$, so the two agree and we call $F$ the singlet fraction throughout. Every Bell state is a Pauli
+# $\vert\Phi\rangle$ is called the **singlet fraction** or *fully entangled fraction*. For the Werner, depolarised, dephased and
+# amplitude-damped resources used below the maximum is attained at $\vert\Phi^+\rangle$ (the table of Step 7 computes both), so
+# the two agree and we call $F$ the singlet fraction; the Haar-random resource of Step 7 is the exception. Every Bell state is a Pauli
 # operator applied to $\vert\Phi^+\rangle$ on one side, so running
 # the protocol with such a resource is the same as running the perfect protocol and then applying that Pauli to Bob's qubit. The
 # teleportation channel is therefore a **Pauli channel**:
@@ -881,6 +927,11 @@ print(f"\n   F_avg of the ideal teleportation channel (2-design) = "
 #
 # $$\bar F>\frac23\iff F>\frac12 . \tag{14}$$
 #
+# Equation (13) also quantifies the role of the classical bits. If Bob receives only $m_2$ and applies $X^{m_2}$, the residual
+# $Z^{m_1}$ is applied with probability $1/2$: the channel is $\tfrac12(\rho+Z\rho Z)$, a Pauli channel with $F=1/2$, so
+# $\bar F=2/3$. With one of the two bits the protocol is no better than the best classical strategy (the same holds if only $m_1$
+# arrives). Step 7 checks this number.
+#
 # ### 10.2 The Werner family, and the link to entanglement
 #
 # For the Werner resource of the [CHSH notebook](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb),
@@ -891,9 +942,11 @@ print(f"\n   F_avg of the ideal teleportation channel (2-design) = "
 #
 # and $\bar F>2/3$ requires $v>1/3$ — **exactly the value at which the Werner state becomes entangled** (its negativity turns
 # positive). Teleportation is therefore a sharper entanglement witness than CHSH: recall that CHSH needed $v>1/\sqrt2\approx0.707$,
-# so the entire band $1/3<v\le1/\sqrt2$ of "entangled but local" states is *useless for a Bell test but useful for teleportation*.
-# (For general two-qubit resources the correct statement, due to the Horodecki family, is that $\bar F=(2f+1)/3$ with $f$ the
-# *maximal* singlet fraction reachable by local operations; our Bell-diagonal resources already achieve it.)
+# so the entire band $1/3<v\le1/\sqrt2$ of entangled states that do not violate CHSH (Section 11 of the CHSH notebook) is
+# *useful for teleportation*.
+# (For general two-qubit resources the correct statement, due to the Horodecki family, is that the best average fidelity is
+# $(2f_{\max}+1)/3$, with $f_{\max}$ the largest singlet fraction reachable from the resource by trace-preserving local operations
+# and classical communication.)
 #
 # ### 10.3 Two ways to compute it
 #
@@ -926,7 +979,8 @@ def singlet_fraction(rho_res):
     return float(jnp.real(jnp.vdot(b, dm_matrix(rho_res) @ b)))
 
 
-v_grid = np.linspace(0.0, 1.0, 26)
+v_grid = np.union1d(np.linspace(0.0, 1.0, 26), [1 / 3])      # 26 equidistant points plus the threshold v = 1/3
+V_PRINT = np.linspace(0.0, 1.0, 6)                              # rows shown in the table
 rows_w = []
 for v in v_grid:
     res = werner_resource(float(v))
@@ -936,7 +990,9 @@ for v in v_grid:
     rows_w.append((v, F_res, F_avg, (2 * F_res + 1) / 3, neg))
 
 print(f"{'v':>6s} {'F_res':>9s} {'F_avg measured':>15s} {'(2F+1)/3':>10s} {'(1+v)/2':>9s} {'negativity':>11s}")
-for v, F_res, F_avg, pred, neg in rows_w[::5]:
+for v, F_res, F_avg, pred, neg in rows_w:
+    if np.min(np.abs(V_PRINT - v)) > 1e-9:
+        continue
     print(f"{v:6.3f} {F_res:9.6f} {F_avg:15.6f} {pred:10.6f} {(1 + v) / 2:9.6f} {neg:11.6f}")
 err_pred = max(abs(F_avg - pred) for _, _, F_avg, pred, _ in rows_w)
 print(f"\nCHECKPOINT  max|F_avg - (2F_res+1)/3| over the Werner family = {err_pred:.2e}")
@@ -945,9 +1001,32 @@ assert err_pred < 1e3 * TOL
 # other Bell-diagonal and non-Bell-diagonal resources
 _hdr2 = "shared resource"
 print(f"\n{_hdr2:42s} {'F_res':>9s} {'F_avg':>9s} {'(2F+1)/3':>10s} {'Bell-diagonal?':>15s} {'F_e(channel)':>14s}"
-      f" {'negativity':>11s}")
+      f" {'negativity':>11s} {'f (max)':>9s}")
 BELL_BASIS = jnp.stack([bell_state(k).reshape(-1) for k in ("phi+", "phi-", "psi+", "psi-")])
 E_UNITS = [jnp.zeros((2, 2), dtype=CDTYPE).at[i, j].set(1.0) for i in (0, 1) for j in (0, 1)]
+
+
+def max_singlet_fraction(rho_res, key, starts=32, steps=400, lr=0.25):
+    """f = max over maximally entangled |Phi> of <Phi| rho_res |Phi>   (the fully entangled fraction).
+
+    MATH  every maximally entangled two-qubit state is (1 (x) U)|Phi+> with U in SU(2) up to a phase;
+          U = cos(a) 1 + i sin(a) (n . sigma),  n = (sin t cos p, sin t sin p, cos t).
+    JAX   gradient ascent in (a, t, p) from `starts` random points, vmapped; lax.fori_loop for the steps.
+    """
+    R = dm_matrix(rho_res)
+    b = bell_state("phi+").reshape(-1)
+
+    def overlap(x):
+        a, t, ph = x
+        n_sigma = jnp.cos(t) * Z + jnp.sin(t) * (jnp.cos(ph) * X + jnp.sin(ph) * Y)
+        U = jnp.cos(a) * I2 + 1j * jnp.sin(a) * n_sigma
+        w = jnp.kron(I2, U) @ b
+        return jnp.real(jnp.vdot(w, R @ w))
+
+    g = jax.grad(overlap)
+    ascend = lambda x0: lax.fori_loop(0, steps, lambda _, x: x + lr * g(x), x0)
+    xs = jax.vmap(ascend)(jax.random.uniform(key, (starts, 3), maxval=np.pi, dtype=RDTYPE))
+    return float(jnp.max(jax.vmap(overlap)(xs)))
 
 
 def entanglement_fidelity(channel):
@@ -975,12 +1054,21 @@ for label, res in RESOURCES:
     F_res = singlet_fraction(res)
     chan = lambda r, R=res: teleport_channel_dm(r, R)
     F_avg, F_e = avg_fidelity_channel(chan), entanglement_fidelity(chan)
+    f_max = max_singlet_fraction(res, jax.random.PRNGKey(5))
     print(f"{label:42s} {F_res:9.6f} {F_avg:9.6f} {(2 * F_res + 1) / 3:10.6f} "
           f"{('yes' if off < 1e-9 else f'no ({off:.3f})'):>15s} {F_e:14.6f} "
-          f"{float(negativity(res, [0])[0]):11.6f}")
+          f"{float(negativity(res, [0])[0]):11.6f} {f_max:9.6f}")
     assert abs(F_e - F_res) < 1e3 * TOL and abs(F_avg - (2 * F_e + 1) / 3) < 1e3 * TOL
+    assert f_max > F_res - 1e3 * TOL                         # the maximum can only be larger
 print("\nCHECKPOINT  for every resource -- Bell-diagonal or not -- the entanglement fidelity F_e of the")
 print("            teleportation channel equals the singlet fraction of the resource, and F_avg = (2 F_e + 1)/3.")
+
+# only ONE of the two classical bits reaches Bob: a residual Z^{m1} (or X^{m2}) with probability 1/2
+F_one_bit_Z = avg_fidelity_channel(lambda r: (r + Z @ r @ Z) / 2)
+F_one_bit_X = avg_fidelity_channel(lambda r: (r + X @ r @ X) / 2)
+print(f"\nOnly m2 received (residual Z^m1): F_avg = {F_one_bit_Z:.6f};  only m1 received (residual X^m2): "
+      f"F_avg = {F_one_bit_X:.6f}   (classical bound 2/3)")
+assert abs(F_one_bit_Z - 2 / 3) < 1e3 * TOL and abs(F_one_bit_X - 2 / 3) < 1e3 * TOL
 
 # %% [markdown]
 # Across the whole Werner family the measured average fidelity equals $(2F_{\rm res}+1)/3$ to machine precision, and equals
@@ -991,7 +1079,7 @@ print("            teleportation channel equals the singlet fraction of the reso
 # Bell-basis matrix has off-diagonal entries of size $0.075$ — and neither does the Haar-random mixed state, whose largest
 # off-diagonal entry is $0.17$ and which has no symmetry whatever; yet for both the measured $\bar F$ equals
 # $(2F_{\rm res}+1)/3$ exactly. Two
-# separate facts are at work, and the last column of the table separates them.
+# separate facts are at work, and the `F_e(channel)` column separates them.
 #
 # The first holds for **any** channel $\Lambda$ on a qubit (Horodecki, Horodecki and Horodecki 1999; Nielsen 2002):
 #
@@ -1003,7 +1091,7 @@ print("            teleportation channel equals the singlet fraction of the reso
 # because $F_e$ is then the weight of the identity Kraus operator.
 #
 # The second is a property of the standard protocol: the entanglement fidelity of the channel it induces **equals the singlet
-# fraction of the resource, for an arbitrary two-qubit resource state**, not only a Bell-diagonal one. That is what the equality of
+# fraction of the resource, for an arbitrary two-qubit resource state**, Bell-diagonal or not. That is what the equality of
 # the `F_res` and `F_e(channel)` columns asserts, and it is why the Haar-random resource obeys Eq. (13) as exactly as the Werner
 # family does. (The proof is short but index-heavy: write the resource as $\sum_\mu\vert v_\mu\rangle\langle v_\mu\vert$ with
 # $\vert v_\mu\rangle=\sum_{ab}\left[A_\mu\right]_{ab}\vert ab\rangle$; the Kraus operators of the teleportation channel turn out to
@@ -1011,13 +1099,20 @@ print("            teleportation channel equals the singlet fraction of the reso
 # contribute $\vert\mathrm{Tr}A_\mu\vert^2=2\,\vert\langle\Phi^+\vert v_\mu\rangle\vert^2$ to $F_e$.)
 #
 # What is *not* general is optimality. The Horodecki result is that the best average fidelity reachable from a resource $\rho$ by
-# local operations and classical communication is $(2f+1)/3$ with $f$ the maximal singlet fraction, maximised over local
-# operations. For a non-Bell-diagonal resource $f$ can exceed the raw $F_{\rm res}$ — for the random state above $F_{\rm res}=0.24$
-# while $f\approx0.43$ — so a pre-processing step would do better than the bare protocol implemented here. It would still not beat
-# $2/3$: that state is separable (its negativity is zero), and a separable resource can never reach $f>1/2$.
+# trace-preserving local operations and classical communication is $(2f_{\max}+1)/3$, with $f_{\max}$ the largest singlet fraction
+# that such operations can produce from $\rho$. The last column, `f (max)`, is the fully entangled fraction (the maximum of
+# $\langle\Phi\vert\rho\vert\Phi\rangle$ over all maximally entangled $\vert\Phi\rangle$, found by gradient ascent over
+# $\vert\Phi\rangle=(\mathbb 1\otimes U)\vert\Phi^+\rangle$); it is a lower bound on $f_{\max}$, since a local unitary is one
+# such operation. For the three noisy Bell pairs it equals $F_{\rm res}$, so the bare protocol uses them optimally among
+# unitary pre-processings. For the random state $F_{\rm res}=0.24$ while the fully entangled fraction is $0.43$: Bob rotating his
+# qubit before the protocol would raise $\bar F$ from $0.49$ to $(2\cdot0.43+1)/3=0.62$. It would still not beat $2/3$: that state
+# is separable (its negativity is zero), and a separable resource can never reach a singlet fraction above $1/2$.
+#
+# The last line of the output confirms the one-bit statement of Section 10.1: with either bit missing, the ideal protocol falls to
+# exactly $2/3$.
 #
 # > **Numerical practice.** The exact average fidelity came from six input states, four measurement branches and one rank-6
-# > tensor. No sampling, no Haar integral, no error bar. Whenever a quantity is a low-degree polynomial in the state, look for a
+# > tensor, with no sampling and therefore no error bar. Whenever a quantity is a low-degree polynomial in the state, look for a
 # > design before you reach for Monte Carlo.
 
 # %%
@@ -1025,38 +1120,41 @@ print("            teleportation channel equals the singlet fraction of the reso
 # FIGURE: teleportation vs the best classical strategy, as a function of the input state
 # ==============================================================================
 th_grid = np.linspace(0.0, np.pi, 121)
-F_tele_ideal, F_tele_w, F_nocorr_curve = [], [], []
+F_tele_ideal, F_tele_w, F_nocorr_curve, F_class_sic = [], [], [], []
 res_half = werner_resource(0.5)
+chan_sic = sic_measure_prepare()
 for th in th_grid:
     ket = qubit_state(float(th))
     rho_in = jnp.outer(ket, jnp.conj(ket))
     F_tele_ideal.append(float(fid_state_dm(ket, teleport_channel_dm(rho_in, rho_bell))))
     F_tele_w.append(float(fid_state_dm(ket, teleport_channel_dm(rho_in, res_half))))
     F_nocorr_curve.append(0.25 * sum(float(jnp.abs(jnp.vdot(ket, P @ ket)) ** 2) for P in (I2, X, Y, Z)))
+    F_class_sic.append(float(fid_state_dm(ket, chan_sic(rho_in))))
 F_class_z = np.cos(th_grid / 2) ** 4 + np.sin(th_grid / 2) ** 4     # measure Z, prepare the eigenstate
 
 fig, ax = plt.subplots(figsize=(7.6, 4.5))
 ax.plot(th_grid / np.pi, F_tele_ideal, "-", color=PALETTE[0], lw=2.4, label="teleportation, perfect Bell pair")
 ax.plot(th_grid / np.pi, F_tele_w, "-", color=PALETTE[3], lw=2, label=r"teleportation, Werner pair $v=0.5$")
 ax.plot(th_grid / np.pi, F_class_z, "-", color=PALETTE[1], lw=2, label="classical: measure $Z$, prepare the result")
+ax.plot(th_grid / np.pi, F_class_sic, "--", color=PALETTE[2], lw=2, label="classical: SIC-POVM, prepare the result")
 ax.axhline(2 / 3, color=PALETTE[1], ls=":", lw=1.6, label=r"classical average $2/3$ (the benchmark)")
 ax.plot(th_grid / np.pi, F_nocorr_curve, "-", color=PALETTE[4], lw=2,
         label="teleportation without the classical bits")
 ax.set_xlabel(r"input polar angle $\theta/\pi$")
 ax.set_ylabel(r"output fidelity $\langle\psi|\rho_2|\psi\rangle$")
 ax.set_ylim(0.3, 1.06)
-ax.set_title("Teleportation is state-independent; classical strategies are not")
+ax.set_title("Teleportation and classical measure-and-prepare, input by input")
 ax.legend(fontsize=8, loc="lower left", frameon=True, framealpha=0.92)
 fig.tight_layout()
 plt.show()
 
 # %% [markdown]
-# The figure contrasts the two kinds of strategy. The classical "measure $Z$, prepare what you
-# saw" curve is $1$ at the poles — where the input *is* a classical bit — and $1/2$ at the equator, averaging to exactly $2/3$; it
-# buys its score by being good on a favoured subset of inputs. Teleportation is a flat line: perfect for every input with a perfect
-# resource, and still flat (at $(1+v)/2=0.75$) with a Werner pair of visibility $0.5$, because white noise is isotropic. Without the
-# classical bits the fidelity is the flat $1/2$ of Eq. (6). "Beating $2/3$" therefore means something stronger than it sounds:
-# beating it *uniformly*, without a preferred axis.
+# The classical "measure $Z$, prepare what you saw" curve is $1$ at the poles, where the input *is* a classical bit, and $1/2$ at
+# the equator, averaging to exactly $2/3$. The SIC-POVM strategy reaches the same average with a flat curve at $2/3$, so flatness
+# alone does not distinguish quantum from classical. The level does: teleportation is flat at 1 with a perfect resource and flat at
+# $(1+v)/2=0.75$ with a Werner pair of visibility $0.5$ (white noise is isotropic), so its *worst* input already beats the best
+# classical *average*. No classical strategy can do that, since its smallest fidelity cannot exceed its average of at most $2/3$.
+# Without the classical bits the fidelity is the flat $1/2$ of Eq. (6).
 
 # %% [markdown]
 # ## 11. The same computation with quantum trajectories
@@ -1147,6 +1245,17 @@ print(f"            max|F_avg(traj) - F_avg(DM)| = {np.max(np.abs(F_tr - F_dm)):
 assert np.max(np.abs(F_dm - (1 - 2 * P_GRID / 3))) < 1e3 * TOL
 assert np.max(np.abs(pulls)) < 5.0
 
+# STATISTICAL CHECKPOINT: chi2 = sum of squared pulls over the noisy points, against the 99.9 % quantile.
+# Wrong control: the prediction one obtains by misreading the noise convention as rho -> (1-p) rho + p 1/2
+# (singlet fraction 1 - 3p/4, hence F_avg = 1 - p/2).  The same test must reject it.
+CHI2_15_999 = 37.70                                   # 99.9 % quantile, 15 degrees of freedom
+chi2_traj = float(np.sum(pulls[NOISY] ** 2))
+F_wrong = 1 - P_GRID / 2
+chi2_wrong = float(np.sum(((F_tr - F_wrong)[NOISY] / SE_tr[NOISY]) ** 2))
+print(f"            chi2 = {chi2_traj:.1f} for {int(NOISY.sum())} noisy points (99.9 % quantile {CHI2_15_999});"
+      f" wrong control 1 - p/2: chi2 = {chi2_wrong:.0f}")
+assert int(NOISY.sum()) == 15 and chi2_traj < CHI2_15_999 < chi2_wrong
+
 # %%
 # ==============================================================================
 # FIGURE: teleportation fidelity vs resource quality -- exact, trajectories, thresholds
@@ -1186,12 +1295,14 @@ plt.show()
 # a *faithful* witness of entanglement for this family, unlike CHSH, whose threshold sits far to the right at $v=1/\sqrt2$.
 # At $v=0$ the fidelity is $1/2$: with no entanglement the protocol degenerates into handing Bob the maximally mixed state.
 #
-# Right panel: the trajectory estimates sit on the exact curve at every noise strength, with pulls of order one standard error, which
-# is exactly what two correct implementations of the same physics must do. The straight line $1-2p/3$ of Eq. (15) hits $2/3$ at
+# Right panel: the trajectory estimates sit on the exact curve at every noise strength, with pulls of order one standard error and
+# a chi-squared of about 12 for 15 points. The same data reject, by a chi-squared in the thousands, the curve $1-p/2$ that a
+# misread noise convention ($\rho\to(1-p)\rho+p\,\mathbb 1/2$) would predict, so the comparison is sensitive to an error of that
+# size. The straight line $1-2p/3$ of Eq. (15) hits $2/3$ at
 # $p=1/2$, where the Werner visibility $1-\tfrac43p$ equals $1/3$ and the pair stops being entangled.
 
 # %% [markdown]
-# ## 12. How many trajectories? The $1/\sqrt{M}$ law and the cost of each method
+# ## 12. Convergence of the trajectory average and the cost of each method
 #
 # The two methods answer the same question with different resources. The density tensor is exact but stores $4^N$ numbers; the
 # trajectories store $2^N$ but need $M$ of them, and their error falls only as $1/\sqrt M$: to gain one digit you need 100 times more
@@ -1218,6 +1329,12 @@ for j, M in enumerate(M_GRID):
     rms = float(np.sqrt(np.mean((means - F_exact_bench) ** 2)))
     errs.append(rms)
     print(f"{M:12d} {means.mean():11.6f} {rms:10.5f} {np.mean([e[1] for e in est]):9.5f} {rms * np.sqrt(M):20.4f}")
+
+# CHECKPOINT: least-squares slope of log(RMS error) vs log(M).  The 1/sqrt(M) law predicts -1/2; the wrong control is a
+# 1/M law (slope -1), which the fit must exclude.
+slope = float(np.polyfit(np.log(M_GRID), np.log(errs), 1)[0])
+print(f"\nCHECKPOINT  fitted slope d log(RMS) / d log(M) = {slope:.3f}   (1/sqrt(M) law: -0.5; wrong control 1/M: -1)")
+assert abs(slope + 0.5) < 0.15 and abs(slope + 1.0) > 0.3
 
 # timing: one exact channel evaluation vs one batch of trajectories
 f_dm = jax.jit(lambda R: teleport_channel_dm(jnp.outer(SIX_STATES[2], jnp.conj(SIX_STATES[2])), R))
@@ -1258,16 +1375,19 @@ fig.tight_layout()
 plt.show()
 
 # %% [markdown]
-# The root-mean-square error over independent repetitions follows the $1/\sqrt M$ law — the
+# The root-mean-square error over independent repetitions follows the $1/\sqrt M$ law (fitted slope close to $-1/2$, while a
+# $1/M$ law is excluded) — the
 # product $\text{RMS}\times\sqrt M$ is constant to within the scatter one expects from 12 repetitions — and it agrees with the
 # standard error each run reports from its own data. (A *single* estimate would have been useless for this plot: at these sample
 # sizes one realisation can land anywhere within a couple of standard errors, so the apparent "error" would jump around by a factor
 # of ten. Averaging over repetitions is how one measures a convergence rate.) At three qubits the exact density-tensor evaluation is
 # far cheaper than any useful number of trajectories, but the memory table shows why that reverses: the density tensor grows as
-# $4^N$, so by $N\approx14$ it needs gigabytes while a trajectory is still a fraction of a megabyte. The rule of thumb is:
-# **density tensor for
-# $N\lesssim7$, trajectories beyond**, and always validate the trajectory code against the density tensor on a small system first —
-# which is exactly what we just did.
+# $4^N$, so by $N\approx14$ it needs gigabytes while a trajectory is still a fraction of a megabyte. The operation count gives the
+# same crossover: one gate costs $O(4^N)$ on the density tensor and $O(M\,2^N)$ on $M$ trajectories, so trajectories become
+# cheaper once $2^N$ exceeds the number of trajectories needed. For $M\sim10^4$–$10^5$ (the $6\times12\,800$ trajectories of the
+# benchmark give a standard error of $0.0014$) that is $N\approx13$–$17$, the same range in which the density tensor reaches
+# gigabytes. In either regime the trajectory code should first be
+# validated against the density tensor on a small system, as Section 11 does.
 
 # %% [markdown]
 # ## 13. Deferred measurement: the same protocol without any measurement
@@ -1295,9 +1415,10 @@ plt.show()
 # =\vert+\rangle_0\vert+\rangle_1\otimes\vert\psi\rangle_2 . \tag{16}$$
 #
 # The final state is a **product**, completely deterministic, with Alice's qubits in $\vert+\rangle\vert+\rangle$ — carrying, as they
-# must, no trace of $\vert\psi\rangle$. This is the form in which teleportation appears inside larger circuits (measurement-based
-# computing, gate teleportation), because it needs no classical wire at all; the price is that Bob's qubit must stay coherent and in
-# the same device as Alice's.
+# must, no trace of $\vert\psi\rangle$. This form needs no classical wire, which makes it convenient for analysing teleportation
+# inside larger circuits; the price is that the controlled gates couple Alice's qubits directly to Bob's, so all three must sit in
+# the same coherent device. Over a distance, and in measurement-based schemes, the measured version with classical feed-forward
+# is the one that is run.
 
 # %%
 # ==============================================================================
@@ -1327,14 +1448,30 @@ for i, (name, (th, ph)) in enumerate(TEST_INPUTS.items()):
     assert max_abs(psi_def - target) < 1e3 * TOL
 
 print("\nCHECKPOINT  the deferred-measurement circuit produces exactly |+>|+> (x) |psi>: Bob's qubit is pure,")
-print("            carries the input with fidelity 1, and agrees with the measured version in every branch.")
+print("            carries the input with fidelity 1, and agrees with one random run of the measured version per input.")
+
+# wrong control: the two controlled gates in the opposite order (CZ first, then CNOT).  In the measured protocol the order
+# was a global phase per branch (Section 4.2); here the branches are still superposed and the sign (-1)^{m1 m2} survives.
+ket = qubit_state(np.pi / 3, 0.7)
+psi_sw = alice_bell_measurement_gates(three_qubit_input(ket))
+psi_sw = apply_gate(apply_gate(psi_sw, CZ, [0, 2]), CNOT, [1, 2])
+dev_sw = max_abs(psi_sw - jnp.einsum("a,b,c->abc", plus, plus, ket))
+rho01_sw = rdm(psi_sw, [0, 1]).reshape(2, 2, 2, 2)       # density TENSOR of Alice's two qubits
+print(f"\nWrong control, gates swapped (CZ before CNOT): max|psi_out - |++>(x)|psi>| = {dev_sw:.3f}")
+print(f"   Bob's fidelity = {float(fid_state_dm(ket, rdm(psi_sw, [2]))):.12f},  purity of Alice's qubit 0 = "
+      f"{float(purity(rdm(psi_sw, [0]))):.4f},  negativity of Alice's pair = {float(negativity(rho01_sw, [0])[0]):.4f}")
+assert dev_sw > 0.1 and abs(float(fid_state_dm(ket, rdm(psi_sw, [2]))) - 1) < 1e3 * TOL
 print("\nOutcome statistics of the deferred circuit (measuring qubits 0,1 AFTERWARDS):")
 probs = np.abs(np.asarray(teleport_deferred(qubit_state(np.pi / 3, 0.7))).reshape(4, 2)) ** 2
 print("   p(m1,m2) = " + "  ".join(f"{lab}: {v:.4f}" for lab, v in zip(("00", "01", "10", "11"), probs.sum(axis=1))))
 
 # %% [markdown]
 # The deferred circuit gives *exactly* $\vert+\rangle\vert+\rangle\otimes\vert\psi\rangle$ for every input, so Bob's qubit is pure
-# (purity 1) with fidelity 1 — and it is identical, branch by branch, to the state produced by the measured protocol. Measuring
+# (purity 1) with fidelity 1, the same state that the measured protocol delivers. The control with the two controlled gates
+# swapped shows where the sign $(-1)^{m_1m_2}$ of Section 4.2 goes. Bob still receives $\vert\psi\rangle$ exactly, but Alice's
+# qubits end in $\tfrac12\sum_{m_1m_2}(-1)^{m_1m_2}\vert m_1m_2\rangle$, a maximally entangled pair (negativity $1/2$) instead of
+# $\vert+\rangle\vert+\rangle$: the sign has become a relative phase between superposed branches and is visible on Alice's
+# side. A test of Bob's fidelity alone cannot detect the swap; the comparison of the full three-qubit state does. Measuring
 # Alice's qubits afterwards still yields the four uniform outcomes, confirming the principle of deferred measurement: postponing the
 # measurement changes nothing that can be observed.
 
@@ -1351,16 +1488,18 @@ print("   p(m1,m2) = " + "  ".join(f"{lab}: {v:.4f}" for lab, v in zip(("00", "0
 #   Pauli corrections, two classical bits.
 # * **Nothing is sent faster than light.** All four outcomes have probability $1/4$ for every input, and Bob's pre-correction state is
 #   the Pauli twirl $\tfrac14\sum_PP\rho P=\mathbb 1/2$ — verified to machine precision for every test state. Skipping the corrections
-#   gives fidelity exactly $1/2$, for *each* input, not just on average.
+#   gives fidelity exactly $1/2$ for *each* input; receiving only one of the two bits gives the classical $2/3$.
 # * **The classical benchmark is $2/3$**, derived from $\int d\psi(\vert\psi\rangle\langle\psi\vert)^{\otimes2}=P_{\rm sym}/3$; it is
 #   achieved by *any* rank-one POVM that prepares the state it measured (projective or not — the SIC-POVM scores $2/3$ too), while a
-#   wrong preparation rule does worse. Beating $2/3$ certifies that something non-classical was used.
+#   wrong preparation rule does worse. The SIC-POVM strategy is flat at $2/3$, so no classical strategy exceeds $2/3$ for every
+#   input; teleportation with any entangled Werner pair does. Beating $2/3$ certifies that something non-classical was used.
 # * **A noisy resource gives $\bar F=(2F_{\rm res}+1)/3$**, hence $\bar F=(1+v)/2$ for Werner states. The classical threshold
 #   $\bar F>2/3$ coincides *exactly* with the entanglement threshold $v>1/3$ — so teleportation witnesses entanglement where CHSH
 #   ($v>1/\sqrt2$) cannot. The formula is easiest to derive for Bell-diagonal resources (a Pauli channel), but the numerics showed it
 #   holds for amplitude-damped and even Haar-random resources, because the deeper statement is $\bar F=(2F_e+1)/3$ with $F_e$ the
 #   **entanglement fidelity** of the induced channel — and the standard protocol always has $F_e$ equal to the resource's singlet
-#   fraction. Optimality is what fails for a non-Bell-diagonal resource: local pre-processing can then raise the singlet fraction.
+#   fraction. Optimality is not automatic: when $\vert\Phi^+\rangle$ is not the maximally entangled state with the largest
+#   overlap (the Haar-random resource), a local rotation before the protocol raises the singlet fraction and the fidelity.
 # * **Two unravellings, one physics.** The exact density-tensor channel and the trajectory simulation agree within one standard error
 #   at every noise strength, with the trajectory error following $1/\sqrt M$; the density tensor costs $4^N$ memory, a trajectory
 #   $2^N$.
@@ -1384,7 +1523,7 @@ print("   p(m1,m2) = " + "  ".join(f"{lab}: {v:.4f}" for lab, v in zip(("00", "0
 # 4. ★★ **Teleporting half of an entangled pair (physics).** Teleport one qubit of a Bell pair and verify that the entanglement is
 #    preserved: compute the negativity between the untouched qubit and Bob's output. Then repeat with a Werner resource of visibility
 #    $v$ and find the $v$ at which the output stops being entangled. Is it the same as the $\bar F=2/3$ threshold?
-# 5. ★★ **Noise on the gates, not the resource (extend the code).** Add depolarising noise of strength $p$ after every gate of the
+# 5. ★★ **Noise on the gates instead of the resource (extend the code).** Add depolarising noise of strength $p$ after every gate of the
 #    protocol (both Alice's and Bob's) and plot $\bar F(p)$ against the resource-noise curve of Section 11. Which is more damaging at
 #    equal $p$, and why?
 # 6. ★★ **Imperfect corrections (physics).** Suppose Bob's classical channel flips each bit with probability $q$. Derive the
@@ -1395,16 +1534,21 @@ print("   p(m1,m2) = " + "  ".join(f"{lab}: {v:.4f}" for lab, v in zip(("00", "0
 #    [23 — quantum state tomography](../ch08_quantum_information_protocols/23_quantum_state_tomography.ipynb) using $M$ shots per
 #    Pauli setting, and plot the reconstructed fidelity with bootstrap error bars versus $M$. How many shots are needed to claim
 #    $\bar F>2/3$ at $5\sigma$ with a Werner resource of $v=0.5$?
-# 8. ★★★ **Gate teleportation.** Modify the deferred-measurement circuit so that Bob receives $U\vert\psi\rangle$ instead of
-#    $\vert\psi\rangle$, for a $U$ of your choice, *without* applying $U$ to Bob's qubit at the end — by preparing the resource in the
-#    state $(\mathbb 1\otimes U)\vert\Phi^+\rangle$ instead. Verify it numerically, and explain why this trick (applying an expensive
-#    gate offline, before the data arrives) is the basis of magic-state injection in fault-tolerant quantum computing.
+# 8. ★★★ **Gate teleportation.** Prepare the resource in the state $(\mathbb 1\otimes U)\vert\Phi^+\rangle$ instead of
+#    $\vert\Phi^+\rangle$, so that $U$ is applied *offline*, before the data arrives. (a) Show from Eq. (3) that Bob now holds
+#    $UX^{m_2}Z^{m_1}\vert\psi\rangle$, so the corrections must become $UX^{m_2}U^\dagger$ followed by $UZ^{m_1}U^\dagger$ for
+#    Bob to end with $U\vert\psi\rangle$; check numerically that the unmodified Pauli corrections fail for $U=T$ in two
+#    of the four branches. (b) Implement the modified corrections, measured and deferred, and verify $F=1$ for $U=S$ and $U=T$,
+#    where $T=\mathrm{diag}(1,e^{i\pi/4})$ and $S=T^2$. (c) Show that $TXT^\dagger=e^{-i\pi/4}SX$ and $TZT^\dagger=Z$: the
+#    corrections for the non-Clifford gate $T$ need only the Clifford gate $S$. Explain why this is the basis of magic-state
+#    injection in fault-tolerant quantum computing.
 #
 # ## References
 #
 # * C. H. Bennett, G. Brassard, C. Crépeau, R. Jozsa, A. Peres and W. K. Wootters, *Teleporting an unknown quantum state via dual
 #   classical and Einstein-Podolsky-Rosen channels*, Phys. Rev. Lett. **70**, 1895 (1993) — the protocol.
 # * W. K. Wootters and W. H. Zurek, *A single quantum cannot be cloned*, Nature **299**, 802 (1982) — the no-cloning theorem.
+# * D. Dieks, *Communication by EPR devices*, Phys. Lett. A **92**, 271 (1982) — the no-cloning theorem, found independently.
 # * V. Bužek and M. Hillery, *Quantum copying: beyond the no-cloning theorem*, Phys. Rev. A **54**, 1844 (1996) — the universal
 #   $1\to2$ cloning machine with single-copy fidelity $5/6$; its optimality was proved by N. Gisin and S. Massar, *Optimal quantum
 #   cloning machines*, Phys. Rev. Lett. **79**, 2153 (1997), and by D. Bruß, D. P. DiVincenzo, A. Ekert, C. A. Fuchs, C. Macchiavello
@@ -1412,7 +1556,8 @@ print("   p(m1,m2) = " + "  ".join(f"{lab}: {v:.4f}" for lab, v in zip(("00", "0
 # * S. Massar and S. Popescu, *Optimal extraction of information from finite quantum ensembles*, Phys. Rev. Lett. **74**, 1259 (1995)
 #   — the $2/3$ classical benchmark as the $N=1$ case of $(N+1)/(N+2)$.
 # * M. Horodecki, P. Horodecki and R. Horodecki, *General teleportation channel, singlet fraction, and quasidistillation*,
-#   Phys. Rev. A **60**, 1888 (1999) — the relation $\bar F=(2f+1)/3$ between the singlet fraction and the teleportation fidelity.
+#   Phys. Rev. A **60**, 1888 (1999) — the optimal teleportation fidelity $(2f_{\max}+1)/3$, with $f_{\max}$ the largest singlet
+#   fraction reachable by trace-preserving local operations and classical communication.
 # * M. A. Nielsen, *A simple formula for the average gate fidelity of a quantum dynamical operation*, Phys. Lett. A **303**, 249
 #   (2002) — the relation $\bar F=(dF_e+1)/(d+1)$ between average fidelity and entanglement fidelity.
 # * R. F. Werner, *Quantum states with Einstein-Podolsky-Rosen correlations admitting a hidden-variable model*,

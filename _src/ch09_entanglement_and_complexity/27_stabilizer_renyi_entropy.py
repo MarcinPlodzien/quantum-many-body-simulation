@@ -23,12 +23,15 @@
 # Clifford group, the standard choice being the $T=\mathrm{diag}(1,e^{i\pi/4})$ gate. Magic measures how far a state is from
 # the stabilizer set, and therefore how much genuinely quantum resource a circuit has injected.
 #
-# This is not bookkeeping. In every leading architecture for fault-tolerant quantum computing, Clifford gates are cheap —
-# they can be implemented transversally on a topological code, with the error correction doing the work — while the $T$ gate
-# is expensive: it is produced by **magic-state distillation**, a protocol that consumes many noisy copies of $T\vert+\rangle$
-# to make one clean copy. Estimates for useful algorithms run into $10^{9}$ $T$ gates, and the $T$ count is the single number
-# that decides whether an algorithm is feasible. A quantity that measures the magic of a state therefore measures something
-# with a price tag attached.
+# The distinction has a direct cost in fault-tolerant quantum computing. In the standard error-correcting codes the
+# Clifford gates can be implemented fault-tolerantly at modest cost (transversally in many codes, by code deformation or
+# lattice surgery in the surface code), while the $T$ gate is expensive: it is implemented with the help of
+# **magic-state distillation** (Bravyi and Kitaev 2005), a protocol that consumes many noisy copies of a magic state such
+# as $T\vert+\rangle$ to produce fewer, cleaner ones. Resource estimates for useful algorithms therefore count
+# non-Clifford gates first: factoring a 2048-bit RSA integer with the construction of Gidney and Ekerå (2021) takes
+# $0.3n^3+0.0005n^3\log_2n\approx2.6\times10^{9}$ Toffoli gates at $n=2048$, each of which costs several $T$ gates or
+# one distilled three-qubit magic state. A quantity that measures the magic of a state therefore measures something with
+# a price tag attached.
 #
 # The quantity this notebook is about is the **stabilizer Renyi entropy** $M_\alpha$ of Leone, Oliviero and Hamma (2022).
 # Its construction takes three lines. For a pure state, the squared Pauli expectation values
@@ -65,7 +68,7 @@
 # * the stabilizer Renyi entropies $M_\alpha$, their properties, and which $\alpha$ give true magic monotones;
 # * which single-qubit state is the most magical one, and how much magic a Haar-random state has;
 # * how magic behaves in $T$-doped Clifford circuits, in the Ising ground state near criticality, and after a quench —
-#   and why it is a different quantity from entanglement, not a proxy for it.
+#   and why it is a quantity independent of entanglement.
 #
 # *Numerical methods*
 # * the brute-force $O(N8^N)$ evaluation and why it stops at $N\approx7$;
@@ -291,7 +294,7 @@ print("  " + "  ".join(f"({a},{b}):{pauli_letters(a, b, 2)}" for a in range(4) f
 # > **Physics insight.** Equation (3) says that the Pauli group modulo phases is a $2N$-dimensional vector space over
 # > $\mathbb F_2$ equipped with a symplectic form, and multiplication of strings is addition of vectors. Everything that
 # > follows — stabilizer groups, the Clifford group, Gottesman-Knill — is linear algebra on $2N$ bits, which costs
-# > $O(N^2)$ or $O(N^3)$, not $O(2^N)$.
+# > $O(N^2)$ or $O(N^3)$ operations, polynomial in $N$.
 
 # %% [markdown]
 # ## 4. Stabilizer states, the Clifford group and Gottesman-Knill
@@ -321,8 +324,10 @@ print("  " + "  ".join(f"({a},{b}):{pauli_letters(a, b, 2)}" for a in range(4) f
 #
 # The number of $N$-qubit stabilizer states is
 # $2^N\prod_{k=1}^{N}(2^k+1)$ — about $2^{N^2/2}$, which is a vanishing fraction of the continuum of pure states but still
-# far more than the $2^N$ computational basis states. Maximal entanglement is easy inside this set: GHZ and cluster states
-# are stabilizer states, and a random stabilizer state has close to the maximal (Page) entanglement entropy across a cut.
+# far more than the $2^N$ computational basis states. Large entanglement is easy inside this set: GHZ and cluster states
+# are stabilizer states, a product of Bell pairs straddling a cut is a stabilizer state with the maximal half-chain entropy
+# $N/2$ bits, and the random Clifford circuits of Sections 10.1 and 10.2 produce between $1$ and $3$ bits of half-chain
+# entropy at $N=8$ ($2.9$ on average, against the maximal $4$).
 #
 # ### 4.2 The Clifford group
 #
@@ -338,9 +343,17 @@ print("  " + "  ".join(f"({a},{b}):{pauli_letters(a, b, 2)}" for a in range(4) f
 #
 # ### 4.3 The Gottesman-Knill theorem
 #
-# > **Gottesman-Knill.** A quantum computation that (i) starts in a computational basis state, (ii) applies only gates from
-# > the Clifford group, and (iii) ends with measurements of Pauli observables in the computational basis, can be simulated
-# > on a classical computer in time polynomial in $N$ and in the number of gates.
+# > **Gottesman-Knill.** A quantum computation that starts in the computational basis state $\vert0\cdots0\rangle$ and
+# > performs only (a) Clifford gates, (b) measurements of Pauli operators (computational-basis measurements are the
+# > special case of measuring the $Z_q$), and (c) Clifford gates conditioned on classical bits, which may be the outcomes of
+# > earlier measurements, can be simulated perfectly on a probabilistic classical computer in time polynomial in $N$ and in
+# > the number of operations.
+#
+# "Perfectly" means that the classical algorithm produces measurement records distributed exactly as the quantum
+# computation's, with no approximation; the theorem is a statement about sampling the outcomes. This is the form given
+# by Gottesman in *The Heisenberg representation of quantum computers* (1999), who attributes the theorem to Knill.
+# Starting from any stabilizer state given by its generators changes nothing, since such a state is prepared from
+# $\vert0\cdots0\rangle$ by a Clifford circuit.
 #
 # The mechanism is the symplectic structure of Section 3.3: instead of carrying $2^N$ amplitudes one carries the $N$
 # generators of the stabilizer group as $2N$-bit vectors plus a sign, and a Clifford gate is a fixed linear map on those
@@ -349,8 +362,8 @@ print("  " + "  ".join(f"({a},{b}):{pauli_letters(a, b, 2)}" for a in range(4) f
 # is what that paper is about. Adaptive measurements,
 # classical feed-forward and the whole apparatus of stabilizer error correction all stay inside the theorem.
 #
-# The theorem is the reason entanglement cannot be the resource that makes quantum computers powerful: it applies without
-# any restriction on how entangled the intermediate states are.
+# The theorem shows that entanglement alone cannot be the resource that makes quantum computers powerful: it applies
+# without any restriction on how entangled the intermediate states are.
 #
 # ### 4.4 What a $T$ gate does
 #
@@ -358,7 +371,7 @@ print("  " + "  ".join(f"({a},{b}):{pauli_letters(a, b, 2)}" for a in range(4) f
 #
 # $$ T X T^\dagger=\begin{pmatrix}1&0\\0&e^{i\pi/4}\end{pmatrix}\begin{pmatrix}0&1\\1&0\end{pmatrix}\begin{pmatrix}1&0\\0&e^{-i\pi/4}\end{pmatrix}=\begin{pmatrix}0&e^{-i\pi/4}\\e^{i\pi/4}&0\end{pmatrix}=\frac{X+Y}{\sqrt2}, $$
 #
-# which is a *sum* of two Pauli strings, not a Pauli string. A single $T$ therefore breaks the stabilizer bookkeeping: a
+# which is a *sum* of two Pauli strings and therefore lies outside the Pauli group. A single $T$ therefore breaks the stabilizer bookkeeping: a
 # stabilizer group of $2^N$ Pauli operators is replaced by something that no longer fits in $N$ generators. Clifford$+T$ is
 # universal (see [notebook 09](../ch04_digital_quantum_circuits/09_quantum_gates_and_circuits.ipynb)), and the number of
 # $T$ gates is the natural measure of how far a circuit has travelled beyond the simulable set.
@@ -455,8 +468,8 @@ assert np.abs(TXT - (np.asarray(X) + np.asarray(Y)) / np.sqrt(2)).max() < 1e3 * 
 # can have: no string can carry more than $2^{-N}$, because $\langle P\rangle^2\le1$, so a normalised $\Xi$ must occupy at
 # least $2^N$ strings, and Eq. (7) occupies exactly that minimum at exactly that maximal height. Every other pure state
 # spreads $\Xi$ over more strings and therefore has a *larger* Renyi entropy — which is the structural fact the whole
-# notebook rests on, and the content of Section 6.2. (The word "flat" here means "uniform on its support", not "spread
-# out": a Haar-random state, whose $\Xi$ is spread thinly over all $4^N$ strings, is far more magical, not less.)
+# notebook rests on, and the content of Section 6.2. (The word "flat" here means "uniform on its support". It does
+# not mean "spread out": a Haar-random state, whose $\Xi$ is spread thinly over all $4^N$ strings, is far more magical.)
 #
 # The cell below prints $\Xi_P$ for four states on $N=3$ qubits.
 
@@ -520,7 +533,7 @@ plt.show()
 # the Haar-random state all $64$ strings carry weight. Every column sums to $1$, which is Eq. (6) measured rather than
 # assumed.
 #
-# The last two columns deserve a comment, because they are a trap. The tallest bar is $2^{-N}$ in **every** panel,
+# The last two columns need a comment, because they are easy to misread. The tallest bar is $2^{-N}$ in **every** panel,
 # including the random one — it is the identity string, whose $\Xi_{\mathbb 1}=1/2^N$ is the same for all states. What
 # distinguishes the four states is how many strings *besides* the identity reach that height: eight for the two
 # stabilizer states, one (the identity alone) for the magic and the random state, whose next-largest weights are
@@ -559,7 +572,7 @@ plt.show()
 # * the **linear** stabilizer entropy $M_{\rm lin}=1-2^N\sum_P\Xi_P^2$, which is not a logarithm at all but is the quantity
 #   with the cleanest analytic properties (Section 7.3) and is a strong monotone (Leone and Bittel 2024).
 #
-# **Write the absolute value.** Equation (9) has $\vert\langle P\rangle\vert^{2\alpha}$, not $\langle P\rangle^{2\alpha}$.
+# **Write the absolute value.** Equation (9) contains $\vert\langle P\rangle\vert^{2\alpha}$, with the modulus.
 # The two agree when $2\alpha$ is an even integer, i.e. for $\alpha=1,2,3,\dots$, and differ otherwise — at $\alpha=3/2$ the
 # exponent $2\alpha=3$ is odd and a negative $\langle P\rangle$ would contribute with the wrong sign. Section 9.6
 # demonstrates the damage on a concrete state.
@@ -645,8 +658,8 @@ plt.show()
 # $\vert\langle P\rangle\vert^2=1/(2^N+1)$ for **every** non-identity string $P$ simultaneously. That is a system of
 # $4^N-1$ equations on the $2^{N+1}-2$ real parameters of a normalised state vector modulo phase — satisfiable at $N=1$
 # ($3$ equations, $2$ parameters, solved by the $T$-type states of Section 7.1), and increasingly overdetermined
-# afterwards, so a solution need not exist. Eq. (11) is a bound, not a maximum, and the numbers plotted against it below
-# should be read that way.
+# afterwards, so a solution need not exist. Eq. (11) is an upper bound that need not be attained, and the numbers plotted
+# against it below should be read that way.
 #
 # ### 6.6 The values of $\alpha$ that give a magic monotone
 #
@@ -717,7 +730,7 @@ plt.show()
 #
 # The state $T\vert+\rangle$, which the fault-tolerance literature calls *the* magic state, has Bloch vector
 # $(\cos\frac\pi4,\sin\frac\pi4,0)=(1,1,0)/\sqrt2$ and therefore sits on the *second* row: it is an $H$-type state with
-# $M_2=\log_2(4/3)$, not the maximally magical one. The eight $T$-type directions are the $\pm1$ eigenvectors of the four
+# $M_2=\log_2(4/3)$, below the single-qubit maximum. The eight $T$-type directions are the $\pm1$ eigenvectors of the four
 # operators $(\pm X\pm Y+Z)/\sqrt3$ — each of them an axis of an order-three Clifford rotation that cyclically permutes
 # the three Pauli axes up to signs; the twelve $H$-type directions, one of which carries $T\vert+\rangle$, are the
 # $\pm1$ eigenvectors of the six face-diagonal operators such as $(X+Z)/\sqrt2$, the Hadamard. Both families are the
@@ -730,8 +743,7 @@ plt.show()
 # > **Common pitfall.** The letter $T$ has two unrelated meanings in this subject. The **$T$ gate** is
 # > $\mathrm{diag}(1,e^{i\pi/4})$, a non-Clifford gate. A **$T$-type magic state** is named after a different operator:
 # > Bravyi and Kitaev's order-three *Clifford* rotation about a body diagonal, which cyclically permutes the three Pauli
-# > axes. $T\vert+\rangle$ is an $H$-type state, not a $T$-type one, and the collision of the two names is an accident
-# > of notation.
+# > axes. $T\vert+\rangle$ is an $H$-type state, and the collision of the two names is an accident of notation.
 
 # %%
 # ==============================================================================
@@ -917,14 +929,16 @@ for N in (1, 2, 3):
 
 # %% [markdown]
 # The measured $\langle M_{\rm lin}\rangle$ agrees with the exact prediction $1-4/(2^N+3)$ within the statistical error of
-# $200$ samples, at all three sizes — Eq. (15) is confirmed, not assumed. The measured $\langle M_2\rangle$ lies *above*
-# $\log_2\frac{2^N+3}{4}$ at all three sizes, by about one hundredth of a bit, which is what Jensen's inequality (16)
-# demands: the average of a logarithm exceeds the logarithm of the average, by an amount set by the fluctuations of
-# $\zeta$. Section 9.8 repeats the test up to $N=10$ with error bars and shows the gap closing.
+# $200$ samples, at all three sizes, which confirms Eq. (15) numerically. The measured $\langle M_2\rangle$ lies *above*
+# $\log_2\frac{2^N+3}{4}$ at all three sizes, by about one hundredth of a bit. That is the direction Jensen's inequality
+# (16) demands — the average of a logarithm exceeds the logarithm of the average, by an amount set by the fluctuations
+# of $\zeta$ — but each excess is only one or two standard errors, so $200$ samples do not resolve the gap on their own.
+# Section 9.8 repeats the test up to $N=10$ with more samples and shows the gap closing.
 #
-# > **Numerical practice.** Deriving a closed form and then measuring it is worth the extra half-page twice over: the
-# > consistency check under Eq. (14) caught the normalisation of the Gamma moments before any code was written, and the
-# > numerical test above would have caught an error in the combinatorial factor $6$ of $\mathbb E[(a-b)^4]$.
+# > **Numerical practice.** Deriving a closed form and then measuring it gives two independent tests: the consistency
+# > check under Eq. (14) tests the normalisation of the Gamma moments before any code is written, and the numerical test
+# > above detects an error in the combinatorial factor $6$ of $\mathbb E[(a-b)^4]$ (replacing it by $2$ changes
+# > $\mathbb E[\langle P\rangle^4]$ by a third at large $d$).
 
 # %% [markdown]
 # ## 8. Algorithm 1: the definition, literally
@@ -996,7 +1010,7 @@ for N in (2, 3):
 #
 # * The prefactor has modulus one, $\vert i^{a\cdot b}\vert=1$, so $\vert\langle P_{a,b}\rangle\vert=\vert F_a[b]\vert$.
 #   Because Eq. (9) needs only $\vert\langle P\rangle\vert^{2\alpha}$, the phase never has to be computed — for **any**
-#   $\alpha$, not only even powers. (The phase is not irrelevant in general: it is what makes $\langle P\rangle$ real. See
+#   $\alpha$, including non-even powers. (The phase matters elsewhere: it is what makes $\langle P\rangle$ real. See
 #   Section 9.6 for what happens if one confuses $\vert\langle P\rangle\vert^{2\alpha}$ with $\langle P\rangle^{2\alpha}$.)
 # * $f_a$ costs $O(2^N)$ to build (one gather by the XOR-shifted index and one element-wise product) and the transform
 #   costs $O(N2^N)$, as shown next. With $2^N$ values of $a$,
@@ -1191,7 +1205,7 @@ print(f"sre(cluster_6)     = {sre(cluster_state(6)):+.3e}   (stabilizer: exactly
 # %% [markdown]
 # ### 9.5 Validation against the definition
 #
-# A fast algorithm is worth nothing until it has been compared with a literal transcription of the definition, on states
+# A fast algorithm has to be compared with a literal transcription of the definition, on states
 # of every kind: stabilizer states (answer exactly zero), product magic states (answer known in closed form), entangled
 # magic states, and random states with no structure at all.
 
@@ -1244,7 +1258,7 @@ for al in (0.5, 1.5, 2.0, 3.0, 4.0):
 # smallest example. So a single $T$ on a stabilizer state gives $\log_2\frac43$ *or* $0$, never anything in between; the
 # test above happens to hit the generic case.
 #
-# ### 9.6 The absolute value is not decoration
+# ### 9.6 The absolute value in Eq. (9)
 #
 # Equation (9) contains $\vert\langle P\rangle\vert^{2\alpha}$. Replacing it by $\langle P\rangle^{2\alpha}$ is harmless
 # when $2\alpha$ is an even integer and catastrophic otherwise, because a negative expectation value then enters the sum
@@ -1380,9 +1394,9 @@ fig.tight_layout()
 plt.show()
 
 # %% [markdown]
-# **Reading the timings, honestly.** The Walsh-Hadamard curve follows the $N4^N$ reference over the last few sizes, where
+# **Reading the timings.** The Walsh-Hadamard curve follows the $N4^N$ reference over the last few sizes, where
 # the per-call overhead of dispatching a handful of XLA kernels has become negligible; at small $N$ the measured time is
-# flat at a fraction of a millisecond because it is dominated by that overhead, not by arithmetic. (Absolute timings on a
+# flat at a fraction of a millisecond because it is dominated by that overhead rather than by arithmetic. (Absolute timings on a
 # shared machine move by a factor of two or three between runs; the slopes do not.)
 #
 # The brute-force curve does **not** follow its $N8^N$ arithmetic bound — it is much flatter, and it tracks the $N4^N$
@@ -1392,7 +1406,7 @@ plt.show()
 # operations they perform ($1.6\times10^6$ flops at $N=6$ — microseconds of arithmetic, against seconds of measured wall
 # time). The $N8^N$ scaling is the asymptotic truth and the dotted line shows what it would look like, but reaching the
 # regime where it dominates would need sizes the brute force cannot survive in the first place. The practical consequence
-# is what matters here: the measured speed-up of the Walsh-Hadamard version grows from one order of magnitude at $N=2$ to
+# is what matters here: the measured speed-up of the Walsh-Hadamard version grows from a factor of order ten at $N=2$ to
 # three or four orders at $N=6$, and the single extra point at $N=13$ covers $4^{13}\approx6.7\times10^{7}$ Pauli strings.
 # Extrapolating the brute-force kernel-launch count from the measured time at $N=6$ by the factor
 # $(13\cdot4^{13})/(6\cdot4^{6})\approx3.5\times10^{4}$ puts the same computation somewhere above a day.
@@ -1401,13 +1415,15 @@ plt.show()
 # > two disagree, as they do in the left panel, the interesting quantity is usually the one the cost model ignored —
 # > here, the number of times Python hands control to the accelerator.
 #
-# The batch panel shows a shallow optimum at a few tens of patterns per kernel: with fewer, the Python loop over batches
-# dominates; with more, the working set stops fitting in cache and the gain is lost. The whole variation across a factor
-# $256$ in batch size stays well inside a factor of four in time, so this is a parameter worth setting sensibly once and
-# then forgetting. The memory line, in contrast, is exactly linear in the batch size by construction, and it is the reason
+# The batch panel shows a broad minimum at batch sizes between a few tens and about a hundred patterns per kernel (the
+# exact position moves between runs). With fewer patterns the Python loop over batches and the per-kernel dispatch
+# dominate; with more, the time rises again, most likely because the working set of `batch` arrays of $2^N$ complex
+# numbers no longer fits in cache (we have not measured the cache behaviour directly). The whole variation across a
+# factor $256$ in batch size stays within a factor of two to three in time, so this is a parameter worth setting sensibly once and
+# then leaving alone. The memory line, in contrast, is exactly linear in the batch size by construction, and it is the reason
 # the loop exists at all: at $N=13$ a single un-batched call would allocate $16\cdot2^{13}\cdot2^{13}$ bytes $=1$ GiB,
-# while `batch=256` keeps it at $32$ MiB. Timings on a shared machine fluctuate by tens of per cent, so the shape of these
-# curves, not the individual numbers, is the result.
+# while `batch=256` keeps it at $32$ MiB. Timings on a shared machine fluctuate by tens of per cent, so the result is the
+# shape of these curves; the individual numbers change from run to run.
 #
 # > **JAX practice.** `_pauli_moment_batch` is jitted with `N` as a *static* argument and everything else traced. That
 # > means one compilation per system size, reused by every subsequent call — which is why the timing loop above calls the
@@ -1480,12 +1496,12 @@ plt.show()
 # whose magic grows only as $0.415N$ — already at $N=2$. A random state is far more magical than a stack of $N$ textbook
 # magic states.
 #
-# The right panel is the honest test, with error bars. The deviation of $\langle M_{\rm lin}\rangle$ from the exact
+# The right panel is the quantitative test, with error bars. The deviation of $\langle M_{\rm lin}\rangle$ from the exact
 # identity (15) scatters around zero and is compatible with zero at every size — the asserts in the cell check that it
 # stays inside five standard errors, which is the strongest statement a finite sample supports. The deviation of
 # $\langle M_2\rangle$ from the Jensen bound (16) is *positive* at nine of the ten sizes, of order $10^{-2}$ bit for
-# $N\le4$ and at most $3.2\times10^{-3}$ bit from $N=5$ on, where it is within one or two standard errors of zero. That is precisely the behaviour Eq. (16) demands — a bound, not an
-# equality, which tightens as the distribution of $\zeta$ concentrates. Turning it around: the fact that the two curves
+# $N\le4$ and at most $3.2\times10^{-3}$ bit from $N=5$ on, where it is within one or two standard errors of zero. That is
+# the behaviour expected of a Jensen bound, which becomes tight as the distribution of $\zeta$ concentrates. Turning it around: the fact that the two curves
 # behave so differently is itself the evidence that Eq. (15) is an identity and Eq. (16) is not.
 #
 # ### 9.9 The engine version
@@ -1496,11 +1512,8 @@ plt.show()
 # power $2\alpha$, so both engine routines agree with Eq. (9) at every $\alpha$, integer or not. One implementation
 # difference is worth knowing about: the engine builds its jitted kernel *inside* the call
 # (`fa = jax.jit(jax.vmap(for_a))`), so a fresh closure is compiled on every invocation, whereas Step 10 jits
-# `_pauli_moment_batch` once at the top level and reuses the compiled kernel. For a single evaluation this is invisible;
-# for a sweep it is not — in a loop of repeated calls at $N=9$ the engine version was measured to be about an order of
-# magnitude slower, all of it recompilation. Use the engine function when you want one number,
-# and a top-level jitted kernel — or `sre_batch_of_states` — inside a loop. The checkpoint below shows that the two agree
-# to machine precision.
+# `_pauli_moment_batch` once at the top level and reuses the compiled kernel. The checkpoint below shows that the two
+# agree to machine precision, and the cell after it measures what the recompilation costs.
 
 # %%
 #@engine-show: _wht_all_axes, stabilizer_renyi_entropy, stabilizer_renyi_entropy_bruteforce
@@ -1516,6 +1529,37 @@ for N in (3, 5):
 print("notebook `sre` == engine `stabilizer_renyi_entropy` on all 16 test states (N = 3 and N = 5), to 1e-10")
 print(f"example: N=5 Haar state, notebook {sre(test_states(5, jax.random.PRNGKey(75))['Haar']):.12f}, "
       f"engine {float(stabilizer_renyi_entropy(test_states(5, jax.random.PRNGKey(75))['Haar'], 2)):.12f}")
+
+# %%
+# ==============================================================================
+# STEP 14b: what the engine's per-call compilation costs -- compile time vs run time
+# ==============================================================================
+# `sre` was compiled for these sizes in Step 13 (batch 256), so its calls below are pure run time; every call of the
+# engine function builds and compiles a new closure, so each of its calls is compile time + run time.
+print(f"{'N':>3s} {'engine, per call [s]':>21s} {'sre, per call [s]':>18s} {'difference = compile [s]':>25s} {'ratio':>7s}")
+eng_ratio = {}
+for N in (6, 9, 11):
+    psi = haar_state(jax.random.PRNGKey(90 + N), N)
+    sre(psi)                                                    # make sure the kernel for this N is cached
+    t0 = time.perf_counter()
+    for _ in range(3):
+        v_eng = float(stabilizer_renyi_entropy(psi, 2))
+    t_eng = (time.perf_counter() - t0) / 3
+    t0 = time.perf_counter()
+    for _ in range(3):
+        v_nb = sre(psi)
+    t_nb = (time.perf_counter() - t0) / 3
+    assert abs(v_eng - v_nb) < 1e4 * TOL
+    eng_ratio[N] = t_eng / t_nb
+    print(f"{N:3d} {t_eng:21.4f} {t_nb:18.4f} {t_eng - t_nb:25.4f} {eng_ratio[N]:7.1f}")
+assert eng_ratio[6] > 3.0                                       # at small N the engine call is dominated by compilation
+
+# %% [markdown]
+# The compile overhead of the engine function is roughly constant, of order $0.1$ s on this machine, while the run time
+# grows as $N4^N$. Each engine call therefore costs about two orders of magnitude more than a cached call at $N=6$, about
+# one order at $N=9$, and less than a factor of two at $N=11$, where the arithmetic dominates (the exact ratios move
+# between runs; the printed table is this run's). Use the engine function when you want one number, and a top-level jitted
+# kernel such as `sre`, or `sre_batch_of_states`, inside a loop over many states.
 
 # %% [markdown]
 # ## 10. Magic in circuits and in many-body states
@@ -1599,27 +1643,6 @@ print(f"\nHaar reference log2((2^N+3)/4) = {haar_dop:.4f} bit;  maximum (Eq. 11)
 print(f"distinct M_2 values at k = 4 (rounded to 1e-6): {k4_values} "
       f"= {np.round(k4_values / LOG2_4_3, 4)} x log2(4/3)")
 
-# %%
-# ==============================================================================
-# FIGURE 5: magic against the number of T gates
-# ==============================================================================
-fig, ax = plt.subplots(figsize=(7.4, 4.4))
-ax.errorbar(K_LIST, mean_dop, yerr=err_dop, fmt=MARKERS[0] + "-", color=PALETTE[0], capsize=3,
-            label=rf"$\langle M_2\rangle$, $N={N_dop}$, {R_dop} realisations")
-kk = np.array(K_LIST, dtype=float)
-ax.plot(kk, kk * LOG2_4_3, "--", color=PALETTE[3], lw=1.2, label=r"$k\log_2(4/3)$ (one $T\vert+\rangle$ per $T$ gate)")
-ax.axhline(haar_dop, color=PALETTE[1], ls="-", lw=1.4, label=r"Haar value $\log_2\frac{2^N+3}{4}$")
-ax.axhline(np.log2((2 ** N_dop + 1) / 2), color=PALETTE[2], ls="--", lw=1.2, label=r"maximum, Eq. (11)")
-ax.axvline(N_dop, color="k", lw=0.8, ls=":")
-ax.text(N_dop * 1.05, 0.3, r"$k=N$", fontsize=9)
-ax.set_xlabel(r"number of $T$ gates $k$")
-ax.set_ylabel(r"$M_2$ [bit]")
-ax.set_ylim(-0.2, np.log2((2 ** N_dop + 1) / 2) + 0.4)
-ax.set_title(r"Magic of a $T$-doped Clifford circuit")
-ax.legend(fontsize=8, loc="lower right")
-fig.tight_layout()
-plt.show()
-
 # %% [markdown]
 # **What is measured.** At $k=0$ the magic is exactly zero to machine precision, for every one of the $32$ realisations:
 # the circuit is Clifford, the state is a stabilizer state, and Section 6.3 guarantees the answer. The first few $T$ gates
@@ -1628,12 +1651,13 @@ plt.show()
 #
 # The printed list of the distinct values at $k=4$ says where the shortfall comes from. Four of the seven values are exact
 # integer multiples of $\log_2\frac43$ ($1,2,3$ and $4$ times it), the other three are not ($2.55$, $2.97$ and $3.87$
-# times it), and **none exceeds $4\log_2\frac43$**. A multiple $j\log_2\frac43$ with $j\le k$ is what one gets when each
-# $T$ acts on a state that is still a stabilizer state at that point in the circuit, $j$ of them non-trivially: Section
-# 9.5 measured exactly $\log_2\frac43$ for one $T$ on a Clifford circuit, and additivity plus Clifford invariance then
-# give the multiples, while a $T$ that meets $\pm Z_q$ in the stabilizer group contributes nothing. Once two $T$ gates
-# interfere — the second acting on a state the first has already made non-stabilizer — that bookkeeping fails, and the
-# measured values fall *between* the multiples rather than above them. The average therefore already sits below
+# times it), and **none exceeds $4\log_2\frac43$**. A multiple $j\log_2\frac43$ with $j\le k$ is what one gets when
+# the final state is Clifford-equivalent to $(T\vert+\rangle)^{\otimes j}\otimes\vert0\rangle^{\otimes(N-j)}$: Clifford
+# invariance and additivity, Eq. (10), then give exactly $j\log_2\frac43$. This happens when $j$ of the $T$ gates act
+# non-trivially and on independent degrees of freedom, as the single $T$ of Section 9.5 does, while a $T$ that meets
+# $\pm Z_q$ in the stabilizer group contributes nothing. When two $T$ gates interfere, the second acting on degrees of
+# freedom the first has already made non-stabilizer, that bookkeeping fails, and the measured values fall *between* the
+# multiples rather than above them. The average therefore already sits below
 # $k\log_2\frac43$ at $k=4$, and the gap widens with $k$.
 #
 # Beyond $k\approx N$ the growth bends over and the curve approaches the Haar value from below. The measured milestones,
@@ -1641,25 +1665,165 @@ plt.show()
 # $k=2N$, $5.21$ bit ($87\%$) at $k=3N$ and $5.81$ bit ($97\%$) at $k=5N$. The last two points, $k=40$ and $k=48$, agree
 # within their error bars, so the curve has flattened there.
 #
-# **Saturation therefore sets in at a few times $N$, not at $k\sim N$.** Two remarks put that in context. First, a
-# counting bound. The rigorous version is the nullity bound of Section 6.6: a circuit with $k$ $T$ gates has
-# $\nu\le k$ and therefore $M_2\le k$, so reaching the Haar value $\log_2\frac{2^N+3}{4}\approx N-2$ needs at least
-# $k\ge N-2$, i.e. $k\ge6$ at $N=8$. A sharper — but here unproved — version assumes each $T$ gate raises $M_2$ by at
-# most $\log_2\frac43=0.415$ bit. That is what Section 9.5 measures for one $T$ on a stabilizer state, and what the
-# small-$k$ data above are consistent with; we have not found it stated as a theorem, so treat it as a working
-# assumption. Under it,
+# **The published growth law.** Leone, Oliviero and Hamma (2022) compute the average linear stabilizer entropy of a
+# *$k$-doped random Clifford circuit* $C_kKC_{k-1}K\cdots KC_0$, in which every $C_j$ is an independent, uniformly random
+# element of the full $N$-qubit Clifford group and every $K$ is the single-qubit phase gate $\mathrm{diag}(1,e^{i\theta})$
+# acting on one qubit. For the output state $C_kK\cdots KC_0\vert0\cdots0\rangle$, averaged over the Cliffords, their
+# result reads, with $d=2^N$,
 #
-# $$ k\ \ge\ \frac{N-2}{\log_2\frac43}\ =\ 2.41\,(N-2), \tag{19} $$
+# $$ \mathbb E\big[M_{\rm lin}\big]=1-\frac{4+(d-1)\,f^{\,k}}{d+3},\qquad f=\frac{7d^2-3d+d(d+3)\cos4\theta-8}{8(d^2-1)} . \tag{19} $$
 #
-# which is $k\ge14.5$ at $N=8$ and grows like $2.4N$ for large $N$. Eq. (19) is *necessary*, not sufficient, and the
-# measurement shows how far from sufficient it is: at $k=15$ the curve has reached about two thirds of the Haar value,
-# and it takes $k\approx40=5N$ to come within $3\%$.
+# Two checks: the phase gate $S$ ($\theta=\pi/2$) is Clifford, and indeed $\cos2\pi=1$ gives $f=1$ and
+# $\mathbb E[M_{\rm lin}]=0$ for every $k$; for $k\to\infty$ and $f<1$, Eq. (19) tends to the Haar value $1-4/(d+3)$ of
+# Eq. (15). For the $T$ gate, $\theta=\pi/4$, $\cos\pi=-1$ and $f=\frac{6d^2-6d-8}{8(d^2-1)}\to\frac34$, so the distance
+# from the Haar value shrinks by a factor of about $\frac34$ per $T$ gate. Converted to $M_2$ by the annealed estimate
+# $-\log_2\big(1-\mathbb E[M_{\rm lin}]\big)$ — a lower bound on $\mathbb E[M_2]$ by Jensen's inequality, exactly as in
+# Eq. (16) — the law has two regimes. While $(d-1)f^k\gg4$ it gives $-\log_2\frac{(d-1)f^k}{d+3}\approx k\log_2\frac43$,
+# one $T\vert+\rangle$ per gate; once $(d-1)f^k\ll4$ it gives the Haar value. The crossover $(d-1)(3/4)^k\approx4$ sits at
 #
-# Second, the well-known $k=\Theta(N)$ result for doped Clifford circuits (Leone, Oliviero, Zhou and Hamma 2021) is about
-# *different* diagnostics — the out-of-time-order correlators and the fluctuations of the subsystem purity — which reach
-# their Haar values already at $k=\Theta(N)$. Our measurement does not contradict it; it shows that $M_2$ itself is the
-# slower quantity of the two.
+# $$ k_\times\ \approx\ \frac{N-2}{\log_2\frac43}\ =\ 2.41\,(N-2), \tag{20} $$
 #
+# which is $14.5$ at $N=8$. The rigorous counting bound of Section 6.6 is weaker: a circuit with $k$ $T$ gates has
+# stabilizer nullity $\nu\le k$ and therefore $M_2\le k$, so reaching $\log_2\frac{2^N+3}{4}\approx N-2$ needs at least
+# $k\ge N-2$ gates, i.e. $k\ge6$ at $N=8$.
+#
+# **A control ensemble.** Our brick-wall circuit is not the ensemble of Eq. (19). Its $k$ $T$ gates are crowded into a
+# fixed depth of $2N$ layers of nearest-neighbour gates, so many of them act before the Clifford layers have spread the
+# state over the chain, and several act in the same or adjacent layers. At $k=48$ there are more $T$ gates than Clifford
+# layers. The next cell builds the closest local analogue of Eq. (19): the circuit opens with a block of $3N=24$
+# brick-wall Clifford layers, and each $T$ gate, on a uniformly random qubit, is followed by its own block of $24$ layers.
+# The two ensembles then separate the two candidate explanations. If the slow saturation in the table above is a
+# property of $M_2$, the control shows it as well; if it is a property of the crowded circuit, the control follows
+# Eq. (19). The layers are applied with `jax.lax.scan`, so one compilation per value of $k$ serves circuits of up to
+# $984$ layers.
+
+# %%
+# ==============================================================================
+# STEP 15b: control ensemble -- every T gate followed by its own block of Clifford layers
+# ==============================================================================
+GAP_dop = 3 * N_dop                                       # Clifford layers before the first T and after every T
+K_CTRL = [0, 1, 2, 4, 8, 12, 16, 24, 32, 40]
+
+
+@partial(jax.jit, static_argnames=("N",))
+def spaced_doped_state(layer_keys, t_qubit, N):
+    """Brick-wall Clifford circuit with at most one T gate per layer, applied to |0...0> with lax.scan.
+
+    LAYER  a uniformly random single-qubit Clifford on every qubit, then T on qubit t_qubit[layer] (no T if it is -1),
+           then CZ on the even (odd) bonds in even (odd) layers -- the same layer as in `doped_clifford_state`.
+    JAX    `lax.scan` over the layers: the body is traced once, so the compile time does not grow with the depth.
+           The number of layers is the length of `layer_keys`; N is static (it fixes the einsum strings).
+    """
+    def layer(psi, x):
+        key, tq, parity = x
+        idx = jax.random.randint(key, (N,), 0, 24)
+        for q in range(N):
+            psi = apply_gate(psi, CLIFF24[idx[q]], [q])
+            psi = apply_gate(psi, jnp.where(tq == q, T, I2), [q])
+        even, odd = psi, psi
+        for q in range(0, N - 1, 2):
+            even = apply_gate(even, CZ, [q, q + 1])
+        for q in range(1, N - 1, 2):
+            odd = apply_gate(odd, CZ, [q, q + 1])
+        return jnp.where(parity == 0, even, odd), None
+
+    parity = jnp.arange(layer_keys.shape[0]) % 2
+    psi, _ = jax.lax.scan(layer, zero_state(N), (layer_keys, t_qubit, parity))
+    return psi
+
+
+def spaced_t_schedule(key, k, gap, N):
+    """Qubit carrying a T in each of the gap*(k+1) layers: a random qubit in the last layer of blocks 0..k-1, else -1."""
+    tq = np.full(gap * (k + 1), -1, dtype=np.int32)
+    tq[gap * np.arange(1, k + 1) - 1] = np.asarray(jax.random.randint(key, (k,), 0, N))
+    return jnp.asarray(tq)
+
+
+d_dop = 2 ** N_dop
+f_T = (6 * d_dop ** 2 - 6 * d_dop - 8) / (8 * (d_dop ** 2 - 1))      # f of Eq. (19) at theta = pi/4
+t0 = time.time()
+ctrl_mlin, ctrl_mlin_err, ctrl_m2, ctrl_m2_err = [], [], [], []
+for k in K_CTRL:
+    kk = jax.random.split(jax.random.PRNGKey(8000 + k), 2 * R_dop)
+    layer_keys = jnp.stack([jax.random.split(kk[r], GAP_dop * (k + 1)) for r in range(R_dop)])
+    t_sched = jnp.stack([spaced_t_schedule(kk[R_dop + r], k, GAP_dop, N_dop) for r in range(R_dop)])
+    psis = jax.vmap(lambda a, b: spaced_doped_state(a, b, N_dop))(layer_keys, t_sched)
+    m2 = sre_batch_of_states(psis, 2.0, batch=64)
+    mlin = 1.0 - 2.0 ** (-m2)                                          # M_lin = 1 - 2^(-M_2), Section 6.6
+    ctrl_m2.append(m2.mean())
+    ctrl_m2_err.append(m2.std() / np.sqrt(R_dop))
+    ctrl_mlin.append(mlin.mean())
+    ctrl_mlin_err.append(mlin.std() / np.sqrt(R_dop))
+eq19_mlin = np.array([1.0 - (4 + (d_dop - 1) * f_T ** k) / (d_dop + 3) for k in K_CTRL])
+eq19_m2 = -np.log2(1.0 - eq19_mlin)                                    # annealed estimate, a lower bound on E[M_2]
+crowded = {k: (mean_dop[K_LIST.index(k)], err_dop[K_LIST.index(k)]) for k in K_CTRL if k in K_LIST}
+
+print(f"f(pi/4) = {f_T:.6f} at N = {N_dop};  control: {GAP_dop} Clifford layers per block, {R_dop} realisations "
+      f"per k ({time.time() - t0:.1f} s)\n")
+print(f"{'k':>3s} {'<M_lin> ctrl':>13s} {'+-':>8s} {'Eq. (19)':>9s}   {'<M_2> ctrl':>11s} {'+-':>7s} "
+      f"{'annealed':>9s}   {'<M_2> brick wall':>17s}")
+for i, k in enumerate(K_CTRL):
+    bw = f"{crowded[k][0]:9.4f} +- {crowded[k][1]:.4f}" if k in crowded else "-"
+    print(f"{k:3d} {ctrl_mlin[i]:13.5f} {ctrl_mlin_err[i]:8.5f} {eq19_mlin[i]:9.5f}   {ctrl_m2[i]:11.4f} "
+          f"{ctrl_m2_err[i]:7.4f} {eq19_m2[i]:9.4f}   {bw:>17s}")
+for i, k in enumerate(K_CTRL):
+    assert abs(ctrl_mlin[i] - eq19_mlin[i]) < 5 * ctrl_mlin_err[i] + 1e-2          # control follows Eq. (19)
+    assert ctrl_m2[i] > eq19_m2[i] - 5 * ctrl_m2_err[i] - 1e-2                    # and respects the Jensen bound
+for k in (16, 24):                                       # wrong control: the crowded circuit violates that bound
+    assert crowded[k][0] < eq19_m2[K_CTRL.index(k)] - 5 * crowded[k][1]
+
+# %%
+# ==============================================================================
+# FIGURE 5: magic against the number of T gates, crowded brick wall vs control vs Eq. (19)
+# ==============================================================================
+fig, ax = plt.subplots(figsize=(7.6, 4.6))
+ax.errorbar(K_LIST, mean_dop, yerr=err_dop, fmt=MARKERS[0] + "-", color=PALETTE[0], capsize=3,
+            label=rf"brick wall, depth $2N$ (Step 15)")
+ax.errorbar(K_CTRL, ctrl_m2, yerr=ctrl_m2_err, fmt=MARKERS[1] + "-", color=PALETTE[5], capsize=3,
+            label=rf"control: ${GAP_dop}$ Clifford layers after each $T$ (Step 15b)")
+k_fine = np.linspace(0, max(K_LIST), 200)
+ax.plot(k_fine, -np.log2((4 + (d_dop - 1) * f_T ** k_fine) / (d_dop + 3)), "-", color="k", lw=1.0,
+        label=r"Eq. (19), annealed: $-\log_2\frac{4+(d-1)f^k}{d+3}$")
+ax.plot(k_fine, k_fine * LOG2_4_3, "--", color=PALETTE[3], lw=1.2, label=r"$k\log_2(4/3)$ (one $T\vert+\rangle$ per $T$ gate)")
+ax.axhline(haar_dop, color=PALETTE[1], ls="-", lw=1.4, label=r"Haar value $\log_2\frac{2^N+3}{4}$")
+ax.axhline(np.log2((2 ** N_dop + 1) / 2), color=PALETTE[2], ls="--", lw=1.2, label=r"maximum, Eq. (11)")
+k_cross = (N_dop - 2) / LOG2_4_3
+ax.axvline(k_cross, color="k", lw=0.8, ls=":")
+ax.text(k_cross + 0.6, 0.3, r"$k_\times$, Eq. (20)", fontsize=9)
+ax.set_xlabel(r"number of $T$ gates $k$")
+ax.set_ylabel(r"$\langle M_2\rangle$ [bit]")
+ax.set_ylim(-0.2, np.log2((2 ** N_dop + 1) / 2) + 0.4)
+ax.set_title(rf"Magic of $T$-doped Clifford circuits, $N={N_dop}$, {R_dop} realisations per point")
+ax.legend(fontsize=7.5, loc="lower right")
+fig.tight_layout()
+plt.show()
+
+# %% [markdown]
+# **The control follows Eq. (19); the brick wall does not.** At every $k$ the control ensemble agrees with Eq. (19) for
+# $\langle M_{\rm lin}\rangle$ to within $6\times10^{-3}$, i.e. within $O(1/d)$ (the largest differences are at $k=4$
+# and $k=12$), and its $\langle M_2\rangle$ sits on or
+# just above the annealed curve, as Jensen's inequality requires. For $k\le4$ all $32$ control realisations return
+# exactly $k\log_2\frac43$, the magic of $(T\vert+\rangle)^{\otimes k}$. Eq. (19) lies slightly lower there, by $O(1/d)$,
+# because it includes the rare events in which a $T$ gate meets $\pm Z_q$ in the stabilizer group and does nothing; for
+# one gate their probability is $(2^N-1)/(4^N-1)=1/(2^N+1)\approx0.004$, too small to appear in $32$ samples. The
+# control saturates where Eq. (20) puts the crossover: it reaches about $89\%$ of the Haar value at $k=2N=16$ and
+# $98.5\%$ at $k=3N=24$.
+#
+# The crowded brick wall lags behind the control at every $k\ge1$. At $k=16$ and $k=24$ its $\langle M_2\rangle$ lies
+# more than five standard errors *below* the annealed curve, which is a lower bound for the ensemble of Eq. (19) (the
+# last assert of Step 15b). Even a single $T$ is affected: at $k=1$ the brick wall gives $0.350\pm0.027$ instead of
+# $0.415$. Since one $T$ on a stabilizer state yields either $\log_2\frac43$ or $0$ (Section 9.5), the $T$ gate did
+# nothing in a fraction $1-0.350/0.415\approx0.16\pm0.06$ of the brick-wall realisations, against $1/(2^N+1)\approx0.004$
+# after a global random Clifford. A state produced by a few layers of local gates is far more likely to have some $\pm Z_q$
+# in its stabilizer group than a uniformly random stabilizer state.
+#
+# The slow saturation in the brick-wall data is therefore a property of the circuit, a $T$ count crowded into a fixed,
+# shallow depth, and $M_2$ itself is not slow. For the ensemble of Eq. (19), $M_{\rm lin}$ reaches its Haar value
+# at $k=\Theta(N)$ (Leone, Oliviero and Hamma 2022), the same scaling that Leone, Oliviero, Zhou and Hamma (2021) found
+# for the eight-point out-of-time-order correlator and the fluctuations of the subsystem purity; Eq. (20) supplies the
+# constant, $2.41$ $T$ gates per qubit, for $M_2$.
+
+# %% [markdown]
 # The mean half-chain entanglement entropy in the last printed column is essentially independent of $k$: it fluctuates
 # between $2.75$ and $3.09$ bit with no trend, while the magic goes from $0$ to $5.8$ bit. The Clifford part of the
 # circuit has already produced most of the entanglement it ever will at $k=0$. That observation is the subject of the
@@ -1668,7 +1832,7 @@ plt.show()
 # %% [markdown]
 # ### 10.2 Magic and entanglement are different resources
 #
-# The claim of Section 1 — that entanglement does not make a state hard — deserves a direct measurement. We collect four
+# The claim of Section 1, that entanglement alone does not make a state hard, is tested directly here. We collect four
 # families of $N=8$ states and plot each one as a point in the (entanglement entropy, magic) plane:
 #
 # * **random stabilizer states**: the $k=0$ circuits above;
@@ -1771,29 +1935,29 @@ plt.show()
 # figure. Random product states lie on the **zero-entanglement axis** with $1.8$ to $3.3$ bits of magic. Haar states sit
 # alone in the **upper right**, tightly clustered at $S\approx3.3$ and $M_2\approx6.0$. GHZ, cluster and
 # $(T\vert+\rangle)^{\otimes8}$ fall on the two axes, and the $W$ state carries both at once: $1$ bit of half-chain
-# entropy and $3.36$ bit of magic. The fourth corner, the origin, is the one the figure does not bother to populate: it
-# holds the product stabilizer states such as $\vert0\rangle^{\otimes8}$.
+# entropy and $3.36$ bit of magic. The fourth corner, the origin, is not populated in the figure; it holds the product stabilizer states such as $\vert0\rangle^{\otimes8}$.
 #
-# The two quantities are not merely different numbers: they can be varied independently. A Clifford circuit moves a state
-# horizontally at fixed height zero; a layer of single-qubit rotations on a product state moves it vertically at fixed
+# The two quantities can be varied independently. A Clifford circuit moves a state horizontally at fixed magic; a layer of single-qubit rotations on a product state moves it vertically at fixed
 # abscissa zero. Any theory of "what makes a quantum state hard" needs both axes.
 #
 # > **Physics insight.** A stabilizer state with maximal entanglement is still a classical object in the sense of
-# > Gottesman-Knill: its $2^N$ amplitudes are determined by $N$ Pauli generators. Its entanglement entropy is large
-# > because the *bipartite correlations* are strong, not because the description is long. Magic measures the length of the
-# > description; entropy measures the correlations.
+# > Gottesman-Knill: its $2^N$ amplitudes are determined by $N$ Pauli generators, i.e. by $N(2N+1)$ bits. Its large
+# > entanglement entropy reflects strong *bipartite correlations* and coexists with this short description. Magic
+# > measures the distance from the set of states that admit such a description (the stabilizer nullity of Section 6.6,
+# > which bounds $M_\alpha$ from above, literally counts the missing generators); entropy measures the correlations.
 
 # %% [markdown]
 # ### 10.3 Magic of a many-body ground state: the transverse-field Ising chain
 #
 # The transverse-field Ising model (TFIM) is the standard laboratory for a quantum phase transition:
 #
-# $$ H(h) \;=\; -\sum_{\langle ij\rangle} Z_iZ_j \;-\; h\sum_i X_i , \tag{20} $$
+# $$ H(h) \;=\; -\sum_{\langle ij\rangle} Z_iZ_j \;-\; h\sum_i X_i , \tag{21} $$
 #
 # with a ferromagnetic phase for $h<1$, a paramagnetic phase for $h>1$ and a critical point at $h=1$ in the thermodynamic
 # limit. Both limits are stabilizer states: at $h=0$ the ground states are $\vert0\cdots0\rangle$ and
 # $\vert1\cdots1\rangle$ (and the symmetric cat state built from them, which is GHZ), at $h\to\infty$ it is
-# $\vert+\rangle^{\otimes N}$. Magic must therefore vanish at both ends and be non-zero in between. Where does it peak?
+# $\vert+\rangle^{\otimes N}$. Magic must therefore vanish at both ends and be non-zero in between, and the location of its
+# maximum is the quantity of interest.
 #
 # **A numerical subtlety that has to be dealt with first.** For $h<1$ the two symmetry-broken ground states are
 # exponentially close in energy, so a plain Lanczos run returns an arbitrary superposition $\alpha\vert0\cdots0\rangle+\beta\vert1\cdots1\rangle$
@@ -1811,7 +1975,7 @@ plt.show()
 # ==============================================================================
 @partial(jax.jit, static_argnames=("N", "periodic"))
 def tfim_apply(psi, h, N, periodic):
-    """H|psi> for H = -sum_<ij> Z_i Z_j - h sum_i X_i   (Eq. 20), matrix-free.
+    """H|psi> for H = -sum_<ij> Z_i Z_j - h sum_i X_i   (Eq. 21), matrix-free.
 
     JAX  `h` is TRACED, N and `periodic` are static -> one compilation serves the whole field sweep.
     COST O(N 2^N) per call.
@@ -1826,7 +1990,7 @@ def tfim_apply(psi, h, N, periodic):
 
 
 def tfim_ground_state(N, h, periodic=True, m=32, restarts=2, seed=0):
-    """Ground state of Eq. (20) inside the EVEN-PARITY sector (Pi = prod_q X_q = +1).
+    """Ground state of Eq. (21) inside the EVEN-PARITY sector (Pi = prod_q X_q = +1).
 
     WHY  for h < 1 the two symmetry-broken ground states are quasi-degenerate; an unconstrained Lanczos
          returns an arbitrary superposition of them, which is not a stabilizer state even at h = 0.
@@ -1928,14 +2092,15 @@ plt.show()
 #
 # Two limitations of our own measurement belong with it. The field grid has spacing $\Delta h=0.1$, so "the peak is
 # at $h=1.00$" means only that it lies within $\pm0.05$ of the critical point; a displacement smaller than that cannot be
-# seen here. And $\alpha(h)$ is a two-parameter fit to three sizes with no error bar — it is a slope, not a
-# thermodynamic limit. Exercise 5 asks you to push the grid and the sizes and to say honestly what that changes.
+# seen here. And $\alpha(h)$ is a two-parameter fit to three sizes with no error bar; it is a finite-size slope and
+# carries no information about corrections beyond linear order in $N$. Exercise 5 pushes the grid and the sizes.
 #
 # On the **open chain** the peak sits at $h=0.80$ ($N=6,8$) and $h=0.90$ ($N=10$) on our grid, drifting towards $h=1$ as
 # $N$ grows but clearly displaced at these sizes. The two boundary spins have only one neighbour and behave as if the
 # ordering field were weaker, which shifts the effective transition to smaller $h$; a $10$-spin open chain has $20\%$ of
 # its spins on the boundary. The lesson is methodological: **the location of a peak in a finite-size many-body quantity
-# depends on the boundary conditions**, and the ring is the honest geometry for reading off a bulk property from $N\le10$.
+# depends on the boundary conditions**, and the ring, which has no boundary, is the geometry from which a bulk property
+# can be read off at $N\le10$.
 #
 # **A caveat the literature insists on.** Haug and Piroli (2023), using matrix-product states at much larger $N$, find that
 # the stabilizer Renyi entropy is in general *not* maximal at the critical point and that where it peaks depends on the
@@ -1946,7 +2111,7 @@ plt.show()
 # shows.
 #
 # A separate sanity check worth stating: the magic is a *global* quantity, invariant under all Clifford unitaries, but not
-# under general basis changes. Rewriting Eq. (20) with $X$ and $Z$ exchanged is a global Hadamard, which is Clifford, so
+# under general basis changes. Rewriting Eq. (21) with $X$ and $Z$ exchanged is a global Hadamard, which is Clifford, so
 # it leaves every number in the figure unchanged.
 
 # %% [markdown]
@@ -2006,26 +2171,33 @@ plt.show()
 
 # %% [markdown]
 # The two curves have completely different shapes. The magic density rises from zero to about $0.6$ bit per qubit within
-# $t\approx1$ — a time set by the local coupling, not by the system size — and then only fluctuates around that plateau
-# for the rest of the run. The entanglement entropy is still rising at $t=1$, grows almost linearly up to $t\approx3$,
-# which is the ballistic spreading of correlations at the Lieb-Robinson velocity, and then *turns over*: its maximum
-# ($2.81$ bit, between the printed snapshots) falls at $t\approx3.4$, it is still $2.77$ bit at $t=3.6$, and by $t=4.8$ it
-# has dropped to $1.96$. That turn-over is not saturation but a finite-size effect — the quasiparticle pairs that carry
-# the entanglement reflect off the ends of the open chain and return across the cut, so the entropy of the half cut
-# oscillates instead of saturating. The time scale of the maximum therefore grows with $N$ while the magic plateau is
-# reached at a fixed time; Exercise 8 measures exactly that. Magic saturates on the time scale set by the local
-# couplings; entanglement has to wait for quasiparticles to travel the length of the chain, and on a small chain it never
-# forgets that they come back.
+# $t\approx1$ — a time set by the local couplings and independent of the system size — and then fluctuates between
+# $0.56$ and $0.66$ bit per qubit for the rest of the run. Most of the early rise is single-site physics: the field term
+# alone would rotate every spin to $\cos t\vert0\rangle+i\sin t\vert1\rangle$, with Bloch vector
+# $(0,\sin2t,\cos2t)$ up to the sign of the $y$ component, and Eq. (12) then gives
+# $1-\log_2(1+\sin^42t+\cos^42t)=0.415$ bit per qubit at $t=0.4$, against the measured $0.49$.
 #
-# The plateau of $M_2/N\approx0.62$-$0.66$ sits well below the Haar line at $0.80$: a Hamiltonian evolution conserves
-# energy and therefore cannot reach the fully random state, unlike the doped random circuits of Section 10.1.
+# The entanglement entropy is still rising at $t=1$ and grows almost linearly up to $t\approx3$. This is the ballistic
+# spreading of correlations carried by quasiparticles, whose maximal velocity, $2$ in units of the coupling at $h=1$,
+# respects the Lieb-Robinson bound. Then the entropy *turns over*: its maximum ($2.81$ bit, between the printed
+# snapshots) falls at $t\approx3.4$, it is still $2.77$ bit at $t=3.6$, and by $t=4.8$ it has dropped to $1.96$. The
+# turn-over is a finite-size effect: the quasiparticle pairs that carry the entanglement reflect off the ends of the open
+# chain and return across the cut, so the entropy of the half chain oscillates where an infinite chain would keep
+# growing. The time of the maximum therefore grows with $N$ while the magic plateau is reached at a fixed time;
+# Exercise 8 measures exactly that. Magic saturates on the time scale set by the local couplings, whereas entanglement
+# has to wait for quasiparticles to travel the length of the chain.
+#
+# The plateau of $M_2/N$ sits well below the Haar line at $0.80$. A Hamiltonian evolution conserves energy: the state keeps
+# $\langle H\rangle\approx-9$, whereas Haar-random states have $\langle H\rangle$ concentrated near
+# $\mathrm{Tr}H/2^N=0$, so the evolved state cannot become Haar-typical, unlike the outputs of the doped random circuits of
+# Section 10.1.
 #
 # The printed energy drift is the convergence check for the Trotter splitting: the total variation of
 # $\langle H\rangle$ over the $200$ steps is $4.7\times10^{-3}$ on a total energy of $-9$, i.e. five parts in $10^4$.
 # Most of it is the one-time $O(\Delta t^2)$ offset acquired in the first few steps — $\langle H\rangle$ leaves
 # $-9.000000$ and settles near $-8.997$ by $t=0.8$ — and the rest is a bounded $O(\Delta t^2)$ oscillation of order
 # $10^{-3}$ around that value, with no systematic trend over the run. A second-order Trotter step is the exact
-# evolution of a nearby Hamiltonian, so this is the expected signature: a small offset plus oscillation, not a drift.
+# evolution of a nearby Hamiltonian, so this is the expected signature: a small offset plus a bounded oscillation.
 
 # %% [markdown]
 # ## 11. Mixed states: why the same formula must not be used
@@ -2035,8 +2207,8 @@ plt.show()
 #
 # $$ \sum_P\langle P\rangle^2 \;=\; 2^N\,\mathrm{Tr}(\rho^2)\;<\;2^N , $$
 #
-# so $\Xi_P=\langle P\rangle^2/2^N$ is **not normalised** and is not a probability distribution at all. One can of course
-# still evaluate the formula, and the result is a disaster. Take the maximally mixed state $\rho=\mathbb 1/2^N$: all Pauli
+# so $\Xi_P=\langle P\rangle^2/2^N$ is **not normalised** and is not a probability distribution at all. The formula can
+# still be evaluated, but the result does not measure magic. Take the maximally mixed state $\rho=\mathbb 1/2^N$: all Pauli
 # expectations vanish except $\langle\mathbb 1\rangle=1$, so $\sum_P\langle P\rangle^{2\alpha}=1$ and Eq. (9) returns
 #
 # $$ M_\alpha\big(\mathbb 1/2^N\big)=\frac{1}{1-\alpha}\log_2\frac{1}{2^N}=\frac{N}{\alpha-1}, \qquad\text{e.g. } M_2=N , $$
@@ -2115,7 +2287,7 @@ print(f"\nN = {N_m}: the maximally mixed state is reported as having M_2 = {N_m}
 # | TFIM ground state, Lanczos, one field value | $O(m\,N2^N)$ | $O(m2^N)$ | $N=10$, $m=32$ |
 # | one second-order TEBD step | $O(N2^N)$ | $O(2^N)$ | $N=10$ |
 #
-# The Walsh-Hadamard algorithm is exact — it is a reorganisation of the same $4^N$-term sum, not an approximation — and it
+# The Walsh-Hadamard algorithm is exact — it reorganises the same $4^N$-term sum without approximation — and it
 # buys a factor $2^N$ in arithmetic, which is $8192$ at $N=13$. Going substantially beyond $N\approx15$ on a single core needs a
 # different idea: either sampling the Pauli distribution by Monte Carlo (Tarabunga, Tirrito, Chanda and Dalmonte 2023;
 # Haug, Lee and Kim 2024) or representing the state as a matrix product state and contracting the replicated network
@@ -2123,9 +2295,9 @@ print(f"\nN = {N_m}: the maximally mixed state is reported as having M_2 = {N_m}
 #
 # ## 13. Key takeaways
 #
-# * **Entanglement is not the resource that makes quantum computation hard.** Stabilizer states can be maximally entangled
-#   and are still simulable in polynomial time (Gottesman-Knill). Figure 6 shows random stabilizer states with the full
-#   $4$ bits of half-chain entropy and exactly zero magic.
+# * **Entanglement alone does not make quantum computation hard.** Stabilizer states can be maximally entangled and are
+#   still simulable in polynomial time (Gottesman-Knill). In Figure 6 the random Clifford-circuit states carry $1$ to $3$
+#   bits of half-chain entropy and the product of four Bell pairs the maximal $4$ bits, all with exactly zero magic.
 # * **The characteristic distribution.** For a pure state, $\Xi_P=\langle P\rangle^2/2^N$ is a probability distribution
 #   over the $4^N$ Pauli strings (a consequence of purity alone), and stabilizer states are exactly those for which it is
 #   uniform on $2^N$ strings and zero elsewhere.
@@ -2143,21 +2315,24 @@ print(f"\nN = {N_m}: the maximally mixed state is reported as having M_2 = {N_m}
 #   Walsh-Hadamard transform of $f_a[s]=\psi^*[s\oplus a]\psi[s]$, and the transform is the matrix
 #   $\begin{pmatrix}1&1\\1&-1\end{pmatrix}$ applied to every tensor axis. Cost $O(N4^N)$ instead of $O(N8^N)$; measured
 #   agreement with brute force to $10^{-14}$ on every state family, and $N=13$ inside a notebook cell.
-# * **Physics.** The first $T$ gates of a doped Clifford circuit each add $\log_2\frac43$ or nothing; saturation towards
-#   the Haar value is slower than $k\sim N$ and needs a few times $N$, well beyond the necessary counting bound
-#   $k\ge(N-2)/\log_2\frac43$ of Eq. (19). In the Ising ring the magic density peaks at $h=1$ (within the grid spacing
+# * **Physics.** When the Clifford gates between consecutive $T$ gates scramble the state, the first $T$ gates each add
+#   $\log_2\frac43$ (or, rarely, nothing), and the average magic follows the closed form Eq. (19) of Leone, Oliviero and
+#   Hamma, approaching the Haar value by a factor of about $\frac34$ per $T$ gate, with the crossover at
+#   $k_\times\approx2.41(N-2)$, Eq. (20). Crowding the same $T$ gates into a shallow brick wall slows the approach
+#   considerably, which is a property of that circuit. In the Ising ring the magic density peaks at $h=1$ (within the grid spacing
 #   $\Delta h=0.1$) with $\alpha(1)=0.4417$, while
 #   in the open chain finite-size boundary effects displace the peak to $h\approx0.8$-$0.9$. After a quench, magic
 #   equilibrates on an $O(1)$ time scale while entanglement spreads ballistically.
 # * **Mixed states.** The same formula applied to $\rho$ is not a magic measure: $\sum_P\Xi_P$ equals the purity, and the
-#   maximally mixed state — a free classical mixture of stabilizer states — is reported as maximally magical.
+#   maximally mixed state — a free classical mixture of stabilizer states — is reported as more magical than any pure
+#   state can be.
 #
 # ## 14. Exercises
 #
 # 1. ★ **Real states are less magical.** For the real family $\vert\psi(t)\rangle=\cos t\,\vert0\rangle+\sin t\,\vert1\rangle$
 #    compute the Bloch vector, insert it into Eq. (12), and maximise over $t$ analytically. Compare the maximum with
 #    $\log_2\frac32$ and explain the difference geometrically. (Check: the maximum is at $t=\pi/8$ and equals
-#    $\log_2\frac43$, not $\log_2\frac32$ — real states have $r_y=0$, so they live on a great circle that misses all eight
+#    $\log_2\frac43$, below $\log_2\frac32$ — real states have $r_y=0$, so they live on a great circle that misses all eight
 #    $T$-type directions.)
 # 2. ★ **The W state.** Compute $M_2(\vert W_N\rangle)$ for $N=2,\dots,6$ with `sre`. One of the values is exactly zero;
 #    identify which and say why. (Check: $\vert W_2\rangle=(\vert01\rangle+\vert10\rangle)/\sqrt2$ is the Bell state
@@ -2176,22 +2351,31 @@ print(f"\nN = {N_m}: the maximally mixed state is reported as having M_2 = {N_m}
 #    independently again.
 # 4. ★★ **$M_\infty$ is useless.** Define $M_\infty=\lim_{\alpha\to\infty}M_\alpha=-\log_2\max_P\Xi_P-N$. Prove that
 #    $M_\infty=0$ for *every* pure state (hint: $\Xi_{\mathbb 1}=2^{-N}$ always, and $\Xi_P\le2^{-N}$ always), and confirm
-#    it numerically on a Haar-random state and on $(T\vert+\rangle)^{\otimes3}$. Then plot $M_\alpha$ against $\alpha$ for
-#    $T\vert+\rangle$, the $T$-type state and a Haar state, and explain the ordering of the three curves at small
-#    $\alpha$ and their common approach to zero.
+#    it numerically on a Haar-random state and on $(T\vert+\rangle)^{\otimes3}$ (the approach is slow: $M_\alpha$ falls
+#    off like $1/\alpha$, so evaluate at $\alpha$ of order $10^2$). Then plot $M_\alpha$ against $\alpha$ for three
+#    single-qubit states, $T\vert+\rangle$, the $T$-type state and a Haar-random state, and explain the ordering of the
+#    three curves at small $\alpha$ and their common approach to zero. (Check: as $\alpha\to0$,
+#    $M_\alpha\to\log_2(\text{number of strings with }\Xi_P>0)-N$, which is $\log_2 3-1=0.585$ for $T\vert+\rangle$ and
+#    $1$ for the other two; at $\alpha=2$ the $T$-type state is the largest, with $0.585$.)
 # 5. ★★ **Boundary conditions and the peak (physics).** Extend Step 18 to $N=12$ for the open chain and locate the maximum
-#    of $M_2/N$ on a grid of spacing $0.05$ in $h$. Does the peak continue to drift towards $h=1$? Estimate the drift per
-#    added spin and say honestly whether three or four sizes can determine a limit.
+#    of $M_2/N$ on a grid of spacing $0.05$ in $h$. Determine whether the peak continues to drift towards $h=1$, estimate
+#    the drift per added spin, and state whether three or four sizes can determine a limit. (Check, on the grid
+#    $0.60,0.65,\dots,1.20$: the open-chain maximum sits at $h=0.80$, $0.85$, $0.85$, $0.90$ for $N=6,8,10,12$, with
+#    $M_2/N=0.347$, $0.364$, $0.375$, $0.383$; the peak moves by $0.1$ in $h$ over the six added spins, i.e. by about one grid spacing per three spins, which
+#    three or four sizes cannot extrapolate reliably.)
 # 6. ★★ **Quenched versus annealed averages.** Section 7.3 gives an *exact* result for $\langle M_{\rm lin}\rangle$ and
 #    only a lower bound for $\langle M_2\rangle$. Measure the full distribution of $\zeta=\sum_P\langle P\rangle^4$ over
 #    $500$ Haar states at $N=2,4,6$, plot its histogram, and check that the gap
 #    $\log_2\mathbb E[\zeta]-\mathbb E[\log_2\zeta]$ equals $\tfrac12\mathrm{Var}(\zeta)/(\ln 2\,\mathbb E[\zeta]^2)$, the
 #    second-order term of the expansion of $\mathbb E[-\log\zeta]$ around $\mathbb E[\zeta]$. (Estimate *both* sides from
 #    the same sample — put the sample mean of $\zeta$ inside the logarithm rather than the exact $4d/(d+3)$. The two
-#    estimators are then strongly correlated and the gap is resolved even though it is $7.6\times10^{-4}$ bit at $N=6$,
-#    far below the $\pm2\times10^{-3}$ error bar of $\langle M_2\rangle$ itself. Check: $0.0113$ vs $0.0120$ at $N=2$,
-#    $0.0057$ vs $0.0062$ at $N=4$, $0.00076$ vs $0.00076$ at $N=6$.)
-# 7. ★★ **Batch over states, not over Pauli patterns (extend the code).** `sre_batch_of_states` vmaps over both axes at
+#    estimators are then strongly correlated and the gap is resolved even though it is below $10^{-3}$ bit at $N=6$,
+#    far below the $\pm2\times10^{-3}$ error bar of $\langle M_2\rangle$ itself. Check, from two independent sets of
+#    $500$ states: $0.0113$ and $0.0116$ against $0.0120$ and $0.0125$ at $N=2$; $0.0057$ and $0.0058$ against $0.0062$
+#    at $N=4$; $0.00076$ and $0.00089$ against $0.00076$ and $0.00092$ at $N=6$. The second-order term reproduces the gap
+#    to within about $10\%$, it lies above it at every size, which is the sign of the neglected higher orders, and at
+#    $N=6$ the sample-to-sample scatter of both sides is about $15\%$.)
+# 7. ★★ **Batching over states and over Pauli patterns (extend the code).** `sre_batch_of_states` vmaps over both axes at
 #    once. Write a variant that vmaps *only* over states and loops over $a$ in Python, and a variant that vmaps only over
 #    $a$ and loops over states. Measure all three at $N=8$ with $64$ states, report the peak memory each one needs
 #    (count the live arrays) and explain the ordering.
@@ -2200,12 +2384,15 @@ print(f"\nN = {N_m}: the maximally mixed state is reported as having M_2 = {N_m}
 #    of its plateau — for the entanglement there is no plateau on these chain lengths, so use $90\%$ of its *maximum*
 #    instead — and show that one of the two times is independent of $N$ while the other grows linearly with $N$. Explain
 #    the difference with the Lieb-Robinson light cone. (Check, with $\Delta t=0.025$ and snapshots every $4$ steps: the
-#    magic reaches $90\%$ of its plateau at $t=0.60$ for all three sizes, while the entanglement needs $t=2.50,\,3.00$
+#    magic reaches $90\%$ of its plateau, defined as the mean of $M_2/N$ over $1\le t\le5$, at $t=0.50$, $0.60$, $0.60$
+#    for $N=8,10,12$ (plateaus $0.561$, $0.630$, $0.639$ bit per qubit), the same to within the snapshot spacing $0.1$, while the entanglement needs $t=2.50,\,3.00$
 #    and $3.50$, and its maximum moves from $t=2.9$ to $3.4$ to $4.0$. Budget: $N=12$ needs about a minute for the magic
 #    alone.)
 #
 # ## 15. References
 #
+# * C. Gidney and M. Ekerå, *How to factor 2048 bit RSA integers in 8 hours using 20 million noisy qubits*,
+#   Quantum **5**, 433 (2021) — the Toffoli count quoted in Section 1.
 # * D. Gottesman, *Stabilizer codes and quantum error correction*, Ph.D. thesis, California Institute of Technology (1997);
 #   arXiv:quant-ph/9705052 — the stabilizer formalism, Section 4.1.
 # * D. Gottesman, *The Heisenberg representation of quantum computers*, in *Group22: Proceedings of the XXII International
@@ -2230,7 +2417,9 @@ print(f"\nN = {N_m}: the maximally mixed state is reported as having M_2 = {N_m}
 #   computations*, Quantum Sci. Technol. **5**, 035009 (2020) — the stabilizer nullity, Section 6.6.
 # * L. Leone, S. F. E. Oliviero and A. Hamma, *Stabilizer Renyi entropy*, Phys. Rev. Lett. **128**, 050402 (2022) —
 #   the definition of $M_\alpha$, its properties, the bound $\log_2\frac{2^N+1}{2}$, the nullity bound
-#   $M_\alpha\le\nu$ of Section 6.6, and the Haar average $\mathbb E[M_{\rm lin}]=1-4/(2^N+3)$ of Section 7.3.
+#   $M_\alpha\le\nu$ of Section 6.6, the Haar average $\mathbb E[M_{\rm lin}]=1-4/(2^N+3)$ of Section 7.3, and the
+#   average linear stabilizer entropy of $k$-doped random Clifford circuits, Eq. (19) of Section 10.1 (Eq. (13) of the
+#   paper).
 # * L. Leone, S. F. E. Oliviero, Y. Zhou and A. Hamma, *Quantum chaos is quantum*, Quantum **5**, 453 (2021) —
 #   $k=\Theta(N)$ non-Clifford gates are necessary and sufficient for the eight-point out-of-time-order correlator and
 #   the fluctuations of the subsystem purity of a doped Clifford circuit to reach their Haar values, quoted in

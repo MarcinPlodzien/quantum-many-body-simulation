@@ -1,6 +1,6 @@
 #@title: Quantum reservoir computing — many-body dynamics as a machine for time series
 #@part: Chapter 12 — Quantum reservoir computing
-#@description: A driven many-body spin system as a trainable machine: input encoding by qubit reset, Hamiltonian dynamics as a nonlinear feature map with fading memory, ridge-regression readout, memory capacity, NARMA and Santa Fe laser prediction, density tensor versus trajectories, finite measurement statistics and decoherence.
+#@description: A driven many-body spin system as a trainable machine: input injection by qubit reset (a replacement channel), Hamiltonian dynamics between injections as a feature map with fading memory, ridge-regression readout, memory capacity and its finite-data bias, NARMA and Santa Fe laser prediction against tuned classical baselines, density tensor versus trajectories, finite measurement statistics and decoherence.
 
 # %% [markdown]
 # ## 1. Introduction and motivation
@@ -20,12 +20,12 @@
 # then reduces to linear regression, which is convex and has a closed-form solution.
 #
 # Nothing in that recipe says the reservoir has to be a neural network. It has to be a driven dynamical system with memory and
-# nonlinearity — and a many-body quantum system driven by repeated resets of one of its qubits is exactly that. Fujii and
+# nonlinearity, and a many-body quantum system driven by repeated resets of one of its qubits is such a system. Fujii and
 # Nakajima made this precise in 2017: the reservoir is a spin network with a fixed Hamiltonian, the input is written into one
-# spin, the dynamics is unitary evolution for a fixed time $\tau$, and the features are the expectation values
-# $\langle Z_i\rangle$, $\langle Z_iZ_j\rangle$, ... that one would measure anyway. The Hilbert space of $N$ qubits has
+# spin, the dynamics is unitary evolution for a fixed time $\tau$, and the features are the single-qubit expectation values
+# $\langle Z_i\rangle$ of all qubits, read out several times per interval. Here we also use two-body correlators. The Hilbert space of $N$ qubits has
 # dimension $2^N$ and the space of density matrices has $4^N$ real dimensions, so a handful of qubits carries a very large
-# internal state; the question this notebook asks — and answers with numbers — is how much of that is actually usable.
+# internal state; the question this notebook answers with numbers is how much of that is usable.
 #
 # **Road map.**
 #
@@ -34,32 +34,38 @@
 #   series, and the three benchmark tasks (linear memory capacity, NARMA, chaotic laser prediction) with their known bounds.
 # * Section 3 defines the quantum reservoir: the qubit layout, the input encoding, the reset as a completely positive map
 #   (derived), the Hamiltonian family, the readout observables and temporal multiplexing, and the proof that the features are
-#   multilinear functions of trigonometric functions of the past inputs.
+#   multilinear functions of trigonometric functions of the past inputs, with the source of each nonlinearity identified.
 # * Section 4 implements the protocol twice — as a density tensor and as pure-state trajectories — validates both against a
-#   dense-matrix reference, and measures the $1/\sqrt{M}$ statistical error.
+#   dense-matrix reference, measures the $1/\sqrt{M}$ statistical error, and shows that the comparison rejects a wrong
+#   channel.
 # * Section 5 measures the echo-state property directly: two different initial states, the same input, the trace distance
 #   between them as a function of step.
 # * Section 6 measures the linear memory capacity against the number of readout features, the evolution time, the number of
-#   qubits, the disorder strength and the number of virtual nodes.
-# * Sections 7 and 8 run the NARMA and Santa Fe laser tasks and compare the quantum reservoir with two classical baselines
-#   trained in exactly the same way.
-# * Section 9 replaces exact expectation values by estimates from $M$ measurement repetitions and asks what that costs.
-# * Section 10 lets the reservoir decohere during its evolution and measures whether mild dissipation helps.
+#   qubits, the disorder strength and the number of virtual nodes, with a null control for its finite-data bias.
+# * Sections 7 and 8 run the NARMA and Santa Fe laser tasks and compare the quantum reservoir with classical baselines of
+#   the same feature count, trained with the same protocol and with their hyper-parameters chosen on the validation block.
+# * Section 9 replaces exact expectation values by estimates from $M$ measurement repetitions, derives how the shot noise
+#   propagates through the regression, and checks the prediction.
+# * Section 10 lets the reservoir decohere during its evolution and measures how dissipation changes memory and task errors.
 # * Section 11 collects the cost model and the timings.
 #
 # ### What you will learn
 #
 # **Physics**
 # * how a driven open many-body system acts as a nonlinear filter with fading memory, and where that memory physically lives;
-# * why an erasure (a qubit reset) — not the unitary dynamics — is what makes the map forget its initial condition;
+# * why the erasure of a qubit makes the map forget its initial condition while the unitary dynamics alone never can;
+# * where the nonlinearity comes from: the encoding supplies $\cos\pi u$ and $\sin\pi u$ of each input, and the products
+#   across different times come from the input entering the state multiplicatively at every reset;
 # * what a measurement readout of a reservoir really costs, and how decoherence changes the trade-off between memory and
 #   nonlinearity.
 #
 # **Numerical methods**
-# * ridge regression from the normal equations, its singular-value form, and why regularisation is not optional here;
-# * memory capacity and its rigorous upper bound by the number of linearly independent state variables;
+# * ridge regression from the normal equations, its singular-value form, and when regularisation matters (and when the
+#   measurement noise regularises the fit by itself);
+# * memory capacity, its rigorous upper bound by the number of linearly independent state variables, and its bias at finite
+#   data length;
 # * statistics over random reservoirs (medians and bands, never a single run), train/validation/test splitting for
-#   correlated data, and honest baselines.
+#   correlated data, and baselines whose hyper-parameters are tuned with the same care as the model under test.
 #
 # **Implementation practice**
 # * the entire drive over a time series as one `lax.scan` whose carry is the quantum state and whose outputs are the
@@ -80,7 +86,7 @@
 # Pauli matrices (not spin-$1/2$ operators), qubit $q$ is tensor axis $q$.
 
 # %%
-#@engine: I2, X, Y, Z, P0, SM, XX, YY, ZZ, ry, apply_gate, apply_gate_dm, apply_kraus_dm, zero_state, haar_state, to_dm, dm_matrix, rdm, rdm_dm, reset_qubit, sample_bitstrings, trace_distance, purity, kraus_from_jump, tebd_gates, apply_gates, apply_gates_dm, exact_evolve
+#@engine: I2, X, Y, Z, P0, SM, XX, YY, ZZ, ry, apply_gate, apply_gate_dm, apply_kraus_dm, zero_state, haar_state, to_dm, dm_matrix, rdm, rdm_dm, reset_qubit, sample_bitstrings, trace_distance, purity, kraus_from_jump, kraus_dephasing, kraus_amplitude_damping, tebd_gates, apply_gates, apply_gates_dm
 
 # %% [markdown]
 # ## 2. Reservoir computing
@@ -124,8 +130,9 @@
 #
 # Without it the features depend on an arbitrary initial condition and nothing learned on a training block transfers to a test
 # block. For the standard sigmoid network $\mathbf{x}_k=\tanh(W\mathbf{x}_{k-1}+w_{\rm in}u_k)$ a *sufficient* condition is
-# that $W$ be a contraction, $\sigma_{\max}(W)<1$; the widely used recipe "spectral radius $\rho(W)<1$" is a practical
-# heuristic and is **not** sufficient in general, as Yildiz, Jaeger and Kiebel showed with explicit counterexamples.
+# that $W$ be a contraction, $\sigma_{\max}(W)<1$ (Jaeger, GMD Report 148); the widely used recipe "spectral radius
+# $\rho(W)<1$" is a practical heuristic and is **not** sufficient in general, as Yildiz, Jaeger and Kiebel showed with
+# analytical counterexamples.
 #
 # **(b) Separation and nonlinearity.** Different input histories must give different states (otherwise no readout can tell
 # them apart), and the map from inputs to features must be nonlinear — a linear reservoir with a linear readout is just a
@@ -201,29 +208,45 @@
 # state variables, with equality when the system has fading memory and the state variables are linearly independent. For us
 # the "state variables" are the readout features, so the bound reads $\mathrm{MC}\le p$ with $p$ the number of features. Two
 # caveats that Section 6 will make quantitative: the bound counts *linearly independent* variables, and our features are far
-# from independent; and both statements assume an i.i.d. input, which the laser series of Section 8 is emphatically not.
+# from independent; and both statements assume an i.i.d. input, which the laser series of Section 8 is not.
+#
+# **Estimating $C(\tau)$ from finite data.** Eq. (5) is a population quantity; we estimate it as the squared sample
+# correlation on a test block of $n_{\rm te}$ points, with weights fitted on a separate training block. Two biases of
+# opposite sign follow.
+#
+# * *Upward, from the test block.* If the features carry no information about $u_{k-\tau}$, the prediction and the target
+#   are independent, their true correlation is zero, and the squared sample correlation of $n_{\rm te}$ independent pairs
+#   has expectation $1/(n_{\rm te}-1)$. Summed over $\tau_{\max}$ delays, a reservoir with no memory at all scores
+#   $\mathrm{MC}\approx\tau_{\max}/(n_{\rm te}-1)$, and a reservoir with long but faint memory collects many such small
+#   positive terms.
+# * *Downward, from the training block.* Weights estimated from $n_{\rm tr}$ noisy samples differ from the optimal ones, and
+#   any error in $\mathbf{w}$ lowers the correlation on fresh data.
+#
+# Section 6 measures the first with a null control (an independent random sequence as target) and the second by repeating
+# the measurement on a much longer series.
 #
 # **NARMA.** A nonlinear auto-regressive moving-average system driven by $u_k\sim\mathcal{U}[0,0.5]$. We use the second-order
-# system of Atiya and Parlos,
+# system of Atiya and Parlos, in the form quoted by Fujii and Nakajima,
 #
 # $$ y_{k+1} = 0.4\,y_k + 0.4\,y_k y_{k-1} + 0.6\,u_k^3 + 0.1, \tag{6}$$
 #
-# and the $n$-th order form that the reservoir-computing literature quotes as NARMA-$n$ (introduced for $n=10$ by Atiya and
-# Parlos and written in this general form by Rodan and Tiňo),
+# and the $n$-th order form that the reservoir-computing literature calls NARMA-$n$ (introduced for $n=10$ by Atiya and
+# Parlos; the general form with the coefficients $0.3,0.05,1.5,0.1$ for any $n$ is written down by Fujii and Nakajima),
 #
 # $$ y_{k+1} = 0.3\,y_k + 0.05\,y_k\sum_{i=0}^{n-1}y_{k-i} + 1.5\,u_{k-n+1}u_k + 0.1 . \tag{7}$$
 #
-# The target depends on its own past, so a good score needs memory of order $n$ steps *and* products of inputs.
+# The target depends on its own past, so a good score needs memory of order $n$ steps *and* products of inputs. (Fujii and
+# Nakajima drive their NARMA tasks with inputs in $[0,0.2]$; we keep the interval $[0,0.5]$ of the echo-state literature.)
 #
 # **Santa Fe laser data.** Data set A of the Santa Fe time-series competition: the intensity of a far-infrared
-# $^{14}$NH$_3$ laser in a chaotic regime, recorded by U. Hübner with N. B. Abraham and C. O. Weiss and contributed to the
-# competition edited by Weigend and Gershenfeld. The series is famous for its intermittent collapses, which is exactly what a
-# purely linear model cannot predict.
+# $^{14}$NH$_3$ laser in a chaotic regime, contributed by U. Hübner from measurements collected primarily by N. B. Abraham and
+# C. O. Weiss, and published with the competition proceedings edited by Weigend and Gershenfeld. The series is known for its
+# intermittent collapses, which a linear model of the past values predicts poorly; Section 8 measures by how much.
 #
 # > **Numerical practice.** Quote errors as the *normalised* mean-square error
 # > $\mathrm{NMSE}=\langle(\hat y-y)^2\rangle/\operatorname{var}(y)$ on the test block. $\mathrm{NMSE}=1$ is what the constant
-# > predictor $\hat y=\bar y$ achieves, so any number above $1$ means the model is worse than useless, and the value is
-# > independent of the units of $y$.
+# > predictor equal to the test-block mean achieves (a constant fixed in advance does worse), so a number above $1$ means the
+# > model is worse than a constant, and the value is independent of the units of $y$.
 
 # %%
 # ==============================================================================
@@ -275,12 +298,14 @@ def split_indices(n, washout, f_train=0.6, f_val=0.2):
 ALPHAS = 10.0 ** np.arange(-6.0, 4.1, 1.0)         # grid searched on the validation block
 
 
-def evaluate(F, y, washout=100, alphas=ALPHAS, return_curve=False):
+def evaluate(F, y, washout=100, alphas=ALPHAS, return_curve=False, return_val=False):
     """Fit a ridge readout of the features F on the target y and score it on the test block.
 
     Standardisation uses the TRAINING block only (test statistics must not leak into the fit).
     alpha is selected on the validation block; the reported NMSE and r^2 come from the test block.
-    Returns (nmse_test, r2_test, alpha_best, y_pred_test, y_true_test[, validation curve]).
+    Returns (nmse_test, r2_test, alpha_best, y_pred_test, y_true_test[, validation curve][, best validation NMSE]).
+    The validation NMSE is what any OTHER hyper-parameter (reservoir size, tau, gamma, ESN scalings)
+    must be selected on -- never the test NMSE.
     """
     tr, va, te = split_indices(len(y), washout)
     mu, sd = F[tr].mean(0), F[tr].std(0)
@@ -300,7 +325,11 @@ def evaluate(F, y, washout=100, alphas=ALPHAS, return_curve=False):
     nmse = np.mean((yp - yt) ** 2) / np.var(yt)
     r2 = np.corrcoef(yp, yt)[0, 1] ** 2 if yp.std() > 1e-12 else 0.0
     out = (nmse, r2, a_best, yp, yt)
-    return out + (np.array(curve),) if return_curve else out
+    if return_curve:
+        out = out + (np.array(curve),)
+    if return_val:
+        out = out + (best[0],)
+    return out
 
 
 # ------------------------------------------------------------------------------
@@ -337,11 +366,11 @@ print(f"condition number {s[0]/s[-1]:.3e}  ->  shrinkage factors sigma^2/(sigma^
 
 # %%
 # ==============================================================================
-# CLASSICAL BASELINES (Section 8 trains them exactly like the quantum reservoir)
+# CLASSICAL BASELINES (Sections 7 and 8 train them with the same protocol as the quantum reservoir)
 # ==============================================================================
 def ar_features(u, n_lags):
     """Linear autoregression: the feature vector at step k is (u_k, u_{k-1}, ..., u_{k-n_lags+1}).
-    A ridge readout on these features IS a linear filter of the input -- the honest linear baseline."""
+    A ridge readout on these features IS a linear filter of the input -- the linear baseline."""
     T = len(u)
     F = np.zeros((T, n_lags))
     for lag in range(n_lags):
@@ -366,6 +395,31 @@ def esn_features(u, n_units, seed=0, rho_sr=0.9, scale_in=1.0):
         x = np.tanh(W @ x + w_in * uk + b)
         F[k] = x
     return F
+
+
+def ar2_features(u, n_feat):
+    """Quadratic autoregression with n_feat features: ceil(n/2) input lags and floor(n/2) squared lags.
+    The simplest NONLINEAR baseline: a static polynomial of the recent inputs, no dynamics at all."""
+    n1 = (n_feat + 1) // 2
+    return np.hstack([ar_features(u, n1), ar_features(u, n_feat - n1) ** 2])
+
+
+# The echo-state network has two hyper-parameters that matter: the spectral radius and the input scale.
+# They are chosen on the VALIDATION block from this grid, exactly as alpha is.
+ESN_GRID = [(r, s) for r in (0.5, 0.9, 1.2) for s in (0.1, 0.3, 1.0, 3.0)]
+
+
+def select_on_validation(candidates, score):
+    """Hyper-parameter selection without touching the test block.
+
+    candidates : dict  config -> list of feature matrices (one per random seed / reservoir)
+    score      : F -> (test NMSE, validation NMSE)
+    Returns (chosen config, array of test NMSEs of the chosen config).  The config is the one with the
+    lowest MEDIAN validation NMSE over seeds; its test NMSEs are reported, never the best test NMSE.
+    """
+    res = {cfg: np.array([score(F) for F in Fs]) for cfg, Fs in candidates.items()}
+    best = min(res, key=lambda c: np.median(res[c][:, 1]))
+    return best, res[best][:, 0]
 
 
 def narma2(u):
@@ -415,7 +469,7 @@ for n, f in [("NARMA-2 ", narma2(u_demo)), ("NARMA-5 ", narma_n(u_demo, 5)), ("N
 # $$ \vert\phi(u)\rangle = R_y(\pi u)\vert0\rangle = \cos\!\Big(\frac{\pi u}{2}\Big)\vert0\rangle+\sin\!\Big(\frac{\pi u}{2}\Big)\vert1\rangle,
 #    \qquad u=0\mapsto\vert0\rangle,\quad u=\tfrac12\mapsto\vert+\rangle,\quad u=1\mapsto\vert1\rangle. \tag{8}$$
 #
-# Its density matrix is what actually enters the dynamics, and it is *affine* in two trigonometric functions of $u$:
+# Its density matrix is what enters the dynamics, and it is *affine* in two trigonometric functions of $u$:
 #
 # $$ \vert\phi(u)\rangle\langle\phi(u)\vert = \frac12\begin{pmatrix}1+\cos\pi u & \sin\pi u\\ \sin\pi u & 1-\cos\pi u\end{pmatrix}
 #    = \frac{\mathbb{1}+\cos(\pi u)\,Z+\sin(\pi u)\,X}{2} . \tag{9}$$
@@ -451,13 +505,20 @@ for n, f in [("NARMA-2 ", narma2(u_demo)), ("NARMA-5 ", narma_n(u_demo, 5)), ("N
 #
 # with $\vert\Phi(\mathbf{u}_k)\rangle=\bigotimes_{c=0}^{L-1}\vert\phi(u_{k-L+1+c})\rangle$ the encoded window.
 #
+# Which channel is the input step, exactly? Erasure followed by the rotation $R_y(\pi u)$ on the same qubit is the
+# **replacement channel** $\rho\mapsto\vert\phi(u)\rangle\langle\phi(u)\vert_q\otimes\operatorname{Tr}_q\rho$, with the two Kraus
+# operators $R_y(\pi u)K_m=\big(\vert\phi(u)\rangle\langle m\vert\big)_q$; they satisfy the same completeness relation as the
+# $K_m$ above, so the full step of Eq. (11) — replacement channel, then unitary — is completely positive and trace preserving
+# for every value of $u$. Two properties of this map decide everything that follows: for a fixed input it is **linear** in
+# $\rho_{k-1}$, and for a fixed state it is **affine** in $\vert\phi(u_k)\rangle\langle\phi(u_k)\vert$.
+#
 # > **Physics insight.** The erasure, not the Hamiltonian, is what makes the machine forget. Unitary evolution is
 # > information-preserving: two different initial states stay perfectly distinguishable forever, $\lVert U\rho U^\dagger-U\sigma U^\dagger\rVert_1=\lVert\rho-\sigma\rVert_1$.
 # > Eq. (11) instead depends on $\rho_{k-1}$ only through $\operatorname{Tr}_{\rm in}\rho_{k-1}$, so everything that the
 # > dynamics has pushed into the input rail is destroyed at the next step. Because a trace-preserving positive map can never
 # > increase the trace distance, the sequence $\lVert\rho_k-\rho_k'\rVert_1$ of two runs driven by the same input is
-# > non-increasing; the coupling between the rails makes the decrease strict, and its rate is the fading-memory rate measured
-# > in Section 5.
+# > non-increasing. Whether it decreases depends on how much of the difference the coupling between the rails moves
+# > onto the input rail before each erasure; its rate is the fading-memory rate measured in Section 5.
 #
 # ### 3.4 The Hamiltonian family
 #
@@ -471,7 +532,7 @@ for n, f in [("NARMA-2 ", narma2(u_demo)), ("NARMA-5 ", narma_n(u_demo, 5)), ("N
 # $W=0$ gives the clean model; $W>0$ gives a *random reservoir* — a different draw of $\{\xi,\eta\}$ is a different machine,
 # and every result below is reported as a median over several draws with the spread shown. We keep $J=h=1$, so the only
 # remaining knobs are the evolution time $\tau$ per input step (the "clock"), the disorder strength $W$ and the lattice size.
-# Note that $\tau$ and the overall energy scale are the same knob: multiplying $H$ by $\lambda$ and dividing $\tau$ by
+# The time $\tau$ and the overall energy scale are the same knob: multiplying $H$ by $\lambda$ and dividing $\tau$ by
 # $\lambda$ leaves Eq. (11) unchanged.
 #
 # ### 3.5 The readout: which numbers leave the machine
@@ -483,38 +544,54 @@ for n, f in [("NARMA-2 ", narma2(u_demo)), ("NARMA-5 ", narma_n(u_demo, 5)), ("N
 #    \Big(\langle X_iX_j\rangle,\langle Y_iY_j\rangle,\langle Z_iZ_j\rangle\Big)_{\langle ij\rangle} ,
 #    \qquad p_0=3N+3B \tag{13}$$
 #
-# with $B$ the number of bonds. This particular set is not arbitrary: it is exactly what **three** measurement settings
+# with $B$ the number of bonds. The set is chosen because it is what **three** measurement settings
 # deliver. Rotating every qubit into the $X$ basis and reading all $N$ qubits gives $\langle X_i\rangle$ for all $i$ *and*
 # $\langle X_iX_j\rangle$ for all pairs from the same shots; likewise for $Y$ and $Z$. Observables from different settings do
 # not commute and cannot be obtained from the same run — a fact that Section 9 has to pay for.
 #
 # **Temporal multiplexing.** Fujii and Nakajima's device for getting more features out of the same hardware: instead of
 # reading only at the end of the interval $\tau$, read $V$ times at $\tau/V,2\tau/V,\dots,\tau$. The $V$ snapshots are
-# different functions of the same history — the dynamics has simply run for different times — so the feature vector becomes
-# $p=V p_0$ long at no cost in qubits. The $V$ sub-states are of course not independent, and Section 6 measures how much the
-# extra columns actually buy.
+# different functions of the same history — the dynamics has run for different times — so the feature vector becomes
+# $p=V p_0$ long at no cost in qubits. The $V$ sub-states are not independent, and Section 6 measures how much the
+# extra columns buy.
 #
-# ### 3.6 Why the features are nonlinear in the input — exactly
+# ### 3.6 Where the nonlinearity comes from
 #
-# Every step of Eq. (11) is *linear* in $\rho$ and the input enters only through the factor (9), which is affine in
-# $\big(\cos\pi u_k,\sin\pi u_k\big)$. Composing $k$ steps and taking the trace against an observable therefore gives a
-# feature that is **multilinear** in the vectors $\mathbf{g}_j=(1,\cos\pi u_j,\sin\pi u_j)$ of all past times $j\le k$:
+# Write one step of Eq. (11) as a map $\mathcal{M}(u_k)$ acting on $\rho_{k-1}$. Inserting Eq. (9) for the encoded qubit
+# ($L=1$ for brevity),
 #
-# $$ x^{(f)}_k=\sum_{\mathcal{S}\subseteq\{1..k\}}\;\sum_{\{a_j\}}c^{(f)}_{\mathcal{S},\{a_j\}}\prod_{j\in\mathcal{S}}g^{a_j}_j ,
-#    \qquad g^1=\cos\pi u,\; g^2=\sin\pi u . \tag{14}$$
+# $$ \rho_k=\mathcal{M}(u_k)\big[\rho_{k-1}\big],\qquad
+#    \mathcal{M}(u)=\mathcal{M}_0+\cos(\pi u)\,\mathcal{M}_1+\sin(\pi u)\,\mathcal{M}_2,\qquad
+#    \mathcal{M}_a(\sigma)=e^{-iH\tau}\Big[\tfrac12P_a\otimes\operatorname{Tr}_{\rm in}\sigma\Big]e^{+iH\tau}, $$
 #
-# This is a Volterra-type expansion with two consequences that we can test numerically and that decide what the machine can
-# and cannot learn:
+# with $(P_0,P_1,P_2)=(\mathbb{1},Z,X)$. Each $\mathcal{M}_a$ is a fixed linear map, and the input only selects the
+# coefficients. After $k$ steps
 #
-# * at a *fixed history*, the dependence of any feature on one input $u_j$ is exactly
-#   $a+b\cos\pi u_j+c\sin\pi u_j$ — three numbers, no more. The reservoir cannot produce $u^2$ or $u^3$ exactly; it produces
-#   the best combination of $1,\cos\pi u,\sin\pi u$, which over a sub-interval of $[0,1]$ is a good but not perfect
-#   approximation;
-# * products *across different times*, $\cos\pi u_k\,\sin\pi u_{k-3}$ and so on, do appear with coefficients set by the
-#   Hamiltonian. This cross-time mixing is the nonlinearity that a linear filter of the input can never have, and it is what
-#   the NARMA task in Section 7 asks for.
+# $$ \rho_k=\mathcal{M}(u_k)\,\mathcal{M}(u_{k-1})\cdots\mathcal{M}(u_1)\big[\rho_0\big] , $$
 #
-# Section 4.6 verifies Eq. (14) to machine precision.
+# a *product* of input-dependent maps. Multiplying out and taking the trace against an observable gives a feature that is
+# **multilinear** in the vectors $\mathbf{g}_j=(1,\cos\pi u_j,\sin\pi u_j)$ of all past times $j\le k$:
+#
+# $$ x^{(f)}_k=\sum_{a_1,\dots,a_k\in\{0,1,2\}}c^{(f)}_{a_1\dots a_k}\prod_{j=1}^{k}g^{a_j}_j ,
+#    \qquad g^0=1,\; g^1=\cos\pi u,\; g^2=\sin\pi u , \tag{14}$$
+#
+# with $c^{(f)}_{a_1\dots a_k}=\operatorname{Tr}\big(O_f\,\mathcal{M}_{a_k}\cdots\mathcal{M}_{a_1}[\rho_0]\big)$. This is a
+# Volterra-type expansion, and it separates the two sources of nonlinearity cleanly:
+#
+# * **Within one input** the only nonlinearity is the encoding. At a *fixed history* the dependence of any feature on one
+#   input $u_j$ is exactly $a+b\cos\pi u_j+c\sin\pi u_j$ — three numbers, no more. The reservoir cannot produce $u^2$ or
+#   $u^3$; it produces the best combination of $1,\cos\pi u,\sin\pi u$. (On $[0,1]$ that combination leaves $3\,\%$ of the
+#   variance of $u^3$ unexplained, against $16\,\%$ for the best straight line.)
+# * **Across different times** the products $\cos\pi u_k\,\sin\pi u_{k-3}$ and so on come from the *product* of maps: the
+#   input does not add to the state, it multiplies it. Compare the linear echo-state recursion
+#   $\mathbf{x}_k=W\mathbf{x}_{k-1}+\mathbf{w}_{\rm in}u_k$, whose solution $\sum_j W^{k-j}\mathbf{w}_{\rm in}u_j$ is a *sum*
+#   of separate functions of each input. The Hamiltonian is linear and does not depend on $u$; it is not the source of the
+#   nonlinearity. What it does is decide the coefficients $c^{(f)}$: without a coupling between the input rail and the memory,
+#   every $\mathcal{M}_a$ would discard the old input together with the input qubit and all cross-time coefficients would vanish.
+#
+# A classical reservoir needs a nonlinear activation function such as $\tanh$ for both effects; here the first comes from
+# the encoding and the second from the multiplicative way in which the reset injects the input. Section 4.4 verifies
+# Eq. (14) to machine precision and shows that the cross-time products are present.
 
 # %%
 # ==============================================================================
@@ -610,16 +687,17 @@ print("first eight feature labels:", readout_labels(L_IN, N_RAILS)[:8])
 RESET_KRAUS = jnp.stack([P0, SM])      # K0 = |0><0|,  K1 = |0><1| = sigma^-
 
 
-def reset_and_encode_dm(rho, u_window, L):
+def reset_and_encode_dm(rho, u_window, L, erase_kraus=RESET_KRAUS):
     """One input step of Eq. (11), without the evolution: erase rail 0, re-prepare it as |Phi(u)>.
 
     MATH   rho -> |Phi(u)><Phi(u)|_in (x) Tr_in(rho),
            realised qubit by qubit as  R_q(rho) = sum_m K_m rho K_m^dag  followed by R_y(pi u_c).
+    `erase_kraus` exists only for the WRONG control of Section 4.5 (measurement without the flip).
     JAX    `u_window` is traced: `ry` builds the rotation from traced angles, so the whole step
            is differentiable and jit-able; the qubit indices are static Python ints.
     """
     for c in range(L):
-        rho = apply_kraus_dm(rho, RESET_KRAUS, [c])          # erase
+        rho = apply_kraus_dm(rho, erase_kraus, [c])          # erase
     for c in range(L):
         rho = apply_gate_dm(rho, ry(jnp.pi * u_window[c]), [c])   # re-prepare
     return rho
@@ -664,7 +742,7 @@ for u in (0.0, 0.25, 0.5, 1.0):
 #
 # ### 4.2 The whole drive as one `lax.scan`
 #
-# The drive over a sequence of $T$ inputs is a recurrence: state in, state out, features recorded. That is exactly what
+# The drive over a sequence of $T$ inputs is a recurrence: state in, state out, features recorded. That is what
 # `lax.scan` compiles — carry = the density tensor, `xs` = the $T$ input windows, `ys` = the $T$ feature vectors. The step
 # function is traced **once** and XLA runs the loop internally; a Python `for` loop under `jit` would instead unroll $T$
 # copies of the graph and take minutes to compile.
@@ -674,21 +752,25 @@ for u in (0.0, 0.25, 0.5, 1.0):
 #
 # **Cost.** One TEBD gate on a density tensor costs $O(2^k4^N)$; with $G$ gates per Trotter step, $n_{\rm sub}$ sub-steps and
 # $V$ blocks, one input step costs $O(V n_{\rm sub}G\,4^N)$ plus $O((N+B)4^N)$ for the features, and the whole drive is $T$
-# times that. Memory is one density tensor, $4^N$ complex numbers — $2$ kB for $N=4$, $512$ kB for $N=8$. The exponential
+# times that. Memory is one density tensor, $4^N$ complex numbers — $4$ kB for $N=4$ and $1$ MB for $N=8$ in double precision
+# ($16$ bytes per number). The exponential
 # wall is in $N$, not in $T$.
 
 # %%
 # ==============================================================================
 # STEP 2: the driver -- the entire time series as ONE compiled scan
 # ==============================================================================
-def make_dm_driver(L, R, tau, dt, V=1, order=2, jump=None, gamma=0.0):
+def make_dm_driver(L, R, tau, dt, V=1, order=2, jump=None, gamma=0.0, erase_kraus=RESET_KRAUS):
     """Build a jitted function  (Js, hs, windows, rho0) -> (rho_T, features[T, V*p0]).
 
     MATH   rho_k = U [ |Phi(u_k)><Phi(u_k)| (x) Tr_in rho_{k-1} ] U^dag ,  U = exp(-i H tau)
            with U approximated by n_sub = tau/dt second-order Trotter steps, and the features
            x_k = (Tr(rho O))_O read out after each of the V equal sub-intervals.
-    OPTIONAL DISSIPATION  `jump` is a single-qubit Lindblad operator applied to EVERY qubit with
-           rate `gamma` during the evolution: one Kraus pair per Trotter sub-step (Section 10).
+    OPTIONAL DISSIPATION  `jump` acts on EVERY qubit with rate `gamma` during the evolution, one
+           Kraus set per Trotter sub-step of length dt' (Section 10). Either a single-qubit Lindblad
+           operator L (Kraus pair of `kraus_from_jump`, first order in gamma dt'), or a callable
+           gamma_dt -> Kraus stack giving the EXACT single-qubit channel exp(dt' D) of the dissipator
+           D(rho) = gamma (L rho L^dag - {L^dag L, rho}/2); for L = Z the coherences decay as exp(-2 gamma t).
     JAX    outer scan over time, inner scan over Trotter sub-steps; (Js, hs) are traced, so
            `jax.vmap` over them batches independent random reservoirs.
     """
@@ -698,7 +780,9 @@ def make_dm_driver(L, R, tau, dt, V=1, order=2, jump=None, gamma=0.0):
 
     def run(Js, hs, windows, rho0):
         gates = tebd_gates(hamiltonian_terms(Js, hs, L, R), tau / (n_sub * V), order)
-        K_jump = None if jump is None else kraus_from_jump(jump, gamma * tau / (n_sub * V))
+        dt_sub = tau / (n_sub * V)
+        K_jump = (None if jump is None else
+                  jump(gamma * dt_sub) if callable(jump) else kraus_from_jump(jump, gamma * dt_sub))
 
         def substep(rho, _):
             rho = apply_gates_dm(rho, gates)
@@ -708,7 +792,7 @@ def make_dm_driver(L, R, tau, dt, V=1, order=2, jump=None, gamma=0.0):
             return rho, None
 
         def step(rho, u_window):
-            rho = reset_and_encode_dm(rho, u_window, L)
+            rho = reset_and_encode_dm(rho, u_window, L, erase_kraus)
             feats = []
             for _ in range(V):
                 rho, _ = lax.scan(substep, rho, None, length=n_sub)
@@ -831,6 +915,12 @@ assert prev < 1e-4, "TEBD does not converge to the dense reference"
 # readout. We drive the reservoir with a batch of sequences that differ only in one entry (`jax.vmap` over the input axis),
 # fit the three coefficients by least squares, and look at the residual. For comparison we fit a quadratic polynomial in $u$,
 # which has the same number of parameters.
+#
+# The second test varies two consecutive inputs on a $7\times7$ grid. Eq. (14) predicts that the nine products
+# $g^a_{k-1}g^b_k$ describe every feature exactly. That alone does not show that cross-time products are *present*: an
+# additive dependence $f_1(u_{k-1})+f_2(u_k)$ also lies in the span of the nine. The control is therefore the additive model
+# with five terms $1,\cos\pi u_{k-1},\sin\pi u_{k-1},\cos\pi u_k,\sin\pi u_k$, which a linear reservoir driven through
+# the same encoding would fit exactly.
 
 # %%
 # ==============================================================================
@@ -862,22 +952,44 @@ W_batch2 = jnp.stack([input_windows(s, L_IN) for s in seqs2])
 F2 = np.asarray(vdrive_windows(Js_demo, hs_demo, W_batch2, to_dm(zero_state(N_QUBITS)))[1])[:, -1, :]
 B1 = np.stack([np.ones_like(g1), np.cos(np.pi * g1), np.sin(np.pi * g1)], axis=1)
 design2 = np.einsum("ia,jb->ijab", B1, B1).reshape(len(g1) ** 2, 9)
-res2 = np.abs(design2 @ np.linalg.lstsq(design2, F2, rcond=None)[0] - F2).max()
-print(f"\ntwo consecutive inputs varied: residual of the 9-term bilinear fit = {res2:.2e}")
+coef2 = np.linalg.lstsq(design2, F2, rcond=None)[0]
+res2 = np.abs(design2 @ coef2 - F2).max()
+# control: the ADDITIVE model 1, g(u_{k-1}), g(u_k) -- no products across times (5 terms)
+design_add = np.hstack([np.ones((len(g1) ** 2, 1)), np.repeat(B1[:, 1:], len(g1), axis=0), np.tile(B1[:, 1:], (len(g1), 1))])
+res_add = design_add @ np.linalg.lstsq(design_add, F2, rcond=None)[0] - F2
+cross_share = np.sqrt((res_add ** 2).mean(0)) / F2.std(0)          # per feature: rms(additive residual) / std
+c9 = coef2.reshape(3, 3, -1)
+print(f"\ntwo consecutive inputs varied (7 x 7 grid):")
+print(f"  residual of the 9-term bilinear fit = {res2:.2e}")
+print(f"  residual of the 5-term ADDITIVE fit = {np.abs(res_add).max():.3f} (max), "
+      f"median over features of rms(residual)/std(feature) = {np.median(cross_share):.2f}")
+print(f"  largest cross-time coefficient |c_ab|, a,b >= 1: {np.abs(c9[1:, 1:]).max():.3f};  "
+      f"largest single-time coefficient: {max(np.abs(c9[0, 1:]).max(), np.abs(c9[1:, 0]).max()):.3f}")
 assert res2 < 1e-12
+assert np.abs(res_add).max() > 1e3 * res2, "cross-time products absent?"
+
+# how well can the encoding functions represent the powers that NARMA asks for?
+u_fine = np.linspace(0.0, 1.0, 2001)
+for name, Bf in (("1, u", np.stack([np.ones_like(u_fine), u_fine], 1)),
+                 ("1, cos(pi u), sin(pi u)", np.stack([np.ones_like(u_fine), np.cos(np.pi * u_fine), np.sin(np.pi * u_fine)], 1))):
+    r = u_fine ** 3 - Bf @ np.linalg.lstsq(Bf, u_fine ** 3, rcond=None)[0]
+    print(f"best fit of u^3 on [0,1] by span({name}): unexplained fraction of the variance {r.var() / (u_fine ** 3).var():.3f}")
 
 # %% [markdown]
 # The trigonometric fit is exact to $10^{-15}$ — the round-off of the computation itself — for readouts taken immediately
 # after the input, one step later and three steps later. The quadratic polynomial with the same number of parameters leaves a
-# residual four orders of magnitude larger; so the reservoir does not compute powers of $u$, it computes exactly the three
-# functions $1,\cos\pi u,\sin\pi u$ of each past input, multiplied across times. The nine-term bilinear fit in two
-# consecutive inputs is exact as well: the cross terms $\cos\pi u_k\sin\pi u_{k-1}$ and their relatives are there, with
-# coefficients that the Hamiltonian decides.
+# residual of $6$–$10\cdot10^{-2}$, some fourteen orders of magnitude larger; so the reservoir does not compute powers of $u$, it
+# computes exactly the three functions $1,\cos\pi u,\sin\pi u$ of each past input. The nine-term bilinear fit in two
+# consecutive inputs is exact as well, and the control decides the question that the exact fit leaves open: the additive
+# five-term model misses by up to $0.28$, and for the median feature the part that only a product $g^a_{k-1}g^b_k$ can
+# describe has $29\,\%$ of the standard deviation of the feature. The largest cross-time coefficient ($0.25$) is half the
+# largest single-time one ($0.53$). The products across times are there, with coefficients that the Hamiltonian decides.
 #
-# > **Physics insight.** This is the precise sense in which the reservoir is a nonlinear machine: not because a single
-# > expectation value is a nonlinear function of a single input — that part is only a $\cos$ and a $\sin$ — but because the
-# > unitary mixes *products of different times* into every observable. Eq. (14) is the quantum analogue of the Volterra
-# > series of a classical nonlinear filter, and the coefficients are matrix elements of the propagator.
+# > **Physics insight.** The reservoir is a nonlinear machine for two separate reasons. A single expectation value depends on
+# > a single input only through $\cos\pi u$ and $\sin\pi u$, which is the encoding. Products of *different* times appear
+# > because every input step multiplies the state by an input-dependent map, $\rho_k=\mathcal{M}(u_k)[\rho_{k-1}]$, so the
+# > history enters as a product $\mathcal{M}(u_k)\cdots\mathcal{M}(u_1)$. The unitary itself is linear and input-independent;
+# > it sets the coefficients of Eq. (14), which play the role of the kernels of a classical Volterra series.
 #
 # ### 4.5 The same protocol on pure states: trajectories
 #
@@ -889,9 +1001,17 @@ assert res2 < 1e-12
 #
 # $$ \sum_m \big(\vert0\rangle\langle m\vert\big)\rho\big(\vert m\rangle\langle0\vert\big) = \mathcal{R}(\rho) . $$
 #
-# The statistical error of a feature averaged over $M$ trajectories is $\sigma/\sqrt M$ with $\sigma\le1$ the spread of a
-# Pauli observable, so the deviation from the density-tensor result must fall as $1/\sqrt M$. This is also the honest
-# simulation of an experiment: a laboratory device performs *one* trajectory per run.
+# Each trajectory $s$ gives the number $\langle\psi_s\vert O\vert\psi_s\rangle$, and these numbers average to
+# $f=\operatorname{Tr}(\rho O)$. Their spread $\sigma^2$ over trajectories is bounded by the law of total variance: the
+# variance $1-f^2$ of a $\pm1$-valued Pauli measurement in the state $\rho$ splits into the average quantum variance inside a
+# trajectory plus the variance of $\langle\psi_s\vert O\vert\psi_s\rangle$ between trajectories, so $\sigma^2\le1-f^2\le1$.
+# The mean over $M$ trajectories therefore deviates from the density-tensor result by $\sigma/\sqrt M$. This is also the
+# closest simulation of an experiment: a laboratory device performs *one* trajectory per run.
+#
+# A comparison is only a test if it can fail. After the convergence check the cell compares the $M=1024$ trajectory average
+# with two other references: the exact propagator (which differs from the Trotterised tensor by the Trotter error of
+# Section 4.3), and a density tensor with a plausible programming error — the input qubit measured but not flipped back, so
+# the "erasure" is a dephasing.
 
 # %%
 # ==============================================================================
@@ -956,23 +1076,46 @@ for M in M_list:
     alive = sem > 0.1 * np.median(sem)
     print(f"M = {M:5d}:  rms deviation {rms_list[-1]:.5f}   mean standard error {sem.mean():.5f}   "
           f"rms pull {np.sqrt(np.mean(pulls[alive]**2)):.2f}   max |pull| {np.abs(pulls[alive]).max():.2f}   "
-          f"({np.sum(~alive)} of {sem.size} features have no spread at all)   ({t_list[-1]:.1f} s)")
+          f"({np.sum(~alive)} of {sem.size} features have no spread at all)   ({t_list[-1]:.1f} s, new shape: compilation included)")
 print(f"\nrms deviation ratios for M x4: " +
       ", ".join(f"{rms_list[i]/rms_list[i+1]:.2f}" for i in range(len(M_list) - 1)) + "   (expected 2.00)")
+assert abs(np.sqrt(np.mean(pulls[alive] ** 2)) - 1.0) < 0.2
+
+# ------------------------------------------------------------------------------
+# CONTROLS: would this comparison notice a wrong reference?  (M = 1024 trajectories from the last pass)
+#   (a) the exact propagator instead of the Trotter one: differs by the Trotter error of dt = 0.125
+#   (b) a WRONG erasure: measure the input qubit but forget the flip (Kraus |0><0|, |1><1|), then rotate
+# ------------------------------------------------------------------------------
+F_exact_prop = reference_features(np.asarray(Js_demo), np.asarray(hs_demo), L_IN, N_RAILS, TAU, u_mc)
+DEPHASE_KRAUS = jnp.stack([P0, jnp.diag(jnp.array([0.0, 1.0], dtype=CDTYPE))])
+F_wrong = np.asarray(make_dm_driver(L_IN, N_RAILS, TAU, DT, erase_kraus=DEPHASE_KRAUS)(
+    Js_demo, hs_demo, W_mc, to_dm(zero_state(N_QUBITS)))[1])
+for name, F_cmp in (("Trotter density tensor (correct)", F_dm_ref), ("exact propagator (no Trotter error)", F_exact_prop),
+                    ("measurement without the flip (wrong)", F_wrong)):
+    pl = (F_mean - F_cmp) / np.maximum(sem, 1e-15)
+    print(f"M = {M_list[-1]} trajectories vs {name:38s}: rms pull {np.sqrt(np.mean(pl[alive] ** 2)):7.2f}, "
+          f"rms |difference to the Trotter tensor| {np.sqrt(np.mean((F_cmp - F_dm_ref) ** 2)):.4f}")
+assert np.sqrt(np.mean(((F_mean - F_wrong) / sem)[alive] ** 2)) > 10, "the wrong channel was not rejected"
 
 # %% [markdown]
 # The mean over trajectories converges to the density-tensor result as $1/\sqrt M$: the rms deviation falls by factors
-# $1.79$ and $2.14$ for two fourfold increases of $M$ (the expectation is $2$, and an rms estimated from $300p_0$ numbers has
-# its own few-per-cent uncertainty), the rms pull — deviation divided by its own estimated standard error — sits near $1$,
-# and the largest pull over the $6300$ numbers that have a non-zero spread is $4.5$ to $5.4$. That is slightly above the
-# $4.0$ typical for that many exact Gaussians, as it should be: a $\pm1$-valued observable has a binomial, visibly skewed
-# distribution once its expectation value approaches $\pm1$. The two implementations of Eq. (11) agree.
+# $1.79$ and $2.14$ for two fourfold increases of $M$ (the expectation is $2$; the $6300$ deviations at one $M$ are
+# correlated in time because they come from the same trajectories, so their rms fluctuates by more than the naive few per
+# cent), and the rms pull — deviation divided by its own estimated standard error — is $1.01$, $1.10$, $1.01$. The largest
+# pull over the $6300$ numbers with a non-zero spread is $4.5$ to $5.4$, above the $\approx4$ typical for that many
+# independent Gaussians; the pulls are neither independent nor exactly Gaussian (a feature whose spread comes from a few
+# rare trajectory branches has a poorly estimated standard error), and we did not investigate the outliers further.
 #
-# The excluded numbers deserve a word. During the first input steps *every* trajectory is identical: the state starts in
-# $\vert0\dots0\rangle$, the reset of a qubit that is already in $\vert0\rangle$ has a certain outcome, and the dynamics is
-# unitary, so the sample spread of those features is exactly zero and their "pull" is a round-off divided by a round-off.
-# Stochasticity only enters once the memory rails have become entangled with the input qubit — which is the same physics as
-# the forgetting measured in the next section.
+# The controls show what the test can resolve. Against the wrong erasure the rms pull is $87$: a missing flip is rejected
+# at once. Against the exact propagator the rms pull is $4.2$, because the trajectories reproduce the *Trotterised*
+# protocol, and the Trotter error of $\delta t=0.125$ (rms $0.02$ over these features) is four times the statistical error
+# at $M=1024$. The two implementations of Eq. (11) agree, and the agreement is sharp enough to see the Trotter error.
+#
+# During the first input steps *every* trajectory is identical: the state starts in $\vert0\dots0\rangle$, the reset of a
+# qubit that is already in $\vert0\rangle$ has a certain outcome, and the dynamics is unitary, so the sample spread of those
+# features is exactly zero and their "pull" is a round-off divided by a round-off; they are excluded. Stochasticity only
+# enters once the memory rails have become entangled with the input qubit — which is the same physics as the forgetting
+# measured in the next section.
 #
 # > **Numerical practice.** A ratio of rms errors is the cheapest possible test of a $1/\sqrt M$ law, but it only tests the
 # > *scaling*. The pull tests the *absolute* size of the error bars as well; an rms pull near $1$ means the error bars are
@@ -1056,18 +1199,25 @@ print(f"\nmonotone decrease (no step increases D)? "
       f"{all(bool(np.all(np.diff(D_curves[t]) <= 1e-12)) for t in taus_echo)}")
 
 # %% [markdown]
-# Every curve decays to zero, and no step ever increases $D_k$: a trace-preserving positive map cannot increase the trace
-# distance, and the erasure of the input rail makes the decrease strict. Three features of the measurement:
+# Every curve decays, and no step ever increases $D_k$, as a trace-preserving positive map guarantees. Three features of
+# the measurement:
 #
 # * **The first step is the same for all three $\tau$**: $D_1=0.737$ everywhere. The unitary part leaves the trace distance
 #   invariant, so the only thing that acts on $D$ in one step is the erasure — and the erasure does not know $\tau$.
 # * **The rate is not monotonic in $\tau$.** The fitted $\lambda$ is $0.020$ at $\tau=0.125$, $0.192$ at $\tau=0.5$ and
 #   $0.117$ at $\tau=2$. Slow evolution barely moves the memory-rail information into the input qubit, so little of it is
-#   erased and the machine remembers its initial state for tens of steps; but a *longer* evolution is not monotonically
-#   better at destroying it, because what matters is how much of the initial-state information happens to sit on qubit $0$
-#   at the moment of the erasure, and that quantity oscillates with $\tau$.
-# * Starting from the maximally mixed state instead of a random pure state changes nothing qualitative ($D_1=0.875$ because
-#   the two states are more distinguishable to begin with, $D_{50}\approx10^{-4}$).
+#   erased and the machine remembers its initial state for tens of steps. Why the longest evolution forgets more slowly than
+#   the intermediate one is not settled by three values of $\tau$; a plausible reading is that what matters is how much of
+#   the difference $\rho_k-\rho_k'$ sits on qubit $0$ at the moment of the erasure, which need not grow with $\tau$.
+# * Starting from the maximally mixed state instead of a random pure state gives $D_1=0.875$ exactly. After the first
+#   erasure the two memory registers are $\vert000\rangle$ and $\mathbb{1}/8$, whose trace distance is $1-1/8=7/8$; the random
+#   pure start retains more overlap with $\vert0\dots0\rangle$ on the memory rails. The decay rate is the same as for the
+#   pure start ($D_{50}\approx10^{-4}$ in both cases).
+#
+# One practical consequence: at $\tau=0.125$ the initial state is far from forgotten after the washout of $100$ steps used
+# below ($D_{50}=0.28$ and $e^{-100\lambda}\approx0.14$). This does no harm to the regression because every run starts from
+# the same state $\vert0\dots0\rangle$, so the residual dependence is the same deterministic transient for training,
+# validation and test; Exercise 2 measures it.
 #
 # This is the *first* half of the trade-off of Section 2.3: slow forgetting means long memory. The second half — that a
 # reservoir which forgets too slowly has not mixed the input into its features either — is what the memory capacity of the
@@ -1076,15 +1226,21 @@ print(f"\nmonotone decrease (no step increases D)? "
 # ## 6. Memory capacity
 #
 # We now drive the reservoir with an i.i.d. sequence $u_k\sim\mathcal{U}[0,1]$, the situation in which Jaeger's bound
-# $\mathrm{MC}\le p$ holds, and measure $C(\tau)$ of Eq. (5) for $\tau=1,\dots,20$ with the protocol of Section 2.5: washout,
+# $\mathrm{MC}\le p$ holds, and measure $C(\tau)$ of Eq. (5) for $\tau=1,\dots,60$ with the protocol of Section 2.5: washout,
 # contiguous train/validation/test blocks, $\alpha$ chosen on the validation block, $C(\tau)$ evaluated on the test block.
-# Every number is a median over `N_RES` random reservoirs, with the full spread shown as a band.
+# The sum runs to $60$ delays because a slowly forgetting reservoir keeps a faint but real memory beyond twenty steps
+# (Section 5 measured a memory time of fifty steps at $\tau=0.125$); the price is the upward bias of Section 2.6, about
+# $60/219\approx0.27$ for our test block of $220$ points, which the null control below measures directly.
+# Every number is a median over `N_RES` random reservoirs, with the full spread shown as a band. Three further error
+# estimates are in the first cell: the same reservoirs driven by fresh input sequences (statistical error of one MC value),
+# the null control (independent target), and a five times longer series (the downward bias from the finite training
+# block).
 
 # %%
 # ==============================================================================
 # EXPERIMENT: memory capacity C(tau) = r^2 for the delay task, on the TEST block
 # ==============================================================================
-TAUS_MC = np.arange(1, 21)
+TAUS_MC = np.arange(1, 61)
 
 
 def memory_capacity(F, u, taus=TAUS_MC, washout=WASHOUT):
@@ -1097,26 +1253,66 @@ def memory_capacity(F, u, taus=TAUS_MC, washout=WASHOUT):
 
 
 def drive_ensemble(L, R, tau, dt, u, V=1, n_res=N_RES, seed=SEED_RES, W=W_DIS, jump=None, gamma=0.0):
-    """Drive `n_res` independent random reservoirs with the same input (vmap over disorder)."""
+    """Drive `n_res` independent random reservoirs with the same input (vmap over disorder).
+
+    Returns (features[n_res, T, p], (compile time, run time)).
+    JAX  ahead-of-time compilation, `vdrv.lower(*args).compile()`, separates the one-off XLA
+         compilation from the execution, so the two can be timed separately.
+    """
     keys = jax.random.split(jax.random.PRNGKey(seed), n_res)
     Js_b, hs_b = jax.vmap(lambda k: reservoir_params(k, L, R, W=W))(keys)
     drv = make_dm_driver(L, R, tau, dt, V=V, jump=jump, gamma=gamma)
     vdrv = jax.jit(jax.vmap(drv, in_axes=(0, 0, None, None)))
-    rho0 = to_dm(zero_state(L * R))
+    args = (Js_b, hs_b, input_windows(u, L), to_dm(zero_state(L * R)))
     t0 = time.time()
-    _, F = vdrv(Js_b, hs_b, input_windows(u, L), rho0)
+    compiled = vdrv.lower(*args).compile()
+    t_compile = time.time() - t0
+    t0 = time.time()
+    _, F = compiled(*args)
     F = np.asarray(jax.block_until_ready(F))
-    return F, time.time() - t0
+    return F, (t_compile, time.time() - t0)
 
 
 rng_u = np.random.default_rng(2)
 u_iid = rng_u.uniform(0.0, 1.0, T_LEN)                 # the i.i.d. drive used in Sections 6, 7, 9, 10
 
-F_iid, t_drive = drive_ensemble(L_IN, N_RAILS, TAU, DT, u_iid)
-print(f"{N_RES} reservoirs x {T_LEN} steps x {F_iid.shape[2]} features in {t_drive:.1f} s "
-      f"({1e3*t_drive/(N_RES*T_LEN):.2f} ms per reservoir and step)")
+F_iid, (tc_drive, t_drive) = drive_ensemble(L_IN, N_RAILS, TAU, DT, u_iid)
+print(f"{N_RES} reservoirs x {T_LEN} steps x {F_iid.shape[2]} features: compilation {tc_drive:.1f} s, "
+      f"run {t_drive:.2f} s ({1e3*t_drive/(N_RES*T_LEN):.3f} ms per reservoir and step)")
 caps_all = np.array([memory_capacity(F_iid[i], u_iid) for i in range(N_RES)])
 MC_all = caps_all.sum(axis=1)
+
+# (1) statistical error of ONE MC value: the same six reservoirs, two fresh i.i.d. input sequences
+MC_seeds = [MC_all]
+for s_in in (31, 32):
+    u_alt = np.random.default_rng(s_in).uniform(0.0, 1.0, T_LEN)
+    F_alt, _ = drive_ensemble(L_IN, N_RAILS, TAU, DT, u_alt)
+    MC_seeds.append(np.array([memory_capacity(F_alt[i], u_alt).sum() for i in range(N_RES)]))
+MC_seeds = np.array(MC_seeds)                                  # (3 input sequences, N_RES reservoirs)
+sd_input = float(np.sqrt(np.mean(MC_seeds.var(axis=0, ddof=1))))   # pooled over reservoirs
+print(f"MC of each reservoir for three input sequences:\n{np.array2string(MC_seeds, precision=3)}")
+print(f"pooled standard deviation over input sequences: {sd_input:.3f}  "
+      f"(reservoir-to-reservoir spread of the first row: {MC_all.std(ddof=1):.3f})")
+
+# (2) null control: the same features, but the target is an INDEPENDENT random sequence
+u_null = np.random.default_rng(4321).uniform(0.0, 1.0, T_LEN)
+MC_null = np.array([memory_capacity(F_iid[i], u_null).sum() for i in range(N_RES)])
+print(f"null control MC (no memory possible): {np.array2string(MC_null, precision=3)}, mean {MC_null.mean():.3f} "
+      f"+- {MC_null.std(ddof=1)/np.sqrt(N_RES):.3f};  prediction sum_tau 1/(n_te-1) = "
+      f"{sum(1.0 / (split_indices(T_LEN - t, WASHOUT)[2].stop - split_indices(T_LEN - t, WASHOUT)[2].start - 1) for t in TAUS_MC):.3f}")
+
+# (3) the downward bias from the finite training block: a five times longer series
+T_LONG = 5 * T_LEN
+u_long = np.random.default_rng(33).uniform(0.0, 1.0, T_LONG)
+F_long, _ = drive_ensemble(L_IN, N_RAILS, TAU, DT, u_long)
+MC_long = np.array([memory_capacity(F_long[i], u_long).sum() for i in range(N_RES)])
+MC_long_null = np.array([memory_capacity(F_long[i], np.random.default_rng(4322).uniform(0.0, 1.0, T_LONG)).sum()
+                         for i in range(N_RES)])
+print(f"T = {T_LONG}: MC {np.array2string(MC_long, precision=3)}, median {np.median(MC_long):.3f};  "
+      f"null control mean {MC_long_null.mean():.3f}")
+print(f"MC(T={T_LONG}) - MC(T={T_LEN}) per reservoir: {np.array2string(MC_long - MC_all, precision=3)}, "
+      f"mean {np.mean(MC_long - MC_all):+.3f} +- {np.std(MC_long - MC_all, ddof=1) / np.sqrt(N_RES):.3f}\n")
+assert MC_null.mean() < 0.5 and np.median(MC_all) > 5 * MC_null.mean()
 
 # Does the Trotter step matter for the SCORE (not for the state)?  Re-drive with dt/4.
 F_fine, _ = drive_ensemble(L_IN, N_RAILS, TAU, DT / 4, u_iid)
@@ -1134,19 +1330,20 @@ sv = np.linalg.svd(Xs, compute_uv=False)
 eff_rank = float(np.sum(sv) ** 2 / np.sum(sv ** 2))
 print(f"singular values of the standardised feature matrix (reservoir 0): "
       f"{np.array2string(sv[:6]/sv[0], precision=3)} ... {sv[-1]/sv[0]:.2e}")
-print(f"participation-ratio effective rank = {eff_rank:.2f} of {F_iid.shape[2]} columns")
+print(f"effective rank (sum sigma)^2 / sum sigma^2 = {eff_rank:.2f} of {F_iid.shape[2]} columns;  "
+      f"participation ratio of the eigenvalues sigma^2 of X^T X: {np.sum(sv**2)**2/np.sum(sv**4):.2f}")
 
 # %%
 # ==============================================================================
 # EXPERIMENT: C(tau) profile, and MC against the evolution time tau
 # ==============================================================================
 TAU_SWEEP = (0.125, 0.25, 0.5, 1.0, 2.0)
-caps_by_tau, t_total = {}, 0.0
+caps_by_tau, F_by_tau, t_c, t_r = {}, {}, 0.0, 0.0
 for tau_s in TAU_SWEEP:
-    F_s, dt_s = drive_ensemble(L_IN, N_RAILS, tau_s, DT, u_iid)
-    caps_by_tau[tau_s] = np.array([memory_capacity(F_s[i], u_iid) for i in range(N_RES)])
-    t_total += dt_s
-print(f"tau sweep: {len(TAU_SWEEP)} ensembles driven in {t_total:.1f} s")
+    F_by_tau[tau_s], (tc_s, tr_s) = drive_ensemble(L_IN, N_RAILS, tau_s, DT, u_iid)   # kept for Section 7
+    caps_by_tau[tau_s] = np.array([memory_capacity(F_by_tau[tau_s][i], u_iid) for i in range(N_RES)])
+    t_c, t_r = t_c + tc_s, t_r + tr_s
+print(f"tau sweep: {len(TAU_SWEEP)} ensembles, compilation {t_c:.1f} s, run {t_r:.1f} s")
 
 fig, ax = plt.subplots(1, 2, figsize=(11, 4))
 colors = plt.cm.viridis(np.linspace(0, 0.85, len(TAU_SWEEP)))
@@ -1164,17 +1361,20 @@ ax[1].errorbar(TAU_SWEEP, mc_med, yerr=[np.array(mc_med) - mc_lo, np.array(mc_hi
                fmt="o-", capsize=4, color="tab:red")
 ax[1].axhline(F_iid.shape[2], ls="--", color="k", label=rf"feature count $p={F_iid.shape[2]}$")
 ax[1].axhline(eff_rank, ls=":", color="gray", label=f"effective rank {eff_rank:.1f}")
+ax[1].axhline(MC_null.mean(), ls="-.", color="tab:blue", label=f"null control {MC_null.mean():.2f}")
 ax[1].set_xscale("log"); ax[1].set_xlabel(r"evolution time per step $\tau$")
 ax[1].set_ylabel(r"memory capacity $\mathrm{MC}$")
 ax[1].set_title("total memory versus the clock"); ax[1].legend(fontsize=8); ax[1].grid(alpha=0.3)
 plt.tight_layout(); plt.show()
 
-print(" tau      MC (median)   [min, max] over reservoirs   C(1)    C(5)")
+print(" tau    MC_1..60 (median)  [min, max] over reservoirs   MC_1..20   C(1)    C(5)    C(20)   C(40)")
 for tau_s in TAU_SWEEP:
     C = caps_by_tau[tau_s]
     m = C.sum(axis=1)
-    print(f"{tau_s:6.3f}    {np.median(m):8.3f}      [{m.min():.3f}, {m.max():.3f}]        "
-          f"{np.median(C[:, 0]):.3f}   {np.median(C[:, 4]):.3f}")
+    print(f"{tau_s:6.3f}    {np.median(m):8.3f}       [{m.min():.3f}, {m.max():.3f}]           "
+          f"{np.median(C[:, :20].sum(1)):6.3f}   {np.median(C[:, 0]):.3f}   {np.median(C[:, 4]):.3f}   "
+          f"{np.median(C[:, 19]):.3f}   {np.median(C[:, 39]):.3f}")
+print(f"(null control per delay: {MC_null.mean()/len(TAUS_MC):.4f})")
 
 # %%
 # ==============================================================================
@@ -1211,8 +1411,8 @@ ax[1].bar([f"{w}" for w in mc_vs_W], [np.median(v) for v in mc_vs_W.values()],
 ax[1].set_xlabel("disorder strength $W$"); ax[1].set_ylabel(r"$\mathrm{MC}$")
 ax[1].set_title(r"clean ($W=0$) versus random reservoirs"); ax[1].grid(alpha=0.3, axis="y")
 
-ax[2].plot(TAUS_MC, np.median(caps_all, axis=0), "o-", ms=3, label=r"$L=1$ (1 input qubit)")
-ax[2].plot(TAUS_MC, np.median(caps_L2, axis=0), "s-", ms=3, label=r"$L=2$ (window of 2)")
+ax[2].plot(TAUS_MC[:20], np.median(caps_all, axis=0)[:20], "o-", ms=3, label=r"$L=1$ (1 input qubit)")
+ax[2].plot(TAUS_MC[:20], np.median(caps_L2, axis=0)[:20], "s-", ms=3, label=r"$L=2$ (window of 2)")
 ax[2].set_xlabel(r"delay $\tau_{\rm delay}$"); ax[2].set_ylabel(r"$C(\tau_{\rm delay})$")
 ax[2].set_title(r"$N=4$: one input qubit or two"); ax[2].legend(fontsize=8); ax[2].grid(alpha=0.3)
 plt.tight_layout(); plt.show()
@@ -1239,35 +1439,47 @@ for V_s in V_SWEEP:
     caps_by_V[V_s] = np.array([memory_capacity(F_by_V[V_s][i], u_iid) for i in range(N_RES)])
     print(f"V = {V_s}: p = {F_by_V[V_s].shape[2]:3d} features, "
           f"MC = {np.median(caps_by_V[V_s].sum(1)):.3f} "
-          f"[{caps_by_V[V_s].sum(1).min():.3f}, {caps_by_V[V_s].sum(1).max():.3f}]  ({dt_s:.1f} s)")
+          f"[{caps_by_V[V_s].sum(1).min():.3f}, {caps_by_V[V_s].sum(1).max():.3f}]  "
+          f"(compilation {dt_s[0]:.1f} s, run {dt_s[1]:.1f} s)")
 
 # %% [markdown]
 # ### 6.1 What the memory measurements say
 #
-# * **The capacity profile moves, the total does not.** $C(\tau_{\rm delay})$ starts near $1$ and decays over a few steps.
-#   At $\tau=0.125$ the first delay is poorly resolved ($C(1)=0.35$) but a weak tail survives to $\tau_{\rm delay}=20$; at
-#   $\tau\ge0.5$ the first two delays are almost perfect ($C(1)\approx0.9$) and nothing is left after ten steps. The *total*
-#   is $3.3$–$4.1$ across a sixteenfold range of $\tau$, with a reservoir-to-reservoir spread of about $\pm0.7$ that is
-#   larger than the trend. A conserved total with a redistributable profile is exactly the behaviour of the capacity sum
-#   rule of Dambre *et al.*
-# * **The bound is satisfied with room to spare**: $\mathrm{MC}=3.63$ against $p=21$ features. Part of the gap is
-#   redundancy — the singular values of the standardised feature matrix span a factor of $15$ and the
-#   participation-ratio effective rank is $14.5$, not $21$ — but even against $14.5$ the measured capacity is small. The
-#   rest of the gap is that the bound is saturated only by a *complete* set of target functionals; the delay task probes
-#   the linear ones only, and the remaining capacity sits in the nonlinear functionals that Sections 7 and 8 exploit.
-# * **Size helps, roughly linearly**: $1.63,\,2.45,\,3.63,\,4.61$ for $N=2,3,4,5$, i.e. about one extra delay remembered
-#   per added memory qubit, while the feature count grows by six per qubit. The $4^N$-dimensional state space is
-#   emphatically *not* converted into $4^N$ usable memory slots by a readout of one- and two-body observables.
-# * **Disorder is not the point.** The clean lattice ($W=0$) reaches $\mathrm{MC}=3.94$ — above the median of the
-#   disordered ensembles ($3.63$ at $W=0.5$, $3.82$ at $W=1$) and inside their spread. (All six $W=0$ "draws" are the same
-#   Hamiltonian, which is why that bar has no error bar at all: a useful check that the spread really comes from the
-#   disorder.) What disorder buys is not performance but the possibility of *statistics*: a family of machines rather than
-#   one.
+# * **How precise is one number.** Driving the same six reservoirs with two fresh input sequences moves each MC by a pooled
+#   standard deviation of $0.45$ — as large as the reservoir-to-reservoir spread ($0.48$). With $220$ test points a single
+#   MC value is uncertain by about $\pm0.45$, so differences between individual reservoirs, and differences of a few tenths
+#   between the medians below, are not resolved. The null control scores $\mathrm{MC}=0.31\pm0.03$ with no memory at all,
+#   in agreement with the prediction $\sum_\tau1/(n_{\rm te}-1)=0.28$ of Section 2.6, and the five times longer series raises
+#   the capacity of every reservoir, by $0.30\pm0.09$ on average, while its own null control falls to $0.035$. At $T=1200$
+#   the two biases have opposite sign and similar size; the medians quoted below are therefore close to the long-series
+#   values ($3.82$ against $4.19$), but only by this coincidence.
+# * **The capacity profile moves with $\tau$, the total much less.** $C(\tau_{\rm delay})$ starts near $1$ and decays over a
+#   few steps for $\tau\ge0.5$ ($C(1)\approx0.9$, nothing above the null level after about ten steps). At $\tau=0.125$ the
+#   first delay is poorly resolved ($C(1)=0.35$) but a faint tail survives far beyond twenty steps ($C(20)=0.10$,
+#   $C(40)=0.02$, against $0.005$ per delay for the null control) — the slow forgetting of Section 5 seen from the readout.
+#   Summed to $60$ delays this tail makes $\tau=0.125$ the machine with the *largest* total ($4.57$, against $3.8$–$4.3$ for
+#   the other four values); truncated at twenty delays it would have appeared as the smallest ($3.26$). The other four totals
+#   differ by less than the uncertainty of one MC value. The *total* linear memory is not conserved — Dambre's sum rule
+#   fixes the sum over *all* orthogonal functionals, linear and nonlinear, not the linear part — but over a sixteenfold
+#   range of $\tau$ it changes far less than the profile does.
+# * **The bound is satisfied with room to spare**: $\mathrm{MC}=3.82$ against $p=21$ features. Part of the gap is
+#   redundancy — the singular values of the standardised feature matrix span a factor of $15$, the effective rank
+#   $(\sum_i\sigma_i)^2/\sum_i\sigma_i^2$ is $14.5$, and the participation ratio of the eigenvalues $\sigma_i^2$ of
+#   $X^{\rm T}X$ is only $8.8$ — but even against these numbers the measured capacity is small. The rest of the gap is that the
+#   bound is saturated only by a *complete* set of target functionals; the delay task probes the linear ones only, and the
+#   remaining capacity sits in nonlinear functionals.
+# * **Size helps, roughly linearly**: $1.83,\,2.62,\,3.82,\,4.81$ for $N=2,3,4,5$, i.e. about one extra delay remembered
+#   per added memory qubit, while the feature count grows by six per qubit. The $4^N$-dimensional state space is not
+#   converted into $4^N$ usable memory slots by a readout of one- and two-body observables.
+# * **Disorder is not the point.** The clean lattice ($W=0$) reaches $\mathrm{MC}=4.10$, inside the spread of the
+#   disordered ensembles ($3.82$ at $W=0.5$, $4.00$ at $W=1$). (All six $W=0$ "draws" are the same Hamiltonian, which is
+#   why that bar has no error bar at all: a useful check that the spread really comes from the disorder.) What disorder
+#   buys is the possibility of *statistics*: a family of machines rather than one.
 # * **Where to put the input.** With $L=2$ the two most recent inputs are written into the register at every step, so
 #   $C(1)=0.95$ and $C(2)=0.87$ are high for a trivial reason — they are read off the input rail, not recalled. But only
-#   two qubits are left to remember anything, the profile collapses after $\tau_{\rm delay}=4$, and the total
-#   ($\mathrm{MC}=3.00$ with $p=24$) is *below* the single-input-qubit machine ($3.63$ with $p=21$).
-# * **Multiplexing** raises the capacity at fixed hardware — $3.63\to4.08\to4.41$ for $V=1,2,4$ — and by far less than the
+#   two qubits are left to remember anything, the profile collapses after a few delays, and the total ($\mathrm{MC}=3.22$
+#   with $p=24$) is below the single-input-qubit machine ($3.82$ with $p=21$), by a margin comparable with the uncertainty.
+# * **Multiplexing** raises the capacity at fixed hardware — $3.82\to4.27\to4.61$ for $V=1,2,4$ — and by far less than the
 #   factor $V$ by which the feature count grows. The $V$ snapshots inside one interval are strongly correlated with each
 #   other, which is the same redundancy that the effective rank already exposed.
 #
@@ -1276,8 +1488,19 @@ for V_s in V_SWEEP:
 # The delay task is linear in the input, so a reservoir could score well on it with no nonlinearity at all. NARMA is the
 # standard cure: Eqs. (6) and (7) define a target that depends on products of past inputs and on its own past. We drive with
 # the same i.i.d. sequence as in Section 6, rescaled to the interval $[0,0.5]$ that the NARMA literature uses, and train the
-# same ridge readout. The baselines are trained on exactly the same blocks with exactly the same $\alpha$ grid: a linear
-# autoregression on the last $p$ inputs, and a classical echo-state network with $p$ units.
+# same ridge readout. Every baseline is trained on the same blocks with the same $\alpha$ grid and has $p=21$ features:
+#
+# * $\mathrm{AR}(p)$, a linear autoregression on the last $p$ inputs (no nonlinearity at all);
+# * $\mathrm{AR}^2(p)$, the last $11$ inputs and the squares of the last $10$ (a static polynomial, no dynamics);
+# * $\mathrm{ESN}(p)$, a classical echo-state network with $p$ units, once with the default scalings (spectral radius $0.9$,
+#   input scale $1$) and once with both chosen on the validation block from a $3\times4$ grid;
+# * as a reference without a feature budget, $\mathrm{ESN}(200)$ with default scalings.
+#
+# A comparison in which the model under test has its knobs set by hand while the baseline runs at default settings, or the
+# reverse, says little; so the quantum reservoir also gets its one cheap knob tuned: the evolution time $\tau$ is chosen on
+# the validation block from the five values of the sweep in Section 6. A further row isolates the encoding: ridge regression
+# on $\cos\pi u$ and $\sin\pi u$ of the last $10$ inputs ($20$ features), i.e. the function space of Eq. (14) for single
+# inputs with a perfect memory of ten steps and no cross-time products.
 
 # %%
 # ==============================================================================
@@ -1287,56 +1510,82 @@ u_narma = 0.5 * u_iid                       # the drive encoded in the qubit is 
 targets = {"NARMA-2": narma2(u_narma), "NARMA-5": narma_n(u_narma, 5), "NARMA-10": narma_n(u_narma, 10)}
 p_feat = F_iid.shape[2]
 
-rows = []
+
+def score_val(F, y):
+    """(test NMSE, validation NMSE) of the ridge readout -- the input of `select_on_validation`."""
+    out = evaluate(F, y, return_val=True)
+    return out[0], out[-1]
+
+
+# echo-state networks: features for every grid point and seed, computed once and reused for all targets
+esn_cands = {cfg: [esn_features(u_iid, p_feat, seed=s, rho_sr=cfg[0], scale_in=cfg[1]) for s in range(N_RES)]
+             for cfg in ESN_GRID}
+trig_lags = np.hstack([ar_features(np.cos(np.pi * u_iid), 10), ar_features(np.sin(np.pi * u_iid), 10)])
+
+rows, chosen = [], {}
 for name, y in targets.items():
     q = np.array([evaluate(F_iid[i], y)[0] for i in range(N_RES)])
     q4 = np.array([evaluate(F_by_V[4][i], y)[0] for i in range(N_RES)])
+    tau_best, q_tau = select_on_validation({t: list(F_by_tau[t]) for t in TAU_SWEEP}, lambda F: score_val(F, y))
     ar = evaluate(ar_features(u_iid, p_feat), y)[0]
-    esn = np.array([evaluate(esn_features(u_iid, p_feat, seed=s), y)[0] for s in range(N_RES)])
+    ar2 = evaluate(ar2_features(u_iid, p_feat), y)[0]
+    esn = np.array([evaluate(F, y)[0] for F in esn_cands[(0.9, 1.0)]])
+    cfg_best, esn_t = select_on_validation(esn_cands, lambda F: score_val(F, y))
     esn_big = np.array([evaluate(esn_features(u_iid, 200, seed=s), y)[0] for s in range(N_RES)])
-    rows.append((name, np.median(q), q.min(), q.max(), np.median(q4), ar, np.median(esn), np.median(esn_big)))
+    trig = evaluate(trig_lags, y)[0]
+    chosen[name] = (tau_best, cfg_best)
+    rows.append((name, q, q4, q_tau, ar, ar2, esn, esn_t, esn_big, trig))
 
 # how linear are the two nonlinearities involved?
 print(f"correlation of the NARMA input nonlinearity with the input itself: "
       f"corr(u, u^3) = {np.corrcoef(u_narma, u_narma**3)[0, 1]:.4f} on [0, 0.5]")
-print(f"correlation of the encoding with the input: corr(u, cos(pi u)) = "
-      f"{np.corrcoef(u_iid, np.cos(np.pi*u_iid))[0, 1]:+.4f}, corr(u, sin(pi u)) = "
-      f"{np.corrcoef(u_iid, np.sin(np.pi*u_iid))[0, 1]:+.4f}\n")
-print(f"test NMSE (median over {N_RES} reservoirs / seeds); p = {p_feat} features for QRC, AR and the small ESN")
-print(f"{'task':10s} {'QRC V=1':>18s} {'QRC V=4':>9s} {'AR(p)':>9s} {'ESN(p)':>9s} {'ESN(200)':>10s}")
-for name, med, lo, hi, med4, ar, esn, esn_big in rows:
-    print(f"{name:10s} {med:8.4f} [{lo:.3f},{hi:.3f}] {med4:9.4f} {ar:9.4f} {esn:9.4f} {esn_big:10.4f}")
+print(f"test NMSE, median over {N_RES} reservoirs / seeds [min, max]; p = {p_feat} features unless stated\n")
+cols = ("QRC tau=0.5", "QRC V=4 (84)", "QRC tau tuned", "AR(p)", "AR^2(p)", "ESN(p) default", "ESN(p) tuned",
+        "ESN(200)", "cos/sin lags (20)")
+for name, *vals in rows:
+    print(f"{name}  (tau chosen on validation: {chosen[name][0]}; ESN (radius, input scale) chosen: {chosen[name][1]})")
+    for c, v in zip(cols, vals):
+        v = np.atleast_1d(v)
+        print(f"   {c:18s} {np.median(v):7.4f}" + (f"   [{v.min():.3f}, {v.max():.3f}]" if len(v) > 1 else ""))
 
 # %% [markdown]
-# **The quantum reservoir loses this one, and the reason is instructive.** With $p=21$ features it reaches a test NMSE of
-# $0.32$ on NARMA-2, $0.62$ on NARMA-5 and $0.78$ on NARMA-10; the linear autoregression on the last $21$ inputs reaches
-# $0.15$, $0.13$ and $0.19$, and the classical echo-state network with $21$ units $0.15$, $0.27$ and $0.69$. Multiplexing to
-# $84$ features helps ($0.22$, $0.48$, $0.75$) but does not change the ordering.
+# **The quantum reservoir is the weakest model in the table on all three tasks.** With $p=21$ features at $\tau=0.5$ it
+# reaches a test NMSE of $0.32$ on NARMA-2, $0.62$ on NARMA-5 and $0.78$ on NARMA-10. Choosing $\tau$ on the validation
+# block improves this to $0.21$, $0.49$ and $0.75$, and multiplexing to $84$ features gives $0.22$, $0.48$ and $0.75$. The
+# classical models with the same $21$ features do better: the linear autoregression reaches $0.15$, $0.13$, $0.19$; the
+# echo-state network at default scalings $0.15$, $0.27$, $0.69$, and with its two scalings chosen on the validation block
+# $0.026$, $0.13$, $0.28$. The quadratic autoregression solves NARMA-2 almost exactly ($0.005$).
 #
-# Two measured facts explain it.
+# The table also says *why*, because its rows separate the ingredients.
 #
-# 1. **NARMA is mostly a memory task, and memory is what our machine is short of.** The target of Eq. (7) depends on the
-#    last $n$ inputs and, through its own past, on a long exponential tail of earlier ones. The autoregressive baseline is
-#    *given* the last $21$ inputs exactly — a memory capacity of $21$ by construction — while the reservoir has
-#    $\mathrm{MC}=3.6$. For NARMA-5 and NARMA-10 that is simply not enough, and no amount of nonlinearity repairs it.
-# 2. **The nonlinearity NARMA asks for is weak.** The only explicitly nonlinear input term in Eq. (6) is $u^3$, and on
-#    $[0,0.5]$ the correlation between $u$ and $u^3$ is $0.921$: some $85\,\%$ of the variance of $u_k^3$ is already
-#    contained in $u_k$ itself. A linear filter of the past inputs therefore captures most of the target, which is why
-#    $\mathrm{AR}(21)$ — a model with no nonlinearity whatsoever — is hard to beat here.
+# 1. **The encoding is not the bottleneck.** Ridge regression on $\cos\pi u$ and $\sin\pi u$ of the last ten inputs — the
+#    single-input function space of Eq. (14), with a perfect memory of ten steps — reaches $0.034$ on NARMA-2. The
+#    trigonometric functions represent $u^3$ well enough (Section 4.4: $3\,\%$ of its variance is missed), so a reservoir
+#    whose features contained these lags accurately would be about ten times better than ours.
+# 2. **Nonlinearity matters for NARMA-2.** The best linear model of the inputs stops at $0.15$, and adding the squares of
+#    the last ten inputs lowers the error thirtyfold. The $85\,\%$ of the variance of $u^3$ that $u$ explains
+#    ($\operatorname{corr}(u,u^3)=0.921$ on $[0,0.5]$) is not enough at this level of accuracy.
+# 3. **What the reservoir lacks is accurate recall of the recent inputs.** NARMA-2 is dominated by $0.6\,u_{k-1}^3$, yet the
+#    reservoir recovers even the *linear* function $u_{k-1}$ only with $C(1)=0.905$, and $u_{k-2}$ with $C(2)=0.75$; whatever
+#    variance of the target is carried by the recent inputs and missing from the features is lost to every readout. The
+#    lag models are handed the recent inputs exactly. For NARMA-5 and NARMA-10 the required memory depth exceeds what a
+#    reservoir with $\mathrm{MC}\approx4$ holds, and the quadratic terms no longer help (they cost lags).
 #
-# The same table also shows the honest cost of the "equal number of features" convention: $21$ exact input lags are $21$
+# The convention of "equal number of features" therefore favours the classical side here: $21$ exact input lags are $21$
 # linearly independent numbers, while $21$ quantum expectation values have an effective rank of $14.5$ and encode a memory
-# of less than four steps. Section 10 returns to NARMA-2 with a dissipative reservoir, where the picture changes.
+# of about four steps. Section 10 returns to NARMA-2 with a dissipative reservoir, which raises $C(1)$ and improves the
+# score, though not to the level of the tuned classical baselines.
 #
 # ## 8. The Santa Fe laser series
 #
 # Data set A of the Santa Fe time-series competition is a univariate record of the intensity of an
-# $81.5\,\mu\mathrm{m}$ $^{14}$NH$_3$ far-infrared laser in a chaotic regime — the experiment of U. Hübner with
-# N. B. Abraham and C. O. Weiss, contributed to the competition whose proceedings Weigend and Gershenfeld edited. The
-# intensity was digitised to $8$ bits, and the series alternates between stretches of growing oscillations and abrupt
-# collapses. The competition data set is $1000$ points long with a continuation of about $10^4$ further points; the file
-# `../data/santafe.txt` holds $4000$ samples of the series, standardised to zero mean and unit variance. The quantisation
-# is still visible: the distinct values lie on a uniform lattice, which the cell below verifies.
+# $81.5\,\mu\mathrm{m}$ $^{14}$NH$_3$ far-infrared laser in a chaotic regime, contributed by U. Hübner from measurements
+# collected primarily by N. B. Abraham and C. O. Weiss, and published with the competition proceedings edited by Weigend and
+# Gershenfeld. The series alternates between stretches of growing oscillations and abrupt collapses. The competition data
+# set is $1000$ points long, with a later continuation of $9093$ further points; the file `../data/santafe.txt` holds $4000$
+# samples of the series, standardised to zero mean and unit variance. The analog-to-digital conversion is still visible:
+# the cell below finds that the distinct values lie on a uniform lattice of $254$ levels, consistent with an $8$-bit
+# converter (an inference from the data, not a documented property).
 
 # %%
 # ==============================================================================
@@ -1351,16 +1600,20 @@ step = np.diff(uniq).min()
 levels = np.round((santafe_raw - santafe_raw.min()) / step)
 resid = np.abs(santafe_raw - (levels * step + santafe_raw.min())).max()
 print(f"{len(uniq)} distinct values; smallest gap {step:.5f}; the values fit the lattice "
-      f"min + n*gap with n = 0..{int(levels.max())} to within {resid:.1e} (the file stores 5 digits) "
-      f"-- an 8-bit digitisation")
+      f"min + n*gap with n = 0..{int(levels.max())} to within {resid:.1e} "
+      f"(the file stores 5 digits, and the gap itself is uncertain by ~1e-5, i.e. ~{254e-5:.1e} at the top level)")
 
 s_sf = santafe_raw[:T_LEN]
-u_sf = (s_sf - s_sf.min()) / (s_sf.max() - s_sf.min())          # min-max to [0,1] for the encoding
 tr_sf, va_sf, te_sf = split_indices(T_LEN, WASHOUT)
+# min-max to [0,1] for the encoding, with the min and max of the washout + TRAINING part only (no test statistics)
+s_lo, s_hi = s_sf[:tr_sf.stop].min(), s_sf[:tr_sf.stop].max()
+u_sf = (s_sf - s_lo) / (s_hi - s_lo)
+print(f"encoding range from steps 0..{tr_sf.stop - 1}; the whole working series then spans [{u_sf.min():.3f}, {u_sf.max():.3f}]")
 print(f"working series: {T_LEN} points -> washout {WASHOUT}, train {tr_sf.stop-tr_sf.start}, "
       f"validation {va_sf.stop-va_sf.start}, test {te_sf.stop-te_sf.start}")
-print(f"autocorrelation of the series at lag 1: {np.corrcoef(u_sf[1:], u_sf[:-1])[0,1]:.4f} "
-      f"(the i.i.d. drive of Section 6: {np.corrcoef(u_iid[1:], u_iid[:-1])[0,1]:+.4f})")
+acf = [np.corrcoef(u_sf[lag:], u_sf[:-lag])[0, 1] for lag in range(1, 17)]
+print(f"autocorrelation of the series at lags 1..16: {np.array2string(np.array(acf), precision=2)}")
+print(f"  (the i.i.d. drive of Section 6 at lag 1: {np.corrcoef(u_iid[1:], u_iid[:-1])[0,1]:+.4f})")
 
 fig, ax = plt.subplots(1, 2, figsize=(11, 3.4))
 ax[0].plot(np.arange(T_LEN), u_sf, lw=0.7, color="tab:blue")
@@ -1381,7 +1634,8 @@ plt.tight_layout(); plt.show()
 HORIZONS = (1, 2, 4, 8)
 F_sf1, t_sf1 = drive_ensemble(L_IN, N_RAILS, TAU, DT, u_sf, V=1)
 F_sf4, t_sf4 = drive_ensemble(L_IN, N_RAILS, TAU, DT, u_sf, V=4)
-print(f"two ensembles driven with the laser series in {t_sf1 + t_sf4:.1f} s")
+print(f"two ensembles driven with the laser series: compilation {t_sf1[0] + t_sf4[0]:.1f} s, "
+      f"run {t_sf1[1] + t_sf4[1]:.1f} s")
 
 
 def horizon_scores(F, u, h):
@@ -1392,15 +1646,28 @@ def horizon_scores(F, u, h):
 res_sf = {"QRC $V=1$": np.array([[horizon_scores(F_sf1[i], u_sf, h)[0] for h in HORIZONS] for i in range(N_RES)]),
           "QRC $V=4$": np.array([[horizon_scores(F_sf4[i], u_sf, h)[0] for h in HORIZONS] for i in range(N_RES)]),
           f"AR({p_feat})": np.array([[horizon_scores(ar_features(u_sf, p_feat), u_sf, h)[0] for h in HORIZONS]]),
-          f"ESN({p_feat})": np.array([[horizon_scores(esn_features(u_sf, p_feat, seed=s), u_sf, h)[0]
-                                       for h in HORIZONS] for s in range(N_RES)]),
-          "ESN(200)": np.array([[horizon_scores(esn_features(u_sf, 200, seed=s), u_sf, h)[0]
-                                 for h in HORIZONS] for s in range(N_RES)])}
+          f"AR$^2$({p_feat})": np.array([[horizon_scores(ar2_features(u_sf, p_feat), u_sf, h)[0] for h in HORIZONS]]),
+          f"ESN({p_feat}) default": np.array([[horizon_scores(esn_features(u_sf, p_feat, seed=s), u_sf, h)[0]
+                                               for h in HORIZONS] for s in range(N_RES)])}
+# the ESN scalings chosen on the validation block, separately for every horizon
+esn_cands_sf = {cfg: [esn_features(u_sf, p_feat, seed=s, rho_sr=cfg[0], scale_in=cfg[1]) for s in range(N_RES)]
+                for cfg in ESN_GRID}
+esn_sf_cfg, esn_sf_cols = [], []
+for h in HORIZONS:
+    cfg, sc = select_on_validation(esn_cands_sf, lambda F: (lambda o: (o[0], o[-1]))(
+        evaluate(F[:len(u_sf) - h], u_sf[h:], return_val=True)))
+    esn_sf_cfg.append(cfg)
+    esn_sf_cols.append(sc)
+res_sf[f"ESN({p_feat}) tuned"] = np.array(esn_sf_cols).T
+res_sf["ESN(200) default"] = np.array([[horizon_scores(esn_features(u_sf, 200, seed=s), u_sf, h)[0]
+                                        for h in HORIZONS] for s in range(N_RES)])
 
-print(f"\ntest NMSE of predicting u(k+h) -- median over {N_RES} reservoirs / seeds")
-print(f"{'model':14s}" + "".join(f"{'h='+str(h):>10s}" for h in HORIZONS))
+print(f"\ntest NMSE of predicting u(k+h) -- median over {N_RES} reservoirs / seeds [min, max at h=1]")
+print(f"{'model':18s}" + "".join(f"{'h='+str(h):>10s}" for h in HORIZONS))
 for name, arr in res_sf.items():
-    print(f"{name:14s}" + "".join(f"{np.median(arr[:, j]):10.4f}" for j in range(len(HORIZONS))))
+    print(f"{name.replace('$', '').replace('^2', '2'):18s}" + "".join(f"{np.median(arr[:, j]):10.4f}" for j in range(len(HORIZONS)))
+          + (f"    [{arr[:, 0].min():.3f}, {arr[:, 0].max():.3f}]" if len(arr) > 1 else ""))
+print(f"ESN(p) (radius, input scale) chosen on validation for h = {HORIZONS}: {esn_sf_cfg}")
 
 nmse_best, r2_best, alpha_best, yp_best, yt_best = horizon_scores(F_sf4[0], u_sf, 1)   # one reservoir, not the best
 fig, ax = plt.subplots(1, 2, figsize=(11.5, 3.8))
@@ -1409,7 +1676,9 @@ ax[0].plot(yp_best, "r--", lw=1.0, label=rf"QRC $V=4$ readout, NMSE$={nmse_best:
 ax[0].set_xlabel("step in the test block"); ax[0].set_ylabel(r"$u_{k+1}$")
 ax[0].set_title("one-step prediction on the untouched test block"); ax[0].legend(fontsize=8); ax[0].grid(alpha=0.3)
 for name, arr in res_sf.items():
-    ax[1].plot(HORIZONS, np.median(arr, axis=0), "o-", ms=4, label=name)
+    line, = ax[1].plot(HORIZONS, np.median(arr, axis=0), "o-", ms=4, label=name)
+    if len(arr) > 1:
+        ax[1].fill_between(HORIZONS, arr.min(axis=0), arr.max(axis=0), color=line.get_color(), alpha=0.12)
 ax[1].axhline(1.0, color="k", ls=":", lw=1, label=r"constant predictor")
 ax[1].set_xlabel("prediction horizon $h$ (steps)"); ax[1].set_ylabel("test NMSE")
 ax[1].set_yscale("log"); ax[1].set_title("how far ahead can it see?"); ax[1].legend(fontsize=7); ax[1].grid(alpha=0.3)
@@ -1418,24 +1687,30 @@ print(f"\nsingle configuration shown in the left panel: reservoir 0, V=4, h=1: N
       f"alpha chosen on the validation block = {alpha_best:g}")
 
 # %% [markdown]
-# On real data the ordering reverses. For one-step prediction the quantum reservoir reaches a test NMSE of $0.093$ with
-# $21$ features and $0.024$ with $84$; the linear autoregression on $21$ lags reaches only $0.26$, and the classical
-# echo-state network with the same $21$ units $0.097$. Two conclusions, both visible in the right-hand panel:
+# On the laser data the picture is different from NARMA. For one-step prediction the quantum reservoir reaches a test NMSE
+# of $0.093$ with $21$ features and $0.024$ with $84$; the linear autoregression on $21$ lags reaches $0.26$, the quadratic
+# autoregression $0.11$, and the echo-state network with $21$ units $0.097$ at default scalings and $0.042$ with its
+# scalings chosen on the validation block. Three conclusions:
 #
-# * **Against the linear model the quantum reservoir wins by a factor of three**, and that gap is exactly the nonlinearity
-#   of Eq. (14) at work. The laser series is strongly autocorrelated (lag-1 correlation $0.53$) and its collapses are
-#   intrinsically nonlinear events; a linear filter of the past interpolates the oscillation but cannot anticipate a
-#   collapse. The left-hand panel shows the reservoir tracking the amplitude growth and the collapse near step $80$ of the
-#   test block, with a visible but bounded error right at the discontinuity.
-# * **Against the classical reservoir with the same number of readout features it is a draw** ($0.093$ against $0.097$ at
-#   $V=1$), and a classical network with $200$ units — which costs microseconds to simulate — is better than both
-#   ($0.012$). At $N=4$ qubits there is no computational advantage here, and claiming one would require counting resources
-#   very carefully in the other direction.
+# * **Against the lag models the quantum reservoir wins** — by a factor of three against the linear and of about $1.1$
+#   against the quadratic autoregression at $h=1$, and at every horizon in the right-hand panel. The series is a
+#   nearly periodic pulsation (autocorrelation $0.77$ at lag $8$) whose amplitude grows and then collapses; a linear filter of
+#   the past reproduces the oscillation but not the amplitude dynamics, and squaring the lags recovers only part of the gap.
+#   The left-hand panel shows the reservoir tracking the amplitude growth and the collapse near step $80$ of the test block,
+#   with a visible error right after the collapse.
+# * **Against the classical reservoir with the same number of readout features it loses** once the classical network is
+#   tuned as carefully as the readout: $0.093$ against $0.042$ at $h=1$, with non-overlapping ranges over seeds
+#   ($[0.069,0.112]$ against $[0.035,0.049]$). The draw at default scalings ($0.093$ against $0.097$) was a property of the
+#   untuned baseline. Multiplexing ($84$ features, $0.024$) beats the tuned $21$-unit network, but it also has four times
+#   as many features, and a classical network with $200$ units — about $25\,\mu$s per input step, $30$ ms for the whole
+#   series on one CPU core — is better still ($0.012$).
+# * At $N=4$ qubits there is therefore no computational advantage in this comparison, and a claim of one would require a
+#   larger reservoir, a fair accounting of resources, and baselines tuned on the same validation data.
 #
-# Beyond one step the task becomes much harder for everybody: the NMSE at $h=2$ is three to seven times the $h=1$ value for
-# every model. The oscillation period of the series is about seven samples, so a two-step horizon already requires
-# extrapolating the *phase* of the pulsation, not only its envelope. The curves then flatten, because at $h=4$ and $h=8$ all
-# models have fallen back on predicting the slowly varying envelope.
+# Beyond one step the task becomes much harder for every model: the NMSE at $h=2$ is between $1.5$ and $10$ times the
+# $h=1$ value, and the better a model is at $h=1$, the larger the jump. The autocorrelation has its period at $7$–$8$ samples, so a two-step horizon already requires extrapolating the
+# *phase* of the pulsation, not only its envelope. The curves then flatten, because at $h=4$ and $h=8$ all models have
+# fallen back on predicting the slowly varying envelope.
 #
 # ## 9. What a readout costs: finite measurement statistics
 #
@@ -1451,54 +1726,102 @@ print(f"\nsingle configuration shown in the left panel: reservoir 0, V=4, h=1: N
 # 1. **Incompatible settings.** $X$, $Y$ and $Z$ on the same qubit cannot be measured in the same run. The feature set of
 #    Eq. (13) needs three settings, so $M$ repetitions per feature means $3M$ runs.
 # 2. **The measurement destroys the state.** To read the reservoir at step $k$ and then continue to step $k+1$ with the
-#    *same* state is not possible. In the restarting protocol the whole input sequence up to step $k$ must be replayed for
-#    every readout time, which makes the experimental time grow quadratically with the length of the series. Mujal,
-#    Martínez-Peña, Giorgi, Soriano and Zambrini analysed exactly this and proposed two ways out: a *rewinding* protocol that
-#    replays only the washout window, using the fading memory established in Section 5, and an *online* protocol with weak
-#    (continuous) measurements that never repeats the dynamics but pays with measurement back-action.
-# 3. **The noise enters the regression.** Noisy features make $X^{\rm T}X$ worse conditioned; the ridge parameter chosen on
-#    the validation block is what keeps the readout from amplifying the noise, and it grows as $M$ falls.
+#    *same* state is not possible. If the whole input sequence up to step $k$ is replayed for every readout time (the
+#    *restarting* protocol of earlier work), the experimental time grows quadratically with the length of the series. Mujal,
+#    Martínez-Peña, Giorgi, Soriano and Zambrini named and analysed this protocol and proposed two ways out: a *rewinding*
+#    protocol that replays only the last stretch of the input, using the fading memory established in Section 5 (linear
+#    instead of quadratic cost), and an *online* protocol with weak measurements that never repeats the dynamics but pays with
+#    measurement back-action.
+# 3. **The noise enters the regression**, in two places: in the training features, where it changes the fitted weights,
+#    and in the test features, where it adds to every prediction. Section 9.1 derives both.
 #
-# First a check that Eq. (15) really describes what our simulator would produce. We take the $M$ *trajectories* of Section
-# 4.5 — each one an independent experimental run, including the randomness of the reset — measure every qubit once in the
-# $Z$ basis of the final state, average, and compare the spread over repetitions with $\sqrt{(1-f^2)/M}$.
+# First a check that Eq. (15) describes what the simulator produces. We take $M$ *trajectories* of Section 4.5 — each one
+# an independent experimental run, including the randomness of the reset — measure every qubit once in the $Z$ basis of the
+# final state, average, and compare with the exact $\langle Z_q\rangle$. Two sources of randomness enter one outcome: which
+# reset outcomes the run produced (so which pure state $\vert\psi_s\rangle$ it ended in) and which eigenvalue the final
+# measurement returned. The law of total variance says that together they give the variance $1-f^2$ of Eq. (15); the
+# control is the variance $\operatorname{Var}_s\langle\psi_s\vert Z_q\vert\psi_s\rangle$ of the first source alone, which is
+# what a simulation that averages trajectory expectation values instead of sampling outcomes would assume.
 
 # %%
 # ==============================================================================
 # CHECKPOINT: the shot model (15) against a full simulation of the measurement
 # ==============================================================================
-M_SHOT, R_REP, K_STEPS = 100, 20, 40
+M_SHOT, R_REP, K_STEPS = 100, 100, 40
 u_shot = np.random.default_rng(7).uniform(0.0, 1.0, K_STEPS)
 W_shot = input_windows(u_shot, L_IN)
 keys_shot = jax.random.split(jax.random.PRNGKey(21), M_SHOT * R_REP)
-psi_end, _ = jax.jit(jax.vmap(mcwf, in_axes=(None, None, None, None, 0)))(
+psi_end, F_traj_shot = jax.jit(jax.vmap(mcwf, in_axes=(None, None, None, None, 0)))(
     Js_demo, hs_demo, W_shot, zero_state(N_QUBITS), keys_shot)
 bits = jax.vmap(lambda k, p: sample_bitstrings(k, p, 1)[0])(
     jax.random.split(jax.random.PRNGKey(22), M_SHOT * R_REP), psi_end)
 z_vals = np.asarray(1 - 2 * bits, dtype=float).reshape(R_REP, M_SHOT, N_QUBITS)   # +-1 outcomes
 est = z_vals.mean(axis=1)                                                          # (R_REP, N) estimates of <Z_q>
+m_traj = np.asarray(F_traj_shot)[:, -1, 2:3 * N_QUBITS:3]                          # <psi_s|Z_q|psi_s>, all runs
 f_exact = np.asarray(driver_ml(Js_demo, hs_demo, W_shot, to_dm(zero_state(N_QUBITS)))[1])[-1, 2:3 * N_QUBITS:3]
-print("qubit   exact <Z>    mean of estimates    spread over repetitions    sqrt((1-f^2)/M)")
+print(f"{R_REP} repetitions of 'drive {M_SHOT} trajectories, measure each once'")
+print("qubit  exact <Z>   pooled mean (z)      spread of estimates   Eq.(15) sqrt((1-f^2)/M)   "
+      "control sqrt(Var_s<Z>_psi/M)")
 for q in range(N_QUBITS):
-    print(f"  {q}     {f_exact[q]:+.4f}      {est[:, q].mean():+.4f}              {est[:, q].std(ddof=1):.4f}"
-          f"                 {np.sqrt((1 - f_exact[q]**2)/M_SHOT):.4f}")
+    pooled, se_pooled = z_vals[:, :, q].mean(), np.sqrt((1 - f_exact[q] ** 2) / (M_SHOT * R_REP))
+    sd_obs, sd_pred = est[:, q].std(ddof=1), np.sqrt((1 - f_exact[q] ** 2) / M_SHOT)
+    sd_ctrl = np.sqrt(m_traj[:, q].var() / M_SHOT)
+    print(f"  {q}    {f_exact[q]:+.4f}   {pooled:+.4f} ({(pooled - f_exact[q]) / se_pooled:+.2f})     "
+          f"{sd_obs:.4f} +- {sd_obs / np.sqrt(2 * (R_REP - 1)):.4f}       {sd_pred:.4f}                    {sd_ctrl:.4f}")
+    assert abs(pooled - f_exact[q]) < 4 * se_pooled
+    assert abs(sd_obs / sd_pred - 1) < 4 / np.sqrt(2 * (R_REP - 1)) and sd_ctrl < 0.7 * sd_obs
 
 # %% [markdown]
-# The simulated experiment — $20$ independent repetitions of "drive $100$ trajectories, measure each once" — reproduces
-# Eq. (15): the mean of the estimates agrees with the exact expectation value within its own standard error, and the spread
-# over repetitions matches $\sqrt{(1-f^2)/M}$ within the $16\,\%$ uncertainty that an rms from $20$ samples carries. Two
-# sources of randomness are folded into that one number — which reset outcomes the run happened to produce, and which
-# eigenvalue the final measurement returned — and together they give exactly the variance of the observable in the state
-# $\rho_k$, as they must.
+# The simulated experiment reproduces Eq. (15). The pooled mean of $10^4$ outcomes per qubit agrees with the exact
+# expectation value ($|z|\le0.83$). The spread of the $100$ estimates is predicted with a statistical uncertainty of $7\,\%$;
+# three of the four measured spreads lie above the prediction, by $1.2$ to $2.1$ of their standard errors, one agrees
+# exactly. The four qubits are measured in the same runs, so these deviations are not independent; the assertion allows four
+# standard errors, and a larger number of repetitions is the way to sharpen the test. The control fails by a wide margin:
+# the spread of the trajectory expectation values alone is $0.013$–$0.019$, six to eight times below the observed spread. Almost all of the shot noise comes from the final
+# projective measurement, and a simulation that averaged $\langle\psi_s\vert O\vert\psi_s\rangle$ over $M$ trajectories
+# would understate the statistical error of an experiment with $M$ runs severalfold (Exercise 8 quantifies the consequence
+# for a task).
 #
 # That justifies the shortcut used below: instead of simulating $M$ trajectories for every point of a sweep, draw each
-# feature from the binomial distribution of Eq. (15) around its exact value. The model is validated, it is a thousand times
-# cheaper, and it makes the $M$ dependence exact rather than noisy.
+# feature from the binomial distribution of Eq. (15) around its exact value. Two simplifications are made and should be
+# kept in mind. The binomial draws for different features are independent, whereas features from the same measurement
+# setting ($\langle Z_i\rangle$, $\langle Z_j\rangle$ and $\langle Z_iZ_j\rangle$ from the same bit strings) are correlated in a
+# real experiment; and different readout times use independent runs, which is true of the restarting protocol.
 #
 # > **Common pitfall.** `sample_bitstrings` builds a `(shots, 2^N)` array of log-probabilities, so `vmap`-ing it over
 # > thousands of repetitions is only safe because $N=4$ here. At $N=16$ the same line would try to allocate gigabytes; the
-# > cure is to loop over repetitions or to sample a sufficient statistic (see
-# > [notebook 08](../ch03_matrix_free_engine/08_measurements.ipynb)).
+# > cure is to loop over repetitions or to sample a sufficient statistic (the sampler is built in
+# > [notebook 08](../ch03_matrix_free_engine/08_measurements.ipynb), the sufficient-statistic shortcut is used in
+# > [notebook 32](../ch10_quantum_metrology_protocols/32_ghz_interferometry_heisenberg_limit.ipynb)).
+
+# ### 9.1 How shot noise propagates through the readout
+#
+# Let $x_{kj}$ be the exact feature $j$ at step $k$, $s_j$ its training standard deviation, and $\hat x_{kj}=x_{kj}+\epsilon_{kj}$
+# the measured value, with independent zero-mean errors of variance $v_{kj}=(1-x_{kj}^2)/M$ from Eq. (15). In the
+# standardised units in which the readout works, the error variance is $\tilde v_{kj}=v_{kj}/s_j^2$.
+#
+# *Test features.* With weights $\tilde{\mathbf{w}}$ the prediction acquires the extra term $\sum_j\tilde w_j\tilde\epsilon_{kj}$,
+# independent of everything else, so the mean-square error grows by its variance:
+#
+# $$ \Delta\mathrm{MSE}_{\rm test}=\big\langle\textstyle\sum_j\tilde w_j^2\,\tilde v_{kj}\big\rangle_{k\in\rm test}
+#    \approx\frac1M\sum_j\tilde w_j^2\,\frac{\langle1-x_j^2\rangle}{s_j^2} . \tag{16}$$
+#
+# *Training features.* The Gram matrix of the noisy features has the expectation
+#
+# $$ \mathbb{E}\big[\hat X^{\rm T}\hat X\big]=X^{\rm T}X+D,\qquad D=\operatorname{diag}\Big(\textstyle\sum_{k\in\rm train}\tilde v_{kj}\Big)
+#    \approx n_{\rm tr}\operatorname{diag}\Big(\frac{\langle1-x_j^2\rangle}{M s_j^2}\Big), $$
+#
+# because the cross terms $\mathbb{E}[x\epsilon]$ vanish and $\mathbb{E}[\epsilon_{kj}\epsilon_{kj'}]=\delta_{jj'}v_{kj}$. To
+# leading order the normal equations (3) become $(X^{\rm T}X+\alpha\mathbb{1}+D)\mathbf{w}=X^{\rm T}\mathbf{y}$: **the shot
+# noise acts as a ridge penalty of its own**, with a feature-dependent strength $D_{jj}$ (this is the classical
+# errors-in-variables result; ridge regression and training with input noise are equivalent to this order). Two predictions
+# follow, and the next cell tests both.
+#
+# 1. As long as $D_{jj}\gg\alpha$, the explicit ridge parameter is irrelevant: the validation curve is flat and switching
+#    $\alpha$ off changes nothing.
+# 2. The test error is that of a readout trained on exact features with the penalty $\alpha\mathbb{1}+D$, plus Eq. (16). The
+#    sensitivity to noise is set by $\lVert\tilde{\mathbf{w}}\rVert^2/\operatorname{var}(y)$: a readout that reaches a small
+#    error by large, mutually cancelling weights on correlated features is the one that suffers most.
 
 # %%
 # ==============================================================================
@@ -1514,30 +1837,71 @@ def add_shot_noise(F, M, rng):
     return 2.0 * rng.binomial(M, p) / M - 1.0
 
 
-shot_curves = {"NARMA-2": [], "Santa Fe $h=1$": []}
-unreg_curve, val_curves = [], {}
+def predicted_shot_nmse(F, y, M, washout=WASHOUT):
+    """Errors-in-variables prediction of the test NMSE with features measured M times (Section 9.1).
+
+    MATH  train on EXACT standardised features with the penalty D = n_tr diag(<1 - x_j^2>/(M s_j^2)),
+          then add Eq. (16), sum_j w_j^2 (1 - x_kj^2)/(M s_j^2), averaged over the test block.
+    Returns (predicted NMSE, ||w||^2 / var(y), median_j D_jj).
+    """
+    tr, va, te = split_indices(len(y), washout)
+    mu, sd = F[tr].mean(0), F[tr].std(0)
+    Xs = (F - mu) / sd
+    v = (1.0 - F ** 2) / (M * sd ** 2)                          # error variances in standardised units
+    D = v[tr].sum(0)
+    G, b = normal_equations(Xs[tr], y[tr])
+    w = np.linalg.solve(G + np.diag(np.append(D, 0.0)), b)
+    mse = np.mean((ridge_predict(Xs[te], w) - y[te]) ** 2) + np.mean(v[te] @ w[:-1] ** 2)
+    return mse / np.var(y[te]), np.sum(w[:-1] ** 2) / np.var(y[tr]), np.median(D)
+
+
+tasks_shot = {"NARMA-2": (F_iid, lambda F: (F, targets["NARMA-2"])),
+              "Santa Fe $h=1$": (F_sf1, lambda F: (F[:-1], u_sf[1:]))}
+shot_curves = {t: [] for t in tasks_shot}
+pred_curves = {t: [] for t in tasks_shot}
+unreg_curve, val_curves, alpha_sel = [], {}, {}
 for M in M_SWEEP + (None,):
-    nn, sf, nn_raw = [], [], []
+    meas, pred, nn_raw, a_sel = {t: [] for t in tasks_shot}, {t: [] for t in tasks_shot}, [], []
     for i in range(N_RES):
-        F_n = F_iid[i] if M is None else add_shot_noise(F_iid[i], M, rng_shot)
-        F_s = F_sf1[i] if M is None else add_shot_noise(F_sf1[i], M, rng_shot)
-        e_nn, _, a, _, _, curve = evaluate(F_n, targets["NARMA-2"], return_curve=True)
-        nn.append(e_nn)
-        # the SAME fit with the regularisation switched off, to see what alpha is worth
-        nn_raw.append(evaluate(F_n, targets["NARMA-2"], alphas=[1e-10])[0])
-        sf.append(horizon_scores(F_s, u_sf, 1)[0])
-        if i == 0 and M in (M_SWEEP[0], M_SWEEP[3], None):
-            val_curves[M] = curve
-    shot_curves["NARMA-2"].append(np.median(nn))
-    shot_curves["Santa Fe $h=1$"].append(np.median(sf))
+        for t, (F_all, prep) in tasks_shot.items():
+            F_ex, y_t = prep(F_all[i])
+            F_n = F_ex if M is None else add_shot_noise(F_ex, M, rng_shot)
+            e, _, a, _, _, curve = evaluate(F_n, y_t, return_curve=True)
+            meas[t].append(e)
+            if M is not None:
+                pred[t].append(predicted_shot_nmse(F_ex, y_t, M))
+            if t == "NARMA-2":
+                a_sel.append(a)
+                # the SAME fit with the regularisation switched off, to see what alpha is worth
+                nn_raw.append(evaluate(F_n, y_t, alphas=[1e-10])[0])
+                if i == 0 and M in (M_SWEEP[0], M_SWEEP[3], None):
+                    val_curves[M] = curve
+    for t in tasks_shot:
+        shot_curves[t].append(np.median(meas[t]))
+        if M is not None:
+            pred_curves[t].append(np.median(np.array(pred[t])[:, 0]))
     unreg_curve.append(np.median(nn_raw))
-    runs = "exact expectation values" if M is None else f"{3*M} runs of the sequence per readout time"
-    print(f"M = {str(M):>5s} ({runs:>42s}):  NARMA-2 NMSE {np.median(nn):.4f} "
-          f"(unregularised {np.median(nn_raw):.4f}), Santa Fe NMSE {np.median(sf):.4f}")
+    alpha_sel[M] = a_sel
+    runs = "exact expectation values" if M is None else f"{3*M} runs per readout time"
+    line = f"M = {str(M):>5s} ({runs:>26s}):  NARMA-2 {np.median(meas['NARMA-2']):.4f}"
+    if M is not None:
+        line += (f" (predicted {pred_curves['NARMA-2'][-1]:.4f}, unregularised {np.median(nn_raw):.4f}, "
+                 f"median D_jj {np.median(np.array(pred['NARMA-2'])[:, 2]):6.1f})")
+    line += f"   Santa Fe {np.median(meas['Santa Fe $h=1$']):.4f}"
+    if M is not None:
+        line += f" (predicted {pred_curves['Santa Fe $h=1$'][-1]:.4f})"
+    print(line)
+print("\nalpha chosen on the validation block (NARMA-2, six reservoirs):")
+for M in M_SWEEP + (None,):
+    print(f"  M = {str(M):>5s}: {[float(a) for a in alpha_sel[M]]}")
+for t, (F_all, prep) in tasks_shot.items():
+    wn = [predicted_shot_nmse(*prep(F_all[i]), 1e12)[1] for i in range(N_RES)]
+    print(f"{t}: median ||w||^2 / var(y) of the exact-feature readout = {np.median(wn):.2f}")
 
 fig, ax = plt.subplots(1, 2, figsize=(11, 3.8))
 for name, v in shot_curves.items():
-    ax[0].semilogx(M_SWEEP, v[:-1], "o-", label=name)
+    line, = ax[0].semilogx(M_SWEEP, v[:-1], "o-", label=name)
+    ax[0].semilogx(M_SWEEP, pred_curves[name], "--", color=line.get_color(), lw=1.2, label=f"{name}, Section 9.1")
     ax[0].axhline(v[-1], ls="--", lw=1, color="gray")
 ax[0].semilogx(M_SWEEP, unreg_curve[:-1], "^:", color="tab:red", label=r"NARMA-2, $\alpha=10^{-10}$")
 ax[0].set_xlabel("repetitions $M$ per measurement setting"); ax[0].set_ylabel("test NMSE")
@@ -1551,32 +1915,44 @@ ax[1].legend(fontsize=8); ax[1].grid(alpha=0.3)
 plt.tight_layout(); plt.show()
 
 # %% [markdown]
-# Both tasks degrade smoothly and both saturate, but at very different budgets. NARMA-2 reaches its exact-feature value
-# ($0.320$) already at $M\approx3000$ and is within $3\,\%$ of it at $M=1000$; Santa Fe at $h=1$ is still a factor of $1.4$
-# above its exact value ($0.093$) at $M=10^4$. The rule behind the difference is simple: shot noise adds a *floor* to the
-# achievable error, and a task whose exact error is small hits that floor first. A machine that solves a task well is
-# precisely the machine whose readout must be measured most accurately.
+# Both tasks degrade smoothly, but at very different budgets. NARMA-2 is within $3\,\%$ of its exact-feature value
+# ($0.320$) at $M=1000$ and indistinguishable from it at $M=10^4$; Santa Fe at $h=1$ is still a factor of $1.3$ above its
+# exact value ($0.093$) at $M=10^4$. The dashed lines are the prediction of Section 9.1, computed from the exact features
+# alone; they follow the measured medians to within $0.1$–$6\,\%$ for NARMA-2 and $2$–$13\,\%$ for Santa Fe, slightly
+# underestimating the damage at small $M$ where the first-order treatment of the noise is least accurate. The prediction also
+# names the cause of the difference between the tasks: the exact-feature readout for the laser has
+# $\lVert\tilde{\mathbf{w}}\rVert^2/\operatorname{var}(y)\approx10$, against $\approx1.1$ for NARMA-2. The laser readout
+# reaches its small error by large weights of opposite sign on correlated features, and Eq. (16) multiplies every such weight
+# by the shot noise. A small exact error achieved this way is precisely what the measurement budget has to pay for.
 #
-# In units of laboratory time the horizontal axis is brutal. $M$ repetitions per measurement setting means $3M$ runs of the
-# sequence **for every readout time**, because the three settings are incompatible and a projective measurement destroys
+# In units of laboratory time the horizontal axis is expensive. $M$ repetitions per measurement setting means $3M$ runs of
+# the sequence **for every readout time**, because the three settings are incompatible and a projective measurement destroys
 # the state: $M=10^3$ is $3000$ runs per time step, and with $1100$ usable time steps that is $3\cdot10^6$ runs of an
-# experiment whose length itself grows with the step index. This is the quadratic cost of the restarting protocol that
-# Mujal *et al.* quantify, and the reason their rewinding protocol (replay only the washout window, which Section 5 showed
-# may be a few steps) and their weak-measurement online protocol exist.
+# experiment whose length itself grows with the step index. This is the quadratic cost of the restarting protocol, and the
+# reason for the rewinding protocol of Mujal *et al.* (replay only the last few memory times of the input, about ten to
+# twenty steps at $\tau=0.5$ according to Section 5) and for their weak-measurement online protocol.
 #
-# The second panel measures something the literature often assumes. The validation curve is flat from $\alpha=10^{-6}$ to
-# $\alpha\approx10$ and only then rises, at *every* noise level — and the test error obtained with the regularisation
-# switched off entirely ($\alpha=10^{-10}$, the red triangles) is indistinguishable from the tuned one, at $M=30$ as much as
-# with exact features. With $660$ training points, $21$ standardised features and a smallest-to-largest singular-value ratio
-# of $0.068$, the least-squares problem is simply well conditioned; ridge regularisation is insurance we do not need here.
-# It earns its keep in the opposite regime — the deliberately collinear design matrix of Section 2.4, or a feature count
-# approaching the number of training samples, which is where $V=4$ multiplexing and larger reservoirs would take us.
+# The second panel and the printed $\alpha$ values test the first prediction of Section 9.1. The validation curve is flat
+# from $\alpha=10^{-6}$ to $\alpha\approx10$ at every noise level, the $\alpha$ chosen on the validation block jumps between
+# the ends of that flat region without any trend in $M$, and the test error with the regularisation switched off
+# ($\alpha=10^{-10}$, the red triangles) is indistinguishable from the tuned one. The implicit penalty explains the noisy
+# cases: its median strength $D_{jj}$ is $394$ at $M=30$ and $12$ at $M=1000$, far above any $\alpha$ in the flat region.
+# For exact features there is no implicit penalty, and the flat curve has the plainer reason that the least-squares problem is
+# well conditioned ($660$ training points, $21$ standardised features, smallest-to-largest singular-value ratio $0.068$).
+# Explicit regularisation earns its keep in the opposite regime — the deliberately collinear design matrix of Section 2.4,
+# or a feature count approaching the number of training samples, which is where $V=4$ multiplexing and larger reservoirs
+# would take us.
 #
 # ## 10. Decoherence during the evolution
 #
 # A laboratory reservoir is not unitary between inputs. Add a Lindblad channel acting on every qubit during the evolution —
-# dephasing ($L=Z$) or amplitude damping ($L=\sigma^-$) with rate $\gamma$ — implemented as one Kraus pair per Trotter
-# sub-step, exactly as in [notebook 16](../ch06_open_quantum_systems/16_lindblad_master_equation.ipynb). The question is not
+# dephasing ($L=Z$, coherences decay as $e^{-2\gamma t}$) or amplitude damping ($L=\sigma^-$, excited population decays as
+# $e^{-\gamma t}$) with rate $\gamma$ — implemented as one Kraus pair per Trotter sub-step, as in
+# [notebook 16](../ch06_open_quantum_systems/16_lindblad_master_equation.ipynb). We use the *exact* single-qubit channel of
+# each sub-step, $p=\tfrac12(1-e^{-2\gamma\delta t})$ for dephasing and $1-e^{-\gamma\delta t}$ for damping, rather than the
+# first-order pair of `kraus_from_jump`: for $\gamma\delta t=0.375$ (the case $\gamma=3$) the first-order pair would turn
+# a coherence factor $e^{-0.75}=0.47$ into $1-0.75=0.25$, and for $\gamma\delta t>1$ it is not even trace preserving. The
+# dephasing rate is swept over two decades, and the value used for each task is chosen on the validation block. The question is not
 # only how much performance is lost: dissipation is also a second source of forgetting, and a machine whose coherent
 # dynamics scatters the memory of an input over many oscillating features may prefer a damped one.
 
@@ -1584,85 +1960,114 @@ plt.tight_layout(); plt.show()
 # ==============================================================================
 # EXPERIMENT: dephasing and amplitude damping during the evolution
 # ==============================================================================
-GAMMAS = (0.0, 0.1, 0.3, 1.0)
-deco = {}
+def dephasing_channel(gamma_dt):
+    """Exact solution of drho/dt = gamma (Z rho Z - rho) over gamma_dt: coherences x exp(-2 gamma dt)."""
+    return kraus_dephasing(0.5 * (1.0 - jnp.exp(-2.0 * gamma_dt)))
+
+
+def damping_channel(gamma_dt):
+    """Exact solution of drho/dt = gamma D[sigma^-](rho) over gamma_dt: excited population x exp(-gamma dt)."""
+    return kraus_amplitude_damping(1.0 - jnp.exp(-gamma_dt))
+
+
+GAMMAS = (0.0, 0.1, 0.3, 1.0, 3.0, 10.0)
+deco, deco_val = {}, {}
 for gamma in GAMMAS:
-    jump = None if gamma == 0.0 else Z
+    jump = None if gamma == 0.0 else dephasing_channel
     F_g, t_g = drive_ensemble(L_IN, N_RAILS, TAU, DT, u_iid, jump=jump, gamma=gamma)
     F_gs, _ = drive_ensemble(L_IN, N_RAILS, TAU, DT, u_sf, jump=jump, gamma=gamma)
     caps_g = np.array([memory_capacity(F_g[i], u_iid) for i in range(N_RES)])
-    nn = np.array([evaluate(F_g[i], targets["NARMA-2"])[0] for i in range(N_RES)])
-    sf = np.array([horizon_scores(F_gs[i], u_sf, 1)[0] for i in range(N_RES)])
-    deco[gamma] = (caps_g, nn, sf)
-    print(f"dephasing gamma = {gamma:4.2f}:  MC = {np.median(caps_g.sum(1)):.3f}, "
+    nn = np.array([score_val(F_g[i], targets["NARMA-2"]) for i in range(N_RES)])        # (test, validation)
+    sf = np.array([score_val(F_gs[i][:-1], u_sf[1:]) for i in range(N_RES)])
+    deco[gamma] = (caps_g, nn[:, 0], sf[:, 0])
+    deco_val[gamma] = (nn[:, 1], sf[:, 1])
+    print(f"dephasing gamma = {gamma:5.2f}:  MC = {np.median(caps_g.sum(1)):.3f}, "
           f"C(1) = {np.median(caps_g[:, 0]):.3f}, C(3) = {np.median(caps_g[:, 2]):.3f}, "
-          f"NARMA-2 {np.median(nn):.4f}, Santa Fe {np.median(sf):.4f}  ({2*t_g:.1f} s)")
+          f"NARMA-2 {np.median(nn[:, 0]):.4f} (val {np.median(nn[:, 1]):.4f}), "
+          f"Santa Fe {np.median(sf[:, 0]):.4f} (val {np.median(sf[:, 1]):.4f})")
+for k, name in enumerate(("NARMA-2", "Santa Fe h=1")):
+    g_best = min(GAMMAS, key=lambda g: np.median(deco_val[g][k]))
+    v = deco[g_best][1 + k]
+    print(f"{name}: gamma chosen on the validation block = {g_best}, test NMSE {np.median(v):.4f} [{v.min():.3f}, {v.max():.3f}]")
 
-F_ad, _ = drive_ensemble(L_IN, N_RAILS, TAU, DT, u_iid, jump=SM, gamma=0.3)
-F_ads, _ = drive_ensemble(L_IN, N_RAILS, TAU, DT, u_sf, jump=SM, gamma=0.3)
+F_ad, _ = drive_ensemble(L_IN, N_RAILS, TAU, DT, u_iid, jump=damping_channel, gamma=0.3)
+F_ads, _ = drive_ensemble(L_IN, N_RAILS, TAU, DT, u_sf, jump=damping_channel, gamma=0.3)
 caps_ad = np.array([memory_capacity(F_ad[i], u_iid) for i in range(N_RES)])
 nn_ad = np.array([evaluate(F_ad[i], targets["NARMA-2"])[0] for i in range(N_RES)])
 sf_ad = np.array([horizon_scores(F_ads[i], u_sf, 1)[0] for i in range(N_RES)])
-print(f"amplitude damping gamma = 0.30:  MC = {np.median(caps_ad.sum(1)):.3f}, "
+print(f"amplitude damping gamma = 0.30:  MC = {np.median(caps_ad.sum(1)):.3f}, C(1) = {np.median(caps_ad[:, 0]):.3f}, "
       f"NARMA-2 {np.median(nn_ad):.4f}, Santa Fe {np.median(sf_ad):.4f}")
 
 fig, ax = plt.subplots(1, 3, figsize=(14, 3.8))
 for gamma in GAMMAS:
-    ax[0].plot(TAUS_MC, np.median(deco[gamma][0], axis=0), "o-", ms=3, label=rf"$\gamma={gamma}$")
+    ax[0].plot(TAUS_MC[:20], np.median(deco[gamma][0], axis=0)[:20], "o-", ms=3, label=rf"$\gamma={gamma}$")
 ax[0].set_xlabel(r"delay $\tau_{\rm delay}$"); ax[0].set_ylabel(r"$C(\tau_{\rm delay})$")
 ax[0].set_title("dephasing reshapes the memory"); ax[0].legend(fontsize=8); ax[0].grid(alpha=0.3)
+g_plot = [max(g, 0.03) for g in GAMMAS]                     # gamma = 0 drawn at 0.03 on the log axis
 mc_g = [deco[g][0].sum(1) for g in GAMMAS]
-ax[1].errorbar(GAMMAS, [np.median(m) for m in mc_g],
+ax[1].errorbar(g_plot, [np.median(m) for m in mc_g],
                yerr=[[np.median(m) - m.min() for m in mc_g], [m.max() - np.median(m) for m in mc_g]],
-               fmt="o-", capsize=4, color="tab:red")
-ax[1].set_ylim(0, 6)
-ax[1].set_xlabel(r"dephasing rate $\gamma$"); ax[1].set_ylabel(r"$\mathrm{MC}$")
-ax[1].set_title("total linear memory (bars: spread over reservoirs)"); ax[1].grid(alpha=0.3)
-ax[2].plot(GAMMAS, [np.median(deco[g][1]) for g in GAMMAS], "o-", label="NARMA-2")
-ax[2].plot(GAMMAS, [np.median(deco[g][2]) for g in GAMMAS], "s-", label="Santa Fe $h=1$")
-ax[2].set_xlabel(r"dephasing rate $\gamma$"); ax[2].set_ylabel("test NMSE")
-ax[2].set_title("task performance"); ax[2].legend(fontsize=8); ax[2].grid(alpha=0.3)
+               fmt="o-", capsize=4, color="tab:red", label="median, min-max over reservoirs")
+ax[1].axhline(MC_null.mean(), ls="-.", color="tab:blue", label="null control")
+ax[1].set_ylim(0, 6); ax[1].set_xscale("log")
+ax[1].set_xlabel(r"dephasing rate $\gamma$ ($\gamma=0$ drawn at $0.03$)"); ax[1].set_ylabel(r"$\mathrm{MC}$")
+ax[1].set_title("total linear memory"); ax[1].legend(fontsize=8); ax[1].grid(alpha=0.3)
+for k, (name, mk) in enumerate((("NARMA-2", "o-"), ("Santa Fe $h=1$", "s-"))):
+    vals = [deco[g][1 + k] for g in GAMMAS]
+    ax[2].errorbar(g_plot, [np.median(v) for v in vals],
+                   yerr=[[np.median(v) - v.min() for v in vals], [v.max() - np.median(v) for v in vals]],
+                   fmt=mk, capsize=3, label=name)
+ax[2].set_xscale("log"); ax[2].set_yscale("log")
+ax[2].set_xlabel(r"dephasing rate $\gamma$ ($\gamma=0$ drawn at $0.03$)"); ax[2].set_ylabel("test NMSE")
+ax[2].set_title("task performance (min-max over reservoirs)"); ax[2].legend(fontsize=8); ax[2].grid(alpha=0.3)
 plt.tight_layout(); plt.show()
 
 rho_end_coh = driver_ml(Js_demo, hs_demo, input_windows(u_iid[:200], L_IN), to_dm(zero_state(N_QUBITS)))[0]
-drv_deph = make_dm_driver(L_IN, N_RAILS, TAU, DT, jump=Z, gamma=1.0)
+drv_deph = make_dm_driver(L_IN, N_RAILS, TAU, DT, jump=dephasing_channel, gamma=1.0)
 rho_end_deph = drv_deph(Js_demo, hs_demo, input_windows(u_iid[:200], L_IN), to_dm(zero_state(N_QUBITS)))[0]
 print(f"\npurity of the driven state: gamma = 0: {float(purity(dm_matrix(rho_end_coh))):.4f}, "
       f"gamma = 1: {float(purity(dm_matrix(rho_end_deph))):.4f} "
       f"(maximally mixed would be {1/2**N_QUBITS:.4f})")
 
 # %% [markdown]
-# Dissipation helps, and the mechanism is visible in the first panel.
+# Moderate dephasing improves both tasks, and the mechanism is visible in the first panel.
 #
-# * **The total linear memory barely moves**: $\mathrm{MC}=3.63,\,3.63,\,3.60,\,3.54$ for $\gamma=0,0.1,0.3,1$ — a change
-#   of $2\,\%$ against a reservoir-to-reservoir spread of $\pm0.7$. The capacity sum rule is not a fragile quantum effect.
-# * **The profile changes completely.** Dephasing *sharpens* the short-time memory and truncates the long tail:
-#   $C(1)$ rises from $0.905$ to $0.985$ and $C(3)$ from $0.644$ to $0.853$, while everything beyond
-#   $\tau_{\rm delay}=6$ is wiped out. Coherent evolution spreads the trace of an input over many oscillating features,
-#   where a linear readout recovers it only partially; damping leaves a clean, monotonically decaying memory kernel.
-# * **The tasks follow the profile, not the total.** NARMA-2 improves from $0.320$ to $0.077$ and one-step laser
-#   prediction from $0.093$ to $0.070$. NARMA-2 needs an accurate memory of the last few steps and nothing beyond, which is
-#   exactly what dephasing delivers. At $\gamma=1$ the dissipative quantum reservoir is *better* than both classical
-#   baselines with the same number of features on NARMA-2 ($0.077$ against $0.152$ for the linear autoregression and
-#   $0.147$ for the echo-state network) — the one task in this notebook where it wins outright.
-# * Amplitude damping at $\gamma=0.3$ behaves like dephasing at the same rate ($\mathrm{MC}=3.73$, NARMA-2 $0.198$, laser
-#   $0.071$), so the effect is not specific to one channel.
+# * **Up to $\gamma=1$ the total linear memory barely moves**: $\mathrm{MC}=3.82,\,3.80,\,3.76,\,3.77$ for
+#   $\gamma=0,0.1,0.3,1$, differences far below the uncertainty $\pm0.45$ of one MC value. Stronger dephasing does remove
+#   memory: $3.19$ at $\gamma=3$ and $3.16$ at $\gamma=10$.
+# * **The profile changes completely.** Dephasing first *sharpens* the short-time memory and truncates the long tail:
+#   $C(1)$ rises from $0.905$ to $0.984$ and $C(3)$ from $0.644$ to $0.858$ between $\gamma=0$ and $\gamma=1$, while the
+#   delays beyond about six steps are wiped out. Coherent evolution spreads the trace of an input over many oscillating
+#   features, where a linear readout recovers it only partially; damping leaves a cleaner, monotonically decaying memory
+#   kernel. At $\gamma=3$ and $10$ the memory shrinks to the last one or two inputs ($C(3)=0.46$ and $0.29$).
+# * **The tasks follow the profile, not the total.** NARMA-2 improves from $0.320$ to $0.081$ at $\gamma=1$ and $0.060$ at
+#   $\gamma=3$, the value chosen on the validation block; one-step laser prediction improves from $0.093$ to $0.067$ at
+#   $\gamma=1$, again the validated choice, and degrades for stronger dephasing. NARMA-2 needs an accurate memory of the
+#   last few steps and little beyond, which is what dephasing delivers.
+# * **Against the baselines of Sections 7 and 8**, the validated dissipative reservoir beats the default-scaled echo-state
+#   network and the linear autoregression on NARMA-2 ($0.060$ against $0.147$ and $0.152$) but not the echo-state network
+#   tuned on the same validation data ($0.026$) or the quadratic autoregression ($0.005$); on the laser it ($0.067$) stays
+#   behind the tuned $21$-unit network ($0.042$). Decoherence narrows the gap; it does not close it.
+# * Amplitude damping at $\gamma=0.3$ behaves like dephasing at the same rate ($\mathrm{MC}=3.90$, $C(1)=0.954$, NARMA-2
+#   $0.199$, laser $0.071$, against $0.178$ and $0.070$ for dephasing), so the effect is not specific to one channel.
 #
-# The purity of the driven state falls from $0.43$ to $0.069$, against $1/2^N=0.0625$ for the maximally mixed state: at
-# $\gamma=1$ the reservoir is almost completely mixed and still computes better than the coherent one. Whatever this
-# machine uses, it is not the purity of its state.
+# The purity of the driven state falls from $0.43$ to $0.071$ at $\gamma=1$, against $1/2^N=0.0625$ for the maximally mixed
+# state: the reservoir is almost completely mixed and still computes better than the coherent one. Whatever this machine
+# uses, it is not the purity of its state.
 #
-# > **Physics insight.** "Decoherence destroys the quantum advantage" is the wrong slogan for a reservoir. The task of a
-# > reservoir is to forget in a *useful* way, and a dissipative bath is a perfectly good forgetting mechanism — often a
-# > better-shaped one than unitary scrambling followed by an erasure. This is the numerical counterpart of the dissipative
-# > quantum reservoirs analysed by Chen and Nurdin and of the phase-diagram picture of Martínez-Peña *et al.*
+# > **Physics insight.** For a reservoir, decoherence is not only a loss. The task of a reservoir is to forget in a
+# > *useful* way, and a dissipative bath is a perfectly good forgetting mechanism — at moderate rates a better-shaped one
+# > than unitary scrambling followed by an erasure, at large rates a destructive one. Dissipative quantum reservoirs are
+# > analysed by Chen and Nurdin; how the performance depends on the dynamical regime of the reservoir is the subject of
+# > Martínez-Peña *et al.*
 #
 # ## 11. Cost
 #
 # The density-tensor driver keeps $4^N$ complex numbers and applies $O(V n_{\rm sub} G)$ gates per input step, each costing
 # $O(2^k4^N)$, plus $O((N+B)4^N)$ for the readout: **exponential in the number of qubits, linear in the length of the
-# series**. The trajectory driver keeps $2^N$ numbers per trajectory and costs $M$ times less memory per unit of accuracy
-# only if $M\ll 2^N$ — for small reservoirs the density tensor wins outright, which is why every experiment above used it.
+# series**. The trajectory driver keeps $2^N$ numbers per trajectory, $M2^N$ for a batch of $M$, and so needs less memory
+# than the density tensor only if $M<2^N$, and its work per step, $M\cdot2^N$ against $4^N$, buys only the statistical
+# accuracy of $M$ samples. For small reservoirs the density tensor wins outright, which is why every experiment above used it.
 # The measurement below separates compilation (once per shape and per parameter set) from execution.
 
 # %%
@@ -1700,21 +2105,22 @@ print(f"\nN = {N_QUBITS}: {M_bench} trajectories over {len(u_bench)} steps: comp
 # %% [markdown]
 # The cost per input step grows by roughly the predicted factor of four per added qubit at the upper end of the table,
 # while the ratios at $N\le4$ are smaller and erratic: there the tensors have a few hundred entries and the time is set by
-# kernel dispatch, not by arithmetic. (Absolute timings on a shared machine move by tens of per cent between runs; the
-# $4^N$ scaling at large $N$ is the robust part, the small-$N$ ratios are not.) Extrapolating that factor, $N=8$ would need
-# a $1$ MB density tensor and of order $0.1$ s per input step — still workable for a thousand-step series — and $N=10$ a
-# $16$ MB tensor and a few seconds per step. That is the practical wall of the method, and it is a wall in $N$ alone: the
-# length of the time series enters linearly.
+# kernel dispatch, not by arithmetic. (Absolute timings on a shared machine move by tens of per cent between runs, and by
+# factors of several when other jobs compete for the processor; the $4^N$ scaling at large $N$ is the robust part, the
+# small-$N$ ratios are not.) Extrapolating that factor, $N=8$ would need a $1$ MB density tensor and of order $0.1$ s per input
+# step — still workable for a thousand-step series — and $N=10$ a $16$ MB tensor and seconds per step. That is the practical
+# wall of the method, and it is a wall in $N$ alone: the length of the time series enters linearly.
 #
 # The trajectory driver is several times slower here for $256$ trajectories than the exact density tensor at $N=4$, which
-# is the expected verdict at small $N$: $M\cdot2^N$ beats $4^N$ only when $M\ll2^N$, and a useful $M$ is in the hundreds.
+# is the expected verdict at small $N$: $M\cdot2^N$ beats $4^N$ only when $M<2^N$, and a useful $M$ is in the hundreds.
 # Trajectories become the only option when $4^N$ no longer fits in memory — and they are what an experiment does anyway.
 #
-# > **JAX practice.** Compilation is $0.5$–$2.7$ s per configuration and is paid once per *shape and static argument set*.
-# > Because `Js` and `hs` are traced arrays, all six random reservoirs share one compiled program through `jax.vmap`, and a
-# > sweep over disorder costs one compilation instead of six. Changing $\tau$, $V$ or $\delta t$ changes the gate count and
-# > does force a recompilation — which is why the parameter sweeps above are organised as an outer Python loop over
-# > geometry and an inner `vmap` over reservoirs, and not the other way round.
+# > **JAX practice.** Compilation takes $0.2$–$2$ s per configuration (printed above and in Sections 6 and 8, where
+# > `drive_ensemble` compiles ahead of time with `lower(...).compile()` and times the execution separately) and is paid once
+# > per *shape and static argument set*. Because `Js` and `hs` are traced arrays, all six random reservoirs share one
+# > compiled program through `jax.vmap`, and a sweep over disorder costs one compilation instead of six. Changing $\tau$, $V$
+# > or $\delta t$ changes the gate count and does force a recompilation — which is why the parameter sweeps above are
+# > organised as an outer Python loop over geometry and an inner `vmap` over reservoirs, and not the other way round.
 #
 # ## 12. Summary
 #
@@ -1722,41 +2128,42 @@ print(f"\nN = {N_QUBITS}: {M_bench} trajectories over {len(u_bench)} steps: comp
 #
 # * Reservoir computing turns sequence learning into linear regression by refusing to train the dynamics. Everything then
 #   depends on two properties of the fixed dynamical system: it must forget its initial condition (echo state) and it must
-#   mix past inputs nonlinearly (separation). A driven many-body quantum system has both, and the erasure of the input
-#   qubits — a completely positive map, not the unitary evolution — is what supplies the forgetting.
-# * The quantum feature map is exactly multilinear in the vectors $(1,\cos\pi u_j,\sin\pi u_j)$ of the past inputs. That
-#   settles what the machine can represent: no powers of a single input beyond those two functions, but arbitrary products
-#   across different times, with coefficients fixed by the Hamiltonian.
+#   mix past inputs nonlinearly (separation). In a driven many-body quantum system the erasure of the input qubits — a
+#   replacement channel, completely positive and trace preserving — supplies the forgetting; unitary evolution alone never
+#   forgets.
+# * The quantum feature map is exactly multilinear in the vectors $(1,\cos\pi u_j,\sin\pi u_j)$ of the past inputs. The
+#   single-input nonlinearity is the encoding; the products across different times come from the input entering the state
+#   multiplicatively at every reset; the Hamiltonian, linear and input-independent, sets the coefficients.
 # * Two independent implementations of the same protocol — a density tensor with a Kraus reset and pure-state trajectories
-#   with measurement and reset — agree within the $1/\sqrt M$ statistical error, and both agree with a dense-matrix
-#   reference once the Trotter step is small enough.
-# * The measured linear memory capacity stays far below the number of readout features. The bound of Jaeger and of Dambre
-#   *et al.* counts *linearly independent* state variables, and the one- and two-body Pauli features of a small lattice are
-#   strongly redundant. Extra qubits, a shorter evolution time per step and temporal multiplexing all raise the capacity,
-#   each by much less than the growth of the feature count.
-# * The honest comparison at an *equal number of readout features* splits by task. On the chaotic laser series the
-#   quantum reservoir beats the linear autoregression by a factor of three (NMSE $0.093$ against $0.260$, and $0.024$ with
-#   four virtual nodes) and draws with a classical echo-state network of the same size ($0.097$). On NARMA it loses to
-#   both, because NARMA is dominated by a memory depth of five to ten steps that a four-qubit reservoir does not have and
-#   the baseline is handed for free. A classical network with a few hundred units, which costs microseconds to simulate,
-#   beats everything. At these sizes the interest of the quantum machine is what it teaches about driven open many-body
-#   dynamics, not a computational advantage.
-# * Finite measurement statistics degrade the readout gracefully, and the ridge parameter chosen on the validation block
-#   absorbs much of the damage; what does not degrade gracefully is the number of experiments, because a projective readout
-#   destroys the state and the whole input sequence has to be replayed for every readout time unless a rewinding or
-#   weak-measurement protocol is used.
-# * Dephasing during the evolution leaves the total linear memory within $2\,\%$ of its coherent value but redistributes
-#   it from a long weak tail into the first few delays ($C(1)$ from $0.91$ to $0.99$, $C(3)$ from $0.64$ to $0.85$). Every
-#   task that needs accurate short memory improves, and at $\gamma=1$ — where the state is almost maximally mixed — the
-#   reservoir beats both equal-size classical baselines on NARMA-2. Decoherence is not simply the enemy of a reservoir.
+#   with measurement and reset — agree within the $1/\sqrt M$ statistical error (rms pull $1.0$), and the same comparison
+#   rejects a wrong erasure by a pull of almost $90$ and resolves the Trotter error of the production time step.
+# * The measured linear memory capacity, $3.8\pm0.45$ for one reservoir of four qubits, stays far below the number of
+#   readout features. The bound of Jaeger and of Dambre *et al.* counts *linearly independent* state variables, and the one-
+#   and two-body Pauli features of a small lattice are strongly redundant. At $220$ test points the estimate carries an
+#   upward bias of $0.3$ (null control) and a downward bias of similar size from the finite training block; a slowly
+#   forgetting reservoir hides much of its capacity in a faint tail that a sum over twenty delays misses.
+# * At an *equal number of readout features*, with every baseline's hyper-parameters chosen on the validation block, the
+#   four-qubit reservoir loses to the classical echo-state network on all tasks studied here (NARMA-2: $0.21$ with $\tau$
+#   tuned against $0.026$; laser: $0.093$ against $0.042$) and beats only the lag models on the laser series. Comparisons
+#   against untuned baselines suggested a draw on the laser data; it disappeared when the baseline was tuned.
+# * Finite measurement statistics act on the readout in two ways that Eq. (16) and the implicit ridge penalty $D$ describe
+#   quantitatively: the shot noise regularises the fit by itself, and it multiplies the squared readout weights, so a task
+#   solved by large, cancelling weights (the laser) suffers far more than one solved by small weights (NARMA-2). What scales
+#   worst is the number of experiments, because a projective readout destroys the state and the input sequence has to be
+#   replayed for every readout time unless a rewinding or weak-measurement protocol is used.
+# * Moderate dephasing during the evolution leaves the total linear memory unchanged within errors but moves it from a long
+#   weak tail into the first few delays ($C(1)$ from $0.91$ to $0.98$, $C(3)$ from $0.64$ to $0.86$ at $\gamma=1$); every
+#   task that needs accurate short memory improves (NARMA-2 from $0.32$ to $0.06$ at the validated rate), even though the
+#   state is then almost maximally mixed. Strong dephasing destroys memory.
 #
 # ## 13. Exercises
 #
 # 1. (&#9733;) **Encoding.** Replace $R_y(\pi u)$ by the Fujii–Nakajima encoding
 #    $\sqrt{1-u}\,\vert0\rangle+\sqrt{u}\,\vert1\rangle$, for which $\langle Z\rangle$ is linear in $u$. Re-measure
 #    $C(\tau)$ and the NARMA-2 error. Does the linear-in-$u$ encoding help the linear task and hurt the nonlinear one?
-# 2. (&#9733;) **Washout.** Set `WASHOUT = 0` and re-run the memory-capacity cell. Compare with the echo-state decay rates
-#    of Section 5 and explain how many steps of washout are actually needed at $\tau=0.125$ and at $\tau=2$.
+# 2. (&#9733;) **Washout.** Set `WASHOUT = 0` and re-run the memory-capacity cell, at $\tau=0.125$ and at $\tau=2$. Compare
+#    with the echo-state decay rates of Section 5 and with the uncertainty of one MC value from Section 6.1. Why can the
+#    washout matter so little even where Section 5 shows that the initial state is far from forgotten?
 # 3. (&#9733;&#9733;) **Readout set.** Drop the two-body correlators and keep only the $3N$ single-qubit features
 #    (`readout_ops` needs one line changed). How much capacity is lost, and how does the loss compare with the drop in the
 #    number of features? Then add the $\langle X_iY_j\rangle$-type mixed correlators and check whether the extra features
@@ -1770,9 +2177,11 @@ print(f"\nN = {N_QUBITS}: {M_bench} trajectories over {len(u_bench)} steps: comp
 #    horizon, feed the one-step prediction back as the next input and let the machine run autonomously. Measure how many
 #    steps the free-running series stays close to the laser data, and compare with the direct multi-step results of
 #    Section 8.
-# 7. (&#9733;&#9733;&#9733;) **Physics: where does the memory live?** Track the entanglement entropy between the input rail
-#    and the memory rails during the drive, and the purity of the reservoir state, for $\tau=0.125$ and $\tau=2$. Relate
-#    what you find to the forgetting rates of Section 5 and to the capacity profiles of Section 6.
+# 7. (&#9733;&#9733;&#9733;) **Physics: where does the memory live?** The driven state is mixed, so the entanglement
+#    entropy of a bipartition is not a measure of correlations. Track instead the quantum mutual information
+#    $I(\mathrm{in}:\mathrm{mem})=S(\rho_{\rm in})+S(\rho_{\rm mem})-S(\rho)$ between the input rail and the memory rails
+#    just before each erasure, and the purity of the reservoir state, for $\tau=0.125$, $0.5$ and $2$. Relate what you find
+#    to the forgetting rates of Section 5 and to the capacity profiles of Section 6.
 # 8. (&#9733;&#9733;&#9733;) **Trajectories as the readout.** Train the readout on features averaged over $M$ *trajectories*
 #    rather than on exact expectation values plus binomial noise, and compare the two noise models at equal $M$. Which one
 #    is optimistic, and why?
@@ -1782,9 +2191,9 @@ print(f"\nN = {N_QUBITS}: {M_bench} trajectories over {len(u_bench)} steps: comp
 # 1. H. Jaeger, *The "echo state" approach to analysing and training recurrent neural networks*, GMD Report 148, German
 #    National Research Center for Information Technology (2001); reissued with an erratum note (2010) correcting
 #    Definition 3 and Proposition 1.
-# 2. H. Jaeger, *Short term memory in echo state networks*, GMD Report 152, GMD Forschungszentrum Informationstechnik
-#    (2002). Proposition 2: for i.i.d. input and linear output units the memory capacity of an $N$-unit network obeys
-#    $\mathrm{MC}\le N$.
+# 2. H. Jaeger, *Short term memory in echo state networks*, GMD Report 152, GMD – Forschungszentrum Informationstechnik
+#    GmbH (2002). Proposition 2: for i.i.d. input and linear output units the memory capacity
+#    $\mathrm{MC}=\sum_{k\ge1}\mathrm{MC}_k$ of an $N$-unit network obeys $\mathrm{MC}\le N$.
 # 3. W. Maass, T. Natschläger and H. Markram, *Real-time computing without stable states: a new framework for neural
 #    computation based on perturbations*, Neural Computation **14**, 2531 (2002).
 # 4. H. Jaeger and H. Haas, *Harnessing nonlinearity: predicting chaotic systems and saving energy in wireless
@@ -1811,11 +2220,11 @@ print(f"\nN = {N_QUBITS}: {M_bench} trajectories over {len(u_bench)} steps: comp
 #     with weak and projective measurements*, npj Quantum Information **9**, 16 (2023).
 # 15. A. S. Weigend and N. A. Gershenfeld (editors), *Time Series Prediction: Forecasting the Future and Understanding the
 #     Past*, Santa Fe Institute Studies in the Sciences of Complexity, Proceedings Volume XV (Addison-Wesley, Reading,
-#     1994). Data set A was contributed by U. Hübner, with data collected by N. B. Abraham and C. O. Weiss; see also
+#     1994). Data set A was contributed by U. Hübner, from data collected primarily by N. B. Abraham and C. O. Weiss; see also
 #     U. Hübner, N. B. Abraham and C. O. Weiss, *Dimensions and entropies of chaotic intensity pulsations in a
 #     single-mode far-infrared NH3 laser*, Physical Review A **40**, 6354 (1989).
 # 16. A. F. Atiya and A. G. Parlos, *New results on recurrent network training: unifying the algorithms and accelerating
-#     convergence*, IEEE Transactions on Neural Networks **11**, 697 (2000). The tenth-order system of its Eq. (86) is
-#     what the reservoir-computing literature calls NARMA-10; the general NARMA-$n$ form of Eq. (7) is the generalisation
-#     used by A. Rodan and P. Tiňo, *Minimum complexity echo state network*, IEEE Transactions on Neural Networks **22**,
-#     131 (2011).
+#     convergence*, IEEE Transactions on Neural Networks **11**, 697 (2000). Source of the second-order system of Eq. (6)
+#     and of the tenth-order system that the reservoir-computing literature calls NARMA-10; the general NARMA-$n$ form of
+#     Eq. (7) is written down by Fujii and Nakajima (Ref. 8). NARMA-10 with inputs in $[0,0.5]$ is also the benchmark of
+#     A. Rodan and P. Tiňo, *Minimum complexity echo state network*, IEEE Transactions on Neural Networks **22**, 131 (2011).

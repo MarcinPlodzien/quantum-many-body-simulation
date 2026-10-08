@@ -43,5 +43,6 @@ main.content p, main.content li, main.content .cell-output-display p {
   text-align: justify; hyphens: auto; -webkit-hyphens: auto;
 }
 main.content td p, main.content .hero-author, main.content .nbcount,
-main.content .feature p, main.content .chapter-card p, main.content .nb-item p:first-child { text-align: left; }
+main.content .feature p, main.content .chapter-card p, main.content .nb-item p:first-child,
+main.content .hero p { text-align: left; }
 .hero .hero-tagline { font-size: 1.35rem; color: #1d2b3a; font-weight: 500; margin: -0.3rem 0 0.8rem; }

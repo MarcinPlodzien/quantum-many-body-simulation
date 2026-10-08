@@ -408,11 +408,21 @@ assert worst < TOL
 # (iii) it writes the result into **zero-padded arrays of fixed shape** `B[N, chi, 2, chi]` and `lam[N+1, chi]` - the
 # data structure discussed in Sec. 4. Convention: `lam[j]` holds the Schmidt values of the cut to the **left of site
 # $j$** (between sites $j-1$ and $j$); the dummy boundary bonds are `lam[0] = lam[N] = (1,0,0,...)`.
+#
+# One subtlety appears only when something is truncated. The sweep stores the values of cut $j$ and *then* truncates
+# cut $j-1$, which changes the left block of cut $j$, so the stored values no longer belong to the stored state. A
+# second helper, `mps_recanonicalise`, repairs this exactly: a left-to-right sweep of QR decompositions makes every
+# tensor left-canonical, and a right-to-left sweep of SVDs, which keeps all $\chi$ values and so discards nothing,
+# produces right-canonical tensors together with the true Schmidt values of every cut, at a cost of $O(N\chi^3)$.
+# `state_to_mps` applies it whenever a discarded weight is non-zero; DMRG below needs the same pass.
 
 # %%
 # ==============================================================================
 # STEP 2: truncated, right-canonical, zero-padded MPS  (the format used by TEBD below)
 # ==============================================================================
+LAM_CUT = 100 * float(jnp.finfo(RDTYPE).eps)      # Schmidt values below this are treated as padding (exact zeros)
+
+
 def state_to_mps(psi, chi, cut=1e-13):
     """State tensor -> right-canonical MPS with bond dimension <= chi, stored in fixed-shape padded arrays.
 
@@ -421,9 +431,14 @@ def state_to_mps(psi, chi, cut=1e-13):
         Sweep j = N-1..1:   R (rest, 2*chi_{j+1}) = U S V^dag ;  B[j] = V^dag (first chi rows) ;
                             lam[j] = S[:chi]/||S[:chi]|| ;  eps[j] = sum_{k>=chi} S_k^2 / sum_k S_k^2 ;  R <- U S.
     RETURNS
-        B    complex array (N, chi, 2, chi)   B[j][a, s, b]; unused entries are exactly zero
+        B    complex array (N, chi, 2, chi)   B[j][a, s, b]; unused entries are exactly zero if nothing is truncated
         lam  real array    (N+1, chi)         Schmidt values of the cut left of site j; lam[0]=lam[N]=(1,0,..)
         eps  real array    (N+1,)             discarded weight at every cut
+    TRUNCATION  lam[j] is recorded when cut j is truncated, but truncating cut j-1 afterwards changes the left
+        block of cut j, so the recorded values are not the Schmidt values of the stored state.  Whenever anything
+        was discarded (some eps > 0), the result is therefore passed through `mps_recanonicalise`, and the returned
+        lam are the exact Schmidt values of the returned (truncated, renormalised) state on every cut.  eps keeps the
+        weights discarded by the sweep.  Without truncation the sweep is exact and is returned as it is.
     COST   O(2^N chi^2): conversion tool for small N (validation, initial states from exact methods).
     """
     psi = np.asarray(psi)
@@ -443,7 +458,49 @@ def state_to_mps(psi, chi, cut=1e-13):
         lam[j, :keep] = S
         R, r = U[:, :keep] * S[None, :], keep              # remainder  U S
     B[0, 0, :, :r] = R.reshape(2, r)
-    return jnp.asarray(B, dtype=CDTYPE), jnp.asarray(lam, dtype=RDTYPE), eps
+    B, lam = jnp.asarray(B, dtype=CDTYPE), jnp.asarray(lam, dtype=RDTYPE)
+    if np.any(eps > 0):                                    # later truncations changed the cuts stored earlier
+        B, lam = mps_recanonicalise(B)
+    return B, lam, eps
+
+
+def mps_recanonicalise(B):
+    """Exact right-canonical form and the TRUE Schmidt values of every cut, for a padded MPS whose site 0 carries the norm.
+
+    MATH
+        Left sweep  j = 0..N-2:   A[j]_{(a s), b} = Q R   (QR);   A[j] <- Q (left-canonical);   A[j+1] <- R A[j+1].
+        After it, sites 0..N-2 are left-canonical and the whole norm sits on site N-1.
+        Right sweep j = N-1..1:   A[j]_{a, (s b)} = U S V^dag   (SVD);   B[j] <- V^dag;   lam[j] <- S;   A[j-1] <- A[j-1] U S.
+        At step j everything left of the cut is left-canonical and everything right of it right-canonical, so
+        S are exactly the Schmidt values of the cut left of site j (no stored value from an earlier, different state).
+        No truncation can occur: every matrix has rank <= chi, and all chi values are kept.  lam[0] = lam[N] = (1,0,..).
+        Singular values below LAM_CUT * S_max (rounding zeros) are set to exact zero with their rows of V^dag, so that the
+        padding of the returned tensors is exactly zero (the completion LAPACK returns there is arbitrary).
+    WHY    `dmrg` records lam[j] at the split of bond j during the right-to-left half sweep; the later steps at bonds
+           j-1, ..., 1 change the left block of that cut, so the recorded values describe an intermediate state.
+           Likewise `state_to_mps` with truncation stores lam[j] before cut j-1 is truncated.  This pass makes
+           (B, lam) consistent, so that the lam-based observables (mps_expect_sites, mps_expect_bonds, mps_entropies,
+           mps_correlator) are those of the state that B encodes.  The state itself is unchanged (to rounding).
+    ARGUMENTS  B (N, chi, 2, chi) any padded MPS whose left boundary leg is index 0 and right boundary leg index 0.
+    RETURNS    B (N, chi, 2, chi) right-canonical on sites 1..N-1 (site 0 = centre, holds the norm), lam (N+1, chi).
+    COST       N QR and N SVD of (2chi x chi) matrices: O(N chi^3).
+    """
+    N, chi = B.shape[0], B.shape[1]
+    A = list(B)
+    for j in range(N - 1):                                             # left sweep: QR, push R to the right
+        Q, R = jnp.linalg.qr(A[j].reshape(chi * 2, chi))
+        A[j] = Q.reshape(chi, 2, chi)
+        A[j + 1] = jnp.einsum("ab,bsc->asc", R, A[j + 1])
+    lam = jnp.zeros((N + 1, chi), dtype=RDTYPE).at[0, 0].set(1.0).at[N, 0].set(1.0)
+    for j in range(N - 1, 0, -1):                                      # right sweep: SVD, push U S to the left
+        U, S, Vh = jnp.linalg.svd(A[j].reshape(chi, 2 * chi), full_matrices=False)
+        keep = S > LAM_CUT * S[0]                                      # beyond the rank: exact zeros (see split_two_site)
+        S, Vh = jnp.where(keep, S, 0.0), Vh * keep[:, None]
+        A[j] = Vh.reshape(chi, 2, chi)
+        lam = lam.at[j].set(S.astype(RDTYPE))
+        A[j - 1] = jnp.einsum("asb,bc->asc", A[j - 1], U * S[None, :].astype(U.dtype))
+    A[0] = A[0].at[1:].set(0.0)                                        # unused rows of the dummy left bond: exactly zero
+    return jnp.stack(A), lam
 
 
 @jax.jit
@@ -692,7 +749,13 @@ def mps_overlap(B_phi, B_psi):
 
 
 def mps_correlator(B, lam, O, i, P, j):
-    """<O_i P_j> for i < j (static ints) with a transfer-matrix sweep between the two sites.  COST O((j-i) chi^3)."""
+    """<O_i P_j> for i < j (static ints) with a transfer-matrix sweep between the two sites.  COST O((j-i) chi^3).
+    O and P must be Hermitian: the product O_i P_j on two different sites is then Hermitian and its expectation value
+    real, which is what is returned (the real part; a non-Hermitian pair such as sigma+ sigma- would lose its
+    imaginary part).  i >= j raises ValueError (i == j is the single-site <O P>, use mps_expect_sites)."""
+    i, j = int(i), int(j)
+    if not 0 <= i < j < B.shape[0]:                                   # j <= i silently returned a wrong number
+        raise ValueError(f"mps_correlator needs 0 <= i < j < {B.shape[0]}, got i={i}, j={j}")
     O, P = jnp.asarray(O, dtype=B.dtype), jnp.asarray(P, dtype=B.dtype)
     theta = lam[i][:, None, None] * B[i]
     E = jnp.einsum("atb,ts,asc->bc", jnp.conj(theta), O, theta)       # open legs: right bonds (bra b, ket c)
@@ -865,6 +928,8 @@ def xxz_mpo(N, Jxx=1.0, Jyy=1.0, Jzz=1.0, hx=0.0, hz=0.0):
     RETURNS  W of shape (N, D, D, 2, 2), D = 5:  W[j, v, w, s_out, s_in] = the operator at site j for the move v -> w.
              States of the finite-state machine: 4 = nothing placed, 1/2/3 = X/Y/Z placed on the previous site, 0 = complete.
              Site 0 keeps only row 4 and site N-1 only column 0 (all other entries zero), so all sites have the same shape.
+    CONVENTION (used by every MPO routine: mpo_to_dense, mpo_expectation, boundary_environments, dmrg)
+             the START state of the machine is the LAST index D-1 and the END state is index 0, for any D.
     """
     D = 5
     W = jnp.zeros((D, D, 2, 2), dtype=CDTYPE)
@@ -880,9 +945,10 @@ def xxz_mpo(N, Jxx=1.0, Jyy=1.0, Jzz=1.0, hx=0.0, hz=0.0):
 
 def mpo_to_dense(Ws):
     """Contract an MPO into the dense 2^N x 2^N matrix (validation only, small N).
-    MATH  M_(j)[w] = sum_v M_(j-1)[v] (x) W[j][v, w]   starting from row 4 of site 0; the result is column 0 after the last site."""
+    MATH  M_(j)[w] = sum_v M_(j-1)[v] (x) W[j][v, w]   starting from row D-1 of site 0; the result is column 0 after the last site.
+    CONVENTION  start state = last index D-1, end state = index 0 (as in xxz_mpo), for any bond dimension D."""
     N, D = Ws.shape[0], Ws.shape[1]
-    M = Ws[0][4]                                                            # (w, s_out, s_in) after site 0
+    M = Ws[0][D - 1]                                                        # (w, s_out, s_in) after site 0: start state D-1
     for j in range(1, N):
         M = jnp.einsum("vab,vwcd->wacbd", M, Ws[j]).reshape(D, 2 ** (j + 1), 2 ** (j + 1))
     return M[0]
@@ -1070,9 +1136,13 @@ assert err_heff < 1e3 * TOL
 #
 # * **Warm start.** The start vector is the current $\theta$, the contraction of the two tensors from the previous step. After the first sweep it is already close to the answer, so a small fixed
 #   number of Lanczos steps ($m\approx20$) is enough. We do not need to solve the local problem to machine precision in early sweeps, since the environments are still changing.
-# * **Fixed $m$ and a breakdown guard.** Under `jit` the number of steps is fixed. If the Krylov space is exhausted earlier (early sweeps, small bond dimensions), $\beta_j$ vanishes; the
-#   remaining rows of $T$ would then contain zeros, whose zero eigenvalues are spurious. We push these unused rows to a very large diagonal value, $10^{6}$, so that they cannot be mistaken
-#   for the lowest eigenvalue.
+# * **Fixed $m$ and a breakdown rule.** Under `jit` the number of steps is fixed. If the Krylov space is exhausted earlier (early sweeps, small bond dimensions, a start vector that is
+#   already an eigenvector), $\beta_j$ vanishes. The test is *relative*, $\beta_j\le10^{-12}\,\|H\|$ with $\|H\|$ estimated by the largest $\|Hv_j\|$ seen: the rounding residual of an
+#   exhausted Krylov space grows with $\|H\|$, and an absolute threshold would normalise that residual — noise — into the next Lanczos vector. At a breakdown the Krylov space is invariant, but
+#   it need not contain the lowest eigenvector: a start vector in one symmetry sector never leaves it, and an eigenvector start never moves at all. Lanczos therefore restarts from a random
+#   vector of the allowed space (the bond indices that are block states, the mask of Section 6.6), orthogonalised against the Krylov space, and writes $\beta_j=0$ into $T$, which becomes block
+#   diagonal, so that every Ritz value is an eigenvalue of $H_{\rm eff}$. Only when the whole allowed space is exhausted are the remaining rows of $T$ pushed far above the spectrum, so that
+#   their spurious zero eigenvalues cannot be mistaken for the lowest one.
 #
 # **Checkpoint.** The lowest eigenpair from Lanczos equals that of the dense $64\times64$ matrix $H_{\rm eff}$ of Section 6.4.
 
@@ -1080,34 +1150,56 @@ assert err_heff < 1e3 * TOL
 # ==============================================================================
 # DMRG STEP 4: the local eigenproblem, Eq. (9), by Lanczos with a warm start
 # ==============================================================================
-def lanczos_lowest(matvec, v0, m):
+def lanczos_lowest(matvec, v0, m, mask=None, key=None):
     """Lowest eigenpair (E, x) of a Hermitian operator given only matvec, from m Lanczos steps started at v0.
 
     MATH    beta_j v_{j+1} = H v_j - alpha_j v_j - beta_{j-1} v_{j-1}  (notebook 11), full reorthogonalisation (twice);
             Ritz vector x = sum_j s_j v_j of the lowest eigenvector s of the tridiagonal T.
-    JAX     fixed m (lax.scan); after a breakdown (beta ~ 0) the unused rows of T get the diagonal 1e6, so that their
-            spurious zero eigenvalues are pushed to the top of the spectrum.
+    BREAKDOWN  beta_j <= 1e-12 ||H||, with ||H|| estimated by the largest ||H v_j|| seen (a RELATIVE test: the rounding
+            residual of an exhausted Krylov space grows with ||H||).  The Krylov space K is then invariant, but it need
+            not contain the lowest eigenvector (v0 orthogonal to it, e.g. v0 an eigenvector or in another symmetry
+            sector).  Lanczos therefore RESTARTS from a random vector of the allowed space (`mask`), orthogonalised
+            against K, and writes beta_j = 0 into T: T becomes block diagonal and every Ritz value belongs to H.  Only if
+            nothing is left (the whole allowed space is exhausted) do the remaining rows of T get a diagonal far above
+            the spectrum, so that their spurious eigenvalues cannot be the lowest.
+    ARGUMENTS  mask (shape of v0, 0/1, optional): the subspace H acts on; the restart vectors are drawn inside it.
+            key: PRNG key of the restart vectors (default PRNGKey(0): deterministic).
     """
     shape = v0.shape
     v0 = (v0 / jnp.linalg.norm(v0)).reshape(-1)
+    mask = jnp.ones(v0.size, dtype=RDTYPE) if mask is None else jnp.asarray(mask, dtype=RDTYPE).reshape(-1)
+    key = jax.random.PRNGKey(0) if key is None else key
     V0 = jnp.zeros((m, v0.size), dtype=v0.dtype).at[0].set(v0)
 
-    def body(carry, j):
-        V, v, v_prev, beta_prev, alive = carry
-        w = matvec(v.reshape(shape)).reshape(-1)
-        alpha = jnp.real(jnp.vdot(v, w))
-        w = w - alpha * v - beta_prev * v_prev
-        w = w - jnp.conj(V @ jnp.conj(w)) @ V                   # w <- w - sum_i v_i <v_i|w>; V holds the v_i as ROWS, hence the two conjugations
-        w = w - jnp.conj(V @ jnp.conj(w)) @ V                   # ... once more (rounding)
-        beta = jnp.linalg.norm(w)
-        ok = alive & (beta > 1e-12)
-        v_next = jnp.where(ok, w / jnp.where(ok, beta, 1.0), 0.0)
-        V = V.at[j + 1].set(v_next, mode="drop")                 # at j = m-1 the index j+1 is out of range; "drop" discards that write
-        alpha = jnp.where(alive, alpha, 1e6)                     # breakdown guard: a zero row of T would give a spurious eigenvalue 0
-        return (V, v_next, v, jnp.where(ok, beta, 0.0), ok), (alpha, jnp.where(ok, beta, 0.0))
+    def orthogonalise(w, V):                                     # w <- w - sum_i v_i <v_i|w>, twice (rounding); V holds the v_i as ROWS
+        w = w - jnp.conj(V @ jnp.conj(w)) @ V
+        return w - jnp.conj(V @ jnp.conj(w)) @ V
 
-    init = (V0, v0, jnp.zeros_like(v0), jnp.zeros((), dtype=RDTYPE), jnp.array(True))
-    (V, *_), (alphas, betas) = lax.scan(body, init, jnp.arange(m))
+    def body(carry, j):
+        V, v, v_prev, beta_prev, alive, hnorm = carry
+        Hv = matvec(v.reshape(shape)).reshape(-1)
+        hnorm = jnp.maximum(hnorm, jnp.linalg.norm(Hv))          # lower bound of ||H||: the scale of the breakdown test
+        alpha = jnp.real(jnp.vdot(v, Hv))
+        w = orthogonalise(Hv - alpha * v - beta_prev * v_prev, V)
+        beta = jnp.linalg.norm(w)
+        cont = beta > 1e-12 * hnorm                              # False: breakdown, K is an invariant subspace
+
+        def restart(_):                                          # random vector of the allowed space, orthogonal to K
+            r = mask * jax.random.normal(jax.random.fold_in(key, j), (v.size,), dtype=RDTYPE)
+            r = orthogonalise(r.astype(V.dtype), V)
+            rn = jnp.linalg.norm(r)
+            fresh = rn > 1e-8 * jnp.sqrt(jnp.sum(mask))          # False: the allowed space is exhausted
+            return r / jnp.where(fresh, rn, 1.0), fresh
+
+        v_next, fresh = lax.cond(cont, lambda _: (w / jnp.where(cont, beta, 1.0), jnp.array(True)), restart, None)
+        v_next = jnp.where(alive & (cont | fresh), v_next, 0.0)
+        b_out = jnp.where(alive & cont, beta, 0.0)               # a restart decouples the new block: T_{j,j+1} = 0
+        V = V.at[j + 1].set(v_next, mode="drop")                 # at j = m-1 the index j+1 is out of range; "drop" discards that write
+        return (V, v_next, v, b_out, alive & (cont | fresh), hnorm), (alpha, b_out, alive)
+
+    init = (V0, v0, jnp.zeros_like(v0), jnp.zeros((), dtype=RDTYPE), jnp.array(True), jnp.zeros((), dtype=RDTYPE))
+    (V, _, _, _, _, hnorm), (alphas, betas, used) = lax.scan(body, init, jnp.arange(m))
+    alphas = jnp.where(used, alphas, 1e3 * (1.0 + hnorm))      # unused rows of T: far above every Ritz value
     evals_T, evecs_T = jnp.linalg.eigh(jnp.diag(alphas) + jnp.diag(betas[:-1], 1) + jnp.diag(betas[:-1], -1))   # Ritz values and vectors of T
     x = evecs_T[:, 0].astype(V.dtype) @ V                    # Ritz vector of the lowest Ritz value, in the big space
     return evals_T[0], (x / jnp.linalg.norm(x)).reshape(shape)
@@ -1143,11 +1235,14 @@ assert abs(float(E_lz) - w_dense[0]) < 1e3 * TOL and abs(overlap - 1) < 1e3 * TO
 #   the centre. The next $\theta$ is then $SV^\dagger$ contracted with the right-canonical $B^{[j+2]}$ — again in mixed-canonical form, now centred on $j+1,j+2$.
 # * **moving left** (the next pair is $j-1,j$): site $j+1$ gets $B^{[j+1]}=V^\dagger$, right-canonical because $V^\dagger$ has orthonormal rows; site $j$ gets $US$.
 #
-# > **What happens to the padding.** Section 4 stored unused bond directions as exact zeros, and the TEBD update of Section 7.3 masks them to keep it that way. The DMRG split does *not*: the
-# > columns of $U$ (rows of $V^\dagger$) beyond the Schmidt rank are an arbitrary orthonormal completion returned by LAPACK, so after a DMRG step the padded rows of the tensors contain entries of
-# > order one. This is harmless, and it is in fact the mechanism the algorithm needs: those rows are legitimate additional orthonormal block states, they enter every contraction multiplied by a
-# > Schmidt value of zero, and giving them weight in a later step is how the bond dimension grows. The checkpoint of Section 6.7 prints both facts: the tensors have $O(1)$ entries on the unused
-# > rows, and the observables are exact nevertheless.
+# > **What happens to the padding.** Section 4 stored unused bond directions as exact zeros, and the TEBD update of Section 7.3 masks them to keep it that way. The columns of $U$ (rows of
+# > $V^\dagger$) beyond the Schmidt rank are useful: if they are additional orthonormal block states, they enter the next contractions with weight zero, and a later step can give them weight —
+# > this lets the bond dimension grow faster than the factor $2$ per half sweep that the Schmidt rank alone allows. But the completion returned by LAPACK is arbitrary: it mixes genuine block
+# > states with padded rows, and a padded row of the left tensor multiplies a padded (zero) block state. Such a bond "state" has norm below $1$, possibly $0$, while Eq. (14) assumes orthonormal
+# > block bases. On a zero-norm direction $H_{\rm eff}\theta=0$, a spurious eigenvalue $0$, and whenever the physical local energies are all positive (the Néel start of the ferromagnetic Ising
+# > chain, $E\approx+N$) it is the lowest one: Lanczos lands there and the MPS collapses to the zero vector. `split_two_site` therefore builds the completion itself, from the genuine block
+# > states only: with $P$ the allowed rows ($a$ a block state of the left bond, for a move to the right), the new columns are an orthonormal basis of $(1-U_kU_k^\dagger)P$, $U_k$ the kept
+# > columns. Bond indices beyond that space are exact zeros, as in Section 4, so every bond index is either an orthonormal block state or exactly zero.
 # ```
 #    moving right:   ...--[A_{j-1}]--[  U  ]--[ S Vdag ]--[B_{j+2}]--...      centre moves to site j+1
 #    moving left :   ...--[A_{j-1}]--[ U S ]--[  Vdag  ]--[B_{j+2}]--...      centre stays at site j, B_{j+1} is new
@@ -1158,22 +1253,45 @@ assert abs(float(E_lz) - w_dense[0]) < 1e3 * TOL and abs(overlap - 1) < 1e3 * TO
 # ==============================================================================
 # DMRG STEP 5: SVD split of the two-site tensor, Eq. (15), for both sweep directions
 # ==============================================================================
-def split_two_site(theta, chi, move_right):
+def split_two_site(theta, chi, move_right, support=None):
     """theta[a,s,t,b] (padded, shape (chi,2,2,chi)) -> two tensors (chi,2,chi), Schmidt values, discarded weight.
 
     MATH   theta_{(as),(tb)} = U S V^dag, keep chi values:  S <- S[:chi]/||S[:chi]||,  eps = sum_{k>=chi} S_k^2 / sum_k S_k^2
            move_right:  left = U (left-canonical),     right = S V^dag (carries the centre)
            move_left :  left = U S (carries centre),   right = V^dag (right-canonical)
+    COMPLETION  The columns of U (move_right) or rows of V^dag (move_left) whose Schmidt value vanishes (< LAM_CUT) are
+           replaced by an orthonormal completion INSIDE the space of genuine block states, P = {(a,s): support[a]}
+           (move_right) or {(t,b): support[b]} (move_left): the orthonormal basis of (1 - U_k U_k^dag) P.  These
+           directions carry weight zero now; a later step can give them weight, which is how the bond dimension grows
+           faster than the factor 2 per half sweep allowed by the Schmidt rank alone.  Columns beyond dim P are EXACT
+           zeros.  The completion that LAPACK returns would mix in padded (zero-norm) block "states"; H_eff, which
+           assumes orthonormal block bases, then has a spurious eigenvalue 0 on them (see dmrg).
     ARGUMENTS  chi must equal theta.shape[0] (the storage size): the routine always keeps exactly chi of the 2*chi values.
+           support (chi,) bool: the bond indices of the outer bond (a for move_right, b for move_left) that are block
+           states (the others are padding); default: all.
     """
     U, S, Vh = jnp.linalg.svd(theta.reshape(2 * chi, 2 * chi), full_matrices=False)
     weight = S ** 2
     eps = jnp.sum(weight[chi:]) / jnp.sum(weight)
     S = S[:chi] / jnp.sqrt(jnp.sum(weight[:chi]))
-    U, Vh = U[:, :chi], Vh[:chi]
+    keep = S > LAM_CUT                                       # a prefix: S is sorted
+    S = jnp.where(keep, S, 0.0)
+    support = jnp.ones(chi, dtype=bool) if support is None else support
     if move_right:
-        return U.reshape(chi, 2, chi), (S[:, None] * Vh).reshape(chi, 2, chi), S, eps
-    return (U * S[None, :]).reshape(chi, 2, chi), Vh.reshape(chi, 2, chi), S, eps
+        Q, p = U[:, :chi], jnp.repeat(support, 2)            # isometry U: rows (a, s), allowed rows support[a]
+    else:
+        Q, p = jnp.conj(Vh[:chi]).T, jnp.tile(support, 2)    # isometry V: rows (t, b), allowed rows support[b]
+    p = p.astype(Q.dtype)
+    Qk = Q * keep[None, :] * p[:, None]                      # kept vectors (exactly zero outside P)
+    C = jnp.diag(p) - Qk @ (jnp.conj(Qk).T * p[None, :])     # (1 - Qk Qk^dag) P: its range is the completion space
+    Uc, sc, _ = jnp.linalg.svd(C)
+    Uc = Uc * (sc > 0.5)[None, :]                            # singular values are 1 (completion) or 0 (nothing): drop the 0s
+    r = jnp.sum(keep)
+    fill = jnp.take(Uc, jnp.clip(jnp.arange(chi) - r, 0, 2 * chi - 1), axis=1)   # completion vector k - r into column k >= r
+    Q = jnp.where(keep[None, :], Qk, fill)
+    if move_right:
+        return Q.reshape(chi, 2, chi), (S[:, None] * Vh[:chi] * keep[:, None]).reshape(chi, 2, chi), S, eps
+    return (U[:, :chi] * S[None, :]).reshape(chi, 2, chi), jnp.conj(Q).T.reshape(chi, 2, chi), S, eps
 
 
 # ------------------------------------------------------------------------------
@@ -1221,8 +1339,11 @@ assert float(eps16) < TOL and float(jnp.max(jnp.abs(rebuilt - theta_t))) < 1e3 *
 # previous half sweep), and then rebuilds `L[j+1]`, which is the entry the next step needs. At the end of the half sweep the `R`'s are stale, which is why the return pass rebuilds them one by
 # one in the opposite order.
 #
-# After one full sweep (right, then left) the centre is back at site $0$ and every other tensor is right-canonical — the storage format of Section 4. The Schmidt values $S$ of the left-moving
-# splits are the Schmidt values of all bonds, so the result is directly a padded `(B, lam)` pair, and the observables of Section 5 apply without any conversion.
+# After one full sweep (right, then left) the centre is back at site $0$ and every other tensor is right-canonical — the storage format of Section 4. The observables of Section 5 also
+# read `lam`, and `lam` must belong to the returned tensors. The values $S$ recorded by the left-moving splits do not guarantee this: the split of bond $j+1$ stores its $S$, but the later steps
+# at the bonds $j, j-1, \dots, 0$ change the left block of that cut, so the stored values describe an intermediate state. They coincide with the Schmidt values of the final state only once the
+# sweeps have converged at a bond dimension where nothing is truncated. `dmrg` therefore ends with `mps_recanonicalise` (Section 3.5): an exact QR/SVD pass of cost $O(N\chi^3)$ that leaves
+# the state unchanged and recomputes `lam` from the returned tensors, after which the observables of Section 5 apply directly.
 #
 # **Why it converges.** Each local step minimises the energy over a subspace that *contains* the current state (the current $\theta$ is one of its vectors), so the energy can only go down, up
 # to the small increase caused by truncation. The two-site tensor has room for a bond dimension of up to $2\chi$ between the two sites, which lets the bond dimension grow from $1$ (a product
@@ -1251,8 +1372,10 @@ def make_local_step(chi, m, move_right):
     @jax.jit
     def step(L, W1, W2, R, M1, M2):
         theta = jnp.einsum("asm,mtb->astb", M1, M2)                                   # 1. two-site tensor
-        E, theta = lanczos_lowest(lambda t: heff_apply(L, W1, W2, R, t), theta, m)     # 2. local ground state
-        left, right, S, eps = split_two_site(theta, chi, move_right)                  # 3. split, move the centre
+        used_L, used_R = jnp.any(L != 0, axis=(0, 1)), jnp.any(R != 0, axis=(0, 1))   #    bond indices that are block states
+        mask = used_L[:, None, None, None] & used_R[None, None, None, :] & jnp.ones(theta.shape, dtype=bool)
+        E, theta = lanczos_lowest(lambda t: heff_apply(L, W1, W2, R, t), theta, m, mask)   # 2. local ground state
+        left, right, S, eps = split_two_site(theta, chi, move_right, used_L if move_right else used_R)   # 3. split, move the centre
         return left, right, S, eps, E
 
     _LOCAL_STEP_CACHE[key] = step
@@ -1260,12 +1383,38 @@ def make_local_step(chi, m, move_right):
 
 
 def dmrg(W, M, chi, n_sweeps, m=20, trace=False):
-    """Two-site DMRG for the MPO W (N, D, D, 2, 2), starting from the right-canonical padded MPS M (N, chi, 2, chi).
+    """Two-site DMRG for the MPO W (N, D, D, 2, 2), starting from the padded MPS M (N, chi, 2, chi).
 
     RETURNS  B (N, chi, 2, chi) right-canonical, lam (N+1, chi) Schmidt values of all bonds, history list of
              (sweep, direction, bond j, energy, discarded weight, number of non-zero Schmidt values) for every local step.
+    FINAL PASS  The S of the split at bond j+1 is recorded during the right-to-left half sweep, but the later steps
+             at bonds j, ..., 0 change the left block of that cut, so the recorded values belong to an intermediate
+             state; they are exact only after convergence at a chi where nothing is truncated.  `dmrg` therefore ends
+             with `mps_recanonicalise` (exact, O(N chi^3), state unchanged), which recomputes lam from the returned B.
+    START    M is first brought to right-canonical form by `mps_recanonicalise` and normalised (any gauge and norm are
+             accepted; the padding becomes exact zeros).  A zero or non-finite start raises ValueError.
+    SAFETY   The local problem H_eff theta = E theta is the projected one only if every bond index is an orthonormal
+             block state or exactly zero (`split_two_site`); otherwise zero-norm directions add a spurious eigenvalue 0,
+             which is the lowest one whenever the physical local energies are positive (e.g. a Neel start of the
+             ferromagnetic TFIM), and the state collapses to the zero vector.  A local step whose Schmidt values are not
+             normalised or whose energy is not finite, and a final state whose norm is not 1, raise RuntimeError.
+    SYMMETRY Lanczos keeps the symmetry sector of its start vector (e.g. S^z_tot for an XXZ chain).  On a breakdown it
+             restarts from a random vector (`lanczos_lowest`), which happens on the short bonds near the chain ends and
+             for an eigenstate start; this lets the state leave the sector of the start, but nothing guarantees it.
     """
     N, D = W.shape[0], W.shape[1]
+    M, _ = mps_recanonicalise(jnp.asarray(M, dtype=CDTYPE))        # right-canonical, padding exactly zero
+    nrm = float(jnp.linalg.norm(M[0]))                             # site 0 carries the norm
+    if not np.isfinite(nrm) or nrm < 1e-12:
+        raise ValueError(f"dmrg: the start MPS has norm {nrm:.3e} (zero or not finite)")
+    M = M.at[0].set(M[0] / nrm)
+    tol = float(jnp.sqrt(jnp.finfo(RDTYPE).eps))                   # 1.5e-8 (double), 3.5e-4 (single)
+
+    def check(S):                                                  # raise instead of continuing with a broken step
+        h, norm2 = history[-1], float(jnp.sum(S ** 2))
+        if not (np.isfinite(h[3]) and abs(norm2 - 1.0) < tol):
+            raise RuntimeError(f"dmrg: local step (sweep {h[0]}, {h[1]}, bond {h[2]}) gave E = {h[3]}, sum S^2 = {norm2}")
+
     step_right, step_left = make_local_step(chi, m, True), make_local_step(chi, m, False)
     L, R = [None] * (N + 1), [None] * (N + 1)
     L[0], R[N] = boundary_environments(chi, D)
@@ -1279,16 +1428,22 @@ def dmrg(W, M, chi, n_sweeps, m=20, trace=False):
             M[j], M[j + 1], S, eps, E = step_right(L[j], W[j], W[j + 1], R[j + 2], M[j], M[j + 1])
             L[j + 1] = left_env_update(L[j], M[j], W[j])           # the only environment that changes
             history.append((sweep, "->", j, float(E), float(eps), int(jnp.sum(S > 1e-12))))
+            check(S)
         for j in range(N - 2, -1, -1):                             # ---- right -> left
             M[j], M[j + 1], S, eps, E = step_left(L[j], W[j], W[j + 1], R[j + 2], M[j], M[j + 1])
             R[j + 1] = right_env_update(R[j + 2], M[j + 1], W[j + 1])
             lam = lam.at[j + 1].set(S)                             # Schmidt values of the bond left of site j+1
             history.append((sweep, "<-", j, float(E), float(eps), int(jnp.sum(S > 1e-12))))
+            check(S)
         if trace:
             last = [h for h in history if h[0] == sweep]
             print(f"   sweep {sweep}:  E = {last[-1][3]:.12f}   largest discarded weight {max(h[4] for h in last):.1e}   "
                   f"largest bond dimension {max(h[5] for h in last)}")
-    return jnp.stack(M), lam, history
+    B, lam = mps_recanonicalise(jnp.stack(M))                     # the lam recorded above is stale: recompute it from B
+    nrm = float(jnp.linalg.norm(B[0]))
+    if not abs(nrm - 1.0) < tol:
+        raise RuntimeError(f"dmrg: the final MPS has norm {nrm:.3e} instead of 1")
+    return B, lam, history
 
 
 # ------------------------------------------------------------------------------
@@ -1304,7 +1459,7 @@ for (sw, d, j, E, eps, chi_used) in hist8[:2 * 2 * (N8 - 1)]:
 print(f"after 4 sweeps: E = {hist8[-1][3]:.12f}   exact E0 = {E8_exact:.12f}   difference {hist8[-1][3] - E8_exact:.1e}")
 assert abs(hist8[-1][3] - E8_exact) < 1e3 * TOL
 pad8 = max(float(jnp.max(jnp.abs(B8[j][lam8[j] < 1e-12]))) if bool(jnp.any(lam8[j] < 1e-12)) else 0.0 for j in range(1, N8))
-print(f"largest |B| entry on bond directions whose Schmidt value vanishes: {pad8:.3f}  (an arbitrary orthonormal completion, Section 6.6 -- harmless)")
+print(f"largest |B| entry on bond directions whose Schmidt value vanishes: {pad8:.3f}  (the padding of the returned MPS is exactly zero, Section 6.6)")
 checks8 = {"energy <psi|H|psi> of the final MPS (Eq. (13), all sites)": abs(float(mpo_expectation(B8, W8)) - E8_exact),
            "norm <psi|psi> - 1": abs(float(jnp.real(mps_overlap(B8, B8))) - 1.0),
            "<Z_3> vs exact ground state": abs(float(mps_expect_sites(B8, lam8, Z)[3])
@@ -1330,12 +1485,12 @@ print(f"for comparison, a run converged at chi=2 (10 sweeps): E - E_exact = {h_c
 # %% [markdown]
 # **Reading the trace.** The run starts from the Néel product state, whose right blocks each contain a single state.
 #
-# * **First half sweep, left to right.** Every local step lowers the energy, from $-5.07$ to $-11.385$, because each local problem contains the previous state. The bond dimension, however,
+# * **First half sweep, left to right.** Every local step lowers the energy, from $-5.07$ to $-11.12$, because each local problem contains the previous state. The bond dimension, however,
 #   stays at $2$: the right block is still the product state, it offers only *one* block state $|R_b\rangle$, and a two-site tensor $\theta_{a,s,t,b}$ with a single value of $b$ has at most two
-#   non-zero Schmidt values across the middle bond. The energy error after this half sweep is nevertheless $4.5\times10^{-3}$, far better than bond dimension $2$ can do (a run converged at $\chi=2$ stops at
-#   $2.8\times10^{-1}$, printed above). The bonds already passed are not limited: the split writes an orthonormal completion into the unused columns, later steps give those directions
-#   weight, and the Schmidt ranks of the state after the half sweep are $2,4,8,12,8,4,2$ (printed above).
-# * **First half sweep, right to left.** Now the left blocks are the optimised ones, the bond dimensions grow to $4$, $8$ and $16$ towards the centre, and the error drops to $10^{-10}$.
+#   non-zero Schmidt values across the middle bond. The energy error after this half sweep is $2.7\times10^{-1}$, slightly below that of a run converged at $\chi=2$ ($2.8\times10^{-1}$, printed
+#   above). The bonds already passed are not limited: the split writes an orthonormal completion of genuine block states into the unused columns (Section 6.6), later steps give those directions
+#   weight, and the Schmidt ranks of the state after the half sweep are $2,4,8,16,8,4,2$ (printed above).
+# * **First half sweep, right to left.** Now the left blocks are the optimised ones, the bond dimensions grow to $4$, $8$ and $16$ towards the centre, and the error drops to $4\times10^{-8}$.
 # * **Second sweep.** The energy reaches the exact value to rounding. For eight spins a bond dimension of $2^4=16$ is exact, nothing is discarded (the discarded weights are $10^{-31}$), and
 #   DMRG must find the exact ground state.
 #
@@ -1344,7 +1499,8 @@ print(f"for comparison, a run converged at chi=2 (10 sweeps): E - E_exact = {h_c
 #
 # Three details of the printed table are worth a word. The bond $(N-2,N-1)$ appears twice in a row, at the end of the left-to-right pass and at the start of the right-to-left one: its local
 # problem has just been solved, so the energy does not move, but the split has to be redone in the other direction to turn the last tensor into a right-canonical $B$. From sweep 1 on the warm
-# start is already the local ground state, so Lanczos breaks down at the first step and the breakdown guard of Section 6.5 is what makes it return the correct energy instead of $0$. And the
+# start is already close to the local ground state; when it is an eigenvector to rounding, Lanczos breaks down at the first step, and the restart rule of Section 6.5 makes it return the lowest
+# eigenvalue of the whole allowed space instead of a spurious $0$ or the energy of the start. And the
 # energy error becomes slightly *negative* in the last digits; both numbers carry rounding errors of order $10^{-14}$, so this is noise, not a violation of the variational principle.
 #
 # The number recorded in `history` is the Ritz value of the local problem, which by Eq. (9) is $\langle\psi|H|\psi\rangle$ for the whole chain *before* the split that follows it. The final entry of a
@@ -1481,17 +1637,17 @@ plt.tight_layout(); plt.show()
 #   $0.62$ at both lengths. The transverse field has produced long-range antiferromagnetic order along $y$, the direction perpendicular to the anisotropy axis and to the field — the prediction of Dmitriev
 #   et al. The hints from the parity splitting at $N=18$ in notebook 11 were real.
 # * **Why DMRG could do this.** Both ordered phases are gapped according to the exact (des Cloizeaux and Gaudin) and field-theoretical (Dmitriev et al.) results, so they obey an area law (Section 2), and
-#   $\chi=64$ is ample: the largest discarded weight of the last sweep lies between $2\times10^{-13}$ and $9\times10^{-10}$ at the six points. The same calculation for the critical XX chain needs more
+#   $\chi=64$ is ample: the largest discarded weight of the last sweep lies between $2\times10^{-13}$ and about $10^{-9}$ at the six points. The same calculation for the critical XX chain needs more
 #   Schmidt values, as the validation showed.
 #
 # > **Physics insight.** A finite chain has no spontaneous symmetry breaking (notebook 11), so one expects $\langle Z_j\rangle=\langle Y_j\rangle=0$, and the order to show up only in the correlations — which is why
-# > the order parameter is measured as the long-distance limit of $C_{\rm st}(r)$ and not as a single expectation value. The printed values follow this at $N=60$ ($\max_j|\langle Z_j\rangle|\sim10^{-10}$) and in the
-# > field, but the six-sweep run at $N=100$ on the Néel side ends with $\max_j|\langle Z_j\rangle|$ of order $0.1$. The sweeps start from the Néel product state, one side of the doublet, and at a hundred
-# > spins six sweeps do not complete the way to the symmetric ground state: the last sweep still lowers the energy by far more than the discarded weight, and the central entropy is below that of
-# > the symmetric state at $N=60$. The eight-sweep rerun printed above settles it: the energy drops further, the change of the last sweep falls to $10^{-8}$, $\max_j|\langle Z_j\rangle|$ drops to
-# > $10^{-2}$ or below, and the central entropy rises to $1.41$ bits. The residual magnetisation is incomplete convergence, and its size changes from run to run ($0.19$ and $0.08$ for the same six-sweep
-# > calculation two weeks apart). The staggered correlations agree to four digits in all these runs, which is exactly why they, and not $\langle Z_j\rangle$, are used to detect the order, and why a
-# > converged energy, not a fixed number of sweeps, is the stopping criterion to use in production.
+# > the order parameter is measured as the long-distance limit of $C_{\rm st}(r)$ and not as a single expectation value. The printed values follow this at $N=60$ ($\max_j|\langle Z_j\rangle|$ between $4\times10^{-11}$ and $2\times10^{-7}$) and in the
+# > field, but the six-sweep run at $N=100$ on the Néel side ends with $\max_j|\langle Z_j\rangle|=0.13$. The sweeps start from the Néel product state, one side of the doublet, and at a
+# > hundred spins six sweeps do not complete the way to the symmetric ground state: the last sweep still lowers the energy by far more than the discarded weight. The eight-sweep rerun printed above
+# > settles it: the energy drops further, the change of the last sweep falls to $5\times10^{-8}$, $\max_j|\langle Z_j\rangle|$ drops to $9\times10^{-3}$, and the central entropy rises to $1.41$ bits.
+# > The residual magnetisation is incomplete convergence: its value records how far the sweeps have come, not a property of the state they approach. The staggered correlations agree to four digits
+# > in both runs, which is exactly why they, and not $\langle Z_j\rangle$, are used to detect the order, and why a converged energy, not a fixed number of sweeps, is the stopping criterion to use in
+# > production.
 
 # %% [markdown]
 # ## 7. One TEBD step on an MPS: the two-site update
@@ -1582,7 +1738,7 @@ plt.tight_layout(); plt.show()
 # ==============================================================================
 # STEP 4: the core routine -- TEBD two-site update (merge, gate, SVD, truncate, split)
 # ==============================================================================
-LAM_CUT = 100 * float(jnp.finfo(RDTYPE).eps)      # Schmidt values below this are treated as padding (exact zeros)
+# LAM_CUT (defined in Section 3.5): Schmidt values below it are treated as padding (exact zeros)
 
 
 def two_site_update(lamL, B1, B2, G):

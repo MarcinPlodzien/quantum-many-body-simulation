@@ -23,16 +23,16 @@
 #                        +------------- classical optimiser <-----------------+
 # ```
 #
-# This was the first algorithm run on quantum hardware in this style (Peruzzo *et al.*, 2014, on a photonic chip), the
-# first to be scaled to a handful of superconducting qubits (Kandala *et al.*, 2017), and it remains the most studied
-# application of noisy intermediate-scale devices (Tilly *et al.*, 2022).
+# The algorithm was first demonstrated on a photonic chip (Peruzzo *et al.*, 2014), was run on up to six
+# superconducting qubits for small molecules and a quantum magnet with a hardware-efficient circuit (Kandala *et al.*,
+# 2017), and is one of the most studied applications of noisy intermediate-scale devices (Tilly *et al.*, 2022).
 #
 # **What this notebook does.** We run the complete algorithm on a simulator, where the exact answer is available from
 # Lanczos, and we ask the questions that only a simulator can answer:
 #
 # * the energy converges — but does the **state**? We derive and then measure the two inequalities that connect the
 #   energy error to the fidelity, and find that the energy error is *second order* in the state error while being bounded
-#   below by (gap) $\times$ (infidelity);
+#   below by (gap) $\times$ (infidelity) when the ground state is unique;
 # * the Hamiltonians have a symmetry; the ansatz does not. We measure how much symmetry the optimised state leaks;
 # * how does the error depend on the number of layers, and is the limit expressivity or trainability?
 # * across the phase diagram of the transverse-field Ising chain, where is VQE hard — and what does "fidelity" even mean
@@ -44,18 +44,21 @@
 # fixes the three Hamiltonians and their exact references. Section 5 treats symmetry. Sections 6 to 8 build and run the
 # VQE loop and produce the nine-panel metric comparison against the exact ground state. Sections 9 to 13 are the studies:
 # symmetry leakage, depth, the phase diagram, deflation for the first excited state, and shot noise at equal budget.
-# Section 14 states the limits honestly.
+# Section 14 lists the limits of what was shown.
 #
 # ### What you will learn
 #
 # *Physics*
 # * the Rayleigh-Ritz variational principle with its proof, and why it makes an upper bound on $E_0$ free;
-# * why an energy accurate to $10^{-3}$ can come with a state whose fidelity is $0.7$, and why the reverse cannot happen:
-#   $E-E_0\ge\Delta\,(1-F)$ with $\Delta$ the spectral gap;
+# * why the energy error is quadratic in the state error, and why a small energy error certifies a high fidelity only
+#   through the spectral gap $\Delta$: $E-E_0\ge\Delta\,(1-F)$ for a unique ground state, so that near a degeneracy an
+#   energy error of $2\cdot10^{-4}$ coexists with a fidelity of $1/2$;
 # * what a $\mathbb Z_2$ symmetry of a spin chain is, why the hardware-efficient ansatz breaks it, and what
 #   symmetry breaking means for a finite chain with an exponentially small gap;
-# * the physics of the transverse-field Ising chain across its transition: entanglement peaks at the critical point,
-#   the gap closes in the ordered phase, and a variational state can have a tiny energy error and fidelity $\approx1/2$.
+# * the physics of the transverse-field Ising chain across its transition at $N=6$: the doublet splitting closes
+#   exponentially in the ordered phase, the half-chain entropy of a short open chain is largest in the ordered phase
+#   (one bit of cat-state entanglement) rather than at the critical point, and a variational state can have a tiny
+#   energy error and fidelity $\approx1/2$.
 #
 # *Numerical methods*
 # * the VQE loop as a compiled `lax.scan` with statistics over random initialisations, never a single run;
@@ -137,6 +140,35 @@ def summarise(name, hist, target, evals_per_iter):
     med = float(np.median(it[ok])) if ok.any() else float("nan")
     return dict(name=name, success=float(ok.mean()), iters=med, evals=med * evals_per_iter,
                 best=float(np.min(np.asarray(hist)[:, -1])), median_final=float(np.median(np.asarray(hist)[:, -1])))
+
+
+def wilson_interval(k, n, z=1.0):
+    """Wilson score interval for a success fraction k/n (z = 1: the 68% band).
+
+    MATH   centre = (p + z^2/2n) / (1 + z^2/n),  half-width = z sqrt(p(1-p)/n + z^2/4n^2) / (1 + z^2/n),  p = k/n.
+    """
+    p = k / n
+    den = 1 + z * z / n
+    c = (p + z * z / (2 * n)) / den
+    hw = z * np.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / den
+    return c - hw, c + hw
+
+
+def perm_pvalue(a, b, n_perm=20000, seed=0):
+    """Two-sided permutation p-value for a difference in the MEDIANS of log(a) and log(b) (a, b > 0).
+
+    MATH   T = |median log a - median log b|;  p = fraction of random relabellings of the pooled sample with T' >= T.
+    USE    small samples (8-12 restarts) whose spread covers decades: no normality assumption is made.
+    """
+    x, y = np.log(np.asarray(a)), np.log(np.asarray(b))
+    pooled, na = np.concatenate([x, y]), len(x)
+    t_obs = abs(np.median(x) - np.median(y))
+    rng = np.random.default_rng(seed)
+    hits = 0
+    for _ in range(n_perm):
+        perm = rng.permutation(pooled)
+        hits += abs(np.median(perm[:na]) - np.median(perm[na:])) >= t_obs - 1e-15
+    return (hits + 1) / (n_perm + 1)
 
 
 def opt_adam(lr, b1=0.9, b2=0.999, eps=1e-8):
@@ -248,15 +280,31 @@ def grad_spsa(cost, c=0.2, gamma=0.101):
 # $$E-E_0=\frac{\varepsilon^{2}}{1+\varepsilon^{2}}\bigl(\langle\delta\vert H\vert\delta\rangle-E_0\bigr)
 #   =O(\varepsilon^{2}). \tag{2}$$
 #
-# The *state* error is first order in $\varepsilon$; the *energy* error is second order. A variational energy that is
-# correct to eight digits may come from a state that is wrong in the third. This is the oldest and most useful fact
-# about variational calculations, and it cuts both ways: energies converge fast, everything else does not.
+# The *state* error is first order in $\varepsilon$ (the distance $\lVert\psi-\psi_0\rVert$ is $\varepsilon$ to leading
+# order); the *energy* error is second order. With $\langle\delta\vert H\vert\delta\rangle-E_0=O(1)$, an energy
+# error of $10^{-8}$ corresponds to $\varepsilon\approx10^{-4}$, so an energy correct to eight digits may come from a
+# state whose amplitudes are wrong in the fourth. Energies converge fast, everything else more slowly.
+#
+# **The same statement for every trial state, with its constant.** The special form above is not needed. Take any
+# normalised $\vert\psi\rangle$, choose the global phase of $\vert\psi_0\rangle$ so that
+# $\langle\psi_0\vert\psi\rangle=\sqrt F\ge0$, and call the difference $\vert\phi\rangle=\vert\psi\rangle-\vert\psi_0\rangle$.
+# Because $(H-E_0)\vert\psi_0\rangle=0$, the terms of $\langle\psi_0+\phi\vert(H-E_0)\vert\psi_0+\phi\rangle$ that
+# contain $\vert\psi_0\rangle$ vanish, and
+#
+# $$E-E_0=\langle\phi\vert(H-E_0)\vert\phi\rangle\;\le\;(E_{\max}-E_0)\,\lVert\phi\rVert^2,
+#   \qquad \lVert\phi\rVert^2=2\bigl(1-\sqrt F\bigr). \tag{2a}$$
+#
+# The first equality is exact; the inequality uses that $H-E_0$ has eigenvalues between $0$ and $E_{\max}-E_0$. The
+# energy error is therefore bounded by the *square* of the state error with the constant $E_{\max}-E_0$, for every state
+# and without any assumption on the spectrum. Since $1-F\le2(1-\sqrt F)\le2(1-F)$ for $0\le F\le1$, the squared
+# distance and the infidelity agree up to a factor of two, which is why the infidelity $1-F$ is itself a "squared" error
+# and the bounds below are linear in it.
 #
 # ### 3.3 Two-sided bounds in terms of the fidelity
 #
-# Equation (2) is about a specific perturbation. The statement that holds for *every* trial state uses only the weights
-# of Eq. (1). Define the fidelity with the ground state, $F=\lvert\langle\psi_0\vert\psi\rangle\rvert^2=\lvert c_0\rvert^2$
-# (assume for the moment that $E_0$ is non-degenerate). Then
+# Equations (2) and (2a) are upper bounds. A lower bound needs one assumption: the ground state is **unique**,
+# $E_0<E_1$. Define the fidelity with it, $F=\lvert\langle\psi_0\vert\psi\rangle\rvert^2=\lvert c_0\rvert^2$. Then the
+# weights of Eq. (1) give
 #
 # $$E-E_0=\sum_{n\ge1}\lvert c_n\rvert^{2}\,(E_n-E_0). \tag{3}$$
 #
@@ -275,6 +323,12 @@ def grad_spsa(cost, c=0.2, gamma=0.101):
 # same infidelity is compatible with an energy error larger by the factor $(E_{\max}-E_0)/\Delta$, which for a critical
 # chain is large.
 #
+# Two remarks on the assumptions. If the ground level is $g$-fold degenerate, the left inequality survives with $F$
+# replaced by the total weight on the ground eigenspace and $\Delta$ by the distance to the next distinct level; with
+# $F$ defined as the overlap with one chosen ground state it is false (a different ground state has $E-E_0=0$ and $F=0$).
+# And nothing in Eqs. (3)–(5) requires a pure state: for a density matrix, $E-E_0=\sum_{n\ge1}\rho_{nn}(E_n-E_0)$
+# with $F=\rho_{00}$, so the same bounds hold for the mixed state a noisy device prepares.
+#
 # Equation (4) also explains why a small gap is doubly bad. A gapless (or nearly degenerate) system has
 # $\Delta\to0$, so Eq. (5) certifies nothing: the energy can be converged to machine precision while the state is
 # anything at all inside the near-degenerate subspace. Section 11 shows exactly that happening.
@@ -282,8 +336,10 @@ def grad_spsa(cost, c=0.2, gamma=0.101):
 # ### 3.4 Measuring Eqs. (2) and (4)
 #
 # We take the exact ground state of a test Hamiltonian, mix in a fixed random orthogonal direction with amplitude
-# $\varepsilon$, and plot the energy error against the infidelity $1-F$ over six decades, together with both bounds of
-# Eq. (4).
+# $\varepsilon$, and plot the energy error against the infidelity $1-F$ over eight decades, together with both bounds of
+# Eq. (4). Equation (2) and $1-F=\varepsilon^2/(1+\varepsilon^2)$ combine into the exact prediction
+# $E-E_0=(1-F)\,(\langle\delta\vert H\vert\delta\rangle-E_0)$, whose constant we compute separately from $\vert\delta\rangle$
+# alone and compare with the measured ratio. Equation (2a) is checked on every point as well.
 
 # %%
 # ==============================================================================
@@ -304,6 +360,10 @@ delta = delta / jnp.linalg.norm(delta)
 print(f"TFIM N={N_PERT}, h=1: E_0 = {E0_pert:.6f}, gap Delta = {gap_pert:.6f}, E_max - E_0 = {Emax_pert - E0_pert:.6f}")
 print(f"orthogonality of the perturbation direction: |<psi_0|delta>| = {float(jnp.abs(jnp.vdot(psi0_pert, delta))):.2e}")
 
+# the constant of Eq. (2), computed from the direction alone: <delta|H|delta> - E_0
+K_pert = float(energy(terms_pert, delta)) - E0_pert
+print(f"<delta|H|delta> - E_0 = {K_pert:.6f}   (the predicted constant of Eq. (2))")
+
 eps_grid = np.logspace(-4, 0, 25)
 rows_pert = []
 for eps in eps_grid:
@@ -312,6 +372,13 @@ for eps in eps_grid:
     inf = 1.0 - float(fidelity_pure(psi0_pert, psi))
     rows_pert.append((eps, inf, dE))
 rows_pert = np.array(rows_pert)
+
+# --- CHECKPOINT: Eq. (2) exactly, E - E_0 = (1 - F) K, and Eq. (2a) on every point ---------------------------------
+dev_2 = np.max(np.abs(rows_pert[:, 2] - K_pert * rows_pert[:, 1]))
+bound_2a = (Emax_pert - E0_pert) * 2 * (1 - np.sqrt(1 - rows_pert[:, 1]))
+print(f"max |(E - E_0) - (1 - F) K| over the {len(eps_grid)} points = {dev_2:.1e}")
+print(f"Eq. (2a): largest ratio (E - E_0) / [(E_max - E_0) * 2(1 - sqrt F)] = {np.max(rows_pert[:, 2] / bound_2a):.4f} (<= 1)")
+assert dev_2 < 1e3 * TOL and np.all(rows_pert[:, 2] <= bound_2a + 1e-12)
 
 print(f"\n{'epsilon':>10s} {'1 - F':>12s} {'E - E_0':>12s} {'lower bound':>13s} {'upper bound':>13s} {'(E-E0)/eps^2':>14s}")
 for r in rows_pert[::6]:
@@ -336,20 +403,29 @@ axes[1].set_xlabel(r"infidelity $1-F$"); axes[1].set_ylabel(r"energy error $E-E_
 axes[1].set_title("Equation (4), both sides"); axes[1].legend(fontsize=8)
 fig.tight_layout(); plt.show()
 
+# --- control: the SAME Haar direction without the projection (it has a component along psi_0) ------------------
+raw = haar_state(jax.random.PRNGKey(3), N_PERT)
+print(f"\nunprojected direction: |<psi_0|raw>| = {float(jnp.abs(jnp.vdot(psi0_pert, raw))):.4f}")
+print(f"{'epsilon':>10s} {'(E-E0)/eps^2':>14s} {'(E-E0)/(1-F)':>14s}")
+for eps in (1e-4, 1e-3, 1e-2, 1e-1):
+    psi = psi0_pert + eps * raw
+    psi = psi / jnp.linalg.norm(psi)
+    dE = float(energy(terms_pert, psi)) - E0_pert
+    print(f"{eps:10.0e} {dE / eps ** 2:14.6f} {dE / (1.0 - float(fidelity_pure(psi0_pert, psi))):14.6f}")
+
 # %% [markdown]
 # The measurement reproduces both derivations exactly.
 #
-# **Equation (2).** The last column is $(E-E_0)/\varepsilon^2$, and it is constant at $7.2096$ over the two decades
-# from $\varepsilon=10^{-4}$ to $10^{-2}$. That constant is nothing else than
-# $\langle\delta\vert H\vert\delta\rangle-E_0$, the energy of the admixed direction measured from the ground energy;
-# at $\varepsilon=1$ the prefactor $\varepsilon^2/(1+\varepsilon^2)=1/2$ reduces it to $3.6048$, exactly half, as the
-# denominator of Eq. (2) requires. The infidelity behaves as $1-F=\varepsilon^2/(1+\varepsilon^2)$: $10^{-8}$ at
-# $\varepsilon=10^{-4}$ and $0.5$ at $\varepsilon=1$.
+# **Equation (2).** The last column is $(E-E_0)/\varepsilon^2$. Equation (2) predicts
+# $K/(1+\varepsilon^2)$ with $K=\langle\delta\vert H\vert\delta\rangle-E_0=7.2096$, computed above from the direction
+# alone: $7.2096$ at $\varepsilon=10^{-4}$ and $10^{-3}$, $7.2089$ at $10^{-2}$, $7.1383$ at $10^{-1}$ and
+# $3.6048=K/2$ at $\varepsilon=1$. The infidelity is $1-F=\varepsilon^2/(1+\varepsilon^2)$, from $10^{-8}$ to $0.5$, so
+# the relation $E-E_0=K\,(1-F)$ holds at every point; the checkpoint confirms it to round-off over all 25 points.
+# Equation (2a) holds as well, with the largest ratio to its right-hand side printed above.
 #
 # **The practical consequence.** At $\varepsilon=10^{-2}$ the state has infidelity $10^{-4}$ and the energy error is
-# $7.2\cdot10^{-4}$ out of a total energy of $-7.296$ — a *relative* energy error of $10^{-4}$ while the state is wrong
-# at the $1\%$ level in amplitude. Quoting a variational energy to five digits says nothing about the state having
-# five correct digits.
+# $7.2\cdot10^{-4}$ out of a total energy of $-7.296$, a *relative* energy error of $10^{-4}$, while the amplitudes
+# are wrong at the $1\%$ level. An energy correct to four digits says nothing about the state having four correct digits.
 #
 # **Equation (4).** The right panel shows the measured relation $E-E_0=7.2096\,(1-F)$ as a straight line of slope one,
 # lying between the two bounds at every point: the lower bound $\Delta(1-F)=0.482\,(1-F)$ and the upper bound
@@ -358,9 +434,13 @@ fig.tight_layout(); plt.show()
 # infinite; Section 11 measures one.
 #
 # > **Numerical practice.** The perturbation direction was built by projecting a Haar-random state onto the orthogonal
-# > complement of $\vert\psi_0\rangle$, and the residual overlap printed above is $2.5\cdot10^{-17}$. Without that
-# > projection the "orthogonal" admixture would contain a component along $\vert\psi_0\rangle$, the cross term of
-# > Section 3.2 would not vanish, and the measured exponent would drift from $2$ towards $1$ at small $\varepsilon$.
+# > complement of $\vert\psi_0\rangle$ (residual overlap $2.5\cdot10^{-17}$), so that $\varepsilon$ is exactly the
+# > amplitude of Eq. (2) and $K$ is known in advance. The projection is a convenience; the quadratic law does not
+# > depend on it. The control run with the unprojected direction (overlap $0.036$ with $\vert\psi_0\rangle$) still
+# > gives $(E-E_0)/\varepsilon^2\approx7.20$ at small $\varepsilon$, and $(E-E_0)/(1-F)=7.2096=K$ exactly, as Eq. (2a)
+# > requires: a component along $\vert\psi_0\rangle$ only changes the normalisation, and the orthogonal part is the
+# > same direction $\vert\delta\rangle$ as before. Only the relation between $\varepsilon$ and the amplitude of the
+# > orthogonal part changes.
 
 # %% [markdown]
 # ## 4. The Hamiltonians
@@ -625,18 +705,20 @@ print(f"  <P>: mean {par_rand.mean():+.4f}, standard deviation {par_rand.std():.
 print(f"  median symmetry leakage 1 - |<P>| = {np.median(1 - np.abs(par_rand)):.4f}")
 
 # %% [markdown]
-# The commutator with the parity operator is **exactly zero** — not small, but zero to the last bit, because the
-# cancellation happens term by term in the einsum and not through any numerical accident. The commutator with
+# The commutator with the parity operator is **exactly zero** in floating point. $P$ only permutes the amplitudes
+# (it flips every bit of the index), and each local term maps the permuted array to the permutation of its own output
+# with the same arithmetic on the same numbers, so the two orders of application agree bit for bit. The commutator with
 # $S^z_{\text{tot}}$ is $4.41$ for all three models, and the fact that it is the *same* number three times is itself
 # informative: the $XX+YY$ and $ZZ$ bond terms all commute with $S^z_{\text{tot}}$, so the entire commutator comes from
 # the field, $[H,S^z_{\text{tot}}]=h_x[\sum_iX_i,\sum_qZ_q]$, which does not depend on the couplings at all. Switching
 # the field off restores the conservation law to machine precision ($8.5\cdot10^{-16}$), confirming that the transverse
 # field, and nothing else, is what destroys the $U(1)$ symmetry of the XXZ chain.
 #
-# The ansatz, meanwhile, knows nothing. Over 200 random parameter vectors the parity of the hardware-efficient state
+# The ansatz has no such structure. Over 200 random parameter vectors the parity of the hardware-efficient state
 # is centred on zero with a standard deviation of $0.099$ and never exceeds $0.28$ in magnitude; the median symmetry
-# leakage of Eq. (8) is $0.94$. The optimiser starts, in other words, in a state that is an equal-weight superposition
-# of the two parity sectors, and half of the Hilbert space it explores is orthogonal to the answer.
+# leakage of Eq. (8) is $0.94$. Since $\langle P\rangle=w_+-w_-$ with $w_\pm$ the weights in the two sectors,
+# the optimiser starts in a state with nearly equal weight in both sectors, and half of the Hilbert space it explores
+# is orthogonal to the answer.
 #
 # > **Physics insight.** A symmetry of $H$ block-diagonalises it. Working inside one block is both cheaper (half the
 # > dimension) and safer (the answer cannot leak into the wrong sector). An ansatz that respects the symmetry gets
@@ -660,9 +742,11 @@ print(f"  median symmetry leakage 1 - |<P>| = {np.median(1 - np.abs(par_rand)):.
 # compiled program produces an array of shape (runs, iterations, 9) at essentially the cost of the training itself.
 #
 # > **JAX practice.** The Hamiltonian coefficients, the reference energy and the reference state enter `vqe_metrics` as
-# > ordinary arguments. Closing over them inside a `vmap` therefore lets us train on all three models in **one**
+# > ordinary arguments. Mapping `vmap` over them therefore lets us train on all three models in **one**
 # > compilation instead of three: the circuit graph is identical, only the numbers differ. Compilation dominates the
-# > wall time of short variational runs, so this is worth more than any micro-optimisation inside the loop.
+# > wall time of short variational runs (Section 8 times the two separately: about $5$ s of compilation against
+# > $2$ s of execution for $3\times12\times300$ iterations), so this is worth more than any micro-optimisation inside the
+# > loop.
 
 # %%
 # ==============================================================================
@@ -733,11 +817,15 @@ print(f"\nbest learning rate on this landscape: {LR_BEST:g}")
 
 # %% [markdown]
 # The median final energy error varies by a factor of eight across the grid — $0.155$ at $\eta=0.05$, $0.019$ at
-# $\eta=0.4$, back up to $0.038$ at $\eta=0.8$ — with a clear optimum at $\eta=0.4$. That is close to the $0.45$ that
-# notebook 41 measured for Adam on the energy landscape of the same model family at $N=6$, and far from the $0.13$ that
-# the same notebook found best on an *infidelity* landscape. A learning rate is an inverse curvature and curvature
-# carries the units of the cost, so step sizes do not transfer between cost functions. All the runs below use the
-# measured $\eta=0.4$, and none of the hyper-parameters in this notebook is a guess.
+# $\eta=0.4$, back up to $0.038$ at $\eta=0.8$ — with the smallest median at $\eta=0.4$. With six restarts per rate the
+# neighbours $0.2$ and $0.8$ are not cleanly separated from it (their medians are within a factor of two), so the grid
+# fixes the order of magnitude of the step rather than its exact value. That is close to the $0.45$ that notebook 41
+# measured for Adam on the energy landscape of an antiferromagnetic Ising chain ($N=6$, $h=0.8$, $L=3$), and far from the
+# $0.13$ that the same notebook found best on an *infidelity* landscape. Adam's update
+# $\eta\,\hat m/(\sqrt{\hat v}+\epsilon)$ is unchanged when the cost is multiplied by a constant, so $\eta$ is a step
+# length in angle space, and its best value is set by the angular width of the valleys of the particular landscape;
+# those widths differ between cost functions, so step sizes do not transfer. All the hardware-efficient runs below use
+# $\eta=0.4$.
 
 # %% [markdown]
 # ## 8. VQE for the three models: nine metrics against the exact ground state
@@ -758,12 +846,16 @@ C_STACK = jnp.stack([jnp.asarray(MODELS[k], dtype=RDTYPE) for k in MODEL_NAMES])
 PSI_STACK = jnp.stack([EXACT[k]["psi0"] for k in MODEL_NAMES])
 E0_STACK = jnp.asarray([EXACT[k]["E0"] for k in MODEL_NAMES], dtype=RDTYPE)
 
-t0 = time.perf_counter()
 run_all = jax.jit(jax.vmap(lambda c, p, e: vqe_run(c, p, e, th_main, ks_main, LR_BEST, T_MAIN)))
-TH_FINAL, HIST = jax.block_until_ready(run_all(C_STACK, PSI_STACK, E0_STACK))    # (3, runs, n), (3, runs, steps, 9)
+t0 = time.perf_counter()
+run_all_compiled = run_all.lower(C_STACK, PSI_STACK, E0_STACK).compile()       # trace + XLA compilation only
+t_compile = time.perf_counter() - t0
+t0 = time.perf_counter()
+TH_FINAL, HIST = jax.block_until_ready(run_all_compiled(C_STACK, PSI_STACK, E0_STACK))  # (3, runs, n), (3, runs, steps, 9)
+t_run = time.perf_counter() - t0
 HIST = np.asarray(HIST)
 print(f"3 models x {R_MAIN} restarts x {T_MAIN} iterations, N={N_SITES}, L={L_MAIN}, n={n_main} angles: "
-      f"{time.perf_counter() - t0:.1f} s")
+      f"compilation {t_compile:.1f} s, execution {t_run:.1f} s")
 
 TARGET_E = 1e-2
 print(f"\n{'model':>6s} {'median E-E_0':>14s} {'best E-E_0':>12s} {'median F':>10s} {'best F':>9s} "
@@ -776,6 +868,24 @@ for i, name in enumerate(MODEL_NAMES):
           f"{s['success']:13.2f} {s['iters']:13.1f}")
 print(f"(success = fraction of the {R_MAIN} restarts reaching E - E_0 < {TARGET_E:g}; "
       f"median iterations over the successful ones)")
+
+# --- how significant are the differences between the models?  12 restarts each ---------------------------------
+print("\n68% Wilson intervals of the success rates: " + ", ".join(
+    f"{name} [{wilson_interval(int((iterations_to(HIST[i, :, :, 0], TARGET_E) > 0).sum()), R_MAIN)[0]:.2f}, "
+    f"{wilson_interval(int((iterations_to(HIST[i, :, :, 0], TARGET_E) > 0).sum()), R_MAIN)[1]:.2f}]"
+    for i, name in enumerate(MODEL_NAMES)))
+i_xxz, i_xy, i_tf = (MODEL_NAMES.index(k) for k in ("XXZ", "XY", "TFIM"))
+p_dE = perm_pvalue(HIST[i_xxz, :, -1, 0], HIST[i_tf, :, -1, 0], seed=1)
+p_inf = perm_pvalue(1 - HIST[i_xy, :, -1, 2], 1 - HIST[i_tf, :, -1, 2], seed=2)
+p_null = perm_pvalue(1 - HIST[i_tf, ::2, -1, 2], 1 - HIST[i_tf, 1::2, -1, 2], seed=3)
+print(f"permutation p-values (medians of log values): final E - E_0, XXZ vs TFIM: {p_dE:.3f};  "
+      f"final 1 - F, XY vs TFIM: {p_inf:.4f}")
+print(f"control (two halves of the SAME TFIM restarts, no real difference): 1 - F p-value {p_null:.3f}")
+assert p_inf < 0.01 and p_null > 0.05
+for i, name in enumerate(MODEL_NAMES):
+    it = iterations_to(HIST[i, :, :, 0], TARGET_E)
+    print(f"{name:>6s}: iterations of the successful restarts {sorted(int(v) for v in it[it > 0])};  "
+          f"restarts ending below the exact S_half: {int(np.sum(HIST[i, :, -1, 1] < EXACT[name]['obs'][0]))}/{R_MAIN}")
 assert HIST[:, :, :, 0].min() > -1e-9, "variational principle violated -- check the Hamiltonian or the reference"
 print("\nCHECKPOINT the variational principle held in all "
       f"{HIST.shape[0] * HIST.shape[1] * HIST.shape[2]} recorded energies: E - E_0 >= 0 "
@@ -824,29 +934,82 @@ for i, name in enumerate(MODEL_NAMES):
 # where it would have shown.
 #
 # **The energies converge and the states nearly do.** The median final energy error is $0.0115$ (XXZ), $0.0113$ (XY)
-# and $0.0161$ (TFIM), i.e. a relative error near $10^{-3}$ in every case; the median fidelities are $0.9985$,
-# $0.9984$ and $0.9946$. The difficulty ordering follows the gap and the entanglement of Section 4.3: $83\%$ of the
-# restarts reach $E-E_0<10^{-2}$ for the two nearly polarised chains, against $50\%$ for the critical Ising chain,
-# which also needs roughly twice as many iterations to get there (a median of $274$ against $166$ and $130$).
+# and $0.0161$ (TFIM), a relative error of $1$ to $2\cdot10^{-3}$; the median fidelities are $0.9985$, $0.9984$ and
+# $0.9946$. Twelve restarts per model are enough to separate some of these numbers and not others, and the
+# permutation tests printed above say which. The **energy errors** of the three models are statistically
+# indistinguishable (XXZ against TFIM: $p=0.42$), and so are the success rates: $10/12$ against $6/12$ reach
+# $E-E_0<10^{-2}$, with 68% intervals $[0.70,0.91]$ and $[0.36,0.64]$ that nearly touch (a Fisher exact test gives
+# $p=0.19$). The **infidelities** do differ: the Ising chain is further from its ground state than the XY chain
+# ($p=0.003$), while the control comparison of two halves of the *same* Ising runs shows no difference ($p=0.34$), as it
+# must. That is the expected ordering by gap: by Eq. (5)
+# a similar energy error certifies $1-F\le(E-E_0)/\Delta$, and the Ising gap is six times smaller. The successful Ising
+# runs also arrive later (median $274$ iterations against $166$ and $130$), but three of its six successes cross the
+# threshold within the last ten iterations of the budget, so this number mostly says that the budget was just long
+# enough.
 #
-# **The entanglement is systematically *under*-produced.** The median $S_{\mathrm{half}}$ is $0.043$ against an exact
-# $0.050$, $0.120$ against $0.125$, and $0.430$ against $0.473$ — below the target in all three cases, never above. A
-# circuit of fixed depth has a hard ceiling on the entanglement it can generate across the central cut (Section 10.1),
-# and the optimiser approaches that ceiling from below. This is the most robust qualitative signature of an
-# under-expressive variational state, and it is visible even when the energy looks converged.
+# **The entanglement ends below the exact value.** The median $S_{\mathrm{half}}$ is $0.043$ against an exact
+# $0.050$, $0.120$ against $0.125$, and $0.430$ against $0.473$. Restart by restart, all twelve XXZ and all twelve
+# Ising states end below the exact entropy and ten of the twelve XY states do. The trajectory in the second panel is
+# not monotonic: the random starting states carry close to one bit, the first few dozen iterations remove almost all
+# of it while the optimiser aligns the spins with the field, and only then does the Ising run build its correlations up
+# again, from below. The circuit's capacity is not the limit here: Section 10.1 shows that four entangling layers allow
+# up to three bits across the central cut (the number of qubits on each side), six times the target. The shortfall is
+# the incompletely converged correlation, the same shortfall that makes the fidelity $0.995$ rather than $1$.
 #
 # **The local observables.** $\langle X\rangle$, $\langle XX\rangle$, $\langle YY\rangle$ and $\langle ZZ\rangle$ are
-# reproduced with errors of $10^{-3}$ to $9\cdot10^{-3}$ for the XXZ and XY chains and $10^{-2}$ to $1.7\cdot10^{-2}$
-# for the critical Ising chain. The comparison to keep in mind is *relative*: the Ising energy is off by $0.016$ out of $7.30$, two parts in
-# a thousand, while $\langle XX\rangle$ is off by $0.017$ out of $0.74$, more than two parts in a hundred. The energy
-# is an extensive sum of many terms whose individual errors partly cancel, and it is protected by the second-order
-# relation of Eq. (2); a single correlator is not. **An energy that looks converged does not certify the observables
-# one actually wants.**
+# reproduced with median errors from $4\cdot10^{-4}$ to $9\cdot10^{-3}$ for the XXZ and XY chains and from $10^{-2}$ to
+# $1.7\cdot10^{-2}$ for the critical Ising chain. The comparison to keep in mind is *relative*: the Ising energy is off
+# by $0.016$ out of $7.30$, two parts in a thousand, while $\langle XX\rangle$ is off by $0.017$ out of $0.74$, more
+# than two parts in a hundred. The reason is Eq. (2): the first-order term $2\varepsilon\,\mathrm{Re}\langle\psi_0\vert
+# A\vert\delta\rangle$ vanishes for $A=H$ because $\vert\psi_0\rangle$ is an eigenvector of $H$, and it does not
+# vanish for a generic observable $A$. A correlator therefore carries an error *linear* in the state error, the energy a
+# quadratic one. **An energy that looks converged does not certify the observables one actually wants.**
 #
 # **The symmetry shows up as a residue.** $\langle Y\rangle$ and $\langle Z\rangle$ are exactly zero in the true
-# ground states (Section 4.3), but the variational states return values up to $1.7\cdot10^{-3}$. That non-zero residue
-# is not statistical noise — these are exact expectation values of a definite state — it is the broken parity of the
-# ansatz, quantified in the next section.
+# ground states (Section 4.3), but the variational states return medians up to $1.7\cdot10^{-3}$ and individual
+# restarts up to $2.6\cdot10^{-2}$ (Ising, $\langle Z\rangle$). These are exact expectation values of definite states,
+# not sampling noise: the residue is the broken parity of the ansatz, quantified in the next section.
+
+# %% [markdown]
+# ### 8.1 The ansatz or the optimiser? The plateau near $10^{-2}$
+#
+# All three median energy errors stop near $10^{-2}$, and the first panel shows them fluctuating there for the last
+# hundred iterations instead of decreasing. Two explanations predict the same picture: the circuit family cannot do
+# better (an *ansatz* floor), or Adam with a constant step $\eta=0.4$ cannot settle into a minimum narrower than its
+# step (an *optimiser* floor). They are told apart by continuing the same runs from their final angles, once with the
+# same $\eta=0.4$ and once with $\eta=0.1$, for $600$ more iterations each (Adam's moment estimates restart from zero).
+# An ansatz floor would leave both continuations where they are; an optimiser floor would drop with the smaller step
+# only.
+
+# %%
+# ==============================================================================
+# STEP 8b: continue the Section 8 runs with the same and with a smaller step size
+# ==============================================================================
+T_MORE = 600
+cont = {}
+t0 = time.perf_counter()
+for lr2 in (LR_BEST, 0.1):
+    f_cont = jax.jit(jax.vmap(lambda c, p, e, th: vqe_run(c, p, e, th, ks_main, lr2, T_MORE)[1]))
+    cont[lr2] = np.asarray(jax.block_until_ready(f_cont(C_STACK, PSI_STACK, E0_STACK, TH_FINAL)))
+print(f"two continuations of {T_MORE} iterations in {time.perf_counter() - t0:.1f} s (compilation included)")
+print(f"\n{'model':>6s} | {'after 300 at 0.4':>17s} | {'+600 at 0.4':>12s} | {'+600 at 0.1':>12s} {'median F':>9s} "
+      f"{'median S_half':>14s} {'exact S_half':>13s}")
+for i, name in enumerate(MODEL_NAMES):
+    a, b = cont[LR_BEST][i], cont[0.1][i]
+    print(f"{name:>6s} | {np.median(HIST[i, :, -1, 0]):17.5f} | {np.median(a[:, -1, 0]):12.5f} | "
+          f"{np.median(b[:, -1, 0]):12.5f} {np.median(b[:, -1, 2]):9.5f} {np.median(b[:, -1, 1]):14.4f} "
+          f"{EXACT[name]['obs'][0]:13.4f}")
+assert all(np.median(cont[0.1][i][:, -1, 0]) < 0.5 * np.median(cont[LR_BEST][i][:, -1, 0]) for i in range(3))
+
+# %% [markdown]
+# The plateau belongs to the optimiser. Six hundred more iterations at $\eta=0.4$ leave the median errors at
+# $0.012$ to $0.016$, no better than after $300$; the same six hundred iterations at $\eta=0.1$ bring them down to
+# $0.003$ (XXZ), $0.0014$ (XY) and $0.004$ (TFIM), a factor of four to ten, with median fidelities of $0.9996$,
+# $0.9999$ and $0.9990$. The step size that was best for getting *down* the landscape in Section 7 is too large for the
+# bottom of it, which is why practical schedules decrease $\eta$ during training. The final half-chain entropies stay
+# below the exact values ($0.455$ against $0.473$ for the Ising chain), so the entanglement deficit of Section 8 shrinks
+# with the energy error but does not close. Every study below keeps the constant $\eta$ of Section 7 and is therefore
+# read against this optimiser floor of roughly $10^{-2}$: differences below it are not resolved.
 
 # %% [markdown]
 # ## 9. Symmetry leakage, and an ansatz that cannot leak
@@ -856,7 +1019,15 @@ for i, name in enumerate(MODEL_NAMES):
 # Section 5 established that the exact ground states are parity eigenstates with $\langle P\rangle=+1$ and that the
 # hardware-efficient family has no reason to respect that. Now we can ask what the optimiser did: does minimising the
 # energy *recover* the symmetry as a by-product? The variational principle suggests it should, because the exact
-# minimiser is symmetric — but only to the extent that the minimum is actually reached.
+# minimiser is symmetric — but only to the extent that the minimum is actually reached, and that extent can be made
+# quantitative. Split the trial state into its two parity sectors with weights $w_\pm$, $w_++w_-=1$. Then
+# $\langle P\rangle=w_+-w_-$, and because the ground state lies in the $P=+1$ sector, all of $w_-$ is infidelity,
+# $w_-\le1-F$. Hence
+#
+# $$1-\lvert\langle P\rangle\rvert\;\le\;1-\langle P\rangle=2w_-\;\le\;2(1-F)\;\le\;\frac{2(E-E_0)}{\Delta},$$
+#
+# the last step by Eq. (5) (unique ground state). Small energy error forces small leakage; the converse does not hold,
+# because a state can be perfectly symmetric and still have an energy error inside its own sector.
 #
 # ### 9.2 A problem-inspired ansatz that respects the symmetry by construction
 #
@@ -866,15 +1037,19 @@ for i, name in enumerate(MODEL_NAMES):
 #
 # $$\vert\psi(\boldsymbol\gamma,\boldsymbol\beta)\rangle=\prod_{l=L}^{1}
 #   \Bigl[\prod_qR_x(2h\beta_l)\Bigr]\Bigl[\prod_{\langle qq'\rangle}R_{ZZ}(2J\gamma_l)\Bigr]\,
-#   \vert+\rangle^{\otimes N},\qquad n_{\text{params}}=2L , \tag{13}$$
+#   \vert-\rangle^{\otimes N},\qquad n_{\text{params}}=2L , \tag{13}$$
 #
-# a Trotterised adiabatic path with the angles left free. It has $2L$ angles — independent of $N$ — against
+# with $J=J_{zz}=-1$ and $h=h_x=+1$: a Trotterised adiabatic path with the angles left free. The path must start in the
+# ground state of the field term alone, and for $h_x=+1$ that is $\vert-\rangle^{\otimes N}$, $X\vert-\rangle=-\vert-\rangle$.
+# (Notebook 40 writes the ansatz with $\vert+\rangle^{\otimes N}$, which is the ground state for $h<0$; for our sign it is
+# the *highest* state of the field term, and an ansatz started there needs many more layers before it competes.) It has $2L$ angles — independent of $N$ — against
 # $2N(L+1)$ for the hardware-efficient family.
 #
 # It also **cannot break the parity of Eq. (7)**, and the proof is three lines:
 #
-# * the initial state satisfies $X\vert+\rangle=\vert+\rangle$ on every qubit, so $P\vert+\rangle^{\otimes N}
-#   =\vert+\rangle^{\otimes N}$: it is already in the $P=+1$ sector;
+# * the initial state satisfies $X\vert-\rangle=-\vert-\rangle$ on every qubit, so $P\vert-\rangle^{\otimes N}
+#   =(-1)^N\vert-\rangle^{\otimes N}$: for our even $N=6$ it is already in the $P=+1$ sector (for odd $N$ the whole
+#   family would sit in the $P=-1$ sector, and a different start would be needed);
 # * $R_x(\alpha)=e^{-i\alpha X/2}$ is a function of $X$ alone, so it commutes with $P$;
 # * $R_{ZZ}(\alpha)=e^{-i\alpha Z_qZ_{q'}/2}$ is a function of $Z_qZ_{q'}$, which commutes with $P$ by the two-sign-flip
 #   argument of Section 5.1.
@@ -895,16 +1070,17 @@ def hva_num_params(layers):
 def hva_tfim(theta, N, layers, J=-1.0, h=1.0):
     """Hamiltonian-variational ansatz for the transverse-field Ising model, Eq. (13).
 
-    MATH   |psi> = prod_l [ prod_q Rx(2 h beta_l) ] [ prod_bonds Rzz(2 J gamma_l) ] |+>^N
+    MATH   |psi> = prod_l [ prod_q Rx(2 h beta_l) ] [ prod_bonds Rzz(2 J gamma_l) ] |->^N
+           |->^N is the ground state of h sum_q X_q for h > 0 (the start of the adiabatic path).
            The gates inside one factor commute, so each exponential is exact; the two factors of a layer do
            not commute with each other, which is what makes the family expressive.
-    IMPL   |+>^N is Ry(pi/2) on every qubit of |0..0>:  Ry(pi/2)|0> = (|0>+|1>)/sqrt(2).
+    IMPL   |->^N is Ry(-pi/2) on every qubit of |0..0>:  Ry(-pi/2)|0> = (|0>-|1>)/sqrt(2).
     COST   O(L N 2^N).
     """
     theta = theta.reshape(layers, 2)
     psi = zero_state(N)
-    for q in range(N):
-        psi = apply_gate(psi, ry(jnp.pi / 2), [q])
+    for q in range(N):                                         # |0..0> -> |-..->
+        psi = apply_gate(psi, ry(-jnp.pi / 2), [q])
     for l in range(layers):
         gamma, beta = theta[l, 0], theta[l, 1]
         for q in range(N - 1):
@@ -920,6 +1096,10 @@ par_hva = np.asarray(jax.jit(jax.vmap(lambda t: parity(hva_tfim(t, N_SITES, 3)))
 print(f"HVA, 64 random parameter vectors: <P> in [{par_hva.min():.12f}, {par_hva.max():.12f}] "
       f"-> max leakage {np.max(1 - np.abs(par_hva)):.2e}")
 assert np.max(1 - np.abs(par_hva)) < 1e3 * TOL
+psi_hva0 = hva_tfim(jnp.zeros(hva_num_params(1)), N_SITES, 1)        # zero angles: the start |->^N itself
+x_hva0 = np.asarray(all_local_expectations(psi_hva0))[:, 0]
+print(f"HVA at zero angles: <X_q> = {x_hva0.min():+.12f} ... {x_hva0.max():+.12f}  (|->^N, the ground state of h_x sum X)")
+assert np.max(np.abs(x_hva0 + 1)) < TOL
 
 # --- parity of the hardware-efficient states that Section 8 converged to ---------------------------
 print(f"\n{'model':>6s} {'median <P>':>11s} {'best-run <P>':>13s} {'median leakage':>15s} "
@@ -932,6 +1112,23 @@ for i, name in enumerate(MODEL_NAMES):
     j = int(np.argmin(errs))
     print(f"{name:>6s} {np.median(pars):+11.4f} {pars[j]:+13.4f} {np.median(1 - np.abs(pars)):15.4f} "
           f"{1 - abs(pars[j]):17.2e} {float(parity(EXACT[name]['psi0'])):+10.4f}")
+
+
+def spearman(a, b):
+    """Spearman rank correlation (no ties): Pearson correlation of the ranks."""
+    ra, rb = np.argsort(np.argsort(a)), np.argsort(np.argsort(b))
+    return float(np.corrcoef(ra, rb)[0, 1])
+
+
+# --- CHECKPOINT: leakage <= 2 (1 - F) <= 2 (E - E_0) / Delta for every run (Section 9.1) -------------------------
+print(f"\n{'model':>6s} {'rank corr(E-E_0, leakage)':>26s} {'max leak / 2(1-F)':>18s} {'max leak / [2(E-E_0)/Delta]':>28s}")
+for i, name in enumerate(MODEL_NAMES):
+    pars, errs = leak_tab[name]
+    leak, F_run = 1 - np.abs(pars), HIST[i, :, -1, 2]
+    gap = EXACT[name]["E1"] - EXACT[name]["E0"]
+    r1, r2 = np.max(leak / (2 * (1 - F_run))), np.max(leak / (2 * errs / gap))
+    print(f"{name:>6s} {spearman(errs, leak):26.2f} {r1:18.3f} {r2:28.4f}")
+    assert r1 <= 1 + 1e-9 and r2 <= 1 + 1e-9
 
 fig, ax = plt.subplots(figsize=(6.8, 4.4))
 for i, name in enumerate(MODEL_NAMES):
@@ -949,41 +1146,57 @@ fig.tight_layout(); plt.show()
 
 # %% [markdown]
 # **The Hamiltonian-variational ansatz is exactly symmetric.** Over 64 random parameter vectors its parity is
-# $1.000000000000$ to twelve printed digits, with a largest leakage of $2.7\cdot10^{-15}$ — round-off, not physics.
+# $1.000000000000$ to twelve printed digits, with a largest leakage of $2.8\cdot10^{-15}$, which is round-off.
 # The three-line proof above is confirmed: the family never leaves the $P=+1$ sector, so half of the Hilbert space is
 # removed from the search before the optimiser starts.
 #
 # **The hardware-efficient ansatz learns the symmetry, approximately.** The converged states have a median leakage of
 # $1.2\cdot10^{-3}$ (XXZ and XY) and $5\cdot10^{-4}$ (TFIM), against the median of $0.94$ at random angles measured in
-# Section 5.3. Minimising the energy has recovered three of the sixteen available digits of a symmetry that the circuit
-# has no structural reason to possess — and it has recovered them only to the accuracy to which it found the minimum.
-# The scatter plot shows the two quantities tracking each other: the runs with the smallest energy error are also the
-# ones with the smallest leakage, the best TFIM run reaching $6.9\cdot10^{-4}$.
+# Section 5.3: minimising the energy has brought $\lvert\langle P\rangle\rvert$ to within $10^{-3}$ of one, for a
+# symmetry that the circuit has no structural reason to possess. The inequality chain above holds for every run (the
+# printed ratios are below one), but it is far from tight for the Ising chain: there the leakage is at most $0.43$ of
+# $2(1-F)$, so most of the infidelity of those states lies *inside* the even sector. That is also why the scatter plot
+# shows two different behaviours. For the XXZ and XY chains, leakage and energy error track each other (rank
+# correlations $0.87$ and $0.78$ over twelve runs); for the Ising chain they are uncorrelated (rank correlation
+# $0.06$), and its best run, with $E-E_0=4.5\cdot10^{-3}$, has a leakage of $6.9\cdot10^{-4}$, above the median.
+# For the Ising chain the energy error is dominated by the even-sector part of the error, which parity cannot see.
 #
 # The leakage is a *diagnostic that costs nothing and needs no exact solution*: $\langle P\rangle$ is the expectation
 # value of one Pauli string, measurable on hardware in a single setting. A converged VQE run whose state has
 # $\lvert\langle P\rangle\rvert$ far from $1$ is announcing that it has not converged, without any reference state
 # being available.
 #
-# > **Common pitfall.** "The ansatz respects the symmetry" is a claim about the *circuit*, not about the trained state.
+# > **Common pitfall.** "The ansatz respects the symmetry" is a claim about the *circuit*; a symmetric trained state does
+# > not establish it.
 # > The right check is the one above: evaluate the symmetry generator at random angles. If it is not conserved there,
-# > it is not conserved — no matter how symmetric the converged state happens to look.
+# > the family does not respect the symmetry, however symmetric a converged state happens to look.
 
 # %% [markdown]
 # ## 10. Depth: expressivity, entanglement and trainability
 #
 # ### 10.1 Entanglement capacity of a depth-$L$ circuit
 #
-# Cut the chain in the middle, between qubits $N/2-1$ and $N/2$. Every gate of the hardware-efficient ansatz is either a
-# single-qubit rotation — which cannot change the Schmidt spectrum across a cut it does not straddle — or a $CZ$ acting
-# on a nearest-neighbour pair. Exactly **one** pair per entangling layer straddles the central cut. A two-qubit gate can
-# increase the entanglement entropy across a cut by at most $\log_2$ of the dimension it acts on per side, i.e. by at
-# most one bit. With $L$ entangling layers,
+# Cut the chain in the middle, between qubits $N/2-1$ and $N/2$, and write the state in Schmidt form
+# $\vert\psi\rangle=\sum_{k=1}^{r}s_k\vert a_k\rangle\vert b_k\rangle$ with Schmidt rank $r$. The entropy of $s_k^2$ is at
+# most that of the uniform distribution on $r$ values, $S_{\mathrm{half}}\le\log_2r$. Now count how gates change $r$.
+# A single-qubit rotation acts on one side only and maps $\vert a_k\rangle\vert b_k\rangle$ to another product of the
+# same form: $r$ is unchanged. A $CZ$ on a pair that does not straddle the cut is likewise a one-sided unitary. The one
+# $CZ$ per entangling layer that straddles the cut can be written as
 #
-# $$S_{\mathrm{half}}\bigl(\vert\psi(\boldsymbol\theta)\rangle\bigr)\;\le\;L\ \text{bits}. \tag{9}$$
+# $$CZ=\vert0\rangle\langle0\vert\otimes\mathbb 1+\vert1\rangle\langle1\vert\otimes Z ,$$
+#
+# a sum of **two** products of one-sided operators, so it maps each Schmidt term to at most two product terms: $r$ at
+# most doubles. The start $\vert0\rangle^{\otimes N}$ has $r=1$, so after $L$ entangling layers $r\le2^L$, and since
+# $r$ also cannot exceed the dimension $2^{N/2}$ of either half,
+#
+# $$S_{\mathrm{half}}\bigl(\vert\psi(\boldsymbol\theta)\rangle\bigr)\;\le\;\min(L,\,N/2)\ \text{bits}. \tag{9}$$
+#
+# The count uses that $CZ$ has two terms in this decomposition (operator Schmidt rank two). A general two-qubit gate
+# has up to four, and a SWAP across the cut can raise the entropy by two bits, so the "one bit per gate" rule is a
+# property of controlled gates such as $CZ$ and CNOT and does not extend to every two-qubit gate.
 #
 # This is a hard constraint on the family, independent of any optimiser. If the target ground state has
-# $S_{\mathrm{half}}>L$, no choice of angles can reach it. Equation (9) is the elementary version of the
+# $S_{\mathrm{half}}>\min(L,N/2)$, no choice of angles can reach it. Equation (9) is the elementary version of the
 # entanglement-area-law argument that also underlies matrix-product states
 # ([18 — MPS and TEBD](../ch07_tensor_networks/18_mps_tebd.ipynb)), where the bond dimension $\chi$ plays the role of
 # $2^L$.
@@ -992,10 +1205,10 @@ fig.tight_layout(); plt.show()
 #
 # The second constraint is dimensional. A general $N$-qubit pure state has $2\cdot2^N-2$ real parameters (complex
 # amplitudes minus normalisation and global phase); for $N=6$ that is $126$, while the ansatz has $n=2N(L+1)=12(L+1)$,
-# so $n\ge126$ requires $L\ge10$. Notebook 41 measured that the success rate for a **Haar-random** target rises sharply
-# exactly when $n$ crosses $2\cdot2^N-2$ — the overparametrisation threshold. A ground state is not a random state: it
-# is a low-entanglement, symmetric, structured state, so the relevant count should be far smaller. Which of the two
-# constraints binds here is a measurement, not a guess.
+# so $n\ge126$ requires $L\ge10$. Notebook 41 measured, for a Haar-random target state at $N=4$, that the success rate rises
+# sharply where $n$ crosses $2\cdot2^N-2=30$, the overparametrisation threshold (Larocca *et al.*, 2023). A ground
+# state is not a random state: it is weakly entangled, symmetric and structured, so the relevant count may be far
+# smaller. The depth scan below measures which of the two constraints binds.
 
 # %%
 # ==============================================================================
@@ -1014,16 +1227,21 @@ for L in DEPTHS:
 print(f"depth scan: {len(DEPTHS)} depths x 3 models x {R_DEPTH} restarts x {T_DEPTH} iterations "
       f"in {time.perf_counter() - t0:.1f} s")
 
-print(f"\n{'L':>3s} {'n':>4s} {'bound S<=L':>11s} | " +
+print(f"\n{'L':>3s} {'n':>4s} {'Eq.(9) bound':>12s} | " +
       " | ".join(f"{k + ' dE/F/S':>22s}" for k in MODEL_NAMES))
 for j, L in enumerate(DEPTHS):
     cells = []
     for i, name in enumerate(MODEL_NAMES):
         h = depth_rows[j][i]
         cells.append(f"{np.median(h[:, -1, 0]):7.4f} {np.median(h[:, -1, 2]):6.3f} {np.median(h[:, -1, 1]):7.4f}")
-    print(f"{L:3d} {hea_num_params(N_SITES, L):4d} {L:11d} | " + " | ".join(f"{c:>22s}" for c in cells))
+    print(f"{L:3d} {hea_num_params(N_SITES, L):4d} {min(L, N_SITES // 2):12d} | " + " | ".join(f"{c:>22s}" for c in cells))
 print("\nexact half-chain entropies: " +
       ", ".join(f"{k} {EXACT[k]['obs'][0]:.4f}" for k in MODEL_NAMES))
+print("permutation p-values, final E - E_0 at L=4 against L=6 (8 restarts each): " + ", ".join(
+    f"{k} {perm_pvalue(depth_rows[DEPTHS.index(4)][i][:, -1, 0], depth_rows[DEPTHS.index(6)][i][:, -1, 0], seed=4 + i):.2f}"
+    for i, k in enumerate(MODEL_NAMES)))
+print("control, L=1 against L=4 for the Ising chain (a real difference): "
+      f"{perm_pvalue(depth_rows[0][MODEL_NAMES.index('TFIM')][:, -1, 0], depth_rows[DEPTHS.index(4)][MODEL_NAMES.index('TFIM')][:, -1, 0], seed=9):.4f}")
 
 fig, axes = plt.subplots(1, 3, figsize=(13.5, 4.2))
 ns = [hea_num_params(N_SITES, L) for L in DEPTHS]
@@ -1038,7 +1256,8 @@ for i, name in enumerate(MODEL_NAMES):
     axes[1].semilogy(DEPTHS, np.maximum(1 - np.array(med_F), 1e-6), MARKERS[i] + "-", ms=6, color=PALETTE[i], label=name)
     axes[2].plot(DEPTHS, med_S, MARKERS[i] + "-", ms=6, color=PALETTE[i], label=name)
     axes[2].axhline(EXACT[name]["obs"][0], color=PALETTE[i], ls="--", lw=1.1)
-axes[2].plot(DEPTHS, DEPTHS, "k:", lw=1.2, label=r"bound $S_{\rm half}\leq L$, Eq. (9) (leaves the panel)")
+axes[2].plot(DEPTHS, [min(L, N_SITES // 2) for L in DEPTHS], "k:", lw=1.2,
+             label=r"bound $S_{\rm half}\leq \min(L,N/2)$, Eq. (9) (leaves the panel)")
 axes[2].set_ylim(0, 1.25)
 axes[0].set_xlabel("entangling layers $L$"); axes[0].set_ylabel(r"median $E-E_0$")
 axes[0].set_title("Energy error versus depth"); axes[0].legend(fontsize=8)
@@ -1051,27 +1270,32 @@ for a in axes:
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# **Depth buys accuracy where accuracy is missing, and nothing where it is not.** For the critical Ising chain the
-# median energy error falls monotonically from $0.213$ at $L=1$ through $0.125$, $0.036$, $0.0124$ to $0.0094$ at
-# $L=6$, and the median fidelity rises from $0.64$ to $0.997$. For the two nearly polarised chains the curve flattens
-# after $L=2$: XXZ goes $0.038\to0.0145\to0.0115\to0.0102$ and then *up* again to $0.0123$ at $L=6$. Adding
-# parameters to a family that already contains a good enough state does not help, and can hurt by making the
-# landscape harder to search with a fixed iteration budget.
+# **Depth helps until the optimiser floor is reached.** For the critical Ising chain the median energy error falls from
+# $0.213$ at $L=1$ through $0.125$ and $0.036$ to $0.0124$ at $L=4$ and $0.0094$ at $L=6$, and the median fidelity rises
+# from $0.64$ to $0.997$. The first three steps are large and robust: at $L=1$ all eight restarts end at the same
+# $0.2130$, at $L=2$ the best of eight is $0.117$. From $L=3$ on, every model sits near the $10^{-2}$ floor that
+# Section 8.1 traced to the constant Adam step, and the remaining differences are not significant with eight restarts:
+# XXZ goes $0.0115\to0.0102\to0.0123$ for $L=3,4,6$, but the eight final errors at $L=4$ and at $L=6$ interleave
+# (the permutation test printed above gives $p=0.95$), and the same holds for the other two models ($p=0.66$ and
+# $0.75$), whereas the same test separates the Ising chain at $L=1$ from $L=4$ with $p=0.004$. What the table shows for the two nearly
+# polarised chains is that two entangling layers already bring them to the optimiser floor; it does not show that
+# more depth hurts.
 #
-# **The entanglement bound of Eq. (9) is not what limits the accuracy here.** The bound allows $L$ bits; the targets
-# need $0.05$, $0.12$ and $0.47$ bits, so even $L=1$ has enough capacity for all three. Yet at $L=1$ the optimised
-# Ising state carries only $0.013$ bits and misses the energy by $0.21$. The entanglement produced climbs with depth —
-# $0.013$, $0.187$, $0.389$, $0.444$, $0.452$ bits against the exact $0.473$ — approaching the target from below,
-# exactly as in Section 8, but always far below the $L$-bit ceiling. **Equation (9) is a necessary condition, not a
-# sufficient one**: what limits a shallow hardware-efficient circuit is the shape of the reachable set, not its
-# entanglement capacity.
+# **The entanglement bound of Eq. (9) is not what limits the accuracy here.** The bound allows $\min(L,3)$ bits; the
+# targets need $0.05$, $0.12$ and $0.47$ bits, so even $L=1$ has enough capacity for all three. Yet at $L=1$ the optimised
+# Ising state carries only $0.013$ bits and misses the energy by $0.21$. With a single $CZ$ layer the entangling gates are
+# fixed and only the rotations before them can tune how much entanglement is made, and the restarts all find the same
+# nearly unentangled compromise. The entanglement produced climbs with depth — $0.013$, $0.187$, $0.389$, $0.444$,
+# $0.452$ bits against the exact $0.473$ — always below the target and always far below the ceiling. Equation (9) is a
+# necessary condition only: what limits a shallow hardware-efficient circuit is the shape of the reachable set, and its
+# entanglement capacity is not the binding constraint.
 #
 # **The parameter count tells the same story.** All the depths here have $n=24$ to $84$ angles, and a general
-# six-qubit state needs $2\cdot2^N-2=126$: the overparametrisation threshold that notebook 41 located so sharply for a
-# **Haar-random** target is never crossed, and yet the median fidelity reaches $0.997$. The reason is that a ground
-# state is not a random state. It is low-entanglement, symmetric and structured, and it lives in a tiny corner of the
-# Hilbert space that a circuit with far fewer than $2\cdot2^N-2$ parameters can reach. The counting threshold is the
-# right criterion for the worst case and a pessimistic one for physics.
+# six-qubit state needs $2\cdot2^N-2=126$: the counting threshold that notebook 41 located for a **Haar-random** target
+# (there at $N=4$, where it is $30$) is never crossed, and yet the median fidelity reaches $0.997$. A ground state is
+# not a random state. It is weakly entangled, symmetric and structured, and a circuit with far fewer than
+# $2\cdot2^N-2$ parameters can approximate it well. The counting threshold is the right criterion for the worst case
+# and a pessimistic one for these ground states.
 
 # %% [markdown]
 # ### 10.3 The same study with the Hamiltonian-variational ansatz
@@ -1083,8 +1307,8 @@ fig.tight_layout(); plt.show()
 #
 # The two families live on landscapes with different curvature scales, so re-using the step size tuned in Section 7
 # would be exactly the mistake that notebook 41 warned against. Each depth therefore gets its own sweep over four step
-# sizes — a nested `vmap`, one compilation per depth — and we report the best of the four. We also report the **best**
-# run next to the median, because the two turn out to differ by orders of magnitude for one of the families.
+# sizes — a nested `vmap`, one compilation per depth — and we report the step with the smallest median. We also report
+# the **best** run next to the median, as a measure of how much the restarts disagree.
 
 # %%
 # ==============================================================================
@@ -1160,29 +1384,28 @@ fig.tight_layout(); plt.show()
 # %% [markdown]
 # The two families answer two different questions, and the two panels separate them.
 #
-# **At equal depth the hardware-efficient ansatz wins, comfortably.** At $L=6$ its median error is $0.0094$ against
-# $0.918$ for the Hamiltonian-variational circuit. That is not surprising: at $L=6$ the one family has $84$ free
-# angles and the other has $12$.
+# **At equal depth the hardware-efficient ansatz wins from $L=3$ on.** At $L=2$ the two medians are equal within the
+# scatter ($0.125$ against $0.117$); at $L=4$ and $L=6$ the hardware-efficient circuit reaches $0.0124$ and $0.0094$
+# against $0.048$ and $0.028$ for the Hamiltonian-variational one. That is expected: at $L=6$ the one family has $84$
+# free angles and the other has $12$.
 #
-# **At equal parameter count the ranking reverses.** With $16$ angles ($L=8$) the Hamiltonian-variational ansatz
-# reaches a median error of $0.075$, a best run of $0.0071$ and a median fidelity of $0.984$; the hardware-efficient
-# circuit with the comparable $24$ angles ($L=1$) manages a median of $0.213$ and a fidelity of $0.642$ — a factor of
-# three worse in the median, and thirty times worse when the best runs are compared ($0.213$ against $0.0071$). Twelve
-# problem-inspired angles at $L=6$ already produce a best run of $0.028$. The structure taken from the Hamiltonian is
-# worth a large factor in parameters, which on hardware is a large factor in parameter-shift circuits per iteration.
+# **At equal parameter count the ranking reverses, by an order of magnitude.** With $16$ angles ($L=8$) the
+# Hamiltonian-variational ansatz reaches a median error of $0.017$ and a median fidelity of $0.994$; the
+# hardware-efficient circuit with the comparable $24$ angles ($L=1$) is stuck at $0.213$ in every restart, with fidelity
+# $0.642$, a factor of twelve worse. Even the four-angle Hamiltonian-variational circuit ($L=2$, median $0.117$) beats
+# the $24$-angle hardware-efficient one. The structure taken from the Hamiltonian is worth a large factor in
+# parameters, which on hardware is a large factor in parameter-shift circuits per iteration.
 #
-# **The Hamiltonian-variational landscape is far rougher.** Look at the gap between the median and the best run: at
-# $L=6$ it is $0.918$ against $0.028$, a factor of thirty across twelve restarts of the *same* configuration, whereas
-# the hardware-efficient family at $L=6$ gives $0.0094$ against $0.0051$, a factor of two. The problem-inspired
-# circuit contains excellent solutions and a landscape full of local minima that hides them; the hardware-efficient
-# circuit is easy to optimise and its optimum is mediocre at small $n$. This is the trade-off that governs ansatz
-# design, and it is the reason that any claim about a variational ansatz must be reported as a distribution over
-# restarts rather than as a best run.
+# **Both landscapes are benign at these sizes.** The best run is within a factor of three of the median for every
+# Hamiltonian-variational depth and within a factor of two for the hardware-efficient family at $L=4$ and $6$, so
+# neither family is dominated by bad local minima at $N=6$. The comparison does depend on the initial state of
+# Eq. (13): Exercise 4 repeats the scan from $\vert+\rangle^{\otimes N}$, the highest state of the field term, where
+# the problem-inspired circuit is far worse at every depth up to $L=6$. A problem-inspired ansatz is only as good as the physics put into it.
 #
 # > **Numerical practice.** The step sizes were re-tuned per depth and per family (the chosen values are printed in
-# > the table, and they differ by a factor of eight across the scan). Carrying over the $\eta=0.4$ of Section 7 would
-# > have made the Hamiltonian-variational family look much worse than it is — and would have been a statement about
-# > the step size, not about the ansatz.
+# > the table). Carrying over the $\eta=0.4$ of Section 7 would have made the Hamiltonian-variational family look worse
+# > than it is (at $L=8$ the median at $\eta=0.4$ is about three times the median at the selected step), and would have
+# > been a statement about the step size rather than about the ansatz.
 
 # %% [markdown]
 # ## 11. Across the phase diagram of the transverse-field Ising chain
@@ -1199,28 +1422,33 @@ fig.tight_layout(); plt.show()
 # In the thermodynamic limit these are separated by a quantum critical point at $\lvert h\rvert=1$, where the gap
 # closes as $1/N$ and the half-chain entanglement grows logarithmically with $N$. On a finite open chain there is no
 # true degeneracy: tunnelling between the two ordered configurations splits the doublet by an amount that vanishes
-# **exponentially** in $N$, and the two lowest eigenvectors are the symmetric and antisymmetric combinations
+# **exponentially** in $N$, and the two lowest eigenvectors are, deep in the ordered phase, close to the symmetric and
+# antisymmetric combinations
 #
-# $$\vert\pm\rangle\simeq\frac{\vert{\uparrow\cdots\uparrow}\rangle\pm\vert{\downarrow\cdots\downarrow}\rangle}{\sqrt2},
-#   \qquad P\vert\pm\rangle=\pm\vert\pm\rangle ,$$
+# $$\vert C_\pm\rangle\simeq\frac{\vert0\cdots0\rangle\pm\vert1\cdots1\rangle}{\sqrt2},
+#   \qquad P\vert C_\pm\rangle=\pm\vert C_\pm\rangle ,$$
 #
-# i.e. cat states with exactly one bit of half-chain entanglement.
+# cat states with one bit of half-chain entanglement. The parity labels are exact at every $h$ (Section 5.1); the
+# printed table below confirms that the ground state is the even one, $\vert C_+\rangle$, and the first excited state
+# the odd one.
 #
 # ### 11.2 What that does to the fidelity
 #
-# Here is the trap. Deep in the ordered phase the exact ground state returned by Lanczos is the cat state $\vert+\rangle$.
-# A variational state that has collapsed onto **one** of the two ordered configurations has an energy that is higher by
-# half the (exponentially small) splitting — utterly invisible to the optimiser — but its fidelity with $\vert+\rangle$
-# is
+# Deep in the ordered phase the exact ground state returned by Lanczos is the cat state $\vert C_+\rangle$. Consider
+# any state inside the two-dimensional doublet, $\vert\psi\rangle=a\vert C_+\rangle+b\vert C_-\rangle$. Its parity is
+# $\langle P\rangle=\lvert a\rvert^2-\lvert b\rvert^2$ and its energy error is $\lvert b\rvert^2\Delta$, so
 #
-# $$F=\bigl\lvert\langle+\vert{\uparrow\cdots\uparrow}\rangle\bigr\rvert^{2}=\tfrac12 . \tag{10}$$
+# $$E-E_0=\frac{1-\langle P\rangle}{2}\,\Delta,\qquad F=\lvert a\rvert^2=\frac{1+\langle P\rangle}{2}. \tag{10}$$
 #
-# So we should expect, and will measure, a region of the phase diagram where the energy error is essentially zero while
-# the fidelity sits at $1/2$. That is not a failure of the optimiser and it is not a bug; it is the statement that
-# fidelity with a particular member of a degenerate eigenspace is a meaningless figure of merit. The physically
-# meaningful questions there are about *observables* — the order parameter, the correlators — and about the fidelity
-# with the whole degenerate subspace, $F_{\text{sub}}=\lvert\langle+\vert\psi\rangle\rvert^2+\lvert\langle-\vert\psi\rangle\rvert^2$,
-# which we also measure.
+# The **symmetry-broken** member $(\vert C_+\rangle+\vert C_-\rangle)/\sqrt2\simeq\vert0\cdots0\rangle$ has
+# $\langle P\rangle=0$: energy error $\Delta/2$, invisible when the splitting is exponentially small, and fidelity
+# exactly $1/2$. So we should expect, and will measure, a region of the phase diagram where the energy error is
+# essentially zero while the fidelity sits at $1/2$. It signals neither an optimiser failure nor a bug: when
+# the ground level is (nearly) degenerate, fidelity with one particular member of it is the wrong figure of merit, as
+# Section 3.3 noted. The physically meaningful quantities there are *observables* (the order parameter, the
+# correlators) and the fidelity with the whole doublet,
+# $F_{\text{sub}}=\lvert\langle C_+\vert\psi\rangle\rvert^2+\lvert\langle C_-\vert\psi\rangle\rvert^2$, which we also
+# measure; Eq. (10) also predicts the energy error from the measured parity alone.
 #
 # The field sweep is one compiled program: the coefficient vector $\mathbf c(h)=(0,0,-1,h)$ is traced, and `vmap` runs
 # over its values.
@@ -1279,14 +1507,26 @@ H_SW = np.asarray(jax.block_until_ready(jax.jit(jax.vmap(sweep_one))(C_H, PSI0_H
 print(f"field sweep: {len(H_GRID)} fields x {R_SWEEP} restarts x {T_SWEEP} iterations "
       f"in {time.perf_counter() - t0:.1f} s")
 
-print(f"\n{'h':>5s} {'gap':>10s} {'S_exact':>8s} {'median E-E_0':>13s} {'best E-E_0':>12s} "
+print(f"\n{'h':>5s} {'gap':>10s} {'S_exact':>8s} {'median E-E_0':>13s} {'Eq.(10)':>9s} {'best E-E_0':>11s} "
       f"{'median F':>9s} {'median F_sub':>12s} {'median S_vqe':>12s} {'median <P>':>11s} {'1-F bound':>10s}")
 for j, h in enumerate(H_GRID):
     med_dE = np.median(H_SW[j, :, -1, 0])
-    print(f"{h:5.2f} {ref_h['gap'][j]:10.3e} {ref_h['S'][j]:8.4f} {med_dE:13.5f} {H_SW[j, :, -1, 0].min():12.5f} "
+    pred_10 = np.median((1 - H_SW[j, :, -1, 4]) / 2 * ref_h["gap"][j])    # doublet prediction from the parity
+    print(f"{h:5.2f} {ref_h['gap'][j]:10.3e} {ref_h['S'][j]:8.4f} {med_dE:13.5f} {pred_10:9.5f} "
+          f"{H_SW[j, :, -1, 0].min():11.5f} "
           f"{np.median(H_SW[j, :, -1, 1]):9.4f} {np.median(H_SW[j, :, -1, 2]):12.4f} "
           f"{np.median(H_SW[j, :, -1, 3]):12.4f} {np.median(H_SW[j, :, -1, 4]):+11.4f} "
           f"{min(1.0, med_dE / ref_h['gap'][j]):10.3f}")
+print("(Eq.(10) column: median over restarts of (1 - <P>) Delta / 2, the energy error of a doublet state with that parity)")
+
+# --- CHECKPOINT: Eq. (10) in the ordered phase, h <= 0.6, run by run ----------------------------------------------
+for j in np.where(H_GRID <= 0.6)[0]:
+    pred = (1 - H_SW[j, :, -1, 4]) / 2 * ref_h["gap"][j]
+    rel = np.median(np.abs(H_SW[j, :, -1, 0] - pred) / H_SW[j, :, -1, 0])
+    print(f"h = {H_GRID[j]:.1f}: median relative deviation of E - E_0 from Eq. (10): {rel:.3f};  "
+          f"wrong control 'E - E_0 = Delta': {np.median(np.abs(H_SW[j, :, -1, 0] - ref_h['gap'][j]) / H_SW[j, :, -1, 0]):.2f}")
+    if H_GRID[j] >= 0.4:      # at h = 0.2 the splitting is below the ansatz error itself (see text)
+        assert rel < 0.15 and np.median(np.abs(H_SW[j, :, -1, 0] - ref_h["gap"][j]) / H_SW[j, :, -1, 0]) > 0.5
 
 fig, axes = plt.subplots(1, 3, figsize=(13.5, 4.2))
 axes[0].semilogy(H_GRID, [np.median(H_SW[j, :, -1, 0]) for j in range(len(H_GRID))], MARKERS[0] + "-",
@@ -1295,8 +1535,9 @@ axes[0].fill_between(H_GRID, [np.percentile(H_SW[j, :, -1, 0], 25) for j in rang
                      [np.percentile(H_SW[j, :, -1, 0], 75) for j in range(len(H_GRID))],
                      color=PALETTE[0], alpha=0.15)
 axes[0].semilogy(H_GRID, ref_h["gap"], "k--", lw=1.2, label=r"exact gap $\Delta$")
+axes[0].semilogy(H_GRID, np.asarray(ref_h["gap"]) / 2, "k:", lw=1.2, label=r"$\Delta/2$: broken doublet state, Eq. (10)")
 axes[0].axvline(1.0, color="0.5", lw=1, ls=":")
-axes[0].set_xlabel("transverse field $h$"); axes[0].set_ylabel("energy")
+axes[0].set_xlabel("transverse field $h$"); axes[0].set_ylabel(r"$E-E_0$ (median, IQR) and gap")
 axes[0].set_title("Energy error and the gap"); axes[0].legend(fontsize=8)
 
 axes[1].plot(H_GRID, [np.median(H_SW[j, :, -1, 1]) for j in range(len(H_GRID))], MARKERS[0] + "-",
@@ -1322,38 +1563,44 @@ fig.tight_layout(); plt.show()
 # %% [markdown]
 # ### 11.3 Reading the sweep
 #
-# **Equation (10) is confirmed to four digits.** At $h=0.2$ the median fidelity with the Lanczos ground state is
-# $0.5000$ while the fidelity with the two-dimensional doublet subspace is $0.9999$ — and the median energy error is
-# $2.0\cdot10^{-4}$. The variational state is an essentially perfect member of the ground doublet that happens to be
-# orthogonal to the other member. Quoting $F=0.5$ as a failure would be a misreading; quoting $F_{\text{sub}}=0.9999$
-# is the honest statement.
+# **Equation (10) in the ordered phase.** At $h=0.2$ the median fidelity with the Lanczos ground state is $0.5000$
+# while the fidelity with the two-dimensional doublet is $0.9999$, and the median energy error is $2.0\cdot10^{-4}$.
+# The variational state is an essentially perfect member of the doublet with $\langle P\rangle=0.000$, the
+# symmetry-broken combination of Eq. (10). Quoting $F=0.5$ as a failure would be a misreading; $F_{\text{sub}}=0.9999$
+# is the meaningful number. At this field the splitting is so small ($\Delta/2=6\cdot10^{-5}$) that the energy error
+# is dominated by the part of the state outside the doublet, and Eq. (10) accounts for only a third of it. At $h=0.4$
+# and $h=0.6$ the doublet term dominates, and Eq. (10) predicts the measured energy error from the measured parity
+# alone, run by run, to $9\%$ and $4\%$ (median relative deviation), while the control "$E-E_0=\Delta$" misses by
+# $80$ to $100\%$.
 #
 # **The extra columns identify what the optimiser found.** At $h\le0.6$ the half-chain entropy of the variational
 # state is $0.0001$, $0.0015$, $0.011$ bits while the exact ground state has $1.00$, $0.99$, $0.90$ bits, and the
 # variational parity is $0.000$, $0.004$, $0.045$ against the exact $+1$. The optimiser found a **symmetry-broken,
-# essentially unentangled** state — one of the two ferromagnetic configurations — rather than their cat-like
-# superposition. That is the energetically sensible thing to do: the two differ in energy by the tunnelling splitting,
-# $1.2\cdot10^{-4}$ at $h=0.2$, which is below anything the optimiser could resolve, and the broken state is vastly
-# easier for a shallow circuit to prepare. Between $h=0.6$ and $h=1.0$ the parity climbs $0.045\to0.72\to0.9994$ and
-# the entropy $0.011\to0.35\to0.42$: the symmetry is restored exactly where the splitting becomes resolvable.
+# essentially unentangled** state, one of the two ferromagnetic configurations, rather than their cat-like
+# superposition. At $h=0.2$ that costs only $\Delta/2=6\cdot10^{-5}$ in energy, less than the error the ansatz makes
+# anyway. At $h=0.6$ it costs $\Delta/2=0.030$, three times the optimiser floor of Section 8.1 and the largest part of
+# the measured error $0.030$, and still every restart stays in the broken state: a nearly product state is easy to
+# reach from random angles, and a shallow circuit started there does not find the one-bit cat state. Between $h=0.6$ and $h=1.0$ the parity climbs $0.045\to0.72\to0.9994$ and the
+# entropy $0.011\to0.35\to0.42$, as the splitting grows to $0.22$ and $0.48$.
 #
-# **The hardest field is $h=0.8$, not the critical point.** The median energy error peaks there at $0.064$, against
-# $0.019$ at $h=1$ and $0.0004$ at $h=0.2$, and the spread across restarts is largest there too (best run $0.0085$).
-# That is the crossover region: the doublet splitting, $0.22$, is now large enough that the cheap symmetry-broken
-# solution is no longer good enough, but the true ground state still carries $0.69$ bits of entanglement — more than
-# at criticality. The circuit is asked for the most and offered the least guidance.
+# **The hardest field is $h=0.8$, below the critical point.** The median energy error peaks there at $0.064$, against
+# $0.019$ at $h=1$ and $0.0002$ at $h=0.2$, and the spread across restarts is largest there too (best run $0.0085$). That is the crossover region: the doublet
+# splitting, $0.22$, is large enough that the symmetry-broken solution costs $0.11$, but the true ground state still
+# carries $0.69$ bits of entanglement, more than at criticality.
 #
-# **A correction to a common expectation.** "Entanglement peaks at the critical point" is a statement about scaling
-# with $N$, not about the value at a given $N$. Here the exact half-chain entropy *decreases* monotonically with $h$,
+# **A correction to a common expectation.** "Entanglement peaks at the critical point" refers to the scaling with
+# $N$ rather than to the value at a given $N$. Here the exact half-chain entropy *decreases* monotonically with $h$,
 # from $1.00$ bit deep in the ordered phase to $0.13$ at $h=2$, and the critical value $0.47$ is in between. The
-# ordered phase of a finite open chain has a cat-state ground state whose entanglement is exactly one bit
-# **independently of $N$**, while the critical entropy grows like $\tfrac16\log_2N$ and overtakes it only for chains
-# far longer than six sites. What distinguishes the critical point at $N=6$ is not the amount of entanglement but the
-# gap, which is the smallest of the resolvable ones and closes as $1/N$.
+# ordered phase of a finite open chain has a cat-state ground state whose entanglement approaches one bit
+# **independently of $N$**, while the critical entropy of an open chain grows like $\tfrac{c}{6}\log_2N$ with central
+# charge $c=\tfrac12$, i.e. $\tfrac1{12}\log_2N$ (Calabrese and Cardy, 2004): $1/12$ of a bit per doubling of $N$,
+# so the critical value overtakes the cat-state bit only for very long chains. What distinguishes the
+# critical point is the scaling with $N$ of both the entropy and the gap, which closes as $1/N$ there and
+# exponentially in the ordered phase; a single size $N=6$ cannot show either.
 #
-# **The certificate of Eq. (5) degrades exactly as predicted.** The last column is $(E-E_0)/\Delta$, the bound on the
+# **The certificate of Eq. (5) degrades as the gap closes.** The last column is $(E-E_0)/\Delta$, the bound on the
 # infidelity that a practitioner could quote without knowing the exact state. At $h=2$ it reads $0.005$ against a true
-# infidelity of $0.0015$ — useful. At $h=0.2$ it reads $1.000$, i.e. nothing at all, because the gap is
+# infidelity of $0.0015$, a usable certificate. At $h=0.2$ it reads $1.000$, i.e. nothing at all, because the gap is
 # $1.2\cdot10^{-4}$. Where the gap closes, the energy stops saying anything about the state.
 
 # %% [markdown]
@@ -1380,8 +1627,8 @@ fig.tight_layout(); plt.show()
 # $$E_0+\beta>E_1\qquad\Longleftrightarrow\qquad\beta>\Delta=E_1-E_0 . \tag{12}$$
 #
 # A $\beta$ below the gap leaves the ground state as the minimiser and the method returns it again; a $\beta$ far above
-# the gap is safe but makes the landscape stiffer. We take $\beta$ a few times the gap. Note that Eq. (12) needs the
-# gap, which is what we are trying to compute — in practice one runs with an increasing $\beta$ until the result stops
+# the gap is safe but makes the landscape stiffer. We take $\beta$ a few times the gap. Equation (12) needs the
+# gap, which is what we are trying to compute; in practice one runs with an increasing $\beta$ until the result stops
 # changing, and the *converged* $E_1$ can then be checked against Eq. (12) a posteriori.
 #
 # ### 12.2 Measurability
@@ -1438,6 +1685,22 @@ for beta in BETAS:
           f"{EXACT['TFIM']['E1']:10.5f} {np.median(h[:, -1, 1]):15.2e} {np.median(h[:, -1, 2]):18.4f} "
           f"{np.median(h[:, -1, 3]):+14.4f}")
 
+# --- per-run view: the deflated cost C_1 = E + beta * overlap, and a parity lower bound on E ---------------------
+# For any state, E >= w_+ E_0 + w_- E_1 with w_+ = (1 + <P>)/2, because the lowest P = -1 level is E_1 (Section 11's
+# table).  This bound uses only the measured parity and holds for every run, converged or not.
+E1_tf, E0_tf = EXACT["TFIM"]["E1"], EXACT["TFIM"]["E0"]
+print(f"\n{'beta':>6s} {'runs with overlap > 0.1':>24s} | best-energy run: {'E':>9s} {'C_1':>9s} {'overlap':>8s} "
+      f"{'<P>':>7s} {'parity bound on E':>18s}")
+for beta in BETAS:
+    fin = vqd_hist[beta][:, -1, :]
+    C1 = fin[:, 0] + beta * fin[:, 1]
+    w_plus = (1 + fin[:, 3]) / 2
+    bound = w_plus * E0_tf + (1 - w_plus) * E1_tf
+    assert np.all(fin[:, 0] >= bound - 1e-9), "parity bound violated"
+    r = int(np.argmin(fin[:, 0]))
+    print(f"{beta:6.2f} {int(np.sum(fin[:, 1] > 0.1)):>18d} / {R_VQD} | {'':>16s} {fin[r, 0]:9.4f} {C1[r]:9.4f} "
+          f"{fin[r, 1]:8.3f} {fin[r, 3]:+7.3f} {bound[r]:18.4f}")
+
 fig, ax = plt.subplots(figsize=(7.0, 4.4))
 for j, beta in enumerate(BETAS):
     lo, med, hi = bands(vqd_hist[beta][:, :, 0])
@@ -1452,7 +1715,7 @@ ax.legend(fontsize=8)
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# **Equation (12) is a sharp threshold, and the run below it fails in the predicted way.** With $\beta=0.25<\Delta$
+# **Below the threshold of Eq. (12) the method fails in the predicted way.** With $\beta=0.25<\Delta$
 # the deflated minimisation returns the *ground* state again: median energy $-7.276$, median overlap with the anchor
 # $0.994$, fidelity with the exact first excited state $0.0003$, parity $+0.998$. The penalty is simply not large
 # enough to lift $E_0+\beta$ above $E_1$, so the minimiser of Eq. (11) is still the ground state, exactly as the
@@ -1464,14 +1727,21 @@ fig.tight_layout(); plt.show()
 # the first excited energy, it has found it in the **odd** parity sector, which is where the exact $\vert\psi_1\rangle$
 # lives (Section 11's table). Nothing in the algorithm was told about parity.
 #
-# **An approximate anchor leaks, and the leak is measurable.** At $\beta=1$ the best single run reports
-# $E=-7.024$, which is *below* $E_1=-6.814$. That is not a bug and not a violation of anything: the
-# derivation of Eq. (12) assumed $\vert\psi_\star\rangle=\vert\psi_0\rangle$ exactly, whereas our anchor is a
-# variational state with $F=0.9987$, so a trial state can be orthogonal to $\vert\psi_\star\rangle$ and still retain a
-# component along the true $\vert\psi_0\rangle$ — which drags the energy down towards $E_0$. The measured parity of
-# that run, $-0.911$ rather than $-1$, shows the contamination directly. Raising $\beta$ to $3$ suppresses the residual
-# overlap by a further factor of $30$ and pushes the best run to $-6.81085$, now safely above $E_1$. **In deflation the
-# error of the anchor propagates into the excited state, and the only protection is a large penalty and a good anchor.**
+# **Just above the threshold the deflated landscape is shallow.** At $\beta=1\approx2\Delta$ the median run finds the
+# excited state (median energy $-6.807$, fidelity $0.90$ with $\vert\psi_1\rangle$, parity $-0.91$), but the best
+# *energy* among the twelve runs, $E=-7.024$, lies $0.21$ below $E_1$. The per-run table identifies that run: its
+# overlap with the anchor is $0.50$ and its parity $+0.08$, so its deflated cost $C_1=E+\beta\times\text{overlap}=-6.52$
+# is $0.29$ *above* the minimum $E_1$ of Eq. (11). It is an unconverged run of the deflated minimisation, roughly an
+# equal mixture of the two parity sectors, and it is one of five runs at $\beta=1$ that end with an overlap above
+# $0.1$ with the anchor. Its energy is consistent with the parity bound $E\ge w_+E_0+w_-E_1$ printed next to it, as every
+# run's is. The anchor itself is not the problem: it has fidelity $0.9987$ with $\vert\psi_0\rangle$, which can
+# shift the minimum of $C_1$ by an amount of order $\beta(1-F)\approx10^{-3}$, far below $0.2$. The driving term that
+# pushes a run out of the ground-state sector is the excess $\beta-\Delta$ of Eq. (12): $0.52$ at $\beta=1$ against
+# $2.52$ at $\beta=3$, where no run ends with an overlap above $0.1$, the median overlap with the anchor drops a further
+# factor of $30$, and the best run, $-6.81085$, sits just above $E_1$. **Equation (12) is necessary; a penalty well
+# above the gap is what makes the deflated minimisation converge in a fixed budget.** On hardware, where neither $E_1$
+# nor $\vert\psi_0\rangle$ is known, the measured $C_1$ and the measured overlap are the quantities to report, because
+# a low energy with a large overlap is not an excited state.
 
 # %% [markdown]
 # ## 13. Shot noise: SPSA against parameter shift at equal measurement budget
@@ -1482,9 +1752,9 @@ fig.tight_layout(); plt.show()
 # $\langle Z_qZ_{q+1}\rangle$ at once, and every qubit in $X$ to get all $\langle X_q\rangle$ at once. With $M$ shots
 # split evenly, the estimator is unbiased with variance $\propto1/M$.
 #
-# The comparison that matters is at **equal total number of shots**, not at equal iteration count. Notebook 41 compared
-# the two gradient rules at equal iterations and found parameter shift ahead; it also said plainly that this does not
-# answer the budget question. Here we answer it. With $n$ angles,
+# The comparison that matters on hardware is at **equal total number of shots**. Notebook 41 compared the two gradient
+# rules at equal iteration count and found parameter shift ahead, and noted that this does not answer the budget
+# question. Here we compare at equal budget, each rule at its own step size from a five-point scan. With $n$ angles,
 #
 # * a parameter-shift iteration costs $2n$ circuits, hence $2nM$ shots;
 # * an SPSA iteration costs $2$ circuits, hence $2M$ shots.
@@ -1527,12 +1797,35 @@ def energy_shots(key, psi, shots):
 theta_chk = random_starts(1, n_sn, seed=71)[0][0]
 psi_chk = hardware_efficient_ansatz(theta_chk, N_SN, L_SN)
 E_chk = float(energy(terms_sn, psi_chk))
-print(f"\nexact <H> at a random parameter vector = {E_chk:.6f}")
-print(f"{'shots M':>9s} {'mean of 300 estimates':>23s} {'measured std':>14s} {'std x sqrt(M)':>15s}")
+# predicted single-shot constant sigma = sqrt(M Var) = sqrt(2 [Var(A) + Var(B)]) (notebook 40, Eq. (27)), computed
+# EXACTLY from the outcome distributions of the two settings -- no sampling involved
+bits = (np.arange(2 ** N_SN)[:, None] >> (N_SN - 1 - np.arange(N_SN))) & 1        # C order: qubit 0 = top bit
+zv = 1 - 2 * bits                                                                # +-1 eigenvalues per outcome
+A_val = JZZ_SN * np.sum(zv[:, :-1] * zv[:, 1:], axis=1)                          # Z setting: sum of Z Z bonds
+B_val = H_SN * np.sum(zv, axis=1)                                                # X setting: sum of X_q
+pz = np.abs(np.asarray(psi_chk).reshape(-1)) ** 2
+psi_x = psi_chk
+for q in range(N_SN):
+    psi_x = apply_gate(psi_x, jnp.asarray([[1, 1], [1, -1]], dtype=CDTYPE) / np.sqrt(2), [q])   # rotate to X basis
+px = np.abs(np.asarray(psi_x).reshape(-1)) ** 2
+var_A, var_B = pz @ A_val ** 2 - (pz @ A_val) ** 2, px @ B_val ** 2 - (px @ B_val) ** 2
+sigma_pred = np.sqrt(2 * (var_A + var_B))
+print(f"\nexact <H> at a random parameter vector = {E_chk:.6f};  from the two outcome distributions: "
+      f"{pz @ A_val + px @ B_val:.6f}")
+print(f"predicted std x sqrt(M) = sqrt(2 [Var A + Var B]) = {sigma_pred:.4f};  "
+      f"wrong control without the factor 2 (all M shots in each setting): {np.sqrt(var_A + var_B):.4f}")
+assert abs(pz @ A_val + px @ B_val - E_chk) < 1e3 * TOL
+N_REP = 300
+print(f"{'shots M':>9s} {'mean of 300 estimates':>23s} {'z of mean':>10s} {'std x sqrt(M)':>15s} "
+      f"{'z vs prediction':>16s} {'z vs control':>13s}")
 for M in (32, 128, 512, 2048):
-    ests = np.asarray(jax.vmap(lambda k: energy_shots(k, psi_chk, M))(jax.random.split(jax.random.PRNGKey(73), 300)))
-    print(f"{M:9d} {ests.mean():23.5f} {ests.std():14.5f} {ests.std() * np.sqrt(M):15.5f}")
-    assert abs(ests.mean() - E_chk) < 6 * ests.std() / np.sqrt(300)
+    ests = np.asarray(jax.vmap(lambda k: energy_shots(k, psi_chk, M))(jax.random.split(jax.random.PRNGKey(73), N_REP)))
+    s_hat = ests.std(ddof=1) * np.sqrt(M)
+    se_s = s_hat / np.sqrt(2 * (N_REP - 1))                    # standard error of a sample std (Gaussian approx.)
+    z_mean = (ests.mean() - E_chk) / (sigma_pred / np.sqrt(M * N_REP))
+    z_pred, z_ctrl = (s_hat - sigma_pred) / se_s, (s_hat - np.sqrt(var_A + var_B)) / se_s
+    print(f"{M:9d} {ests.mean():23.5f} {z_mean:+10.2f} {s_hat:15.4f} {z_pred:+16.2f} {z_ctrl:+13.2f}")
+    assert abs(z_mean) < 3.5 and abs(z_pred) < 3.5 and abs(z_ctrl) > 3.5
 
 # %%
 # ==============================================================================
@@ -1574,17 +1867,24 @@ print(f"equal budget B = {BUDGET} shots per run:")
 print(f"  parameter shift + Adam : {T_PS} iterations x {2 * n_sn} circuits x {M_SN} shots")
 print(f"  SPSA + Adam            : {T_SPSA} iterations x 2 circuits x {M_SN} shots")
 
+# each gradient rule gets its own step size, chosen on the noisy runs from a three-point grid (Section 7's lesson)
+cost_sn = lambda t: energy(terms_sn, hardware_efficient_ansatz(t, N_SN, L_SN))
+LR_SN = (0.003, 0.01, 0.03, 0.1, 0.3)
 t0 = time.perf_counter()
-_, h_ps = train_many(th_sn, ks_sn, grad_ps_shots(M_SN), opt_adam(0.1), err_sn, T_PS)
-_, h_sp = train_many(th_sn, ks_sn, grad_spsa_shots(M_SN), opt_adam(0.1), err_sn, T_SPSA)
-_, h_ps_ex = train_many(th_sn, ks_sn, grad_exact(lambda t: energy(terms_sn, hardware_efficient_ansatz(t, N_SN, L_SN))),
-                        opt_adam(0.1), err_sn, T_PS)
-_, h_sp_ex = train_many(th_sn, ks_sn,
-                        grad_spsa(lambda t: energy(terms_sn, hardware_efficient_ansatz(t, N_SN, L_SN)), c=0.2),
-                        opt_adam(0.1), err_sn, T_SPSA)
-h_ps, h_sp = np.asarray(h_ps), np.asarray(h_sp)
-h_ps_ex, h_sp_ex = np.asarray(h_ps_ex), np.asarray(h_sp_ex)
-print(f"  (four training batches in {time.perf_counter() - t0:.1f} s)")
+noisy = {}
+for lr in LR_SN:
+    noisy[("ps", lr)] = np.asarray(train_many(th_sn, ks_sn, grad_ps_shots(M_SN), opt_adam(lr), err_sn, T_PS)[1])
+    noisy[("spsa", lr)] = np.asarray(train_many(th_sn, ks_sn, grad_spsa_shots(M_SN), opt_adam(lr), err_sn, T_SPSA)[1])
+print(f"\n{'step size':>10s} {'parameter shift, median final':>30s} {'SPSA, median final':>20s}")
+for lr in LR_SN:
+    print(f"{lr:10.3g} {np.median(noisy[('ps', lr)][:, -1]):30.4f} {np.median(noisy[('spsa', lr)][:, -1]):20.4f}")
+LR_PS = min(LR_SN, key=lambda lr: np.median(noisy[("ps", lr)][:, -1]))
+LR_SP = min(LR_SN, key=lambda lr: np.median(noisy[("spsa", lr)][:, -1]))
+print(f"selected step sizes: parameter shift {LR_PS}, SPSA {LR_SP}")
+h_ps, h_sp = noisy[("ps", LR_PS)], noisy[("spsa", LR_SP)]
+h_ps_ex = np.asarray(train_many(th_sn, ks_sn, grad_exact(cost_sn), opt_adam(LR_PS), err_sn, T_PS)[1])
+h_sp_ex = np.asarray(train_many(th_sn, ks_sn, grad_spsa(cost_sn, c=0.2), opt_adam(LR_SP), err_sn, T_SPSA)[1])
+print(f"  ({2 * len(LR_SN) + 2} training batches in {time.perf_counter() - t0:.1f} s, compilation included)")
 
 _, h_floor = train_many(th_sn, ks_sn,
                         grad_exact(lambda t: energy(terms_sn, hardware_efficient_ansatz(t, N_SN, L_SN))),
@@ -1599,6 +1899,11 @@ for lab, h, T, sh in (("parameter shift + Adam", h_ps, T_PS, BUDGET),
                       ("exact gradient, 2000 iters", h_floor, 2000, 0)):
     print(f"{lab:>28s} {T:11d} {sh if sh else 0:12d} {np.median(h[:, -1]):20.5f} {h[:, -1].min():10.5f}")
 print(f"(the last row is the ansatz floor: what this circuit family can do at N={N_SN}, L={L_SN} with no budget limit)")
+print(f"\nrestarts: parameter shift worst {h_ps[:, -1].max():.4f}, SPSA best {h_sp[:, -1].min():.4f};  "
+      f"permutation p-value {perm_pvalue(h_ps[:, -1], h_sp[:, -1], seed=5):.4f}")
+p_ctrl = perm_pvalue(h_ps[:, -1], noisy[("spsa", 0.1)][:, -1], seed=6)
+print(f"control (the same test against SPSA at the untuned step 0.1, a real difference): p-value {p_ctrl:.4f}")
+assert p_ctrl < 0.01
 
 fig, ax = plt.subplots(figsize=(7.2, 4.6))
 for j, (lab, h, T) in enumerate((("parameter shift + Adam", h_ps, T_PS), ("SPSA + Adam", h_sp, T_SPSA))):
@@ -1617,43 +1922,47 @@ ax.legend(fontsize=8)
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# **The estimator behaves.** Its mean over 300 repetitions tracks the exact energy at every budget, and the product
-# std $\times\sqrt M$ is constant at $3.2$ to $3.4$ across a factor of $64$ in $M$ — the $M^{-1/2}$ law, with the
-# constant being the single-shot standard deviation of the two-setting protocol.
+# **The estimator behaves as derived.** The exact single-shot constant of notebook 40, Eq. (27), computed from the
+# two outcome distributions without sampling, is $\sqrt{2[\mathrm{Var}A+\mathrm{Var}B]}=3.268$, and the measured
+# std $\times\sqrt M$ agrees with it within $0.9$ standard errors at all four budgets, a factor of $64$ in $M$. The
+# means agree with the exact energy within $1.9$ standard errors. The wrong control, a protocol that forgets that each
+# setting receives only half the shots ($2.311$), is rejected at $6.7$ to $7.7$ standard errors.
 #
-# **At equal measurement budget, parameter shift wins this comparison.** With $B=184320$ shots per run, spent either
-# as $60$ accurate iterations or as $1440$ cheap ones, the median final energy error is $0.329$ for parameter shift
-# and $1.297$ for SPSA — a factor of four. The $24$-fold advantage in iteration count did not compensate for using one
-# scalar of information per step instead of $n=24$.
+# **At equal measurement budget and tuned step sizes, the two gradient rules tie.** With $B=184320$ shots per run, spent
+# either as $60$ parameter-shift iterations or as $1440$ SPSA iterations, the step-size scan matters more than the
+# choice of method: SPSA is best at $\eta=0.01$ and parameter shift at $\eta=0.1$, and at a common $\eta=0.1$ SPSA would
+# have looked four times worse ($1.297$ against $0.329$). At their own best step sizes the median final errors are
+# $0.329$ (parameter shift) and $0.345$ (SPSA); the eight restarts interleave and the permutation test finds no
+# difference ($p=0.51$), while the same test does detect the untuned comparison ($p<0.01$, the control). SPSA wants a
+# step ten times smaller than parameter shift; it takes $24$ times as many steps, each along a single random direction.
 #
-# **But the shots are not the main obstacle.** The two exact-cost references, run with identical optimisers and
-# identical iteration counts, give $0.204$ and $0.629$. So of SPSA's final $1.297$, the part attributable to shot noise
-# is roughly a factor of two; the rest is the method. The ranking between the two gradient rules is essentially the
-# same with and without noise, which means this experiment measures the optimisers more than it measures the
-# estimator — a conclusion only available because the noise-free references were run.
+# **Shot noise costs both methods about the same.** The noise-free references, run with the same optimisers, step
+# sizes and iteration counts, give $0.204$ and $0.222$. Shot noise at $M=64$ adds about $0.12$ to both medians. Neither
+# the optimiser nor the estimator separates the two rules at this budget.
 #
-# **Both are far from the ansatz floor.** With an exact gradient and a generous $2000$ iterations the same circuit
-# reaches $1.5\cdot10^{-3}$, two orders of magnitude below what either method achieved with $1.8\cdot10^{5}$ shots.
-# The gap between $1.5\cdot10^{-3}$ and $0.2$ is the price of the measurement budget, and it is the quantity that
-# [43 — VQE with classical shadows](../ch11_variational_quantum_circuits/43_vqe_with_classical_shadows.ipynb) attacks
-# from the estimator side.
+# **Both are far from the ansatz floor.** With an exact gradient and $2000$ iterations the same circuit reaches
+# $1.5\cdot10^{-3}$, two orders of magnitude below what either method achieved with $1.8\cdot10^{5}$ shots. Most of
+# that gap is already present without shot noise: it is the price of being allowed only $60$ parameter-shift (or the
+# equivalent $1440$ SPSA) iterations. The budget limits the number of steps first and their accuracy second, which is
+# why [43 — VQE with classical shadows](../ch11_variational_quantum_circuits/43_vqe_with_classical_shadows.ipynb)
+# attacks the cost per energy estimate.
 #
 # > **Numerical practice.** Every curve here is the **exact** energy error of the current angles, a quantity the
-# > optimiser never sees. Plotting the noisy estimate instead produces a curve that dips below the true value by about
-# > one standard error and makes every method look better than it is. A real experiment must re-measure its final
+# > optimiser never sees. On hardware only noisy estimates exist, and reporting the lowest estimate seen during
+# > training selects the most favourable fluctuation, which is biased low. A real experiment must re-measure its final
 # > answer with a much larger budget than it used during training.
 
 # %% [markdown]
-# ## 14. Honest limits
+# ## 14. Limits
 #
 # Everything above was run on a simulator with $N\le6$ spins, where the exact answer is one Lanczos call away. Four
 # limits decide whether any of it scales.
 #
 # **Barren plateaus.** Notebook 40 measured that the variance of one gradient component of a hardware-efficient circuit
-# over random angles decays as $2^{-\beta N}$, with $\beta\approx1.8$ for a global cost and $\beta\approx0.6$ for a local
-# one. An energy is a sum of $O(N)$ local terms, so it is on the favourable side of that dichotomy, but the decay is
+# over random angles decays as $2^{-bN}$, with an exponent $b\approx1.8$ for a global cost and $b\approx0.6$ for a
+# local one. An energy is a sum of $O(N)$ local terms, so it is on the favourable side of that dichotomy, but the decay is
 # still exponential, and a gradient that is exponentially small must be resolved above shot noise that falls only as
-# $M^{-1/2}$. The remedy has to change the ansatz or the cost, not the optimiser (McClean *et al.*, 2018; Cerezo
+# $M^{-1/2}$. The remedy has to change the ansatz or the cost; a better optimiser does not help (McClean *et al.*, 2018; Cerezo
 # *et al.*, 2021). The random-angle initialisation used throughout this notebook is precisely the distribution the
 # plateau theorems assume.
 #
@@ -1663,15 +1972,17 @@ fig.tight_layout(); plt.show()
 # many shots. This is the dominant practical obstacle, and it is the subject of
 # [43 — VQE with classical shadows](../ch11_variational_quantum_circuits/43_vqe_with_classical_shadows.ipynb).
 #
-# **Noise.** Real gates are imperfect, which biases the energy upwards and deforms the landscape; the variational
-# principle still guarantees $E\ge E_0$ for the *measured* state, but the measured state is mixed and the bound becomes
-# uninformative.
+# **Noise.** Real gates are imperfect, which biases the energy upwards and deforms the landscape. The variational
+# principle and Eqs. (4)–(5) still hold for the mixed state the device actually prepares (Section 3.3), so a measured
+# energy still certifies the fidelity of *that* state with the ground state; what noise destroys is the link between
+# the measured energy and the ideal circuit, and on top of it the finite-shot estimate of $E$ itself fluctuates and can
+# fall below $E_0$ by a few standard errors.
 #
 # **What classical methods do better for these problems.** For a one-dimensional gapped chain the ground state obeys an
 # area law, and a matrix-product state with modest bond dimension represents it to machine precision; DMRG finds it in
 # seconds for hundreds of sites, far beyond anything demonstrated variationally on hardware
-# ([18 — MPS and TEBD](../ch07_tensor_networks/18_mps_tebd.ipynb)). The honest statement is that VQE on a spin chain is a
-# *benchmark*, not an application: it is the setting in which the algorithm can be validated against an exact answer,
+# ([18 — MPS and TEBD](../ch07_tensor_networks/18_mps_tebd.ipynb)). VQE on a one-dimensional spin chain is therefore a
+# *benchmark* rather than an application: it is the setting in which the algorithm can be validated against an exact answer,
 # which is exactly what this notebook did. The regimes where no good classical method exists — frustrated
 # two-dimensional magnets, real-time dynamics, strongly correlated chemistry — are also the regimes where the ansatz
 # design and the measurement cost are hardest.
@@ -1681,52 +1992,48 @@ fig.tight_layout(); plt.show()
 #
 # * **The variational principle is proved in three lines and works as a unit test.** Every trial state satisfies
 #   $\langle H\rangle\ge E_0$, Eq. (1). Across the $10800$ energies recorded in Section 8 the error never went
-#   negative, its smallest value being $1.6\cdot10^{-3}$; a negative value would have exposed an inconsistency between
-#   the ansatz, the Hamiltonian and the reference.
-# * **The energy error is second order in the state error.** Equation (2) predicts $E-E_0\propto\varepsilon^2$, and the
-#   measured ratio $(E-E_0)/\varepsilon^2$ was constant at $7.20964$ over four decades. A state that is wrong at the
-#   $1\%$ level gives an energy that is right to five digits.
-# * **The gap converts an energy error into a certificate on the state**, $1-F\le(E-E_0)/\Delta$, Eq. (5), with the
-#   companion upper bound $(E_{\max}-E_0)(1-F)$; the two differ by a factor $30$ for the critical Ising chain. Where
-#   the gap closes the certificate says nothing, and Section 11 measured a field at which it degenerates to
-#   $1-F\le1$.
+#   negative, its smallest value being $1.6\cdot10^{-3}$.
+# * **The energy error is second order in the state error.** For every state
+#   $E-E_0=\langle\phi\vert(H-E_0)\vert\phi\rangle\le(E_{\max}-E_0)\lVert\phi\rVert^2$, Eq. (2a); for the controlled
+#   perturbation $E-E_0=K(1-F)$ held to $10^{-14}$ with $K=7.2096$ computed in advance. A state wrong at the $1\%$ level
+#   in amplitude gave an energy right to four digits.
+# * **For a unique ground state the gap converts an energy error into a certificate on the state**,
+#   $1-F\le(E-E_0)/\Delta$, Eq. (5), with the companion upper bound $(E_{\max}-E_0)(1-F)$; the two differ by a factor
+#   $30$ for the critical Ising chain, and both hold for mixed states. Where the gap closes the certificate says
+#   nothing: at $h=0.2$ it degenerates to $1-F\le1$.
 # * **Signs in the Pauli convention must be read off the correlators.** With $J_{xx}=-1$ the measured
-#   $\langle X_iX_{i+1}\rangle=+0.98$: the coupling is ferromagnetic along $x$. The scope's XXZ and XY parameters put
-#   those chains in a nearly polarised phase with $0.05$ and $0.12$ bits of entanglement, while the Ising chain at
-#   $h_x=1$ sits at its critical point with $0.47$ bits and a six times smaller gap.
+#   $\langle X_iX_{i+1}\rangle=+0.98$: the coupling is ferromagnetic along $x$. The XXZ and XY parameters put those
+#   chains in a nearly polarised phase with $0.05$ and $0.12$ bits of entanglement, while the ferromagnetic Ising chain
+#   at $h_x=1$ sits at its critical point with $0.47$ bits and a six times smaller gap.
 # * **The Hamiltonians have a $\mathbb Z_2$ parity $P=\prod_qX_q$ and no $U(1)$.** The measured
-#   $\lVert[H,P]\vert\phi\rangle\rVert$ was exactly zero, and $\lVert[H,S^z_{\text{tot}}]\vert\phi\rangle\rVert=4.41$ —
-#   the same number for all three models, because the whole commutator comes from the transverse field. Switching the
-#   field off restored the $U(1)$ to $8.5\cdot10^{-16}$.
-# * **The hardware-efficient ansatz breaks the symmetry and then partly relearns it.** At random angles the median
-#   symmetry leakage $1-\lvert\langle P\rangle\rvert$ was $0.94$; after training, $5\cdot10^{-4}$ to
-#   $1.2\cdot10^{-3}$, correlated with the energy error. The Hamiltonian-variational ansatz has leakage
-#   $2.7\cdot10^{-15}$ at *any* angles — a proof, not a fit.
-# * **Depth helps only where the family is the limitation.** The critical Ising error fell from $0.213$ ($L=1$) to
-#   $0.0094$ ($L=6$), while the polarised chains stopped improving after $L=2$. The entanglement produced always
-#   approached the exact value **from below** ($0.43$ against $0.47$ bits at $L=4$), which is the signature of an
-#   under-expressive circuit — visible even when the energy looks converged.
-# * **The entanglement bound $S_{\text{half}}\le L$ is necessary, not sufficient.** At $L=1$ the circuit may carry one
-#   bit and the target needs $0.47$, yet the optimised state carried $0.013$ bits and missed the energy by $0.21$. All
-#   depths studied had $n\le84$ against the $2\cdot2^N-2=126$ parameters of a general state, so the
-#   overparametrisation threshold of notebook 41 was never crossed — a ground state is structured enough not to need
-#   it.
-# * **Problem-inspired structure is worth a large factor in parameters and costs a rougher landscape.** At equal
-#   depth the hardware-efficient family wins; at $16$ angles the Hamiltonian-variational family reached a median of
-#   $0.075$ and a best run of $0.0071$ where a $24$-angle hardware-efficient circuit managed $0.213$. Its
-#   median-to-best spread was a factor of thirty across restarts, against two for the other family.
-# * **In the ordered phase, fidelity with "the" ground state is the wrong question.** At $h=0.2$ the VQE reached an
-#   energy error of $2\cdot10^{-4}$ with fidelity exactly $0.5000$ — and fidelity $0.9999$ with the two-dimensional
-#   doublet. The measured entropy ($0.0001$ bits) and parity ($0.000$) identify the solution as a symmetry-broken
-#   ferromagnetic configuration. The hardest field of the sweep was $h=0.8$, not the critical point.
-# * **Deflation turns a minimiser into an excited-state solver, above a threshold.** Eq. (12) requires $\beta>\Delta$;
-#   at $\beta=0.25<\Delta=0.482$ the method returned the ground state again, at $\beta=3$ it returned
-#   $E_1$ to $0.014$ with fidelity $0.993$ and parity $-0.99$. An approximate anchor leaks: at $\beta=1$ one run
-#   reported an energy *below* $E_1$, with a parity of $-0.91$ betraying the residual ground-state component.
-# * **At equal measurement budget the parameter-shift gradient beat SPSA** ($0.329$ against $1.297$), but the
-#   noise-free references ($0.204$ and $0.629$) show that most of the difference is the optimiser, not the shots — and
-#   both are two orders of magnitude above the $1.5\cdot10^{-3}$ that the same circuit reaches with an unlimited
-#   budget.
+#   $\lVert[H,P]\vert\phi\rangle\rVert$ was exactly zero, and $\lVert[H,S^z_{\text{tot}}]\vert\phi\rangle\rVert=4.41$
+#   for all three models, because the whole commutator comes from the transverse field.
+# * **The hardware-efficient ansatz breaks the symmetry and then largely relearns it.** At random angles the median
+#   symmetry leakage was $0.94$; after training $5\cdot10^{-4}$ to $1.2\cdot10^{-3}$, always below the bound
+#   $2(1-F)\le2(E-E_0)/\Delta$. Leakage tracks the energy error for the XXZ and XY chains and not for the Ising chain,
+#   whose residual error lies mostly inside the right sector. The Hamiltonian-variational ansatz has leakage
+#   $3\cdot10^{-15}$ at *any* angles, by construction.
+# * **The $10^{-2}$ plateau of the main runs is the optimiser's.** Continuing at the same Adam step left it in place;
+#   continuing at $\eta=0.1$ lowered the median errors four- to tenfold. Depth studies read against that floor: the
+#   critical Ising error fell from $0.213$ ($L=1$) to $0.012$ ($L=4$), and beyond $L=3$ no difference was significant.
+# * **The entanglement bound $S_{\text{half}}\le\min(L,N/2)$ follows from the Schmidt rank and is only a necessary
+#   condition.** At $L=1$ the circuit may carry one bit and the target needs $0.47$, yet the optimised state carried
+#   $0.013$ bits and missed the energy by $0.21$. The optimised states end slightly *below* the exact entanglement, far
+#   below the capacity, and $n\le84$ angles against $126$ for a general state sufficed for fidelity $0.997$.
+# * **Problem-inspired structure is worth an order of magnitude in parameters.** Started from the ground state of the
+#   field term, the Hamiltonian-variational ansatz reached a median of $0.017$ with $16$ angles where a $24$-angle
+#   hardware-efficient circuit managed $0.213$; at equal depth the hardware-efficient family wins.
+# * **Near a degeneracy, fidelity with "the" ground state is the wrong question.** At $h=0.2$ the VQE reached an
+#   energy error of $2\cdot10^{-4}$ with fidelity $0.5000$ and fidelity $0.9999$ with the doublet; parity $0.000$ and
+#   entropy $0.0001$ bits identify a symmetry-broken state, and Eq. (10) predicts the energy error from the parity at
+#   $h=0.4$ and $0.6$. The hardest field of the sweep was $h=0.8$, in the crossover below the critical point.
+# * **Deflation turns a minimiser into an excited-state solver above $\beta=\Delta$, and converges reliably well above
+#   it.** At $\beta=0.25<\Delta=0.482$ the ground state came back; at $\beta=1$ five of twelve runs stalled with overlap
+#   about $0.5$ with the anchor (one at an energy below $E_1$, with $C_1$ far above it); at $\beta=3$ all runs reached the
+#   odd-parity first excited state, median fidelity $0.993$.
+# * **At equal measurement budget and tuned step sizes, parameter shift and SPSA tied** ($0.329$ against $0.345$,
+#   $p=0.51$); an untuned common step would have reported a factor of four. Both remain two orders of magnitude above
+#   the $1.5\cdot10^{-3}$ that the same circuit reaches without a budget.
 #
 # ## 16. Exercises
 #
@@ -1735,17 +2042,20 @@ fig.tight_layout(); plt.show()
 #    factor is the certificate loose, and why?
 # 2. ★ **Antiferromagnetic couplings.** Flip the sign of $J_{xx}$ and $J_{yy}$ in the XXZ model. Predict the sign of
 #    $\langle X_iX_{i+1}\rangle$ in the exact ground state before you run it, then check. Does the VQE find it as easily?
-# 3. ★★ **A symmetry-preserving ansatz (extend the code).** Replace the $R_y,R_z$ rotation blocks by $R_x$ rotations and
-#    the $CZ$ entanglers by $R_{XX}(\theta)$ gates, starting from $\vert+\rangle^{\otimes N}$. Show analytically that
-#    every gate commutes with $P=\prod_qX_q$, so the symmetry leakage of Eq. (8) is zero by construction, and measure
-#    whether the energy error at equal parameter count is better or worse.
-# 4. ★★ **The Hamiltonian-variational ansatz (extend the code).** Import `hva_tfim` from notebook 40 (it has $2L$ angles
-#    instead of $2N(L+1)$) and repeat Section 10 for the critical Ising chain. At equal *parameter count*, which family
-#    reaches the lower energy? At equal *depth*?
+# 3. ★★ **A symmetry-preserving hardware-style ansatz (extend the code).** Build a layered circuit from $R_x$
+#    rotations on every qubit and $R_{ZZ}$ and $R_{YY}$ gates on every bond, started from $\vert-\rangle^{\otimes N}$.
+#    Show analytically that every gate commutes with $P=\prod_qX_q$, so the symmetry leakage of Eq. (8) is zero by
+#    construction, and explain why $R_x$ and $R_{XX}$ alone would be useless (they all commute with each other and leave
+#    $\vert-\rangle^{\otimes N}$ unchanged up to a phase). Measure the energy error for the three models at a
+#    parameter count comparable to the hardware-efficient $L=4$ circuit.
+# 4. ★★ **The initial state of the Hamiltonian-variational ansatz.** Repeat the scan of Section 10.3 with the circuit
+#    started from $\vert+\rangle^{\otimes N}$ instead of $\vert-\rangle^{\otimes N}$. Compute the energy of the two
+#    starting states first, then compare the median errors depth by depth, and explain the difference from the role of
+#    the initial state in adiabatic state preparation.
 # 5. ★★ **Deflation to the second excited state.** Extend Eq. (11) with a second penalty term
 #    $\beta_1\lvert\langle\psi_1^\star\vert\psi\rangle\rvert^2$ and find $E_2$. Derive the condition on the two penalties
 #    analogous to Eq. (12) and verify it numerically by scanning $\beta$.
-# 6. ★★ **Where does the sweep get hard? (physics)** Repeat Section 11 for $N=8$ and $N=10$ at fixed $L$. Does the peak
+# 6. ★★ **The hardest field at larger $N$ (physics).** Repeat Section 11 for $N=8$ and $N=10$ at fixed $L$. Does the peak
 #    of the energy error follow the critical point, and does the width of the difficult region shrink with $N$?
 # 7. ★★★ **Order parameter without symmetry breaking (physics).** In the ordered phase the magnetisation
 #    $\langle Z_q\rangle$ vanishes in the exact finite-$N$ ground state even though the system is ordered. Compute the
@@ -1753,7 +2063,7 @@ fig.tight_layout(); plt.show()
 #    explain why it is the right diagnostic there.
 # 8. ★★★ **The shot budget of the whole calculation (physics).** From Section 13, extrapolate the number of shots needed
 #    to reach a chemical-accuracy energy error ($1.6\cdot10^{-3}$ Hartree, here read as $10^{-3}$ in units of $J$) for
-#    $N=6$ with $L=4$. Combine with the barren-plateau exponents of notebook 40 to estimate how that budget grows with
+#    $N=6$ with $L=4$. Combine with the gradient-variance exponents $b$ of notebook 40 to estimate how that budget grows with
 #    $N$, and say at which $N$ it exceeds a day of machine time.
 #
 # ## References
@@ -1785,3 +2095,5 @@ fig.tight_layout(); plt.show()
 #   networks*, Nat. Comput. Sci. **3**, 542 (2023) — the parameter-count threshold used in Section 10.2.
 # * S. Sachdev, *Quantum Phase Transitions*, 2nd ed., Cambridge University Press (2011) — the transverse-field Ising
 #   chain, its critical point and the symmetry-broken doublet of Section 11.
+# * P. Calabrese and J. Cardy, *Entanglement entropy and quantum field theory*, J. Stat. Mech. (2004) P06002 — the
+#   logarithmic growth of the entanglement entropy at a critical point, $(c/6)\log$ for an open chain.

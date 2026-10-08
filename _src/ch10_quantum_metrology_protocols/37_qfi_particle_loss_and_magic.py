@@ -1,6 +1,6 @@
-#@title: Particle loss, magic and encoded probes — what survives when qubits go missing?
+#@title: Particle loss, magic and encoded probes — the quantum Fisher information of the survivors
 #@part: Chapter 10 — Quantum metrology protocols
-#@description: How much metrological usefulness survives the loss of k particles: the quantum Fisher information of a reduced state derived and computed three ways, exact loss laws for product, GHZ, W and Dicke probes, the loss budget of squeezed and random probes, the stabilizer Rényi entropy of every probe family, and phase-imprinted GHZ states protected by a Clifford erasure code — an all-or-nothing loss threshold, its trade-off against sensitivity to a local generator, and what magic changes about it.
+#@description: How much metrological usefulness survives the loss of k particles: the quantum Fisher information of a reduced state derived and computed three ways, exact loss laws for product, GHZ, W and Dicke probes, the loss budget of squeezed and random probes, the stabilizer Rényi entropy of every probe family, and phase-imprinted GHZ states protected by a Clifford erasure code — an all-or-nothing loss threshold explained by logical operators, its dependence on which qubits are lost, its trade-off against sensitivity to a local generator, and what magic changes about it.
 
 # %% [markdown]
 # ## 1. Introduction and motivation
@@ -17,18 +17,18 @@
 #
 # Three questions organise the work.
 #
-# 1. **What is the exact loss law of each probe?** Losing $k$ of $N$ qubits turns a pure state into a mixed state of the
+# 1. **The exact loss law of each probe.** Losing $k$ of $N$ qubits turns a pure state into a mixed state of the
 #    survivors, so we need the symmetric-logarithmic-derivative (SLD) quantum Fisher information of a reduced state.
 #    We derive a short-cut that makes the computation cheap, validate it three ways, and then derive closed-form loss
 #    laws for product, GHZ, W and Dicke probes and check them against the numbers.
-# 2. **Does the *structure* of a state predict its robustness?** We compare the loss curves with the entanglement
+# 2. **Structural predictors of robustness.** We compare the loss curves with the entanglement
 #    entropy, with the entanglement spectrum, and with the **magic** (stabilizer Rényi entropy $M_2$) of the same states.
-#    The answer is a clean negative result for two of the three, and it is worth seeing why.
-# 3. **Can loss be defended against?** Imprint the phase on a GHZ state first and then *encode* the result with a
+#    None of the three predicts the loss curve of the probe zoo; Section 6 shows what does.
+# 3. **A defence against loss.** Imprint the phase on a GHZ state first and then *encode* the result with a
 #    Clifford circuit. The encoded probe is a two-dimensional quantum error-correcting code, and the loss of $k$
-#    particles is an **erasure**. We measure a sharp all-or-nothing threshold, derive it from the codeword coherence,
-#    and then measure the price: a code that protects the imprinted phase against erasures is itself blind to a local
-#    generator.
+#    particles is an **erasure**. We measure a sharp all-or-nothing threshold, derive it from the logical operators of
+#    the code, check which erasure patterns it survives, and then measure the price: the same encoded state is a poor
+#    probe for a local collective generator.
 #
 # **Road map.**
 #
@@ -37,8 +37,9 @@
 # * **Sections 5–6** — the exact loss laws (product, GHZ, W, Dicke, derived) and the measured loss curves of the whole
 #   probe zoo, including the one-axis-twisting family of notebooks 33–35 and Haar-random states.
 # * **Section 7** — magic: the stabilizer Rényi entropy $M_2$ of every probe, and whether it predicts robustness.
-# * **Sections 8–11** — encoded probes: the Clifford erasure code and its threshold, the tunable-magic encoder, and the
-#   protection-versus-sensitivity trade-off.
+# * **Sections 8–11** — encoded probes: the Clifford erasure code, its threshold and the three-case rule that explains
+#   it (Section 9.1), every erasure pattern rather than only the last $k$ qubits (Section 9.2), the tunable-magic
+#   encoder, and the protection-versus-sensitivity trade-off.
 # * **Section 12** — the entanglement spectrum of the encoders and the Marchenko–Pastur law.
 #
 # ### What you will learn
@@ -48,10 +49,10 @@
 #   direction is re-optimised afterwards;
 # * the closed-form loss law of Dicke states (and of the W state as its $M=1$ member), derived from the hypergeometric
 #   Schmidt weights of a symmetric state;
-# * that "how entangled" and "how much magic" are both poor predictors of loss robustness, while the *structure* of the
-#   state — where the phase information sits — is the whole story;
-# * how a quantum error-correcting code turns graceful degradation into a sharp erasure threshold, and why that
-#   protection is paid for with insensitivity to local generators.
+# * that "how entangled" and "how much magic" are both poor predictors of loss robustness; what decides is whether the
+#   generator restricted to the survivors can still move their state;
+# * how a quantum error-correcting code turns graceful degradation into a sharp erasure threshold, why the threshold
+#   depends on *which* qubits are lost, and why the same encoded state is a poor probe for a local generator.
 #
 # *Numerical methods*
 # * the SLD quantum Fisher information of a reduced state from the state and a single *tangent vector*, with no finite
@@ -186,8 +187,15 @@ def timed(f, *args, budget=0.3, min_reps=3, max_reps=200):
 #   =-i\left(T-T^\dagger\right). \tag{4}$$
 #
 # (The first equality is $\partial_\theta\rho=-i[G,\rho]$ at $\theta=0$; the second is the observation that
-# $\mathrm{Tr}_B\left(\vert\phi\rangle\langle\psi\vert\right)=\Phi\Psi^\dagger$ in the matrix view. The QFI does not
-# depend on $\theta$ for unitary encoding — notebook 30, Section 5.5a — so evaluating at $\theta=0$ is no restriction.)
+# $\mathrm{Tr}_B\left(\vert\phi\rangle\langle\psi\vert\right)=\Phi\Psi^\dagger$ in the matrix view.)
+#
+# **The value of $\theta$ matters for non-local generators.** For a local generator Eq. (3) gives
+# $\rho_A(\theta)=e^{-i\theta G_A}\rho_Ae^{i\theta G_A}$, a unitary orbit, and the QFI does not depend on $\theta$
+# (notebook 30, Section 5.5a), so $\theta=0$ is no restriction. For a generator that does not split into a kept and a
+# lost part, $\rho_A(\theta)$ is *not* a unitary orbit and its QFI may depend on $\theta$. Equation (4) holds at any
+# $\theta$ if $\vert\psi\rangle$ is replaced by $\vert\psi_\theta\rangle$ and $\vert\phi\rangle$ by
+# $G\vert\psi_\theta\rangle$; Sections 8–11 evaluate it at $\theta=0$ and Section 9.2 measures what changes at
+# $\theta\neq0$.
 #
 # Only $\vert\phi\rangle=G\vert\psi\rangle$ is needed; whatever $G$ is, if we can *apply* it we can compute the QFI of
 # every subsystem. This is the pattern used for the rest of the notebook: **carry the tangent vector alongside the
@@ -283,8 +291,9 @@ def clean_direction(n):
 # 2. the **compressed** and **uncompressed** branches must agree bit for bit in exact arithmetic;
 # 3. for a collective generator, Eq. (3) says the answer must equal the engine's `qfi_mixed` applied to the dense
 #    reduced density matrix with the *restricted* generator $G_A$ — a completely different code path;
-# 4. a **brute-force** route that builds $\rho_A(\theta)$ from the encoded state and differentiates it with
-#    `jax.jacfwd` — this is the only test of the non-obvious step, Eq. (4).
+# 4. a **brute-force** route that builds $\rho_A(\theta)$ from the phase-imprinted state and differentiates it with
+#    `jax.jacfwd` — an independent test of Eq. (4). (This checkpoint uses a collective generator; Section 8 repeats the
+#    brute-force test for the non-local generators of encoded probes.)
 
 # %%
 # ==============================================================================
@@ -325,15 +334,17 @@ print(f"\nworst discrepancy over all four routes and all states: {err_all:.2e}")
 assert err_all < 1e4 * TOL
 
 # %% [markdown]
-# Four independent code paths agree to about $10^{-13}$. Note what the third column really tests: the commutator lemma
+# Four independent code paths agree to better than $10^{-13}$. The third column tests the commutator lemma
 # of Eq. (3). `qfi_mixed` never sees the lost qubits at all — it is handed the $2^K\times2^K$ reduced density matrix and
 # the collective spin operator of the $K$ survivors — and it returns the same number as a calculation that starts from
-# the full $N$-qubit state. And the fourth column tests Eq. (4) by brute force: build $\rho_A(\theta)$ from the
-# *encoded* state and let forward-mode automatic differentiation produce $\partial_\theta\rho_A$.
+# the full $N$-qubit state. The fourth column tests Eq. (4) by brute force: build $\rho_A(\theta)$ from the
+# phase-imprinted state and let forward-mode automatic differentiation produce $\partial_\theta\rho_A$. A wrong factor in
+# the tangent vector (for example $\sum_q\sigma^{\mathbf n}_q$ instead of $\mathbf n\cdot\mathbf J$) would show up as a
+# factor $4$ between the first and the last column.
 #
-# > **Numerical practice.** A new formula earns trust by disagreeing with nothing. Four routes with four different
-# > failure modes (compression, a commutator identity, a dense eigensolver, automatic differentiation) is not
-# > over-testing; it is the minimum before a plot is allowed to appear.
+# > **Numerical practice.** A new formula earns trust by agreeing with every independent route available. Four routes
+# > with four different failure modes (compression, a commutator identity, a dense eigensolver, automatic
+# > differentiation) is the minimum before a plot is allowed to appear.
 
 # %% [markdown]
 # ## 4. Exact loss laws
@@ -350,7 +361,7 @@ assert err_all < 1e4 * TOL
 # $$F_Q=4\,\mathrm{Var}\left(\sum_{q\in A}g_q\right)=4\sum_{q\in A}\mathrm{Var}(g_q)\le K, \tag{5}$$
 #
 # with equality when every Bloch vector is perpendicular to $\mathbf n$. **A product probe loses exactly the share of
-# the lost particles and not one bit more.** It is the benchmark every other probe is measured against.
+# the lost particles and nothing else.** It is the benchmark every other probe is measured against.
 #
 # ### 4.2 GHZ: exactly zero, and exactly $K$ after re-optimisation
 #
@@ -361,18 +372,20 @@ assert err_all < 1e4 * TOL
 #                       +\vert1\rangle^{\otimes K}\langle1\vert^{\otimes K}\right). \tag{6}$$
 #
 # With the GHZ generator $G=J_z$ both terms are *eigenstates* of $G_A=J_z^A$, hence $\left[G_A,\rho_A\right]=0$, hence
-# $\partial_\theta\rho_A=0$ by Eq. (3) and $F_Q=0$. Not small — **exactly zero**, for any $k\ge1$.
+# $\partial_\theta\rho_A=0$ by Eq. (3) and $F_Q=0$. The QFI is **exactly zero** for any $k\ge1$.
 #
 # What if the experimenter, knowing a qubit was lost, re-optimises the generator direction? Take $G=J_x$. Now
 # $J_x\vert0\rangle^{\otimes K}=\tfrac{\sqrt K}{2}\vert D_K^1\rangle$ and
 # $J_x\vert1\rangle^{\otimes K}=\tfrac{\sqrt K}{2}\vert D_K^{K-1}\rangle$, where $\vert D_K^m\rangle$ is the Dicke state
-# with $m$ excitations; both targets are orthogonal to the support of $\rho_A$. Equation (2) has one contributing pair
+# with $m$ excitations; for $K\ge2$ both targets are orthogonal to the support of $\rho_A$. Equation (2) has one contributing pair
 # for each branch, $\lambda_m=\tfrac12$ against $\lambda_n=0$, and each pair is counted twice:
 #
 # $$F_Q=2\cdot2\cdot\left[\frac{K}{4}\cdot\frac{(1/2)^2}{1/2}\right]\cdot2=K. \tag{7}$$
 #
-# So a GHZ state that has lost a particle is worth **exactly the standard quantum limit of its survivors** — no better
-# than $K$ independent atoms, no worse. All of the Heisenberg advantage lived in a single global coherence, and a single
+# Any direction in the $xy$ plane gives the same value, and $J_z$ gives $0$, so $K$ is also the maximum over all
+# collective directions (the $3\times3$ QFI matrix of $\rho_A$ has eigenvalues $K,K,0$). A GHZ state that has lost a
+# particle is worth **exactly the standard quantum limit of its survivors** — no better than $K$ independent atoms, no
+# worse. All of the Heisenberg advantage lived in a single global coherence, and a single
 # lost particle carried it away.
 #
 # ### 4.3 Dicke states: a hypergeometric loss law
@@ -452,7 +465,7 @@ for k in range(N_LAW):
     p_d = dicke_state(N_LAW, N_LAW // 2)
     m_d = float(block_qfi(p_d, collective_tangent(p_d, (1, 0, 0)), range(K)))
     a_d = dicke_loss_qfi(N_LAW, N_LAW // 2, K)
-    a_gx = K if K >= 2 else 0.0                      # Eq. (7) needs K >= 2 (for K = 1, D^1 = D^{K-1})
+    a_gx = K if K >= 2 else 0.0                      # Eq. (7) needs K >= 2 (for K = 1, J_x maps |0> to |1>: inside the support)
     err_law = max(err_law, abs(m_prod - K), abs(m_w - a_w), abs(m_d - a_d),
                   *( (abs(m_gz), abs(m_gx - a_gx)) if k > 0 else (0.0,) ))   # Eqs. (6)-(7) apply only after a loss
     print(f"{k:2d} {K:3d} | {m_prod:9.5f} vs {K:6.1f} | {m_gz:13.2e} | {m_gx:9.5f} vs {a_gx:6.1f} "
@@ -462,8 +475,8 @@ assert err_law < 1e4 * TOL
 
 # %% [markdown]
 # Every closed form of Section 4 is reproduced to machine precision, including the two least obvious ones: the GHZ
-# state re-optimised to $J_x$ gives $F_Q$ exactly equal to $K$ for every $k\ge1$ (and $0$ at $k=N-1$, where
-# $\vert D_1^1\rangle=\vert D_1^{K-1}\rangle$ and the two branches of Eq. (7) collide), and the hypergeometric Dicke
+# state re-optimised to $J_x$ gives $F_Q$ exactly equal to $K$ for every $k\le N-2$ (and $0$ at $k=N-1$: for a single
+# survivor $\rho_A=\mathbb 1/2$, and $J_x$ maps $\vert0\rangle$ to $\vert1\rangle$, inside the support), and the hypergeometric Dicke
 # law reproduces numbers such as $F_Q=13.714286=96/7$ at $K=8$, $N=10$.
 #
 # The physics is already visible in the table. The product probe pays exactly $1$ per lost qubit. The GHZ probe pays
@@ -471,7 +484,7 @@ assert err_law < 1e4 * TOL
 # survivors — if the direction is re-optimised. The W and Dicke probes lose a finite fraction per particle and stay
 # above the product benchmark for a while.
 #
-# > **Physics insight.** The GHZ collapse is not decoherence and not noise; it is bookkeeping. The lost qubit is a
+# > **Physics insight.** The GHZ collapse needs no noise acting on the survivors. The lost qubit is a
 # > perfect *which-branch* detector: $\vert0\rangle$ against $\vert1\rangle$ tells the environment, with certainty,
 # > which arm of the superposition the system took, and a superposition whose branches have been distinguished is a
 # > classical mixture. Everything in Sections 8–10 is an attempt to build a probe whose lost particles do **not** say
@@ -492,8 +505,9 @@ assert err_law < 1e4 * TOL
 #   measure, and it systematically flatters weak probes: a state that starts at the standard quantum limit has little
 #   to lose.
 # * **Loss budget** $k_{\rm SQL}=\max\{k:F_Q(k)>K=N-k\}$ — how many particles may be lost while the survivors still
-#   beat *their own* standard quantum limit (and $0$ if the inequality never holds). This is the number an experiment
-#   cares about, and it cannot be gamed.
+#   beat *their own* standard quantum limit (and $0$ if the inequality never holds; $k_{\rm SQL}=0$ therefore covers
+#   both "only the intact probe beats the limit" and "never"). This is the number an experiment cares about, and a
+#   probe that starts at the standard quantum limit cannot score well on it.
 
 # %%
 # ==============================================================================
@@ -575,9 +589,9 @@ fig.tight_layout(); plt.show()
 # The left panel is the one to read, because it is absolute: the dashed line is $F_Q=K$, the standard quantum limit of
 # whatever is left, and a probe is useful exactly as long as it stays above it.
 #
-# The right panel — relative retention — is the trap. It ranks $\vert+\rangle^{\otimes N}$ as the most robust probe in
-# the zoo, which is true and useless: a probe that starts at the standard quantum limit ends at the standard quantum
-# limit, having gained nothing anywhere. This is why the loss budget $k_{\rm SQL}$ is the column to look at in the
+# The right panel — relative retention — is misleading. It ranks $\vert+\rangle^{\otimes N}$ as the most robust probe in
+# the zoo ($R=0.55$), which is correct and of no practical use: a probe that starts at the standard quantum limit ends
+# at the standard quantum limit, having gained nothing anywhere. This is why the loss budget $k_{\rm SQL}$ is the column to look at in the
 # table above.
 #
 # > **Numerical practice.** Normalising a curve by its own initial value hides the only thing that matters when the
@@ -592,15 +606,19 @@ fig.tight_layout(); plt.show()
 # **A cliff.** GHZ and the one-axis-twisting cat lose everything at $k=1$. Section 4.2 explained it: the lost qubit is a
 # perfect which-branch detector for a two-component superposition.
 #
-# **A geometric decay.** The squeezed, over-squeezed, W and Dicke probes lose a fixed *fraction* per particle. These
-# states store the phase in a collective spin distribution of width $O(\sqrt N)$ to $O(N)$ that is shared by all
-# particles; removing one particle shaves a slice off that distribution instead of collapsing it.
+# **A smooth decay.** The squeezed, over-squeezed, W and Dicke probes lose part of their QFI with every particle. In the
+# middle of the range each lost particle costs $30$–$45\%$ of what is left (the ratio $F_Q(k+1)/F_Q(k)$ in the table
+# lies between $0.56$ and $0.71$ for $2\le k\le6$); the first loss costs $60\%$ for the over-squeezed and Dicke
+# probes. The decay is not geometric: for the W and Dicke states it is the polynomial and hypergeometric law of
+# Eqs. (11)–(12). These states have many Schmidt components across any cut (Eq. 8), so the lost particles can only
+# partly tell which component the survivors are in.
 #
-# **A Page-like shape.** The Haar-random probe keeps almost everything while $k<N/2$ and then falls off a cliff of its
-# own. This is the metrological Page curve measured in notebook 35: a random state stores information about a global
-# property in correlations that need more than half of the system to read. It never beats the standard quantum limit in
-# the first place ($F_Q\approx N$), so its robustness buys nothing — another reminder that "entangled" and "useful" are
-# different words.
+# **A Page-like shape.** The Haar-random probe follows the standard quantum limit of its survivors, $F_Q\approx K$, up
+# to $k=3$ and collapses once fewer than half of the qubits remain ($F_Q=2.2$ at $K=5$, $0.44$ at $K=4$). This is the
+# metrological Page curve measured in notebook 35: for $K<N/2$ the reduced state of a random state is close to
+# $\mathbb 1/2^K$ (Page), and a state close to the maximally mixed one carries almost no QFI for any generator. The
+# intact probe has $F_Q=10.22$, barely above $N=10$, so this robustness buys nothing — another reminder that "entangled"
+# and "useful" are different words.
 #
 # It is tempting to look for the mechanism in the **entanglement spectrum** of the cut. For a generator that acts
 # inside $A$ — which, by Eq. (3), is the relevant case here — the substitution
@@ -611,8 +629,7 @@ fig.tight_layout(); plt.show()
 #   \left\vert\langle m\vert G_A\vert n\rangle\right\vert^2, \tag{13}$$
 #
 # which vanishes whenever the spectrum is flat on the support of the relevant matrix elements. So a flat $\rho_A$
-# *looks* like the culprit. The table below shows that this is only half of the truth, and it is worth seeing the
-# counter-example explicitly.
+# *looks* like the culprit. The table below gives the counter-example explicitly.
 
 # %%
 # ==============================================================================
@@ -629,9 +646,11 @@ for name, psi in ZOO.items():
 
 # %% [markdown]
 # Losing one qubit gives $\rho_A$ rank at most $2$, so this table is short and completely explicit — and it refutes the
-# spectral explanation. **Four probes have exactly the same spectrum $(0.5,0.5)$ and four different answers.** GHZ and
-# the one-axis-twisting cat give $F_Q=0$; the half-filled Dicke state, with the *identical* pair of eigenvalues, gives
-# $F_Q=24.0$; the Haar-random state, at $(0.530,0.470)$, gives $F_Q=9.2$.
+# spectral explanation. **Three probes have exactly the same spectrum $(0.5,0.5)$ and two very different answers.** GHZ
+# and the one-axis-twisting cat give $F_Q=0$; the half-filled Dicke state, with the *identical* pair of eigenvalues,
+# gives $F_Q=24.0$. The nearly flat Haar-random spectrum $(0.530,0.470)$ gives $F_Q=9.2$, and the over-squeezed state,
+# with a more mixed spectrum $(0.654,0.346)$ than the squeezed one $(0.917,0.083)$, keeps slightly *more*
+# ($24.1$ against $23.9$).
 #
 # Equation (13) says why. The prefactor $(\lambda_m-\lambda_n)^2/(\lambda_m+\lambda_n)$ vanishes for the two states
 # *inside* the support, but the sum also runs over the $2^K-2$ states with $\lambda_n=0$, where the prefactor is
@@ -641,7 +660,8 @@ for name, psi in ZOO.items():
 # * for GHZ, $\rho_A$ is supported on $\vert0\rangle^{\otimes K}$ and $\vert1\rangle^{\otimes K}$, which are
 #   **eigenstates** of $G_A=J_z^A$ — every matrix element out of the support vanishes and $F_Q$ is exactly $0$;
 # * for the Dicke state, the support is spanned by neighbouring Dicke levels and $G_A=J_x^A$ connects them to levels
-#   *outside* the support with matrix elements of order $K$ — hence the large $F_Q$.
+#   *outside* the support ($\vert\langle D_9^3\vert J_x\vert D_9^4\rangle\vert^2=6$ by Eq. (10)), and Eq. (13) gives
+#   $2\cdot2\cdot2\cdot\tfrac12\cdot6=24$ — exactly the measured value.
 #
 # So the mixedness of the survivors is not the mechanism. **The mechanism is whether the generator can still move the
 # state of the survivors**, which is a statement about the pair (state, generator), never about the state alone — the
@@ -658,7 +678,8 @@ for name, psi in ZOO.items():
 #    \left\vert\langle\psi\vert P\vert\psi\rangle\right\vert^{2\alpha}\right), \tag{14}$$
 #
 # the Rényi entropy of the distribution $\Pi(P)=\langle P\rangle^2/2^N$ over all $4^N$ Pauli strings. $M_\alpha=0$ if
-# and only if $\vert\psi\rangle$ is a stabilizer state; the maximum is $\log_2\left[(2^N+1)/2\right]$. We use
+# and only if $\vert\psi\rangle$ is a stabilizer state, and $M_2\le\log_2\left[(2^N+1)/2\right]$ (notebook 27,
+# Section 6.5). We use
 # $\alpha=2$ and the Walsh–Hadamard algorithm of notebook 27, which evaluates all $4^N$ Pauli expectation values in
 # $O(N4^N)$ instead of $O(8^N)$: writing $P=i^{\mathbf a\cdot\mathbf b}X^{\mathbf a}Z^{\mathbf b}$,
 #
@@ -713,14 +734,14 @@ for name, (p, ref) in chk_magic.items():
     print(f"  M_2[{name:20s}] = {got:+.10f}   expected {ref:.10f}   err {abs(got - ref):.1e}")
     assert abs(got - ref) < 1e4 * TOL
 print(f"\n  (log2(4/3) = {LOG2_43:.6f} bit is the magic of one T gate on |+>; "
-      f"maximum at N=5 is {np.log2((2 ** 5 + 1) / 2):.4f} bit)")
+      f"upper bound at N=5 is {np.log2((2 ** 5 + 1) / 2):.4f} bit)")
 
 # %%
 # ==============================================================================
 # STEP 6: magic of the probe zoo, against robustness
 # ==============================================================================
 print(f"N = {N_ZOO}:  magic and loss robustness side by side "
-      f"(maximum M_2 = {np.log2((2 ** N_ZOO + 1) / 2):.3f} bit)\n")
+      f"(upper bound M_2 <= {np.log2((2 ** N_ZOO + 1) / 2):.3f} bit)\n")
 print(f"{'probe':>14s} {'M_2 [bit]':>10s} {'S(N/2) [bit]':>13s} {'F_Q(0)':>9s} {'R':>7s} {'k_SQL':>6s}")
 zoo_magic = {}
 for name, psi in ZOO.items():
@@ -739,16 +760,16 @@ print(f"\nPearson correlation over the {len(ZOO)} probes:  corr(M_2, R) = {np.co
 # first: $\vert+\rangle^{\otimes N}$, GHZ and the cat are all *exactly* stabilizer states, yet the product state has
 # the largest relative retention in the zoo ($R=0.55$) and the two cats have the smallest ($R=0.10$). Zero magic is
 # compatible with the best and with the worst behaviour. At the other end, the Haar-random state carries $8.00$ bit of
-# magic out of a maximum of $9.00$ and has a loss budget of $2$ only because it never beat the standard quantum limit
-# to begin with. The best probe in the zoo, the squeezed state, sits at a modest $M_2=1.97$.
+# magic (the upper bound is $9.00$) and has a loss budget of $2$, but it starts at $F_Q=10.22$, barely above the
+# standard quantum limit, so the budget measures how slowly it falls towards $K$, not an advantage. The best probe in
+# the zoo, the squeezed state, sits at a modest $M_2=1.97$.
 #
-# The Pearson correlations printed above are positive but weak and, with eight hand-picked probes, they are not a
-# statistical statement at all — they are a numerical summary of the visual impression, and the impression is that the
-# scatter is dominated by which *family* a state belongs to rather than by $M_2$. **Magic is not a robustness
-# measure**, and there is no reason it should be: $M_2$ measures how far the state is from the stabilizer polytope, a
-# property of the whole Pauli spectrum, while loss robustness asks the much more specific question of Section 6 about
-# *where the phase information sits*. Section 10 uses a controlled family to find the one thing magic does change — the
-# *shape* of the loss curve — and it is not the thing one would guess.
+# The Pearson correlations printed above are positive ($0.27$ and $0.48$), but with eight hand-picked probes they are
+# not a statistical statement at all; the rows show that the ranking is set by which *family* a state belongs to
+# rather than by $M_2$. **Magic is not a robustness measure**, and there is no reason it should be: $M_2$ measures how
+# far the state is from the set of stabilizer states, a property of the whole Pauli spectrum, while loss robustness
+# asks the much more specific question of Section 6, whether the generator can still move the survivors. Section 10
+# uses a controlled family to find what magic does change: the *shape* of the loss curve.
 
 # %% [markdown]
 # ## 8. Defending against loss: a phase imprinted, then encoded
@@ -806,9 +827,9 @@ print(f"\nPearson correlation over the {len(ZOO)} probes:  corr(M_2, R) = {np.co
 #   \quad\text{for a fixed }\sigma_B, \tag{18}$$
 #
 # which is the Knill–Laflamme error-correction condition specialised to the operator algebra of $B$ (Knill and Laflamme
-# 1997; the erasure formulation is Grassl, Beth and Pellizzari 1997). Equation (17) with $i\neq j$ is the statement that
-# the two codewords are *indistinguishable* from $B$ alone, and it is exactly what makes the coherence $C$ of Eq. (17)
-# survive. The un-encoded GHZ state ($V=\mathbb 1$) violates it maximally as soon as one qubit is lost:
+# 1997; the erasure formulation is Grassl, Beth and Pellizzari 1997). Equation (18) with $i=j$ says that the two
+# codewords are *indistinguishable* from $B$ alone, and with $i\neq j$ that $B$ holds no coherence between them; when
+# both hold, the logical qubit, and with it the coherence $C$ of Eq. (17), can be recovered from $A$. The un-encoded GHZ state ($V=\mathbb 1$) violates it maximally as soon as one qubit is lost:
 # $\mathrm{Tr}_A\left(\vert\bar0\rangle\langle\bar0\vert\right)=\vert0\rangle\langle0\vert$ against
 # $\vert1\rangle\langle1\vert$ — one look at the lost qubit and the branch is known. That is Eq. (6). A good encoder is
 # one that does not let this happen.
@@ -851,11 +872,22 @@ def magic_layer(psi, angle):
 
 
 def encode_pipeline(N, layer, L):
-    """Run pipeline (14): |GHZ> -> imprint with J_z -> L encoding layers.
+    """Run pipeline (15) at theta = 0: |GHZ> -> imprint with J_z -> L encoding layers.
     Returns (psi, phi) with phi = G_V psi, the tangent vector of the encoded family.
     The SAME circuit is applied to both, because V (J_z |psi>) = (V J_z V^dag) (V |psi>)."""
+    return encode_pipeline_theta(N, layer, L, 0.0)
+
+
+def encode_pipeline_theta(N, layer, L, theta):
+    """Pipeline (15) at a finite phase: |GHZ> -> exp(-i theta J_z) -> L layers; returns (psi_theta, G_V psi_theta).
+
+    MATH   exp(-i theta J_z) = prod_q exp(-i theta Z_q / 2);  the tangent vector is V J_z |psi_theta>.
+    """
+    U = jnp.cos(theta / 2) * I2 - 1j * jnp.sin(theta / 2) * Z
     psi = ghz_state(N)
-    phi = collective_tangent(psi, (0, 0, 1))          # J_z |GHZ>
+    for q in range(N):
+        psi = apply_gate(psi, U, [q])
+    phi = collective_tangent(psi, (0, 0, 1))          # J_z |psi_theta>
     for _ in range(L):
         psi, phi = layer(psi), layer(phi)
     return psi, phi
@@ -875,6 +907,25 @@ for lname, layer in (("Clifford", clifford_layer), ("Ry(pi/4)+CNOT", partial(mag
 print(f"\n  worst deviation from N^2: {err_inv:.2e}")
 assert err_inv < 1e4 * TOL
 
+# --- CHECKPOINT: Eq. (4) for a NON-LOCAL generator, against jax.jacfwd of rho_A(theta) -------
+# (checkpoint 1 tested Eq. (4) only for collective generators; here G_V = V J_z V^dag is a many-body operator)
+print("\n  block_qfi with the propagated tangent vector against jax.jacfwd of Tr_B[ V e^{-i theta J_z}|GHZ> ]:")
+err_nl = 0.0
+for lname, layer, L, k in (("Clifford", clifford_layer, 3, 5), ("Clifford", clifford_layer, 3, 6),
+                           ("Ry(pi/4)+CNOT", partial(magic_layer, angle=np.pi / 4), 3, 3)):
+    K = N_ENC - k
+    psi, phi = encode_pipeline(N_ENC, layer, L)
+    a = float(block_qfi(psi, phi, range(K)))
+
+    def rho_A_enc(th, layer=layer, L=L, K=K):
+        return rdm(encode_pipeline_theta(N_ENC, layer, L, th)[0], range(K))
+
+    d = float(qfi_from_derivative(rho_A_enc(0.0), jax.jacfwd(rho_A_enc)(0.0)))
+    err_nl = max(err_nl, abs(a - d))
+    print(f"  {lname:16s} L={L} k={k}:  tangent vector {a:10.6f}   jacfwd {d:10.6f}")
+print(f"  worst discrepancy: {err_nl:.2e}")
+assert err_nl < 1e4 * TOL
+
 # %% [markdown]
 # The invariance holds to machine precision, as it must: the encoder moves information around, it does not add any.
 # Everything that follows is therefore a statement about *where* the information went.
@@ -883,9 +934,9 @@ assert err_inv < 1e4 * TOL
 # ## 9. The Clifford encoder: an all-or-nothing erasure threshold
 #
 # Take the Clifford encoder first. Both codewords $\vert\bar0\rangle=V\vert0\rangle^{\otimes N}$ and
-# $\vert\bar1\rangle=V\vert1\rangle^{\otimes N}$ are then **stabilizer states**, and for stabilizer states reduced
-# density matrices are proportional to projectors — flat spectra, no intermediate values. We should expect the
-# coherence $C$ of Eq. (17) to be an all-or-nothing object, and therefore the QFI too. We measure both.
+# $\vert\bar1\rangle=V\vert1\rangle^{\otimes N}$ are then **stabilizer states**: the code is a stabilizer code with one
+# logical qubit. Section 9.1 derives that the QFI of the survivors can then take only the values $0$ and $N^2$. We first
+# measure it, together with the norm of the coherence $C$ of Eq. (17), for the loss of the last $k$ qubits.
 
 # %%
 # ==============================================================================
@@ -940,38 +991,179 @@ axes[1].set_title("codeword coherence of Eq. (17)"); axes[1].legend(fontsize=8, 
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# The left panel is a staircase: $F_Q$ is either exactly $N^2=100$ or exactly $0$, never in between. A Clifford-encoded
-# GHZ probe is a genuine **erasure code**: it either corrects the loss completely, keeping the full Heisenberg
-# advantage, or it fails completely. Compare with the unencoded case $L=0$, which fails at $k=1$: one layer already
-# buys erasure protection against two lost qubits, two and three layers against four and five.
+# The left panel is a staircase: $F_Q$ is either exactly $N^2=100$ or exactly $0$, never in between. For the loss of
+# the last $k$ qubits the Clifford-encoded GHZ probe behaves as an **erasure code**: it either keeps the full Heisenberg
+# value or loses everything. The unencoded case $L=0$ fails at $k=1$; one layer protects against the loss of the last
+# two qubits, two and three layers against the last four and five.
 #
-# The right panel shows the mechanism and is more informative than the left. $\Vert C\Vert_F$ takes the values
-# $1,\ 1/\sqrt2,\ 1/2,\ 1/\sqrt8,\dots$ — powers of $\sqrt2$, as stabilizer states must — and $F_Q$ is non-zero exactly
-# where $\Vert C\Vert_F>0$. Note that $\Vert C\Vert_F$ *decreasing* does not cost any QFI: at $L=3$ the coherence drops
-# to $0.707$ at $k=1$ and yet the QFI is still exactly $100$. The reason is Eq. (17): the coherence block $C$ shrinks
-# because the codewords also become more mixed ($\rho_{\bar0}$, $\rho_{\bar1}$ spread over more dimensions), and what
-# matters for the QFI is the coherence *relative* to the populations, which stays perfect until it hits zero.
+# The right panel shows $\Vert C\Vert_F$, which takes the values $1,\ 1/\sqrt2,\ 1/2,\ 1/\sqrt8$, and $F_Q$ is non-zero
+# exactly where $\Vert C\Vert_F>0$. A *decreasing* $\Vert C\Vert_F$ costs no QFI: at $L=3$ the coherence drops to $0.707$
+# at $k=1$ and the QFI is still exactly $100$. The reason is the structure of a correctable erasure: when Eq. (18)
+# holds, a unitary $U_A$ on the survivors brings both codewords to the form
+# $U_A\left(\vert c\rangle_{\rm L}\otimes\vert\chi\rangle\right)$, with one logical qubit and a codeword-independent
+# remainder $\vert\chi\rangle$ shared with $B$. Then $C=U_A\left(\vert1\rangle\langle0\vert_{\rm L}\otimes\sigma\right)U_A^\dagger$
+# with $\sigma=\mathrm{Tr}_B\vert\chi\rangle\langle\chi\vert$, so $\Vert C\Vert_F=\Vert\sigma\Vert_F$, which is
+# $2^{-r/2}$ for a flat $\sigma$ of rank $2^r$ — the powers of $\sqrt2$ in the table — while the logical qubit, and with
+# it $F_{Q,\varphi}=1$, is untouched.
 #
-# The protection depth $k^*$ is **not monotone** in $L$: at $N=10$ we measure $k^*=0,2,4,5,4,3,3$ for $L=0,\dots,6$. A
-# deeper encoder is not automatically a better code. The reason is structural: the erasure of $B$ destroys the logical
-# coherence as soon as $B$ supports an operator that distinguishes the codewords, and the supports of the transformed
-# Pauli operators $VZ_qV^\dagger$ grow with depth but also drift and recombine, so the *smallest* distinguishing
-# operator that fits inside the erased block is a non-monotone function of the circuit. Designing codes is not the same
-# as running a circuit for longer.
+# The protection depth $k^*$ for the last $k$ qubits is **not monotone** in $L$: at $N=10$ we measure
+# $k^*=0,2,4,5,4,3,3$ for $L=0,\dots,6$. Sections 9.1 and 9.2 explain the threshold and show that it depends on *which*
+# qubits are lost: the last $k$ qubits are one erasure pattern among $\binom{N}{k}$.
 #
-# > **Physics insight.** This looks like it defeats the folklore "GHZ states are useless under loss", and in a sense it
-# > does — but read Eq. (15) again. The phase is imprinted **before** the encoder. The code protects information that
-# > the probe already has; it does not help the probe acquire it. Section 10 measures what the encoding costs on the
-# > acquisition side, and the cost is exactly what one would fear.
+# > **Physics insight.** This appears to contradict the statement that GHZ states are useless under loss. But the phase
+# > in Eq. (15) is imprinted **before** the encoder. The code protects information that the probe already has; it does
+# > not help the probe acquire it. Section 11 measures the cost on the acquisition side.
+
+# %% [markdown]
+# ### 9.1 The three-case rule for stabilizer codes
+#
+# For a stabilizer code the threshold can be derived. The code space spanned by $\vert\bar0\rangle,\vert\bar1\rangle$
+# has the **logical operators** $\bar Z=VZ_qV^\dagger$ (any $q$), $\bar X=VX^{\otimes N}V^\dagger$ and
+# $\bar Y=i\bar X\bar Z$, each defined up to multiplication by stabilizers $VZ_qZ_{q'}V^\dagger$. Expand the operators
+# of Eq. (18) in Pauli strings $P_B$ supported on $B$; the coefficient of $P_B$ is $\langle\bar j\vert P_B\vert\bar i\rangle$.
+# A Pauli string either anticommutes with some stabilizer (then every such matrix element vanishes), or is $\pm$ a
+# stabilizer (then it is the same number for both codewords and zero between them), or is $\pm$ a logical operator.
+# Hence **Eq. (18) fails exactly when some logical operator has a representative supported inside $B$.**
+#
+# The logical operators that the survivors $A$ can still measure are those with a representative inside $A$. For one
+# logical qubit there are three possibilities: all of $\bar X,\bar Y,\bar Z$ (the erasure is correctable), none of
+# them, or exactly one $\bar P$, which is then also the one supported on $B$. In the last case $\rho_A$ depends on the
+# phase only through $\langle\bar P\rangle$, a two-outcome measurement with probabilities $(1\pm\langle\bar P\rangle)/2$ and
+# classical Fisher information $F_\varphi=(\partial_\varphi\langle\bar P\rangle)^2/(1-\langle\bar P\rangle^2)$. In the
+# state of Eq. (16), $\langle\bar X\rangle=\cos\varphi$, $\langle\bar Y\rangle=\sin\varphi$, $\langle\bar Z\rangle=0$. So,
+# with $F_{Q,\theta}=N^2F_{Q,\varphi}$,
+#
+# | what $A$ can measure | $F_Q$ at $\theta=0$ | $F_Q$ at generic $\theta$ |
+# |---|---|---|
+# | $\bar X,\bar Y,\bar Z$ (Eq. 18 holds) | $N^2$ | $N^2$ |
+# | nothing, or only $\bar Z$ | $0$ | $0$ |
+# | only $\bar X$ | $0$ | $N^2$ |
+# | only $\bar Y$ | $N^2$ | $N^2$ |
+#
+# Every entry is $0$ or $N^2$: that is the staircase. The table also shows two subtleties. Only $\bar X$ gives a QFI that
+# jumps from $0$ at $\theta=0$ to $N^2$ at any other $\theta$, because $\partial_\varphi\cos\varphi=0$ at $\varphi=0$ (the
+# reduced-state QFI is not $\theta$-independent here, as anticipated in Section 3.3). Only $\bar Y$ gives the full
+# Heisenberg value although the erasure is *not* correctable: one logical observable suffices to estimate a phase near a
+# known working point. So "$F_Q=N^2$ at $\theta=0$" and "the erasure is correctable" are different statements.
+#
+# A representative of $\bar P$ lies inside $B$ exactly when the two eigenstates $\bar P=\pm1$ have different reduced
+# states on $B$ (a stabilizer or an anticommuting string has the same expectation in both, and the other two logical
+# operators have zero expectation in both). This gives a direct numerical test of every row of the table.
+#
+# ### 9.2 Every erasure pattern
+#
+# Particles are not lost in a prescribed order. The next cell goes through **every** set $B$ of $k\le3$ lost qubits for
+# every depth, determines which logical operators are supported on $B$, predicts $F_Q$ at $\theta=0$ and at
+# $\theta=0.3$ from the table, and compares with `block_qfi`.
+
+# %%
+# ==============================================================================
+# STEP 8b: all erasure patterns of size k <= 3, Eq. (18), and the three-case rule
+# ==============================================================================
+from itertools import combinations
+from math import comb
+
+K_PAT = 3                                   # largest erasure size scanned (C(10,1)+C(10,2)+C(10,3) = 175 patterns)
+THETA_1 = 0.3                               # a generic phase, phi = N theta = 3
+
+
+def reduced_on(v, lost):
+    """Reduced density matrix of the qubits `lost` (rows/columns in the order of `lost`), NumPy, O(2^N 2^k)."""
+    keep = tuple(q for q in range(v.ndim) if q not in lost)
+    M = np.transpose(v, keep + tuple(lost)).reshape(2 ** len(keep), -1)
+    return M.T @ M.conj()
+
+
+def logicals_on(c0, c1, lost, tol=1e-9):
+    """Set of logical operators of the code {c0, c1} with a representative inside `lost`.
+
+    MATH   P in {X, Y, Z} is supported on B  <=>  Tr_A |P=+1><P=+1| != Tr_A |P=-1><P=-1|,
+           with eigenstates  Z: c0, c1;  X: (c0 +- c1)/sqrt2;  Y: (c0 +- i c1)/sqrt2   (Section 9.1).
+    """
+    eig = {"Z": (c0, c1), "X": ((c0 + c1) / np.sqrt(2), (c0 - c1) / np.sqrt(2)),
+           "Y": ((c0 + 1j * c1) / np.sqrt(2), (c0 - 1j * c1) / np.sqrt(2))}
+    return {P for P, (u, w) in eig.items() if np.abs(reduced_on(u, lost) - reduced_on(w, lost)).max() > tol}
+
+
+print(f"N = {N_ENC}, CLIFFORD encoder, all erasure patterns with k <= {K_PAT}.")
+print(f"Columns per k:  #patterns satisfying Eq. (18) / #with F_Q = N^2 at theta = 0 / #at theta = {THETA_1} "
+      f"(out of C(N,k)).\n")
+print(f"{'L':>3s} | " + " | ".join(f"{'k=' + str(k):^17s}" for k in range(1, K_PAT + 1))
+      + " | guaranteed k | last-k k*")
+dev_rule, n_only = 0.0, {"X": 0, "Y": 0}
+pattern_tab = {}
+for L in range(L_MAX_C + 1):
+    c0, c1 = basis_state([0] * N_ENC), basis_state([1] * N_ENC)
+    for _ in range(L):
+        c0, c1 = clifford_layer(c0), clifford_layer(c1)
+    c0, c1 = np.asarray(c0), np.asarray(c1)
+    p0, f0 = encode_pipeline(N_ENC, clifford_layer, L)
+    p1, f1 = encode_pipeline_theta(N_ENC, clifford_layer, L, THETA_1)
+    counts = []
+    for k in range(1, K_PAT + 1):
+        n18 = nF0 = nF1 = 0
+        for lost in combinations(range(N_ENC), k):
+            keep = [q for q in range(N_ENC) if q not in lost]
+            sup = logicals_on(c0, c1, lost)
+            pred0 = N_ENC ** 2 if sup in (set(), {"Y"}) else 0.0              # table of Section 9.1
+            pred1 = N_ENC ** 2 if sup in (set(), {"X"}, {"Y"}) else 0.0
+            F0 = float(block_qfi(p0, f0, keep))
+            F1 = float(block_qfi(p1, f1, keep))
+            dev_rule = max(dev_rule, abs(F0 - pred0), abs(F1 - pred1))
+            n18 += (not sup); nF0 += F0 > N_ENC ** 2 / 2; nF1 += F1 > N_ENC ** 2 / 2
+            if len(sup) == 1 and sup != {"Z"}:
+                n_only[next(iter(sup))] += 1
+        counts.append((n18, nF0, nF1))
+    # guaranteed protection: the largest k such that EVERY pattern of size <= k satisfies Eq. (18)
+    full = [counts[k - 1][0] == comb(N_ENC, k) for k in range(1, K_PAT + 1)]
+    k_guar = next((k for k in range(K_PAT) if not full[k]), K_PAT)
+    pattern_tab[L] = (counts, k_guar)
+    print(f"{L:3d} | " + " | ".join(f"{a:4d} {b:4d} {c:4d}  " for a, b, c in counts)
+          + f" | {k_guar:12d} | {kmax_cliff[L]:9d}")
+
+print(f"\npatterns where A keeps only X-bar: {n_only['X']},  only Y-bar: {n_only['Y']}")
+print(f"worst deviation of block_qfi from the three-case rule (both theta): {dev_rule:.2e}")
+assert dev_rule < 1e4 * TOL
+
+# --- the magic encoder is not a stabilizer code: its loss curve depends on theta smoothly -------------
+pm0, fm0 = encode_pipeline(N_ENC, partial(magic_layer, angle=np.pi / 4), 6)
+pm1, fm1 = encode_pipeline_theta(N_ENC, partial(magic_layer, angle=np.pi / 4), 6, THETA_1)
+cm0 = np.array([float(block_qfi(pm0, fm0, range(N_ENC - k))) for k in range(N_ENC)])
+cm1 = np.array([float(block_qfi(pm1, fm1, range(N_ENC - k))) for k in range(N_ENC)])
+print(f"\nRy(pi/4)+CNOT, L = 6, last k lost:  F_Q(theta=0)   = " + " ".join(f"{v:6.2f}" for v in cm0))
+print(f"                                    F_Q(theta={THETA_1}) = " + " ".join(f"{v:6.2f}" for v in cm1))
+
+# %% [markdown]
+# The three-case rule of Section 9.1 predicts `block_qfi` for all $7\times175$ patterns, at both phases, to machine
+# precision. The test has teeth: the naive rule "$F_Q=N^2$ exactly when Eq. (18) holds" is wrong by $N^2$ on the $28$
+# patterns where $A$ keeps only $\bar Y$ (at both phases) and on the $17$ where it keeps only $\bar X$ (at
+# $\theta=0.3$). Three conclusions follow.
+#
+# * **The protection depends on which qubits are lost.** One Clifford layer protects the last two qubits, but the loss
+#   of one particular *single* qubit is already fatal (9 of 10 single losses are correctable). The *guaranteed*
+#   protection — the largest $k$ for which every pattern of $k$ losses satisfies Eq. (18) — is $0,0,1,1,2,2,1$ for
+#   $L=0,\dots,6$, well below the last-block values $0,2,4,5,4,3,3$. It is still not monotone in $L$ ($L=6$ is worse
+#   than $L=5$): a deeper circuit is not automatically a better code.
+# * **The fraction of correctable patterns grows with depth up to $L=5$.** For $k=3$ it is $0,56,90,103,114,115$ and
+#   $108$ out of $120$. For random losses this fraction, not the last-block threshold, is what an experiment sees.
+# * **$F_Q=N^2$ at $\theta=0$ is not the same as correctability**, in both directions predicted by the table: patterns
+#   in which $A$ keeps only $\bar Y$ give $N^2$ although Eq. (18) fails, and patterns in which $A$ keeps only $\bar X$
+#   give $0$ at $\theta=0$ and $N^2$ at $\theta=0.3$. For the last-$k$ blocks of Section 9 neither case occurs, which is
+#   why the staircase there coincides with Eq. (18).
+#
+# The non-Clifford encoder is not a stabilizer code, and its loss curve depends on $\theta$ in a smooth way: the last two
+# lines of the output differ from $k=2$ on, by up to $1.3$ at $k=4$. All loss curves of Sections 9–11 are evaluated at $\theta=0$.
 
 # %% [markdown]
 # ## 10. Tuning the magic of the encoder
 #
 # The `magic_layer` family $\mathrm{Ry}(a)^{\otimes N}$ followed by the same CNOT brick wall has one knob. At
 # $a=0,\pi/2,\pi$ the rotation $\mathrm{Ry}(a)$ is a **Clifford** gate, so the encoded state is a stabilizer state and
-# $M_2=0$; at $a=\pi/4$ the rotation is maximally non-Clifford. The circuit topology, the gate count and the
-# entangling gates are identical along the whole family — only the magic changes. This is the controlled experiment
-# that Section 7 could not do with a zoo of unrelated states.
+# $M_2=0$; among single-qubit $\mathrm{Ry}$ rotations, $a=\pi/4$ produces the largest magic ($\mathrm{Ry}(\pi/4)\vert0\rangle$
+# has $M_2=\log_2(4/3)$, the same as $T\vert+\rangle$). The circuit topology, the gate count and the entangling gates are
+# identical along the whole family; only the single-qubit angle changes. This is the most controlled comparison
+# available, but the angle changes the magic, the entanglement and the spreading of the generator at the same time.
+# (The $a=0$ member is a pure CNOT circuit, a different Clifford encoder from the one of Section 9.)
 
 # %%
 # ==============================================================================
@@ -1020,26 +1212,28 @@ ax2.set_title("Clifford points (dotted) have $M_2=0$")
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# Read the table, not the impression. Three facts, in order of importance.
+# Three facts from the table, in order of importance.
 #
 # 1. **Magic changes the *shape* of the loss curve, from a step to a slope.** At the two Clifford angles $a=0$ and
 #    $a=\pi/2$ the curve is the staircase of Section 9 — $1,1,1,0,0,\dots$ and $1,0,0,\dots$ respectively. At every
-#    non-Clifford angle the curve is continuous, with intermediate values at every $k$. This is structural, not
-#    accidental: stabilizer codewords give flat reduced spectra, and Eq. (17) then admits only "coherence intact" or
-#    "coherence gone".
+#    non-Clifford angle the curve takes intermediate values; no non-Clifford row has the pattern $1,\dots,1,0,\dots,0$.
+#    The staircase is the three-case rule of Section 9.1, which holds for every stabilizer code; a non-Clifford encoder
+#    is not a stabilizer code and the rule does not apply.
 # 2. **Magic does not buy a larger protected block.** The best Clifford point ($a=0$, $M_2=0$) keeps the full $N^2$ up
 #    to $k=2$ lost qubits. The most magical encoder ($a=\pi/4$, $M_2=7.20$ of a maximal $9.00$) retains $97\%$ and
 #    $95\%$ at $k=1,2$ — slightly less — and then $77\%$, $68\%$ at $k=3,4$ where the Clifford encoder has already
 #    fallen to zero. Which is "better" depends on whether an experiment can tolerate a $30\%$ loss of $F_Q$; there is
 #    no universal winner.
-# 3. **The correlation between $M_2$ and retention is not monotone.** At $a=\pi/16$ the state already carries
-#    $M_2=4.83$ bit of magic, more than half the maximum, and yet its retention $R=0.20$ is *below* the zero-magic
-#    Clifford value $R=0.30$. Retention tracks the half-chain entanglement entropy far more closely than it tracks
-#    $M_2$: the entropy column rises and falls with $R$ across the whole family.
+# 3. **Retention is not a monotone function of $M_2$.** At $a=\pi/16$ the state already carries $M_2=4.83$ bit of
+#    magic, more than half the upper bound, and yet its retention $R=0.20$ is *below* the zero-magic Clifford value
+#    $R=0.30$. The half-chain entropy does not do better at that point (it rises from $1.00$ to $2.19$ while $R$ falls),
+#    and over the nine angles $R$ correlates about equally with both columns (Pearson $0.81$ with $S(N/2)$, $0.71$ with
+#    $M_2$; rank correlation $0.84$ and $0.82$). Nine points of one family do not separate the two.
 #
 # > **Common pitfall.** A one-parameter family in which two quantities rise together is not evidence that one causes
-# > the other. Here the knob changes magic, entanglement and operator spreading simultaneously; the Clifford endpoints
-# > are the control that separates them, and they show that zero magic is compatible with good robustness.
+# > the other. Here the knob changes magic, entanglement and operator spreading simultaneously. The Clifford endpoints
+# > show that zero magic is compatible with both good ($a=0$) and no ($a=\pi/2$) protection, and Section 9 found the
+# > largest last-block protection, $k^*=5$, with a pure Clifford encoder.
 
 # %% [markdown]
 # ## 11. What the protection costs: sensitivity to a local generator
@@ -1051,12 +1245,15 @@ fig.tight_layout(); plt.show()
 #
 # There is a general expectation from quantum error correction: a code that protects against local errors must be
 # *insensitive* to local operators, because a code whose codewords could be distinguished by a local measurement would
-# not protect against a local error in the first place. In quantum metrology this appears as the well-known obstruction
-# that a signal Hamiltonian lying inside the span of the noise cannot be measured better than at the standard quantum
-# limit (Demkowicz-Dobrzański, Czajkowski and Sekatski 2017; Zhou, Zhang, Preskill and Jiang 2018, whose "Hamiltonian
+# not protect against a local error in the first place. A related, proven statement in quantum metrology concerns
+# Markovian noise during the sensing: a signal Hamiltonian lying inside the span of the noise operators cannot be
+# measured better than at the standard quantum limit (Demkowicz-Dobrzański, Czajkowski and Sekatski 2017; Zhou, Zhang, Preskill and Jiang 2018, whose "Hamiltonian
 # not in Lindblad span" criterion is exactly the condition for the obstruction *not* to apply).
 #
-# We do not prove any of that here. We measure the trade-off in our own setting, which is enough to see it.
+# Our setting (a static code, erasures after the sensing) is not the setting of those theorems, and we do not prove
+# a general statement here. We measure the trade-off for our encoders. In the table, $k^*$ is the largest $k$ for which
+# the survivors of a loss of the last $k$ qubits keep more than half of $F_Q(0)$; for the Clifford encoder this is the
+# $k^*$ of Section 9.
 
 # %%
 # ==============================================================================
@@ -1072,12 +1269,25 @@ for lname, layer in (("Clifford", clifford_layer), ("Ry(pi/4)+CNOT", partial(mag
     for L in range(L_MAX_C + 1):
         psi, phi = encode_pipeline(N_ENC, layer, L)
         c = np.array([float(block_qfi(psi, phi, range(N_ENC - k))) for k in range(N_ENC)])
-        kstar = max([k for k in range(N_ENC) if c[k] > 0.5 * c[0]], default=0)
+        kstar = max([k for k in range(N_ENC) if c[k] > 0.5 * c[0]], default=0)    # last-k block, F_Q > F_Q(0)/2
         fz = float(qfi_pure(psi, Z))                          # F_Q for G = J_z, the FIXED physical generator
         fmax = float(optimal_direction(psi)[0])               # best collective direction
         rows.append((L, kstar, fz, fmax, sre(psi)))
         print(f"{lname:>16s} {L:3d} | {kstar:13d} | {fz:16.4f} {fmax:22.4f} {rows[-1][4]:8.4f}")
     tradeoff[lname] = np.array(rows)
+
+# --- CHECK of the explanation below: F_Q[J_z] = N + sum_{q != q'} <Z_q Z_q'> - (sum_q <Z_q>)^2 ---------------
+# For a stabilizer state every Pauli expectation is 0 or +-1, so F_Q[J_z] = N EXACTLY iff all one- and two-point
+# Z correlators vanish.  We check that this is what happens for every Clifford depth L >= 1.
+z_max = 0.0
+for L in range(1, L_MAX_C + 1):
+    psi, _ = encode_pipeline(N_ENC, clifford_layer, L)
+    zpsi = [apply_gate(psi, Z, [q]) for q in range(N_ENC)]
+    z1 = max(abs(float(jnp.real(jnp.vdot(psi, zq)))) for zq in zpsi)
+    z2 = max(abs(float(jnp.real(jnp.vdot(zpsi[q], zpsi[r])))) for q in range(N_ENC) for r in range(q + 1, N_ENC))
+    z_max = max(z_max, z1, z2)
+print(f"\nClifford L = 1..{L_MAX_C}: largest |<Z_q>| and |<Z_q Z_q'>| = {z_max:.1e}   (GHZ, L = 0: all <Z_q Z_q'> = 1)")
+assert z_max < 1e4 * TOL
 
 # %%
 # ==============================================================================
@@ -1087,39 +1297,49 @@ fig, axes = plt.subplots(1, 2, figsize=(11.4, 4.2))
 for j, (lname, rows) in enumerate(tradeoff.items()):
     axes[0].plot(rows[:, 0], rows[:, 2], MARKERS[j] + "-", color=PALETTE[j], ms=6, label=f"{lname}: $F_Q[J_z]$")
     axes[0].plot(rows[:, 0], rows[:, 3], MARKERS[j] + "--", color=PALETTE[j], ms=6, alpha=0.55,
-                 label=f"{lname}: $\\max_{{\\mathbf{{n}}}}F_Q$")
+                 label=f"{lname}: max over $\\mathbf{{n}}$ of $F_Q$")
     axes[1].plot(rows[:, 0], rows[:, 1], MARKERS[j] + "-", color=PALETTE[j], ms=6, label=lname)
 axes[0].axhline(N_ENC, color="0.4", ls=":", lw=1.4)
-axes[0].text(2.2, N_ENC * 1.12, "SQL $F_Q=N$", fontsize=9, color="0.35")
+axes[0].text(0.05, N_ENC * 0.86, "SQL $F_Q=N$", fontsize=9, color="0.35")
 axes[0].axhline(N_ENC ** 2, color="0.4", ls=":", lw=1.4)
 axes[0].text(2.2, N_ENC ** 2 * 0.62, "Heisenberg $F_Q=N^2$", fontsize=9, color="0.35")
 axes[0].set_yscale("log"); axes[0].set_xlabel("encoder depth $L$")
 axes[0].set_ylabel(r"$F_Q$ of the encoded probe")
 axes[0].set_title("sensitivity to a collective generator"); axes[0].legend(fontsize=8, loc="center right")
-axes[1].set_xlabel("encoder depth $L$"); axes[1].set_ylabel(r"protected losses $k^*$")
+axes[1].set_xlabel("encoder depth $L$")
+axes[1].set_ylabel(r"$k^*$: last $k$ lost, $F_Q>F_Q(0)/2$")
 axes[1].set_title("erasure protection of the imprinted phase"); axes[1].legend(fontsize=9)
 fig.suptitle(f"$N={N_ENC}$: protection (right) is paid for with sensitivity (left)", fontsize=11)
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# The trade-off is stark and it appears at the **first layer**. With no encoder the probe is a GHZ state: $F_Q=N^2=100$
-# for $G=J_z$ and no erasure protection at all. One Clifford layer buys protection against two lost qubits and takes
-# the collective QFI down to $F_Q\left[V\psi,J_z\right]=10=N$ — the standard quantum limit, exactly. Every deeper
-# Clifford encoder in the table stays at exactly $10$, and optimising the direction over the whole sphere recovers at
-# most $F_Q=13.53$, i.e. $1.35\,N$. The magic encoder behaves the same way for the physical generator: $F_Q[J_z]$
-# ranges over $8.33$–$13.50$ for $L=1,\dots,6$, never within a factor of six of $N^2$. Its optimal *direction* does
-# somewhat better at one depth ($F_Q=31.0$ at $L=2$, i.e. $3.1\,N$) — a reminder that these are small systems and that
-# a shallow non-Clifford circuit has not yet destroyed all collective correlations — but even that is a factor of three
-# below the Heisenberg value it started from.
+# The trade-off appears at the **first layer**. With no encoder the probe is a GHZ state: $F_Q=N^2=100$ for $G=J_z$ and
+# no erasure protection at all. One Clifford layer protects the last two qubits and takes the collective QFI down to
+# $F_Q\left[V\psi,J_z\right]=10=N$ — the standard quantum limit, exactly. Every deeper Clifford encoder in the table
+# stays at exactly $10$, and optimising the direction over the whole sphere recovers at most $F_Q=13.53$, i.e.
+# $1.35\,N$. The magic encoder behaves the same way for the physical generator: $F_Q[J_z]$ ranges over $8.33$–$13.50$
+# for $L=1,\dots,6$, a factor of seven or more below $N^2$. Its optimal *direction* does somewhat better at one depth
+# ($F_Q=31.0$ at $L=2$, i.e. $3.1\,N$) — these are small systems, and a shallow non-Clifford circuit has not yet removed
+# all collective correlations — but even that is a factor of three below the Heisenberg value it started from.
 #
-# The two curves in the figure go in opposite directions, which is the whole point. **What is protected is not what is
-# measured.** The encoded state is an excellent quantum memory for a phase it already holds and a mediocre probe for a
-# new one — because the operator that generated the phase in the code space, $VJ_zV^\dagger$, is a complicated
-# many-body operator, while the field in the laboratory couples through the simple $J_z$. Making a code insensitive to
-# local errors and making it sensitive to local generators are the same question with opposite signs.
+# The value "exactly $N$" has a short explanation. Expanding $4\,\mathrm{Var}(J_z)$,
 #
-# > **Physics insight.** This is the obstruction that quantum-error-corrected metrology has to work around, and the
-# > literature's answer is *not* to encode after the fact but to interleave: correct errors fast, on a time scale short
+# $$F_Q[J_z]=N+\sum_{q\neq q'}\langle Z_qZ_{q'}\rangle-\Big(\sum_q\langle Z_q\rangle\Big)^2 ,$$
+#
+# and for a stabilizer state every Pauli expectation value is $0$ or $\pm1$. The GHZ state has all $N(N-1)$ two-point
+# terms equal to $1$ (hence $N^2$); after one Clifford layer none of the strings $Z_q$, $Z_qZ_{q'}$ is $\pm$ an element of
+# the stabilizer group any more, every correlator vanishes (checked above for every $L\ge1$), and $F_Q=N$ exactly. The
+# Heisenberg value of the GHZ state sits entirely in its two-body $ZZ$ correlations; the encoder moves the corresponding
+# stabilizers to longer Pauli strings, which a sum of single-qubit generators cannot see.
+#
+# Between $L=0$ and $L=1$ the two panels of the figure move in opposite directions; beyond $L=1$ the sensitivity to
+# $J_z$ stays at the standard quantum limit whatever the protection does. **The encoded state protects a phase it
+# already holds, and is a poor probe for a new one**, because the operator that generated the phase in the code space,
+# $VJ_zV^\dagger$, is a complicated many-body operator, while the field in the laboratory couples through the simple
+# $J_z$.
+#
+# > **Physics insight.** Quantum-error-corrected metrology has to work around this obstruction, and the
+# > literature's answer is to interleave sensing and correction instead of encoding after the fact: correct errors fast, on a time scale short
 # > compared with the signal accumulation, using a code chosen so that the signal Hamiltonian is **not** inside the span
 # > of the noise (Kessler, Lovchinsky, Sushkov and Lukin 2014; Dür, Skotiniotis, Fröwis and Kraus 2014; Zhou, Zhang,
 # > Preskill and Jiang 2018). Our static experiment sits at the unfavourable end of that story on purpose: it shows
@@ -1134,7 +1354,11 @@ fig.tight_layout(); plt.show()
 # $\langle x\rangle=1$ always.
 #
 # * A **stabilizer state** has a flat spectrum: $\lambda_i=2^{-S}$ on a subspace of dimension $2^S$ and zero elsewhere.
-#   Rescaled, the spectrum is a single spike at $x=d_A2^{-S}$ plus a pile of exact zeros.
+#   (Writing $\vert\psi\rangle\langle\psi\vert=2^{-N}\sum_{P\in\mathcal S}P$ over the $2^N$ elements of the stabilizer
+#   group, the partial trace kills every element not supported on $A$, so
+#   $\rho_A=2^{-\vert A\vert}\sum_{P\in\mathcal S_A}P$ with $\mathcal S_A$ the subgroup supported on $A$; and
+#   $\vert\mathcal S_A\vert^{-1}\sum_{P\in\mathcal S_A}P$ is a projector.) Rescaled, the spectrum is a single spike at
+#   $x=d_A2^{-S}$ plus a pile of exact zeros.
 # * A **Haar-random state** at $d_A=d_B=d$ has, in the large-$d$ limit, the **Marchenko–Pastur** density with aspect
 #   ratio $\gamma=d_A/d_B=1$,
 #
@@ -1225,27 +1449,28 @@ axes[1].legend(fontsize=7.5)
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# (Everything above $x=4.4$ is clipped into the last histogram bin, which is why the Clifford and brick-wall curves have
-# a spike there.)
+# (Everything above $x=4.4$ is clipped into the last histogram bin, which is why the Clifford, the $a=\pi/8$ and the
+# brick-wall curves have a spike there.)
 #
 # The Clifford encoder ($a=0$) produces exactly what a stabilizer state must: two non-zero eigenvalues out of $128$,
 # both equal, sitting at $x=64$ — in the right panel a flat plateau that drops to zero after a rank fraction of
-# $1/64$, i.e. one bit of entanglement entropy against the Page value of $6.28$. There is nothing in between; a
-# stabilizer state's entanglement spectrum is a delta function.
+# $1/64$, i.e. one bit of entanglement entropy against the Page value of $6.28$. There is nothing in between: the
+# non-zero part of a stabilizer state's entanglement spectrum is a single degenerate level.
 #
 # Turning on the magic fills it. At $a=\pi/8$ the rank is already full ($128$ out of $128$) and the entropy has climbed
 # to $5.56$ bit, but the distribution is much broader than Marchenko–Pastur: $\mathrm{std}(x)=2.00$ against $1$, and a
 # maximum at $x=17.5$ against the Marchenko–Pastur edge at $4$. At $a=\pi/4$ the spectrum is close to the random-matrix
 # prediction — $\mathrm{std}(x)=1.05$, maximum $4.17$, entropy $6.22$ bit — and the histogram tracks the dashed curve
-# over its whole support. The Haar reference gives $\mathrm{std}(x)=1.0015$, maximum $3.95$ and entropy $6.279$ bit,
-# equal to the Page value to three decimals, while a brick wall of Haar *two-qubit* gates at depth $N$ is still far
-# from converged ($\mathrm{std}=2.46$, entropy $4.84$ bit) — a nearest-neighbour circuit needs $O(N)$ layers, and $N$
-# layers is not enough.
+# over its whole support. The Haar reference gives $\mathrm{std}(x)=1.0015$, maximum $3.95$ and entropy $6.2785$ bit,
+# equal to the Page value $6.279$ to within $10^{-3}$, while a brick wall of Haar *two-qubit* gates with $N=14$ layers
+# (one layer = the even or the odd bonds) is still far from converged ($\mathrm{std}=2.46$, entropy $4.84$ bit): the
+# entanglement of a nearest-neighbour circuit grows at a finite rate per layer, and $14$ layers are not enough at
+# $N=14$.
 #
-# So magic is exactly what a Clifford circuit lacks in order to produce a random-matrix entanglement spectrum — which
-# is the Gottesman–Knill statement seen from the side of spectral statistics, and it explains point 1 of Section 10
-# completely. A flat spectrum can only give an all-or-nothing answer to Eq. (17); magic is what makes the loss curve
-# smooth. What it is *not* is a measure of how much metrological information survives.
+# So a Clifford circuit, however deep, cannot produce a random-matrix entanglement spectrum: by the projector argument
+# above its spectra stay flat, and the non-Clifford rotations are what fill them in. This is the spectral counterpart
+# of the staircase of Sections 9–10, whose derivation (Section 9.1) used the same stabilizer structure. What magic is
+# *not* is a measure of how much metrological information survives.
 
 # %% [markdown]
 # ## 13. Cost
@@ -1259,7 +1484,7 @@ fig.tight_layout(); plt.show()
 # | encoder layer | $N$ one-qubit and $N-1$ two-qubit einsums | $O(N2^N)$ | $O(2^N)$ |
 # | half-cut spectrum | one SVD of a $2^{N/2}\times2^{N/2}$ matrix | $O(2^{3N/2})$ | $O(2^N)$ |
 #
-# The magic calculation is the wall: $4^N$ grows so fast that $N=12$ costs $256$ times $N=8$. The subsystem QFI is
+# The magic calculation is the wall: $N4^N$ grows so fast that $N=12$ costs $4^4\cdot12/8=384$ times $N=8$. The subsystem QFI is
 # cheap *because* of the compression, and the table below shows by how much.
 
 # %%
@@ -1289,19 +1514,20 @@ for N in (6, 8, 10, 12):
     print(f"{N:3d} {4 ** N:12d} | {t1 - t0:16.3f} {t2 - t1:10.3f}")
 
 # %% [markdown]
-# Compression is what makes this notebook possible at all: the physically interesting regime is "one or two particles
-# lost", i.e. $K$ close to $N$, which is precisely where the naive $O(8^K)$ eigendecomposition explodes. The measured
-# compressed time is symmetric about the balanced cut, as $O\!\left(8^{\min(K,N-K)}\right)$ predicts — it peaks at
-# $K=6$ and falls again — while the naive route keeps growing and is about twenty times slower at $K=8$. For $K\ge10$
+# Compression matters most where the physics is: the interesting regime is "one or two particles lost", i.e. $K$ close
+# to $N$, which is precisely where the naive $O(8^K)$ eigendecomposition explodes. The measured compressed time peaks
+# at the balanced cut $K=6$ and falls on both sides, as $O\!\left(8^{\min(K,N-K)}\right)$ predicts (it is not exactly
+# symmetric, because for $K>N/2$ the QR of a $2^K\times2^{N-K+1}$ matrix adds its own cost), while the naive route
+# keeps growing and is twenty to thirty times slower at $K=8$ (the exact factor varies between runs on a shared machine). For $K\ge10$
 # the naive version is not run at all: it would diagonalise a $1024\times1024$ matrix that we know in advance has rank
 # at most $4$.
 #
 # The magic timings show the $4^N$ wall arriving. Once compilation is separated from execution, the run time climbs
-# from a few microseconds at $N=6$ — where the measurement is Python dispatch, not arithmetic — to of order a second
-# at $N=12$, the last step alone worth a factor of twenty to thirty, in line with the asymptotic $16\times$ per two
+# from a few milliseconds at $N=6$ — where the measurement is Python dispatch, not arithmetic — to of order a second
+# at $N=12$ (the $N=10$ program was already compiled for the zoo, hence its small first-call time), the last step alone worth a factor of twenty to thirty, in line with the asymptotic $16\times$ per two
 # qubits times the extra $N/(N-2)$. Each further pair of qubits costs another factor of that size, which is why the
-# magic experiments stop at $N=10$ while the entanglement spectra and the quantum Fisher information run comfortably
-# at $N=14$.
+# magic experiments stop at $N=10$ while the entanglement spectra run comfortably at $N=14$ and the subsystem QFI at
+# $N=12$.
 
 # %% [markdown]
 # ## 14. Key takeaways
@@ -1309,7 +1535,7 @@ for N in (6, 8, 10, 12):
 # * **Loss is a partial trace, and the QFI of the survivors is the SLD formula on the reduced state.** For a generator
 #   that is a sum of single-qubit terms the problem is purely local: $\partial_\theta\rho_A=-i[G_A,\rho_A]$, so the
 #   survivors behave as if only their own share of the generator existed (Eq. 3, verified against `qfi_mixed` to
-#   $10^{-13}$). For a general generator, carry a **tangent vector** $\vert\phi\rangle=G\vert\psi\rangle$ alongside the
+#   better than $10^{-13}$). For a general generator, carry a **tangent vector** $\vert\phi\rangle=G\vert\psi\rangle$ alongside the
 #   state and use $\partial_\theta\rho_A=-i(T-T^\dagger)$, $T=\Phi\Psi^\dagger$ (Eq. 4).
 # * **Four loss laws, derived and confirmed exactly.** Product: $F_Q=K$. GHZ with its own generator: $F_Q=0$ for every
 #   $k\ge1$; re-optimised to $J_x$: $F_Q=K$ exactly, the standard quantum limit of the survivors. Dicke:
@@ -1319,21 +1545,23 @@ for N in (6, 8, 10, 12):
 #   survivors still beat their own standard quantum limit is $5$ for the optimally squeezed probe, $4$ for the W state,
 #   $3$ for the over-squeezed and half-filled Dicke probes, $2$ for the Haar-random state and $0$ for GHZ, the cat and
 #   the product state. Relative retention ranks the useless product state first.
-# * **The spectrum of the survivors does not decide.** Four probes leave exactly the same rank-$2$ spectrum
-#   $(0.5,0.5)$ after one loss and give $F_Q=0$ (GHZ), $0$ (cat), $24.0$ (Dicke $N/2$) and $9.2$ (Haar). What decides
+# * **The spectrum of the survivors does not decide.** Three probes leave exactly the same rank-$2$ spectrum
+#   $(0.5,0.5)$ after one loss and give $F_Q=0$ (GHZ), $0$ (cat) and $24.0$ (Dicke $N/2$). What decides
 #   is whether $G_A$ has matrix elements out of the support of $\rho_A$ — Eq. (13) — i.e. whether the generator can
 #   still move the survivors.
 # * **Magic does not predict robustness.** Over the probe zoo the two zero-magic stabilizer states sit at opposite ends
-#   of the ranking, and the Pearson correlations between $M_2$ and the two figures of merit are weak. What magic *does*
-#   control is the **shape** of the loss curve: stabilizer codewords have flat reduced spectra, so Eq. (17) allows only
-#   "coherence intact" or "coherence gone", and the loss curve is a staircase; any non-Clifford encoder makes it
-#   continuous.
+#   of the ranking, and eight hand-picked probes support no correlation. What magic *does* change is the **shape** of
+#   the loss curve: for a stabilizer code the survivors can measure all, none or exactly one logical operator, so
+#   $F_Q$ is $0$ or $N^2$ (Section 9.1) and the loss curve is a staircase; the non-Clifford encoders give intermediate
+#   values.
 # * **A phase can be protected.** Imprinting on GHZ and then encoding with $L$ Clifford layers makes the probe an
-#   erasure code: at $N=10$ the full $F_Q=N^2$ survives the loss of $k^*=0,2,4,5,4,3,3$ qubits for $L=0,\dots,6$, with
-#   nothing in between. The protection is non-monotone in depth — a longer circuit is not a better code.
+#   erasure code: at $N=10$ the full $F_Q=N^2$ survives the loss of the last $k^*=0,2,4,5,4,3,3$ qubits for
+#   $L=0,\dots,6$, with nothing in between. Over *all* erasure patterns the guaranteed protection is only
+#   $0,0,1,1,2,2,1$. Both are non-monotone in depth — a longer circuit is not automatically a better code — and
+#   $F_Q=N^2$ at $\theta=0$ is not the same as a correctable erasure (the $\bar X$-only and $\bar Y$-only cases).
 # * **Protection is paid for in sensitivity.** The same Clifford encoders take the collective quantum Fisher
-#   information of the encoded state from $F_Q[J_z]=N^2=100$ down to exactly $N=10$ at $L=1$ and keep it there, with at
-#   most $1.35\,N$ recoverable by optimising the generator direction. What the code protects (a phase already written
+#   information of the encoded state from $F_Q[J_z]=N^2=100$ down to exactly $N=10$ at $L=1$ and keep it there (all
+#   one- and two-point $Z$ correlators vanish), with at most $1.35\,N$ recoverable by optimising the generator direction. What the code protects (a phase already written
 #   into the logical qubit) is not what a magnetometer needs (sensitivity to a local field).
 # * **Magic is what a flat spectrum lacks.** The half-cut entanglement spectrum of a Clifford-encoded state is a single
 #   degenerate level; at maximal magic the same circuit produces a spectrum that follows the Marchenko–Pastur law
@@ -1344,31 +1572,42 @@ for N in (6, 8, 10, 12):
 #
 # 1. ★ **Read the loss laws.** Using Eq. (12), compute $F_Q$ of a W state of $N=100$ atoms after losing $1$, $10$ and
 #    $50$ atoms, and find the largest $k$ for which the survivors still beat their own standard quantum limit $K$.
-#    Compare with the exact GHZ answer of Eq. (7). Which probe would you fly on a satellite?
+#    Compare with the exact GHZ answer of Eq. (7) and state which probe has the larger $F_Q$ after $1\%$ and after
+#    $10\%$ of the atoms are lost. (Check: $F_Q=289.12$, $217.8$, $49$; the last $k$ is $49$.)
 # 2. ★ **The other Dicke states.** Evaluate `dicke_loss_qfi(12, M, K)` for $M=1,2,3,6$ and all $K$, and plot the loss
-#    budget against $M$. Is half filling optimal for robustness as it is for $F_Q$ itself?
-# 3. ★★ **Which qubits matter? (extend the code).** `block_qfi` accepts an arbitrary set of kept qubits. For the
-#    Clifford-encoded probe at $L=2$, $N=10$, compute $F_Q$ for every *contiguous* erased block of size $k=3$ and for
-#    $20$ random erasure patterns of the same size. Does the position of the erased block matter, and can you predict
-#    which patterns are correctable from the structure of the encoder?
-# 4. ★★ **A better metric (physics).** Define the loss budget with a threshold: $k_\epsilon=\max\{k:F_Q(k)>\epsilon N^2\}$.
-#    Recompute the zoo ranking for $\epsilon=0.5,0.1,0.01$ and describe how the ranking changes. Which probes are robust
-#    to a redefinition of "useful"?
+#    budget $k_{\rm SQL}$ against $M$. Is half filling optimal for robustness as it is for $F_Q$ itself?
+#    (Check: $F_Q(0)=34,52,66,84$ and $k_{\rm SQL}=5,4,4,4$.)
+# 3. ★★ **Which qubits matter (extend the code).** `block_qfi` accepts an arbitrary set of kept qubits. For the
+#    Clifford-encoded probe at $L=2$, $N=10$, compute $F_Q$ for every *contiguous* erased block of size $k=3$, and list
+#    the fatal ones. Use `logicals_on` of Section 9.2 to name, for each fatal block, the logical operator it supports,
+#    and relate the answer to the light cone of the encoder (each layer moves information by at most two sites).
+# 4. ★★ **A threshold metric (physics).** Define the loss budget with a threshold:
+#    $k_\epsilon=\max\{k:F_Q(k)>\epsilon N^2\}$, and set $k_\epsilon=-1$ when even the intact probe has
+#    $F_Q(0)\le\epsilon N^2$. Recompute the zoo ranking for $\epsilon=0.5,0.1,0.01$ and describe how the ranking changes.
+#    Which probes are robust to a redefinition of "useful"?
 # 5. ★★ **Magic of the codewords (extend the code).** Section 10 measured the magic of the encoded *probe*. Measure
 #    instead the magic of the two codewords $\vert\bar0\rangle$ and $\vert\bar1\rangle$ separately along the
 #    `magic_layer` family, and check whether the loss curve is a staircase exactly when both codewords are stabilizer
 #    states.
-# 6. ★★ **Depth is not distance (physics).** Section 9 found $k^*$ non-monotone in $L$. For $L=1,\dots,8$, compute the
-#    Pauli support of $VZ_0V^\dagger$ (apply $V$ to the tangent vector of a single $Z_0$ and inspect the one-qubit
-#    reduced states, or expand in Pauli strings as in notebook 35) and test the prediction that the erasure of the last
-#    $k$ qubits is fatal as soon as some transformed logical operator fits inside them.
+# 6. ★★ **Depth is not distance (physics).** For the Clifford encoder and $L=1,\dots,8$, find the smallest erasure
+#    pattern that is fatal at $\theta=0$ (scan $k=1,2,3$ with `logicals_on`), print which logical operator
+#    ($\bar X$, $\bar Y$ or $\bar Z$) it supports, and plot the guaranteed protection of Section 9.2 against $L$. Then
+#    verify the $\bar X$-only row of the table of Section 9.1 directly: for one such pattern, plot $F_Q$ of the survivors
+#    against $\theta\in[0,0.1]$ with `encode_pipeline_theta` and confirm that it is $0$ at $\theta=0$ and $N^2$ at every
+#    $\theta\neq0$ (the classical Fisher information $\sin^2\varphi/(1-\cos^2\varphi)$ of Section 9.1).
 # 7. ★★★ **Optimal robust probe (extend the code).** Parametrise a state in the symmetric (Dicke) subspace of $N=10$ by
-#    $N+1$ real amplitudes, and maximise $F_Q$ of the survivors after $k=2$ losses with `jax.grad` and Adam. How close
-#    to $N^2$ can a probe get while surviving two lost particles, and where does the optimum sit between the squeezed
-#    state and the cat?
-# 8. ★★★ **Interleaved correction (extend the code).** Replace the single encoding step of Eq. (15) by $M$ alternating
-#    rounds of "imprint $\theta/M$ with $J_z$" and "apply one Clifford layer". Measure $F_Q$ of the survivors after the
-#    loss of $k$ qubits as a function of $M$, and compare with the two extremes $M=1$ (Section 9) and $M\to\infty$.
+#    $N+1$ real amplitudes, $\vert\psi\rangle\propto\sum_Mc_M\vert D_N^M\rangle$, and maximise $F_Q$ of the survivors after
+#    the loss of $k=2$ qubits, for the generator $J_z$. The reduced state has many exactly zero eigenvalues, where the
+#    derivative of `eigh` is undefined: either use a derivative-free optimiser (e.g. `scipy.optimize.minimize` with
+#    `method="Powell"`, several random starts) or regularise $\rho_A\to\rho_A+\epsilon\mathbb 1$ with $\epsilon\sim10^{-8}$
+#    before differentiating with `jax.grad`. Compare the optimum with the squeezed probe of Section 5 at $k=2$.
+#    (Check: the optimum is $F_Q\approx16.0$, against $15.96$ for the optimally squeezed probe and $13.71$ for the
+#    Dicke state; its intact value is $F_Q(0)\approx40$.)
+# 8. ★★★ **Interleaved imprinting (extend the code).** Replace the single imprint-then-encode step of Eq. (15) by $R$
+#    rounds of "imprint $\theta/R$ with $J_z$, then apply one Clifford layer", for $R=1,\dots,6$. The tangent vector at
+#    $\theta=0$ is $\frac1R\sum_{r=1}^{R}V^{R-r+1}J_zV^{r-1}\vert\mathrm{GHZ}\rangle$ ($V$ = one layer). Measure the full
+#    $F_Q$ and $F_Q$ of the survivors after the loss of the last $k$ qubits, and compare with the two extremes of the
+#    same total depth: all imprinting first (Section 9, $L=R$) and all encoding first (Section 11, $F_Q[V^R\psi,J_z]$).
 #    Does interleaving recover any of the sensitivity lost in Section 11?
 #
 # ## 16. References
@@ -1401,10 +1640,13 @@ for N in (6, 8, 10, 12):
 #   the way around the obstruction of Section 11.
 # * L. Leone, S. F. E. Oliviero and A. Hamma, *Stabilizer Rényi entropy*, Phys. Rev. Lett. **128**, 050402 (2022) —
 #   the definition of $M_\alpha$, Eq. (14), and its properties as a magic monotone.
-# * D. Gottesman, *The Heisenberg representation of quantum computers*, arXiv:quant-ph/9807006 (1998) — why stabilizer
-#   states are classically simulable, and hence why their entanglement spectra are flat.
+# * D. Gottesman, *The Heisenberg representation of quantum computers*, in *Group22: Proceedings of the XXII
+#   International Colloquium on Group Theoretical Methods in Physics*, eds. S. P. Corney, R. Delbourgo and P. D. Jarvis
+#   (International Press, Cambridge MA, 1999), pp. 32–43; arXiv:quant-ph/9807006 — the stabilizer formalism and the
+#   Gottesman–Knill theorem (Clifford circuits acting on stabilizer states are classically simulable), on which
+#   Sections 9.1 and 12 rely.
 # * V. A. Marchenko and L. A. Pastur, *Distribution of eigenvalues for some sets of random matrices*,
-#   Mat. Sb. **72(114)**, 507 (1967) — the law of Eq. (19) itself (a statement about random matrices, not about
+#   Mat. Sb. **72(114)**, 507–536 (1967); English translation Math. USSR-Sb. **1**, 457 (1967) — the law of Eq. (19) itself (a statement about random matrices, not about
 #   quantum states), and B. Collins and I. Nechita, *Random matrix techniques in quantum information theory*,
 #   J. Math. Phys. **57**, 015215 (2016) — the review that derives the reduced density matrix of a Haar-random
 #   bipartite pure state as a normalised Wishart matrix and hence its Marchenko–Pastur spectrum.

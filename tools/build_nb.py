@@ -150,7 +150,9 @@ class Engine:
         header = ('#| code-fold: true\n#| code-summary: "Engine recap — the simulator primitives used in this notebook '
                   '(click to expand)"\n'
                   "# ==============================================================================\n"
-                  "# ENGINE RECAP  (auto-generated from quantum_engine.py -- derived step by step in Part 0)\n"
+                  "# ENGINE RECAP  (copied from quantum_engine.py, the SmoQ.jax engine)\n"
+                  "# Every function below is explained, with its mathematics and an independent check, in\n"
+                  "# notebook 08b (Chapter 3), 'Building the quantum simulator engine'.\n"
                   "# States are rank-N tensors of shape (2,)*N; every operator acts through ONE einsum.\n"
                   "# ==============================================================================\n")
         if show:   # Part 0: the function was just derived in the notebook -> show its final engine form, unfolded

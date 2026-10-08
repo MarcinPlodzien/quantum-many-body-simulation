@@ -12,7 +12,8 @@
 # obtain $\nabla C$. This notebook builds the classical half — the rule that turns a gradient into the next set of angles —
 # and then measures which rules actually work.
 #
-# The problem is harder than "run gradient descent" for three reasons that are specific to variational quantum algorithms.
+# Three features of variational quantum algorithms make the choice of this rule more delicate than in an ordinary
+# smooth minimisation.
 #
 # 1. **Every evaluation is expensive.** On hardware a single number $C(\boldsymbol\theta)$ costs thousands of circuit
 #    executions. An optimiser that converges in 50 iterations but needs $2n$ circuits per iteration may be worse than one
@@ -20,8 +21,9 @@
 # 2. **The cost is noisy.** It is an average over a finite number of measurements, so the "function" being minimised is a
 #    random variable. Classical optimisers built on the assumption of exact function values — line searches, quasi-Newton
 #    curvature estimates — degrade badly.
-# 3. **The landscape is not convex.** Section 6 of the previous notebook showed it is a bounded trigonometric polynomial
-#    with many local minima, and the number of minima grows with the circuit depth.
+# 3. **The landscape is not convex.** Section 6 of the previous notebook showed that the cost is a bounded trigonometric
+#    polynomial of the angles, and its two-angle map already has several local minima. Section 14 below measures how
+#    often random starts end in one of them, and how that depends on the circuit depth.
 #
 # **Road map.** Every optimiser is introduced the same way: the update equation, a derivation or a motivation for it, a
 # from-scratch implementation in engine style, and a measurement.
@@ -38,17 +40,18 @@
 # 7. **Training loops** compiled with `lax.scan` and batched over random initialisations with `vmap` (Section 10), and a
 #    learning-rate sweep so that every hyper-parameter used later is one that was *measured* to be good (Section 11).
 # 8. **Benchmark 1**: preparing a GHZ state by fidelity maximisation — medians and quantile bands over 24 random starts,
-#    iterations and circuit evaluations to a target accuracy, success probability (Section 12).
+#    iterations and circuit evaluations to a target accuracy, success probability with a confidence interval (Section 12).
 # 9. **Benchmark 2**: the ground energy of a transverse-field Ising chain against the exact Lanczos value, with exact
-#    costs and with shot-noisy costs at three shot budgets (Section 13).
+#    costs, a longer iteration budget as a control, and shot-noisy costs at three shot budgets (Section 13).
 # 10. **Local minima and depth**: success probability against the number of layers, on a hard Haar-random target
 #     (Section 14), and a practical guidance table containing only what was measured (Section 15).
 #
 # ### What you will learn
 #
 # *Physics and optimisation theory*
-# * why the largest curvature of the landscape sets a hard upper bound on the step size, and why the *condition number*
-#   sets the convergence rate;
+# * why the largest curvature of the landscape sets a hard upper bound on the step size of gradient descent (and, with a
+#   different constant, of heavy-ball momentum), why Adam has no such threshold, and why the *condition number* sets the
+#   convergence rate;
 # * why momentum turns a rate $1-2/\kappa$ into $1-2/\sqrt\kappa$, and what that means in iterations;
 # * why a stochastic gradient forces a *decreasing* step size, and which decay exponents are admissible;
 # * what the quantum natural gradient corrects: the difference between distance in *parameter* space and distance in
@@ -63,7 +66,9 @@
 #
 # *Implementation practice*
 # * `lax.scan` with a loop counter as `xs`, so that iteration-dependent gain schedules compile;
-# * nested `vmap` (over learning rates and over initialisations) to turn a 48-compile sweep into one compile;
+# * nested `vmap` (over learning rates and over initialisations) so that a sweep over eight learning rates compiles once
+#   per optimiser instead of eight times;
+# * timing a compiled program with its compilation separated from its run (`jit(...).lower(...).compile()`);
 # * `jax.jacfwd` through a circuit to build a metric tensor, and `jnp.linalg.solve` with a regulariser inside a scan.
 #
 # ### Prerequisites
@@ -95,7 +100,7 @@
 # and the engine's `adam_init`/`adam_update` as the reference implementation that our from-scratch Adam must reproduce.
 
 # %%
-#@engine: apply_gate, rx, ry, rz, X, Y, Z, CZ, zero_state, ghz_state, haar_state, fidelity_pure, expect_local, sample_bitstrings, heisenberg_terms, apply_hamiltonian, energy, dense_hamiltonian, lanczos_ground_state, hea_num_params, hardware_efficient_ansatz, parameter_shift_grad, spsa_grad, adam_init, adam_update
+#@engine: apply_gate, rx, ry, rz, X, Y, Z, CZ, zero_state, ghz_state, haar_state, fidelity_pure, expect_local, sample_bitstrings, heisenberg_terms, apply_hamiltonian, energy, dense_hamiltonian, lanczos_ground_state, hea_num_params, hardware_efficient_ansatz, adam_init, adam_update
 
 # %%
 # ==============================================================================
@@ -156,7 +161,7 @@ def summarise(name, hist, target, evals_per_iter):
 # * $\kappa\equiv\lambda_{\max}/\lambda_{\min}$, the **condition number** — it limits how fast the error can shrink.
 #
 # For a circuit landscape both are computable: $C$ is an ordinary JAX function, so `jax.hessian` returns
-# $\mathbf H$ exactly. On hardware neither is available cheaply, which is precisely why the optimisers below are built to
+# $\mathbf H$ exactly. On hardware neither is available cheaply, which is why the optimisers below are built to
 # need as little curvature information as possible.
 #
 # ### Test problem: a diagonal quadratic
@@ -166,7 +171,7 @@ def summarise(name, hist, target, evals_per_iter):
 # $$f(\mathbf x)=\tfrac12\sum_{i}\lambda_ix_i^2 ,\qquad \nabla f=\boldsymbol\lambda\odot\mathbf x, \tag{2}$$
 #
 # whose Hessian is $\mathrm{diag}(\boldsymbol\lambda)$, whose minimum is $\mathbf x=0$ with $f=0$, and whose condition
-# number is $\kappa=\lambda_{\max}/\lambda_{\min}$ by construction. Any diagonalisable quadratic is equivalent to this one
+# number is $\kappa=\lambda_{\max}/\lambda_{\min}$ by construction. Any quadratic with a symmetric Hessian is equivalent to this one
 # after an orthogonal change of variables, so nothing is lost.
 
 # %%
@@ -220,8 +225,15 @@ print(f"  condition number    kappa = {kappa_quad:.1f}")
 # $$\lvert1-\eta\lambda_i\rvert<1\ \ \forall i
 #   \quad\Longleftrightarrow\quad 0<\eta<\frac{2}{\lambda_{\max}}=\frac{2}{L}. \tag{5}$$
 #
-# Equation (5) is a **hard threshold**, not a guideline: at $\eta=2/L$ the largest-curvature component oscillates forever
-# with constant amplitude; above it the method diverges geometrically, and no amount of patience helps.
+# Equation (5) is a **hard threshold** for gradient descent: at $\eta=2/L$ the largest-curvature component oscillates
+# forever with constant amplitude, and above it that component grows geometrically, by the factor $\eta L-1>1$ per step.
+# On a circuit landscape the cost is bounded, so "diverges" means that the iterate is thrown out of the basin of the
+# minimum; it cannot run off to infinity. The bound is local: it uses the curvature at the minimum and says nothing about
+# steps taken far from it.
+#
+# Equation (5) is specific to the update rule of Eq. (3). Heavy-ball momentum (Section 5) has a bound with a different
+# constant, and Adam (Section 6) has no threshold of this kind at all, because its step length does not scale with the
+# gradient; both statements are derived and measured below.
 #
 # The *rate* is set by the slowest component. The contraction factor is
 # $\rho(\eta)=\max_i\lvert1-\eta\lambda_i\rvert=\max\{\lvert1-\eta\lambda_{\min}\rvert,\lvert1-\eta\lambda_{\max}\rvert\}$,
@@ -274,6 +286,9 @@ print(f"  predicted contraction per step rho*   = {(kappa_quad - 1) / (kappa_qua
 h_best = np.maximum(np.asarray(hist_lr[int(np.argmin(np.where(converged, final, np.inf)))]), 1e-300)
 rho_meas = float(np.exp(np.polyfit(np.arange(150, 300), np.log(h_best[150:300]), 1)[0] / 2))
 print(f"  measured contraction per step         = {rho_meas:.4f}   (from the slope of log f over steps 150-300)")
+rho_at_best = max(abs(1 - lr_best * float(jnp.min(LAMS))), abs(1 - lr_best * L_quad))     # Eq. (6) at the measured lr
+print(f"  Eq. (6) at the measured lr: max|1 - lr*lambda| = {rho_at_best:.4f}")
+assert abs(lr_threshold - 2 / L_quad) <= float(lrs[1] - lrs[0]) + 1e-12 and abs(rho_meas - rho_at_best) < 1e-3
 
 fig, axes = plt.subplots(1, 2, figsize=(11.5, 4.2))
 axes[0].semilogy(np.asarray(lrs), np.where(converged, final, np.nan), "o-", ms=4, color=PALETTE[0],
@@ -294,12 +309,15 @@ axes[1].set_title("Convergence, marginal stability, divergence"); axes[1].legend
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# Three predictions, three confirmations. The largest learning rate on the $0.01$ grid for which the cost still fell over
-# 300 steps is $0.40$, which is $2/L$ to the resolution of the grid; the run at $\eta=0.42$ in the right panel grows
-# without bound instead. The best learning rate found by the sweep, $0.38$, is the grid point next to the predicted
-# $2/(\lambda_{\min}+\lambda_{\max})=0.3846$. And the contraction factor measured from the slope of $\log f$ over steps
-# 150 to 300 is $0.9240$, against the $\rho_\star=(\kappa-1)/(\kappa+1)=0.9231$ of Eq. (6) — four significant figures of
-# agreement for a formula derived in three lines.
+# All three predictions are confirmed. The largest learning rate on the $0.01$ grid for which the cost fell over
+# 300 steps is $0.40=2/L$ itself. That grid point is the marginal case of Eq. (5): the $\lambda=5$ component keeps its
+# amplitude ($\lvert1-0.4\cdot5\rvert=1$), so $f$ does not go to zero but settles at $\tfrac12\cdot5\cdot1^2=2.5$, below the
+# starting value $f(\mathbf x_0)=4.35$; the criterion "the cost fell" therefore counts it as converged although it is not
+# (Exercise 1 makes this precise). The run at $\eta=0.42$ in the right panel grows without bound. The best learning rate
+# of the sweep, $0.38$, is the grid point next to the predicted $2/(\lambda_{\min}+\lambda_{\max})=0.3846$. At
+# $\eta=0.38$ Eq. (6) gives the contraction factor $\max(\lvert1-0.38\cdot0.2\rvert,\lvert1-0.38\cdot5\rvert)=0.9240$, and
+# the slope of $\log f$ over steps 150 to 300 gives $0.9240$; the optimum of Eq. (6), reached at $\eta_\star$ exactly, is
+# $\rho_\star=(\kappa-1)/(\kappa+1)=0.9231$.
 #
 # ### 4.3 The same threshold on a circuit landscape
 #
@@ -356,6 +374,7 @@ grew = ~(np.isfinite(hc[:, -1])) | (hc[:, -1] > hc[:, 0])
 first_bad = float(lrs_c[int(np.argmax(grew))]) if grew.any() else float("nan")
 print(f"  measured: the smallest lr on the grid for which the cost did NOT fall over 200 steps = {first_bad:.4f}")
 print(f"            (grid spacing {float(lrs_c[1] - lrs_c[0]):.4f})")
+assert 0 < first_bad - 2 / L_circ <= float(lrs_c[1] - lrs_c[0])           # the first failing grid point brackets 2/L
 
 fig, ax = plt.subplots(figsize=(6.6, 4.2))
 ax.semilogy(np.asarray(lrs_c), np.maximum(hc[:, -1], 1e-18), "o-", ms=4, color=PALETTE[0],
@@ -368,13 +387,19 @@ fig.tight_layout(); plt.show()
 
 # %% [markdown]
 # Adam brings the infidelity to $9\cdot10^{-6}$ with a residual gradient norm of $7\cdot10^{-3}$: close to a minimum, but
-# not exactly at one — which is why the smallest Hessian eigenvalue comes out slightly negative, at $-1.3\cdot10^{-3}$,
-# rather than at zero. The largest is $3.46$, and only $22$ of the $32$ eigenvalues exceed $10^{-6}$: **ten directions are
-# flat**, because the hardware-efficient ansatz has more angles than the state it prepares has degrees of freedom.
+# not exactly at one, which is why the smallest Hessian eigenvalue comes out slightly negative, at $-1.3\cdot10^{-3}$,
+# rather than at zero. The largest is $3.46$, and only $22$ of the $32$ eigenvalues exceed $10^{-6}$: **the landscape is
+# flat in about ten directions** around this minimum. Counting parameters explains only two of them: a normalised
+# four-qubit state up to a global phase has $2\cdot2^4-2=30$ real degrees of freedom, so 32 angles have at least two
+# redundant combinations, and at a random point the metric of Section 9 indeed has rank 30. The other flat directions
+# appear because the GHZ state is a special point of the ansatz, where the map from angles to states loses rank;
+# Section 9 shows that at an exact minimum the Hessian equals twice the metric tensor, and measures that rank.
 #
 # The prediction that matters is the threshold. Gradient descent restarted near that point converges for learning rates
-# below $2/\lambda_{\max}=0.577$ and stops converging above it; on a grid of spacing $0.043$ the transition is measured at
-# $0.592$, one grid step away. The quadratic theory of Section 4.2 is not an analogy here; it is the local truth.
+# below $2/\lambda_{\max}=0.577$ and stops converging above it; on a grid of spacing $0.043$ the first failing grid point
+# is $0.592$, and the last converging one is $0.548$, so the measured threshold lies between the two grid points that
+# bracket the prediction. Near a minimum the quadratic model of Section 4.2 describes the circuit landscape
+# quantitatively.
 #
 # > **Numerical practice.** The flat directions matter. A Hessian with a null space means the minimum is a *manifold*, not
 # > a point: many different angle vectors prepare the same state. Optimisers do not need to break that degeneracy, but any
@@ -460,8 +485,10 @@ for kap in kappas:
     n_gd = int(iterations_to(h_gd[None, :], TARGET_Q)[0])
     n_hb = int(iterations_to(h_hb[None, :], TARGET_Q)[0])
     it_gd.append(n_gd); it_hb.append(n_hb)
-    # f ~ x^2 ~ rho^{2k}: to fall from f0 to the target takes k = ln(f0/target) / (-2 ln rho) iterations
-    p_gd = np.log(f0 / TARGET_Q) / (-2 * np.log((kap - 1) / (kap + 1)))
+    # GD: at large k only the two extreme components survive, both with |1 - eta lam| = rho, so
+    #     f_k -> 0.5 (lmin + lmax) rho^{2k}  and the target is reached at k = ln(0.5 (lmin+lmax)/target) / (-2 ln rho)
+    # HB: the same estimate with f0 in place of the prefactor (Eq. (9) gives only the asymptotic rate)
+    p_gd = np.log(0.5 * (lmin + lmax) / TARGET_Q) / (-2 * np.log((kap - 1) / (kap + 1)))
     p_hb = np.log(f0 / TARGET_Q) / (-2 * np.log((np.sqrt(kap) - 1) / (np.sqrt(kap) + 1)))
     print(f"{kap:8.0f} | {n_gd:12d} {p_gd:13.0f} | {n_hb:12d} {p_hb:13.0f}"
           f" | {n_gd / n_hb:7.1f} {np.sqrt(kap):12.1f}")
@@ -478,19 +505,25 @@ ax.legend(fontsize=8)
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# The gradient-descent column is a near-perfect match: $15$, $64$, $277$, $1195$, $5135$ measured against $16$, $68$,
-# $289$, $1233$, $5253$ predicted, over two and a half decades of condition number. The heavy-ball column tracks its
-# prediction in shape but sits about $1.5$ times above it — $9$, $23$, $53$, $118$, $260$ against $7$, $17$, $36$, $77$,
-# $164$ — because Eq. (9) is the *asymptotic* contraction and ignores the transient before the geometric regime sets in.
+# The gradient-descent column agrees with the prediction to within one iteration: $15$, $64$, $277$, $1195$, $5135$
+# measured against $14$, $64$, $277$, $1195$, $5134$, over two and a half decades of condition number. The prediction uses
+# the fact that at large $k$ only the two extreme components survive, both with $\lvert1-\eta_\star\lambda\rvert=\rho_\star$,
+# so $f_k\to\tfrac12(\lambda_{\min}+\lambda_{\max})\rho_\star^{2k}$.
 #
-# The cleanest statement is the ratio in the last two columns. If gradient descent costs $O(\kappa)$ and heavy ball
-# $O(\sqrt\kappa)$, their ratio must grow as $\sqrt\kappa$ — and the measured ratios $1.7$, $2.8$, $5.2$, $10.1$, $19.8$
-# sit at a constant $0.85$ times $\sqrt\kappa=2,4,8,16,32$. At $\kappa=1024$ that is the difference between five thousand
-# iterations and two hundred and sixty, and on hardware each iteration is thousands of circuit executions.
+# The heavy-ball column sits above its prediction by a factor that grows with $\kappa$, from $1.3$ to $1.6$: $9$, $23$,
+# $53$, $118$, $260$ against $7$, $17$, $36$, $77$, $164$. The reason is a property of the optimal parameters of Eq. (9).
+# They are chosen so that the discriminant $(1+\beta-\eta\lambda)^2-4\beta$ of the characteristic polynomial vanishes at
+# $\lambda_{\min}$ and at $\lambda_{\max}$. There the two roots coincide, $\mathbf T(\lambda)$ cannot be diagonalised, and the
+# component decays as $(a+bk)\rho_\star^k$ instead of $\rho_\star^k$ (a critically damped oscillator). The extra factor
+# $k$ costs about $\ln k/\ln(1/\rho_\star)\approx\tfrac12\sqrt\kappa\ln k$ additional iterations, an amount that grows with
+# $\kappa$; the prediction column, which uses the rate alone, does not contain it.
 #
-# Both curves are slightly steeper than the pure power laws drawn for reference, for a reason that has nothing to do with
-# the optimisers: the starting value $f(\mathbf x_0)=\tfrac12\sum_i\lambda_i$ itself grows with $\kappa$, so the harder
-# problems also start further from the target.
+# The ratio in the last two columns grows as $\sqrt\kappa$ to within the same correction: the measured ratios $1.7$, $2.8$,
+# $5.2$, $10.1$, $19.8$ are $0.83$, $0.70$, $0.65$, $0.63$, $0.62$ times $\sqrt\kappa=2,4,8,16,32$, a prefactor that drifts
+# down slowly because of the $\ln k$ term. At $\kappa=1024$ that is the difference between five thousand iterations and
+# two hundred and sixty, and on hardware each iteration costs thousands of circuit executions. Both measured curves are
+# also slightly steeper than the reference power laws because the starting value $f(\mathbf x_0)=\tfrac12\sum_i\lambda_i$
+# grows with $\kappa$.
 #
 # > **Common pitfall.** Equation (9) needs $\kappa$, which nobody knows for a circuit landscape. In practice $\beta$ is
 # > fixed at $0.9$ (an averaging window of ten steps) and $\eta$ is tuned. Section 11 does exactly that, by measurement.
@@ -500,7 +533,7 @@ fig.tight_layout(); plt.show()
 #
 # ### 6.1 The update equation
 #
-# Adam (Kingma and Ba, 2015) combines momentum with a **per-parameter** step size inferred from the recent magnitude of
+# Adam (Kingma and Ba, ICLR 2015) combines momentum with a **per-parameter** step size inferred from the recent magnitude of
 # each gradient component:
 #
 # $$\begin{aligned}
@@ -512,8 +545,8 @@ fig.tight_layout(); plt.show()
 #   \frac{\hat{\mathbf m}_k}{\sqrt{\hat{\mathbf v}_k}+\epsilon} . &&
 # \end{aligned}\tag{10}$$
 #
-# The division by $\sqrt{\hat v}$ makes the update **scale invariant**: multiplying the cost by a constant multiplies both
-# $\hat m$ and $\sqrt{\hat v}$ by that constant, and the step is unchanged. Components with persistently large gradients
+# The division by $\sqrt{\hat v}$ makes the update **scale invariant** (up to the tiny $\epsilon$): multiplying the cost by a
+# constant multiplies both $\hat m$ and $\sqrt{\hat v}$ by that constant, and the step is unchanged. Components with persistently large gradients
 # are therefore damped and flat directions are amplified, which is a crude diagonal substitute for the curvature
 # information that the Newton step would use.
 #
@@ -532,9 +565,32 @@ fig.tight_layout(); plt.show()
 #
 # using the geometric sum $\sum_{j=1}^{k}\beta^{k-j}=(1-\beta^k)/(1-\beta)$. The running mean therefore under-estimates
 # the true mean by exactly the factor $1-\beta_1^{\,k}$, and dividing by it removes the bias. The same computation with
-# $\mathbf g_j^{\odot2}$ gives the $1-\beta_2^{\,k}$ of the second moment. The correction matters most in the first
-# iterations: with $\beta_2=0.999$ the factor is $10^{-3}$ at $k=1$, so without it the very first step would be
-# $\sqrt{1000}\approx32$ times too small.
+# $\mathbf g_j^{\odot2}$ gives the $1-\beta_2^{\,k}$ of the second moment.
+#
+# The two corrections act in opposite directions on the step. At $k=1$, $\mathbf m_1=(1-\beta_1)\mathbf g_1$ and
+# $\mathbf v_1=(1-\beta_2)\mathbf g_1^{\odot2}$, so without any correction each component moves by
+# $\eta\,(1-\beta_1)/\sqrt{1-\beta_2}=\eta\cdot0.1/\sqrt{0.001}=3.16\,\eta$, whatever the size of the gradient; with
+# both corrections it moves by exactly $\eta$. Correcting only the second moment would give $0.1\,\eta$, and correcting
+# only the first $\sqrt{1000}\,\eta\approx32\,\eta$. In general the uncorrected step is the corrected one multiplied by
+# $(1-\beta_1^{\,k})/\sqrt{1-\beta_2^{\,k}}$, which the cell below tabulates.
+#
+# ### 6.3 What the step-size bound of Eq. (5) does not say about Adam
+#
+# For gradient descent the step is $\eta\mathbf g$, so it grows with the gradient, and a curvature above $2/\eta$ amplifies
+# the error at every step. Adam's step per component is $\eta\,\hat m_k/(\sqrt{\hat v_k}+\epsilon)$. With bias correction,
+# $\hat m_k=\sum_jw_jg_j$ and $\hat v_k=\sum_ju_jg_j^2$ are weighted averages (weights
+# $w_j=(1-\beta_1)\beta_1^{k-j}/(1-\beta_1^k)$ and $u_j=(1-\beta_2)\beta_2^{k-j}/(1-\beta_2^k)$, each summing to one), and
+# the Cauchy–Schwarz inequality gives
+#
+# $$\frac{\lvert\hat m_k\rvert}{\sqrt{\hat v_k}}\le\Bigl(\sum_j\frac{w_j^2}{u_j}\Bigr)^{1/2}
+#   \;\xrightarrow{k\to\infty}\;\frac{1-\beta_1}{\sqrt{(1-\beta_2)(1-\beta_1^2/\beta_2)}}\approx7.3 ,$$
+#
+# for the default $\beta_1=0.9$, $\beta_2=0.999$, and the ratio is exactly $1$ when the gradient component is constant. Each
+# component therefore moves by at most a few $\eta$ per step, whatever the curvature: Adam cannot diverge geometrically,
+# and there is no threshold like Eq. (5). The step shrinks only when the current gradient becomes small compared with
+# the root-mean-square gradient remembered by $\hat v$ over the last $\sim1/(1-\beta_2)$ iterations. The second part of the
+# cell below measures this on the test quadratic of Eq. (2), with learning rates far above its gradient-descent threshold
+# $2/L=0.4$. For heavy-ball momentum Section 11 derives the corresponding bound, $\eta<2(1+\beta)/\lambda_{\max}$.
 
 # %%
 # ==============================================================================
@@ -567,21 +623,46 @@ for k in range(1, 26):
     th_eng, st_eng = adam_update(th_eng, grad_ghz(th_eng), st_eng, lr=0.05)
 print(f"25 Adam steps, from-scratch vs engine: max |theta difference| = {max_abs(th_ours - th_eng):.2e}")
 assert max_abs(th_ours - th_eng) < TOL
+# wrong control: the same comparison with the counter off by one (bias correction applied for k+1) must fail
+th_w, st_w = theta_a, init_a(theta_a)
+for k in range(1, 26):
+    th_w, st_w = upd_a(th_w, st_w, grad_ghz(th_w), k + 1)
+print(f"control, counter off by one:                    max |theta difference| = {max_abs(th_w - th_eng):.2e}")
+assert max_abs(th_w - th_eng) > 1e-3
 
 # --- the bias correction, seen ------------------------------------------------------------
 print("\nbias-correction factors of Eq. (11):")
-print(f"{'k':>4s} {'1 - b1^k':>12s} {'1 - b2^k':>12s} {'first-step shrink without correction':>38s}")
-for k in (1, 2, 5, 20, 100):
+print(f"{'k':>5s} {'1 - b1^k':>12s} {'1 - b2^k':>12s} {'step without / with correction':>32s}")
+for k in (1, 2, 5, 20, 100, 1000, 3000):
     c1, c2 = 1 - 0.9 ** k, 1 - 0.999 ** k
-    print(f"{k:4d} {c1:12.5f} {c2:12.6f} {c1 / np.sqrt(c2):38.4f}")
+    print(f"{k:5d} {c1:12.5f} {c2:12.6f} {c1 / np.sqrt(c2):32.4f}")
+k_all = np.arange(1, 10001)
+amp = (1 - 0.9 ** k_all) / np.sqrt(1 - 0.999 ** k_all)
+print(f"largest ratio {amp.max():.3f} at k = {k_all[np.argmax(amp)]}")
+
+# --- Section 6.3: Adam on the test quadratic, far above the gradient-descent threshold 2/L = 0.4 ----------------
+print(f"\nAdam on the test quadratic of Eq. (2) (gradient descent diverges for lr > {2 / L_quad:.1f})")
+print(f"{'lr':>6s} {'f after 100':>13s} {'f after 1000':>13s} {'f after 3000':>13s} {'largest f seen':>15s}")
+for lr in (0.01, 0.05, 0.4, 1.0, 3.0):
+    h = np.asarray(run_quadratic(opt_adam(lr), x0_q, 3000))
+    print(f"{lr:6.2f} {h[99]:13.2e} {h[999]:13.2e} {h[-1]:13.2e} {h.max():15.2e}")
 
 # %% [markdown]
 # Our implementation reproduces the engine's `adam_update` bit for bit over 25 steps, so the two can be used
-# interchangeably. The table shows what the correction is worth. Without it the update would be multiplied by
-# $(1-\beta_1^k)/\sqrt{1-\beta_2^k}$, and that factor is $3.16$ at $k=1$, rises to $6.2$ around $k=20$, and is still
-# $3.24$ at $k=100$. The steps would be *larger* than intended, not smaller — the second moment is biased much more
-# strongly than the first, and dividing a small $m$ by an even smaller $\sqrt v$ overshoots. The two biases only cancel
-# after thousands of iterations, far beyond the length of a variational run, which is why the correction is not optional.
+# interchangeably. The comparison is sensitive: shifting the iteration counter of the bias correction by one step moves
+# the angles by $7\cdot10^{-2}$ after 25 steps. The table shows what the correction is worth. Without it the update would be multiplied by
+# $(1-\beta_1^k)/\sqrt{1-\beta_2^k}$: $3.16$ at $k=1$, a maximum of $6.57$ at $k=12$, still $3.24$ at $k=100$ and $1.26$ at
+# $k=1000$. The uncorrected steps are *larger* than the corrected ones, because the second moment is biased much more
+# strongly than the first and a small $m$ is divided by an even smaller $\sqrt v$. The ratio approaches $1$ only after a
+# few thousand iterations, longer than any run in this notebook.
+#
+# The second table is the measurement promised in Section 6.3. On the test quadratic, gradient descent diverges for
+# $\eta>0.4$; Adam does not diverge at $\eta=1$ or $\eta=3$, and its largest cost along the run stays of the order of
+# the starting value $4.35$ (at $\eta=3$ it overshoots once, to the value in the last column, and then recovers). On this
+# deterministic problem Adam even converges at those step sizes: as the gradient decays, $\sqrt{\hat v}$ still remembers
+# the larger gradients of the last $1/(1-\beta_2)=1000$ iterations, so $\lvert\hat m\rvert/\sqrt{\hat v}$ falls below one and
+# the step shrinks. What the step size controls for Adam is the length of the early steps and the size of the
+# oscillations; it sets no sharp divergence threshold.
 
 # %% [markdown]
 # ## 7. SPSA and Spall's gain sequences
@@ -593,7 +674,8 @@ for k in (1, 2, 5, 20, 100):
 #
 # and steps with $\boldsymbol\theta_{k+1}=\boldsymbol\theta_k-a_k\hat g_k$. Because $\hat g_k$ is random, a **constant**
 # step size cannot converge: the iterate would keep jittering with an amplitude set by $a\,\mathrm{std}(\hat g)$. Both
-# gains must therefore decay, and stochastic-approximation theory (Robbins–Monro, extended by Spall) says exactly how.
+# gains must therefore decay, and stochastic-approximation theory (Robbins and Monro for noisy gradients, extended by
+# Spall to the estimator of Eq. (12)) says how.
 #
 # ### 7.1 The three conditions
 #
@@ -620,19 +702,22 @@ for k in (1, 2, 5, 20, 100):
 #
 # $$\alpha-\gamma>\tfrac12 . \tag{15}$$
 #
-# Two regimes satisfy this.
+# Eq. (15) alone would allow $\gamma\to0$ and $\alpha$ just above $\tfrac12$. Spall's asymptotic-normality theorem for SPSA,
+# which controls how the error is distributed around the minimum at large $k$, adds two more conditions,
+# $\alpha-2\gamma>0$ and $3\gamma-\alpha/2\ge0$, i.e. $\gamma\ge\alpha/6$. Combining $\gamma\ge\alpha/6$ with Eq. (15) gives
+# $\alpha-\alpha/6>\tfrac12$, i.e. $\alpha>0.6$ and $\gamma\ge0.1$. Two regimes are in use (Spall, 1998).
 #
 # * **Asymptotically optimal**: $\alpha=1$, $\gamma=1/6$. These maximise the rate at which the mean squared error decays
 #   as $k\to\infty$.
-# * **Practically effective**: $\alpha=0.602$, $\gamma=0.101$. These are the *smallest* exponents that still satisfy
-#   Eq. (15) — indeed $0.602-0.101=0.501>\tfrac12$, with almost nothing to spare. Small exponents mean the gains decay
-#   slowly, so the algorithm keeps taking useful steps for hundreds of iterations instead of freezing after twenty. Since
-#   a variational run is stopped after a few hundred iterations and never reaches the asymptotic regime, this is the
-#   choice that matters in practice, and it is the one used below.
+# * **Practically effective**: $\alpha=0.602$, $\gamma=0.101$, which Spall describes as effectively the lowest values
+#   allowed by the theory: $0.602-0.101=0.501>\tfrac12$ and $0.101\ge0.602/6=0.1003$, each with almost nothing to spare.
+#   Small exponents mean the gains decay slowly, so the algorithm keeps taking useful steps for hundreds of iterations
+#   instead of freezing after twenty. A variational run is stopped after a few hundred iterations and never reaches the
+#   asymptotic regime, so this is the choice used below.
 #
 # The **stability constant** $A$ shifts the schedule: $a_1=a/(1+A)^\alpha$, so a large $A$ prevents an enormous first step
-# when the initial gradient estimate happens to be large. A common rule of thumb is $A\approx$ 10% of the planned number
-# of iterations, and that is what we use.
+# when the initial gradient estimate happens to be large. Spall's guideline is $A$ of about 10% (or less) of the planned
+# number of iterations; we use $A=30$ for runs of 200 to 400 iterations.
 
 # %%
 # ==============================================================================
@@ -687,10 +772,10 @@ for al, ga in ((0.602, 0.101), (1.0, 1 / 6), (0.4, 0.101), (0.602, 0.4)):
 # * $\alpha=0.602$, $\gamma=0.101$: total step length $5.7$ — the algorithm is still moving after 500 iterations — and
 #   injected noise $4.7$, a partial sum that converges.
 # * $\alpha=1$, $\gamma=1/6$ (the asymptotically optimal pair): total step length only $0.72$. This schedule has all but
-#   stopped by iteration 500. It is optimal *asymptotically*, which is not the regime a variational run lives in.
-# * $\alpha=0.4$: $\alpha-\gamma=0.30$ violates Eq. (15). The step length is the largest of the four, $16.8$, but so is
-#   the injected noise, $39.8$ after 500 iterations and growing without bound — the iterate ends up driven by noise
-#   rather than by the gradient.
+#   stopped by iteration 500; its optimality refers to $k\to\infty$, a regime a variational run never reaches.
+# * $\alpha=0.4$: $\alpha-\gamma=0.30$ violates Eq. (15). The step length is the largest of the four, $16.8$, and the
+#   injected noise is $39.8$ after 500 iterations and grows without bound, so in a noisy problem the late iterates are
+#   driven by the measurement noise.
 # * $\alpha=0.602$, $\gamma=0.4$: the condition fails again, and the injected noise is worse still at $93.1$. Here the
 #   step size is fine and the probe radius shrinks too fast, so the $1/c_k$ amplification of the noise outruns it.
 #
@@ -700,11 +785,16 @@ for al, ga in ((0.602, 0.101), (1.0, 1 / 6), (0.4, 0.101), (0.602, 0.4)):
 # be exact. Feeding the SPSA estimate of Eq. (12) into Adam gives a method that
 #
 # * costs 2 circuit evaluations per iteration, like SPSA;
-# * averages the very noisy estimate over $\sim1/(1-\beta_1)=10$ iterations through the first moment, which reduces the
-#   variance of Eq. (24) of notebook 40 by roughly that factor;
+# * averages the very noisy estimate over $\sim1/(1-\beta_1)=10$ iterations through the first moment. If the estimates were
+#   independent with variance $\sigma^2$ and $\boldsymbol\theta$ moved little over that window, the stationary variance of
+#   $\mathbf m$ would be $(1-\beta_1)^2\sum_{j\ge0}\beta_1^{2j}\sigma^2=\frac{1-\beta_1}{1+\beta_1}\sigma^2=\sigma^2/19$, a
+#   reduction of the error of Eq. (24) of notebook 40 by a factor of about $19$ in variance;
 # * normalises the step by $\sqrt{\hat v}$, which removes the need to guess the scale of $a$.
 #
-# In our framework this is literally `grad_spsa_exact` paired with `opt_adam`, with no new code. Whether it is better than
+# The hybrid keeps Adam's *constant* $\eta$. By the argument of Section 7 it therefore cannot converge to the minimum; the
+# averaging lowers the jitter but does not remove it, and Sections 12 and 13 show the resulting floor.
+#
+# In our framework this is `grad_spsa_exact` paired with `opt_adam`, with no new code. Whether it is better than
 # plain SPSA is an empirical question, and Sections 12 to 13 answer it.
 
 # %% [markdown]
@@ -736,7 +826,9 @@ for al, ga in ((0.602, 0.101), (1.0, 1 / 6), (0.4, 0.101), (0.602, 0.4)):
 #   =1+\sum_i\delta_iw_i+\tfrac12\sum_{ij}\delta_i\delta_j\langle\psi\vert\partial_i\partial_j\psi\rangle+O(\delta^3),$$
 #
 # and, differentiating $\langle\psi\vert\partial_j\psi\rangle=w_j$ once more,
-# $\langle\psi\vert\partial_i\partial_j\psi\rangle=\partial_iw_j-\langle\partial_i\psi\vert\partial_j\psi\rangle$.
+# $\langle\psi\vert\partial_i\partial_j\psi\rangle=\partial_iw_j-\langle\partial_i\psi\vert\partial_j\psi\rangle$, where
+# $\partial_iw_j$ is purely imaginary (it is the derivative of a purely imaginary function) and so drops out of every real
+# part below.
 # Taking the squared modulus and keeping terms to second order, the first-order pieces contribute
 # $\lvert\sum_i\delta_iw_i\rvert^2=-\bigl(\sum_i\delta_iw_i\bigr)^2$ (the $w_i$ are imaginary) and the second-order pieces
 # contribute $2\,\mathrm{Re}\,\tfrac12\sum\delta_i\delta_j\langle\psi\vert\partial_i\partial_j\psi\rangle$. Collecting,
@@ -745,7 +837,7 @@ for al, ga in ((0.602, 0.101), (1.0, 1 / 6), (0.4, 0.101), (0.602, 0.4)):
 #   =1-\sum_{ij}\delta_i\delta_j\Bigl[\mathrm{Re}\,\langle\partial_i\psi\vert\partial_j\psi\rangle
 #   -\mathrm{Re}\,\bigl(\langle\partial_i\psi\vert\psi\rangle\langle\psi\vert\partial_j\psi\rangle\bigr)\Bigr]+O(\delta^3),$$
 #
-# which identifies the metric of Eq. (16):
+# which identifies the metric of Eq. (16), the matrix $\mathbf G$ with entries
 #
 # $$\boxed{\;g_{ij}=\mathrm{Re}\,\langle\partial_i\psi\vert\partial_j\psi\rangle
 #   -\mathrm{Re}\,\bigl(\langle\partial_i\psi\vert\psi\rangle\langle\psi\vert\partial_j\psi\rangle\bigr)\;}\tag{17}$$
@@ -756,18 +848,31 @@ for al, ga in ((0.602, 0.101), (1.0, 1 / 6), (0.4, 0.101), (0.602, 0.4)):
 #
 # ### 9.3 The update
 #
-# Minimising $C+\mathbf g^{\mathsf T}\boldsymbol\delta$ under the penalty
-# $\tfrac{1}{2\eta}\boldsymbol\delta^{\mathsf T}\mathbf G\boldsymbol\delta$ instead of the Euclidean one gives
+# Minimising $C+\mathbf g^{\mathsf T}\boldsymbol\delta$ (here $\mathbf g=\nabla C$ is the gradient, not the metric) under
+# the penalty $\tfrac{1}{2\eta}\boldsymbol\delta^{\mathsf T}\mathbf G\boldsymbol\delta$ instead of the Euclidean one gives
+# $\mathbf G\boldsymbol\delta=-\eta\nabla C$. $\mathbf G$ is singular (Section 9.2), so we add a small ridge
+# $\lambda_{\mathrm{reg}}\mathbb 1$ before solving:
 #
-# $$\boxed{\;\boldsymbol\theta_{k+1}=\boldsymbol\theta_k-\eta\,(\mathbf G+\lambda\mathbb 1)^{-1}\nabla C\;}\tag{18}$$
+# $$\boxed{\;\boldsymbol\theta_{k+1}=\boldsymbol\theta_k-\eta\,(\mathbf G+\lambda_{\mathrm{reg}}\mathbb 1)^{-1}\nabla C\;}\tag{18}$$
 #
-# with a small ridge $\lambda$ that handles the kernel. This is the **quantum natural gradient** (Stokes *et al.*, 2020);
+# We use $\lambda_{\mathrm{reg}}=10^{-3}$. In the eigenbasis of $\mathbf G$ the step along an eigenvector with metric
+# eigenvalue $g$ is $\eta/(g+\lambda_{\mathrm{reg}})$ times the gradient component along it. Along an exact kernel
+# direction the gradient component vanishes, because $C$ depends on $\boldsymbol\theta$ only through the state; the
+# danger comes from near-kernel directions with small but non-zero $g$, where the amplification $\eta/g$ would be
+# enormous and the ridge caps it at $\eta/\lambda_{\mathrm{reg}}=10^3\eta$. For $g\gg\lambda_{\mathrm{reg}}$ the ridge has
+# no effect. This is the **quantum natural gradient** (Stokes *et al.*, 2020);
 # $\mathbf G$ is one quarter of the quantum Fisher information matrix for the pure state family (see
 # [29 — quantum Fisher information](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb)).
 #
-# On a simulator $\mathbf G$ is one `jacfwd` away. On hardware it costs $O(n^2)$ overlap circuits, which is why
-# experiments use a block-diagonal approximation (Stokes *et al.*) or the stochastic estimator of Gacon *et al.* We use
-# the exact metric, because the point here is to see what the exact method buys.
+# On a simulator $\mathbf G$ is one `jacfwd` away. On hardware every entry has to be estimated from its own circuits, so
+# the full metric costs $O(n^2)$ circuits per iteration; Section 12 counts it as one circuit per independent entry,
+# $n(n+1)/2$, which is a lower count. Two cheaper routes exist. Stokes *et al.* keep only the diagonal blocks that belong
+# to one layer of rotations: for a layer of single-qubit rotations $e^{-i\theta_aP_a/2}$ acting on the state
+# $\vert\psi_l\rangle$ prepared by the preceding layers, the block is the covariance matrix
+# $\tfrac14\bigl(\langle P_aP_b\rangle-\langle P_a\rangle\langle P_b\rangle\bigr)$ of the generators, which can be
+# measured on the truncated circuit with a number of measurement settings that does not grow with $n$. Gacon *et al.*
+# estimate the whole metric stochastically, at constant cost, in the spirit of SPSA. We use the exact metric, because
+# the point here is to see what the exact method buys; Exercise 6 measures what the block-diagonal approximation loses.
 
 # %%
 # ==============================================================================
@@ -777,10 +882,11 @@ def fubini_study_metric(state_fn, theta):
     """Metric tensor of Eq. (17) for a pure-state family theta -> |psi(theta)>.
 
     MATH   g_ij = Re[ (J^dag J)_ij ] - Re[ u_i conj(u_j) ],   J[a,i] = d psi_a / d theta_i,  u = J^dag psi
-    IMPLEMENTATION  `jax.jacfwd` builds the (2^N, n) Jacobian with n forward-mode passes through the circuit;
-                    forward mode is the right choice because the output (2^N) is much larger than the input (n)
-                    only when n is small -- for the circuits here n < 2^N, so jacfwd costs n circuit passes.
-    COST   O(n) circuit evaluations + O(n^2 2^N) for the two products.
+    IMPLEMENTATION  `jax.jacfwd` builds the (2^N, n) Jacobian with n forward-mode passes (one per parameter);
+                    `jax.jacrev` would need one reverse pass per REAL output component, 2 * 2^N of them.  Forward
+                    mode is the cheaper choice when n < 2 * 2^N: n = 32 vs 32 for N = 4, L = 3 (a tie) and
+                    n = 48 vs 128 for N = 6, L = 3.
+    COST   n circuit passes + O(n^2 2^N) for the product J^dag J.
     """
     psi = state_fn(theta).reshape(-1)
     J = jax.jacfwd(lambda t: state_fn(t).reshape(-1))(theta)
@@ -826,21 +932,56 @@ for eps in (1e-2, 1e-3, 1e-4):
     rhs = float(d @ G @ d)
     print(f"{eps:10.0e} {lhs:16.6e} {rhs:16.6e} {abs(lhs - rhs) / rhs:21.2e}")
 
+# --- CHECKPOINT 3: at a zero of the infidelity the Hessian is twice the metric (Eq. (16) with C = 1 - F) -------------
+# The minimum of Section 4.3 is only approximate (infidelity 9e-6), so first polish it with Newton-like natural-gradient
+# steps (eta = 1/2, see Section 11) and a tiny ridge, then compare jax.hessian with 2G there.
+G_min = fubini_study_metric(state_ghz, theta)
+print(f"\nat the approximate minimum of Section 4.3 (infidelity {float(cost_ghz(theta)):.1e}):")
+print(f"  max|Hessian - 2G| = {max_abs(Hess - 2 * G_min):.2e},  lambda_max(Hessian) = {L_circ:.5f},  "
+      f"2 lambda_max(G) = {2 * float(jnp.max(jnp.linalg.eigvalsh(G_min))):.5f}")
+newton = grad_qng(infidelity, state_ghz, ridge=1e-9)
+theta_exact = lax.fori_loop(0, 60, lambda i, t: t - 0.5 * newton(t, None, 1), theta)
+H_ex = jax.hessian(infidelity)(theta_exact)
+G_ex = fubini_study_metric(state_ghz, theta_exact)
+ev_H_ex = np.asarray(jnp.linalg.eigvalsh(H_ex))
+print(f"after 60 polishing steps (infidelity {float(cost_ghz(theta_exact)):.1e}):")
+print(f"  max|Hessian - 2G| = {max_abs(H_ex - 2 * G_ex):.2e};  Hessian eigenvalues above 1e-6: "
+      f"{int(np.sum(ev_H_ex > 1e-6))} of {N_PAR}, smallest {ev_H_ex[0]:+.1e}")
+assert max_abs(H_ex - 2 * G_ex) < 1e-8
+# wrong control: without the subtracted (phase) term of Eq. (17) the identity fails
+J_ex = jax.jacfwd(lambda t: state_ghz(t).reshape(-1))(theta_exact)
+G_nophase = jnp.real(J_ex.conj().T @ J_ex)
+print(f"  control, Re<d psi|d psi> without the phase term: max|Hessian - 2G| = {max_abs(H_ex - 2 * G_nophase):.2e}")
+assert max_abs(H_ex - 2 * G_nophase) > 1e-2
+print("rank of G (eigenvalues above 1e-8) at five random points:",
+      [int(np.sum(np.asarray(jnp.linalg.eigvalsh(fubini_study_metric(state_ghz, jax.random.uniform(
+          jax.random.PRNGKey(100 + i), (N_PAR,), minval=-jnp.pi, maxval=jnp.pi)))) > 1e-8)) for i in range(5)])
+
 # %% [markdown]
 # Three independent checks pass. The single-qubit case reproduces the analytic value $g=1/4$ to twelve digits. The metric
 # of the GHZ ansatz at a random parameter point is exactly symmetric and positive semi-definite — its smallest eigenvalue
 # is $-6\cdot10^{-17}$, i.e. zero to round-off — and $30$ of its $32$ eigenvalues exceed $10^{-8}$, so it has a
-# two-dimensional kernel: two parameter directions along which the state does not move at all. And the fidelity expansion
+# two-dimensional kernel: two parameter directions along which the state does not move, up to a global phase. And the fidelity expansion
 # of Eq. (16) is confirmed quantitatively: the relative difference between the measured $1-F$ and the quadratic form
 # $\boldsymbol\delta^{\mathsf T}\mathbf G\boldsymbol\delta$ falls from $7\cdot10^{-4}$ to $7\cdot10^{-6}$ as
 # $\lVert\boldsymbol\delta\rVert$ goes from $10^{-2}$ to $10^{-4}$ — one power of $\delta$ per decade, exactly the
 # $O(\delta^3)$ remainder the derivation neglected.
 #
-# > **Physics insight.** The kernel of $\mathbf G$ is not a numerical accident: it is a statement that the ansatz has more
-# > angles than the state manifold has dimensions. Inverting $\mathbf G$ without a ridge would produce an enormous step
-# > along a direction that changes nothing — which is why Eq. (18) carries $\lambda$. (The kernel measured here, of
-# > dimension two, is not the same count as the ten flat Hessian directions of Section 4.3: that Hessian was taken at a
-# > minimum and this metric at a random point, and they answer different questions.)
+# A fourth check connects the metric to the curvature of Section 4.3. Eq. (16) with $C=1-F$ says that near a point
+# where the infidelity vanishes, $C\approx\boldsymbol\delta^{\mathsf T}\mathbf G\boldsymbol\delta$, so the Hessian there is
+# exactly $2\mathbf G$. At Adam's approximate minimum the two already agree to $2\cdot10^{-3}$, and their largest
+# eigenvalues to five digits; after polishing the minimum to round-off they agree to $10^{-14}$ or better. The subtracted
+# phase term of Eq. (17) is essential: without it the difference is $0.5$. At that exact
+# minimum only 18 of the 32 Hessian eigenvalues are non-zero; the count of 22 in Section 4.3 included four eigenvalues
+# between $10^{-6}$ and $10^{-3}$ produced by the residual infidelity of $9\cdot10^{-6}$.
+#
+# > **Physics insight.** The kernel of $\mathbf G$ consists of the parameter directions that change only the global phase or
+# > nothing at all. Its dimension depends on the point. At a generic point it is $32-30=2$ (rank 29 or 30 at the five
+# > random points above), the minimum that parameter counting predicts for 32 angles describing a 30-dimensional state
+# > manifold. At the GHZ minimum it is $14$: the ansatz map degenerates at this special state, and the flat directions of
+# > the Hessian in Section 4.3 are exactly this enlarged kernel, because there $\mathbf H=2\mathbf G$. Solving with a
+# > singular $\mathbf G$ amplifies round-off without bound along these directions, which is why Eq. (18) carries
+# > $\lambda_{\mathrm{reg}}$.
 
 # %% [markdown]
 # ## 10. Training loops: `lax.scan` and `vmap` over initialisations
@@ -856,8 +997,8 @@ for eps in (1e-2, 1e-3, 1e-4):
 # and the same trick applied to a learning-rate axis turns a whole hyper-parameter sweep into one compilation.
 #
 # The diagnostic recorded at every step is always the **exact** cost, even when the optimiser is driven by a noisy one.
-# That is a simulation privilege and it is the honest way to compare methods: we want to know how good the state really is,
-# not how good the optimiser's noisy estimate claims it is.
+# That is a simulation privilege, and it is the fair way to compare methods: it measures how good the prepared state is
+# rather than how good the optimiser's noisy estimate says it is.
 
 # %%
 # ==============================================================================
@@ -893,6 +1034,34 @@ def train_many(thetas, keys, grad_rule, opt, monitor, n_steps):
     return jax.jit(jax.vmap(lambda t, k: train(t, k, grad_rule, opt, monitor, n_steps)))(thetas, keys)
 
 
+def train_many_timed(thetas, keys, grad_rule, opt, monitor, n_steps):
+    """`train_many` with compilation and execution timed separately -> (thetas, histories, t_compile, t_run).
+
+    JAX   `jit(f).lower(args)` traces f for these argument shapes and `.compile()` runs XLA; the compiled object is
+          then called like a function, so the run time below contains no compilation.
+    """
+    fn = jax.jit(jax.vmap(lambda t, k: train(t, k, grad_rule, opt, monitor, n_steps)))
+    t0 = time.perf_counter()
+    compiled = fn.lower(thetas, keys).compile()
+    t_compile = time.perf_counter() - t0
+    t0 = time.perf_counter()
+    out = jax.block_until_ready(compiled(thetas, keys))
+    return out[0], out[1], t_compile, time.perf_counter() - t0
+
+
+def wilson_interval(k, n, z=1.96):
+    """95% Wilson score interval for a success probability estimated as k successes out of n runs.
+
+    MATH   centre = (p + z^2/2n) / (1 + z^2/n),  half-width = z sqrt(p(1-p)/n + z^2/4n^2) / (1 + z^2/n),  p = k/n.
+           Unlike p +- z sqrt(p(1-p)/n) it stays inside [0, 1] and does not collapse to zero width at k = 0 or k = n.
+    """
+    p = k / n
+    d = 1 + z ** 2 / n
+    c = (p + z ** 2 / (2 * n)) / d
+    hw = z * np.sqrt(p * (1 - p) / n + z ** 2 / (4 * n ** 2)) / d
+    return max(0.0, c - hw), min(1.0, c + hw)
+
+
 def random_starts(n_runs, n_params, seed, scale=jnp.pi):
     """`n_runs` independent parameter vectors drawn uniformly from [-scale, scale]^n, plus one PRNG key each."""
     k1, k2 = jax.random.split(jax.random.PRNGKey(seed))
@@ -919,17 +1088,19 @@ print(f"  final infidelity: median {float(np.median(h[:, -1])):.3e}, best {float
       f"worst {float(np.max(h[:, -1])):.3e}")
 
 # %% [markdown]
-# One compiled program runs all 24 trajectories, at a few tens of microseconds per iteration per run once compiled — and
-# compilation is the larger part of the first call. The number to take from this cell, though, is the last line: over 24
-# identical runs that differ only in their starting angles, the final infidelity ranges from $6\cdot10^{-15}$ to
-# $5\cdot10^{-5}$, ten orders of magnitude. Quoting a single training curve would have been meaningless, which is why
-# every benchmark below reports a median with an interquartile band.
+# One compiled program runs all 24 trajectories, at a few tens of microseconds per iteration per run once compiled, and
+# compilation (trace plus XLA) is most of the first call. The scientifically relevant number is in the last line: over
+# 24 identical runs that differ only in their starting angles, the final infidelity ranges from $6\cdot10^{-15}$ to
+# $5\cdot10^{-5}$, ten orders of magnitude. A single training curve would not characterise the method, which is why every
+# benchmark below reports a median with an interquartile band, and success rates with a confidence interval.
 #
 # > **JAX practice.** Compilation dominates the first call and the actual loop costs microseconds per iteration per run.
 # > That is the usual XLA bargain, and it has a consequence for the code below: `train_many` builds a fresh closure and
 # > jits it on every call, so every configuration pays its own compilation. When a whole *sweep* is needed, the fix is to
 # > make the swept quantity a traced argument so that one compiled program serves all of it — the trick of the next
-# > section.
+# > section. The benchmarks of Sections 12 and 13 use `train_many_timed`, which compiles with
+# > `jit(...).lower(...).compile()` before running, so that compilation and execution are reported in separate
+# > columns.
 
 # %% [markdown]
 # ## 11. Choosing the learning rate by measurement
@@ -998,25 +1169,38 @@ best_lr = tune(configs_for(cost_ghz, state_ghz), cost_ghz, th_s, ks_s, lr_grid, 
                f"Hyper-parameter sensitivity ({N_STEPS_SWEEP} iterations, GHZ preparation)")
 
 # %% [markdown]
-# The sensitivity is the message, and every row of the table shows it differently.
+# Every row depends strongly on the step size, and the stability bounds of Sections 4 to 6 explain where each row fails.
 #
-# * **Gradient descent** spans four orders of magnitude across the grid, with a sharp optimum at $\eta=0.31$ and a final
-#   cost of $1.5\cdot10^{-4}$. Its optimum sits comfortably below the $2/\lambda_{\max}=0.577$ measured in Section 4.3,
-#   as Eq. (5) requires; the next grid point up, $0.72$, is already past the bound and the cost jumps by three orders of
-#   magnitude.
-# * **Momentum** is best at $\eta=0.72$ — *above* gradient descent's stability limit, which is not a contradiction: the
-#   heavy-ball iteration of Eq. (8) is stable up to $2(1+\beta)/\lambda_{\max}\approx1.1$ for $\beta=0.9$, so momentum
-#   buys a larger admissible step as well as a better rate. Past that it collapses, at $\eta=1.7$.
-# * **Adam** has the **widest usable window**: its cost stays below $10^{-4}$ over more than a decade of $\eta$, from
-#   $0.024$ to $0.31$. That robustness, rather than the depth of its minimum, is why it is the default in practice.
-# * **The natural gradient** reaches machine precision, $2\cdot10^{-16}$, over a full decade of step sizes — and then
-#   fails completely at $\eta=1.7$. Equation (18) has its own stability bound, inherited from the ridge and the metric.
-# * **Both SPSA rows never get near.** In 200 iterations the best they manage is $1.8\cdot10^{-2}$ and
-#   $4.4\cdot10^{-2}$ — two to fourteen orders of magnitude behind the exact-gradient methods at *the same iteration
-#   count*. That is the expected price of one scalar of information per step, and Section 12 gives them the iterations
-#   they need.
+# * **Gradient descent** spans almost four orders of magnitude across the grid, with a sharp optimum at $\eta=0.31$ and a
+#   final cost of $1.5\cdot10^{-4}$. Its optimum sits below the $2/\lambda_{\max}=0.577$ measured in Section 4.3, as
+#   Eq. (5) requires; the next grid point up, $0.72$, is past the bound and the cost is three orders of magnitude higher.
+# * **Momentum** is best at $\eta=0.72$, above gradient descent's stability limit. The heavy-ball bound is different:
+#   the characteristic polynomial $\mu^2-(1+\beta-\eta\lambda)\mu+\beta$ of Eq. (8) has a root at $\mu=-1$ when
+#   $1+(1+\beta-\eta\lambda)+\beta=0$, so the iteration is stable for $\eta<2(1+\beta)/\lambda_{\max}$, which is
+#   $3.8/3.46=1.10$ for $\beta=0.9$ at the minimum of Section 4.3. Momentum therefore admits a larger step as well as giving
+#   a better rate. The next grid point, $\eta=1.7$, is past this bound, and the run fails there.
+# * **Adam** stays below $10^{-4}$ from $\eta=0.024$ to $0.31$, just over a decade, and never diverges: even at
+#   $\eta=4$ its median cost is $0.88$, close to the $1-1/16=0.94$ of a random four-qubit state, as Section 6.3 predicts
+#   for a method whose step does not grow with the gradient. Its best value, $4\cdot10^{-7}$, is far above those of
+#   momentum ($1.3\cdot10^{-9}$) and the natural gradient. The convergence curves of Section 12 show the same: at its
+#   tuned $\eta$ Adam's median infidelity fluctuates between about $10^{-7}$ and $10^{-5}$ after 150 iterations while
+#   momentum keeps converging geometrically.
+# * **The natural gradient** stays below $10^{-4}$ over the widest window of the six, from $0.024$ to $0.72$ (one and a half
+#   decades), reaches machine precision, $2\cdot10^{-16}$, from $0.055$ to $0.72$, and fails at $\eta=1.7$. That bound
+#   can be derived. Near a minimum where the infidelity vanishes, Eq. (16) says $C=1-F\approx\boldsymbol\delta^{\mathsf T}
+#   \mathbf G\boldsymbol\delta$, so the Hessian of $C$ is $2\mathbf G$ (checked numerically in Section 9). The update of
+#   Eq. (18) then multiplies the error along a metric eigenvector with eigenvalue $g$ by
+#   $1-2\eta g/(g+\lambda_{\mathrm{reg}})\approx1-2\eta$: the natural gradient is stable for $\eta<1$, independently of
+#   the curvature, and $\eta=\tfrac12$ is a Newton step.
+# * **Both SPSA rows stay far behind.** In 200 iterations the best they manage is $1.8\cdot10^{-2}$ and
+#   $4.4\cdot10^{-2}$, two to fourteen orders of magnitude behind the exact-gradient methods at *the same iteration
+#   count*. That is the expected price of one scalar of information per step, and Section 12 gives them more iterations.
 #
-# The starred values are used from here on, so no hyper-parameter in this notebook is a guess.
+# The starred values are used in Section 12. These are medians over 12 starts on a grid with a factor of $2.35$ between
+# neighbouring points, so each optimum is known only to within a grid step. The momentum $\beta=0.9$, Adam's
+# $\beta_1,\beta_2,\epsilon$, SPSA's $c=0.2$ and $A=30$, and the ridge $\lambda_{\mathrm{reg}}=10^{-3}$ are fixed at
+# their standard values and were not tuned, and Sections 13 (shot noise) and 14 use Adam at $\eta=0.05$ without
+# re-tuning.
 #
 # > **Common pitfall.** Comparing optimisers at a single shared learning rate is meaningless — it measures which
 # > optimiser happens to like that number. Each method must be given its own best setting, found on the same problem with
@@ -1031,9 +1215,12 @@ best_lr = tune(configs_for(cost_ghz, state_ghz), cost_ghz, th_s, ks_s, lr_grid, 
 #
 # The metrics are the ones that matter for a device:
 #
-# * **success rate** — the fraction of random starts that reach infidelity $<10^{-3}$ at all;
+# * **success rate** — the fraction of random starts that reach infidelity $<10^{-3}$ at some iteration within the budget,
+#   with a 95% Wilson interval: for $k$ successes in $R$ runs and $p=k/R$, the interval is
+#   $\bigl[p+\tfrac{z^2}{2R}\mp z\sqrt{p(1-p)/R+z^2/4R^2}\bigr]/(1+z^2/R)$ with $z=1.96$. With $R=24$ the interval for
+#   $24/24$ is $[0.86,1]$, so differences of a few runs are not resolved;
 # * **median iterations** to that target, over the successful runs;
-# * **median circuit evaluations** to that target. This is the honest currency: we *count* what each method would cost on
+# * **median circuit evaluations** to that target. This is the currency of a device: we *count* what each method would cost on
 #   hardware per iteration — $2n$ circuits for a parameter-shift gradient, $2$ for SPSA, $2n+n(n+1)/2$ for the natural
 #   gradient with the full metric — and multiply.
 
@@ -1066,24 +1253,23 @@ METHODS = build_methods(configs_for(cost_ghz, state_ghz), best_lr, N_PAR)
 
 hists, rows = {}, []
 for name, opt, gr, ev in METHODS:
-    t0 = time.perf_counter()
-    _, h = train_many(th_b, ks_b, gr, opt, cost_ghz, N_STEPS)
-    h = np.asarray(jax.block_until_ready(h))
+    _, h, t_c, t_r = train_many_timed(th_b, ks_b, gr, opt, cost_ghz, N_STEPS)
+    h = np.asarray(h)
     hists[name] = h
     r = summarise(name, h, TARGET, ev)
-    r["wall"] = time.perf_counter() - t0
-    r["ev_per_iter"] = ev
+    r["compile"], r["run"], r["ev_per_iter"] = t_c, t_r, ev
     rows.append(r)
 
 print(f"GHZ preparation, N={N_GHZ}, L={L_GHZ}, n={N_PAR}; {N_RUNS} random starts, {N_STEPS} iterations, "
       f"target infidelity {TARGET:g}")
-print(f"{'optimiser':>22s} {'success':>8s} {'med iters':>10s} {'circ/iter':>10s} {'med circuits':>13s} "
-      f"{'median final':>13s} {'best final':>12s} {'wall [s]':>9s}")
+print(f"{'optimiser':>22s} {'success':>8s} {'95% CI':>13s} {'med iters':>10s} {'circ/iter':>10s} {'med circuits':>13s} "
+      f"{'median final':>13s} {'best final':>12s} {'compile [s]':>12s} {'run [s]':>8s}")
 for r in rows:
     it = f"{r['iters']:.0f}" if np.isfinite(r["iters"]) else "-"
     ev = f"{r['evals']:.3g}" if np.isfinite(r["evals"]) else "-"
-    print(f"{r['name']:>22s} {r['success']:8.2f} {it:>10s} {r['ev_per_iter']:10d} {ev:>13s} "
-          f"{r['median_final']:13.2e} {r['best']:12.2e} {r['wall']:9.1f}")
+    lo, hi = wilson_interval(round(r["success"] * N_RUNS), N_RUNS)
+    print(f"{r['name']:>22s} {r['success']:8.2f} {f'[{lo:.2f}, {hi:.2f}]':>13s} {it:>10s} {r['ev_per_iter']:10d} "
+          f"{ev:>13s} {r['median_final']:13.2e} {r['best']:12.2e} {r['compile']:12.2f} {r['run']:8.2f}")
 
 # %%
 # ==============================================================================
@@ -1106,27 +1292,30 @@ axes[1].set_title("Convergence per circuit evaluation"); axes[1].legend(fontsize
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# The two panels tell different stories, and both are true.
+# The two panels rank the methods differently.
 #
-# **Per iteration** (left panel) the ranking is unambiguous: the natural gradient needs a median of $22$ iterations to
-# reach $10^{-3}$, Adam $56$, momentum $62$, plain gradient descent $118$. All four succeed from **every one** of the 24
-# random starts. The two SPSA rows do not: plain SPSA reaches the target from only $12\%$ of the starts within 400
-# iterations, and SPSA with Adam from none, ending at a median infidelity of $5\cdot10^{-3}$. Exact-gradient methods use
-# $n=32$ numbers of information per step; SPSA uses one.
+# **Per iteration** (left panel) the natural gradient needs a median of $22$ iterations to reach $10^{-3}$, Adam $56$,
+# momentum $62$, plain gradient descent $118$. All four succeed from **every one** of the 24 random starts (95% interval
+# $[0.86,1]$). The two SPSA rows do not: plain SPSA reaches the target from $3$ of $24$ starts within 400 iterations
+# ($0.12$, interval $[0.04,0.31]$), and SPSA with Adam from none ($[0,0.14]$), ending at a median infidelity of
+# $5\cdot10^{-3}$. Exact-gradient methods use $n=32$ numbers of information per step; SPSA uses one. Both SPSA rows were
+# still improving at iteration 400 (left panel); they failed to arrive within the budget rather than being
+# trapped in local minima.
 #
 # **Per circuit evaluation** (right panel) the ranking is different, because an exact gradient costs $2n=64$ circuits and
 # the natural gradient $2n+n(n+1)/2=592$, while an SPSA step costs $2$. Adam needs a median of $3.6\cdot10^{3}$ circuits,
 # momentum $3.9\cdot10^{3}$, gradient descent $7.5\cdot10^{3}$, and the natural gradient $1.3\cdot10^{4}$ — its
 # twenty-two iterations are the most expensive in the table. The method that wins the left panel loses the right one.
 #
-# The SPSA row of the circuit column reads $654$, which looks like a victory and is not one: it is the median over the
-# $12\%$ of runs that succeeded at all, and says nothing about the other $88\%$. **Success probability is not a footnote
-# to the iteration count; it is the first number to read.** A method that needs restarts pays for every failed one.
+# The SPSA row of the circuit column reads $654$, the lowest in the table, but it is the median over the 3 runs that
+# succeeded and says nothing about the other 21. **The success probability has to be read before the iteration
+# count**: a method that needs restarts pays for every failed one, and the expected cost per success is the cost per run
+# divided by the success probability.
 #
 # > **Numerical practice.** The "best final" column contains values like $-4\cdot10^{-16}$. An infidelity cannot be
 # > negative; what this means is that $\lvert\langle\phi\vert\psi\rangle\rvert^2$ was computed as slightly greater than
-# > one in floating point, and $1-F$ inherited the round-off. Seeing $-10^{-16}$ instead of $0$ is a sign the optimiser
-# > reached the exact target, not a sign of a bug.
+# > one in floating point, and $1-F$ inherited the round-off. A value of $-10^{-16}$ means the optimiser reached the
+# > target to machine precision.
 
 # %% [markdown]
 # ## 13. Benchmark 2: the ground energy of a transverse-field Ising chain
@@ -1190,21 +1379,26 @@ METHODS_H = build_methods(configs_for(cost_H, state_H), best_lr_H, N_PAR_H)
 
 hists_H, rows_H = {}, []
 for name, opt, gr, ev in METHODS_H:
-    t0 = time.perf_counter()
-    _, h = train_many(th_h, ks_h, gr, opt, err_H, N_STEPS_H)
-    h = np.asarray(jax.block_until_ready(h))
+    _, h, t_c, t_r = train_many_timed(th_h, ks_h, gr, opt, err_H, N_STEPS_H)
+    h = np.asarray(h)
     hists_H[name] = h
-    r = summarise(name, h, TARGET_H, ev); r["wall"] = time.perf_counter() - t0; r["ev_per_iter"] = ev
+    r = summarise(name, h, TARGET_H, ev); r["compile"], r["run"], r["ev_per_iter"] = t_c, t_r, ev
     rows_H.append(r)
 
 print(f"\nenergy error E - E0; {N_RUNS_H} random starts, {N_STEPS_H} iterations, target {TARGET_H:g}")
-print(f"{'optimiser':>22s} {'success':>8s} {'med iters':>10s} {'med circuits':>13s} {'median final':>13s} "
-      f"{'best final':>12s} {'min E - E0 < 0?':>16s}")
+print(f"{'optimiser':>22s} {'success':>8s} {'95% CI':>13s} {'med iters':>10s} {'circ/iter':>10s} {'med circuits':>13s} "
+      f"{'median final':>13s} {'best final':>12s} {'min E - E0 < 0?':>16s} {'compile/run [s]':>16s}")
 for r, (name, _, _, _) in zip(rows_H, METHODS_H):
     it = f"{r['iters']:.0f}" if np.isfinite(r["iters"]) else "-"
     ev = f"{r['evals']:.3g}" if np.isfinite(r["evals"]) else "-"
-    print(f"{r['name']:>22s} {r['success']:8.2f} {it:>10s} {ev:>13s} {r['median_final']:13.2e} "
-          f"{r['best']:12.2e} {str(bool(np.any(hists_H[name] < -1e-9))):>16s}")
+    lo, hi = wilson_interval(round(r["success"] * N_RUNS_H), N_RUNS_H)
+    print(f"{r['name']:>22s} {r['success']:8.2f} {f'[{lo:.2f}, {hi:.2f}]':>13s} {it:>10s} {r['ev_per_iter']:10d} "
+          f"{ev:>13s} {r['median_final']:13.2e} {r['best']:12.2e} {str(bool(np.any(hists_H[name] < -1e-9))):>16s} "
+          f"{r['compile']:7.2f}/{r['run']:<8.2f}")
+succ_H = {r["name"]: round(r["success"] * N_RUNS_H) for r in rows_H}
+ci_qng, ci_adam = wilson_interval(succ_H["natural gradient"], N_RUNS_H), wilson_interval(succ_H["Adam"], N_RUNS_H)
+print(f"\n95% intervals: natural gradient {ci_qng[0]:.2f}-{ci_qng[1]:.2f}, Adam {ci_adam[0]:.2f}-{ci_adam[1]:.2f} "
+      f"-> {'disjoint' if ci_qng[0] > ci_adam[1] else 'overlapping'}")
 
 fig, ax = plt.subplots(figsize=(7.2, 4.6))
 for j, (name, _, _, _) in enumerate(METHODS_H):
@@ -1222,24 +1416,77 @@ fig.tight_layout(); plt.show()
 # negative — a free correctness check that the cost function, the Hamiltonian term list and the Lanczos reference are
 # mutually consistent.
 #
-# **The re-tuning was necessary.** Comparing the two sweeps: Adam's best step moved from $0.13$ on the infidelity
-# landscape to $0.45$ on the energy landscape, and the natural gradient's from $0.13$ to $0.067$. Carrying the
-# Section 11 values over would have handicapped both.
+# **The optimal step sizes moved.** Adam's best step went from $0.13$ on the infidelity landscape to $0.45$ on the energy
+# landscape, and the natural gradient's from $0.13$ to $0.067$. How much that matters differs between the two. Adam's
+# energy sweep is flat (median final error between $0.096$ and $0.115$ from $\eta=0.026$ to $1.16$), so its choice is
+# not critical here. The natural gradient's usable window is narrow and lies much lower than on the GHZ problem: the
+# sweep fails from $\eta=0.45$ on, and the check outside the notebook placed the edge between $0.17$ and $0.2$. The bound
+# $\eta<1$ of Section 11 holds for an infidelity cost, whose Hessian at the minimum is $2\mathbf G$; the Hessian of an
+# energy is not tied to the metric in this way.
 #
-# **This landscape is much harder than the GHZ one.** Four of the six methods never reach an energy error of $0.05$ from
-# any start in 300 iterations, and they all stall between $0.09$ and $0.15$. Adam crosses the target from $1$ start in
-# $16$. **The natural gradient succeeds from $94\%$ of the starts**, with a median of $89$ iterations, and is the only
-# method to reach the ansatz floor at $E-E_0\approx1.2\cdot10^{-2}$; the best single run of the whole section,
-# $8.6\cdot10^{-3}$, is also its.
+# **Within 300 iterations this landscape is much harder than the GHZ one.** Four of the six methods never reach an
+# energy error of $0.05$ from any start (95% interval $[0,0.19]$ for 0 of 16): gradient descent, momentum and plain SPSA
+# end between $0.09$ and $0.15$, SPSA with Adam at a median of $0.49$. Adam crosses the target from $1$ start in $16$
+# ($[0.01,0.28]$). **The natural gradient succeeds from 15 of the 16 starts** ($[0.72,0.99]$), with a median of $89$
+# iterations; the best single run of the section, $8.6\cdot10^{-3}$, is also its. With 16 runs per method the difference
+# between 15 and 1 successes is far outside the sampling error: the two Wilson intervals printed below the table are
+# disjoint, and Fisher's exact test gives $p<10^{-5}$.
 #
-# That is a large and specific advantage, and it is worth saying what it is *not*: it is not free. At $592$ circuits per
-# iteration the natural gradient spent $1.1\cdot10^{5}$ circuits to get there, against Adam's $2\cdot10^{4}$ for its one
-# success. What the metric buys on this landscape is not speed per circuit but the ability to escape the plateau at all —
-# the energy landscape is badly conditioned in the Euclidean parametrisation, and rescaling by $\mathbf G$ fixes exactly
-# that.
+# Two questions decide what this comparison means: whether Adam's step size was chosen fairly for this criterion, and
+# whether the other methods are stuck or only slow. The tuning sweep picked each step size by the median *final* energy
+# after 120 iterations from 6 starts, which is a different criterion from the success rate after 300 iterations. A
+# separate check outside this notebook ran every method at 13 step sizes from 64 starts (the 16 used here and 48 new
+# ones) for 300 iterations. Adam's best success rate over that grid was $13/64=0.20$ (at $\eta=0.6$, interval
+# $[0.12,0.32]$), momentum's $11/64$, gradient descent's $0$, and the natural gradient's $61/64=0.95$ ($[0.87,0.98]$). The
+# ranking at 300 iterations survives fair tuning; the gap shrinks from 94% against 6% to 95% against 20%.
 #
-# The floor near $10^{-2}$ is a property of the *circuit*, not of the optimiser: with $L=3$ layers the ansatz does not
-# contain the exact ground state. Its dependence on depth is the subject of notebook 42.
+# The second question is answered by the cell below, which repeats the three exact-gradient methods at their tuned step
+# sizes with a ten times larger iteration budget.
+
+# %%
+# ==============================================================================
+# STEP 14b: control -- the same starts with 3000 instead of 300 iterations
+# ==============================================================================
+N_STEPS_LONG = 3000
+print(f"{'optimiser':>22s} {'success':>8s} {'95% CI':>13s} {'by it. 300':>11s} {'med iters':>10s} {'med circuits':>13s} "
+      f"{'median final':>13s} {'best final':>12s} {'run [s]':>8s}")
+for name, opt, gr, ev in METHODS_H[:3]:                       # gradient descent, momentum, Adam
+    _, h, t_c, t_r = train_many_timed(th_h, ks_h, gr, opt, err_H, N_STEPS_LONG)
+    r = summarise(name, np.asarray(h), TARGET_H, ev)
+    k_ok = round(r["success"] * N_RUNS_H)
+    lo, hi = wilson_interval(k_ok, N_RUNS_H)
+    by300 = int(np.sum(np.any(np.asarray(h)[:, :N_STEPS_H] < TARGET_H, axis=1)))
+    it = f"{r['iters']:.0f}" if np.isfinite(r["iters"]) else "-"
+    evs = f"{r['evals']:.3g}" if np.isfinite(r["evals"]) else "-"
+    print(f"{name:>22s} {r['success']:8.2f} {f'[{lo:.2f}, {hi:.2f}]':>13s} {by300:>11d} {it:>10s} {evs:>13s} "
+          f"{r['median_final']:13.2e} {r['best']:12.2e} {t_r:8.1f}")
+
+# %% [markdown]
+# With 3000 iterations Adam reaches the target from 15 of the 16 starts (interval $[0.72,0.99]$), after a median of about
+# 600 iterations, and momentum from 12 ($[0.51,0.90]$), after about 1400; only gradient descent stays above $0.05$. (The
+# check outside the notebook, with the same starts and keys but a separately written program, gave 16 of 16 for Adam:
+# over 3000 iterations of a non-convex problem, round-off differences between two compiled programs grow until single
+# trajectories differ, so only the statistics, not individual runs, carry over from one program to another.) The level near $E-E_0\approx0.1$ where the curves of the
+# figure flatten is therefore a slow region rather than a set of local minima. The check outside the notebook also
+# diagonalised the Hessian at four of Adam's iterates after 300 iterations: the gradient norm is $2\cdot10^{-3}$ to
+# $2\cdot10^{-2}$, the largest Hessian eigenvalue is about $6$, and there are two or three *negative* eigenvalues of only
+# $-2\cdot10^{-3}$ to $-4\cdot10^{-3}$. These are saddle regions with an escape direction whose curvature is three
+# thousand times weaker than the steepest direction, so a Euclidean method leaves them only slowly. Rescaled by the metric,
+# i.e. for the matrix $(\mathbf G+\lambda_{\mathrm{reg}}\mathbb 1)^{-1}\mathbf H$ that governs the natural-gradient
+# iteration, the same negative eigenvalues become $-2$ to $-3$ against a largest eigenvalue of about $14$: the escape
+# direction is no longer weak, and the natural gradient leaves the saddle region in tens of iterations.
+#
+# The circuit count reverses the conclusion about cost. At $2n+n(n+1)/2=96+1176=1272$ circuits per iteration ($n=48$) the
+# natural gradient spent a median of $1.1\cdot10^{5}$ circuits to reach the target; Adam, at $2n=96$ circuits per
+# iteration, needed $5.8\cdot10^{4}$ in the longer run, about half, and momentum $1.3\cdot10^{5}$. On this landscape the metric buys an order of magnitude in
+# iterations and a much higher success rate at a fixed small iteration budget, but not fewer circuits.
+#
+# The final energies also show that the runs end in different minima. In the outside check (1000 iterations, same 16
+# starts) the natural-gradient runs end, all but one, at
+# $E-E_0=8.6\cdot10^{-3}$, $1.14\cdot10^{-2}$, $1.18\cdot10^{-2}$ or $1.20\cdot10^{-2}$ (the median $1.18\cdot10^{-2}$ in the
+# table is one of them); the lowest value found here, $8.6\cdot10^{-3}$, is an upper bound on the error of the best
+# $L=3$ circuit, which does not contain the exact ground state. How this error depends on the depth is the subject of
+# notebook 42.
 
 # %%
 # ==============================================================================
@@ -1301,14 +1548,16 @@ SHOTS = (32, 128, 512)
 noisy = {}
 print(f"\n{N_RUNS_SN} random starts, {N_STEPS_SN} iterations; the monitored quantity is the EXACT energy error")
 print(f"{'method':>22s} {'shots/circuit':>14s} {'shots/iteration':>16s} {'median final E-E0':>19s} "
-      f"{'best final':>12s}")
+      f"{'IQR of final':>19s} {'best final':>12s}")
 for M in SHOTS:
     for label, gr, ev in (("parameter shift + Adam", grad_ps_shots(M), 2 * N_PAR_SN * M),
                           ("SPSA + Adam", grad_spsa_shots(M), 2 * M)):
         _, h = train_many(th_sn, ks_sn, gr, opt_adam(0.05), err_SN, N_STEPS_SN)
         h = np.asarray(jax.block_until_ready(h))
         noisy[(label, M)] = h
-        print(f"{label:>22s} {M:14d} {ev:16d} {float(np.median(h[:, -1])):19.4e} {float(np.min(h[:, -1])):12.4e}")
+        q1, q3 = np.percentile(h[:, -1], [25, 75])
+        print(f"{label:>22s} {M:14d} {ev:16d} {float(np.median(h[:, -1])):19.4e} {f'[{q1:.3f}, {q3:.3f}]':>19s} "
+              f"{float(np.min(h[:, -1])):12.4e}")
 
 # exact-cost references: the SAME optimiser, with the shot noise switched off
 refs = {}
@@ -1316,8 +1565,9 @@ for label, gr in (("parameter shift + Adam", grad_exact(cost_SN)),
                   ("SPSA + Adam", grad_spsa_exact(cost_SN, c=0.2))):
     _, h = train_many(th_sn, ks_sn, gr, opt_adam(0.05), err_SN, N_STEPS_SN)
     refs[label] = np.asarray(jax.block_until_ready(h))
+    q1, q3 = np.percentile(refs[label][:, -1], [25, 75])
     print(f"{label + ', exact cost':>22s} {'-':>14s} {'-':>16s} {float(np.median(refs[label][:, -1])):19.4e} "
-          f"{float(np.min(refs[label][:, -1])):12.4e}")
+          f"{f'[{q1:.3f}, {q3:.3f}]':>19s} {float(np.min(refs[label][:, -1])):12.4e}")
 
 fig, axes = plt.subplots(1, 2, figsize=(12.0, 4.4))
 it_sn = np.arange(1, N_STEPS_SN + 1)
@@ -1337,34 +1587,49 @@ fig.tight_layout(); plt.show()
 # Each panel carries its own dashed reference: the *same optimiser* with the shot noise switched off. That isolates the
 # effect of the shots from the convergence speed of the method.
 #
-# **Shot noise sets a floor, and the floor falls as $M$ grows.** For parameter shift with Adam the median final energy
-# error is $0.247$ at $M=32$, $0.201$ at $M=128$ and $0.179$ at $M=512$, against $0.171$ with the exact cost: by
-# $M=512$ the noisy run is within $5\%$ of its own noise-free limit, and the curve in the left panel lies on top of the
-# dashed line for the whole run. For SPSA with Adam the same progression is $1.10\to0.53\to0.43$ against an exact-cost
-# reference of $0.329$, so even at $M=512$ it is still $30\%$ above its own limit.
+# **Shot noise adds an excess error at a fixed iteration count, and the excess falls as $M$ grows.** None of these runs
+# has converged after 100 iterations (the dashed curves are still falling), so the numbers compare the noisy and the
+# noise-free optimiser at the same iteration; they are not converged floors. For parameter shift with Adam the median energy
+# error at iteration 100 is $0.247$ at $M=32$, $0.201$ at $M=128$ and $0.179$ at $M=512$, against $0.171$ with the exact
+# cost; at $M=512$ the median curve in the left panel follows the dashed line over the whole run. For SPSA with Adam the
+# same progression is $1.10\to0.53\to0.43$ against an exact-cost reference of $0.329$. With 6 starts these medians are
+# rough: the interquartile ranges in the table overlap for neighbouring $M$, so only the trend over the factor 16 in $M$,
+# and the large gap at $M=32$, are resolved. The runs at different $M$ share their starting points, which makes the
+# comparison paired and the trend more reliable than the overlap of the ranges suggests.
 #
-# **Read the shot counts, not only the curves.** At the same $M$ a parameter-shift iteration costs $2n=48$ circuits and
-# an SPSA iteration $2$, so the columns differ by a factor $24$: at $M=512$ that is $24576$ shots per iteration against
-# $1024$. This experiment fixes the *iteration* count, so it answers "how much do shots cost me per step", and parameter
-# shift wins it. It does **not** answer "which method is better at a fixed total shot budget" — at equal total shots SPSA
-# would be granted $24$ times as many iterations, which is not what was run here. The dashed references say what such an
-# experiment would have to overcome: SPSA's own noise-free limit after 100 iterations is already twice parameter shift's.
+# **The shot counts differ between the rows.** One energy estimate uses $M$ shots, $M/2$ in each of the two
+# measurement bases. At the same $M$ a parameter-shift iteration needs $2n=48$ energy estimates and an SPSA iteration $2$,
+# so the shots per iteration differ by a factor $24$: at $M=512$ that is $24576$ shots per iteration against $1024$. This
+# experiment fixes the *iteration* count, so it measures what the shots cost per step, and parameter shift is closer to
+# its noise-free run there. It does **not** measure which method is better at a fixed total shot budget, where SPSA would
+# be granted $24$ times as many iterations.
+#
+# Both rules also run at the same, untuned Adam step $\eta=0.05$, so the cell does not by itself rank them. A check
+# outside the notebook supplied the fair-tuning control, from 16 starts (the 6 used here and 10 more) and a step-size
+# scan with the optimum bracketed for each rule. At $M=128$ and 100 iterations each rule's best step was $\eta=0.05$
+# (median errors $0.19$ for parameter shift and $0.53$ for SPSA). At an *equal total* budget, 100 parameter-shift
+# iterations against 2400 SPSA iterations with $M=128$ each, the best steps were $0.05$ and $0.00625$, and the median
+# errors $0.191$ and $0.232$; the paired comparison over the 16 common starts (Wilcoxon signed-rank test) gives
+# $p=3\cdot10^{-5}$. On this problem parameter shift keeps a modest advantage at equal shots when both are tuned, much
+# smaller than the factor of two between the dashed lines suggests.
 #
 # > **Numerical practice.** The monitored curve is the *exact* energy error, not the noisy estimate the optimiser sees.
-# > Plotting the noisy estimate would show a curve that dips below the true value by about one standard error and would
-# > make every method look better than it is; a real experiment must therefore always re-measure its final answer with a
-# > much larger shot budget.
+# > A fresh noisy estimate of the energy at the current angles is unbiased, but it scatters by one standard error
+# > $\sigma/\sqrt M$ around the true value, and reporting the lowest noisy value seen during a run, or the best of several
+# > runs, selects downward fluctuations and makes every method look better than it is. A real experiment must therefore
+# > re-measure its final angles with a much larger, independent shot budget.
 
 # %% [markdown]
 # ## 14. Local minima, depth, and overparametrisation
 #
-# The success rates of Section 12 were not $1$. The landscape has minima that are not global, and which of them a run
-# falls into is decided by the initialisation. The number and the severity of those minima depend on the **number of
-# parameters relative to the dimension of the state manifold being targeted**.
+# Section 13 showed runs ending in different minima of the energy landscape, with energies between
+# $8.6\cdot10^{-3}$ and $1.2\cdot10^{-2}$ above the ground state. A landscape has minima that are not global, and which
+# of them a run falls into is decided by the initialisation. How many such minima there are, and how often they trap a
+# run, depends on the **number of parameters relative to the dimension of the state manifold being targeted**.
 #
-# The heuristic, supported by a growing body of work on overparametrisation: when the ansatz has *just* enough parameters
-# to reach the target, the solution set is a small collection of isolated points and most basins lead elsewhere; when it
-# has many more, the solution set becomes a high-dimensional manifold that is easy to hit from anywhere. Adding layers
+# The heuristic, analysed for example by Larocca *et al.* (2023): when the ansatz has *just* enough parameters to reach
+# the target, the solution set is a small collection of isolated points and many basins lead elsewhere; when it has many
+# more, the solution set becomes a high-dimensional manifold that is easy to hit from anywhere. Adding layers
 # makes each iteration more expensive but can make the optimisation qualitatively easier.
 #
 # We measure this on a deliberately hard target: a **Haar-random state** of four qubits, which has no structure for the
@@ -1404,7 +1669,8 @@ axes[0].set_xlabel("number of parameters $n=2N(L+1)$"); axes[0].set_ylabel(f"fra
 axes[0].set_ylim(-0.05, 1.05)
 axes[0].set_title("Overparametrisation raises the success rate"); axes[0].legend(fontsize=8)
 
-axes[1].semilogy(ns, medfin, MARKERS[1] + "-", ms=7, color=PALETTE[1], label="median final infidelity")
+axes[1].semilogy(ns, np.maximum(medfin, 1e-16), MARKERS[1] + "-", ms=7, color=PALETTE[1],
+                 label="median final infidelity (clipped at $10^{-16}$)")
 axes[1].axhline(TARGET_D, color="k", ls=":", lw=1, label=f"target {TARGET_D:g}")
 axes[1].set_xlabel("number of parameters $n=2N(L+1)$"); axes[1].set_ylabel("median final infidelity")
 axes[1].set_title("Ansatz expressivity and the achievable floor"); axes[1].legend(fontsize=8)
@@ -1415,20 +1681,27 @@ fig.tight_layout(); plt.show()
 # boundary between them lies.
 #
 # * **Expressivity.** At $L=1$ and $L=2$ the ansatz has $n=16$ and $n=24$ angles, fewer than the $30$ needed to specify a
-#   general four-qubit state. The target is simply not in the family: *no* run gets below $0.29$ and $0.11$ respectively,
-#   and no optimiser could have. The right panel shows this as a high plateau.
-# * **Trainability.** At $L=3$, $n=32$ crosses the counting threshold of $30$ — and the success rate jumps from $0$ to
-#   $0.44$, with the successful runs needing a median of $306$ iterations. The target is now reachable, but fewer than
-#   half the random starts find it. At $L=4$, $n=40$, the success rate is $1.00$ and the median drops to $116$
-#   iterations; by $L=7$, $n=64$, it is $61$. **Adding parameters beyond the minimum needed makes a reachable target
-#   easy to find** — and makes it faster to find, too.
+#   general four-qubit state. The image of the ansatz is then a lower-dimensional subset of the state manifold, and a
+#   Haar-random target lies outside it with probability one. All 32 runs end at the same infidelity, $0.29$ and $0.11$
+#   respectively, which is very likely the best the circuit can do (the runs agree to the printed digits), but 32 runs
+#   are not a proof of a global minimum. The right panel shows this as a high plateau.
+# * **Trainability.** At $L=3$, $n=32$ crosses the counting threshold of $30$, and the success rate jumps from $0$ to
+#   $14/32=0.44$ (95% interval $[0.28,0.61]$), with the successful runs needing a median of $306$ iterations. The target
+#   is now reachable, but fewer than half the random starts find it within 400 iterations. The budget matters here: the
+#   median final infidelity, $1.15\cdot10^{-3}$, sits just above the target, and in a separate check run outside this
+#   notebook, a further 3000 gradient-descent steps from the same end points raised the count from 14 to 17 of 32, while the
+#   $L=1$ and $L=2$ end points did not move (gradient norm below $2\cdot10^{-2}$, infidelity changed in the fourth
+#   digit), so those two levels are properties of the circuit and not of Adam's constant step. At $L=4$, $n=40$, the success
+#   rate is $32/32$ ($[0.89,1]$) and the median drops to $116$ iterations; by $L=7$, $n=64$, it is $61$. **Adding parameters
+#   beyond the minimum needed makes a reachable target easy to find**, and faster to find.
 #
-# The vertical line in the left panel is the counting threshold $2\cdot2^N-2=30$, drawn before the experiment was run.
-# The rise sits exactly on it.
+# The vertical line in the left panel is the counting threshold $2\cdot2^N-2=30$, computed before the experiment. The rise
+# happens between the depths with $n=24$ and $n=32$, the two grid points that bracket it; the depth grid, in steps of
+# $2N=8$ parameters, cannot locate it more precisely.
 #
-# This has to be weighed against Section 13 of notebook 40, where deeper hardware-efficient circuits were measured to have
-# *exponentially smaller* gradients as $N$ grows. Depth helps trainability at fixed small $N$; depth hurts trainability as
-# $N$ grows at fixed relative depth. There is no universal answer, only a measurement for the problem at hand.
+# This has to be weighed against Section 13 of notebook 40, where hardware-efficient circuits whose depth grows with $N$
+# were measured to have *exponentially smaller* gradient variances as $N$ grows. Depth helps trainability at fixed small
+# $N$ and hurts it as $N$ grows with the depth; which effect dominates has to be measured for the problem at hand.
 
 # %% [markdown]
 # ## 15. Practical guidance, from this notebook's measurements only
@@ -1438,66 +1711,75 @@ fig.tight_layout(); plt.show()
 #
 # | method | circuits per iteration | measured strength | measured weakness |
 # |---|---|---|---|
-# | gradient descent | $2n$ | stability threshold measured at twice the inverse largest curvature on both a quadratic and a circuit Hessian (Section 4) | slowest exact-gradient method in Section 12 (118 iterations against 56 for Adam); cost varies over four decades across the step-size grid |
-# | heavy-ball momentum | $2n$ | iteration count scales as the square root of the condition number (Section 5); admits a larger step than gradient descent (Section 11) | two hyper-parameters; on the energy landscape it stalled at the same plateau as gradient descent |
-# | Adam | $2n$ | widest usable step-size window of all six, over a decade (Section 11); fewest circuits to target in Section 12 | no curvature information: only 1 of 16 starts reached the target on the energy landscape |
-# | SPSA with Spall gains | $2$ | cheapest possible iteration; the exponents justified rather than quoted (Section 7) | reached the target from 12% of starts in Section 12 and from none in Section 13 |
-# | SPSA with Adam | $2$ | momentum averages the SPSA noise, and its shot-noise floor fell with the budget (Section 13) | did not reach the target in either benchmark within the iteration budget |
-# | quantum natural gradient | $2n+n(n+1)/2$ | fewest iterations in Section 12 (22); the only method to leave the plateau of the energy landscape, from 94% of starts (Section 13); metric validated three ways (Section 9) | most circuits per iteration by a factor of nine; needs a ridge because the metric is singular; fails outside a one-decade step-size window |
+# | gradient descent | $2n$ | stability threshold measured at twice the inverse largest curvature on both a quadratic and a circuit Hessian (Section 4) | slowest exact-gradient method in Section 12 (118 iterations against 56 for Adam); never reached the energy target, even in 3000 iterations (Section 13) |
+# | heavy-ball momentum | $2n$ | iteration count scales as the square root of the condition number (Section 5); admits a larger step than gradient descent, bound $2(1+\beta)/\lambda_{\max}$ (Section 11) | two hyper-parameters; on the energy landscape it needs more than 300 iterations to leave the saddle region (Section 13) |
+# | Adam | $2n$ | never diverges, step bounded by a few $\eta$ (Section 6.3); fewest circuits to target in Section 12; reached the energy target from 15 of 16 starts in 3000 iterations, with half the circuits of the natural gradient (Section 13) | 1 of 16 starts reached the energy target within 300 iterations; at most about 20% under fair tuning |
+# | SPSA with Spall gains | $2$ | cheapest possible iteration; the exponents derived from the convergence conditions (Section 7) | reached the target from 3 of 24 starts in Section 12 and from none in Section 13 |
+# | SPSA with Adam | $2$ | momentum averages the SPSA noise; its excess error from shot noise fell with the budget (Section 13) | did not reach the target in either benchmark within the iteration budget |
+# | quantum natural gradient | $2n+n(n+1)/2$ | fewest iterations in Section 12 (22); 15 of 16 starts reached the energy target within 300 iterations (Section 13); stable for $\eta<1$ on an infidelity cost, independently of the curvature (Section 11) | most circuits per iteration, 9 times Adam's at $n=32$ and 13 times at $n=48$; more circuits to target than Adam in both benchmarks; needs a ridge because the metric is singular |
 #
 # Four decision rules that these measurements support:
 #
-# * **On a simulator, use reverse-mode AD with Adam as the default.** The gradient is free (notebook 40, Section 11), so
-#   the per-iteration circuit count is irrelevant, and Adam had by far the widest usable learning-rate window.
-# * **Try the natural gradient when the landscape is badly conditioned.** On the GHZ problem it saved iterations but cost
-#   circuits; on the energy landscape it was the difference between $6\%$ and $94\%$ success.
-# * **On hardware, the currency is circuit executions, and it re-ranks everything.** The right panel of Section 12 moves
-#   every exact-gradient curve one and a half decades to the right.
-# * **Always run many initialisations, and report the success rate.** In Section 10 a single configuration produced final
-#   infidelities spanning ten orders of magnitude across 24 starts.
+# * **On a simulator, use reverse-mode AD with Adam as the default.** The gradient is cheap (notebook 40, Section 11), so
+#   the per-iteration circuit count is irrelevant, and Adam has no divergence threshold and a usable step-size window of
+#   about a decade.
+# * **Try the natural gradient when the landscape has slow saddle regions.** On the energy landscape it reached the target
+#   from 15 of 16 starts in 300 iterations, where Adam reached it from 1 (and from at most about 20% at any step size);
+#   given ten times more iterations Adam reached it from 15 of 16, at half the circuit cost.
+# * **On hardware, the currency is circuit executions, and it re-ranks everything.** Moving from the iteration axis to the
+#   circuit axis of Section 12 shifts each exact-gradient curve by $\log_{10}64=1.8$ decades and the natural gradient by
+#   $\log_{10}592=2.8$ decades, against $0.3$ for SPSA.
+# * **Always run many initialisations, report the success rate with its interval, and state the iteration budget.** In
+#   Section 10 a single configuration produced final infidelities spanning ten orders of magnitude across 24 starts, and
+#   in Section 13 a success rate of 1/16 became 15/16 when the budget grew from 300 to 3000 iterations.
 #
 # ## 16. Key takeaways
 #
-# * **The largest curvature is a hard ceiling on the step size.** On a quadratic, gradient descent converges if and only
-#   if $\eta<2/\lambda_{\max}$, Eq. (5). The measured threshold was $0.40$ against a predicted $0.400$ on the test
-#   problem, and $0.59$ against a predicted $0.577$ on the Hessian of a real circuit landscape near a minimum, one grid
-#   step in each case.
+# * **The largest curvature sets a hard ceiling on the step size of gradient descent.** On a quadratic, gradient descent
+#   converges if and only if $\eta<2/\lambda_{\max}$, Eq. (5). The measured threshold was $0.40$ against a predicted
+#   $0.400$ on the test problem, and between $0.548$ and $0.592$ against a predicted $0.577$ on the Hessian of a real
+#   circuit landscape near a minimum. Heavy-ball momentum has the larger bound $2(1+\beta)/\lambda_{\max}$; Adam has no
+#   divergence threshold, because its step does not grow with the gradient.
 # * **The condition number sets the rate**, $\rho_\star=(\kappa-1)/(\kappa+1)$ for gradient descent and
 #   $(\sqrt\kappa-1)/(\sqrt\kappa+1)$ for heavy ball, Eqs. (6) and (9). Gradient-descent iteration counts matched the
-#   prediction within $5\%$ over two and a half decades of $\kappa$, and the ratio of the two methods' iteration counts
-#   grew as $0.85\sqrt\kappa$ — a factor $20$ at $\kappa=1024$.
-# * **Adam's bias correction is a geometric sum**, Eq. (11), and without it the steps are *larger* than intended by a
-#   factor $(1-\beta_1^k)/\sqrt{1-\beta_2^k}$ that is $3.2$ at $k=1$, peaks near $6$ at $k=20$ and is still $3.2$ at
-#   $k=100$. Our from-scratch implementation reproduced the engine's bit for bit.
-# * **Spall's exponents are not magic numbers.** Convergence of a stochastic approximation requires
-#   $\alpha-\gamma>\tfrac12$, Eq. (15); $(0.602,0.101)$ is the smallest admissible pair, chosen so that the gains decay as
-#   slowly as the theory allows, which is what matters in a run of a few hundred iterations.
-# * **The quantum natural gradient measures distance in state space, not in parameter space.** The Fubini–Study metric of
-#   Eq. (17) was validated three ways: the analytic $g=1/4$ of a single $R_y$, exact symmetry with a smallest eigenvalue
-#   of $-6\cdot10^{-17}$, and the fidelity expansion of Eq. (16) to one power of $\delta$ per decade. Its kernel is the
-#   ansatz's parameter redundancy, and it is why the update needs a ridge.
+#   prediction to within one iteration over two and a half decades of $\kappa$; the ratio of the two methods' iteration
+#   counts grew as $\sqrt\kappa$ with a prefactor drifting from $0.83$ to $0.62$, a factor $20$ at $\kappa=1024$, the
+#   drift coming from the critically damped $(a+bk)\rho^k$ decay at the optimal heavy-ball parameters.
+# * **Adam's bias correction is a geometric sum**, Eq. (11). Without it the steps are *larger* than intended by a factor
+#   $(1-\beta_1^k)/\sqrt{1-\beta_2^k}$ that is $3.2$ at $k=1$, peaks at $6.6$ at $k=12$ and is still $3.2$ at $k=100$. Our
+#   from-scratch implementation reproduced the engine's bit for bit.
+# * **Spall's exponents follow from the convergence conditions.** Convergence requires $\alpha-\gamma>\tfrac12$, Eq. (15),
+#   and the asymptotic-normality theorem adds $\gamma\ge\alpha/6$; $(0.602,0.101)$ is effectively the lowest admissible
+#   pair, chosen so that the gains decay as slowly as the theory allows.
+# * **The quantum natural gradient measures distance in state space.** The Fubini–Study metric of Eq. (17) was validated
+#   four ways: the analytic $g=1/4$ of a single $R_y$, exact symmetry with a smallest eigenvalue of $-6\cdot10^{-17}$, the
+#   fidelity expansion of Eq. (16) to one power of $\delta$ per decade, and the identity Hessian $=2\mathbf G$ at an exact
+#   zero of the infidelity, which also gives the step-size bound $\eta<1$ for the natural gradient on such costs. Its
+#   kernel holds the parameter redundancy of the ansatz, which grows at special points such as the GHZ minimum.
 # * **Hyper-parameters must be measured, and they do not transfer.** Every optimiser's median final cost varied over
 #   orders of magnitude across the step-size grid, the optimum was different for each method, and Adam's best step moved
 #   from $0.13$ on the infidelity landscape to $0.45$ on the energy landscape of the same circuit family.
 # * **Per iteration and per circuit are different rankings.** The natural gradient won the first (22 iterations against
-#   Adam's 56) and lost the second ($1.3\cdot10^4$ circuits against Adam's $3.6\cdot10^3$), because it pays $O(n^2)$
-#   circuits for its metric.
-# * **Conditioning can matter more than speed.** On the badly conditioned energy landscape four of six methods never left
-#   a plateau near $E-E_0\approx0.1$; the natural gradient reached $1.2\cdot10^{-2}$ from $94\%$ of starts. Rescaling by
-#   the metric was the difference between failing and succeeding, not between slow and fast.
-# * **Shot noise puts a floor under the achievable cost**, and the floor falls as the shot budget grows: parameter shift
-#   with Adam came within $5\%$ of its own noise-free limit at $512$ shots per circuit. The honest diagnostic is the
+#   Adam's 56 on the GHZ problem) and lost the second ($1.3\cdot10^4$ circuits against Adam's $3.6\cdot10^3$), because it
+#   pays $O(n^2)$ circuits for its metric.
+# * **A success rate depends on the iteration budget.** On the energy landscape, within 300 iterations the natural
+#   gradient reached the target from 15 of 16 starts and Adam from 1; the iterates of the Euclidean methods sit in saddle
+#   regions whose negative curvature is three thousand times weaker than the largest curvature, and the metric removes that
+#   disparity. With 3000 iterations Adam reached the target from 15 of 16 starts, with half the circuits of the natural
+#   gradient.
+# * **Shot noise adds an excess error at a fixed iteration count**, and the excess falls as the shot budget grows: parameter
+#   shift with Adam came within $5\%$ of its noise-free run at $512$ shots per energy estimate. The diagnostic to report is the
 #   exact cost of the state the optimiser produced, never the noisy estimate it was shown.
 # * **The variational principle is a free unit test.** Across every TFIM run recorded here the energy never fell below the
 #   Lanczos ground energy.
-# * **Success probability, not the best run, is the figure of merit.** A single configuration produced final infidelities
+# * **Success probability is the figure of merit, rather than the best run.** A single configuration produced final infidelities
 #   spanning ten orders of magnitude across 24 random starts, and the depth study showed the success rate rising from $0$
-#   to $0.44$ to $1.00$ as the parameter count crossed $2\cdot2^N-2=30$ — extra parameters beyond the minimum needed make
+#   to $0.44$ to $1.00$ as the parameter count crossed $2\cdot2^N-2=30$: extra parameters beyond the minimum needed make
 #   a hard target easy to find.
 #
 # ## 17. Exercises
 #
-# 1. ★ **The threshold, precisely.** Refine the learning-rate grid of Section 4.2 near $2/L$ and determine the threshold
+# 1. ★ **The threshold to three digits.** Refine the learning-rate grid of Section 4.2 near $2/L$ and determine the threshold
 #    to three digits. Then repeat with $300$, $3000$ and $30000$ iterations: does the measured threshold move? Explain
 #    what "converged after $n$ steps" measures when $\eta$ is just below $2/L$.
 # 2. ★ **Momentum without the optimum.** Fix $\beta=0.9$ (the practical default) and sweep $\eta$ on the test quadratic
@@ -1506,15 +1788,16 @@ fig.tight_layout(); plt.show()
 #    $\boldsymbol\theta_k-\eta\beta\mathbf v_k$ instead of at $\boldsymbol\theta_k$ — as a third optimiser in the
 #    framework of Step 1, and add it to the benchmark of Section 12. On which of the two panels does it help?
 # 4. ★★ **L-BFGS versus the rest (extend the code).** `scipy.optimize.minimize(method="L-BFGS-B", jac=...)` accepts the
-#    exact gradient. Run it from the same 32 initialisations as Section 12 (loop in Python; it cannot be vmapped) and
+#    exact gradient. Run it from the same 24 initialisations as Section 12 (loop in Python; it cannot be vmapped) and
 #    add its iteration and function-evaluation counts to the table. Then repeat with a shot-noisy cost and explain what
 #    goes wrong.
 # 5. ★★ **The SPSA gain constants.** Sweep $a$ and $c$ of Section 12's SPSA row on a two-dimensional grid and plot the
 #    median final infidelity as a heat map. Which of the two matters more, and how does the answer change when the cost
 #    is shot-noisy?
 # 6. ★★ **Block-diagonal natural gradient (extend the code).** Replace the full metric by its block-diagonal
-#    approximation, one block per rotation layer, as used in hardware implementations. Compare the iteration count with
-#    the full metric, and count the circuits each would need.
+#    approximation, with one block for each layer of $R_y$ gates and one for each layer of $R_z$ gates (so that the
+#    generators inside a block commute), as used in hardware implementations. Compare the iteration count with the full
+#    metric, and count the circuits each would need.
 # 7. ★★★ **Overparametrisation at larger $N$ (physics).** Repeat Section 14 for $N=5$ and $N=6$ with a Haar-random
 #    target. Does the parameter count at which the success rate rises track $2\cdot2^N-2$? Combine the answer with the
 #    barren-plateau exponents of notebook 40 and state the regime in which both requirements can be met at once.
@@ -1525,9 +1808,20 @@ fig.tight_layout(); plt.show()
 # ## References
 #
 # * J. C. Spall, *Multivariate stochastic approximation using a simultaneous perturbation gradient approximation*,
-#   IEEE Trans. Autom. Control **37**, 332 (1992) — SPSA, the gain sequences of Eq. (14) and the conditions of Eq. (13).
-# * D. P. Kingma and J. Ba, *Adam: a method for stochastic optimization*, arXiv:1412.6980 (2014) — the update equations
-#   of Eq. (10) and the bias correction of Eq. (11).
+#   IEEE Trans. Autom. Control **37**, 332 (1992) — SPSA, the gain sequences of Eq. (14), the conditions of Eq. (13) and the
+#   asymptotic-normality conditions quoted in Section 7.2.
+# * J. C. Spall, *Implementation of the simultaneous perturbation algorithm for stochastic optimization*, IEEE Trans.
+#   Aerosp. Electron. Syst. **34**, 817 (1998) — the practical exponents $\alpha=0.602$, $\gamma=0.101$ as the lowest
+#   values allowed by the theory, the asymptotically optimal pair $(1,1/6)$, and the guideline for $A$ (Section 7.2).
+# * H. Robbins and S. Monro, *A stochastic approximation method*, Ann. Math. Statist. **22**, 400 (1951) — decreasing gains
+#   for noisy gradient iterations (Section 7).
+# * B. T. Polyak, *Some methods of speeding up the convergence of iteration methods*, USSR Comput. Math. Math. Phys.
+#   **4**(5), 1 (1964) — the heavy-ball method of Eq. (7).
+# * D. P. Kingma and J. Ba, *Adam: a method for stochastic optimization*, 3rd International Conference on Learning
+#   Representations (ICLR 2015), arXiv:1412.6980 — the update equations of Eq. (10) and the bias correction of Eq. (11).
+# * W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes: The Art of Scientific
+#   Computing*, 3rd ed. (Cambridge University Press, 2007), Chapter 10 — minimisation; §10.8 conjugate gradients and
+#   §10.9 quasi-Newton (variable-metric, BFGS) methods (Exercise 4).
 # * J. Stokes, J. Izaac, N. Killoran and G. Carleo, *Quantum natural gradient*, Quantum **4**, 269 (2020) — the
 #   Fubini–Study metric of Eq. (17), the update of Eq. (18) and the block-diagonal approximation.
 # * J. Gacon, C. Zoufal, G. Carleo and S. Woerner, *Simultaneous perturbation stochastic approximation of the quantum
@@ -1539,10 +1833,14 @@ fig.tight_layout(); plt.show()
 #   *A variational eigenvalue solver on a photonic quantum processor*, Nat. Commun. **5**, 4213 (2014) — the first
 #   experiment of this kind.
 # * A. Kandala, A. Mezzacapo, K. Temme, M. Takita, M. Brink, J. M. Chow and J. M. Gambetta, *Hardware-efficient
-#   variational quantum eigensolver for small molecules and quantum magnets*, Nature **549**, 242 (2017) — the ansatz
-#   used in both benchmarks, and SPSA as the optimiser of choice on hardware.
+#   variational quantum eigensolver for small molecules and quantum magnets*, Nature **549**, 242 (2017) — the
+#   hardware-efficient ansatz family (layers of single-qubit rotations and native entangling gates) used in both
+#   benchmarks, and SPSA as the optimiser on hardware.
 # * M. Cerezo, A. Arrasmith, R. Babbush, S. C. Benjamin, S. Endo, K. Fujii, J. R. McClean, K. Mitarai, X. Yuan,
 #   L. Cincio and P. J. Coles, *Variational quantum algorithms*, Nat. Rev. Phys. **3**, 625 (2021) — the review, with a
 #   survey of optimisers, overparametrisation and trainability.
 # * J. R. McClean, S. Boixo, V. N. Smelyanskiy, R. Babbush and H. Neven, *Barren plateaus in quantum neural network
 #   training landscapes*, Nat. Commun. **9**, 4812 (2018) — why no optimiser can rescue an exponentially flat landscape.
+# * M. Larocca, N. Ju, D. García-Martín, P. J. Coles and M. Cerezo, *Theory of overparametrization in quantum neural
+#   networks*, Nat. Comput. Sci. **3**, 542 (2023) — overparametrisation and the disappearance of spurious local minima
+#   (Section 14).

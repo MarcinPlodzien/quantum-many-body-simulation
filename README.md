@@ -2,6 +2,10 @@
 
 **From a single spin to quantum machine learning**: hands-on lectures on simulating quantum systems in JAX, from scratch, with **SmoQ.jax**, a matrix-free JAX engine for quantum many-body systems.
 
+Website: **https://marcinplodzien.github.io/quantum-many-body-simulation/**
+
+> The course is under active review: notebooks are being checked and improved, and their content may change.
+
 **Marcin Płodzień** — Institute of Theoretical Physics, Jagiellonian University ·
 [ORCID 0000-0002-0835-1644](https://orcid.org/0000-0002-0835-1644) · [github.com/MarcinPlodzien](https://github.com/MarcinPlodzien)
 
@@ -53,3 +57,7 @@ quarto publish gh-pages                                         # publish to Git
 ## How to cite
 
 > M. Płodzień, *Quantum Many-Body Simulation: from a single spin to quantum machine learning*, hands-on lectures in JAX with the SmoQ.jax engine (2026), https://marcinplodzien.github.io/quantum-many-body-simulation/
+
+## License
+
+Code and lecture material (notebooks, text and figures) are released under the MIT License, see [LICENSE](LICENSE).

@@ -7,7 +7,7 @@
 #
 # Every notebook so far has *started* from a known state: we prepared $|\psi\rangle$ or $\rho$ with a circuit or a Hamiltonian and then
 # computed things from it. An experiment works the other way round. A laboratory builds a device that is *supposed* to prepare a Bell pair,
-# a GHZ state or the output of a variational circuit, and then has to answer a hard question: **what state did it actually prepare?**
+# a GHZ state or the output of a variational circuit, and then has to determine **which state it actually prepared**.
 # The only access it has is the one described in
 # [08 — measurements](../ch03_matrix_free_engine/08_measurements.ipynb): choose a measurement axis for every qubit, run the device,
 # read out a string of $N$ bits, repeat. From those click statistics the full density matrix must be *reconstructed*.
@@ -29,7 +29,7 @@
 #    **design matrix** explicitly for $N=1$ and $N=2$, discover its Kronecker structure, and solve the normal equations.
 #    Show that ordinary least squares is *exactly* the "direct inversion" of Pauli expectation values, derive the statistical
 #    error bars analytically and check them by Monte Carlo, and add weighted least squares (Sections 6–9).
-# 4. **The catch.** Linear inversion regularly returns a matrix with **negative eigenvalues** — not a quantum state. We measure
+# 4. **Unphysical estimates.** Linear inversion regularly returns a matrix with **negative eigenvalues** — not a quantum state. We measure
 #    how often, and repair it by the eigenvalue-truncation projection of Smolin, Gambetta and Smith (Sections 10–11).
 # 5. **Maximum-likelihood tomography.** Write the multinomial likelihood, derive the extremal equation $R\rho R=\rho$, implement
 #    the iterative $R\rho R$ algorithm and its *diluted* variant with convergence monitoring, then solve the *same* problem by
@@ -37,8 +37,8 @@
 #    and check that the two agree (Sections 12–14).
 # 6. **Assessment.** Fidelity and trace distance versus the number of shots with **bootstrap** error bars; linear inversion versus
 #    projected linear inversion versus maximum likelihood on pure (Bell, GHZ, W), mixed (Werner, noisy GHZ) and random states;
-#    the bias of maximum likelihood at the boundary of the state space; and finally the $3^N$ / $4^N$ cost wall that makes full
-#    tomography hopeless beyond a handful of qubits — which is why the next notebook replaces it by
+#    the bias of maximum likelihood at the boundary of the state space; and finally the cost wall ($3^N$ settings, and a total
+#    shot budget that grows like $5^N$ at fixed accuracy) that makes full tomography hopeless beyond a handful of qubits — which is why the next notebook replaces it by
 #    [24 — classical shadows](../ch08_quantum_information_protocols/24_classical_shadows.ipynb) (Sections 15–18).
 #
 # ### What you will learn
@@ -126,9 +126,9 @@ def mixed_with_identity(rho_mat, p):
 # $$\#\text{parameters}=d^2-1=4^N-1 .$$
 #
 # For $N=1$ that is $3$ (the Bloch vector), for $N=2$ it is $15$, for $N=5$ already $1023$, for $N=10$ more than a million.
-# **Positivity is an inequality, not an equation**: it does not remove parameters, it carves out a convex body inside the
-# $(4^N-1)$-dimensional affine space of Hermitian unit-trace matrices. Pure states sit on its *boundary*. Remember that — it is the
-# source of every subtlety later in this notebook.
+# **Positivity is an inequality** and removes no parameters; it carves out a convex body inside the
+# $(4^N-1)$-dimensional affine space of Hermitian unit-trace matrices. Pure states sit on its *boundary*, and that boundary is the
+# source of most subtleties later in this notebook.
 #
 # ### 3.2 Pauli strings as a basis
 #
@@ -262,7 +262,7 @@ for N in (1, 2, 3):
 # because each of the $3^N$ settings contributes $\mathbb 1$. (Dividing by $3^N$ turns it into a proper POVM; the constant will
 # reappear in the maximum-likelihood derivation.)
 #
-# ### 4.2 Why $3^N$ settings are enough — and what "enough" means
+# ### 4.2 Informational completeness of the $3^N$ settings
 #
 # Expand the projector of Eq. (2) by multiplying out the tensor product:
 #
@@ -281,7 +281,7 @@ for N in (1, 2, 3):
 # The measurement scheme is therefore **informationally complete**: the map $r\mapsto p$ is injective, so in the limit of infinitely
 # many shots the state is uniquely determined.
 #
-# ### 4.3 The bill
+# ### 4.3 Resource count
 #
 # | $N$ | settings $3^N$ | parameters $4^N-1$ | outcome rows $6^N$ | shots at $10^3$/setting |
 # |---|---|---|---|---|
@@ -292,8 +292,9 @@ for N in (1, 2, 3):
 # | 6 | 729 | 4095 | 46656 | $7.3\cdot10^5$ |
 # | 10 | 59049 | 1048575 | $6\cdot10^7$ | $5.9\cdot10^7$ |
 #
-# Both columns grow exponentially, and the $3^N$ *settings* hurt more than the shots: every setting is a separate experimental
-# configuration that must be programmed, calibrated and run. Section 18 returns to this wall.
+# Every column grows exponentially. Each of the $3^N$ settings is a separate experimental configuration that must be programmed,
+# calibrated and run. The last column understates the shot cost: at a fixed number of shots per setting the reconstruction error
+# *grows* with $N$, and Section 18.1 shows that the total number of shots needed for a fixed error grows like $5^N$.
 
 # %% [markdown]
 # ## 5. From formula to code: simulating the experiment with the engine
@@ -379,7 +380,7 @@ def simulate_experiment(key, rho, settings, shots):
 # We take the Bell state $|\Phi^+\rangle=(|00\rangle+|11\rangle)/\sqrt2$, the workhorse of
 # [notebook 19](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb), and run all $9$ settings with $M=200$ shots each.
 # Before histogramming we print the actual bit strings of the first few shots in three settings, because that — a list of bit
-# strings, one per run — is literally all the data an experiment ever produces.
+# strings, one per run — is all the data an experiment ever produces.
 #
 # Pencil-and-paper expectations for $|\Phi^+\rangle$: in the setting $ZZ$ only $00$ and $11$ occur (each with probability $1/2$),
 # in $XX$ likewise, in $YY$ only $01$ and $10$ occur (because $\langle YY\rangle=-1$), and in a mismatched setting such as $XZ$
@@ -431,7 +432,7 @@ assert int(counts_demo.sum()) == 3 ** N_DEMO * SHOTS_DEMO
 # 3. **Against an explicit per-shot `vmap`.** One PRNG key per shot, one `categorical` call per shot — the "one key per run of the
 #    experiment" picture. Same distribution, different code path.
 #
-# For (2) and (3) the criterion is statistical, not `TOL`: we use Pearson's $\chi^2=\sum_s(n_s-Mp_s)^2/(Mp_s)$, which for $K$ bins
+# For (2) and (3) the criterion is statistical rather than `TOL`: we use Pearson's $\chi^2=\sum_s(n_s-Mp_s)^2/(Mp_s)$, which for $K$ bins
 # fluctuates around $K-1$ with standard deviation $\sqrt{2(K-1)}$.
 
 # %%
@@ -485,8 +486,17 @@ for label, fn in samplers.items():
           f"(expected {dof} +- {np.sqrt(2 * dof / R_CHK):.2f}; z = {z:+.2f})")
     assert abs(z) < 3.5
 
+# CONTROL: a sampler with a classic bug -- the bit order reversed (qubit 0 read as the LEAST significant bit) -- must fail
+rev = np.array([int(f"{i:03b}"[::-1], 2) for i in range(8)])
+chi2_w = np.array([np.sum((samplers["density tensor + counts"](jax.random.fold_in(jax.random.PRNGKey(7), i))[rev]
+                           - M_CHK * p_exact) ** 2 / (M_CHK * p_exact)) for i in range(R_CHK)])
+z_w = (chi2_w.mean() - dof) / np.sqrt(2 * dof / R_CHK)
+print(f"CONTROL          {'bit order reversed':26s}: mean chi^2 over {R_CHK} runs = {chi2_w.mean():7.1f}   (z = {z_w:+.0f}) -> detected")
+assert abs(z_w) > 3.5
+
 # %% [markdown]
-# All three routes sample the same distribution. In particular the per-shot `vmap` version, which is conceptually closest to the
+# All three routes sample the same distribution, and the control line shows that the test detects a reversed bit order at once. In
+# particular the per-shot `vmap` version, which is conceptually closest to the
 # laboratory ("one PRNG key = one run of the machine"), agrees with the batched one — so for the rest of the notebook we use the
 # fast batched sampler with a clear conscience.
 
@@ -537,7 +547,7 @@ for label, fn in samplers.items():
 #
 # $$A_N=\underbrace{A_1\otimes A_1\otimes\cdots\otimes A_1}_{N\ \text{factors}} . \tag{6}$$
 #
-# That is a genuinely useful structure: it makes the design matrix available for any $N$ without ever enumerating $6^N\times4^N$ entries,
+# That is a useful structure: it makes the design matrix available for any $N$ without ever enumerating $6^N\times4^N$ entries,
 # and — as the next section shows — it diagonalises the normal equations analytically.
 
 # %%
@@ -809,8 +819,8 @@ for name, rho in cases:
     assert e_r < 1e3 * TOL and e_rho < 1e3 * TOL
 
 # %% [markdown]
-# Exact, for pure and mixed states alike, up to $N=3$. **The estimator has no systematic error** — every deviation we see from now on
-# is statistics, not a bug. This is the single most useful test in the whole notebook: before worrying about noise, check that your
+# Exact, for pure and mixed states alike, up to $N=3$. **The estimator has no systematic error**, so every deviation we see from now on
+# is statistical. This is the single most useful test in the whole notebook: before worrying about noise, check that your
 # reconstruction is exact when there is none.
 
 # %% [markdown]
@@ -892,21 +902,27 @@ for i, lab in enumerate(pauli_labels(N)):
           f"{float(jnp.sqrt(var_analytic[i])):11.4f} {float(jnp.sqrt(var_prop[i])):12.4f}")
 err_prop = max_abs(var_prop[1:] - var_analytic[1:])
 ratio = float(jnp.max(jnp.abs(jnp.sqrt(var_mc[1:] / var_analytic[1:]) - 1)))
+var_wrong = (1 - r_true ** 2) / M_ERR            # CONTROL: Eq. (9) without the factor 3^(N-w) (each setting counted once)
+ratio_wrong = float(jnp.max(jnp.abs(jnp.sqrt(var_mc[1:] / var_wrong[1:]) - 1)))
 print(f"\nCHECKPOINT Eq.(9) vs full covariance propagation: max |Delta Var| = {err_prop:.2e}")
 print(f"CHECKPOINT Monte Carlo vs Eq.(9): largest relative deviation of the standard deviations = {ratio:.1%} "
       f"(expected ~ 1/sqrt(2 x {N_REP}) = {1 / np.sqrt(2 * N_REP):.1%})")
-assert err_prop < 1e3 * TOL and ratio < 0.20
+print(f"CONTROL    the same test with the factor 3^(N-w) dropped from Eq.(9): largest deviation = {ratio_wrong:.1%} -> detected")
+assert err_prop < 1e3 * TOL and ratio < 0.20 and ratio_wrong > 0.20
 
 fro_mc = float(jnp.mean(jax.vmap(lambda r: jnp.linalg.norm(rho_from_pauli_vector(r, N) - dm_matrix(rho_err)) ** 2)(r_mc)))
 fro_pred = float(jnp.sum(var_analytic[1:]) / 2 ** N)
+fro_wrong = float(jnp.sum(var_wrong[1:]) / 2 ** N)
 print(f"CHECKPOINT Eq.(10): E||rho_hat - rho||_F^2 = {fro_mc:.3e} (measured)  vs  {fro_pred:.3e} (predicted), "
       f"ratio {fro_mc / fro_pred:.3f}")
-assert abs(fro_mc / fro_pred - 1) < 0.15
+print(f"CONTROL    Eq.(10) built from the wrong variances: ratio {fro_mc / fro_wrong:.3f} -> detected")
+assert abs(fro_mc / fro_pred - 1) < 0.15 and abs(fro_mc / fro_wrong - 1) > 0.15
 
 # %% [markdown]
 # The three columns agree: the elementary per-string argument, the full covariance propagation through the pseudo-inverse, and the
 # brute-force Monte Carlo. The weight-1 strings ($XI$, $IX$, ...) have standard deviations about $\sqrt3$ smaller than the weight-2
-# ones, exactly as Eq. (9) predicts, and the total Frobenius error matches Eq. (10) within the Monte-Carlo uncertainty.
+# ones, exactly as Eq. (9) predicts, and the total Frobenius error matches Eq. (10) within the Monte-Carlo uncertainty. The two
+# control lines repeat both tests with the factor $3^{N-w}$ dropped from Eq. (9), the most likely derivation error, and both fail.
 #
 # > **Numerical practice.** Never quote a tomography result without an error bar, and never trust an error bar you have not tested
 # > against repetitions or a bootstrap. Formula (9) is easy to mis-derive by a factor $3^{N-w}$ — the Monte Carlo is what catches that.
@@ -995,8 +1011,8 @@ for name, rho in states_w.items():
 
 # %% [markdown]
 # The measured gain is a **few per cent** in root-mean-square error, largest for the Bell state (whose outcome distributions are far
-# from uniform, so the weights differ most) and smallest for the Werner state. The reason is not that our weights are poor: it is that
-# there is almost nothing to win. The Gauss–Markov theorem gives the variance of the *best possible* linear unbiased estimator,
+# from uniform, so the weights differ most) and smallest for the Werner state. The gain is small because there is almost nothing to
+# win, even with perfect weights. The Gauss–Markov theorem gives the variance of the *best possible* linear unbiased estimator,
 # $\mathrm{Cov}=\big(A^{\mathsf T}C^{-1}A\big)^{-1}$ with $C$ the exact block covariance of Eq. (5), and that bound can be evaluated
 # in closed form for each of these states. At $M=100$ it sits only $5.4\%$ below OLS for the Bell state, $1.0\%$ for the Werner state
 # and $5.6\%$ for the random mixed state — so the simple diagonal weights above already capture essentially the whole available gain.
@@ -1009,7 +1025,7 @@ for name, rho in states_w.items():
 # plain OLS**, whose matrix-free form, Eq. (8), scales to larger $N$; the real accuracy problem is elsewhere, as the next section shows.
 
 # %% [markdown]
-# ## 10. The catch: linear inversion returns states that do not exist
+# ## 10. Unphysical estimates from linear inversion
 #
 # Linear inversion is unbiased, it needs no iteration, and it is exact in the infinite-shot limit. It has one fatal flaw:
 # **nothing in it enforces $\hat\rho\succeq0$.** The estimate is constructed from noisy numbers $\hat r_P$ that fluctuate freely in
@@ -1017,9 +1033,12 @@ for name, rho in states_w.items():
 # error bars are small, the estimate is very likely physical. If the true state sits *on the boundary* — and every pure state does —
 # then roughly half of the fluctuations push the estimate straight out of the set.
 #
-# A one-qubit picture makes it obvious: a pure state has Bloch vector of length exactly 1. Each component is estimated with an error
-# $\sim1/\sqrt{3M}$, so the estimated length is $1\pm O(1/\sqrt M)$ and exceeds 1 about half of the time — and a Bloch vector longer
-# than 1 corresponds to a matrix with a negative eigenvalue. For $N$ qubits the effect is much worse, because there are $4^N-1$
+# A one-qubit picture shows the mechanism. A pure state has a Bloch vector $\vec r$ of length exactly 1, and each component $r_a$ is
+# estimated from its own setting with variance $(1-r_a^2)/M$ (Eq. (9) with $N=w=1$). Writing $\hat r_a=r_a+\delta_a$,
+# $\lvert\hat{\vec r}\rvert^2=1+2\,\vec r\cdot\vec\delta+\lvert\vec\delta\rvert^2$: for a generic direction the linear term, of size
+# $O(1/\sqrt M)$ and symmetric about zero, dominates, and the estimated length exceeds 1 slightly more than half of the time; for a
+# Bloch vector along a measurement axis the linear term vanishes ($\delta_a=0$ for the saturated component) and the length exceeds 1
+# in almost every experiment. A Bloch vector longer than 1 corresponds to a matrix with a negative eigenvalue. For $N$ qubits the effect is much worse, because there are $4^N-1$
 # fluctuating directions all pushing outwards and only a thin shell of physical states to stay inside.
 #
 # Let us measure it: the distribution of $\lambda_{\min}(\hat\rho)$ over many independent experiments, for a pure state (Bell) and
@@ -1047,11 +1066,12 @@ def lmin_batch(key, p_true, shots, n_rep):
 
 lmin_data = {}
 print(f"{'state':>30s} " + " ".join(f"{'M=' + str(m):>16s}" for m in SHOT_LIST_U))
-for name, rho in states_u.items():
+for si, (name, rho) in enumerate(states_u.items()):
     p_true = all_setting_probs(rho, set2)
     row = []
-    for shots in SHOT_LIST_U:
-        lmin = np.asarray(jax.jit(partial(lmin_batch, shots=shots, n_rep=N_REP_U))(jax.random.PRNGKey(hash(name) % 2 ** 30), p_true))
+    for mi, shots in enumerate(SHOT_LIST_U):
+        key_u = jax.random.PRNGKey(400 + 10 * si + mi)                     # fixed seed per (state, M): reproducible builds
+        lmin = np.asarray(jax.jit(partial(lmin_batch, shots=shots, n_rep=N_REP_U))(key_u, p_true))
         lmin_data[(name, shots)] = lmin
         row.append(f"{np.mean(lmin < 0):6.1%} ({np.mean(lmin):+.3f})")
     print(f"{name:>30s} " + " ".join(f"{c:>16s}" for c in row))
@@ -1083,14 +1103,14 @@ axes[1].legend(fontsize=8)
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# The picture is unambiguous. For the **Bell state** the linear-inversion estimate has a negative eigenvalue in essentially *every*
+# For the **Bell state** the linear-inversion estimate has a negative eigenvalue in essentially *every*
 # experiment, at every shot number: more shots shrink $\vert\lambda_{\min}\vert$ but do not reduce the probability of going negative,
 # because the true state sits exactly on the boundary and the fluctuations are symmetric around it. For the **maximally mixed state**
 # the estimate is physical as soon as the error bars are smaller than the distance $1/4$ to the boundary. The Werner state at $p=0.5$
 # sits in between.
 #
-# > **Common pitfall.** A negative eigenvalue is not a rounding artefact you may clip away and forget. It breaks everything
-# > downstream: entropies become complex, fidelities are ill-defined ($\sqrt{\hat\rho}$ does not exist), and negativity or
+# > **Common pitfall.** A negative eigenvalue of this size is a statistical effect of order $1/\sqrt M$, far above rounding level,
+# > and clipping it away without further thought breaks everything downstream: entropies become complex, fidelities are ill-defined ($\sqrt{\hat\rho}$ does not exist), and negativity or
 # > concurrence report entanglement that is not there. This is exactly the objection Hradil raised in 1997 when he introduced
 # > maximum-likelihood tomography.
 #
@@ -1107,7 +1127,13 @@ fig.tight_layout(); plt.show()
 #
 # $$\rho_\star=\arg\min_{\sigma\succeq0,\ \mathrm{Tr}\sigma=1}\lVert\hat\rho-\sigma\rVert_F^2 .$$
 #
-# Smolin, Gambetta and Smith (2012) observed that this problem has a *closed-form* solution, obtained in three lines.
+# Smolin, Gambetta and Smith (2012) observed that this problem has a *closed-form* solution, derived below in three steps plus a
+# certificate. The title of their paper calls $\rho_\star$ the maximum-likelihood state for additive Gaussian noise. That
+# identification needs the noise on the matrix elements to be Gaussian **with the same variance in every direction**, because only then
+# is the log-likelihood a multiple of $-\lVert\hat\rho-\sigma\rVert_F^2$. Linear-inversion noise is not isotropic: by Eq. (9) the
+# variance of $\hat r_P$ is $(1-r_P^2)/(M\,3^{N-w(P)})$, which differs between coordinates by up to a factor $3^{N-1}$ through the
+# weight and vanishes for saturated coordinates. So $\rho_\star$ (LIN+proj below) is a projection and in general *not* the
+# maximum-likelihood state of the multinomial data; Sections 15–16 show the two differ measurably.
 #
 # **Step 1: the eigenvectors are unchanged.** Write $\hat\rho=V\,\mathrm{diag}(\lambda)\,V^\dagger$. For any unit-trace
 # $\sigma\succeq0$, the Hoffman–Wielandt inequality gives
@@ -1142,7 +1168,7 @@ fig.tight_layout(); plt.show()
 # > **Numerical practice.** The random-state comparison is the test one writes first and it is nearly worthless: the Hilbert–Schmidt
 # > measure puts its mass far from the boundary, so even $2\cdot10^5$ random states never come within $40\%$ of the projection
 # > distance, and a *wrong* projection (for instance the popular "clip the negative eigenvalues and rescale", which is on average
-# > $4\%$ farther away than $\rho_\star$) passes it every single time. The certificate catches that same wrong projection every
+# > $3\%$ farther away than $\rho_\star$ in the run below) passes it every single time. The certificate catches that same wrong projection every
 # > single time. A checkpoint is only worth writing if it can fail for the error it exists to catch.
 
 # %%
@@ -1290,8 +1316,8 @@ print(f"purity Tr(rho^2)    :  linear inversion {float(purity(rho_hat_demo)):.4f
 #
 # ### 12.1 The multinomial likelihood
 #
-# Projection repairs the *estimate*. Maximum likelihood instead asks the right question from the start:
-# **which physical state makes the observed data most probable?**
+# Projection repairs the *estimate*. Maximum likelihood instead poses the constrained problem from the start: it looks for
+# **the physical state that makes the observed data most probable**.
 #
 # The data are the counts $n_{b,s}$: setting $b$ was run $M$ times and outcome $s$ was seen $n_{b,s}$ times. For a fixed setting the
 # counts are multinomial, and different settings are independent, so
@@ -1369,7 +1395,8 @@ for N in (1, 2, 3):
 # %% [markdown]
 # ## 13. Maximum-likelihood tomography II: the extremal equation $R\rho R=\rho$
 #
-# We now derive the condition satisfied by the maximiser. The trick (Hradil 1997) is to parametrise the positivity constraint away:
+# We now derive the condition satisfied by the maximiser. Hradil (1997) obtained it from the inequality between geometric and
+# arithmetic means; a shorter route parametrises the positivity constraint away:
 # write $\rho=T^\dagger T$ with an arbitrary complex $d\times d$ matrix $T$ — every positive semi-definite matrix can be written this
 # way — and impose the trace with a Lagrange multiplier $\lambda$:
 #
@@ -1386,7 +1413,7 @@ for N in (1, 2, 3):
 # $$\rho\,R=\lambda\,\rho,\qquad\text{and by taking the adjoint}\qquad R\,\rho=\lambda\,\rho .$$
 #
 # The multiplier follows from the trace: $\mathrm{Tr}(R\rho)=\sum_j(n_j/p_j)\,\mathrm{Tr}(\rho\Pi_j)=\sum_jn_j=N_{\rm tot}$, the total
-# number of shots, so $\lambda=N_{\rm tot}$. Defining the normalised operator $\tilde R=R/N_{\rm tot}$ we obtain the celebrated
+# number of shots, so $\lambda=N_{\rm tot}$. Defining the normalised operator $\tilde R=R/N_{\rm tot}$ we obtain the
 # **extremal equation**
 #
 # $$\tilde R\,\rho=\rho\qquad\Longrightarrow\qquad \tilde R\,\rho\,\tilde R=\rho . \tag{13}$$
@@ -1397,15 +1424,17 @@ for N in (1, 2, 3):
 # Equation (13) is *necessary* for a maximum but, on its own, not sufficient. If the maximiser is rank deficient — which, as
 # Sections 15 and 17 show, is the normal situation for a state near the boundary — the full first-order condition of the concave
 # problem is $\tilde R\rho=\rho$ **together with** $\tilde R\preceq\mathbb 1$: the eigenvalue of $\tilde R$ equals $1$ on the support
-# of $\rho$ and is strictly smaller on its kernel, so that no probability can profitably be moved into the kernel. (For the Bell data
-# used below the converged $\tilde R$ has eigenvalues $0.751$, $0.778$, $0.803$ and $1.000$.) The residual
-# $\lVert\tilde R\rho-\rho\rVert$ that we monitor is therefore a convergence diagnostic, not a proof of optimality.
+# of $\rho$ and is strictly smaller on its kernel, so that no probability can profitably be moved into the kernel. (Section 13.3
+# prints the spectrum of the converged $\tilde R$ for its Bell data set and checks $\tilde R\preceq\mathbb 1$.) The residual
+# $\lVert\tilde R\rho-\rho\rVert$ that we monitor is therefore only a convergence diagnostic; together with
+# $\lambda_{\max}(\tilde R)\le1$ it certifies the maximum, because $\log L$ is concave.
 #
 # Equation (13) suggests the fixed-point iteration
 #
 # $$\rho_{k+1}=\frac{\tilde R(\rho_k)\;\rho_k\;\tilde R(\rho_k)}{\mathrm{Tr}\!\left[\tilde R(\rho_k)\,\rho_k\,\tilde R(\rho_k)\right]} \tag{14}$$
 #
-# — the **$R\rho R$ algorithm**. Each step (i) computes the $6^N$ probabilities, (ii) assembles $R$, (iii) sandwiches and renormalises.
+# — the **$R\rho R$ algorithm**, as Řeháček, Hradil, Knill and Lvovsky (2007) call it, crediting it to earlier work of Hradil,
+# Řeháček, Fiurášek and Ježek (in the Paris–Řeháček collection listed in the references). Each step (i) computes the $6^N$ probabilities, (ii) assembles $R$, (iii) sandwiches and renormalises.
 # Starting from the maximally mixed state $\rho_0=\mathbb 1/d$, positivity and unit trace hold at every step *by construction*.
 #
 # **Two caveats, both important.**
@@ -1413,7 +1442,7 @@ for N in (1, 2, 3):
 # 1. The derivation assumed nothing about $\sum_j\Pi_j$, but the iteration behaves well only when that sum is proportional to the
 #    identity. For our POVM it is: $\sum_j\Pi_j=3^N\mathbb 1$, as verified above. For a general (unbalanced) POVM one replaces
 #    $R$ by $G^{-1}R$ with $G=\sum_j\Pi_j$.
-# 2. Equation (14) is a *fixed-point* iteration, not a descent method: it has the right fixed points but is **not guaranteed** to
+# 2. Equation (14) is a *fixed-point* iteration: it has the right fixed points but is **not guaranteed** to
 #    increase the likelihood at every step, and it can fail to converge. Řeháček, Hradil, Knill and Lvovsky (2007) fixed this with a
 #    **diluted** step that interpolates towards the identity map,
 #
@@ -1422,8 +1451,9 @@ for N in (1, 2, 3):
 # which for small enough $\epsilon>0$ provably increases $\log L$ at every step and has exactly the same fixed points
 # (at a fixed point $\tilde R\rho=\rho$, so the right-hand side is $(1+\epsilon)^2\rho$, i.e. $\rho$ after normalisation).
 # Large $\epsilon$ recovers Eq. (14). The theorem covers *sufficiently small* $\epsilon$ only; for $\epsilon$ of order one — and
-# for the plain step — monotonicity is something to be checked on the data at hand, not assumed. That is exactly what the cell
-# below does, and for these data sets nothing ever decreases (see also Exercise 5).
+# for the plain step — monotonicity has to be checked on the data at hand. (Řeháček et al. give a one-qubit example, three
+# detections in a single basis, on which the plain step cycles with period two and lowers the likelihood every second step.)
+# The cell below performs that check, and for these data sets nothing ever decreases (see also Exercise 5).
 #
 # ### 13.1 From formula to code
 #
@@ -1458,7 +1488,7 @@ def _renormalise(M):
 def mle_rrhor(n_vec, PHI, n_iter=250, eps=None, rho0=None):
     """Maximum-likelihood state by the (diluted) RrhoR iteration, Eqs. (14)-(15).
 
-    MATH   eps = None : rho <- N[ R rho R ]                       (Hradil 1997)
+    MATH   eps = None : rho <- N[ R rho R ]   (R normalised by N_tot; extremal equation of Hradil 1997)
            eps > 0    : rho <- N[ (1 + eps R) rho (1 + eps R) ]   (diluted; Rehacek et al. 2007)
     IMPL   lax.scan over a FIXED number of iterations; the per-step output is log L, so the convergence
            history comes for free and monotonicity can be asserted.
@@ -1481,8 +1511,8 @@ def mle_rrhor(n_vec, PHI, n_iter=250, eps=None, rho0=None):
 # ### 13.2 Checkpoint: the infinite-shot limit and the extremal equation
 #
 # As for linear inversion, the sharpest test uses exact probabilities as "counts": the maximum-likelihood state must then be the true
-# state. We also check the extremal equation itself, $\lVert\tilde R\rho-\rho\rVert\to0$, which is the honest convergence criterion
-# (a likelihood that stops changing may just mean tiny steps).
+# state. We also check the extremal equation itself, $\lVert\tilde R\rho-\rho\rVert\to0$, which is a sharper convergence criterion
+# than a likelihood that stops changing (that may just mean tiny steps).
 
 # %%
 # ==============================================================================
@@ -1503,14 +1533,17 @@ for name, rho in [("Bell |Phi+>", to_dm(bell_state("phi+"))),
     assert e_rho < 2e-6 and e_ext < 2e-6
 
 # %% [markdown]
-# With noiseless data the maximum-likelihood state converges to the true state and the extremal equation is satisfied to $10^{-7}$ or
-# better — including for the *pure* states, where the optimum sits on the boundary and convergence is slowest.
+# With noiseless data the maximum-likelihood state converges to the true state (to $4\cdot10^{-12}$ or better in Frobenius norm after
+# $400$ iterations) and the extremal equation is satisfied to $10^{-13}$ or better. The slowest case is the full-rank random mixed
+# state; the *pure* states, whose optimum sits on the boundary, converge to round-off. (The assertion threshold $2\cdot10^{-6}$ only
+# guards against gross failure.)
 #
 # ### 13.3 Convergence with real (noisy) data, and monotonicity
 #
-# Now the interesting case: finite statistics. We run the plain and the diluted iteration on the Bell data set of Section 5 and on a
-# Werner state, and monitor (i) the log-likelihood per shot, (ii) the residual of the extremal equation, and (iii) the fidelity with
-# the true state. The quantity plotted is $\log L_{\max}-\log L_k$ on a logarithmic axis, so "converged" means "falls off the plot".
+# Now the interesting case: finite statistics. We run the plain and the diluted iteration on a new Bell data set and on a Werner data
+# set, both with $500$ shots per setting, and monitor (i) the log-likelihood per shot, (ii) the residual of the extremal equation, and
+# (iii) for the Bell state, how far the estimate is from the exact state and whether it satisfies the full optimality condition
+# $\tilde R\preceq\mathbb 1$. The quantity plotted is $\log L_{\max}-\log L_k$ on a logarithmic axis, so "converged" means "falls off the plot".
 
 # %%
 # ==============================================================================
@@ -1549,6 +1582,17 @@ print(f"   rank of the estimate: {int(np.sum(np.asarray(jnp.linalg.eigvalsh(rho_
       f"   fidelity with |Phi+>: {float(jnp.real(jnp.vdot(psi_bell, rho_bell_mle @ psi_bell))):.6f}")
 assert p_zero.max() > 1e-6 and abs(float(pauli_vector(rho_bell_mle, N)[pauli_labels(N).index("XX")]) - 1) > 1e-6
 
+# --- full optimality condition at a rank-deficient maximum: R~ rho = rho AND lambda_max(R~) <= 1 (Section 13) ---
+c_bell = simulate_experiment(jax.random.PRNGKey(55), conv_states["Bell |Phi+> (pure)"], set2, M_MLE)   # the same Bell data
+n_bell = counts_vector(c_bell, N)
+ev_R = np.asarray(jnp.linalg.eigvalsh(r_operator(rho_bell_mle, n_bell, PHI2)))
+# CONTROL: the projected linear-inversion state of the SAME data is physical but not the maximiser -> the test must fail for it
+rho_bell_prj = project_physical(rho_from_pauli_vector(linear_inversion(c_bell, SIGN2, COMPAT2), N))
+ev_R_prj = np.asarray(jnp.linalg.eigvalsh(r_operator(rho_bell_prj, n_bell, PHI2)))
+print(f"   spectrum of R~ at the MLE      : {np.round(ev_R, 3)}   (= 1 on the support, < 1 on the kernel)")
+print(f"   CONTROL, R~ at LIN+proj (same data): lambda_max = {ev_R_prj[-1]:.3f}  > 1 -> correctly NOT certified as the maximum")
+assert ev_R[-1] < 1 + 1e-8 and ev_R_prj[-1] > 1 + 1e-3
+
 # %%
 # ==============================================================================
 # FIGURE: convergence of the log-likelihood, plain vs diluted
@@ -1573,8 +1617,8 @@ fig.tight_layout(); plt.show()
 # and the safer: after 300 iterations the Werner residual $\lVert\tilde R\rho-\rho\rVert$ is still $\sim10^{-5}$ at $\epsilon=0.2$,
 # against $\sim10^{-11}$ for the plain step.
 #
-# The two panels also differ in speed, and not in the direction one might guess: the **Bell** data converge in about $70$ plain
-# iterations, the **Werner** data need roughly $200$, even though the Bell state sits on the boundary of the state space. The reason
+# The two panels also differ in speed: the **Bell** data converge in about $70$ plain iterations, the **Werner** data need roughly
+# $200$, although the Bell state sits on the boundary of the state space. The reason
 # is the stabiliser structure of $\vert\Phi^+\rangle$. In the settings $XX$, $YY$ and $ZZ$ two of the four outcomes never occur, so
 # their counts are exactly zero. A zero count contributes $0\cdot\log p_j=0$ to Eq. (11) and therefore imposes no penalty by itself —
 # but the *other* two outcomes of that setting contribute $\sim M\log p$, and since the four probabilities of a setting sum to one,
@@ -1589,8 +1633,12 @@ fig.tight_layout(); plt.show()
 # slightly also improves the fit to the six *mismatched* settings, whose frequencies fluctuate. The trade-off is $\sim M\delta^2$ lost
 # against $\sim\delta\sqrt M$ gained for a tilt of angle $\delta$, so the maximiser sits at $\delta\sim1/\sqrt M$. The diagnostics
 # printed below the convergence table make this concrete: the converged Bell estimate has stabiliser expectation values close to but
-# *not equal to* $\pm1$, and unobserved probabilities that are small but non-zero. Section 15 turns the balance into a quantitative
-# law for the infidelity.
+# *not equal to* $\pm1$, and unobserved probabilities that are small but non-zero. The last two printed lines check the full
+# optimality condition of Section 13: $\tilde R$ has the eigenvalue $1$ on the support of the rank-one estimate and eigenvalues
+# between $0.76$ and $0.79$ on its kernel, so no direction of the state space increases $\log L$; the projected linear-inversion state
+# of the same data, physical but not the maximiser, fails the same test ($\lambda_{\max}(\tilde R)=1.002$, a small excess but far
+# above the round-off level of the converged maximum). Section 15 turns the balance between the two terms into a
+# quantitative law for the infidelity.
 #
 # > **Numerical practice.** Use the plain iteration by default, but *monitor*: store $\log L_k$, check that it never decreases, and
 # > check the residual $\lVert\tilde R\rho-\rho\rVert$ at the end. If either misbehaves, switch to a diluted step. Never use "the
@@ -1599,7 +1647,7 @@ fig.tight_layout(); plt.show()
 # %% [markdown]
 # ## 14. Maximum-likelihood tomography III: gradient ascent with `jax.grad` and Adam
 #
-# The $R\rho R$ iteration is beautiful, but it is a special-purpose algorithm: it exists because the likelihood of a *linear* model has
+# The $R\rho R$ iteration is a special-purpose algorithm: it exists because the likelihood of a *linear* model has
 # that particular structure. A modern alternative works for any differentiable cost: **parametrise the constraint away and use
 # automatic differentiation**.
 #
@@ -1617,7 +1665,9 @@ fig.tight_layout(); plt.show()
 # $$C(\theta)=-\frac{1}{N_{\rm tot}}\sum_jn_j\log\big\langle\phi_j\big\vert\rho(\theta)\big\vert\phi_j\big\rangle$$
 #
 # with `jax.value_and_grad` (reverse-mode differentiation straight through the einsum and the normalisation) and the Adam optimiser we
-# built in the engine. The parametrisation is redundant ($T$ and $UT$ give the same $\rho$ for unitary $U$, and the overall scale
+# built in the engine. Dividing by $N_{\rm tot}$ only makes the printed cost a number per shot: Adam divides each gradient component
+# by the square root of its running mean square, so a constant factor in the cost leaves the step unchanged (up to the regulariser
+# $10^{-8}$ in that denominator). The parametrisation is redundant ($T$ and $UT$ give the same $\rho$ for unitary $U$, and the overall scale
 # drops out), which is harmless for a first-order method.
 #
 # > **JAX practice.** JAX differentiates *real* functions of real arrays. We therefore carry $\theta$ as one real array of shape
@@ -1639,8 +1689,8 @@ def mle_gradient(n_vec, PHI, n_steps=2000, lr=0.05, decay=0.998, theta0=None):
     """Maximum-likelihood state by Adam on the unconstrained parametrisation of Eq. (16).
 
     MATH   minimise C(theta) = -(1/N_tot) sum_j n_j log <phi_j| rho(theta) |phi_j>
-    IMPL   geometric learning-rate schedule lr_k = lr * decay^k: a constant step size makes Adam rattle around
-           the optimum forever (the cost is flat there), the decay lets it settle.
+    IMPL   geometric learning-rate schedule lr_k = lr * decay^k: with a constant step size Adam can keep oscillating
+           around an optimum on the boundary of the state space; the decay lets it settle.
     JAX    value_and_grad through one einsum; lax.scan over the Adam steps, with the per-step learning rate as
            the scanned input (compile once); `adam_init` / `adam_update` are the engine's optimiser.
     """
@@ -1678,7 +1728,7 @@ PHI2, set2 = povm_vectors(N), all_settings(N)
 cmp_states = {"Bell |Phi+>": to_dm(bell_state("phi+")),
               "Werner p=0.7": dm_tensor(mixed_with_identity(dm_matrix(to_dm(bell_state("psi-"))), 0.7), N),
               "random mixed": dm_tensor(rdm(haar_state(jax.random.PRNGKey(6), 4), (0, 1)), N)}
-grad_hist = {}
+grad_hist, L_scores = {}, {}
 print(f"{'state':>14s} {'logL/shot RrhoR':>16s} {'logL/shot Adam':>15s} {'difference':>12s} "
       f"{'F(rho_RrhoR, rho_Adam)':>23s} {'|Delta rho|_F':>14s}")
 for sname, rho in cmp_states.items():
@@ -1692,6 +1742,16 @@ for sname, rho in cmp_states.items():
     dF = float(jnp.linalg.norm(rho_a - rho_b))
     print(f"{sname:>14s} {La:16.8f} {Lb:15.8f} {La - Lb:12.2e} {F:23.8f} {dF:14.2e}")
     assert abs(La - Lb) < 1e-6 and F > 1 - 1e-6 and dF < 1e-5
+    # the same data scored by the TRUE state, and the per-shot value the true state attains for infinite data
+    p_t = povm_probs(dm_matrix(rho), PHI2)
+    L_true = float(log_likelihood(dm_matrix(rho), n_vec, PHI2)) / Ntot
+    L_inf = float(jnp.sum(jnp.where(p_t > 0, p_t * jnp.log(jnp.clip(p_t, 1e-300, None)), 0.0))) / 3 ** N
+    L_scores[sname] = (La, L_true, L_inf)
+    assert L_true <= La + 1e-12                       # the maximiser scores at least as well as the truth on its own data
+
+print(f"\n{'state':>14s} {'logL/shot MLE':>14s} {'true state':>11s} {'true state, M->inf':>19s}")
+for sname, (La, Lt, Li) in L_scores.items():
+    print(f"{sname:>14s} {La:14.6f} {Lt:11.6f} {Li:19.6f}")
 
 # %%
 # ==============================================================================
@@ -1711,20 +1771,22 @@ for i, sname in enumerate(["Bell |Phi+>", "Werner p=0.7"]):
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# The two algorithms reach the same maximum of the likelihood and the *same density matrix* — for these data sets the Frobenius
-# difference is at the $10^{-13}$ level, i.e. they agree to (nearly) machine precision. A hand-derived fixed-point iteration and a
-# generic automatic-differentiation optimiser, written independently, produce the same answer: that is about as strong a validation
-# as one can get without an analytic solution.
+# The two algorithms reach the same maximum of the likelihood and the *same density matrix*: for these data sets the Frobenius
+# difference lies between $10^{-16}$ and $10^{-12}$, i.e. they agree to (nearly) machine precision. A hand-derived fixed-point
+# iteration and a generic automatic-differentiation optimiser, written independently, produce the same answer, which is about as strong
+# a validation as one can get without an analytic solution.
 #
-# Per *step* the $R\rho R$ iteration is far more efficient — it is tailored to this problem and each step implicitly uses second-order
-# information — whereas Adam needs a couple of thousand small steps with a decaying learning rate (without the decay it rattles around
-# the flat optimum forever instead of settling; try `decay=1.0` and re-run the cell). The gradient route wins on *generality*: change
-# the cost (add a prior, a regulariser, a different noise model, process instead of state tomography) and the same three lines still
-# work, because `jax.grad` does not care what the cost is.
+# Per *step* the $R\rho R$ iteration is the more efficient of the two here: it reaches round-off in about $80$ (Bell) and $250$
+# (Werner) iterations, whereas Adam needs a few hundred steps on a decaying learning-rate schedule (the run budgets $2000$). With
+# `decay=1.0` the Adam fit of the Bell data keeps oscillating around the optimum on the boundary instead of settling; re-run the cell
+# to see it. The gradient route wins on *generality*: change the cost (add a prior, a regulariser, a different noise model, process
+# instead of state tomography) and the same three lines still work, because `jax.grad` does not care what the cost is.
 #
-# > **Physics insight.** Both curves flatten out at a $\log L$ that is *strictly below* the value the true state would give for infinite
-# > data. That is not a failure: with finite data the most likely state is not the true state. Quantifying that gap is the subject of
-# > the next sections.
+# > **Physics insight.** The second table scores the same data with the *true* state. It always does worse than the maximiser (the
+# > assertion checks this), because the maximiser is fitted to the data, fluctuations included. For the same reason the maximal
+# > $\log L$ per shot says nothing about how close the estimate is to the truth: it can even lie *above* the value $\sum_jp_j\log p_j/3^N$
+# > that the true state attains for infinite data (compare the last two columns). How far the estimate is from the truth has to be
+# > measured with a distance between states, which is the subject of the next sections.
 
 # %% [markdown]
 # ## 15. Assessment I: accuracy versus the number of shots, with bootstrap error bars
@@ -1805,6 +1867,14 @@ for shots in SHOTS_SCAN:
     print(f"{shots:6d} " + " ".join(f"{mD[i]:8.4f}+-{sD[i]:<6.4f}" for i in range(3)) + "   "
           + " ".join(f"{mF[i]:8.4f}+-{sF[i]:<6.4f}" for i in range(3)))
 
+# local slopes d log(error) / d log M between neighbouring budgets: -1/2 for a 1/sqrt(M) law, -1 for a 1/M law
+lM = np.log(np.array(SHOTS_SCAN, dtype=float))
+curves = {f"D {labels3[i]}": [res[m][:, 0, i].mean() for m in SHOTS_SCAN] for i in range(3)}
+curves.update({f"1-F {labels3[i]}": [1 - res[m][:, 1, i].mean() for m in SHOTS_SCAN] for i in (1, 2)})
+print("\nlocal slopes between neighbouring M:")
+for name, v in curves.items():
+    print(f"   {name:>13s}: " + "  ".join(f"{x:+.2f}" for x in np.diff(np.log(v)) / np.diff(lM)))
+
 # %%
 # ==============================================================================
 # FIGURE: 1/sqrt(M) scaling of the trace distance, the fidelity bias, and the 1/M law of the MLE
@@ -1878,21 +1948,26 @@ print(f"\nCHECKPOINT measured constant = {pooled:.4f} +- {pooled_se:.4f}")
 print(f"           predicted 13/48   = {C_MLE:.4f}   -> {abs(pooled - C_MLE) / pooled_se:4.1f} sigma away")
 print(f"           (a naive 1/4      = {0.25:.4f}   -> {abs(pooled - 0.25) / pooled_se:4.1f} sigma away: the "
       f"6-point scan above cannot tell these apart, this measurement can)")
-assert abs(pooled - C_MLE) < max(4 * pooled_se, 0.03)
+assert abs(pooled - C_MLE) < 3 * pooled_se         # the derived constant passes ...
+assert abs(pooled - 0.25) > 3 * pooled_se           # ... and the wrong control 1/4 must FAIL: the test has teeth
 
 # %% [markdown]
 # All three panels behave as the theory of Sections 8 and 15.1 predicts.
 #
-# * The trace distance of all three estimators falls like $M^{-1/2}$ (the dotted reference line), and the two *physical* estimators are
-#   uniformly better than raw linear inversion — the constraint is information, and using it pays. At every budget the ordering is
-#   MLE $<$ LIN+proj $<$ LIN, with a factor of roughly $1.5$ between neighbours.
+# * The trace distance of all three estimators falls like $M^{-1/2}$ (the dotted reference line): the printed local slopes between
+#   neighbouring budgets lie between $-0.44$ and $-0.56$ and scatter around $-1/2$ without a trend. The two *physical* estimators are
+#   uniformly better than raw linear inversion, because the positivity constraint is information about the state. At every budget the
+#   ordering is MLE $<$ LIN+proj $<$ LIN; the ratio LIN/LIN+proj falls from $1.58$ to $1.44$ and the ratio LIN+proj/MLE grows from
+#   $1.55$ to $1.73$ across the scan.
 # * The fidelity of LIN is exactly $1.0000$ at every shot number, with *zero* scatter. That is the extreme case of unbiasedness:
 #   $F_{\rm LIN}=\tfrac14\big(1+\hat r_{XX}-\hat r_{YY}+\hat r_{ZZ}\big)$, and $XX$, $YY$, $ZZ$ are stabilisers of $\vert\Phi^+\rangle$
 #   with $r_P=\pm1$, so by Eq. (9) their estimates carry no shot noise whatsoever — every single shot of those settings gives the
 #   same sign. Meanwhile LIN+proj and MLE report fidelities **below** 1 that creep upwards as the statistics improve: for a device
-#   that really does prepare a perfect Bell pair, a projected tomography with $M=200$ shots per setting reports $F\approx0.976$, not 1.
-# * The maximum-likelihood curve follows a $1/M$ law over the whole range, *faster* than the $1/\sqrt M$ of the trace distance, and
-#   the constant is not free. Section 13.3 gave the mechanism: the six unobserved outcomes pin the estimate to a **rank-one** state,
+#   that really does prepare a perfect Bell pair, a projected tomography with $M=200$ shots per setting reports $F\approx0.977$. The
+#   infidelity of LIN+proj falls like $M^{-1/2}$ (local slopes $-0.46$ to $-0.54$, dotted line in the third panel).
+# * The maximum-likelihood curve follows a $1/M$ law over the whole range (local slopes $-0.89$ to $-1.11$ around $-1$, without a
+#   trend), *faster* than the $1/\sqrt M$ of the trace distance, and
+#   the constant is fixed by theory. Section 13.3 gave the mechanism: the six unobserved outcomes pin the estimate to a **rank-one** state,
 #   which has only $2(2^N-1)=6$ real parameters instead of $15$; moving that pure state by an angle $\delta$ costs $\sim M\delta^2$
 #   in log-likelihood while the random pull of the six mismatched settings gains $\sim\delta\sqrt M$, so $\delta\sim1/\sqrt M$ and
 #   $1-F=\delta^2\sim1/M$. The **constant** follows from the standard local analysis of a maximum-likelihood estimator on that
@@ -1929,7 +2004,7 @@ assert abs(pooled - C_MLE) < max(4 * pooled_se, 0.03)
 # ==============================================================================
 # EXPERIMENT: bootstrap error bars vs the true (across-experiment) error bars
 # ==============================================================================
-B_BOOT, M_BOOT, N_TRUE = 250, 200, 150
+B_BOOT, M_BOOT, N_TRUE, B_WRONG = 250, 200, 150, 100
 boot_states = {"Werner p=0.6 (interior)": dm_tensor(mixed_with_identity(dm_matrix(to_dm(bell_state("psi-"))), 0.6), N),
                "Bell |Phi+> (boundary)": to_dm(bell_state("phi+"))}
 QNAMES = ["trace distance", "fidelity", "purity"]
@@ -1945,7 +2020,7 @@ def lab_report(counts, rho_target_m):
                       jax.vmap(purity)(st)])
 
 
-boot_sd = {}
+boot_sd, wrong_sd = {}, {}
 for sname, rho in boot_states.items():
     rho_m, p_true = dm_matrix(rho), all_setting_probs(rho, set2)
     run = jax.jit(jax.vmap(lambda k, p: lab_report(counts_from_probs(k, p, M_BOOT), rho_m), in_axes=(0, None)))
@@ -1953,6 +2028,9 @@ for sname, rho in boot_states.items():
     counts_one = counts_from_probs(jax.random.PRNGKey(99), p_true, M_BOOT)                        # THE single experiment
     p_hat = counts_one / jnp.sum(counts_one, axis=1, keepdims=True)
     boot_out = np.asarray(run(jax.random.split(jax.random.PRNGKey(5150), B_BOOT), p_hat))         # (B_BOOT, 3, 2)
+    # CONTROL: a WRONG bootstrap that resamples 3^N M shots per setting (the total budget instead of the per-setting one)
+    run_wrong = jax.jit(jax.vmap(lambda k, p: lab_report(counts_from_probs(k, p, 3 ** N * M_BOOT), rho_m), in_axes=(0, None)))
+    wrong_out = np.asarray(run_wrong(jax.random.split(jax.random.PRNGKey(5151), B_WRONG), p_hat))   # (B_WRONG, 3, 2)
     point = np.asarray(lab_report(counts_one, rho_m))
     print(f"{sname}:  one experiment, M = {M_BOOT} shots per setting, {B_BOOT} bootstrap resamples, "
           f"{N_TRUE} independent experiments for reference")
@@ -1961,6 +2039,7 @@ for sname, rho in boot_states.items():
         for ei, en in enumerate(EST2):
             sb, st_ = float(boot_out[:, qi, ei].std(ddof=1)), float(true_out[:, qi, ei].std(ddof=1))
             boot_sd[(sname, qn, en)] = (sb, st_)
+            wrong_sd[(sname, qn, en)] = (float(wrong_out[:, qi, ei].std(ddof=1)), st_)
             rat = f"{sb / st_:7.2f}" if max(sb, st_) > 1e-9 else "    n/a"   # n/a: BOTH spreads vanish (see below)
             print(f"{qn:>16s} {en:>10s} {point[qi, ei]:12.4f} {sb:14.4f} {st_:10.4f} {rat}")
     print()
@@ -1972,20 +2051,30 @@ print(f"CHECKPOINT over the {len(ratios)} non-degenerate combinations of state, 
       f"standard deviation is within a factor {worst:.2f} of the across-experiment one.")
 print(f"({len(degenerate)} combination(s) had zero spread in BOTH samples: {degenerate})")
 assert worst < 2.0
+ratios_w = [s[0] / s[1] for s in wrong_sd.values() if max(s) > 1e-9]
+worst_w = max(max(r, 1 / r) for r in ratios_w)
+print(f"CONTROL a bootstrap that resamples {3 ** N * M_BOOT} instead of {M_BOOT} shots per setting: ratios "
+      f"{min(ratios_w):.2f} to {max(ratios_w):.2f}, worst factor {worst_w:.2f} -> fails the factor-2 test, as it must")
+assert worst_w > 2.0
 
 # %% [markdown]
 # The bootstrap works. Every error bar obtained from the *single* data set reproduces the across-experiment one within a factor of
-# about $1.8$ — and the comparison is itself noisy, since $150$ experiments determine a standard deviation only to $\pm6\%$ and the
+# about $1.8$, and the comparison is itself noisy, since $150$ experiments determine a standard deviation only to $\pm6\%$ and the
 # bootstrap sample is drawn around one particular $\hat\rho$. The agreement is tightest for the trace distance and the purity and
-# loosest for the Uhlmann fidelity, whose distribution is the most skewed of the three. All eleven ratios are *above* one: the
-# bootstrap systematically over-estimates the spread a little, because it resamples around one particular $\hat p$ that is itself
-# noisy, and because the estimators are non-smooth at the boundary. All three quantities are **non-linear**
+# loosest for the Uhlmann fidelity of the Werner state (ratios $1.79$ and $1.66$). All eleven ratios are *above* one. They come from
+# a single data set per state and are therefore strongly correlated, so this run alone does not establish a systematic
+# over-estimate; resampling around a $\hat p$ that is itself noisy and the non-smoothness of the estimators at the boundary are the
+# two mechanisms that can produce one. The control line shows that the factor-2 test has discriminating power: a bootstrap with the
+# per-setting shot number replaced by the total budget, a plausible coding slip, gives error bars two to five times too small and
+# fails it. All three quantities are **non-linear**
 # functionals of $\hat\rho$ obtained after a projection or an iterative fit: their error bars could not have been produced by
 # propagating Eq. (9) by hand. This is the practical recipe: **quote $\hat\rho$ together with a bootstrap error bar on every number
 # you derive from it.**
 #
 # The table also previews two effects that Section 17 explains. For the Werner state the reconstructed **purity** comes out above the
-# true value $0.52$ for both estimators — a bias, not noise. For the Bell state the maximum-likelihood purity is exactly $1$ in every
+# true value $0.52$ for both estimators. One data set cannot separate bias from noise here (the spread is $0.03$), but a bias of
+# that sign is expected: for the unbiased LIN estimate $\mathbb E\,\mathrm{Tr}\hat\rho^2=\mathrm{Tr}\rho^2+\mathbb E\lVert\hat\rho-\rho\rVert_F^2$,
+# and Eq. (10) gives $0.012$ for this state at $M=200$. For the Bell state the maximum-likelihood purity is exactly $1$ in every
 # single resample, with *zero* spread (hence the "n/a" in the ratio column: there is nothing to compare). That is the stabiliser
 # phenomenon of Section 13.3: the deterministic outcomes pin the estimate to a **rank-one** state — a state whose *direction* still
 # fluctuates, as the non-zero spread of its fidelity shows, but whose spectrum does not.
@@ -1999,13 +2088,13 @@ assert worst < 2.0
 # %% [markdown]
 # ## 16. Assessment II: estimators across state families
 #
-# One state is not a benchmark. We now run the full pipeline on a zoo: pure states on the boundary (Bell, GHZ, W), mixed states in the
+# A single state makes a poor benchmark. We now run the full pipeline on a zoo: pure states on the boundary (Bell, GHZ, W), mixed states in the
 # interior (Werner, depolarised GHZ), and a random mixed state, for $N=2$ and $N=3$, at a fixed budget of $M$ shots per setting.
 # For the mixed states we use the Uhlmann fidelity $F(\rho,\hat\rho)$; because it requires $\sqrt\rho$ we always put the *true*
 # (physical) state inside the square roots, so that the square root always exists. That makes the expression computable for a
-# non-physical $\hat\rho$, but not meaningful: the engine's `fidelity_dm` clips the negative eigenvalues of
+# non-physical $\hat\rho$, but it no longer measures anything: the engine's `fidelity_dm` clips the negative eigenvalues of
 # $\sqrt\rho\,\hat\rho\sqrt\rho$ before taking square roots, so the number it returns for an unphysical estimate can exceed $1$.
-# **Read the LIN column of the table below as a diagnostic, not as a fidelity.**
+# **The F entries of the LIN column below are therefore diagnostics only.**
 
 # %%
 # ==============================================================================
@@ -2086,16 +2175,19 @@ fig.tight_layout(); plt.show()
 #
 # * The **raw LIN** estimate has a negative eigenvalue for every pure state (right panel) and is the worst reconstruction in trace
 #   distance for every state in the zoo. There is no state family for which it wins. Its fidelity, by contrast, can exceed 1
-#   ($F=1.0024$ for $W_3$) — a reminder that a "fidelity" computed from a non-physical matrix is not a fidelity.
-# * For the **mixed** states (Werner, random, depolarised GHZ) the three estimators are nearly indistinguishable: the raw estimate is
-#   already physical (positive $\lambda_{\min}$), so the projection does nothing at all and the maximum-likelihood fit has almost no
-#   room to improve. All the action is at the boundary.
-# * For the **pure** states the ordering is large and systematic: the projection roughly halves the trace distance of LIN, and
-#   maximum likelihood halves it again. For $\mathrm{GHZ}_3$ the numbers are $0.103\to0.044\to0.020$. So here, unlike the folklore,
-#   *how* you enforce positivity does matter — the extra factor of two is free, and the MLE infidelity is about fifty times smaller.
-# * At a fixed number of shots per setting, LIN gets exactly twice **worse** going from the two-qubit Bell state to the three-qubit
-#   GHZ state ($0.051\to0.103$), even though it uses three times as many settings: the number of parameters it must fit, $4^N-1$,
-#   grows faster than the amount of data. Maximum likelihood does not degrade at all here ($0.022\to0.020$) — because for these pure
+#   ($F=1.0024$ for $W_3$): the Uhlmann formula defines a fidelity only between two states.
+# * For the **Werner** and **random mixed** states the three estimators are nearly indistinguishable: the raw estimate is already
+#   physical (positive $\lambda_{\min}$), so the projection does nothing at all and the maximum-likelihood fit has almost no room to
+#   improve. The **depolarised GHZ** state is mixed as well, but its six smallest eigenvalues are only $0.031$, so at this budget the
+#   raw estimate still goes negative (mean $\lambda_{\min}=-0.008$) and the two physical estimators improve on it slightly. The action
+#   is at and near the boundary.
+# * For the **pure** states the ordering is large and systematic. For the three-qubit states the projection more than halves the trace
+#   distance of LIN and maximum likelihood halves it again: $0.103\to0.044\to0.020$ for $\mathrm{GHZ}_3$ and $0.107\to0.045\to0.022$
+#   for $W_3$; for the Bell state the two factors are $1.45$ and $1.6$. So *how* positivity is enforced matters here: the gain of
+#   maximum likelihood over the projection costs no extra data, and its infidelity is forty to fifty times smaller.
+# * At a fixed number of shots per setting, the LIN error doubles from the two-qubit Bell state to the three-qubit GHZ state
+#   ($0.051\to0.103$), even though three times as many settings are measured: the number of parameters it must fit, $4^N-1$, grows
+#   faster than the amount of data, and Section 18.1 turns this into a law for the shot cost. Maximum likelihood does not degrade at all here ($0.022\to0.020$) — because for these pure
 #   states it returns a nearly rank-one estimate, and a rank-one state has only $2(2^N-1)$ parameters ($14$ for $N=3$) instead of
 #   $4^N-1=63$. Constraints buy accuracy. This is the cost wall of Section 18 seen from the accuracy side.
 # * The depolarised GHZ state is the hardest of the six for every estimator: it has no saturated Pauli expectations at all, and
@@ -2117,7 +2209,7 @@ fig.tight_layout(); plt.show()
 # the largest is pushed up and the smallest down, because the eigenvalues of a noisy matrix spread out (the same phenomenon that makes
 # sample-covariance eigenvalues biased in classical statistics).
 #
-# And there is a third case, which we have already stumbled over twice and which deserves its own panel: a **stabiliser** state such as
+# A third case has appeared twice already and gets its own panel: a **stabiliser** state such as
 # $\vert\Phi^+\rangle$. Its data contain *deterministic* outcomes (Section 13.3), which push the maximum-likelihood estimate onto the
 # rank-one manifold — a set with far fewer parameters, where the estimator is much more accurate. This does not contradict the
 # paragraph above; it says that the *geometry of the data*, not only the position of the true state, decides how a constrained
@@ -2191,12 +2283,12 @@ fig.tight_layout(rect=[0, 0, 1, 0.94]); plt.show()
 # * **Generic boundary (Haar-random pure).** This is the textbook picture. LIN scatters the three zero eigenvalues symmetrically
 #   around zero, so about half of them are negative. The physical estimators cannot go below zero, so their smallest eigenvalues are
 #   pinned at $0$ in **every** experiment (the printed rank-deficiency probability) and the extra weight has to come out of the
-#   largest eigenvalue, which lands visibly **below** 1. The mean infidelity of the maximum-likelihood estimate falls like
-#   $M^{-1/2}$ here, not like the $M^{-1}$ of the stabiliser state, because at a zero eigenvalue the infidelity is *linear* rather
+#   largest eigenvalue, which lands visibly **below** 1. The mean infidelity of the maximum-likelihood estimate falls only like
+#   $M^{-1/2}$ here, slower than the $M^{-1}$ of the stabiliser state, because at a zero eigenvalue the infidelity is *linear* rather
 #   than quadratic in the reconstruction error — the point of Mahler et al. (2013), who also show that one adaptive re-measurement
 #   in the estimated eigenbasis restores the $M^{-1}$ law. The consequence is the systematic fidelity deficit in the printed table:
 #   maximum likelihood reports a state that is less pure and slightly rotated away from the truth, and no amount of averaging over
-#   experiments removes it — it is a bias, not noise. This is exactly the criticism of maximum-likelihood tomography: a reported
+#   experiments removes it, because it is a bias. This is the standard criticism of maximum-likelihood tomography: a reported
 #   "rank-2 state" may be an artefact of finite statistics rather than a physical statement.
 # * **Stabiliser boundary (Bell).** Here the maximum-likelihood spectrum is $(0,0,0,1)$ — the *exact* true spectrum, with zero spread
 #   and a purity of exactly 1 in every experiment. Three of the nine settings produce deterministic outcomes, and, as argued in
@@ -2205,23 +2297,27 @@ fig.tight_layout(rect=[0, 0, 1, 0.94]); plt.show()
 #   the two printed fidelities). LIN and LIN+proj never look at the likelihood, do not benefit, and show the same boundary bias as in
 #   the left panel.
 #
+# * **Interior (maximally mixed).** All three estimators agree on average and none of them is rank deficient, but the estimated spectra
+#   are clearly *spread out* relative to the flat true spectrum: the largest eigenvalue is biased up and the smallest down. Every
+#   quantity computed from the spectrum — purity, von Neumann entropy, entanglement measures — inherits this bias, which is why the
+#   measured purity comes out above the true $1/4$ for all three estimators. For the unbiased LIN estimate the size of the purity bias
+#   is predicted: $\mathbb E\,\mathrm{Tr}\hat\rho^2-\mathrm{Tr}\rho^2=\mathbb E\lVert\hat\rho-\rho\rVert_F^2$, which Eq. (10) gives as
+#   $\tfrac14\big(\tfrac{6}{3M}+\tfrac{9}{M}\big)=0.01375$ at $M=200$ (all $r_P=0$), i.e. an expected purity $0.2638$ against the
+#   measured $0.2632\pm0.0005$.
+#
 # > **Numerical practice.** The rank-deficiency column is the one number in this notebook that depends on how long the iteration was
 # > run, because "rank deficient" means "an eigenvalue below $10^{-9}$" and the $R\rho R$ iteration approaches a rank-deficient
 # > optimum only geometrically. The Bell data converge in tens of iterations, but the generic pure state needs of order $10^3$: with
 # > the $250$ iterations used elsewhere in this notebook its residual $\lVert\tilde R\rho-\rho\rVert$ is still $\sim10^{-8}$ and the
 # > printed probability comes out near $97\%$ instead of $100\%$. The fidelities and purities are insensitive to this (they change in
 # > the fourth decimal), but a *rank* is a discontinuous function of the spectrum and must never be read off an unconverged fit.
-# * **Interior (maximally mixed).** All three estimators agree on average and none of them is rank deficient, but the estimated spectra
-#   are clearly *spread out* relative to the flat true spectrum: the largest eigenvalue is biased up and the smallest down. Every
-#   quantity computed from the spectrum — purity, von Neumann entropy, entanglement measures — inherits this bias, which is why the
-#   measured purity comes out above the true $1/4$ for all three estimators.
 #
 # > **Physics insight.** "We measured a fidelity of $0.97$" and "we measured a purity of $0.94$" are statements about an *estimator*
-# > applied to a finite data set, not about the device alone. The honest way to report them is with a bootstrap error bar, a statement
+# > applied to a finite data set as much as statements about the device. The honest way to report them is with a bootstrap error bar, a statement
 # > of which estimator was used, and — best of all — a simulation like this one that calibrates the bias at the shot budget actually used.
 
 # %% [markdown]
-# ## 18. The wall: $3^N$ settings, $4^N$ parameters — and the hand-over to classical shadows
+# ## 18. The cost wall and the hand-over to classical shadows
 #
 # ### 18.1 Counting the cost
 #
@@ -2237,14 +2333,57 @@ fig.tight_layout(rect=[0, 0, 1, 0.94]); plt.show()
 # | one $R\rho R$ iteration | $O(6^N4^N)$ | $3\cdot10^5$ | $6\cdot10^{13}$ |
 #
 # Three separate walls close in at once: the number of experimental configurations, the size of the object being estimated, and the
-# statistical requirement that each of the $4^N$ parameters be measured to a useful accuracy. Even with unlimited computer time,
-# **the shot budget alone kills full tomography around $N\approx10$**: at $M=1000$ shots per setting one would need $6\cdot10^7$ runs
-# of the machine, and the error of a weight-$N$ Pauli string would still be $\sim1/\sqrt M$.
+# number of shots needed to determine that object to a given accuracy. The last one follows from Eq. (10). Write the total budget as
+# $T=3^NM$ and use $1-r_P^2\le1$:
 #
-# ### 18.2 Measuring it
+# $$\mathbb{E}\big\lVert\hat\rho_{\rm LIN}-\rho\big\rVert_F^2=\frac{1}{2^N\,T}\sum_{P\neq I}3^{\,w(P)}\big(1-r_P^2\big)
+#   \ \le\ \frac{1}{2^N\,T}\sum_{w=1}^{N}\binom{N}{w}3^w\cdot3^w=\frac{10^N-1}{2^N\,T}\ <\ \frac{5^N}{T}. \tag{17}$$
+#
+# The sum counts the $\binom{N}{w}3^w$ Pauli strings of weight $w$, each weighted by $3^w$ because only $3^{N-w}$ of the $3^N$ settings
+# see it. The bound is attained by the maximally mixed state (all $r_P=0$). A pure state saturates some coordinates and does better,
+# but only by a lower-order term: for $\vert0\rangle^{\otimes N}$ the $4^N-1$ strings made of $I$ and $Z$ have $r_P=1$ and drop out,
+# and their weights sum to $\sum_w\binom{N}{w}3^w=4^N-1$, leaving $(10^N-4^N)/(2^NT)$. For a **fixed** Frobenius error the total number of shots therefore grows
+# like $5^N$, faster than the $4^N-1$ parameters and much faster than the $3^N$ settings: at a fixed number $M$ of shots per setting the
+# *squared* error itself grows by a factor of about $10/6=5/3$ per added qubit. The checkpoint below measures Eq. (17) at a fixed total budget and
+# asks whether the growth per qubit is $5$ or the $4$ that the parameter count would suggest.
+
+# %%
+# ==============================================================================
+# CHECKPOINT: the 5^N shot law, Eq. (17), at a FIXED total budget T (maximally mixed state: the bound is attained)
+# ==============================================================================
+T_WALL, R_WALL = 8100, 200                                 # 8100 = 3^4 x 100, so M = T / 3^N is an integer for N <= 4
+print(f"{'N':>2s} {'M':>5s} {'E||rho_hat-rho||_F^2 (MC)':>27s} {'Eq. (17)':>10s} {'ratio':>7s} {'growth per qubit':>17s}")
+wall_mean, wall_se = [], []
+for n in (1, 2, 3, 4):
+    m_n = T_WALL // 3 ** n
+    p_mm = all_setting_probs(dm_tensor(jnp.eye(2 ** n, dtype=CDTYPE) / 2 ** n, n), all_settings(n))
+    SIGNn, COMPATn = sign_table(n), compat_table(n)
+    err2 = jax.jit(jax.vmap(lambda k: jnp.sum(linear_inversion(counts_from_probs(k, p_mm, m_n), SIGNn, COMPATn)[1:] ** 2)
+                            / 2 ** n))(jax.random.split(jax.random.PRNGKey(1700 + n), R_WALL))   # ||.||_F^2 = sum_P r_hat_P^2 / 2^N
+    err2 = np.asarray(err2)
+    wall_mean.append(err2.mean()); wall_se.append(err2.std(ddof=1) / np.sqrt(R_WALL))
+    pred = (10 ** n - 1) / (2 ** n * T_WALL)
+    grow = f"{wall_mean[-1] / wall_mean[-2]:8.2f} +- {wall_mean[-1] / wall_mean[-2] * np.hypot(wall_se[-1] / wall_mean[-1], wall_se[-2] / wall_mean[-2]):.2f}" if n > 1 else ""
+    print(f"{n:2d} {m_n:5d} {wall_mean[-1]:18.4e} +- {wall_se[-1]:.1e} {pred:10.4e} {wall_mean[-1] / pred:7.3f} {grow:>17s}")
+    assert abs(wall_mean[-1] - pred) < 4 * wall_se[-1]
+g34 = wall_mean[3] / wall_mean[2]
+g34_se = g34 * np.hypot(wall_se[3] / wall_mean[3], wall_se[2] / wall_mean[2])
+print(f"\nCHECKPOINT growth N=3 -> 4 at fixed T: {g34:.2f} +- {g34_se:.2f};  Eq. (17): {9999 / 999 / 2:.3f}  "
+      f"({abs(g34 - 9999 / 999 / 2) / g34_se:.1f} sigma)")
+print(f"CONTROL    a 4^N law (growth 4 per qubit) is {abs(g34 - 4) / g34_se:.1f} sigma away -> rejected")
+assert abs(g34 - 9999 / 999 / 2) < 4 * g34_se and abs(g34 - 4) > 4 * g34_se
+
+# %% [markdown]
+# Equation (17) holds at every $N$ within the Monte-Carlo error, and the growth per added qubit at a fixed total budget agrees with
+# $5$ and excludes the $4$ suggested by the parameter count. With $5^N$ in hand, the shot budget alone kills full tomography around $N\approx10$:
+# $5^{10}\approx10^7$, so even a Frobenius error of $0.1$ needs about $10^9$ runs of the machine. At a fixed $M=1000$ shots per
+# setting, $3^{10}M\approx6\cdot10^7$ runs give $\mathbb E\lVert\hat\rho-\rho\rVert_F^2$ up to $(10/6)^{10}/M\approx0.17$,
+# and the error of each weight-$N$ Pauli string, measured in one setting only, is still $\sim1/\sqrt M$.
+
+# ### 18.2 Run time of the pipeline
 #
 # Let us run the complete pipeline for $N=1,2,3,4$ on GHZ states and time every stage. (Timing rules as always: compile once, then
-# take the best of several runs; the first call includes compilation and is reported separately.)
+# take the best of several runs; the first call, which includes compilation, is excluded.)
 
 # %%
 # ==============================================================================
@@ -2317,9 +2456,11 @@ fig.tight_layout(); plt.show()
 # $24$ only as $N$ grows. Extrapolating the measured $N=4$
 # time with the asymptotic factor puts a single $N=6$ reconstruction at tens of seconds and $N=8$ at hours on this machine, and that
 # is *after* collecting a data set of $3^{8}M\approx7\cdot10^6$ shots at $M=1000$ shots per setting.
-# Published full tomography experiments stop around $N=8$–$10$ for exactly these reasons, and each of them is a heroic effort.
+# A real example of that scale: the eight-ion W-state tomography of Häffner et al. (2005) measured all $3^8=6561$ bases with $100$
+# repetitions each, $656\,100$ runs and ten hours of measurement, and reconstructed $\rho$ with an iterative maximum-likelihood
+# procedure of the kind derived in Section 13.
 #
-# ### 18.3 What to do instead
+# ### 18.3 Alternatives to full tomography
 #
 # The way out is to notice that we almost never want *all* $4^N$ numbers. We usually want a handful of observables (energies,
 # correlators, a fidelity with one target state, an entanglement witness). Estimating $K$ specific observables should not cost
@@ -2348,25 +2489,26 @@ fig.tight_layout(); plt.show()
 # * **Linear inversion is unbiased but unphysical.** For a state on the boundary (any pure state) the estimate has a negative
 #   eigenvalue in essentially every experiment, at every shot number. Never report it as a density matrix.
 # * **Projection** onto the physical set (Smolin–Gambetta–Smith) is one `eigh` plus a projection of the eigenvalues onto the simplex,
-#   and it strictly improves the 2-norm error. **Maximum likelihood** attacks the constrained problem directly: the concave
+#   and it never increases the 2-norm error. **Maximum likelihood** attacks the constrained problem directly: the concave
 #   log-likelihood of Eq. (11) is maximised by the extremal equation $\tilde R\rho\tilde R=\rho$, solved either by the $R\rho R$
 #   iteration (fast, monitor it; use the diluted form when it misbehaves) or by `jax.grad`+Adam on $\rho=T^\dagger T/\mathrm{Tr}(T^\dagger T)$
 #   (slower per step, but works for any cost function). Both find the same state.
 # * **Enforcing positivity is what matters most**, but for states near the boundary *how* you enforce it matters too: on our zoo the
-#   projection halved the trace distance of linear inversion for pure states, and maximum likelihood halved it again. For states well
-#   inside the physical set all three estimators coincide. Both physical estimators are **biased** near a generic boundary: they
-#   under-report fidelity and purity and produce rank-deficient estimates. Stabiliser states are the happy exception: their
-#   deterministic outcomes pin the maximum-likelihood estimate to the rank-one manifold, where its infidelity falls like $13/(48M)$
-#   rather than the $1/\sqrt M$ of a generic pure state. Calibrate the bias by simulation at your shot budget, and quote
+#   projection more than halved the trace distance of linear inversion for the three-qubit pure states, and maximum likelihood halved
+#   it again. For states well inside the physical set all three estimators coincide. Both physical estimators are **biased** near a generic boundary: they
+#   under-report fidelity and purity and produce rank-deficient estimates. Stabiliser states are the exception: their
+#   deterministic outcomes pin the maximum-likelihood estimate to the rank-one manifold, where for $\vert\Phi^+\rangle$ its infidelity
+#   falls like $13/(48M)$, against $M^{-1/2}$ for a generic pure state. Calibrate the bias by simulation at your shot budget, and quote
 #   **bootstrap** error bars.
 # * All errors scale as $1/\sqrt M$ in trace distance; the fidelity with a pure target is a *linear* functional and is therefore
 #   estimated without bias by linear inversion — one of the few things raw linear inversion is good for.
-# * **The method dies exponentially**: $3^N$ settings, $4^N$ parameters, $6^N$ likelihood terms. Beyond $N\approx8$–$10$ one switches
+# * **The method dies exponentially**: $3^N$ settings, $4^N$ parameters, $6^N$ likelihood terms, and a total shot budget that grows
+#   like $5^N$ at fixed Frobenius error, Eq. (17). Beyond $N\approx8$–$10$ one switches
 #   to randomised measurements (classical shadows), compressed sensing, or tensor-network ansätze.
 # * **Implementation**: one einsum per concept (`"ja,ab,jb->j"` for all Born probabilities, `"j,ja,jb->ab"` for $R$, `"ps,bs->pb"` for
 #   the Pauli estimates), `vmap` over settings / shots / data sets / bootstrap resamples, `lax.scan` for the iteration, and a validation
-#   ladder — exact probabilities, two derivations of the same estimator, monotone likelihood, two independent optimisers — that catches
-#   every mistake we could make.
+#   ladder — exact probabilities, two derivations of the same estimator, monotone likelihood, two independent optimisers, and a wrong
+#   control for every statistical test — in which each check is built so that it can fail.
 
 # %% [markdown]
 # ## 20. Exercises
@@ -2384,7 +2526,7 @@ fig.tight_layout(); plt.show()
 #    cannot help here — a tetrahedral POVM is not a projective measurement, so compute $p_i=\mathrm{Tr}(\rho\,\Pi_i)$ directly, as
 #    `povm_probs` does, and sample from the $4^N$ probabilities in one `categorical` draw.)
 # 4. ★★ **Weighted least squares done right (extend the code).** Our `weighted_least_squares` uses a diagonal weight matrix, but
-#    Eq. (5) says the multinomial covariance is block-diagonal, not diagonal. Evaluate the Gauss-Markov bound
+#    Eq. (5) says the multinomial covariance is block-diagonal with full blocks. Evaluate the Gauss-Markov bound
 #    $\mathrm{Cov}=(A^{\mathsf T}C^{-1}A)^{-1}$ exactly and compare it with OLS and with diagonal WLS on the three states of
 #    Section 9. Two traps: each block of $C$ is singular because the frequencies of a setting sum to one (drop one outcome per
 #    setting and work with the remaining $2^N-1$), and for the Bell state further directions are singular because some probabilities
@@ -2404,7 +2546,9 @@ fig.tight_layout(); plt.show()
 # 7. ★★★ **Tomography of a noisy circuit (physics).** Prepare a three-qubit GHZ state with the engine's gate sequence, apply dephasing
 #    of strength $p$ to every qubit, reconstruct the state with MLE from $M=2000$ shots per setting, and plot the reconstructed
 #    GHZ coherence $\vert\rho_{0\ldots0,1\ldots1}\vert$ and the negativity of the $1\vert23$ bipartition as functions of $p$. Compare
-#    with the exact values and with the bootstrap error bars. At which $p$ does tomography still see entanglement?
+#    with the exact values and with the bootstrap error bars, and determine the largest $p$ at which tomography still sees
+#    entanglement. (`negativity` accepts the reconstructed $8\times8$ matrix directly as well as a density tensor; the qubit list
+#    `[0]` selects the $1\vert23$ cut. For this state the exact negativity equals the coherence $\vert\rho_{0\ldots0,1\ldots1}\vert$.)
 # 8. ★★★ **Rank-restricted tomography (extend the code).** Modify `mle_gradient` so that $T$ has shape $(k,d)$ with $k\ll d$, which
 #    constrains $\rho$ to rank $\le k$. Reconstruct a two-qubit pure state with $k=1$ and compare the number of shots needed for a
 #    given fidelity with the unconstrained MLE. This is the simplest form of compressed-sensing tomography: fewer parameters, fewer
@@ -2412,12 +2556,17 @@ fig.tight_layout(); plt.show()
 #
 # ## References
 #
-# * Z. Hradil, *Quantum-state estimation*, Phys. Rev. A **55**, R1561 (1997) — maximum-likelihood tomography and the extremal equation
-#   behind the $R\rho R$ iteration.
+# * Z. Hradil, *Quantum-state estimation*, Phys. Rev. A **55**, R1561 (1997) — maximum-likelihood tomography, the positivity objection
+#   to linear inversion, and the extremal equation behind the $R\rho R$ iteration.
 # * D. F. V. James, P. G. Kwiat, W. J. Munro and A. G. White, *Measurement of qubits*, Phys. Rev. A **64**, 052312 (2001) — the
-#   standard reference for two-qubit tomography, the counting of settings, and the Cholesky parametrisation used in Section 14.
+#   standard reference for two-qubit tomography (with $4^n$ product projectors, $16$ for two qubits, rather than the $3^N$
+#   six-outcome Pauli settings used here) and the source of the parametrisation $T^\dagger T/\mathrm{Tr}(T^\dagger T)$ of Section 14.
 # * J. Řeháček, Z. Hradil, E. Knill and A. I. Lvovsky, *Diluted maximum-likelihood algorithm for quantum tomography*,
-#   Phys. Rev. A **75**, 042108 (2007) — the diluted iteration of Eq. (15) and its monotonicity.
+#   Phys. Rev. A **75**, 042108 (2007) — the name "$R\rho R$ algorithm", a counterexample to its convergence, and the diluted iteration
+#   of Eq. (15) with its monotonicity for small $\epsilon$.
+# * H. Häffner, W. Hänsel, C. F. Roos, J. Benhelm, D. Chek-al-kar, M. Chwalla, T. Körber, U. D. Rapol, M. Riebe, P. O. Schmidt,
+#   C. Becher, O. Gühne, W. Dür and R. Blatt, *Scalable multiparticle entanglement of trapped ions*, Nature **438**, 643 (2005) —
+#   eight-qubit W-state tomography with $3^8$ bases (Section 18.2).
 # * J. A. Smolin, J. M. Gambetta and G. Smith, *Efficient method for computing the maximum-likelihood quantum state from measurements
 #   with additive Gaussian noise*, Phys. Rev. Lett. **108**, 070502 (2012) — the eigenvalue-truncation projection of Section 11.
 # * D. H. Mahler, L. A. Rozema, A. Darabi, C. Ferrie, R. Blume-Kohout and A. M. Steinberg, *Adaptive quantum state tomography improves

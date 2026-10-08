@@ -13,7 +13,7 @@
 #
 # [Notebook 19](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb) derived the archetype, the CHSH
 # inequality for two parties: the classical bound is $2$ and quantum mechanics reaches $2\sqrt2$. This notebook asks the same
-# question for $N$ parties at once. That change is not cosmetic. With two parties there is one way to be entangled; with $N$
+# question for $N$ parties at once. The change has consequences. With two parties there is one way to be entangled; with $N$
 # there is a whole hierarchy, and a many-body Bell inequality can distinguish between "somewhere in this system there are two
 # correlated particles" and "all $N$ particles participate in one correlated object". The quantities that do this are the
 # objects of the last decade of research in quantum metrology and in cold-atom experiments, where the states are produced by
@@ -64,11 +64,13 @@
 # * what a Bell inequality is for $N$ parties, and why a single number can separate "entangled" from "Bell-correlated";
 # * the derivation of the local-realistic bound $2^{-N}$, of the $m$-group separability bound $4^{-m}$ and of the algebraic
 #   maximum $1/4$;
-# * closed forms: $\mathcal E=4^{-N}$ for $\vert+\rangle^{\otimes N}$ (the separability bound is *saturated*, not violated),
-#   $\mathcal E=1/4$ for GHZ, $\mathcal E=\binom{N}{m}^24^{-N}$ for Dicke states (hence $\mathcal E=N^24^{-N}$ for W);
+# * closed forms: $\mathcal E=4^{-N}$ for $\vert+\rangle^{\otimes N}$ (the separability bound is *saturated*, with no
+#   violation), $\mathcal E=1/4$ for GHZ, $\mathcal E=\binom{N}{m}^24^{-N}$ for Dicke states (hence $\mathcal E=N^24^{-N}$
+#   for W);
 # * why the correlator is invariant under local unitaries, so that a graph state and the same graph state with a $T$ gate on
-#   every qubit are indistinguishable by it — until noise is added, which breaks the invariance for some channels but not for
-#   others;
+#   every qubit are indistinguishable by it — and remain so under local dephasing, depolarising and amplitude damping,
+#   because all three channels commute with the diagonal $T$ gate, while the same channels do separate other pairs of
+#   locally equivalent states;
 # * how fast Bell correlations die under dephasing, depolarising and amplitude damping, and why the Bell bound is much more
 #   fragile than the entanglement bound;
 # * that one-axis twisting generates Bell correlations, and at what time each bound is crossed.
@@ -300,18 +302,23 @@ print("sigma^+ = |1><0| :\n", np.asarray(SP))
 #   to be quantum: $T=0$ reproduces $\mathcal E\le2^{-N}$ and $T=N$ reproduces $\mathcal E\le4^{-N}$, with the values in
 #   between corresponding to multipartite EPR steering. Chwedenczuk (2022) derives the same bound by the Cauchy–Schwarz
 #   inequality applied directly to Eq. (4).
-# * $Q_{\rm B}=\log_2\mathcal E+N$ is the quantity called $Q_N$ in Plodzien *et al.*, Phys. Rev. Research **6**, 023050
-#   (2024), which defines $\mathcal E_N\equiv2^{Q_N-N}$; $Q_{\rm E}=\tfrac12\log_2\mathcal E+N=\log_4(4^N\mathcal E)$ is
-#   the quantity called $\mathcal Q$ in Plodzien *et al.*, Phys. Rev. A **110**, 032428 (2024). In that notation Eq. (10)
-#   reads $Q_{\rm E}\le N-m$ for $m$-separable states, which is Eq. (16) of the latter paper, and the biseparable case
-#   $Q_{\rm E}\le N-2$ is its Eq. (12).
-# * The same papers also state **depth ladders** of the form "$Q_{\rm E}>k-2$ certifies entanglement depth $k$" and
-#   "$Q_{\rm B}>k-3$ certifies that $k$ qubits are Bell-correlated". Those thresholds are obtained by separating off
-#   single qubits one at a time, which is a *different* family of partitions from the one used above: they are the
-#   statements for partitions with one large group and $N-k$ singletons, while Eq. (10) with $m=\lceil N/k\rceil$ covers
-#   partitions into groups of equal size. The two do not agree — $\lvert\mathrm{GHZ}_3\rangle^{\otimes2}$ at $N=6$ has
-#   $Q_{\rm E}=4$ and depth $3$, while the single-qubit ladder would read $Q_{\rm E}>k-2$ with $k=6$ — so in this
-#   notebook we quote only the bound we have derived, Eq. (10), which is the one that is saturated by equal GHZ blocks.
+# * $Q_{\rm B}=\log_2\mathcal E+N$ has the form of the quantity called $Q_N$ in Plodzien *et al.*, Phys. Rev. Research
+#   **6**, 023050 (2024), whose Eq. (3) defines $\mathcal E_N\equiv2^{Q_N-N}$ (there the raising operators are taken along
+#   one fixed axis, whereas Eq. (2) maximises over them); $Q_{\rm E}=\tfrac12\log_2\mathcal E+N=\log_4(4^N\mathcal E)$ is
+#   the quantity called $\mathcal Q$ in Eq. (7) of Plodzien *et al.*, Phys. Rev. A **110**, 032428 (2024). In that notation
+#   Eq. (10) reads $Q_{\rm E}\le N-m$ for $m$-separable states, which is Eq. (16) of the latter paper, and the biseparable
+#   case $Q_{\rm E}\le N-2$ is its Eq. (12).
+# * Several of these papers also give thresholds for the **depth** of entanglement or of Bell correlations that are
+#   derived for one specific family of partitions: one correlated group plus single qubits (for example Eqs. (18) and
+#   (20) of Plodzien *et al.*, Phys. Rev. Lett. **129**, 250402 (2022), and Eq. (13) of the Phys. Rev. A paper). Written in
+#   the rulers of Eq. (3), excluding a group of $k-1$ qubits plus $N-k+1$ single qubits gives the thresholds
+#   $Q_{\rm E}>k-2$ and $Q_{\rm B}>k-3$. Partitions into several groups of comparable size give a different bound, Eq. (10)
+#   with $m=\lceil N/k\rceil$; the Phys. Rev. A paper lists these too (its Eqs. (14)–(15), and $\mathcal Q\le4$ for two
+#   groups of three at $N=6$). The two families are not interchangeable. The state $\lvert\mathrm{GHZ}_3\rangle^{\otimes2}$
+#   at $N=6$ has $\mathcal E=1/16$, $Q_{\rm E}=4$ and $Q_{\rm B}=2$ (Exercise 3) and entanglement depth $3$. It saturates
+#   Eq. (10) for groups of at most three qubits, while it exceeds the one-group thresholds for every $k\le5$ ($Q_{\rm E}$)
+#   and every $k\le4$ ($Q_{\rm B}$). A depth statement that covers *every* $k$-producible state therefore has to use
+#   Eq. (10), and that is the only depth bound this notebook uses.
 #
 
 # %% [markdown]
@@ -542,8 +549,14 @@ assert abs(abs(b3) - abs(got_psi)) < 1e3 * TOL
 #   indistinguishable from the star graph by this correlator.
 #
 # The third point has a consequence: $\mathcal E$ is a local-unitary invariant, so it measures a property of the entanglement
-# structure and is completely blind to single-qubit non-Clifford resources. Section 9 shows that noise breaks the tie — but
-# only for channels that are not unitarily covariant.
+# structure and is completely blind to single-qubit non-Clifford resources. The three noise channels of Section 9 do not
+# change that for the $T$ gate. $T$ is diagonal, so it commutes with the dephasing Kraus operators and with
+# $K_0=\mathrm{diag}(1,\sqrt{1-\gamma})$ of amplitude damping, and $K_1=\sqrt\gamma\vert0\rangle\langle1\vert$ satisfies
+# $K_1T=e^{i\pi/4}TK_1$; the depolarising channel commutes with every single-qubit unitary. In all three cases the noisy
+# $T$-doped state is the noisy undoped state with $T$ applied afterwards, a local unitary, so the two keep the same
+# $\mathcal E$ at every noise strength. Noise does separate locally equivalent states when the local unitary does not
+# commute with the channel: the star graph is GHZ with Hadamards on the leaves, and Hadamard does not commute with
+# dephasing or amplitude damping. Exercise 5 asks you to measure both statements.
 
 # %%
 # ==============================================================================
@@ -584,9 +597,10 @@ for N in (3, 4, 5, 6, 7):
 #
 # ### 7.1 The problem
 #
-# Equation (2) is a maximisation of a smooth, bounded, non-convex function of $2N$ real angles. It is smooth because
-# `bell_expectation` is a composition of matrix products and array lookups; it is bounded by $1/4$; and it is non-convex
-# because the state can have several inequivalent "best bases" — a fact we will see directly in the landscape plot.
+# Equation (2) is a maximisation of a smooth, bounded function of $2N$ real angles. It is smooth because
+# `bell_expectation` is a composition of matrix products and array lookups; it is bounded by $1/4$; and it is far from concave
+# because $\mathcal E$ is periodic in every angle and vanishes on whole regions of angle space between its maxima, as the
+# landscape plot below shows; for GHZ-like states the maxima also form continuous ridges.
 #
 # Three ingredients make this cheap in JAX:
 #
@@ -685,6 +699,9 @@ for nm, E, h in [("T-doped star graph", float(E_ls), hist_ls), ("Haar random", f
     print(f"{nm:>20s}: best E = {E:.8f}, Q_B = {q_values(E, N_ls)[0]:+.4f}; "
           f"final E of the 16 restarts in [{h[:, -1].min():.5f}, {h[:, -1].max():.5f}], "
           f"{int(np.sum(h[:, -1] > 0.999 * E))}/16 within 0.1% of the best")
+    # first Adam step after which a restart stays within 1e-5 (relative) of its own final value
+    settle = [int(np.max(np.flatnonzero(np.abs(r - r[-1]) > 1e-5 * r[-1]), initial=-1)) + 1 for r in h]
+    print(f"{'':>20s}  steps to settle (median / max over restarts): {int(np.median(settle))} / {max(settle)}")
 
 # landscapes: scan the two angles of qubit 0 with all the other angles held at the optimum
 n_grid = 61
@@ -736,9 +753,13 @@ fig.tight_layout(); plt.show()
 #
 # $$\widehat{\partial_k\mathcal E}=\frac{\mathcal E(\boldsymbol\theta+c\Delta)-\mathcal E(\boldsymbol\theta-c\Delta)}{2c}\,\Delta_k ,$$
 #
-# which costs **two** evaluations regardless of $2N$. It is a biased-but-consistent estimate (the bias is $O(c^2)$), extremely
-# noisy per step, and works because Adam's momentum averages the noise. We run both methods from the same starting points and
-# compare what they reach and what they cost.
+# which costs **two** evaluations regardless of $2N$. Averaged over $\Delta$ it reproduces the gradient up to a bias of order
+# $c^2$; a single estimate is very noisy, and Adam's momentum averages part of that noise. We run both methods from the same
+# starting points. A fair comparison needs each method at a step size suited to it, so SPSA is run in three settings: at the learning rate
+# used for the exact gradient, $0.1$, and at a five times smaller one, $0.02$; and with $1000$ instead of $200$ steps at
+# $0.1$, which separates "not yet converged" from "converged to the wrong place". Success is counted as ending within
+# $1\,\%$ of the analytic optimum, with a $95\,\%$ Wilson interval for the success fraction; timings exclude compilation,
+# which is measured separately.
 
 # %%
 # ==============================================================================
@@ -763,60 +784,108 @@ def optimise_spsa(psi, angles0, n_steps=200, lr=0.1, c=0.05):
     return vals, hist
 
 
-states_cmp = {"GHZ": ghz_state(6), "W": w_state(6), "Dicke m=3": dicke_state(6, 3),
-              "star graph": star_graph_state(6), "star + T": apply_T_all(star_graph_state(6))}
-a0_cmp = random_angles(jax.random.PRNGKey(7), 16, 6)
+def wilson(k, n, z=1.96):
+    """95% Wilson score interval for a success fraction k/n (well behaved also at k = 0 and k = n)."""
+    p, d = k / n, 1 + z * z / n
+    centre, half = (p + z * z / (2 * n)) / d, z * np.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d
+    return max(0.0, centre - half), min(1.0, centre + half)
 
-# warm-up so that the timings below measure execution, not XLA compilation
-optimise_pure(ghz_state(6), a0_cmp, 200, 0.1)[0].block_until_ready()
-optimise_spsa(ghz_state(6), a0_cmp, 200, 0.1, 0.05)[0].block_until_ready()
 
-print(f"{'state':>14s} {'E (grad+Adam)':>15s} {'E SPSA best':>13s} {'E SPSA med.':>13s} {'shortfall':>10s} "
-      f"{'t grad [s]':>11s} {'t SPSA [s]':>11s}")
-cmp_rows = []
-for name, psi in states_cmp.items():
-    t0 = time.time(); Eg = float(optimise_pure(psi, a0_cmp, 200, 0.1)[0].block_until_ready()); tg = time.time() - t0
-    t0 = time.time(); vs, _ = optimise_spsa(psi, a0_cmp, 200, 0.1, 0.05)
-    vs = np.asarray(jax.block_until_ready(vs)); tsp = time.time() - t0
-    Es, Emed = float(vs.max()), float(np.median(vs))
-    cmp_rows.append((name, Eg, Es, Emed))
-    print(f"{name:>14s} {Eg:15.8f} {Es:13.8f} {Emed:13.8f} {(Eg-Es)/Eg:9.2%} "
-          f"{tg:11.3f} {tsp:11.3f}")
+@partial(jax.jit, static_argnums=(2, 3))
+def optimise_pure_final(psi, angles0, n_steps=200, lr=0.1):
+    """Final E of EVERY restart of the gradient ascent of Step 4 (same Adam loop), for success statistics."""
+    def run(a0):
+        def step(carry, _):
+            a, st = carry
+            g = jax.grad(correlator, argnums=1)(psi, a)
+            return adam_update(a, -g, st, lr=lr), None
+        (a, _), _ = lax.scan(step, (a0, adam_init(a0)), None, length=n_steps)
+        return correlator(psi, a)
+    return jax.vmap(run)(angles0)
+
+
+states_cmp = {"GHZ": (ghz_state(6), 0.25), "W": (w_state(6), 6 ** 2 * 4.0 ** -6),
+              "Dicke m=3": (dicke_state(6, 3), comb(6, 3) ** 2 * 4.0 ** -6),
+              "star graph": (star_graph_state(6), 0.25), "star + T": (apply_T_all(star_graph_state(6)), 0.25)}
+R_cmp = 32
+a0_cmp = random_angles(jax.random.PRNGKey(7), R_cmp, 6)
+spsa_cfg = [(0.1, 200), (0.1, 1000), (0.02, 200)]          # (learning rate, steps)
+
+# compilation, timed separately: one compile per distinct (static) setting, reused for all five states
+t0 = time.time(); optimise_pure_final(ghz_state(6), a0_cmp, 200, 0.1).block_until_ready(); t_cg = time.time() - t0
+t_cs = []
+for lr_s, n_s in spsa_cfg:
+    t0 = time.time(); optimise_spsa(ghz_state(6), a0_cmp, n_s, lr_s, 0.05)[0].block_until_ready()
+    t_cs.append(time.time() - t0)
+print(f"compilation + first run: grad {t_cg:.2f} s; SPSA " + ", ".join(
+    f"lr={l}/{n} steps {t:.2f} s" for (l, n), t in zip(spsa_cfg, t_cs)) + "\n")
+
+hdr = " ".join(f"{f'lr={l},{n}':>17s}" for l, n in spsa_cfg)
+print(f"{'':>11s} {'grad+Adam':>12s} | SPSA best / median ({R_cmp} restarts)")
+print(f"{'state':>11s} {'E':>12s} | {hdr}")
+cmp_rows, succ_rows, time_rows = [], [], []
+for name, (psi, E_ana) in states_cmp.items():
+    t0 = time.time()
+    Eg_all = np.asarray(jax.block_until_ready(optimise_pure_final(psi, a0_cmp, 200, 0.1)))
+    tg = time.time() - t0
+    cells, succ, times = [], [int(np.sum(Eg_all > 0.99 * E_ana))], [tg]
+    for lr_s, n_s in spsa_cfg:
+        t0 = time.time(); vs, _ = optimise_spsa(psi, a0_cmp, n_s, lr_s, 0.05)
+        vs = np.asarray(jax.block_until_ready(vs)); times.append(time.time() - t0)
+        cells.append(f"{vs.max():8.6f}/{np.median(vs):8.6f}")
+        succ.append(int(np.sum(vs > 0.99 * E_ana)))
+    cmp_rows.append((name, Eg_all.max(), E_ana)); succ_rows.append((name, succ)); time_rows.append((name, times))
+    print(f"{name:>11s} {Eg_all.max():12.8f} | " + " ".join(f"{c:>17s}" for c in cells))
+    assert abs(Eg_all.max() - E_ana) < 1e-6             # the exact gradient finds the analytic optimum
+
+print(f"\nrestarts ending within 1% of the analytic optimum (95% Wilson interval), out of {R_cmp}")
+print(f"{'state':>11s} {'grad+Adam':>17s} " + " ".join(f"{f'SPSA lr={l},{n}':>19s}" for l, n in spsa_cfg))
+for name, succ in succ_rows:
+    print(f"{name:>11s} " + " ".join(f"{f'{k:2d} [{wilson(k, R_cmp)[0]:.2f},{wilson(k, R_cmp)[1]:.2f}]':>19s}"
+                                     for k in succ))
+print(f"\nrun time after compilation [s]: " + "; ".join(
+    f"{nm} " + "/".join(f"{t:.3f}" for t in ts) for nm, ts in time_rows) + "   (grad / SPSA settings in order)")
 
 # %% [markdown]
 # ### 7.4 Reading the optimisation results
 #
-# For both states all $16$ restarts land on
-# the same value to five decimals — $\mathcal E=0.25000000$ for the $T$-doped star graph and $\mathcal E=0.11847063$ for the
-# Haar-random state — after about $50$ Adam steps, although they take visibly different routes and some spend $25$ steps on a
-# plateau near $\mathcal E=0$ first. Restarts are cheap insurance here rather than a necessity; that changes as soon as noise
-# is added (Section 9), where a second, competing family of optima appears and six random restarts all end up in the wrong
-# one.
+# For both states all $16$ restarts land on the same value to five decimals — $\mathcal E=0.25000000$ for the $T$-doped
+# star graph and $\mathcal E=0.11847063$ for the Haar-random state. Most of the climb happens in the first $50$–$90$
+# Adam steps; settling to a relative accuracy of $10^{-5}$ takes a median of about $120$ steps and at most $194$, so the
+# $200$-step budget is adequate but not generous. The routes differ visibly: several Haar-random restarts sit on an
+# intermediate plateau near $\mathcal E\approx0.05$ for tens of steps before they climb. Restarts are cheap insurance here;
+# they become essential once noise is added (Section 9), where a second, competing family of optima appears and six
+# random restarts all end up in the wrong one.
 #
 # The two landscape panels explain the difference between the states. For the $T$-doped star graph, $\mathcal E$ does not
-# depend on $\varphi_0$ **at all**: the optimum is a horizontal line $\theta_0=0$, not a point. That is a property of GHZ-like
-# states, and it follows from Eq. (12) — at $\theta_k=0$ the two array entries are
+# depend on $\varphi_0$ **at all**: the optimum is the whole horizontal line $\theta_0=0$. That is a property of GHZ-like
+# states (the hub of the star graph carries the GHZ frame, and $T$ commutes with $R_z$), and it follows from Eq. (12) — for
+# the GHZ state at $\theta_k=0$ the two array entries are
 # $\psi'[0\ldots0]=\tfrac{1}{\sqrt2}\prod_ke^{i\varphi_k/2}$ and $\psi'[1\ldots1]=\tfrac{1}{\sqrt2}\prod_ke^{-i\varphi_k/2}$,
 # so every $\varphi_k$ cancels in the modulus. The optimum is a continuous $N$-dimensional manifold, the Hessian is singular
-# along it, and any gradient method slides freely down the ridge until it stops at an arbitrary point of it. The Haar-random
-# state has no such symmetry: its slice has two genuine, isolated maxima (related by $(\theta_0,\varphi_0)\to
-# (-\theta_0,\varphi_0+\pi)$, which is the same pair of measurement directions with the labels exchanged) separated by
-# regions where $\mathcal E$ falls to zero.
+# along it, and any gradient method slides freely along the ridge until it stops at an arbitrary point of it. The
+# Haar-random state has no such symmetry: its slice shows two isolated peaks separated by regions where $\mathcal E$ falls
+# to zero. The two peaks are one and the same maximum. The chart $(\theta,\varphi)$ covers every measurement frame twice:
+# since $R_y(-\theta)=ZR_y(\theta)Z$ and $R_z(\pi)=-iZ$, one has $R_z(\varphi+\pi)R_y(-\theta)=-i\,R_z(\varphi)R_y(\theta)Z$, and
+# $Z\sigma^{+}Z=-\sigma^{+}$, so $(\theta_0,\varphi_0)\to(-\theta_0,\varphi_0+\pi)$ only flips the sign of
+# $\tilde\sigma^{+}_0$ (both outcomes of $A_0$ and of $B_0$ relabelled) and leaves $\mathcal E$ unchanged.
 #
-# In the method comparison, gradient ascent reaches the analytic optimum for every state: $0.25000000$ for GHZ, the star
-# graph and the $T$-doped star graph, $0.09765625=\binom{6}{3}^24^{-6}$ for the Dicke state, $0.00878906=6^2\cdot4^{-6}$ for
-# W. SPSA reproduces GHZ to six digits but falls short by $2$–$3.4\,\%$ on all four remaining states, W included. The
-# shortfall is not a property of a particular landscape — all of these states have a continuous manifold of optima, and the
-# only state on which SPSA is exact is one of them. It is the signature of a stochastic gradient used with a *constant*
-# step size: with two function evaluations per step and $2N=12$ parameters the estimate $\widehat{\nabla\mathcal E}$ is
-# dominated by the component along the random direction $\Delta$, Adam's momentum averages it only partially, and the
-# iterate ends up performing a random walk in a small ball around the optimum instead of settling in it. The median over
-# the $16$ restarts lies a further $3$–$7\,\%$ below the best of them (and only $0.3\,\%$ below for GHZ), which measures the
-# radius of that ball and shows how much of the apparent success of the "best restart" is just the luckiest sample of the
-# same random walk. Exercise 4 asks
-# you to shrink it with a decaying learning rate. In this simulator the exact gradient is
-# essentially free: both methods take a few tens of milliseconds for $16$ restarts of $200$ steps (see the last two columns),
-# so `jax.grad` wins on both counts.
+# In the method comparison, gradient ascent reaches the analytic optimum from all $32$ starting points for every state:
+# $0.25$ for GHZ, the star graph and the $T$-doped star graph, $0.09765625=\binom{6}{3}^24^{-6}$ for the Dicke state and
+# $0.00878906=6^2\cdot4^{-6}$ for W. SPSA run with the same learning rate, $0.1$, reproduces GHZ to five digits but falls
+# short of the other four optima by $1.5$–$2.4\,\%$ even in its best restart, and *no* restart of those four ends within
+# $1\,\%$ of the optimum (0 of 32, Wilson interval $[0,0.11]$). Five times as many steps do not repair this: at
+# $1000$ steps the medians are essentially unchanged and the GHZ success count even drops from $29$ to $19$. At the smaller
+# learning rate $0.02$ and the original $200$ steps, $23$–$28$ of the $32$ restarts succeed for those four states and all
+# $32$ for GHZ. The shortfall is therefore set by the step size and does not shrink with the number of steps. A mechanism
+# consistent with this: with exact function values
+# the SPSA estimate $\Delta(\Delta\cdot\nabla\mathcal E)+O(c^2)$ vanishes at a stationary point, so its noise is
+# proportional to the gradient; but Adam divides every component by the running root-mean-square of the estimates, so
+# near the optimum the steps keep a length of order the learning rate in directions that are mostly random. The iterate
+# then wanders in a region around the optimum whose size is set by the learning rate. Exercise 4 asks you to shrink that
+# region with a decaying learning rate. In this simulator the exact gradient is essentially free: after compilation every
+# run of $32$ restarts at $200$ steps takes less than $0.15$ s for either method (last output line), so `jax.grad` wins on
+# accuracy at equal cost.
 # On hardware, where each evaluation costs thousands of shots and no gradient is available, the ranking reverses; that is the
 # regime [notebook 41](../ch11_variational_quantum_circuits/41_optimizers.ipynb) analyses.
 
@@ -834,7 +903,7 @@ for name, psi in states_cmp.items():
 # STEP 7: the zoo, optimised over all 2N angles
 # ==============================================================================
 def ghz_random_bases(key, N):
-    """GHZ with an independent random single-qubit Clifford-like rotation (H, S H or 1) on every qubit.
+    """GHZ written in a random local basis on every qubit: 1 (Z basis), H (X basis) or S H (H first, then S: Y basis).
     By Eq. (16) this MUST give the same correlator as the plain GHZ state."""
     psi = ghz_state(N)
     codes = jax.random.randint(key, (N,), 0, 3)
@@ -843,7 +912,7 @@ def ghz_random_bases(key, N):
         if c == 1:
             psi = apply_gate(psi, H, [q])
         elif c == 2:
-            psi = apply_gate(psi, H @ S, [q])
+            psi = apply_gate(psi, S @ H, [q])          # |0> -> |+i>, |1> -> |-i>
     return psi, "".join("ZXY"[int(c)] for c in codes)
 
 
@@ -917,16 +986,22 @@ for N in range(3, 9):
     gam = -np.log(E) / np.log(4.0) - 1.0
     print(f"{N:2d} {E:13.6e} {2.0**(-N):13.6e} {q_values(E, N)[0]:+8.4f} {gam:20.4f}")
 
-print("\nHaar-random states: 16 independent draws at each N (8 restarts x 200 Adam steps each)")
-print(f"{'N':>2s} {'mean Q_B':>10s} {'std':>8s} {'median':>9s} {'min':>9s} {'max':>9s} {'fraction Q_B > 0':>18s}")
+S_h, R_h, n_h = 32, 16, 400
+print(f"\nHaar-random states: {S_h} independent draws at each N; {R_h} restarts x {n_h} Adam steps, run twice with")
+print("independent starting angles (the larger of the two runs is kept; 'max |dQ|' measures convergence)")
+print(f"{'N':>2s} {'mean Q_B':>9s} {'s.e.':>7s} {'median':>8s} {'min':>8s} {'max':>8s} {'Q_B > 0':>8s} "
+      f"{'95% Wilson':>13s} {'max |dQ|':>9s}")
 haar_stats = {}
 for N in (4, 6, 8):
-    psis = jnp.stack([haar_state(jax.random.PRNGKey(2000 + s), N) for s in range(16)])
-    a0_h = random_angles(jax.random.PRNGKey(9), 16 * 8, N).reshape(16, 8, N, 2)
-    qb_h = q_values(np.asarray(optimise_many(psis, a0_h, 200, 0.1)), N)[0]
+    psis = jnp.stack([haar_state(jax.random.PRNGKey(2000 + s), N) for s in range(S_h)])
+    runs = [q_values(np.asarray(optimise_many(psis, random_angles(jax.random.PRNGKey(9 + r), S_h * R_h, N)
+                                              .reshape(S_h, R_h, N, 2), n_h, 0.1)), N)[0] for r in (0, 1)]
+    qb_h, dq = np.maximum(runs[0], runs[1]), float(np.max(np.abs(runs[0] - runs[1])))
+    k_h = int(np.sum(qb_h > 0)); lo_h, hi_h = wilson(k_h, S_h)
     haar_stats[N] = qb_h
-    print(f"{N:2d} {qb_h.mean():+10.4f} {qb_h.std():8.4f} {np.median(qb_h):+9.4f} {qb_h.min():+9.4f} "
-          f"{qb_h.max():+9.4f} {np.mean(qb_h > 0):18.2f}")
+    print(f"{N:2d} {qb_h.mean():+9.4f} {qb_h.std(ddof=1) / np.sqrt(S_h):7.4f} {np.median(qb_h):+8.4f} "
+          f"{qb_h.min():+8.4f} {qb_h.max():+8.4f} {k_h:4d}/{S_h} {f'[{lo_h:.2f}, {hi_h:.2f}]':>13s} {dq:9.1e}")
+    assert dq < 1e-2                     # the two independent optimisations agree: the ensemble is converged
 
 # %% [markdown]
 # Neither entry survives the extra evidence in the form in which the table presents it.
@@ -937,13 +1012,17 @@ for N in (4, 6, 8):
 # disguise and violates the bound; $N=4$ and $N=6$ are the only two sizes in the range that land exactly *on* it; from
 # there $Q_{\rm B}$ drifts down by roughly one unit per three qubits. A one-dimensional cluster state is therefore a
 # textbook example of a state that is maximally useful for measurement-based computation and useless for this correlator,
-# and the agreement with $2^{-N}$ at $N=4,6$ is a coincidence of those two sizes, not a law. (No proof of the $\lfloor
+# and the agreement with $2^{-N}$ at $N=4,6$ is a coincidence of those two sizes. (No proof of the $\lfloor
 # 2(N-2)/3\rfloor$ pattern is offered here; it is an observation over $3\le N\le8$.)
 #
-# The Haar-random entry is even more misleading as a single number. Over $16$ draws the *typical* $Q_{\rm B}$ **falls**
-# with $N$: the mean is $+0.17$ at $N=4$, $-0.08$ at $N=6$ and $-0.83$ at $N=8$, and the fraction of draws that violate
-# the local-realism bound goes $0.62\to0.38\to0.00$. The single seed quoted in the table above happens to be in the lower
-# tail at $N=4$ and near the middle at $N=6$, which produces exactly the opposite impression — that random states become
+# The Haar-random entry is even more misleading as a single number. Over $32$ draws per size the *typical* $Q_{\rm B}$
+# **falls** with $N$: the mean is $+0.26\pm0.08$ at $N=4$, $-0.14\pm0.05$ at $N=6$ and $-0.82\pm0.04$ at $N=8$ (standard
+# errors), and the number of draws that violate the local-realism bound goes $23\to9\to0$ out of $32$, with $95\,\%$
+# Wilson intervals $[0.55,0.84]$, $[0.16,0.45]$ and $[0,0.11]$ for the fraction, which do not overlap. The two independent
+# optimisations of every draw agree to $2.5\cdot10^{-4}$ in $Q_{\rm B}$, so these are properties of the states and not of
+# the optimiser (with only $8$ restarts of $200$ steps, single draws at $N=8$ came out up to $0.13$ too low). The single seed quoted in the
+# table above happens to be in the lower tail at $N=4$ and slightly above the median at $N=6$, which produces exactly the
+# opposite impression — that random states become
 # *more* nonlocal with $N$. They do not: as $N$ grows, a Haar-random state spreads its weight over all $2^N$ basis states
 # and the single coherence $\langle0\cdots0\vert\rho\vert1\cdots1\rangle$ that this correlator measures shrinks faster
 # than the bound it has to beat.
@@ -964,8 +1043,9 @@ for N in (4, 6, 8):
 #   correlator cannot see the difference. In particular the $T$ gates, which make the state non-stabilizer and give it
 #   non-zero magic, are invisible here.
 # * All four exceed $N-4$, so each is certified genuinely $N$-partite entangled by the $m=2$ case of Eq. (10).
-# * W and Dicke reproduce Eq. (15) exactly, so the symmetric single-angle ansatz of Section 6.3 *is* the global optimum: free
-#   optimisation over all $2N$ angles finds nothing better.
+# * W and Dicke reproduce Eq. (15) exactly: free optimisation over all $2N$ angles from $24$ random starts finds nothing
+#   better than the symmetric single-angle ansatz of Section 6.3, which is strong numerical evidence that it is the global
+#   optimum.
 # * The linear cluster state and the Haar-random state are the interesting cases. Both are strongly entangled — the cluster
 #   state is the universal resource for measurement-based computation, the random state has volume-law entropy — yet the
 #   correlator barely notices. The linear cluster state lands on $\mathcal E=2^{-N}$ at both of these sizes
@@ -978,9 +1058,9 @@ for N in (4, 6, 8):
 #   patterns does not show up in it. A non-positive $Q_{\rm B}$ is **not** evidence of a separable state: Bell inequalities
 #   are one-sided certificates.
 #
-# > **Physics insight.** A diagnostic that answers "yes" loudly for GHZ and "no" for a Haar-random state is not a defect. It
-# > is the statement that *Bell correlations of this type* are a specific structure, not a synonym for "lots of
-# > entanglement". Notebook 25 measures a quantity (the negativity) that ranks the random state far above GHZ; the two
+# > **Physics insight.** A diagnostic that answers "yes" loudly for GHZ and "no" for a Haar-random state is working as
+# > designed: *Bell correlations of this type* are a specific structure, a single $N$-body coherence in some local frame,
+# > and a large amount of entanglement does not imply it. Notebook 25 measures a quantity (the negativity) that ranks the random state far above GHZ; the two
 # > diagnostics see genuinely different things.
 
 # %% [markdown]
@@ -1034,11 +1114,11 @@ for N in (4, 6, 8):
 #
 # One limitation of Eq. (17) has to be stated now, because it is invisible in the algebra: the equation is solved for the
 # *identity-angle* value of $\mathcal E$, so it locates the crossing of the closed form, not of the maximised correlator.
-# Section 9.3 shows that for dephasing the two part company at $p\approx0.19$. The Bell thresholds $p_{\rm B}$ all lie
+# Section 9.3 shows that for dephasing the two part company at $p\approx0.19$ for $N=4$. The Bell thresholds $p_{\rm B}$ all lie
 # below that crossover and are therefore genuine. The entanglement thresholds $p_{\rm E}$ do not: for even $N$ the
 # maximised correlator under dephasing approaches $4^{-N}$ from *above* and never crosses it, so $Q_{\rm E}$ stays
-# non-negative at every $p$ and the entanglement certificate is not lost at all. Read the $p_{\rm E}$ column as "the
-# noise at which the *coherence branch* falls to the separability bound", not as the death of the certificate.
+# non-negative at every $p$ and the entanglement certificate is not lost at all. The $p_{\rm E}$ column is therefore the
+# noise at which the *coherence branch* falls to the separability bound; for even $N$ the certificate itself survives it.
 
 # %%
 # ==============================================================================
@@ -1381,21 +1461,31 @@ print(f"{R_rep} x {M_max} = {R_rep*M_max} trajectories at N = {N_b} in {time.tim
 
 Ms = [8, 16, 32, 64, 128, 256, 512]
 print(f"\nexact E = {E_exact_b:.6e}   (dephasing p = {p_b}, N = {N_b}, identity angles)")
-print(f"{'M':>5s} {'<naive>':>12s} {'bias':>11s} {'sigma^2/M':>11s} {'<corrected>':>13s} {'residual':>11s} "
-      f"{'SE of mean':>11s}")
-bias_meas, bias_pred, corr_meas, sem_list = [], [], [], []
+print(f"{'M':>5s} {'<naive>':>12s} {'bias':>11s} {'SE':>9s} {'sigma^2/M':>11s} {'<corrected>':>13s} "
+      f"{'residual':>11s} {'SE':>9s}")
+bias_meas, bias_pred, corr_meas, sem_list, sem_corr = [], [], [], [], []
 for M in Ms:
     zb = z_rep[:, :M].mean(axis=1)
     S2 = np.sum(np.abs(z_rep[:, :M] - zb[:, None]) ** 2, axis=1) / (M - 1)
     naive = np.abs(zb) ** 2
     corrected = naive - S2 / M
-    sem = naive.std(ddof=1) / np.sqrt(R_rep)          # error of the AVERAGE over the R repetitions
+    sem = naive.std(ddof=1) / np.sqrt(R_rep)          # error of the AVERAGE of the naive values over R repetitions
+    sem_c = corrected.std(ddof=1) / np.sqrt(R_rep)    # the same for the corrected values
     bias_meas.append(naive.mean() - E_exact_b)
     bias_pred.append(S2.mean() / M)
     corr_meas.append(corrected.mean())
-    sem_list.append(sem)
-    print(f"{M:5d} {naive.mean():12.5e} {naive.mean()-E_exact_b:+11.3e} {S2.mean()/M:11.3e} "
-          f"{corrected.mean():13.5e} {corrected.mean()-E_exact_b:+11.3e} {sem:11.3e}")
+    sem_list.append(sem); sem_corr.append(sem_c)
+    print(f"{M:5d} {naive.mean():12.5e} {naive.mean()-E_exact_b:+11.3e} {sem:9.2e} {S2.mean()/M:11.3e} "
+          f"{corrected.mean():13.5e} {corrected.mean()-E_exact_b:+11.3e} {sem_c:9.2e}")
+
+# CHECKPOINT with a control that can fail: Eq. (20) must be consistent with zero bias at every M (3 standard errors),
+# while the naive estimator at the smallest M must be detected as biased by the same test.
+pull_corr = (np.array(corr_meas) - E_exact_b) / np.array(sem_corr)
+pull_naive = np.array(bias_meas) / np.array(sem_list)
+print(f"\npulls of Eq. (20): {np.array2string(pull_corr, precision=2)}")
+print(f"pulls of the naive estimator: {np.array2string(pull_naive, precision=2)}")
+assert np.all(np.abs(pull_corr) < 3.0), "Eq. (20) is biased"
+assert pull_naive[0] > 4.0, "control failed: the test cannot see the naive bias at M = 8"
 
 fig, ax = plt.subplots(figsize=(6.2, 4.2))
 ax.loglog(Ms, np.abs(bias_meas), "o-", label=r"measured bias of $\vert\bar z\vert^2$")
@@ -1412,19 +1502,21 @@ fig.tight_layout(); plt.show()
 # $3.09\cdot10^{-2}$ — **an 82 % overestimate** — and the predicted bias $2.77\cdot10^{-2}$ accounts for essentially all of
 # it. The bias then falls roughly as $1/M$, to $6.6\cdot10^{-3}$ at $M=32$ and $1.1\cdot10^{-4}$ at $M=256$.
 #
-# "Roughly" has to be taken literally. The measured bias is itself an average over only $R=200$ repetitions, and the last
-# column of the table gives its standard error; at $M=16$ the measured $8.6\cdot10^{-3}$ sits $2.0$ standard errors below
+# "Roughly" has to be taken literally. The measured bias is itself an average over only $R=200$ repetitions, and the
+# column after it gives its standard error; at $M=16$ the measured $8.6\cdot10^{-3}$ sits $2.0$ standard errors below
 # the predicted $1.4\cdot10^{-2}$ and at $M=64$ the measured $1.3\cdot10^{-3}$ sits $1.5$ standard errors below the
 # predicted $3.5\cdot10^{-3}$, which is why the blue and orange curves in the figure separate by up to a factor of $2.6$
-# without either of them being wrong. Resolving the $1/M$ law point by point at this $M$ would need a few thousand
-# repetitions, not two hundred.
+# without either of them being wrong. Resolving the $1/M$ law point by point at these $M$ would need a few thousand
+# repetitions.
 #
 # The residual of Eq. (20) — the last-but-one column, equal by construction to (measured bias) $-$ (predicted bias) — runs
-# from $-3\cdot10^{-4}$ to $-5.4\cdot10^{-3}$ and stays within $2.0$ standard errors of zero at every $M$. It does not
-# shrink with $M$, and all seven entries have the same sign, because the seven columns of the table are nested subsets of
-# the same $200\times512$ trajectory pool: they are seven views of one common fluctuation, not seven independent tests.
-# The honest reading of the figure is that the residual of Eq. (20) is at the noise floor of this experiment everywhere,
-# while the bias of the naive estimator is an order of magnitude above that floor at small $M$.
+# from $-3\cdot10^{-4}$ to $-5.4\cdot10^{-3}$ and stays within $2.0$ of its own standard errors (last column) at every
+# $M$; the checkpoint requires $3$. It does not shrink with $M$, and all seven entries have the same sign, because the seven
+# rows of the table are nested subsets of the same $200\times512$ trajectory pool: they are seven views of one common
+# fluctuation and cannot count as seven independent tests. The same test applied to the naive estimator rejects it at
+# $M=8$ with a pull of $6.2$, which is the control showing that the checkpoint has the power to fail. So the residual of
+# Eq. (20) is at the noise floor of this experiment everywhere, while the bias of the naive estimator is six standard
+# errors above that floor at the smallest $M$.
 #
 # > **Numerical practice.** Any nonlinear function of a Monte-Carlo average is biased at order $1/M$, with a coefficient set
 # > by the curvature of the function and the variance of the sample. Here the function is $\vert\cdot\vert^2$, the curvature
@@ -1436,8 +1528,8 @@ fig.tight_layout(); plt.show()
 #
 # With the estimator fixed we can go where the density tensor cannot. At $N=8$ the density tensor is already $65\,536$ complex
 # numbers and every optimiser evaluation touches all of them; a trajectory ensemble of $M$ states costs $M\cdot256$ numbers.
-# We fix the measurement angles at the GHZ optimum (Section 6.2 proved it is optimal for the noiseless state, and Section 9.1
-# showed that dephasing does not move it while the coherence branch dominates), sample trajectories, and compare the corrected
+# We fix the measurement angles at the GHZ optimum (Section 6.2 proved it is optimal for the noiseless state, and Section 9.3
+# showed that dephasing does not move it while the coherence branch dominates, i.e. for $p<0.2271$ at $N=8$), sample trajectories, and compare the corrected
 # estimator with the exact density-tensor value.
 
 # %%
@@ -1482,10 +1574,19 @@ for i, p in enumerate(p_tr):
 print(f"{len(p_tr)} noise points x {M_tr} trajectories at N = {N_tr}: {time.time()-t0:.1f} s\n")
 
 print(f"{'p':>5s} {'naive':>12s} {'corrected':>12s} {'bootstrap SE':>13s} {'exact (DM)':>12s} "
-      f"{'(corr-exact)/SE':>16s}")
+      f"{'(corr-exact)/SE':>16s} {'wrong model':>12s} {'pull':>7s}")
+pulls_ok, pulls_wrong = [], []
 for p, nv, co, er, ex in rows_tr:
-    ratio = f"{(co-ex)/er:+16.2f}" if er > 1e-12 else f"{'n/a (no noise)':>16s}"
-    print(f"{p:5.2f} {nv:12.5e} {co:12.5e} {er:13.3e} {ex:12.5e} {ratio}")
+    wrong = 0.25 * (1 - 2 * p) ** N_tr          # a plausible slip: |<B>| in place of |<B>|^2
+    if er > 1e-12:
+        pulls_ok.append((co - ex) / er); pulls_wrong.append((co - wrong) / er)
+        print(f"{p:5.2f} {nv:12.5e} {co:12.5e} {er:13.3e} {ex:12.5e} {pulls_ok[-1]:+16.2f} {wrong:12.5e} "
+              f"{pulls_wrong[-1]:+7.1f}")
+    else:
+        print(f"{p:5.2f} {nv:12.5e} {co:12.5e} {er:13.3e} {ex:12.5e} {'n/a (no noise)':>16s} {wrong:12.5e}")
+# CHECKPOINT: the exact curve passes (all pulls within 3), the wrong model is rejected by the same data
+assert np.max(np.abs(pulls_ok)) < 3.0
+assert np.max(np.abs(pulls_wrong)) > 5.0, "control failed: the data cannot reject a wrong model"
 
 fig, axes = plt.subplots(1, 2, figsize=(11.5, 4.2))
 p_dense = np.linspace(0, 0.22, 100)
@@ -1511,7 +1612,8 @@ fig.tight_layout(); plt.show()
 # %% [markdown]
 # With $M=1500$ trajectories the corrected estimator agrees with the exact density-tensor value within $1.7$ bootstrap
 # standard errors at every noise strength; the largest pull is $+1.67$ at $p=0.03$ and the rest are below $1.7$ in absolute
-# value. Unlike the previous figure, this one is a *single* realisation at each $p$, so the bias shows up only where it is
+# value. The same data reject a plausible wrong model, $\tfrac14(1-2p)^N$ (the modulus $\vert\langle\mathcal B\rangle\vert$
+# mistaken for its square), with pulls between $-7$ and $-32$; that control is part of the checkpoint. Unlike the previous figure, this one is a *single* realisation at each $p$, so the bias shows up only where it is
 # larger than the fluctuation: at $p=0.12$ and $p=0.15$ the naive points happen to fall below the exact curve, while at
 # $p=0.20$ the naive estimator returns $3.0\cdot10^{-4}$ where the exact answer is $7.1\cdot10^{-5}$ — a factor of four —
 # because there the true signal has fallen below the $\sigma^2/M$ floor and the estimator is measuring its own variance.
@@ -1521,11 +1623,12 @@ fig.tight_layout(); plt.show()
 # The right panel shows what that means for the certificate. The error bars on $Q_{\rm B}$ blow up exactly where
 # $\mathcal E$ approaches zero, because $\sigma_Q=\sigma_{\mathcal E}/(\mathcal E\ln2)$ diverges — and at the last two points
 # even that is optimistic, since the linearisation behind it assumes $\sigma_{\mathcal E}\ll\mathcal E$ whereas here
-# $\sigma_{\mathcal E}>\mathcal E$, so the plotted bar is a placeholder for "undefined" rather than a confidence interval. At
-# $p=0.15$ and $p=0.20$ the
-# trajectory estimate says nothing at all about whether the bound is violated. That is the correct answer: with $1500$
-# trajectories one cannot certify anything beyond $p\approx0.12$, and a naive analysis that reported $Q_{\rm B}$ without error
-# bars would have claimed a measurement where there is none.
+# $\sigma_{\mathcal E}>\mathcal E$, so the plotted bar only marks the point as undefined and is no confidence interval. At
+# $p=0.15$ and $p=0.20$ the trajectory estimate says nothing at all about whether the bound is violated. The exact
+# correlator itself drops below $2^{-N}$ at $p_{\rm B}=0.1144$ (Eq. (17) at $N=8$); below that, the corrected estimate
+# exceeds $2^{-8}=3.9\cdot10^{-3}$ by $6.3$ standard errors at $p=0.06$ but only by $1.6$ at $p=0.09$. So $1500$
+# trajectories establish the violation firmly up to $p\approx0.06$, and a naive analysis that reported $Q_{\rm B}$
+# without error bars would have claimed more than the data contain.
 
 # %% [markdown]
 # ## 11. One-axis twisting as a source of Bell correlations
@@ -1551,10 +1654,9 @@ fig.tight_layout(); plt.show()
 # One difference from the published calculation should be stated before the numbers appear. That work evaluates the
 # correlator in a *fixed* measurement plane (the twisting axis and one axis orthogonal to it); here every run maximises
 # over all $2N$ angles, as Eq. (2) prescribes. The two agree at late times — both reach $\mathcal E=1/4$ at the cat time —
-# but the free maximisation necessarily crosses the bound earlier, and at $N=8$ the difference is large enough to matter:
-# the fixed-plane correlator crosses at $\chi t\approx0.37$, *after* the squeezing optimum, the maximised one at
-# $\chi t\approx0.15$, before it. Both onset times scale as $1/N$, so the ordering "Bell first" becomes unambiguous at
-# larger $N$; at $N=8$ it depends on which of the two quantities is being reported.
+# but the free maximisation can only cross the bound earlier. The cell below evaluates both, the fixed-plane correlator
+# by setting $\theta_k=\pi/2$, $\varphi_k=0$ on every site, so that the two settings lie in the plane orthogonal to the
+# initial spin direction $x$.
 
 # %%
 # ==============================================================================
@@ -1575,10 +1677,15 @@ for tt in ts_oat:
     oat_rows.append((tt, E, xi2))
 print(f"{len(ts_oat)} OAT times at N = {N_oat}: {time.time()-t0:.1f} s\n")
 
-print(f"{'chi t':>7s} {'E':>12s} {'Q_B':>9s} {'Q_E':>9s} {'xi^2 (Wineland)':>16s}")
+# the fixed-plane convention of the published OAT calculation: theta = pi/2, phi = 0 on every site, no optimisation
+# (rotating every qubit by pi/2 about y puts the two settings in the plane orthogonal to the initial spin direction x)
+fixed_plane = lambda tt: float(correlator(oat_evolve(psi_cs, float(tt)), sym_angles(N_oat)))
+
+print(f"{'chi t':>7s} {'E':>12s} {'Q_B':>9s} {'Q_E':>9s} {'Q_B fixed plane':>16s} {'xi^2 (Wineland)':>16s}")
 for tt, E, xi2 in oat_rows:
     qb, qe = q_values(E, N_oat)
-    print(f"{tt:7.4f} {E:12.5e} {qb:+9.4f} {qe:+9.4f} {xi2:16.4f}")
+    qb_fp = q_values(fixed_plane(tt), N_oat)[0]
+    print(f"{tt:7.4f} {E:12.5e} {qb:+9.4f} {qe:+9.4f} {qb_fp:+16.4f} {xi2:16.4g}")
 
 tt_arr = np.array([r[0] for r in oat_rows])
 E_arr = np.array([r[1] for r in oat_rows])
@@ -1599,6 +1706,14 @@ for _ in range(14):
         lo = mid
 t_bell = 0.5 * (lo + hi)
 
+# the same bisection for the fixed-plane correlator (cheap: one evaluation per time, no optimiser)
+lo_f, hi_f = 0.0, np.pi / 4
+for _ in range(40):
+    mid = 0.5 * (lo_f + hi_f)
+    lo_f, hi_f = (lo_f, mid) if q_values(fixed_plane(mid), N_oat)[0] > 0 else (mid, hi_f)
+t_bell_fixed = 0.5 * (lo_f + hi_f)
+assert t_bell <= t_bell_fixed + 1e-3        # a maximum over the angles cannot cross the bound later
+
 # the squeezing minimum on a dense grid (spin_squeezing is cheap -- no optimisation involved)
 xi_dense = np.array([float(spin_squeezing(oat_evolve(psi_cs, float(x)))) for x in t_dense])
 t_sq = t_dense[int(np.argmin(xi_dense))]
@@ -1607,13 +1722,20 @@ print(f"\nfirst grid time with Q_E > 0 (entanglement)   : chi t = {first_E:.4f}"
 print(f"first grid time with Q_B > 0 (Bell correlated): chi t = {first_B:.4f}")
 print(f"Q_B = 0 located by bisection                 : chi t = {t_bell:.4f}")
 print(f"best squeezing xi^2 = {xi_dense.min():.4f} at chi t = {t_sq:.4f} (dense grid of {len(t_dense)} points)")
-print(f"  -> Bell correlations appear {'before' if t_bell < t_sq else 'after'} the squeezing optimum "
-      f"(chi t = {t_bell:.4f} vs {t_sq:.4f})")
+print(f"Q_B = 0 for the fixed-plane correlator      : chi t = {t_bell_fixed:.4f}")
+print(f"  -> optimised correlator: Bell correlations appear {'before' if t_bell < t_sq else 'after'} the squeezing "
+      f"optimum (chi t = {t_bell:.4f} vs {t_sq:.4f})")
+print(f"  -> fixed-plane correlator: {'before' if t_bell_fixed < t_sq else 'after'} it "
+      f"(chi t = {t_bell_fixed:.4f} vs {t_sq:.4f})")
 print(f"at chi t = pi/2: Q_B = {qb_arr[-1]:.4f} (maximum {N_oat-2}), Q_E = {qe_arr[-1]:.4f} (maximum {N_oat-1})")
 
 fig, ax = plt.subplots(figsize=(6.6, 4.4))
 ax.plot(tt_arr, qb_arr, "o-", ms=4, color=PALETTE[0], label=r"$Q_{\rm B}$ (Bell)")
 ax.plot(tt_arr, qe_arr, "s-", ms=4, color=PALETTE[2], label=r"$Q_{\rm E}$ (entanglement)")
+t_fp = np.linspace(1e-3, np.pi / 2, 200)
+ax.plot(t_fp, q_values(np.array([fixed_plane(x) for x in t_fp]), N_oat)[0], "-", lw=1, color=PALETTE[5],
+        label=r"$Q_{\rm B}$, fixed plane")
+ax.set_ylim(-9, 8)
 ax.axhline(0, color="k", lw=0.9)
 ax.axhline(N_oat - 2, color=PALETTE[0], ls=":", lw=1)
 ax.axhline(N_oat - 1, color=PALETTE[2], ls=":", lw=1)
@@ -1636,15 +1758,18 @@ fig.tight_layout(); plt.show()
 # $Q_{\rm B}$. **Optimal squeezing** comes later: on a dense grid of $400$ points the Wineland parameter reaches its minimum
 # $\xi^2=0.3541$ at $\chi t=0.2284$. So the Bell certificate switches on *before* the state is optimally squeezed — the two
 # resources are produced by the same interaction but peak at different times, and the squeezing optimum is not the moment at
-# which the state becomes most nonlocal. At $N=8$ the two times differ by only $50\,\%$, which is why the caveat above
-# matters: the ordering is robust because of the *scaling* $\chi t_{\rm crit}\sim1.77/N$ against
-# $\chi t_{\rm s}\sim N^{-2/3}$, not because of this one pair of numbers. Exercise 9 asks you to measure both exponents.
+# which the state becomes most nonlocal. At $N=8$ the two times differ by only $50\,\%$, and the ordering depends on the
+# definition: the fixed-plane correlator of the published calculation crosses the bound only at $\chi t=0.3728$, well
+# *after* the squeezing optimum (the violet curve in the figure). A statement about the ordering at large $N$ therefore
+# rests on how the two onset times scale with $N$, compared with $\chi t_{\rm s}\sim N^{-2/3}$; one size cannot decide
+# it. Exercise 9 asks you to measure both scalings.
 #
 # After that, $Q_{\rm B}$ rises to a local maximum of $4.276$ near $\chi t=0.69$, dips to $3.59$ around $\chi t=1.0$, and then
 # climbs to exactly $N-2=6$ at the cat time $\chi t=\pi/2$, where the state is a GHZ state in a rotated frame and the
 # algebraic maximum $\mathcal E=1/4$ is reached. The squeezing parameter, in contrast, has long since diverged: past
-# $\chi t\approx0.4$ the mean spin length $\vert\langle\mathbf J\rangle\vert$ collapses and $\xi^2$ runs away
-# (it is $10^{33}$ at the cat time, which is why the right-hand axis is clipped). A quantity that measures the shape of a
+# $\chi t\approx0.4$ the mean spin length $\vert\langle\mathbf J\rangle\vert$ collapses and $\xi^2$ runs away, which is
+# why the right-hand axis is clipped. At the cat time the mean spin vanishes exactly, so $\xi^2$ is undefined there; the
+# huge number printed in the last row of the table is a ratio of round-off errors. A quantity that measures the shape of a
 # small uncertainty patch on the Bloch sphere simply stops being defined once the state is a macroscopic superposition,
 # whereas $\mathcal E$ keeps working and reports the maximum possible value.
 #
@@ -1674,11 +1799,12 @@ fig.tight_layout(); plt.show()
 #   $\mathcal E=1/4$ for GHZ (the algebraic maximum, $Q_{\rm B}=N-2$), $\mathcal E=\binom{N}{m}^24^{-N}$ for Dicke states,
 #   hence $Q_{\rm E}(W_N)=\log_2N$ and $Q_{\rm B}(W_N)=2\log_2N-N$, which is positive only for $N=3$.
 # * **Local-unitary invariance.** GHZ in rotated bases, the star graph state and the $T$-doped star graph all give exactly
-#   $\mathcal E=1/4$: the correlator is blind to local unitaries, hence to single-qubit magic. The linear cluster state lands
+#   $\mathcal E=1/4$: the correlator is blind to local unitaries, hence to single-qubit magic, and local dephasing,
+#   depolarising or amplitude damping cannot reveal the $T$ gates because all three channels commute with them. The linear cluster state lands
 #   on $\mathcal E=2^{-N}$ ($Q_{\rm B}=0$) at $N=4$ and $N=6$ but not in general — the measured exponent in
 #   $\mathcal E=4^{-(1+\gamma)}$ is $\gamma=\lfloor2(N-2)/3\rfloor$ for $3\le N\le8$, so $Q_{\rm B}$ drifts down by about
-#   one unit per three qubits — and over $16$ Haar draws the mean $Q_{\rm B}$ falls from $+0.17$ at $N=4$ to $-0.83$ at
-#   $N=8$, with the violating fraction going $0.62\to0.38\to0.00$. Both families are strongly entangled: this is a
+#   one unit per three qubits — and over $32$ Haar draws per size the mean $Q_{\rm B}$ falls from $+0.26$ at $N=4$ to
+#   $-0.82$ at $N=8$, with the number of violating draws going $23\to9\to0$ out of $32$. Both families are strongly entangled: this is a
 #   GHZ-shaped detector, and a non-positive $Q_{\rm B}$ certifies nothing.
 # * **Noise.** At the identity angles a locally noisy GHZ state gives $\mathcal E=\tfrac14(1-2p)^{2N}$ (dephasing),
 #   $\tfrac14(1-\tfrac43p)^{2N}$ (depolarising) and $\tfrac14(1-\gamma)^{N}$ (amplitude damping), all verified to $10^{-16}$.
@@ -1696,28 +1822,33 @@ fig.tight_layout(); plt.show()
 #   $\mathbb E\vert\bar z\vert^2=\vert\mu\vert^2+\sigma^2/M$: the naive estimator over-reports — by $82\,\%$ at $M=8$ in the
 #   measurement above, and by a factor of four at $N=8$, $p=0.20$, $M=1500$ — most severely exactly where a violation is
 #   marginal. $\widehat{\mathcal E}=\vert\bar z\vert^2-S^2/M$ is exactly unbiased, and the bootstrap gives error bars without
-#   any variance formula; those error bars then show that $1500$ trajectories certify nothing beyond $p\approx0.12$.
+#   any variance formula; with those error bars $1500$ trajectories establish the violation firmly only up to $p\approx0.06$, below the exact threshold $p_{\rm B}=0.1144$.
 # * **One-axis twisting** turns a coherent spin state into a Bell-correlated one. At $N=8$: $Q_{\rm E}>0$ immediately,
 #   $Q_{\rm B}=0$ at $\chi t=0.1526$ (bisection), best squeezing $\xi^2=0.3541$ only at $\chi t=0.2284$, and the algebraic
-#   maximum $Q_{\rm B}=N-2=6$ at the cat time $\chi t=\pi/2$, where $\xi^2$ has long since diverged.
+#   maximum $Q_{\rm B}=N-2=6$ at the cat time $\chi t=\pi/2$, where $\xi^2$ has long since diverged. The ordering of the
+#   first two depends on the definition: with the measurement plane fixed as in the published calculation, $Q_{\rm B}$
+#   crosses zero only at $\chi t=0.3728$, after the squeezing optimum.
 #
 # ## 13. Exercises
 #
-# 1. ★ **The other GHZ phase.** Compute $\mathcal E$ for $(\vert0\cdots0\rangle+e^{i\phi}\vert1\cdots1\rangle)/\sqrt2$ as a
-#    function of $\phi$ at the identity angles, and then after optimisation. Explain the difference in one sentence using
-#    Section 5.2.
+# 1. ★ **The other GHZ phase.** Compute $\langle\mathcal B\rangle$ and $\mathcal E$ for
+#    $(\vert0\cdots0\rangle+e^{i\phi}\vert1\cdots1\rangle)/\sqrt2$ as functions of $\phi$ at the identity angles. Show
+#    that the phase of $\langle\mathcal B\rangle$ follows $\phi$ while $\mathcal E=1/4$ for every $\phi$, and relate this
+#    in one sentence to the third Euler angle of Section 5.2.
 # 2. ★ **Where the W state loses.** Using Eq. (15), find the largest $N$ for which the W state violates the local-realism
 #    bound, and confirm it with the optimiser for $N=3,4,5$.
 # 3. ★★ **Entanglement depth (extend the code).** Build the state $\vert\mathrm{GHZ}_k\rangle^{\otimes N/k}$ (several
 #    independent GHZ blocks of $k$ qubits) for $N=6$ and $k=2,3,6$, optimise $\mathcal E$, and check the measured values
 #    against the bound $\mathcal E\le4^{-N/k}$ of Section 4.3. Which $k$ does the correlator certify?
-# 4. ★★ **A better optimiser schedule.** The runs above use a fixed Adam learning rate. Add a cosine decay
-#    ($\mathrm{lr}_t=\mathrm{lr}_0\cos(\pi t/2T)$) and measure how many of the $16$ restarts reach the analytic optimum with
-#    and without it, on the $T$-doped star graph at $N=6$.
-# 5. ★★ **Dephasing does not commute with everything.** Section 6.4 says the star graph and the $T$-doped star graph are
-#    indistinguishable. Apply local dephasing to both and compare $\mathcal E(p)$; then apply depolarising noise and compare
-#    again. Explain the two different answers using the fact that $T$ commutes with $Z$ and that the depolarising channel is
-#    covariant under all single-qubit unitaries.
+# 4. ★★ **A decaying SPSA schedule.** The SPSA runs of Section 7.3 use a fixed Adam learning rate. Add a cosine decay
+#    ($\mathrm{lr}_t=\mathrm{lr}_0\cos(\pi t/2T)$ over $T$ steps, $\mathrm{lr}_0=0.1$) and measure, for the W state and the
+#    $T$-doped star graph at $N=6$, how many of the $32$ restarts end within $1\,\%$ of the analytic optimum after
+#    $T=200$ steps, with and without the decay, with Wilson intervals.
+# 5. ★★ **Which local unitaries survive noise.** At $N=4$, apply local dephasing, depolarising noise and amplitude damping
+#    to the GHZ state, the star graph and the $T$-doped star graph, and compare the optimised $\mathcal E(p)$ at
+#    $p=0.1$ and $p=0.3$. Explain which pairs stay equal under which channel, using that $T$ is diagonal, that the
+#    depolarising channel commutes with every single-qubit unitary, and that the star graph is GHZ with Hadamards on the
+#    leaves.
 # 6. ★★ **Shot noise on top of trajectory noise.** Each $z_i$ in Section 10 was computed exactly. On hardware it is itself an
 #    average over shots. Model this by adding Gaussian noise of standard deviation $s$ to the real and imaginary parts of each
 #    $z_i$ and redo the bias analysis: show that Eq. (20) still removes the bias, and find how the bootstrap error bar grows
@@ -1731,10 +1862,12 @@ fig.tight_layout(); plt.show()
 #    complete-graph state for $N=4,\dots,7$. Which graphs reach $\mathcal E=1/4$, and can you relate the answer to whether the
 #    graph is local-Clifford equivalent to a star? (Answer for the complete graph: it is, so $\mathcal E=1/4$ at every $N$.)
 # 9. ★★★ **The two time scales of one-axis twisting.** Repeat Section 11 for $N=8,12,16$ and locate, for each, the time at
-#    which $Q_{\rm B}$ crosses zero and the time of minimal $\xi^2$. Fit both to power laws in $N$ and compare with
-#    $\chi t_{\rm crit}\propto N^{-1}$ and $\chi t_{\rm s}\propto N^{-2/3}$. Then repeat the first fit with the angles
-#    *frozen* in a single plane instead of optimised, and explain why the two conventions give the same exponent but
-#    different prefactors.
+#    which the optimised $Q_{\rm B}$ crosses zero, the time at which the fixed-plane $Q_{\rm B}$ crosses zero, and the time of
+#    minimal $\xi^2$. Fit the three to power laws in $N$ (the fixed-plane curve is cheap enough to follow up to $N=20$ on a
+#    state vector) and compare exponents and prefactors with each other, with $\chi t_{\rm s}\propto N^{-2/3}$ and with
+#    the large-$N$ estimate $\chi t_{\rm crit}\approx1.77/N$ quoted at the start of Section 11. At which $N$ does each
+#    onset move ahead of the squeezing optimum? (At $N=16$ and short times $\mathcal E$ is so small that Adam on
+#    $\mathcal E$ itself can stall at the seeded value $4^{-N}$; maximise $\log\mathcal E$ instead.)
 #
 # ## 14. References
 #

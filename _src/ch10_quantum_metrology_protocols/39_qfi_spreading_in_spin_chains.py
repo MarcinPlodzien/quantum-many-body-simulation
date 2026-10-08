@@ -1,6 +1,6 @@
 #@title: The spreading of metrological usefulness — quantum Fisher information in quenched spin chains
 #@part: Chapter 10 — Quantum metrology protocols
-#@description: How useful entanglement is built and transported by a spin chain: the exact identity between the quantum Fisher information and the connected correlations, the QFI density and the certified entanglement depth after global quenches of the transverse-field Ising and XXZ chains, uniform against staggered generators, and the light cone of the block-resolved and two-site QFI after a local encoding — with a one-magnon closed form as the analytic anchor, a measured front velocity and its threshold bias, and an animation of the metrological resource travelling down the chain.
+#@description: How useful entanglement is built and transported by a spin chain: the exact identity between the quantum Fisher information and the connected correlations, the QFI density and the certified entanglement depth after global quenches of the transverse-field Ising and XXZ chains, uniform against staggered generators, and the light cone of the block-resolved and two-site QFI after a local encoding — with a one-magnon closed form as the analytic anchor, a measured front velocity and its derived threshold dependence, a magnon trapped at the chain end, and a bound magnon pair carrying the resource at the speed 2/Δ, animated.
 
 # %% [markdown]
 # ## 1. Introduction and motivation
@@ -36,11 +36,12 @@
 #   three independent routes.
 # * **Sections 5–6** — global quenches of the transverse-field Ising and XXZ chains: the QFI density versus time,
 #   uniform against staggered generators, the certified entanglement depth, the late-time value compared with the
-#   Haar-random reference $Nd/(d+1)$ of notebook 35, and the correlation matrix $C_{ij}$ that produces it.
+#   Haar-random reference $Nd/(d+1)$ of notebook 35, and the correlation matrix $C_{ij}$ that produces it, including
+#   its finite correlation length and the open-boundary correction.
 # * **Sections 7–9** — local encoding: the light cone of the block-resolved QFI, its exact one-magnon solution, the
-#   measured front velocity with its threshold bias, the two-site "where is the resource" map, and how an interaction
-#   turns a ballistic magnon into a slow bound pair.
-# * **Section 10** — an animation of the local QFI profile travelling down the chain.
+#   measured front velocity with its derived threshold dependence, the two-site "where is the resource" map, a magnon
+#   trapped at the end of the chain, and how an interaction turns two ballistic magnons into a slow bound pair.
+# * **Section 10** — an animation of the two-site QFI profile of a free and of a bound magnon pair.
 #
 # ### What you will learn
 #
@@ -49,16 +50,18 @@
 #   the sum of the connected correlators $\langle\sigma^a_i\sigma^a_j\rangle-\langle\sigma^a_i\rangle\langle\sigma^a_j\rangle$;
 # * why a conserved generator gives $F_Q=0$ for all time and why the *staggered* generator is the right one after a
 #   Néel quench;
-# * how the QFI density certifies a growing entanglement depth, and where that growth stops;
+# * how the QFI density certifies a growing entanglement depth, and why it stops growing (a finite correlation
+#   length of the stationary state);
 # * the light-cone structure of metrological information, its velocity, and how an interaction can trap the resource
-#   in a slow bound state instead of letting it fly.
+#   (at a chain end, or in a slow bound magnon pair) instead of letting it fly.
 #
 # *Numerical methods*
 # * carrying a tangent vector through a time evolution instead of finite-differencing in $\theta$;
 # * one-magnon dynamics as an exact $N\times N$ reference for a $2^N$-dimensional simulation, and a Bessel-function
 #   closed form obtained by the method of images;
-# * measuring a front velocity honestly: threshold bias, interpolated crossings, and why a single number that agrees
-#   with theory to three digits should make you suspicious.
+# * measuring a front velocity: threshold dependence (derived), interpolated crossings, fit errors, and why a single
+#   number that agrees with theory to three digits should make you suspicious;
+# * separating a bulk quantity from its open-boundary $1/N$ correction.
 #
 # *Implementation practice*
 # * `lax.scan` over Trotter steps with a two-component carry, `jax.jit` with static qubit indices;
@@ -69,8 +72,8 @@
 # * [12 — TEBD (Trotter–Suzuki)](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb): the time
 #   evolution used throughout, and its error control;
 # * [15 — quench dynamics in spin chains](../ch05_ground_states_and_unitary_dynamics/15_quench_dynamics_spin_chains.ipynb):
-#   quenches, Lieb–Robinson light cones, the quasiparticle picture, and the threshold-bias lesson we repeat here for a
-#   different observable;
+#   quenches, Lieb–Robinson light cones, the quasiparticle picture, and the threshold dependence of a measured front
+#   velocity, which we revisit here for a different observable;
 # * [06 — states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb):
 #   reduced density matrices and the Schmidt decomposition;
 # * [29 — quantum Fisher information](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb) and
@@ -88,11 +91,11 @@
 # ## 2. Engine recap and notebook helpers
 #
 # From the engine: the state constructors, `apply_gate`, `heisenberg_terms` (which builds any XXZ/TFIM term list),
-# `tebd_gates` and `apply_gates` for the time evolution, `exact_evolve` and `dense_hamiltonian` for validation on small
-# systems, and `qfi_pure` / `qfi_mixed` for the quantum Fisher information.
+# `tebd_gates` and `apply_gates` for the time evolution, `exact_evolve` (dense diagonalisation, built on
+# `dense_hamiltonian`) for validation on small systems, and `qfi_pure` / `qfi_mixed` for the quantum Fisher information.
 
 # %%
-#@engine: apply_gate, rdm, product_state, basis_state, ghz_state, haar_state, I2, X, Y, Z, H, apply_collective, qfi_pure, qfi_mixed, collective_dense, entanglement_entropy, heisenberg_terms, apply_hamiltonian, dense_hamiltonian, tebd_gates, apply_gates, exact_evolve
+#@engine: apply_gate, rdm, product_state, ghz_state, haar_state, I2, X, Y, Z, apply_collective, qfi_pure, qfi_mixed, collective_dense, entanglement_entropy, heisenberg_terms, dense_hamiltonian, tebd_gates, apply_gates, exact_evolve
 
 # %%
 # ==============================================================================
@@ -152,9 +155,9 @@ def timed(f, *args, budget=0.3, min_reps=3, max_reps=200):
 #
 # The first sum is at most $N$ and is the whole story for a product state (the standard quantum limit of notebook 29,
 # rederived in one line). **Everything above the standard quantum limit comes from the connected correlations between
-# different sites.** After a quench those correlations are created at the light-cone front and spread ballistically, so
-# the growth of $F_Q$ is the spreading of correlations, integrated over the chain. That single sentence is the physics
-# of Sections 5 and 6.
+# different sites.** After a quench from a product state those correlations build up inside a light cone, so the
+# growth of $F_Q$ measures the correlations accumulated so far, summed over the chain. Sections 5 and 6 follow this
+# growth and show where it stops.
 #
 # The same algebra for a **staggered** generator $G=\tfrac12\sum_i(-1)^i\sigma^a_i$ gives
 #
@@ -171,9 +174,16 @@ def timed(f, *args, budget=0.3, min_reps=3, max_reps=200):
 #
 # $$F_Q\left[\rho,J_{\mathbf n}\right]\le sk^2+r^2\;\le\;kN . \tag{4}$$
 #
-# So $F_Q/N>k$ certifies that some block of at least $k+1$ qubits is genuinely entangled: the QFI **density**
-# $f_Q=F_Q/N$ is, read as an integer, a lower bound on the entanglement depth. We use the sharp form $sk^2+r^2$, not
-# the looser corollary $kN$.
+# Here $J_{\mathbf n}=\tfrac12\sum_i\mathbf n\cdot\vec\sigma_i$ with the same normalisation as Eq. (1): a product state
+# ($k=1$, $s=N$, $r=0$) gives the bound $N$, the standard quantum limit, and $k=N$ gives $N^2$. The second inequality
+# follows from $r^2\le rk$. So $F_Q/N>k$ certifies that some block of at least $k+1$ qubits is genuinely entangled: for
+# a non-integer QFI **density** $f_Q=F_Q/N$, the entanglement depth is at least $\lfloor f_Q\rfloor+1$. We use the sharp
+# form $sk^2+r^2$, which can certify one more qubit than the corollary $kN$ (Section 5.1 meets such a case).
+#
+# The bound also holds for the staggered generator of Eq. (3). With $U=\prod_{i\ \mathrm{odd}}\sigma^x_i$ one has
+# $U\sigma^z_iU^\dagger=(-1)^i\sigma^z_i$, so $J_z^{\rm stag}=UJ_zU^\dagger$ and
+# $F_Q\left[\rho,J_z^{\rm stag}\right]=F_Q\left[U^\dagger\rho U,J_z\right]$. A product of single-site unitaries maps
+# $k$-producible states to $k$-producible states, so Eq. (4) applies unchanged.
 #
 # ### 3.3 A $\theta$-dependent evolution needs one extra vector, not three
 #
@@ -296,8 +306,8 @@ print(f"\nworst deviation: {err_id:.2e}")
 assert err_id < 1e4 * TOL
 
 # %% [markdown]
-# Equation (1) holds to machine precision for every state and every Pauli direction. It is worth pausing on what it
-# means: **the quantum Fisher information of a collective generator is an ordinary two-point correlation function**,
+# Equation (1) holds to machine precision for every state and every Pauli direction. In words: **the quantum Fisher
+# information of a collective generator is an ordinary two-point correlation function**,
 # summed over all pairs. No optimisation, no symmetric logarithmic derivative, nothing exotic — for a pure state and a
 # collective generator, $F_Q$ is exactly as accessible as a structure factor.
 
@@ -400,8 +410,9 @@ assert err_b < 1e4 * TOL
 # %% [markdown]
 # The first table is the ordinary Trotter convergence of notebook 12, with one addition: the tangent vector converges
 # at the same rate as the state, as it must, since it obeys the same equation. Second order improves by a factor of
-# about four when $dt$ is halved, fourth order by about sixteen. We use order $4$ with $dt$ small enough that the
-# Trotter error is far below every physical effect we discuss.
+# about four when $dt$ is halved ($1.24\times10^{-3}\to3.11\times10^{-4}$); fourth order improves by $39$ when $dt$
+# shrinks by a factor $2.5$, as $2.5^4=39$ predicts. We use order $4$ with $dt$ small enough that the Trotter error is
+# far below every physical effect we discuss.
 #
 # The second table validates `block_qfi` on an evolved, genuinely entangled state: the full system reproduces
 # $4\,\mathrm{Var}(J_x)$, and every contiguous block reproduces the completely independent route
@@ -423,15 +434,21 @@ assert err_b < 1e4 * TOL
 # Two quench families, chosen so that the generator question is unavoidable.
 #
 # * **Transverse-field Ising**, $H=\sum\sigma^z_i\sigma^z_{i+1}+h\sum\sigma^x_i$, quenched from
-#   $\vert0\rangle^{\otimes N}$ (all spins up, the $h=0$ ground state). We scan $h=0.5$ (ordered side),
-#   $h=1$ (critical) and $h=2$ (disordered side), with the uniform generator $J_z$.
+#   $\vert0\rangle^{\otimes N}$ (all spins up). We scan $h=0.5$ (ordered side), $h=1$ (critical) and $h=2$
+#   (disordered side), with the uniform generator $J_z$. With the coupling sign of Eq. (8) the all-up state is the
+#   *highest* level at $h=0$, not the ground state. For this quench the sign does not matter: $H$ and
+#   $\vert0\rangle^{\otimes N}$ are real, so evolving with $-H$ gives the complex-conjugate state and the same
+#   $\langle\sigma^z_i\sigma^z_j\rangle$; and $\prod_i\sigma^z_i$ maps $-H$ to the ferromagnet
+#   $-\sum\sigma^z_i\sigma^z_{i+1}+h\sum\sigma^x_i$ while leaving $\vert0\rangle^{\otimes N}$ and every $\sigma^z_i$
+#   unchanged. The quench is therefore equivalent to the standard one from the ferromagnetic ground state at $h=0$.
 # * **XXZ**, quenched from the Néel state $\vert0101\ldots\rangle$. Here $J_z$ commutes with $H$ and the Néel state is
 #   a $J_z$ eigenstate, so Section 3.3 predicts $F_Q\left[J_z\right]=0$ at all times. The *staggered* $J_z$ generator of
 #   Eq. (3) is the one that sees the physics.
 #
 # For reference, notebook 35 established that a Haar-random state — the fully scrambled end point — has
 # $\mathbb E\left[F_Q\right]=Nd/(d+1)$ with $d=2^N$, i.e. $f_Q\to1$: **a fully scrambled state carries no useful
-# entanglement at all**. Whatever the quench builds must therefore either stay below that or be a transient.
+# entanglement at all**. A quench that drove the chain towards a random state would bring $f_Q$ back down to $1$;
+# the curves below show whether that happens in the time window we can simulate.
 
 # %%
 # ==============================================================================
@@ -466,22 +483,26 @@ for label, terms, psi0, _kind in QUENCHES:
 print(f"five quenches at N = {N_G} up to t = {ts[-1]:.1f}  ({time.time() - t0:.1f} s)\n")
 
 HAAR_REF = 2 ** N_G / (2 ** N_G + 1)
-print(f"QFI density f_Q = F_Q/N   (SQL: 1;  Heisenberg: N = {N_G};  Haar: {HAAR_REF:.4f})\n")
-print(f"{'quench':>24s} {'generator':>12s} | " + " ".join(f"t={t:<6.1f}" for t in (0.25, 0.5, 1, 2, 4, 6))
-      + f" {'max f_Q':>8s} {'depth':>6s}")
+T_WIN = 4.0                     # beyond t ~ 4 reflections from the chain ends dominate at N = 12 (see below)
+print(f"QFI density f_Q = F_Q/N   (SQL: 1;  Heisenberg: N = {N_G};  Haar: {HAAR_REF:.4f})")
+print(f"maximum and certified depth (Eq. 4) both inside t <= {T_WIN:.0f} and over the whole run t <= {ts[-1]:.0f}\n")
+print(f"{'quench':>24s} {'generator':>10s} | " + " ".join(f"t={t:<5.2f}" for t in (0.25, 0.5, 1, 2, 4, 6))
+      + f" | {'max(t<=4)':>9s} {'depth':>5s} | {'max(all)':>8s} {'depth':>5s}")
 for label, (ts, rec) in results_g.items():
     for gname, col in (("J_z", 2), ("J_z stag.", 3)):
         if "TFIM" in label and gname != "J_z":
             continue
         if "XXZ" in label and gname == "J_z" and float(np.max(rec[:, 2])) < 1e-9:
-            print(f"{label:>24s} {gname:>12s} | " + " ".join(f"{0.0:7.3f}" for _ in range(6))
-                  + f" {0.0:8.3f} {1:6d}     (conserved: exactly zero)")
+            print(f"{label:>24s} {gname:>10s} | " + " ".join(f"{0.0:7.3f}" for _ in range(6))
+                  + "   (conserved: exactly zero)")
             continue
         vals = rec[:, col] / N_G
         idx = [int(round(t / (DT_G * NSUB_G))) for t in (0.25, 0.5, 1, 2, 4, 6)]
+        win = ts <= T_WIN + 1e-9
+        dep_w = entanglement_depth(float(np.max(rec[win, col])), N_G)
         dep = entanglement_depth(float(np.max(rec[:, col])), N_G)
-        print(f"{label:>24s} {gname:>12s} | " + " ".join(f"{vals[i]:7.3f}" for i in idx)
-              + f" {vals.max():8.3f} {dep:6d}")
+        print(f"{label:>24s} {gname:>10s} | " + " ".join(f"{vals[i]:7.3f}" for i in idx)
+              + f" | {vals[win].max():9.3f} {dep_w:5d} | {vals.max():8.3f} {dep:5d}")
 
 # %%
 # ==============================================================================
@@ -515,29 +536,37 @@ fig.tight_layout(); plt.show()
 # common way to waste a metrology experiment, and it costs nothing to check in advance: compute $\left[G,H\right]$.
 #
 # **Speed depends on the quench.** With the *staggered* generator the same XXZ quenches are very much alive. The
-# deeper quench $\Delta=2$ is the faster one, passing the standard quantum limit almost immediately
-# ($f_Q=1.58$ already at $t=0.2$) and reaching $f_Q\approx4$ by $t=2$; at $\Delta=0.5$ the growth is slower and
-# smoother. In the Ising family the ordering is the opposite of the naive one: the critical quench $h=1$ grows fastest
-# at intermediate times ($f_Q=1.84$ at $t=1$ against $1.79$ for $h=2$ and $0.43$ for $h=0.5$), while $h=2$ is fastest at
-# very short times — the transverse field is what makes the initial state move at all, so a bigger field starts the
-# clock earlier.
+# deeper quench $\Delta=2$ passes the standard quantum limit almost immediately ($f_Q=1.58$ already at $t=0.25$),
+# reaches $f_Q\approx4$ by $t=2$ and oscillates strongly, with its maximum $5.75$ at $t=1.7$; at $\Delta=0.5$ the
+# density, after its first rise, stays between $1$ and $2.8$ up to $t=6$. In the Ising family the critical quench $h=1$ leads at intermediate times
+# ($f_Q=1.84$ at $t=1$ against $1.79$ for $h=2$ and $0.43$ for $h=0.5$), while $h=2$ leads at very short times. The
+# short-time behaviour is a one-line calculation: for an initial state that is an eigenstate of $G$, expanding
+# $U(t)$ to first order gives $F_Q\simeq4t^2\,\mathrm{Var}_{\psi_0}\left(i\left[H,G\right]\right)$, and for the Ising
+# quench only the field term fails to commute with $J_z$, so the initial growth is proportional to $h^2t^2$.
 #
-# **The certified entanglement depth.** Reading Eq. (4) off the maxima: depth $\ge6$ for the critical Ising quench and
-# for XXZ at $\Delta=2$, $\ge4$ for $h=2$, $\ge3$ for $h=0.5$ and for XXZ at $\Delta=0.5$. A quench with no
-# entanglement engineering at all produces genuinely six-partite entangled blocks in a chain of twelve spins.
+# **The certified entanglement depth.** Reading Eq. (4) off the maxima inside the window $t\le4$: depth $\ge6$ for XXZ
+# at $\Delta=2$ (the maximum $f_Q=5.75$ at $t=1.7$), $\ge3$ for $h=1$, $h=2$ and XXZ at $\Delta=0.5$, and $\ge2$ for
+# $h=0.5$. A quench with no entanglement engineering at all produces genuinely six-partite entangled blocks in a chain
+# of twelve spins. The last two columns use the whole run: the larger depths they report for the Ising quenches ($6$
+# at $h=1$, $4$ at $h=2$, $3$ at $h=0.5$) come from times after $t\approx4$, where the finite chain dominates (next
+# paragraph). They are correct statements about the state of this chain of twelve spins, but not about a quench in a
+# long chain.
 #
-# **Nothing settles at the Haar value.** A fully scrambled state would sit at $f_Q=0.9998$ (notebook 35); every curve
-# here lives well above $1$, and the Ising curve at $h=1$ ends *higher* than it was at $t=2$, rising to $f_Q=4.82$ at
-# $t=6$. That late rise is a finite-size revival: the half-chain entropy in the right panel peaks near $t\approx4$ and
-# then *falls*, which is what a chain of $N=12$ does when the quasiparticles that left the middle come back from the
-# ends. The physically meaningful window at this size is roughly $t\lesssim4$, and inside it the densities plateau at
-# $2$–$4$, comfortably above the scrambled value.
+# **No curve returns to the Haar value inside the window.** A fully scrambled state would sit at $f_Q=0.9998$
+# (notebook 35). For $2\le t\le4$ the critical Ising curve stays between $2.31$ and $2.41$, the $h=2$ curve between
+# $2.50$ and $2.73$, XXZ at $\Delta=2$ above $2.8$ and XXZ at $\Delta=0.5$ above $1.5$; the weak quench $h=0.5$ is
+# still growing slowly and crosses $1$ only at $t\approx2.4$. After $t\approx4$ the Ising curve at $h=1$ rises to
+# $f_Q=4.82$ at $t=6$. That late rise is a finite-size effect: the half-chain entropy in the right panel peaks near
+# $t\approx4$ and then *falls*, which is what a chain of $N=12$ does when the quasiparticles that left the middle come
+# back from the ends. The window in which this chain behaves like a long one is therefore roughly $t\lesssim4$.
+# Section 6 shows that the plateau of the critical Ising curve is a property of the bulk, and that its height at
+# $N=12$ is reduced by the open ends.
 #
-# > **Physics insight.** "Entanglement entropy grows towards its maximum" and "useful entanglement decays to the
-# > standard quantum limit" are different statements, and both are true of different quantities. The half-chain entropy
-# > climbs towards its Page value; the quantum Fisher information density measures only the *collective, low-order*
-# > correlations of Eq. (2), and those do not have to disappear when a state becomes complicated. Which is why $f_Q$ is
-# > a useful diagnostic and not just another entropy.
+# > **Physics insight.** A growing half-chain entropy and a growing QFI density are different statements about
+# > different quantities. The half-chain entropy here climbs to $3$–$4$ bits, below the Page value $\approx5.3$ bits of a
+# > random state of $12$ qubits, and a random state would have $f_Q\approx1$. The quantum Fisher information density
+# > measures only the *collective, two-point* correlations of Eq. (2), and a state with an extensive entanglement
+# > entropy can still have large ones. This is why $f_Q$ is a diagnostic in its own right and not just another entropy.
 
 # %% [markdown]
 # ### 5.1 Scanning the anisotropy with `vmap`
@@ -570,16 +599,29 @@ def fq_stag_vs_time(delta, N, dt, n_obs, n_sub, order=2):
     return rec
 
 
-N_D, DT_D, NOBS_D, NSUB_D = 10, 0.02, 25, 4          # t_max = 25 * 4 * 0.02 = 2.0
+N_D, DT_D, NOBS_D, NSUB_D = 10, 0.025, 40, 2         # observations every 0.05, t_max = 40 * 2 * 0.025 = 2.0
 DELTAS = jnp.linspace(0.0, 3.0, 13)
+T_SHOW = (0.25, 0.5, 1.0, 1.5, 2.0)                    # all on the observation grid
 t0 = time.time()
 sweep = np.array(jax.vmap(partial(fq_stag_vs_time, N=N_D, dt=DT_D, n_obs=NOBS_D, n_sub=NSUB_D))(DELTAS))
 ts_d = DT_D * NSUB_D * np.arange(1, NOBS_D + 1)
 print(f"{len(DELTAS)} anisotropies x {NOBS_D} times at N = {N_D}, vmapped ({time.time() - t0:.1f} s)\n")
-print(f"{'Delta':>6s} | " + " ".join(f"t={t:<5.1f}" for t in (0.25, 0.5, 1.0, 1.5, 2.0)))
+idx_d = [int(round(t / (DT_D * NSUB_D))) - 1 for t in T_SHOW]
+assert np.allclose(ts_d[idx_d], T_SHOW)
+print(f"{'Delta':>6s} | " + " ".join(f"t={t:<5.2f}" for t in T_SHOW) + f" | {'max t<=2':>8s} {'at t':>5s} {'depth':>5s}")
 for i, d in enumerate(np.array(DELTAS)):
-    idx = [int(round(t / (DT_D * NSUB_D))) - 1 for t in (0.25, 0.5, 1.0, 1.5, 2.0)]
-    print(f"{d:6.2f} | " + " ".join(f"{sweep[i, j]:6.3f}" for j in idx))
+    print(f"{d:6.2f} | " + " ".join(f"{sweep[i, j]:7.3f}" for j in idx_d)
+          + f" | {sweep[i].max():8.3f} {ts_d[np.argmax(sweep[i])]:5.2f} {entanglement_depth(N_D * sweep[i].max(), N_D):5d}")
+
+# --- CHECKPOINT: the short-time law F_Q ~ 4 t^2 Var(i[H,G]) = 64 (N-1) t^2 for the Neel state, any Delta ----------
+T_SHORT = 0.01
+short = np.array(jax.vmap(partial(fq_stag_vs_time, N=N_D, dt=T_SHORT / 4, n_obs=1, n_sub=4))(DELTAS))[:, 0]
+law = 64 * (N_D - 1) * T_SHORT ** 2 / N_D
+law_wrong = law * (1 + np.array(DELTAS) ** 2)          # a law in which the Ising term mattered at leading order
+print(f"\nshort-time law at t = {T_SHORT}: 64(N-1)t^2/N = {law:.6f};  measured f_Q / law over all Delta: "
+      f"{short.min() / law:.5f} ... {short.max() / law:.5f}")
+assert np.max(np.abs(short / law - 1)) < 0.01
+assert np.max(np.abs(short / law_wrong - 1)) > 0.5      # power: the Delta-dependent control must fail
 
 # %%
 # ==============================================================================
@@ -594,7 +636,7 @@ axes[0].set_title(f"Neel quench, staggered $J_z$, $N={N_D}$")
 for j, t_show in enumerate((0.5, 1.0, 1.5, 2.0)):
     i = int(round(t_show / (DT_D * NSUB_D))) - 1
     axes[1].plot(np.array(DELTAS), sweep[:, i], MARKERS[j] + "-", color=PALETTE[j], ms=5,
-                 label=f"$t={t_show}$")
+                 label=f"$t={ts_d[i]:.2f}$")
 axes[1].axhline(1.0, color="0.4", ls="--", lw=1.2)
 axes[1].text(0.05, 1.05, "SQL", fontsize=8, color="0.35")
 axes[1].set_xlabel(r"anisotropy $\Delta$"); axes[1].set_ylabel(r"$f_Q$")
@@ -602,22 +644,37 @@ axes[1].set_title("cuts at fixed time"); axes[1].legend(fontsize=8)
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# Thirteen anisotropies, twenty-five times, one compiled program, under a second of run time. `vmap` did not make the
+# Thirteen anisotropies, forty times, one compiled program, under a second of run time. `vmap` did not make the
 # arithmetic cheaper — it made it *batched*, so XLA runs thirteen copies of the same Trotter circuit on stacked arrays
 # instead of thirteen Python loops with thirteen dispatches each.
 #
-# The physics is a clear optimum at intermediate coupling. At very short times ($t=0.24$) the density is almost
-# independent of $\Delta$, between $1.37$ and $1.50$: the first thing the quench does is destroy the perfect Néel
-# order, and that happens at a rate set by the $XY$ terms, which are the same for every $\Delta$. By $t=1.5$ the
-# curve has developed a pronounced maximum at $\Delta\approx2$, where $f_Q=5.36$ — more than five times the standard
-# quantum limit and an entanglement depth of at least $6$ at $N=10$.
+# **Short times.** The Néel state is an eigenstate of $J_z^{\rm stag}$ with eigenvalue $N/2$, so the short-time
+# expansion of Section 5 applies: $F_Q\simeq4t^2\,\mathrm{Var}_{\psi_0}(A)$ with $A=i\left[H,J_z^{\rm stag}\right]$. The
+# Ising term $\Delta\sigma^z\sigma^z$ commutes with $J_z^{\rm stag}$ and drops out. On each of the $N-1$ bonds the
+# flip-flop term gives $(\sigma^x\sigma^x+\sigma^y\sigma^y)\vert\uparrow\downarrow\rangle=2\vert\downarrow\uparrow\rangle$,
+# and the flipped configuration has $J_z^{\rm stag}=N/2-2$. Hence $A\vert\psi_0\rangle=4i\sum_b\vert{\rm swap}_b\rangle$,
+# $\langle A\rangle=0$, $\langle A^2\rangle=16(N-1)$ and
 #
-# Both limits are bad, for opposite reasons. At $\Delta=0$ (the XX chain) the dynamics is free, the staggered
-# correlations that Eq. (3) sums never build up, and $f_Q$ oscillates around $1$, dipping to $0.76$ at $t=0.5$ —
-# *below* the standard quantum limit, i.e. the state is not even useful. At large $\Delta$ the Néel state is close to
-# an eigenstate of the dominant $\Delta\sum\sigma^z\sigma^z$ term, so the dynamics is slow and the growth of $f_Q$ is
-# pushed to later times: at $t=1.5$ the $\Delta=3$ value has fallen back to $3.38$. The best probe is made by a chain
-# that interacts strongly enough to correlate but not so strongly that it freezes.
+# $$F_Q\left[J_z^{\rm stag}\right]\simeq64\,(N-1)\,t^2\qquad(t\to0,\ \text{any }\Delta). \tag{8a}$$
+#
+# The checkpoint confirms Eq. (8a) to better than $1\%$ at $t=0.01$ for all thirteen anisotropies (a $\Delta$-dependent
+# control law fails). The independence of $\Delta$ persists well beyond that regime: at $t=0.25$ the densities still lie between
+# $1.37$ and $1.56$, although Eq. (8a) itself (which would give $3.6$) no longer holds there.
+#
+# **Intermediate times.** By $t=1.5$ the cut has a pronounced maximum at $\Delta\approx2$, where $f_Q=5.4$. By the sharp
+# bound of Eq. (4) this certifies an entanglement depth of at least $7$ at $N=10$ ($F_Q=54>6^2+4^2=52$), one more than
+# the corollary $f_Q>5$ gives. The curves oscillate in time, however, and the position of the maximum depends on when
+# one looks: at $t=1$ the density still grows monotonically with $\Delta$ up to $\Delta=3$, and at $t=2$ the cut is
+# irregular. The statement that survives is about the window as a whole: the largest density reached for $t\le2$
+# (printed in the last columns) peaks at $\Delta=2.25$ ($f_Q=5.61$), with $\Delta=2$ and $2.5$ within $4\%$ of it, and
+# certifies a depth of $7$ for $2\le\Delta\le2.5$.
+#
+# **The two limits.** At $\Delta=0$ (the XX chain) $f_Q$ oscillates around $1$ and dips to $0.80$ at $t=0.5$ — *below*
+# the standard quantum limit, so the state is not even useful. At large $\Delta$ the Néel state is an exact eigenstate of
+# the dominant $\Delta\sum\sigma^z\sigma^z$ term; a flip-flop costs an energy of order $\Delta$, so its amplitude is
+# suppressed and the processes that do move the state are slower. Within $t\le2$ the largest density therefore falls
+# again beyond $\Delta\approx2.25$. This ordering belongs to the chosen window: a longer run at $N=10$ (not shown)
+# finds $f_Q$ up to $7.6$ at $\Delta=3$ near $t=4$, while at $\Delta=8$ the density stays below $1.2$ up to $t=10$.
 
 # %% [markdown]
 # ## 6. Reading the growth: correlations, and where it stops
@@ -676,13 +733,14 @@ plt.show()
 # the local magnetisation has relaxed to zero and each site contributes its maximum of one. That part alone is the
 # standard quantum limit and it saturates early.
 #
-# The **off-diagonal** part is the interesting one: $0\to1.10\to14.80\to16.62$ at $t=0,0.5,1.5,3$. From $t\approx1$
-# onwards it is the *larger* of the two, and it is what pushes $f_Q$ above $1$. The colour maps say exactly where it
-# comes from: at $t=0$ the matrix is empty; at $t=0.5$ a thin band has appeared along the diagonal; at $t=1.5$ the band
-# has widened to about four sites on either side and the whole matrix is covered by $t=3$. Correlations are created at
-# the light cone and the QFI is their integral — a diagonal band of half-width $r(t)$ contributes $O(Nr)$ to the sum,
-# so a linearly expanding cone gives a linearly growing $F_Q$ until the cone fills the chain. The plateau of Figure 1
-# is that saturation, not the approach to a scrambled state.
+# The **off-diagonal** part is the interesting one: $0\to1.10\to14.80\to16.62$ at $t=0,0.5,1.5,3$. By $t=1.5$ it is the
+# *larger* of the two, and it is what pushes $f_Q$ above $1$. The colour maps say where it comes from: at $t=0$ the
+# matrix is empty; at $t=0.5$ a thin band of nearest-neighbour correlations has appeared along the diagonal; at $t=1.5$
+# the band has widened to three or four sites on either side. Between $t=1.5$ and $t=3$ the band hardly widens any
+# further, although the quasiparticle cone of this quench (correlation front $2v_{\max}t=4t$ sites, notebook 15) has
+# by then crossed the whole chain. The correlations do not fill the cone: they decay with distance, and the plateau of
+# Figure 1 is reached when the cone becomes wider than that decay length, not when it reaches the ends of the chain.
+# Section 6.1 makes this quantitative.
 #
 # > **Numerical practice.** The diagonal of $C_{ij}$ is bounded by $1$ and the off-diagonal entries are an order of
 # > magnitude smaller, so a heat map that includes the diagonal shows a bright line and nothing else. Removing the
@@ -690,40 +748,96 @@ plt.show()
 # > that shows the normalisation.
 
 # %% [markdown]
-# ### 6.1 Intensivity of the density
+# ### 6.1 Intensivity of the density, the open ends and the correlation length
 #
 # $f_Q=F_Q/N$ deserves the name "density" only if it stops depending on $N$. The off-diagonal sum of Eq. (2) runs over
-# $N^2$ pairs, but correlations decay with distance, so each site contributes a bounded amount and the sum should grow
-# like $N$ — that is the argument, and it needs checking, particularly at a critical point where correlations are
-# long-ranged.
+# $N^2$ pairs, but if the correlations decay with distance each site contributes a bounded amount and the sum grows
+# like $N$. On an open chain there is one more effect: the sites near the two ends have fewer partners, so they
+# contribute less than a bulk site. If the bulk correlations decay over a length $\xi$, the deficit is a fixed
+# number of order $\xi$ per end, independent of $N$, and
+#
+# $$f_Q(N)\simeq f_Q^{\rm bulk}-\frac{a}{N}. \tag{8b}$$
+#
+# Two sizes then determine the bulk value, $f_Q^{\rm bulk}\simeq\left[N_2f_Q(N_2)-N_1f_Q(N_1)\right]/(N_2-N_1)$. An
+# independent check is a **periodic** chain (an extra bond between sites $N-1$ and $0$), which has no ends at all and
+# gives the bulk value directly, as long as the quasiparticles have not travelled around the ring.
+#
+# For the bulk correlations of this particular quench there is an exact prediction. For a quench of the transverse-field
+# Ising chain from the fully polarised state ($h_0=0$) to the field $h$, the stationary two-point function of the order
+# parameter (here $\sigma^z$) decays exponentially with the correlation length (Calabrese, Essler and Fagotti 2011,
+# quoted without proof)
+#
+# $$\xi^{-1}=-\int_{-\pi}^{\pi}\frac{\mathrm dk}{2\pi}\,\ln\left\vert\cos\Delta_k\right\vert,\qquad
+#   \cos\Delta_k=\frac{1-h\cos k}{\sqrt{1+h^2-2h\cos k}} .$$
+#
+# At $h=1$, $\cos\Delta_k=\sqrt{(1-\cos k)/2}=\vert\sin(k/2)\vert$, and $\int_0^\pi\ln\sin(k/2)\,\mathrm dk=-\pi\ln2$
+# gives $\xi^{-1}=\ln2$: **the correlation halves from one site to the next.** If moreover $C(r)=2^{-\vert r\vert}$, the
+# bulk density is $\sum_rC(r)=1+2\sum_{r\ge1}2^{-r}=3$.
 
 # %%
 # ==============================================================================
-# STEP 4b: does f_Q depend on the system size?
+# STEP 4b: system size, open ends, and the bulk value
 # ==============================================================================
-print(f"TFIM h = 1, quench from |0>^N:  f_Q = F_Q/N for three system sizes\n")
-print(f"{'N':>3s} | " + " ".join(f"t={t:<6.1f}" for t in (0.5, 1.0, 1.5, 2.0, 2.5, 3.0)))
-for N in (8, 10, 12):
+T_CHK = (0.5, 1.0, 1.5, 2.0, 2.5, 3.0)
+fq_obc = {}
+for N in (8, 10, 12, 14):
     p0 = product_state("0" * N)
     ts_s, rec_s = evolve_pair(p0, p0, tfim_terms(N, 1.0), DT_G, 60, NSUB_G, ORDER_G,
                               observe=lambda p, _f: qfi_pure(p, Z))
-    v = np.array(rec_s) / N
-    idx = [int(round(t / (DT_G * NSUB_G))) for t in (0.5, 1.0, 1.5, 2.0, 2.5, 3.0)]
-    print(f"{N:3d} | " + " ".join(f"{v[i]:7.3f}" for i in idx))
+    fq_obc[N] = np.array(rec_s) / N
+idx_s = [int(round(t / (DT_G * NSUB_G))) for t in T_CHK]
+
+# periodic chain: no ends -> the bulk value directly (valid until the quasiparticles wrap around the ring)
+N_P, NOBS_P = 16, 50                                    # t_max = 2.5
+terms_p = heisenberg_terms(N_P, Jxx=0.0, Jyy=0.0, Jzz=1.0, hx=1.0, periodic=True)
+p0 = product_state("0" * N_P)
+t0 = time.time()
+ts_p16, rec_p16 = evolve_pair(p0, p0, terms_p, DT_G, NOBS_P, NSUB_G, ORDER_G,
+                              observe=lambda p, _f: qfi_pure(p, Z))
+fq_pbc = np.array(rec_p16) / N_P
+print(f"TFIM h = 1, quench from |0>^N:  f_Q = F_Q/N   (periodic N = {N_P}: {time.time() - t0:.1f} s)\n")
+print(f"{'chain':>16s} | " + " ".join(f"t={t:<6.1f}" for t in T_CHK))
+for N, v in fq_obc.items():
+    print(f"{'open, N = ' + str(N):>16s} | " + " ".join(f"{v[i]:7.3f}" for i in idx_s))
+extrap = (14 * fq_obc[14] - 12 * fq_obc[12]) / 2       # Eq. (8b) from N = 12 and 14
+print(f"{'Eq.(8b), 12+14':>16s} | " + " ".join(f"{extrap[i]:7.3f}" for i in idx_s))
+print(f"{'periodic, N = 16':>16s} | " + " ".join(f"{fq_pbc[i]:7.3f}" if i < len(fq_pbc) else f"{'--':>7s}"
+                                                for i in idx_s))
+
+# --- CHECKPOINT: the 1/N law of Eq. (8b) recovers the bulk value, the raw N = 14 value does not -----------
+chk = [int(round(t / DT_G)) for t in (1.0, 1.5, 2.0)]
+err_ext = np.max(np.abs(extrap[chk] - fq_pbc[chk]))
+err_raw = np.min(np.abs(fq_obc[14][chk] - fq_pbc[chk]))
+print(f"\nt = 1, 1.5, 2:  max |Eq.(8b) - periodic| = {err_ext:.3f};   min |open N=14 - periodic| = {err_raw:.3f}")
+assert err_ext < 0.02 and err_raw > 0.08
+
+# --- the bulk correlation function C(r) = <Z_0 Z_r> - <Z_0><Z_r> on the ring at the last time ------------------
+p_ring = make_pair_stepper(terms_p, DT_G, ORDER_G, NOBS_P)((p0, p0))[0]
+C_ring = np.array(corr_matrix(p_ring, Z))[0, : N_P // 2 + 1]
+ratios = C_ring[2:7] / C_ring[1:6]
+print(f"\nperiodic N = {N_P}, t = {ts_p16[-1]:.1f}:  C(r) for r = 0..{N_P // 2}")
+print("   " + " ".join(f"{c:7.4f}" for c in C_ring))
+print(f"   C(r+1)/C(r) for r = 1..5: " + " ".join(f"{q:.3f}" for q in ratios)
+      + f"   mean {ratios.mean():.3f}   (exact correlation length 1/ln 2: ratio 0.5)")
+assert abs(ratios.mean() - 0.5) < 0.05
 
 # %% [markdown]
-# At short times the density is intensive to three digits: $f_Q=0.677,0.676,0.676$ at $t=0.5$ for $N=8,10,12$. That is
-# the regime in which the light cone is smaller than the chain, so every site sees the same neighbourhood and the sum
-# of Eq. (2) is strictly proportional to $N$.
+# At short times the density is intensive to three digits: $f_Q=0.677,0.676,0.676,0.675$ at $t=0.5$ for
+# $N=8,\dots,14$, while the ring gives $0.673$. Then the sizes separate: at $t=2$ we measure $2.155$, $2.227$, $2.321$
+# and $2.399$, and the periodic chain gives $2.872$. The open chains are far below the bulk, and they approach it as
+# Eq. (8b) says: the two-size extrapolation from $N=12$ and $14$ agrees with the ring to within $0.02$ at $t=1$, $1.5$
+# and $2$, while the raw $N=14$ value misses it by $0.10$, $0.30$ and $0.47$. The size dependence is therefore the edge
+# correction of an intensive quantity, not a sign that the density fails to converge. At $t\ge2.5$ the extrapolation
+# stops working: the correlation front, moving at $2v_{\max}=4$ sites per unit time, has by then crossed chains of
+# $12$ and $14$ sites, so the two sizes no longer differ only by their ends.
 #
-# Once the cone reaches the ends the sizes separate: at $t=3$ we measure $2.108$, $2.269$ and $2.384$, a drift of about
-# $6\%$ per two spins that shows no sign of having converged. The reason is the same finite-size effect as in the
-# previous figure — a longer chain has not yet finished filling its correlation band. **Nothing in this notebook
-# extrapolates to the limit $N\to\infty$**; the numbers quoted for late times are properties of a chain of $12$ or
-# $14$ spins, and they should be read as such.
+# The ring also tests the mechanism. At $t=2.5$ the correlation $C(r)$ halves from one distance to the next, the ratio
+# $\xi^{-1}=\ln2$ predicted for the stationary state, and the bulk density $2.96$ is close to the value $3$ that a
+# pure $2^{-\vert r\vert}$ profile would give. This is why $f_Q$ plateaus: the light cone keeps expanding, but beyond a
+# few sites there is almost nothing left to add to the sum of Eq. (1). The height of the plateau in Figure 1 ($\approx2.3$
+# at $N=12$) is the bulk value minus the edge correction.
 
-# %% [markdown]
-# ## 6.2 A short summary before the second half
+# ### 6.2 A short summary before the second half
 #
 # Sections 5 and 6 answered the *global* question: how much useful entanglement a quench builds, how fast, and out of
 # which correlations. The rest of the notebook asks the *spatial* question instead, and to do that the encoding has to
@@ -751,7 +865,7 @@ for N in (8, 10, 12):
 # 2. The tangent vector is a **single magnon** at site $0$: $\vert\phi_0\rangle=\tfrac12\sigma^x_0\vert0\cdots0\rangle
 #    =\tfrac12\vert1_0\rangle$. The Hamiltonian acts inside the one-magnon sector as a hopping problem,
 #    $H\vert1_j\rangle=2\left(\vert1_{j-1}\rangle+\vert1_{j+1}\rangle\right)$, i.e. an $N\times N$ tridiagonal matrix.
-# 3. Feeding the pair into Eq. (7) gives something remarkably simple. With $\vert\phi(t)\rangle=\tfrac12\sum_jc_j(t)\vert1_j\rangle$
+# 3. Feeding the pair into Eq. (7) gives a simple result. With $\vert\phi(t)\rangle=\tfrac12\sum_jc_j(t)\vert1_j\rangle$
 #    and $A$ the kept block, $\rho_A=\vert0\rangle_A\langle0\vert$ is pure with $\lambda_0=1$, and the only non-zero
 #    matrix elements of $\partial_\theta\rho_A$ connect $\vert0\rangle_A$ to the states $\vert1_j\rangle_A$ with
 #    $\lambda=0$. Equation (2) of notebook 37 then collapses to
@@ -824,6 +938,7 @@ print(f"  {'j':>3s} " + " ".join(f"{j:8d}" for j in range(8)))
 print(f"  {'num':>3s} " + " ".join(f"{v:8.5f}" for v in c_num[:8]))
 print(f"  {'Eq.':>3s} " + " ".join(f"{v:8.5f}" for v in c_bes[:8]))
 print(f"  max deviation over j = 0..7: {np.max(np.abs(c_num[:8] - c_bes[:8])):.2e}")
+assert np.max(np.abs(c_num[:8] - c_bes[:8])) < 1e-10
 
 # %% [markdown]
 # Two checks, both passed. A $14\times14$ tridiagonal matrix reproduces every entry of a $2^{14}$-dimensional
@@ -831,9 +946,9 @@ print(f"  max deviation over j = 0..7: {np.max(np.abs(c_num[:8] - c_bes[:8])):.2
 # formula, as one can confirm by halving $dt$ — while the Bessel closed form of Eq. (10) reproduces the tight-binding
 # amplitudes to machine precision.
 #
-# This is the kind of anchor worth hunting for before a production run. It validates the time evolution, the tangent
+An exact anchor of this kind is the best possible test before a production run. It validates the time evolution, the tangent
 # vector, the reshaping in `block_qfi`, the QR compression and the SLD formula in one shot — and it gives the physical
-# interpretation for free: **in this quench the metrological resource is a particle, and $F_Q$ of a region is the
+# interpretation: **in this quench the metrological resource is a particle, and $F_Q$ of a region is the
 # probability of finding it there.**
 
 # %% [markdown]
@@ -843,7 +958,7 @@ print(f"  max deviation over j = 0..7: {np.max(np.abs(c_num[:8] - c_bes[:8])):.2
 # *exponentially* small for $j>4t$ but never exactly zero, so "arrival" is whatever the threshold declares it to be.
 # Notebook 15 met the same problem with correlation functions and drew the lesson we repeat here: a high threshold
 # declares arrival too late and underestimates the velocity, a low threshold triggers on the tail and overestimates
-# it, and the honest answer is the spread. We scan five thresholds over four decades and interpolate each crossing in
+# it. Section 7.4 derives where this spread comes from. We scan five thresholds over four decades and interpolate each crossing in
 # $\log F_Q$ so that the answer is not quantised by the snapshot spacing.
 
 # %%
@@ -864,16 +979,30 @@ def arrival_times(cone, ts, thr):
     return out
 
 
+def fit_velocity(k, t_arr):
+    """Least-squares slope v of k = v t + c through the arrival times, and its standard error.
+
+    MATH   v = cov(t, k) / var(t);  SE(v)^2 = [sum of squared residuals / (n - 2)] / sum (t - tbar)^2.
+           The SE measures only the scatter about a straight line; it says nothing about the threshold bias.
+    """
+    m = ~np.isnan(t_arr)
+    if m.sum() < 3:
+        return np.nan, np.nan
+    t, kk = t_arr[m], k[m]
+    v, c = np.polyfit(t, kk, 1)
+    res = kk - (v * t + c)
+    return v, np.sqrt(np.sum(res ** 2) / (m.sum() - 2) / np.sum((t - t.mean()) ** 2))
+
+
 KFIT = np.arange(3, 11)                         # fit range: away from the encoding site and from the far end
 print(f"Front velocity of the metrological light cone (fit over cuts k = {KFIT[0]}..{KFIT[-1]})\n")
-print(f"{'threshold':>10s} | {'arrival times t_k':>44s} | {'v = dk/dt':>10s}")
+print(f"{'threshold':>10s} | {'arrival times t_k':>44s} | {'v = dk/dt':>15s}")
 vel = {}
 for thr in (0.5, 0.1, 1e-2, 1e-3, 1e-4):
     a = arrival_times(cone, ts_l, thr)
-    m = ~np.isnan(a[KFIT])
-    v = np.polyfit(a[KFIT][m], KFIT[m], 1)[0] if m.sum() > 2 else np.nan
+    v, se = fit_velocity(KFIT, a[KFIT])
     vel[thr] = v
-    print(f"{thr:10.0e} | {np.array2string(np.round(a[KFIT], 2), max_line_width=200):>44s} | {v:10.3f}")
+    print(f"{thr:10.0e} | {np.array2string(np.round(a[KFIT], 2), max_line_width=200):>44s} | {v:7.3f} +- {se:5.3f}")
 print(f"\nquasiparticle prediction, Eq. (11):  v_max = 4")
 
 # %%
@@ -888,8 +1017,8 @@ im2 = axes[1].imshow(np.log10(np.clip(cone, 1e-10, None)), origin="lower", aspec
                      cmap="inferno", vmin=-8, vmax=0)
 fig.colorbar(im2, ax=axes[1], label=r"$\log_{10}F_Q$")
 for ax in axes:
-    ax.plot(KFIT[0] + 4.0 * (ts_l - ts_l[0]), ts_l, "w--", lw=1.6)
-    ax.text(0.97, 0.05, r"dashed: $k=3+4t$  (Eq. 11)", transform=ax.transAxes, ha="right", fontsize=8,
+    ax.plot(4.0 * ts_l, ts_l, "w--", lw=1.6)
+    ax.text(0.97, 0.05, r"dashed: $k=4t$  (Eq. 11)", transform=ax.transAxes, ha="right", fontsize=8,
             color="w", bbox=dict(boxstyle="round", fc="0.15", ec="0.5", alpha=0.75))
     ax.set_xlim(-0.5, N_L - 0.5); ax.set_ylim(ts_l[0], ts_l[-1]); ax.grid(False)
     ax.set_xlabel("cut position $k$"); ax.set_ylabel("time $t$")
@@ -898,24 +1027,95 @@ axes[1].set_title("logarithmic scale: the Bessel tail")
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# The light cone is unmistakable, and the measured velocity behaves exactly as the threshold argument predicts:
-# $3.56,\ 3.89,\ 4.28,\ 4.69,\ 5.16$ for thresholds $0.5,\ 10^{-1},\ 10^{-2},\ 10^{-3},\ 10^{-4}$. The scan is
-# **monotone** in the threshold and the exact prediction $v_{\max}=4$ of Eq. (11) is bracketed between the second and
-# the third entry. Read the two panels together and the reason is visible: on the linear scale the bright region
-# stops just inside the dashed line, while on the logarithmic scale the signal is already at $10^{-6}$ a good three
-# sites *outside* it. Both pictures are the same data.
-#
-# > **Common pitfall.** A front velocity extracted from one threshold and quoted to three digits is a number about the
-# > threshold, not about the physics. Here we happen to know the exact answer, which makes the bias measurable: it is
-# > $-11\%$ at threshold $0.5$ and $+29\%$ at $10^{-4}$. In a problem where the answer is *not* known, that spread is
-# > the honest error bar.
+# The light cone is clear, and the measured velocity depends on the threshold:
+# $3.56,\ 3.89,\ 4.28,\ 4.69,\ 5.16$ for thresholds $0.5,\ 10^{-1},\ 10^{-2},\ 10^{-3},\ 10^{-4}$. The statistical
+# errors of the fits ($0.004$ to $0.09$) are far smaller than this spread, so the spread is systematic. The scan is
+# **monotone** in the threshold and the exact $v_{\max}=4$ of Eq. (11) lies between the second and the third entry. The
+# dashed line $k=4t$ is the front of a signal leaving site $0$ at $v_{\max}$. On the linear scale the bright region
+# lags behind it; on the logarithmic scale the signal is already above $10^{-6}$ one to two sites *ahead* of it (at
+# $t=1$, $F_Q=1.9\times10^{-5}$ at $k=8$ and $9.9\times10^{-7}$ at $k=9$). Both pictures are the same data.
 #
 # The dark wedge in the lower right of both panels is not an artefact: it is the region outside the causal cone, where
-# the block QFI is below $10^{-8}$. Information about $\theta$ has not arrived, and no measurement on those spins can
-# estimate it.
+# the block QFI is below $10^{-8}$. Almost no information about $\theta$ has arrived there: by the Cramér–Rao bound,
+# a measurement on those spins alone would need more than $10^{8}$ repetitions to reach an error of order one.
+#
+# ### 7.4 Where the threshold dependence comes from
+#
+# Equation (10) explains the spread. The modes of the half-infinite chain are $\sin\left(q(j+1)\right)$, and the
+# initial magnon at site $0$ populates them with weight $\tfrac2\pi\sin^2q\,\mathrm dq$ on $0<q<\pi$. At long times
+# a mode of momentum $q$ has moved a distance $4t\sin q$ (its group velocity from Eq. (11)), so the probability to be
+# beyond $k=ut$ is the weight of the modes with $4\sin q>u$. Writing $u=4\cos\delta$,
+#
+# $$\lim_{t\to\infty}P\left(j>ut\right)=\frac2\pi\int_{\pi/2-\delta}^{\pi/2+\delta}\sin^2q\,\mathrm dq
+#   =\frac{2\delta+\sin2\delta}{\pi}. \tag{11a}$$
+#
+# Setting this equal to the threshold $\varepsilon$ gives the velocity $u(\varepsilon)$ that a threshold-$\varepsilon$
+# front reaches at **large distance**: $u=3.66$ for $\varepsilon=0.5$, $u=3.988$ for $\varepsilon=0.1$, and $u\to4$ as
+# $\varepsilon\to0$ ($4-u\propto\varepsilon^2$). A high threshold therefore does not just arrive late: it follows the
+# median-like part of the magnon, which genuinely moves slower than $v_{\max}$. A low threshold triggers on the Bessel
+# tail ahead of the front; the tail has a width that grows only like $k^{1/3}$ (the Airy region of $J_k(4t)$ near
+# $k=4t$), so this overestimate is a finite-distance effect that decays slowly. The next cell evaluates Eq. (10) on a
+# half-infinite chain at distances up to $k=320$, far beyond anything a state vector can reach, and measures the local
+# front velocity between $k$ and $2k$.
+
+# %%
+# ==============================================================================
+# STEP 6b: the threshold-epsilon front at large distance, from the closed form Eq. (10)
+# ==============================================================================
+from scipy.optimize import brentq
+
+J_IDX = np.arange(1400)                                  # half-infinite chain, truncated far beyond the front
+
+
+def p_beyond(k, t):
+    """P(j >= k) on the half-infinite chain, from Eq. (10): sum_{j>=k} |J_j(4t) + J_{j+2}(4t)|^2."""
+    c = jv(J_IDX, 4 * t) + jv(J_IDX + 2, 4 * t)
+    return np.sum(c[k:] ** 2)
+
+
+def arrival_exact(k, thr):
+    """First time at which P(j >= k) exceeds thr: scan a window around k/4, then refine with brentq."""
+    tt = np.linspace(max(1e-3, k / 4 - 1.5 * k ** (1 / 3) - 2), k / 4 + 3 * k ** (1 / 3) + 2, 300)
+    g = np.array([np.log(p_beyond(k, t)) - np.log(thr) for t in tt])
+    i = np.nonzero(g > 0)[0][0]
+    return brentq(lambda t: np.log(p_beyond(k, t)) - np.log(thr), tt[i - 1], tt[i])
+
+
+K_LONG = (10, 20, 40, 80, 160, 320)
+print(f"local front velocity (k2 - k1)/(t_k2 - t_k1) on the half-infinite chain, Eq. (10)\n")
+print(f"{'threshold':>10s} | " + " ".join(f"{f'{a}->{b}':>8s}" for a, b in zip(K_LONG[:-1], K_LONG[1:]))
+      + f" | {'u(eps), Eq. (11a)':>18s}")
+t0 = time.time()
+u_far = {}
+for thr in (0.5, 0.1, 1e-2, 1e-4):
+    tk = [arrival_exact(k, thr) for k in K_LONG]
+    vloc = [(b - a) / (tb - ta) for a, b, ta, tb in zip(K_LONG[:-1], K_LONG[1:], tk[:-1], tk[1:])]
+    d = brentq(lambda x: (2 * x + np.sin(2 * x)) / np.pi - thr, 0.0, np.pi / 2)
+    u_far[thr] = (vloc[-1], 4 * np.cos(d))
+    print(f"{thr:10.0e} | " + " ".join(f"{v:8.3f}" for v in vloc) + f" | {4 * np.cos(d):18.4f}")
+print(f"\n({time.time() - t0:.1f} s)")
+# --- CHECKPOINT: at the largest distance every threshold is within 2% of its Eq. (11a) value, and the low
+#     thresholds have converged to v_max = 4 while the threshold 0.5 has not ---------------------------------------
+assert all(abs(v / u - 1) < 0.02 for v, u in u_far.values())
+assert abs(u_far[1e-2][0] - 4) < 0.03 and abs(u_far[0.5][0] - 4) > 0.2
 
 # %% [markdown]
-# ## 8. An interacting chain: the same experiment without a free-particle crutch
+# At the largest distances every threshold is within two per cent of Eq. (11a). The thresholds $10^{-2}$ and $10^{-4}$
+# converge to $v_{\max}=4$ from above, and the convergence is slow: at $10^{-4}$ the local velocity is still $4.06$
+# between $k=160$ and $320$. The threshold $0.5$ settles near $3.66$ and stays there, with an oscillation that comes from
+# the interference fringes of the Bessel functions. On a chain of $14$ sites (Step 6) the high and the low thresholds
+# happen to bracket $v_{\max}$, but for different reasons: the high one measures a different velocity, the low one is
+# not yet converged.
+#
+# > **Common pitfall.** A front velocity extracted from one threshold and quoted to three digits is a number about the
+# > threshold, not about the physics. Here the exact answer makes the bias measurable: it is $-11\%$ at threshold
+# > $0.5$ and $+29\%$ at $10^{-4}$ on $14$ sites, many times the statistical error of each fit. A low threshold,
+# > followed to larger and larger distances, converges to the maximal velocity; a high threshold converges to something
+# > else. Without an exact answer, quote the scan over thresholds and distances, not a single number.
+
+
+# %% [markdown]
+# ## 8. A moving background: the same experiment in the critical Ising chain
 #
 # The XX case was solvable because the background did not move: the state stayed the vacuum and the tangent vector was
 # a single particle. Repeat the experiment where the background *does* move — the transverse-field Ising chain at the
@@ -923,18 +1123,24 @@ fig.tight_layout(); plt.show()
 #
 # $$H_{\rm TFIM}=\sum_i\sigma^z_i\sigma^z_{i+1}+\sum_i\sigma^x_i ,$$
 #
-# quenched from $\vert+\rangle^{\otimes N}$ (the ground state at $h\to\infty$) with the local generator
-# $G=\tfrac12\sigma^z_0$. Now $\vert\psi(t)\rangle$ is a genuine many-body state, every reduced state is mixed, and
-# Eq. (9) does not apply: we need the machinery of Eq. (7) in full.
+# quenched from $\vert+\rangle^{\otimes N}$ (an eigenstate of the field term; by the argument of Section 5 the sign of
+# $H$ does not matter, and the quench is equivalent to one from the $h\to\infty$ ground state) with the local generator
+# $G=\tfrac12\sigma^z_0$. The chain is still a free-fermion model after a Jordan–Wigner transformation, but the state no
+# longer stays a vacuum: $\vert\psi(t)\rangle$ is a genuine many-body state, every reduced state is mixed, and Eq. (9)
+# does not apply. We need the machinery of Eq. (7) in full.
 #
 # > **Common pitfall.** The generator must not annihilate the initial state. Taking $\vert0\rangle^{\otimes N}$ with
 # > $G=\tfrac12\sigma^z_0$ gives $\vert\phi_0\rangle=\tfrac12\vert\psi_0\rangle$ — the "tangent vector" is parallel to
 # > the state, the encoding is a global phase, and $F_Q$ is identically zero at every cut and every time. A plot full
 # > of zeros is not a physical statement; it means the experiment was set up wrong.
 #
-# Notebook 15 measured the light cone of the *correlations* of this chain and identified the quasiparticle velocity
-# $v_{\max}=2\min(J,h)$, which is $2$ here. The question is whether the front of the metrological signal moves at the
-# same speed.
+# The quasiparticles of this chain have the maximal group velocity $v_{\max}=2\min(J,h)$, which is $2$ here
+# (notebook 15). Notebook 15 measured the light cone of the equal-time *correlations* after a global quench and found
+# it at $2v_{\max}$: two sites become correlated when the two partners of a pair emitted half-way between them arrive.
+# A local encoding is a single-particle disturbance. With the Jordan–Wigner fermions of this convention,
+# $\sigma^z_0$ is a single Majorana operator at the end of the chain (no string attached), its Heisenberg evolution is a
+# linear combination of Majorana operators that spreads with the group velocities of the fermions, and the prediction
+# for the metrological front is therefore $v_{\max}=2$, not $2v_{\max}$.
 
 # %%
 # ==============================================================================
@@ -953,15 +1159,15 @@ print(f"{'t':>6s} | " + " ".join(f"k={k:<5d}" for k in range(N_L)))
 for i in range(0, len(ts_t), 10):
     print(f"{ts_t[i]:6.2f} | " + " ".join(f"{v:6.3f} " for v in cone_t[i]))
 
-print(f"\n{'threshold':>10s} | {'arrival times t_k':>44s} | {'v = dk/dt':>10s}")
+print(f"\n{'threshold':>10s} | {'arrival times t_k':>44s} | {'v = dk/dt':>15s}")
 vel_t = {}
 for thr in (0.1, 1e-2, 1e-3, 1e-4):
     a = arrival_times(cone_t, ts_t, thr)
-    m = ~np.isnan(a[KFIT])
-    v = np.polyfit(a[KFIT][m], KFIT[m], 1)[0] if m.sum() > 2 else np.nan
+    v, se = fit_velocity(KFIT, a[KFIT])            # cuts that the threshold never reaches by t = 4 are left out
     vel_t[thr] = v
-    print(f"{thr:10.0e} | {np.array2string(np.round(a[KFIT], 2), max_line_width=200):>44s} | {v:10.3f}")
-print(f"\nquasiparticle velocity of the critical Ising chain (notebook 15): v_max = 2 min(J,h) = 2")
+    print(f"{thr:10.0e} | {np.array2string(np.round(a[KFIT], 2), max_line_width=200):>44s} | {v:7.3f} +- {se:5.3f}")
+print(f"\nmaximal quasiparticle velocity of the critical Ising chain: v_max = 2 min(J,h) = 2"
+      f"   (correlation front of a global quench, notebook 15: 2 v_max = 4)")
 
 # %%
 # ==============================================================================
@@ -972,8 +1178,8 @@ for ax, dat, ttl, vpred in ((axes[0], cone, r"XX chain, $G=\frac{1}{2}\sigma^x_0
                             (axes[1], cone_t, r"TFIM $h=1$, $G=\frac{1}{2}\sigma^z_0$", 2.0)):
     im = ax.imshow(np.log10(np.clip(dat, 1e-10, None)), origin="lower", aspect="auto",
                    extent=[-0.5, N_L - 0.5, ts_l[0], ts_l[-1]], cmap="inferno", vmin=-8, vmax=0)
-    ax.plot(KFIT[0] + vpred * (ts_l - ts_l[0]), ts_l, "w--", lw=1.6)
-    ax.text(0.97, 0.05, f"dashed: $v={vpred:.0f}$", transform=ax.transAxes, ha="right", fontsize=8,
+    ax.plot(vpred * ts_l, ts_l, "w--", lw=1.6)
+    ax.text(0.97, 0.05, f"dashed: $k={vpred:.0f}t$", transform=ax.transAxes, ha="right", fontsize=8,
             color="w", bbox=dict(boxstyle="round", fc="0.15", ec="0.5", alpha=0.75))
     ax.set_xlim(-0.5, N_L - 0.5); ax.set_ylim(ts_l[0], ts_l[-1]); ax.grid(False)
     ax.set_xlabel("cut position $k$"); ax.set_ylabel("time $t$")
@@ -982,23 +1188,25 @@ for ax, dat, ttl, vpred in ((axes[0], cone, r"XX chain, $G=\frac{1}{2}\sigma^x_0
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# The interacting case behaves qualitatively like the free one and quantitatively like its own Hamiltonian. The
+# The critical Ising chain behaves qualitatively like the XX chain and quantitatively like its own Hamiltonian. The
 # threshold scan gives $1.96,\ 2.09,\ 2.19,\ 2.29$ for thresholds $10^{-1}\ldots10^{-4}$: again monotone, again a
-# spread of about $\pm8\%$ around the middle, and again bracketing the quasiparticle velocity — here
-# $v_{\max}=2\min(J,h)=2$, the same number notebook 15 extracted from the *correlation* light cone of this chain.
+# spread of about $\pm8\%$ around the middle that is much larger than the fit errors, and again bracketing the
+# single-particle velocity $v_{\max}=2$. (At the threshold $10^{-1}$ only five cuts are reached by $t=4$.) The
+# correlation front of notebook 15, $2v_{\max}=4$, lies far outside the measured range.
 #
-# That agreement is the point of the section. The quantity being followed is completely different — there, a connected
-# correlator of the state; here, the quantum Fisher information of a reduced state, which is a non-linear functional of
-# $\rho_A$ and its derivative — and yet the front moves at the same speed, because both are limited by the same thing:
-# the growth of the Heisenberg operator $G(t)=U(t)GU^\dagger(t)$ of Eq. (6). The Lieb–Robinson bound does not care
-# which functional we look at.
+# The two light cones of this chain therefore move at different speeds, and Eq. (6) says why. The metrological signal is
+# carried by the Heisenberg operator $G(t)=U(t)GU^\dagger(t)$ of a *local* generator: one quasiparticle leaving site
+# $0$. The equal-time correlations of a global quench are carried by *pairs*, whose partners separate at twice the
+# speed. Both are bounded by the same Lieb–Robinson velocity, but a bound is not a prediction; the speed one measures is
+# set by what carries the signal.
 #
-# The profile of the front differs, though. In the XX chain the QFI at a fixed cut *overshoots and comes back* as the
-# magnon passes; in the Ising chain it rises to a plateau near $1$ and stays there — at $t=4$ the cuts $k=1,\dots,4$
-# all read between $0.94$ and $1.00$. The signal is not a particle that travels through and leaves; it is an operator
-# that grows and keeps everything it has swallowed.
+# The profile of the front differs between the two chains, though less than a first look suggests. In both, the QFI of
+# the block $\{k,\dots,N-1\}$ at a fixed cut rises to a plateau close to $1$ and stays there: the block contains
+# everything to the right of the cut, so information that has crossed it remains inside (until a reflection from the
+# far end could bring it back). At $t=4$ the Ising cuts $k=1,\dots,4$ read between $0.94$ and $1.00$. The Ising front is
+# the sharper one: at $t=2$, one site ahead of the dashed line, the block QFI is $6\times10^{-3}$ in the Ising chain
+# ($k=5$) and $3\times10^{-2}$ in the XX chain ($k=9$).
 
-# %% [markdown]
 # ## 9. Where the resource sits: the two-site local QFI
 #
 # A cut-resolved map answers "how far has the signal travelled". A *block*-resolved map answers "where is it". We take
@@ -1006,22 +1214,26 @@ fig.tight_layout(); plt.show()
 # $j$ and every time. The reduced states are $4\times4$, so the whole map costs $N-1$ tiny eigendecompositions per
 # snapshot.
 #
-# To make the transport visible we use a moving initial state: a **magnon-pair wave packet**
+# As a background we use a moving initial state, a **magnon-pair wave packet**
 #
 # $$\vert\psi_0\rangle\propto\sum_j e^{iPj}\,e^{-(j-j_0)^2/2\sigma^2}\,\vert\ldots0\,1_j1_{j+1}0\ldots\rangle \tag{12}$$
 #
-# — two adjacent flipped spins, with a Gaussian envelope of width $\sigma$ and a total momentum $P$ that makes it
-# travel. The parameter is imprinted on the leftmost two sites with $G=\tfrac12(\sigma^x_0+\sigma^x_1)$. Two
+# — two adjacent flipped spins, with a Gaussian envelope of width $\sigma$ centred at $j_0=3$ and a total momentum
+# $P=\pi/3$. The parameter is imprinted on the leftmost two sites with $G=\tfrac12(\sigma^x_0+\sigma^x_1)$. Two
 # Hamiltonians:
 #
-# * the **XX chain** ($\Delta=0$), where the two magnons are free and simply fly apart at $v_{\max}=4$;
-# * **XXZ with $\Delta=2$**, where a pair of adjacent magnons is a **bound state**: at large $\Delta$ breaking the pair
-#   costs energy, so the pair survives and moves with a much smaller velocity (the second-order hopping amplitude of a
-#   bound pair scales as $1/\Delta$).
+# * the **XX chain** ($\Delta=0$), where magnons are free fermions that move independently, at most at $v_{\max}=4$;
+# * **XXZ with $\Delta=2$**. In the Pauli convention each antiparallel bond lowers the energy by $2\Delta$ relative to a
+#   parallel one, so an isolated flipped spin in the bulk sits $4\Delta$ below the all-up state, a flipped spin at the
+#   chain end only $2\Delta$ below it, and two adjacent flipped spins cost $4\Delta$ more than two separated ones.
+#   Interactions of order $\Delta$ therefore change the dynamics both at the chain end and between magnons.
+#
+# Whether the map follows the packet or the encoding is a question the code can answer directly: we repeat each run
+# with the packet removed (background $\vert0\rangle^{\otimes N}$, the same generator).
 
 # %%
 # ==============================================================================
-# STEP 8: the two-site QFI map -- a metrological quasiparticle
+# STEP 8: the two-site QFI map -- with the magnon-pair packet, and without it (control)
 # ==============================================================================
 def magnon_pair_packet(N, P=np.pi / 3, j0=3.0, sigma=2.0):
     """Gaussian wave packet of adjacent magnon pairs, Eq. (12), as a rank-N tensor."""
@@ -1041,26 +1253,40 @@ def pair_observables(psi, phi):
     return jnp.stack([f(psi, phi) for f in PAIR_QFI])
 
 
-psi0_p = magnon_pair_packet(N_L)
-phi0_p = 0.5 * (apply_gate(psi0_p, X, [0]) + apply_gate(psi0_p, X, [1]))
-pair_maps = {}
-for delta, lbl in ((0.0, r"XX ($\Delta=0$): free magnons"), (2.0, r"XXZ $\Delta=2$: bound pair")):
-    t0 = time.time()
-    ts_p, rec_p = evolve_pair(psi0_p, phi0_p, xxz_terms(N_L, delta), DT_L, NOBS_L, NSUB_L, ORDER_L,
-                              observe=pair_observables)
-    pair_maps[lbl] = np.array(rec_p)
-    print(f"{lbl}  ({time.time() - t0:.1f} s)")
-
-print(f"\nTwo-site QFI, centre of mass  <j> = sum_j j F_j / sum_j F_j,  and the total sum_j F_j\n")
-print(f"{'t':>6s} | " + " ".join(f"{'<j>':>7s} {'sum':>7s}" for _ in pair_maps))
-print(f"{'':>6s} | " + " ".join(f"{lbl.split(':')[0][:14]:>15s}" for lbl in pair_maps))
 jj = np.arange(N_L - 1)
+pair_maps, vac_maps = {}, {}
+for background in ("packet", "vacuum"):
+    psi0_p = magnon_pair_packet(N_L) if background == "packet" else product_state("0" * N_L)
+    phi0_p = 0.5 * (apply_gate(psi0_p, X, [0]) + apply_gate(psi0_p, X, [1]))
+    for delta, lbl in ((0.0, r"XX ($\Delta=0$)"), (2.0, r"XXZ $\Delta=2$")):
+        t0 = time.time()
+        ts_p, rec_p = evolve_pair(psi0_p, phi0_p, xxz_terms(N_L, delta), DT_L, NOBS_L, NSUB_L, ORDER_L,
+                                  observe=pair_observables)
+        (pair_maps if background == "packet" else vac_maps)[lbl] = np.array(rec_p)
+        print(f"{background:>7s}, {lbl}  ({time.time() - t0:.1f} s)")
+
+
+def centre(M):
+    """Centre of mass <j> = sum_j j F_j / sum_j F_j of every row of a two-site QFI map."""
+    return (M * jj).sum(1) / np.maximum(M.sum(1), 1e-12)
+
+
+print(f"\nTwo-site QFI: centre of mass <j> and total sum_j F_j, with the packet and without it\n")
+print(f"{'':>6s} | {'XX, packet':>15s} {'XX, vacuum':>15s} | {'D=2, packet':>15s} {'D=2, vacuum':>15s}")
+print(f"{'t':>6s} | " + " ".join(f"{'<j>':>7s} {'sum':>7s}" for _ in range(2)) + " | "
+      + " ".join(f"{'<j>':>7s} {'sum':>7s}" for _ in range(2)))
+lbls = list(pair_maps)
 for i in range(0, len(ts_p), 10):
-    row = []
-    for lbl, M in pair_maps.items():
-        s = M[i].sum()
-        row.append(f"{float((jj * M[i]).sum() / max(s, 1e-12)):7.2f} {s:7.3f}")
-    print(f"{ts_p[i]:6.2f} | " + " ".join(row))
+    cells = []
+    for lbl in lbls:
+        cells.append(" ".join(f"{centre(M)[i]:7.2f} {M[i].sum():7.3f}" for M in (pair_maps[lbl], vac_maps[lbl])))
+    print(f"{ts_p[i]:6.2f} | " + " | ".join(cells))
+
+# --- CHECKPOINT: the map follows the encoding, not the packet -------------------------------------------------
+d_com = max(abs(centre(pair_maps[l])[-1] - centre(vac_maps[l])[-1]) for l in lbls)
+print(f"\nlargest |<j>_packet - <j>_vacuum| at t = {ts_p[-1]:.0f}: {d_com:.2f} sites "
+      f"(the packet itself starts at j0 = 3 and moves)")
+assert d_com < 1.0
 
 # %%
 # ==============================================================================
@@ -1073,44 +1299,209 @@ for ax, (lbl, M) in zip(axes, pair_maps.items()):
                    cmap="inferno", vmin=0, vmax=vmx)
     fig.colorbar(im, ax=ax, label=r"$F_Q(\rho_{j,j+1})$")
     ax.set_xlabel("pair position $j$"); ax.set_ylabel("time $t$"); ax.grid(False)
-    ax.set_title(lbl, fontsize=10)
-fig.suptitle(f"$N={N_L}$: where the metrological resource sits", fontsize=11)
+    ax.set_title(lbl + ", packet background", fontsize=10)
+fig.suptitle(f"$N={N_L}$, $G=\\frac{{1}}{{2}}(\\sigma^x_0+\\sigma^x_1)$: where the metrological resource sits",
+             fontsize=11)
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# The two panels start identically and end in different worlds.
+# The two panels start identically and end in different places, but the control runs change the reading of both.
 #
-# In the **XX chain** the magnons are free: the packet leaves the left edge and travels to the far end of the chain,
-# its centre of mass moving from $\langle j\rangle=0.28$ at $t=0$ to $9.84$ at $t=4$ — about $2.8$ sites per unit
-# time. That is below the maximal magnon velocity $v_{\max}=4$, as it must be for a packet built at a finite momentum
-# $P=\pi/3$ rather than at the fastest momentum. At $t=4$ the bright spot has reached $j=12$, the last pair of the
-# chain, and the reflection has begun.
+# **The packet is a spectator.** Without the packet the centre of mass of the two-site QFI moves almost exactly as with
+# it (last checkpoint: less than one site apart at $t=4$, in both chains). What the map follows is the Heisenberg
+# operator $G(t)$ of Eq. (6), launched at sites $0$ and $1$, and its evolution is set by the Hamiltonian, not by the
+# few magnons that happen to be around. (Exercise 5 varies the momentum $P$ of the packet.)
 #
-# In **XXZ at $\Delta=2$** the two magnons are bound: separating them costs an energy $\sim2\Delta$, and a bound pair
-# hops only at second order in perturbation theory, with an amplitude suppressed by $1/\Delta$. The centre of mass
-# crawls to $\langle j\rangle\approx3.3$ by $t=3$ and then stops advancing — it reads $3.16$ at $t=4$, having
-# effectively parked near the left end, with only a faint halo leaking to the right. The metrological resource stays
-# where it was made.
+# **XX chain.** The generator creates one magnon at site $0$ or $1$, and the map is essentially the one-magnon problem
+# of Section 7: the centre of mass moves from $\langle j\rangle=0.28$ to $9.84$ at $t=4$. This is the centre of a
+# spreading distribution, not the position of a front. The fastest part travels at $v_{\max}=4$, reaches the last pair
+# near $t=13/4$ and piles up there (the bright spot at $j=12$, $t=4$), while slower components trail behind.
 #
-# The last column of the table is worth a remark: $\sum_jF_Q(\rho_{j,j+1})$ is *not* conserved. It drifts between
-# $1.35$ and $2.28$ over the run. Two-site quantum Fisher information is not the density of a conserved quantity —
-# it is a non-linear functional of overlapping reduced states, and some of the information sits in correlations
-# between pairs rather than inside any pair. What the map shows reliably is *where* the resource is concentrated, not
-# a bookkeeping of how much of it there is in total.
+# **XXZ at $\Delta=2$.** The centre of mass reaches only $\langle j\rangle\approx3.2$ by $t=4$, and $2.4$ without the
+# packet.
+# The two-magnon bound state cannot be the reason, since there is no second magnon in the control run. The reason is
+# the chain end, as the next subsection shows.
+#
+# The total $\sum_jF_Q(\rho_{j,j+1})$ is *not* conserved: with the packet it drifts between $1.35$ and $2.28$ over the
+# run. Two-site quantum Fisher information is not the density of a conserved quantity — it is a non-linear functional of
+# overlapping reduced states, and some of the information sits in correlations between pairs rather than inside any
+# pair. What the map shows reliably is *where* the resource is concentrated, not a bookkeeping of how much of it there
+# is in total.
+#
+# ### 9.1 A magnon trapped at the end of the chain
+#
+# In the background $\vert0\rangle^{\otimes N}$ the tangent vector is a single magnon, and the one-magnon problem is an
+# $N\times N$ matrix as in Section 7.1. Measured from the bulk magnon energy, the hopping amplitude is $2$ and the two
+# end sites carry an extra potential $V=2\Delta$ (an end spin has one bond to break, not two). Try
+# $c_j=x^j$ in the bulk equation $Ec_j=2(c_{j-1}+c_{j+1})$: it gives $E=2(x+1/x)$. The equation at the end,
+# $Ec_0=Vc_0+2c_1$, then requires $2/x=V$, i.e.
+#
+# $$x=\frac1\Delta,\qquad E_{\rm edge}=2\Delta+\frac2\Delta,\qquad \vert c_0\vert^2=1-x^2=1-\frac1{\Delta^2}. \tag{12a}$$
+#
+# For $\Delta>1$ this is a normalisable state localised at the end, with an energy above the band $[-4,4]$. A magnon
+# created at site $0$ has the overlap $\vert c_0\vert^2=3/4$ with it at $\Delta=2$; that part never leaves the end. At
+# $\Delta=0$ there is no such state, and the magnon flies.
+
+# %%
+# ==============================================================================
+# STEP 8a: the end-bound magnon, Eq. (12a), against the N x N one-magnon matrix
+# ==============================================================================
+print(f"{'Delta':>6s} | {'E_edge (matrix)':>16s} {'Eq. (12a)':>10s} | {'|c_0|^2 (matrix)':>17s} {'1 - 1/D^2':>10s}"
+      f" | {'overlap with G|0>':>18s}")
+for delta in (2.0, 3.0, 4.0):
+    Hm = 2.0 * (np.diag(np.ones(N_L - 1), 1) + np.diag(np.ones(N_L - 1), -1))
+    Hm[0, 0] = Hm[-1, -1] = 2 * delta                 # energies measured from the bulk magnon level
+    w1, V1 = np.linalg.eigh(Hm)
+    top = np.argmax(w1)                               # both end states are (nearly) degenerate; take one
+    c_enc = np.zeros(N_L); c_enc[[0, 1]] = 1 / np.sqrt(2)       # the magnon created by G = (X_0 + X_1)/2
+    out_band = np.abs(w1) > 4.0
+    ov = float(np.sum((V1[:, out_band].T @ c_enc) ** 2))
+    # the end states are a symmetric/antisymmetric pair; add the weights of both on site 0
+    c0sq = float(np.sum(V1[0, out_band] ** 2))
+    print(f"{delta:6.1f} | {w1[top]:16.5f} {2 * delta + 2 / delta:10.5f} | {c0sq:17.5f} {1 - 1 / delta ** 2:10.5f}"
+          f" | {ov:18.4f}")
+    assert abs(w1[top] - (2 * delta + 2 / delta)) < 1e-3 and abs(c0sq - (1 - 1 / delta ** 2)) < 1e-3
+
+# %% [markdown]
+# The $14\times14$ matrix reproduces Eq. (12a) for three anisotropies (up to the exponentially small splitting of the two end states of a
+# finite chain), and at $\Delta=2$ the magnon created by the generator has $84\%$ of its weight in the end-bound
+# states. That is the slow, left-heavy map of the right panel: most of the metrological signal is parked at the end
+# where it was encoded, and only the remainder spreads ballistically, as the faint halo to the right shows. The trap is
+# a property of the open boundary, not of the bulk.
+#
+# ### 9.2 A bound magnon pair in the bulk
+#
+# The bound pair that the packet of Eq. (12) was meant to show appears cleanly when the encoding itself creates it. Take
+# the vacuum and the two-site generator $G=\tfrac12\sigma^x_6\sigma^x_7$ in the middle of the chain: the tangent vector
+# is then two adjacent flipped spins. The vacuum does not evolve, and repeating the argument of Eq. (9) for this
+# tangent vector gives
+#
+# $$F_Q\left(\rho_{j,j+1}\right)=P\left(\text{both magnons on sites } j,j+1\right).$$
+#
+# The two-magnon problem has a closed form. Write the amplitude of magnons at $j_1<j_2$ as $e^{iKR}f(r)$ with the
+# centre $R=(j_1+j_2)/2$ and the distance $r=j_2-j_1\ge1$. One magnon hop changes $r$ by $\pm1$ and $R$ by $\pm\tfrac12$,
+# so in the relative coordinate the hopping amplitude is $2\left(e^{iK/2}+e^{-iK/2}\right)=4c$ with $c=\cos(K/2)$.
+# Measured from the vacuum, separated magnons have the energy $-8\Delta$ and an adjacent pair $-4\Delta$:
+#
+# $$\begin{aligned}
+# Ef(r)&=-8\Delta f(r)+4c\left[f(r-1)+f(r+1)\right]\quad(r\ge2),\\
+# Ef(1)&=-4\Delta f(1)+4cf(2).
+# \end{aligned}$$
+#
+# The ansatz $f(r)=x^{r-1}$ solves the first line with $E=-8\Delta+4c(x+1/x)$ and the second with $x=c/\Delta$, so
+#
+# $$E_b(K)=-4\Delta+\frac{4\cos^2(K/2)}{\Delta}=-4\Delta+\frac2\Delta\left(1+\cos K\right),\qquad
+#   \vert f(1)\vert^2=1-\frac{\cos^2(K/2)}{\Delta^2}, \tag{12b}$$
+#
+# a bound state for every $K$ when $\Delta>1$. The pair moves as a single particle with hopping amplitude $1/\Delta$ and
+# maximal velocity $\max_K\vert\mathrm dE_b/\mathrm dK\vert=2/\Delta$. Two predictions follow for a pair created at one
+# place (all $K$ equally populated).
+#
+# * **Weight.** The fraction that is bound and still adjacent at long times is the $K$-average of $\vert f(1)\vert^4$:
+#   $\sum_jF_Q(\rho_{j,j+1})\to1-1/\Delta^2+3/(8\Delta^4)$, i.e. $0.773$ at $\Delta=2$ and $0.939$ at $\Delta=4$.
+# * **Spreading.** A particle with dispersion $2a\cos K$ started at one site has the amplitudes $J_d(2at)$ at distance
+#   $d$, and $\sum_dd^2J_d(z)^2=z^2/2$, so its root-mean-square distance grows as $\sqrt2\,at$. With $a=1/\Delta$ the
+#   width of the pair map grows at the rate $\sqrt2/\Delta$ (the $K$-dependent weight $\vert f(1)\vert^4$ changes this by
+#   $0.3\%$ at $\Delta=2$; the code computes the weighted value).
+#
+# In the XX chain there is no bound state at all and the pair falls apart.
+
+# %%
+# ==============================================================================
+# STEP 8b: a bound pair created in the bulk by G = (1/2) X_6 X_7
+# ==============================================================================
+# --- Eq. (12b) against the exact relative-coordinate problem (r = 1 .. 400, one K at a time) ------------------
+L_REL = 400
+for delta in (2.0, 4.0):
+    errs = []
+    for K in np.linspace(0.0, np.pi, 7):
+        h = np.diag(np.full(L_REL, -8 * delta)); h[0, 0] = -4 * delta
+        h += 4 * np.cos(K / 2) * (np.eye(L_REL, k=1) + np.eye(L_REL, k=-1))
+        errs.append(abs(np.linalg.eigvalsh(h)[-1] - (-4 * delta + 4 * np.cos(K / 2) ** 2 / delta)))
+    print(f"Delta = {delta}: max |E_b(matrix) - Eq. (12b)| over 7 momenta = {max(errs):.1e}")
+    assert max(errs) < 1e-8
+
+J_PAIR = (6, 7)
+psi0_b = product_state("0" * N_L)
+phi0_b = 0.5 * apply_gate(psi0_b, jnp.kron(X, X), list(J_PAIR))
+bulk_maps = {}
+for delta in (0.0, 2.0, 4.0):
+    t0 = time.time()
+    ts_b, rec_b = evolve_pair(psi0_b, phi0_b, xxz_terms(N_L, delta), DT_L, NOBS_L, NSUB_L, ORDER_L,
+                              observe=pair_observables)
+    bulk_maps[delta] = np.array(rec_b)
+    print(f"Delta = {delta}: two-site QFI map  ({time.time() - t0:.1f} s)")
+
+d_pair = jj - J_PAIR[0]                                   # distance of pair j from the encoded pair
+Kg = np.linspace(-np.pi, np.pi, 4001)
+print(f"\n{'Delta':>6s} | {'sum_j F at t=1,2,3,4':>30s} {'long-time Eq.':>13s} | {'d(rms)/dt, t in [1,3]':>22s}"
+      f" {'sqrt2/D':>8s} {'weighted':>9s}")
+rate = {}
+for delta, M in bulk_maps.items():
+    rms = np.sqrt((M * d_pair ** 2).sum(1) / np.maximum(M.sum(1), 1e-12))
+    win = (ts_b >= 1.0 - 1e-9) & (ts_b <= 3.0 + 1e-9)
+    v, se = fit_velocity(rms[win], ts_b[win])
+    rate[delta] = (v, se)
+    sums = " ".join(f"{M[int(round(t / (DT_L * NSUB_L)))].sum():7.3f}" for t in (1, 2, 3, 4))
+    if delta > 1:
+        wK = (1 - np.cos(Kg / 2) ** 2 / delta ** 2) ** 2
+        pred_w = (2 / delta) * np.sqrt(np.mean(np.sin(Kg) ** 2 * wK) / np.mean(wK))
+        print(f"{delta:6.1f} | {sums:>30s} {1 - 1 / delta ** 2 + 3 / (8 * delta ** 4):13.3f} | "
+              f"{v:13.4f} +- {se:.4f} {np.sqrt(2) / delta:8.4f} {pred_w:9.4f}")
+        # --- CHECKPOINT: weight and spreading rate of the bound pair; the v_max = 2/Delta control must fail ---
+        assert abs(M[-1].sum() / (1 - 1 / delta ** 2 + 3 / (8 * delta ** 4)) - 1) < 0.03
+        assert abs(v / pred_w - 1) < 0.03 and abs(v / (2 / delta) - 1) > 0.2
+    else:
+        print(f"{delta:6.1f} | {sums:>30s} {'no bound state':>13s} |")
+        assert M[int(round(1 / (DT_L * NSUB_L)))].sum() < 0.3   # the free pair has fallen apart by t = 1
+
+# %%
+# ==============================================================================
+# FIGURE 7: the bound pair in the bulk
+# ==============================================================================
+fig, axes = plt.subplots(1, 3, figsize=(13.0, 4.0), sharey=True)
+for ax, (delta, M) in zip(axes, bulk_maps.items()):
+    im = ax.imshow(M, origin="lower", aspect="auto", extent=[-0.5, N_L - 1.5, ts_b[0], ts_b[-1]],
+                   cmap="inferno", vmin=0, vmax=0.5)
+    if delta > 1:
+        for sgn in (-1, 1):
+            ax.plot(J_PAIR[0] + sgn * (2 / delta) * ts_b, ts_b, "w--", lw=1.2)
+    ax.set_xlim(-0.5, N_L - 1.5); ax.set_ylim(ts_b[0], ts_b[-1])
+    ax.set_xlabel("pair position $j$"); ax.grid(False)
+    ax.set_title(rf"$\Delta={delta:g}$" + ("" if delta > 1 else ": free magnons"), fontsize=10)
+axes[0].set_ylabel("time $t$")
+fig.colorbar(im, ax=axes, fraction=0.02, label=r"$F_Q(\rho_{j,j+1})$ (colour scale capped at 0.5)")
+fig.suptitle(r"$G=\frac{1}{2}\sigma^x_6\sigma^x_7$ on the vacuum; dashed: $j=6\pm(2/\Delta)\,t$", fontsize=11)
+plt.show()
+
+# %% [markdown]
+# Equation (12b) agrees with the exact relative-coordinate problem to machine precision, and the simulation confirms
+# both predictions. At $\Delta=2$ the pair weight $\sum_jF_Q(\rho_{j,j+1})$ drops at once from $1$ to about $0.77$ and
+# then stays there (Eq.: $0.773$); at $\Delta=4$ it stays near $0.94$ (Eq.: $0.939$). The width of the map grows
+# linearly, at $0.70$ sites per unit time at $\Delta=2$ and $0.35$ at $\Delta=4$, within about $1\%$ of the prediction
+# $\sqrt2/\Delta$; the fit errors are given in the table, and the alternative "the width grows at $v_{\max}=2/\Delta$"
+# is excluded by $30\%$. In the XX chain the same encoded pair has fallen apart by $t=1$: two free magnons are almost
+# never found on neighbouring sites again.
+#
+# The figure shows the bound pair as a slow light cone inside the dashed lines $j=6\pm(2/\Delta)t$. Halving the
+# velocity by doubling $\Delta$ is visible directly. The resource stays together and stays where the interaction allows
+# it to go: a bound pair is not only a slow excitation, it is a slow carrier of metrological information.
 #
 # > **Physics insight.** Magnon bound states in the XXZ chain were seen directly in a quantum-gas microscope
-# > (Fukuhara *et al.* 2013) and studied after local quenches by Ganahl *et al.* (2012). What this section adds is the
-# > metrological reading: a bound state is not only a slow excitation, it is a **trap for metrological information**.
-# > If the sensitivity has to be delivered somewhere else in the register, an interaction strong enough to bind is a
-# > liability; if it has to be kept local, it is a feature.
+# > (Fukuhara *et al.* 2013) and studied after local quenches by Ganahl *et al.* (2012). The metrological reading of
+# > this section is that interactions decide both *where* the information goes and *how fast*: a strong $\Delta$ binds
+# > an encoded pair into a carrier moving at $2/\Delta$, and the same $\Delta$ traps a single encoded magnon at an open
+# > end (Eq. 12a). If the sensitivity has to be delivered somewhere else in the register, either effect is a liability;
+# > if it has to be kept local, it is a feature.
 
 # %% [markdown]
 # ## 10. The resource in motion
 #
-# The map above is the animation flattened onto a page. Here is the animation itself: the two-site QFI profile
-# $F_Q(\rho_{j,j+1})$ against position, frame by frame. The GIF is built in memory with `FuncAnimation` and a
-# `PillowWriter`, read back as bytes and embedded in the notebook as a single output carrying both an `image/gif` and
-# an `<img>` representation, so it survives every renderer. Nothing is written to disk.
+# The maps above are the animation flattened onto a page. Here is the animation itself: the two-site QFI profile
+# $F_Q(\rho_{j,j+1})$ of Section 9.2 against position, frame by frame, for the free pair ($\Delta=0$) and the bound pair
+# ($\Delta=2$). The GIF is built in memory with `FuncAnimation` and a `PillowWriter`, read back as bytes and embedded in
+# the notebook as a single output carrying both an `image/gif` and an `<img>` representation, so it survives every
+# renderer. Nothing is left on disk.
 
 # %%
 # ==============================================================================
@@ -1157,40 +1548,41 @@ def make_profile_gif(x, curves_a, curves_b, times, label_a, label_b,
     print(f"   [{len(times)} frames, {len(gif_bytes) / 1e6:.2f} MB embedded in the notebook]")
 
 
-keys_p = list(pair_maps)
-stride = max(1, int(np.ceil(len(ts_p) / 54)))          # <= ~55 frames, as the authoring budget asks
-make_profile_gif(jj, pair_maps[keys_p[0]][::stride], pair_maps[keys_p[1]][::stride], ts_p[::stride],
-                 label_a=r"XX ($\Delta=0$)", label_b=r"XXZ ($\Delta=2$)",
-                 title=r"Two-site quantum Fisher information $F_Q(\rho_{j,j+1})$ in flight",
+stride = max(1, int(np.ceil(len(ts_b) / 54)))          # <= ~55 frames, as the authoring budget asks
+make_profile_gif(jj, bulk_maps[0.0][::stride], bulk_maps[2.0][::stride], ts_b[::stride],
+                 label_a=r"XX ($\Delta=0$): free pair", label_b=r"XXZ ($\Delta=2$): bound pair",
+                 title=r"Two-site QFI $F_Q(\rho_{j,j+1})$ after encoding on the pair (6, 7)",
                  ylabel=r"$F_Q(\rho_{j,j+1})$")
 
 # %%
 # ==============================================================================
-# FIGURE 7: static multi-panel fallback for viewers that do not animate
+# FIGURE 8: static multi-panel fallback for viewers that do not animate
 # ==============================================================================
-frames = [0, len(ts_p) // 8, len(ts_p) // 4, len(ts_p) // 2, 3 * len(ts_p) // 4, len(ts_p) - 1]
+frames = [0, len(ts_b) // 8, len(ts_b) // 4, len(ts_b) // 2, 3 * len(ts_b) // 4, len(ts_b) - 1]
 fig, axes = plt.subplots(2, 3, figsize=(12.0, 5.4), sharex=True, sharey=True)
 for ax, i in zip(axes.ravel(), frames):
-    for j, (lbl, M) in enumerate(pair_maps.items()):
-        ax.plot(jj, M[i], "-" + MARKERS[j], color=PALETTE[j], ms=4, lw=1.6,
-                label=lbl.split(":")[0] if i == frames[0] else None)
-    ax.set_title(f"$t={ts_p[i]:.2f}$", fontsize=10)
+    for j, (delta, lab) in enumerate(((0.0, r"XX ($\Delta=0$)"), (2.0, r"XXZ ($\Delta=2$)"))):
+        ax.plot(jj, bulk_maps[delta][i], "-" + MARKERS[j], color=PALETTE[j], ms=4, lw=1.6,
+                label=lab if i == frames[0] else None)
+    ax.set_title(f"$t={ts_b[i]:.2f}$", fontsize=10)
+    ax.set_ylim(0, 0.55)
 for ax in axes[-1]:
     ax.set_xlabel("pair position $j$")
 for ax in axes[:, 0]:
     ax.set_ylabel(r"$F_Q(\rho_{j,j+1})$")
 axes[0, 0].legend(fontsize=8)
-fig.suptitle("Snapshots of the travelling metrological resource", fontsize=11)
+axes[0, 0].text(6.3, 0.5, "(t = 0: value 1 at j = 6)", fontsize=8)
+fig.suptitle("Snapshots of the free and the bound encoded pair (y axis cut at 0.55)", fontsize=11)
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# The two-panel comparison is easiest to read frame by frame. At $t=0$ the curves coincide — the same wave packet,
-# the same encoding. By $t=1$ the free packet has already moved its peak to $j\approx2$ while the bound one sits at
-# $j\approx1$–$2$ with a taller, narrower profile. By $t=4$ the free curve has a single large peak at the right edge
-# of the chain and the bound curve still has its weight at $j\le4$. Between the two extremes the profiles cross
-# several times, which is why the space-time maps above are the better summary and this sequence is the better
-# explanation.
-
+# Frame by frame: at $t=0$ both curves are the single value $1$ at the encoded pair $j=6$. By $t=0.5$ the free pair has
+# already lost most of its weight, and from $t=1$ on the XX curve is a low, ragged background of a few per cent per
+# pair — the two magnons are now far apart and rarely on neighbouring sites (at $t=4$ a partial refocusing puts $0.11$
+# back on the central pair). The bound pair keeps about three quarters
+# of its weight and splits into two peaks that move outwards, at $j=6\pm1$ by $t=2$ and $j=6\pm3$ by $t=4$, with a
+# residue left at the centre: the profile of a single particle with hopping amplitude $1/\Delta$, Bessel fringes
+# included.
 
 # %% [markdown]
 # ## 11. Cost
@@ -1204,7 +1596,7 @@ fig.tight_layout(); plt.show()
 # | correlation matrix $C_{ij}$ | $N$ Pauli applications, $N^2$ inner products | $O(N^22^N)$ | $O(N2^N)$ |
 #
 # The cut-resolved map is the expensive one, and it is expensive only in the middle of the chain, where
-# $\min(l,N-l)=N/2$. Everything else is linear in the Hilbert-space dimension. Let us measure.
+# $\min(l,N-l)=N/2$. Everything else is linear in the Hilbert-space dimension. The next cell measures both.
 
 # %%
 # ==============================================================================
@@ -1229,10 +1621,11 @@ for l in (1, 2, 4, 7, 10, 13):
 # %% [markdown]
 # Both tables behave as the scaling column of the cost table predicts. The measured time of one observation interval
 # grows by about a factor of four for every two qubits added, i.e. linearly in the Hilbert-space dimension $2^N$, with
-# no hidden $4^N$ anywhere — which is the whole point of the matrix-free engine. Compilation costs about half a second
-# and is paid once per Hamiltonian, not once per step, because the time loop is a `lax.scan`.
+# no hidden $4^N$ anywhere, as a matrix-free engine should behave. (Single timings fluctuate on a shared machine; the
+# trend over four sizes is the measurement.) Compilation costs a fraction of a second
+# (0.25–0.5 s in this run) and is paid once per Hamiltonian, not once per step, because the time loop is a `lax.scan`.
 #
-# The block QFI is flat at about $0.2$ ms for small blocks, peaks at a few milliseconds at the balanced cut $l=N/2=7$,
+# The block QFI takes a fraction of a millisecond for small blocks, peaks at a few milliseconds at the balanced cut $l=N/2=7$,
 # and falls again for large blocks — exactly the $O\!\left(8^{\min(l,N-l)}\right)$ of the QR-compressed algorithm. Without
 # the compression the $l=13$ entry would require diagonalising an $8192\times8192$ matrix that has rank at most $4$.
 # The light-cone maps of Sections 7 and 8 evaluate all $N$ cuts at $81$ times, so the mid-chain cuts dominate their
@@ -1253,47 +1646,62 @@ for l in (1, 2, 4, 7, 10, 13):
 #   subsystem's $F_Q$ with no finite differences in $\theta$. The same line read physically says the effective
 #   generator is the Heisenberg-evolved operator $G(t)=U(t)GU^\dagger(t)$: the light cone we measure is operator
 #   spreading.
-# * **An exact anchor exists, and it is worth building.** For the XX chain quenched from the vacuum with
+# * **An exact anchor exists, and it tests everything at once.** For the XX chain quenched from the vacuum with
 #   $G=\tfrac12\sigma^x_0$, the block QFI equals the probability that a single magnon is inside the block (Eq. 9), and
 #   the magnon amplitude is $c_j(t)=(-i)^j[J_j(4t)+J_{j+2}(4t)]$ by the method of images (Eq. 10). A $14\times14$
-#   matrix reproduces a $2^{14}$-dimensional simulation to $10^{-9}$.
+#   matrix reproduces a $2^{14}$-dimensional simulation to $3\times10^{-8}$ (the Trotter error).
 # * **Metrological information has a speed limit, and measuring it needs care.** In the XX chain the measured front
-#   velocity runs from $3.56$ to $5.16$ as the arrival threshold falls from $0.5$ to $10^{-4}$, bracketing the exact
-#   $v_{\max}=4$; in the critical Ising chain it runs from $1.96$ to $2.29$, bracketing the quasiparticle value $2$
-#   that notebook 15 extracted from correlation functions. The bias is monotone in the threshold and is worth tens of
-#   per cent: quote the spread, not a single number.
-# * **Interactions can trap the resource.** The centre of mass of the two-site QFI of a magnon-pair packet travels from
-#   site $0.3$ to site $9.8$ in a time $4$ in the XX chain (about $2.8$ sites per unit time, below the maximal magnon
-#   velocity $4$ because the packet is built at momentum $P=\pi/3$); at $\Delta=2$ the same packet is a bound state
-#   and stalls near site $3$. Where the metrological resource *is*, not only how much of it there is, is a property of
-#   the Hamiltonian.
+#   velocity runs from $3.56$ to $5.16$ as the arrival threshold falls from $0.5$ to $10^{-4}$, with fit errors below
+#   $0.1$; Eq. (11a) explains the spread: a high threshold follows a slower part of the magnon ($3.66$ at threshold
+#   $0.5$), a low one converges to $v_{\max}=4$ only at large distance. In the critical Ising chain the local encoding
+#   moves at $1.96$ to $2.29$, bracketing the single-quasiparticle velocity $v_{\max}=2$ — half the speed of the
+#   correlation front of a global quench, which is carried by pairs.
+# * **The QFI density of a quench is intensive, and open ends hide it.** After the critical Ising quench the bulk
+#   density approaches $3$: the stationary correlations halve from one site to the next (correlation length
+#   $1/\ln2$), so the cone stops adding to Eq. (1) after a few sites. Open chains of $8$–$14$ spins show $2.2$–$2.4$
+#   instead; the difference is a $1/N$ edge correction, and two sizes recover the periodic-chain value to $0.02$.
+# * **Interactions decide where the resource goes.** With $\Delta=2$ a magnon encoded at an open end is trapped in an
+#   end-bound state ($84\%$ of its weight, Eq. 12a), and an encoded pair in the bulk binds into a carrier that spreads
+#   at $\sqrt2/\Delta$ and moves at most at $2/\Delta$ (Eq. 12b, measured to about $1\%$); in the XX chain the same pair
+#   falls apart within one unit of time. A background magnon packet barely changes the two-site QFI map: the map
+#   follows the encoded operator $G(t)$.
 # * **A quench does not make a Haar-random state.** A fully scrambled state has $f_Q\to1$ (notebook 35), yet the
-#   quenched integrable chains studied here keep $f_Q$ well above $1$ over the whole accessible time window. Useful
-#   entanglement is not the same as entanglement entropy, and the growth of one does not imply decay of the other.
+#   quenched integrable chains studied here keep $f_Q$ well above $1$ over the window $2\le t\le4$ (except the weak
+#   quench $h=0.5$, which is still growing). Useful entanglement is not the same as entanglement entropy, and an
+#   extensive entropy does not force the QFI density down.
 #
 # ## 13. Exercises
 #
 # 1. ★ **Read the witness.** A chain of $N=100$ spins reaches $f_Q=3.4$ after a quench. Using the sharp bound
 #    $F_Q\le sk^2+r^2$ of Eq. (4) with $s=\lfloor N/k\rfloor$, $r=N-sk$, find the largest certified entanglement depth.
-#    How does the answer change if one uses the looser corollary $F_Q\le kN$?
+#    Does the answer change if one uses the looser corollary $F_Q\le kN$? Repeat for $N=10$ and $F_Q=54$ (Section 5.1),
+#    and find the general condition on $F_Q$ under which the two criteria certify different depths.
 # 2. ★ **The dead generator.** Show algebraically that $\left[J_z,H_{\rm XXZ}\right]=0$ for any $\Delta$, and that the
 #    Néel state is an eigenstate of $J_z$. Then explain in one sentence why $F_Q[J_z]=0$ for all times, and predict
-#    what happens if the initial state is $\vert0011\ldots\rangle$ instead.
+#    $F_Q[J_z]$ and the short-time behaviour of $F_Q[J_z^{\rm stag}]$ (as in Eq. 8a) if the initial state is
+#    $\vert0011\ldots\rangle$ instead.
 # 3. ★★ **Other directions (extend the code).** Repeat Step 3 for the generators $J_x$, $J_y$ and their staggered
-#    versions, and plot all six densities for the XXZ quench at $\Delta=2$. Which one grows fastest, and can you
-#    connect the answer to the correlation matrix of Step 4?
+#    versions (`qfi_staggered(psi, X)` and `qfi_staggered(psi, Y)`), and plot all six densities for the Néel quench of
+#    the XXZ chain at $\Delta=2$. Which ones coincide, and why (use the rotation symmetry of $H_{\rm XXZ}$ about $z$)?
+#    Which grows fastest? Connect the answer to $C^{xx}_{ij}$, computed with `corr_matrix(psi, X)`.
 # 4. ★★ **Block size (extend the code).** `block_qfi` accepts any set of sites. For the XX light cone, compute $F_Q$ of
-#    a *window* of $l=1,2,4$ contiguous sites centred at position $j$ and plot the space-time map for each $l$. How
-#    does the arrival time depend on $l$, and why is the $l=1$ map so much dimmer?
-# 5. ★★ **Momentum and velocity (physics).** The magnon-pair packet of Eq. (12) has a total momentum $P$. Repeat
-#    Step 8 for $P=0,\pi/4,\pi/3,\pi/2,2\pi/3$ in the XX chain, extract the centre-of-mass velocity of the two-site
-#    QFI, and compare with the two-magnon group velocity implied by $E(q)=4\cos q$.
+#    a *window* of $l=1,2,4$ contiguous sites $\{j,\dots,j+l-1\}$ and plot the space-time map for each $l$. Using
+#    Eq. (9), express each map through the magnon probabilities $\vert c_j(t)\vert^2$ and explain why the $l=1$ map is
+#    the dimmest.
+# 5. ★★ **Bound-pair transport (physics).** (a) Repeat Step 8 for packet momenta $P=0,\pi/3,2\pi/3$ and confirm that
+#    the centre of mass of the two-site QFI at $t=4$ changes by less than one site, while the magnetisation profile
+#    of the packet itself, $\tfrac12\left(1-\langle\sigma^z_j\rangle\right)$, depends on $P$. (b) Repeat Step 8b for
+#    $\Delta=1.5,3,6$: measure the long-time pair weight and the spreading rate and compare with Eq. (12b). Why must
+#    the comparison fail as $\Delta\to1$? (Hint: for which $K$ is $\vert x\vert=\cos(K/2)/\Delta<1$?)
 # 6. ★★ **Breaking integrability (extend the code).** Add a longitudinal field, `tfim_terms(N, h=1.0, hz=0.5)`, and
-#    repeat both the global-quench and the light-cone experiments. Does $f_Q$ saturate closer to the Haar value $1$
-#    than the integrable chain does? Is the front velocity affected?
+#    repeat the global-quench experiment of Step 3 (generator $J_z$) and the light-cone experiment of Step 7. Compare
+#    $f_Q$ over $2\le t\le4$ with the integrable chain, and the fitted front velocities at the thresholds
+#    $10^{-2}$ and $10^{-4}$.
 # 7. ★★★ **From QFI to a structure factor (physics).** Using Eq. (1), compute $C^{zz}_{ij}(t)$ for the
-#    critical Ising quench, Fourier transform in $i-j$ to get the structure factor $S(q,t)$, and check that
-#    $F_Q=N S(q=0,t)$. Which momentum carries the growth?
+#    critical Ising quench and define $S(q,t)=\frac1N\sum_{ij}e^{iq(i-j)}C^{zz}_{ij}(t)$. Check that $F_Q[J_z]=NS(0,t)$
+#    and $F_Q[J_z^{\rm stag}]=NS(\pi,t)$. Plot $S(q,t)$ against $q$ at several times: which momentum grows most?
+#    Use the stationary $C(r)\approx2^{-\vert r\vert}$ of Section 6.1 to predict $S(q)$ at late times
+#    ($S(q)=3/(5-4\cos q)$ for that profile on an infinite chain), and compare.
 # 8. ★★★ **Where is the optimum? (extend the code).** For the critical Ising quench, optimise the generator over all
 #    site-dependent single-qubit directions, $G=\tfrac12\sum_i\mathbf n_i\cdot\vec\sigma_i$, with `jax.grad` and Adam
 #    (as in notebook 35, Section 7). How much more $F_Q$ is available than with the best uniform or staggered choice,
@@ -1316,11 +1724,14 @@ for l in (1, 2, 4, 7, 10, 13):
 # * P. Calabrese and J. Cardy, *Evolution of entanglement entropy in one-dimensional systems*,
 #   J. Stat. Mech. (2005) P04010 — the quasiparticle picture: pairs created at the quench, linear entanglement growth,
 #   the light cone of Sections 7–8.
+# * P. Calabrese, F. H. L. Essler and M. Fagotti, *Quantum quench in the transverse-field Ising chain*,
+#   Phys. Rev. Lett. **106**, 227203 (2011) — the exact stationary correlation length $\xi^{-1}=-\int\frac{\mathrm dk}{2\pi}\ln\vert\cos\Delta_k\vert$
+#   of the order parameter after a quench, used in Section 6.1.
 # * E. H. Lieb and D. W. Robinson, *The finite group velocity of quantum spin systems*,
 #   Commun. Math. Phys. **28**, 251 (1972) — the theorem that there is a velocity at all.
 # * M. Ganahl, E. Rabel, F. H. L. Essler and H. G. Evertz, *Observation of complex bound states in the spin-1/2
 #   Heisenberg XXZ chain using local quantum quenches*, Phys. Rev. Lett. **108**, 077206 (2012) — magnon bound states
-#   in the XXZ chain after a local quench, the physics of Section 9.
+#   in the XXZ chain after a local quench, the physics of Section 9.2.
 # * T. Fukuhara, P. Schauß, M. Endres, S. Hild, M. Cheneau, I. Bloch and C. Gross, *Microscopic observation of magnon
 #   bound states and their dynamics*, Nature **502**, 76 (2013) — the same bound states seen site by site in a
 #   quantum-gas microscope.

@@ -15,7 +15,7 @@ code-fold: false
 
 <p class="hero-author"><a href="http://chaos.if.uj.edu.pl/ZOA/marcinplodzien"><b>Marcin Płodzień</b></a> · Institute of Theoretical Physics, Jagiellonian University</p>
 
-[Start with notebook 00a](ch01_computational_toolbox/00a_free_particle_gaussian_wave_packet.ipynb){.btn .btn-primary} [Browse the chapters](#chapters){.btn .btn-outline-primary} [The engine](engine.qmd){.btn .btn-outline-primary}
+[Start with notebook 00a](ch01_computational_toolbox/00a_free_particle_gaussian_wave_packet.ipynb){.btn .btn-primary} [Browse the chapters](#chapters){.btn .btn-outline-primary} [The engine](ch03_matrix_free_engine/08b_building_quantum_simulator_engine.ipynb){.btn .btn-outline-primary}
 :::
 
 ::: {.hero-image}
@@ -90,7 +90,7 @@ The differentiable simulator is used throughout Chapters 11 and 12 to build and 
 
 ## Start here
 
-The engine fits in one file, [`quantum_engine.py`](engine.qmd), and every capability above is a few lines of code on top of it. The snippet below prepares and samples a GHZ state, finds the ground state of a Heisenberg chain of sixteen spins, lets a Néel state melt under the same Hamiltonian, drives a decaying qubit with the Lindblad equation, and differentiates the energy of a variational circuit with respect to all its angles. It runs in about a minute or less on a laptop CPU (`python examples/starter.py`) and prints one labelled line per part; the notes explain every function it uses, starting from nothing.
+The engine fits in one file, [`quantum_engine.py`](engine.qmd); notebook 08b, [Building the quantum simulator engine](ch03_matrix_free_engine/08b_building_quantum_simulator_engine.ipynb), explains every function in it with its mathematics and an independent check. Every capability above is a few lines of code on top of it. The snippet below prepares and samples a GHZ state, finds the ground state of a Heisenberg chain of sixteen spins, lets a Néel state melt under the same Hamiltonian, drives a decaying qubit with the Lindblad equation, and differentiates the energy of a variational circuit with respect to all its angles. It runs in about a minute or less on a laptop CPU (`python examples/starter.py`) and prints one labelled line per part; the notes explain every function it uses, starting from nothing.
 
 ```python
 import jax, jax.numpy as jnp
@@ -146,7 +146,7 @@ print(f"energy = {cost(theta):.4f}, gradient has {g.size} components")
 
 ## Chapters {#chapters}
 
-13 chapters, each a short overview page followed by runnable notebooks (53 in total). The notebooks are numbered globally; each one carries the engine functions it uses in a folded *Engine recap* cell and ends with exercises, so any notebook also runs and can be studied on its own.
+13 chapters, each a short overview page followed by runnable notebooks (54 in total). The notebooks are numbered globally; each one carries the engine functions it uses in a folded *Engine recap* cell and ends with exercises, so any notebook also runs and can be studied on its own.
 
 ::: {.chapter-grid}
 ::: {.chapter-card}
@@ -174,7 +174,7 @@ Build spin-chain Hamiltonians as dense matrices, diagonalise them and evolve sta
 
 Act on a many-body state with einsum, and compute observables, entanglement, channels and measurements.
 
-<span class="nbcount">4 notebooks</span>
+<span class="nbcount">5 notebooks</span>
 :::
 ::: {.chapter-card}
 [![](assets/thumbs/ch04.png){fig-alt="Digital quantum circuits"}](chapters/ch04_digital_quantum_circuits.qmd)

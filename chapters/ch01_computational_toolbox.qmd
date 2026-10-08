@@ -65,6 +65,6 @@ From sums over indices to einsum, reshape/transpose, Kronecker products, partial
 ::: {.nb-item}
 [A single excitation on a lattice](../lecture_notes_notebooks/49_single_excitation_on_a_lattice.ipynb)
 
-One excitation hopping on N sites, the smallest quantum problem in the course whose lattice is not an approximation to a continuum. Both solvable cases worked out in full — the ring by plane waves, giving the Bessel propagator $G_n(t) = (-i)^n J_n(2wt)$; the open chain by hard-wall standing waves, giving the sine sum. The light cone, its velocity 2w, and the Airy edge. This same N×N matrix returns later as the one-magnon sector of the XX chain and as free fermions, and it is the benchmark that validates the matrix-product-state machinery.
+One excitation hopping on N sites, the smallest quantum problem in the course whose lattice is not an approximation to a continuum. Both solvable cases worked out in full — the ring by plane waves, giving the Bessel propagator $G_n(t) = (-i)^n J_n(2wt)$; the open chain by hard-wall standing waves, giving the sine sum. The light cone, its velocity 2w, and the Airy edge. This same N×N matrix returns later as the one-magnon sector of the XX chain and as the single-particle Hamiltonian of free fermions, whose propagator supplies the exact reference for the matrix-product-state time evolution.
 :::
 

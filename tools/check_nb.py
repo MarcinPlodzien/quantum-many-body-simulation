@@ -52,7 +52,7 @@ def audit(path):
 if __name__ == "__main__":
     verbose = "-v" in sys.argv
     print(f"{'notebook':58s} cells words figs asrt  jit vmap scan grad  hard   KB  missing / #problems")
-    for p in sorted(list(ROOT.glob("part*/*.ipynb")) + list(ROOT.glob("ch*/*.ipynb"))):
+    for p in sorted(list(ROOT.glob("part*/*.ipynb")) + list(ROOT.glob("ch*/*.ipynb")) + list(ROOT.glob("lecture_notes_notebooks/*.ipynb"))):
         a = audit(p)
         j = a["jax"]
         print(f"{str(p.relative_to(ROOT))[:58]:58s} {a['cells']:5d} {a['md_words']:5d} {a['figs']:4d} {a['asserts']:4d} "

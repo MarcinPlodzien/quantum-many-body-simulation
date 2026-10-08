@@ -14,11 +14,11 @@
 #    time scale $T_1$); fluctuating magnetic fields scramble the phase of a trapped-ion qubit (dephasing, time scale $T_2$).
 #    The qubits become *entangled with an environment that we do not track*.
 #
-# In both situations the state vector of the system alone **does not exist**, and quantum mechanics needs a more general
-# object: the **density operator** (density matrix) $\rho$. Noise then acts on $\rho$ not through a unitary but through a
-# **quantum channel**. This is the language of every experimental paper on quantum hardware: gate fidelities, $T_1$/$T_2$
-# times, "depolarising error per gate", error-correction thresholds. It is also the language needed to answer a
-# many-body question of great practical importance: *how fast does the entanglement of a large state die?* Trapped-ion
+# In both situations no single state vector describes the system, and quantum mechanics needs a more general
+# object: the **density operator** (density matrix) $\rho$. Noise then acts on $\rho$ through a **quantum channel**, a
+# class of maps that contains the unitaries as a special case. This is the language of every experimental paper on quantum hardware: gate fidelities, $T_1$/$T_2$
+# times, "depolarising error per gate", error-correction thresholds. It is also the language needed for a
+# many-body question of great practical importance, the rate at which the entanglement of a large state decays. Trapped-ion
 # GHZ states of up to 14 qubits were found to lose their coherence *much* faster than a single qubit: in that experiment
 # the coherence of GHZ states of up to 8 ions decayed at a rate growing as $N^2$, because the magnetic-field noise was
 # spatially correlated (Monz *et al.*, 2011).
@@ -45,7 +45,7 @@
 # ### What you will learn
 #
 # **Physics**
-# * Why and when a state vector is not enough; the density operator, its three defining properties, purity and von Neumann entropy.
+# * The situations that require a density operator instead of a state vector; the density operator, its three defining properties, purity and von Neumann entropy.
 # * That a subsystem of an entangled pure state is mixed, and that *this* is how an environment produces noise.
 # * The standard single-qubit noise channels, their Kraus operators and their geometric action on the Bloch ball.
 # * Why macroscopic superpositions (GHZ states) decohere $N$ times faster in rate than single qubits, while their classical correlations survive.
@@ -88,7 +88,7 @@ COLORS = ["#0072B2", "#D55E00", "#009E73", "#CC79A7", "#E69F00", "#56B4E9", "#00
 plt.rcParams.update({"axes.grid": True, "grid.alpha": 0.3, "font.size": 10})
 
 # %% [markdown]
-# ## 2. When a state vector is not enough: statistical ensembles
+# ## 2. Statistical ensembles and the density operator
 #
 # ### 2.1 The density operator of an ensemble
 #
@@ -124,7 +124,7 @@ plt.rcParams.update({"axes.grid": True, "grid.alpha": 0.3, "font.size": 10})
 # * **Pure state**: a single term, $\rho=|\psi\rangle\langle\psi|$. Then $\rho^2=\rho$.
 # * **Mixed state**: anything else.
 #
-# ### 2.2 Superposition is not a mixture
+# ### 2.2 Superposition and mixture compared
 #
 # Compare the superposition $|+\rangle=(|0\rangle+|1\rangle)/\sqrt2$ with the 50/50 *mixture* of $|0\rangle$ and $|1\rangle$:
 #
@@ -178,10 +178,10 @@ assert err < TOL
 # eigenvalues tell the two apart without reference to any observable: $(0,1)$ for the pure state (one state with
 # certainty), $(\tfrac12,\tfrac12)$ for the mixture.
 #
-# The last line is a first surprise: a fair coin deciding between $|0\rangle$ and $|1\rangle$ and a fair coin deciding
+# The last line shows that a fair coin deciding between $|0\rangle$ and $|1\rangle$ and a fair coin deciding
 # between $|+\rangle$ and $|-\rangle$ give **the same** $\rho=\mathbb 1/2$. Since all predictions follow from $\rho$, *no
-# experiment can distinguish these two preparations*. The ensemble is a story we tell; the density operator is the
-# physical state.
+# experiment can distinguish these two preparations*. All measurable consequences of a preparation are contained in its
+# density operator; the particular ensemble used to build it has none of its own.
 #
 # The general rule behind this (quoted without proof; Nielsen & Chuang, Theorem 2.6, "unitary freedom in the ensemble
 # for density matrices") is stated with the *unnormalised* vectors $|\tilde\psi_k\rangle=\sqrt{p_k}\,|\psi_k\rangle$, so
@@ -192,7 +192,7 @@ assert err < TOL
 # same channel will admit different Kraus representations and hence different stochastic simulations.
 
 # %% [markdown]
-# ## 3. How mixed? Purity, entropy and the Bloch ball
+# ## 3. Purity, entropy and the Bloch ball
 #
 # ### 3.1 Purity and von Neumann entropy
 #
@@ -221,7 +221,7 @@ assert err < TOL
 #
 # **Pure states live on the surface of the Bloch sphere, mixed states inside the ball, the maximally mixed state
 # $\mathbb 1/2$ at the centre.** Populations are encoded in $r_z$, coherences in $r_x,r_y$. A noise process is then a map
-# of the ball into itself, and in §9 we shall literally draw it.
+# of the ball into itself, and in §9 we draw it.
 
 # %%
 # ==============================================================================
@@ -259,7 +259,7 @@ for name, rho in [("|+><+|", rho_plus), ("mixture", rho_mix)]:
 # This is the **reduced density matrix** (partial trace) of notebook 06, in einsum form `"ab,Ab->aA"`. For a product state
 # $\psi_{ab}=\alpha_a\beta_b$ it gives the pure state $\alpha_a\alpha^*_{a'}$. For the Bell state
 # $(|00\rangle+|11\rangle)/\sqrt2$ it gives $\rho_A=\mathbb 1/2$: **the whole is perfectly known, yet the part is maximally
-# random.** No classical ignorance is involved: the mixedness of $A$ *is* its entanglement with $B$.
+# random.** No classical ignorance is involved here; the mixedness of $A$ comes entirely from its entanglement with $B$.
 #
 # This is exactly how an environment acts on a system: $B$ is the electromagnetic field, the substrate, the rest of the
 # apparatus. They interact, they become entangled, we do not (cannot) measure $B$, and the system $A$ alone is left in a
@@ -322,7 +322,8 @@ fig.tight_layout(); plt.show()
 # *through the interior* of the ball along the $z$-axis (left panel; colour encodes $\theta$), reaching the centre exactly at
 # the Bell state, and continues to the south pole $|1\rangle$ at $\theta=\pi/2$ where the pair is a product state again. The
 # right panel shows purity dropping from 1 to ½ while the entropy rises from 0 to 1 bit, which is, as in notebook 06, the
-# entanglement entropy of the pair. Moving into the Bloch ball and becoming entangled with something else are the same thing.
+# entanglement entropy of the pair. For a pure state of the pair, the depth of qubit $A$'s Bloch vector inside the ball
+# ($1-|\mathbf r|$) is a direct measure of its entanglement with $B$.
 #
 # > **Physics insight.** A mixed state can always be read in both ways. Given $\rho_A=\sum_i\lambda_i|i\rangle\langle i|$ one
 # > can *construct* a pure state $\sum_i\sqrt{\lambda_i}\,|i\rangle_A|i\rangle_B$ of a larger system whose reduced state is
@@ -434,7 +435,7 @@ assert abs(float(purity(R)) - 0.58) < 1e3 * TOL
 
 # %%
 # ==============================================================================
-# VALIDATION TOOLS: random mixed states and dense (kron) embeddings -- small N only!
+# VALIDATION TOOLS: random mixed states and dense (kron) embeddings -- small N only
 # ==============================================================================
 def random_mixed_state(key, N, rank=3):
     """Random density tensor  rho = sum_k w_k |phi_k><phi_k|  with Haar-random |phi_k> and random weights w_k."""
@@ -500,8 +501,10 @@ assert max(err_pt, err_loc, err_str) < TOL
 
 # %% [markdown]
 # > **Numerical practice.** The density tensor holds $4^N$ complex numbers, the *square* of the state vector's $2^N$. With
-# > `complex128` (16 bytes) that is 1 MB at $N=8$, 16 MB at $N=10$, 4 GB at $N=14$. Everything in §5–§10 is therefore
-# > limited to roughly $N\lesssim 12$ qubits on a laptop. §11 removes this limit at the price of statistical noise.
+# > `complex128` (16 bytes) one copy takes $16\cdot4^N$ bytes: 1 MB at $N=8$, 16 MB at $N=10$, 256 MB at $N=12$, 1 GB at
+# > $N=13$, 4 GB at $N=14$. A computation holds several copies at once (input, output, einsum intermediates), so on a
+# > laptop with 16 GB of memory everything in §5–§10 ends at $N\approx13$–$14$. This is the ceiling quoted in the rest of
+# > the notebook. §11 removes it at the price of statistical noise.
 
 # %% [markdown]
 # ## 6. Unitary evolution of a density tensor
@@ -649,14 +652,14 @@ assert dp < TOL and dS < 1e3 * TOL
 # $K\rho K^\dagger$ is positive if $\rho$ is, so $\mathcal E(\rho)$ is again a valid state.
 #
 # **Why "completely" positive.** A linear map that sends states of the system to states of the system is called
-# *positive*. That is not enough to be physical. The system may be one half of an entangled pair whose other half $R$ is
+# *positive*. Physical maps must satisfy a stronger condition. The system may be one half of an entangled pair whose other half $R$ is
 # a spectator that the channel does not touch; the physical map is then $\mathcal E\otimes\mathrm{id}_R$, and *it* must
 # send joint states to joint states, for a spectator of **any** dimension. A map with that stronger property is
 # **completely positive**. The two notions really differ: the transposition $\rho\to\rho^{\mathrm T}$ is positive
 # (transposing does not change the eigenvalues) but not completely positive, because transposing only the first qubit of
 # the Bell state $(|00\rangle+|11\rangle)/\sqrt2$ gives a matrix with eigenvalues
-# $(\tfrac12,\tfrac12,\tfrac12,-\tfrac12)$ — a negative probability. This is not an exotic counterexample: §10.1 turns
-# exactly that failure into an entanglement detector. The Kraus form (3) is manifestly completely positive, because
+# $(\tfrac12,\tfrac12,\tfrac12,-\tfrac12)$, one of which would be a negative probability. §10.1 turns exactly this
+# failure into an entanglement detector. The Kraus form (3) is manifestly completely positive, because
 # $\sum_m(K_m\otimes\mathbb 1_R)\,\Omega\,(K_m\otimes\mathbb 1_R)^\dagger$ is a sum of positive operators for every joint
 # state $\Omega$. Maps that are completely positive and trace preserving are called **quantum channels** (CPTP maps).
 #
@@ -844,12 +847,12 @@ print(f"purity before {float(purity(R)):.4f} -> after {float(purity(dm_matrix(ou
 # | channel | Kraus operators | action on $\rho$ | physical origin |
 # |---|---|---|---|
 # | **bit flip** | $\sqrt{1-p}\,\mathbb 1,\;\sqrt p\,X$ | $(1-p)\rho+pX\rho X$ | random $X$ errors (classical bit errors in a memory) |
-# | **phase flip = dephasing** | $\sqrt{1-p}\,\mathbb 1,\;\sqrt p\,Z$ | $(1-p)\rho+pZ\rho Z$; $\;\rho_{01}\to(1-2p)\rho_{01}$ | fluctuating energy splitting (magnetic-field noise); "$T_2$" |
+# | **phase flip = dephasing** | $\sqrt{1-p}\,\mathbb 1,\;\sqrt p\,Z$ | $(1-p)\rho+pZ\rho Z$; $\;\rho_{01}\to(1-2p)\rho_{01}$ | fluctuating energy splitting (magnetic-field noise); "$T_\phi$", part of $T_2$ |
 # | **depolarising** | $\sqrt{1-p}\,\mathbb 1,\;\sqrt{p/3}\,X,\;\sqrt{p/3}\,Y,\;\sqrt{p/3}\,Z$ | $(1-p)\rho+\tfrac p3(X\rho X+Y\rho Y+Z\rho Z)$ | unbiased noise; the standard model of gate errors |
 # | **amplitude damping** | $\begin{pmatrix}1&0\\0&\sqrt{1-\gamma}\end{pmatrix},\;\begin{pmatrix}0&\sqrt\gamma\\0&0\end{pmatrix}$ | $\rho_{11}\to(1-\gamma)\rho_{11}$, $\rho_{01}\to\sqrt{1-\gamma}\rho_{01}$ | spontaneous emission, energy relaxation; "$T_1$" |
 # | **phase damping** | $\begin{pmatrix}1&0\\0&\sqrt{1-\lambda}\end{pmatrix},\;\begin{pmatrix}0&0\\0&\sqrt\lambda\end{pmatrix}$ | $\rho_{01}\to\sqrt{1-\lambda}\,\rho_{01}$, populations fixed | elastic scattering: the environment learns *whether* the qubit is in $\vert1\rangle$ |
 #
-# In the first three, "with probability $p$ an error happens" is literally true, and the Kraus operators are rescaled
+# In the first three, "with probability $p$ an error happens" is exactly true, and the Kraus operators are rescaled
 # unitaries. The last two are of the system–environment type of §7.2 and their Kraus operators are not proportional to
 # unitaries. If noise acts continuously at a rate, a time step $\Delta t$ corresponds to
 # $\gamma=1-e^{-\Delta t/T_1}$ for amplitude damping and $1-2p=e^{-\Delta t/T_\phi}$ for pure dephasing
@@ -938,7 +941,7 @@ report("coherence scaled by sqrt(1 - lambda) = 0.8, populations unchanged",
 
 # %% [markdown]
 # > **Common pitfall.** Parametrisations differ between books and codes. With our depolarising convention
-# > $\rho\to(1-p)\rho+\tfrac p3(\dots)$ the state is *completely* depolarised at $p=3/4$, not at $p=1$ (checked above); some
+# > $\rho\to(1-p)\rho+\tfrac p3(\dots)$ the state is *completely* depolarised already at $p=3/4$ (checked above); some
 # > authors write $\rho\to(1-p')\rho+p'\,\mathbb 1/2$ instead, with $p'=4p/3$. Likewise, dephasing is complete at $p=1/2$, and at
 # > $p=1$ the channel is just the unitary $Z$. Always check the convention with a one-line test like the ones above.
 
@@ -1023,10 +1026,12 @@ titles = {"bit flip": rf"bit flip, $p={p}$", "dephasing": rf"dephasing, $p={p}$"
 for ax, col, (name, (Kc, _, _)) in zip(axes, COLORS, analytic.items()):
     M, cvec = (np.asarray(a) for a in bloch_map(Kc))
     img = np.einsum("ab,bij->aij", M, sphere) + cvec[:, None, None]     # r -> M r + c for every grid point
+    ax.computed_zorder = False                                         # draw in zorder: pole markers on top of the surface
     ax.plot_wireframe(*sphere, color="0.6", lw=0.3, rstride=4, cstride=4)
     ax.plot_surface(*img, color=col, alpha=0.55, lw=0)
     for pole, pc in [((0, 0, 1), "k"), ((0, 0, -1), COLORS[4])]:
-        ax.scatter(*(M @ np.array(pole) + cvec), color=pc, s=25, depthshade=False)
+        ax.scatter(*(M @ np.array(pole) + cvec), color=pc, s=70, edgecolors="white", linewidths=1.0,
+                   depthshade=False, zorder=10)
     ax.set_box_aspect((1, 1, 1)); ax.set_xlim(-1, 1); ax.set_ylim(-1, 1); ax.set_zlim(-1, 1)
     ax.set_xlabel(r"$r_x$", labelpad=-8); ax.set_ylabel(r"$r_y$", labelpad=-8); ax.set_zlabel(r"$r_z$", labelpad=-8)
     ax.set_xticks([-1, 0, 1]); ax.set_yticks([-1, 0, 1]); ax.set_zticks([-1, 0, 1])
@@ -1052,7 +1057,7 @@ fig.tight_layout(); plt.show()
 # statement, quoted without proof (Nielsen & Chuang, Theorem 8.2, "unitary freedom in the operator-sum representation"),
 # has exactly the shape of the ensemble rule of §2.2: after padding the shorter of the two lists with zero operators so
 # that both contain $M$ elements, two Kraus sets describe the same channel if and only if $K'_m=\sum_nu_{mn}K_n$ with an
-# $M\times M$ unitary matrix $u$. The padding is not a formality — it is what makes $u$ square. The identity channel, for
+# $M\times M$ unitary matrix $u$. The padding is what makes $u$ square. The identity channel, for
 # instance, is written either as $\{\mathbb 1\}$ or as $\{\cos\alpha\,\mathbb 1,\ \sin\alpha\,\mathbb 1\}$, and the two
 # lists are related by a $2\times2$ rotation only once the first has been padded to $\{\mathbb 1,\,0\}$.
 # Physically, $u$ is a change of the basis in which the *environment*
@@ -1146,8 +1151,8 @@ for col, (name, rec) in zip(COLORS, curves.items()):
         ax.plot(n_arr, rec[:, j], color=col, label=name)
 for ax, lab in zip(axes, [r"purity $\mathrm{Tr}\rho^2$", r"entropy $S(\rho)$ [bits]", r"fidelity $\langle\psi_0|\rho|\psi_0\rangle$"]):
     ax.set_xlabel("number of channel applications $n$"); ax.set_ylabel(lab)
-axes[0].legend(fontsize=8); axes[0].set_title("how mixed?"); axes[1].set_title("how much information lost?")
-axes[2].set_title("how close to the initial state?")
+axes[0].legend(fontsize=8); axes[0].set_title("purity"); axes[1].set_title("von Neumann entropy")
+axes[2].set_title("fidelity with the initial state")
 fig.suptitle(rf"One qubit under repeated noise, strength {strength} per application", y=1.0)
 fig.tight_layout(); plt.show()
 
@@ -1164,8 +1169,8 @@ for name, rec in curves.items():
 # * *Amplitude damping* is qualitatively different: purity first **drops** (the qubit is entangled with the emitted
 #   photon) and then **recovers** towards 1 while the entropy returns towards zero: the qubit relaxes to the pure ground
 #   state $|0\rangle$. Its fidelity with the initial, mostly-$|1\rangle$ state keeps decaying, towards
-#   $|\langle\psi_0|0\rangle|^2=\cos^2(\vartheta/2)=0.25$ (it has reached 0.35 after 60 steps). Purity measures mixedness,
-#   not closeness to the state you wanted. You need fidelity for that.
+#   $|\langle\psi_0|0\rangle|^2=\cos^2(\vartheta/2)=0.25$ (it has reached 0.35 after 60 steps). Purity measures mixedness;
+#   closeness to the intended state is measured by the fidelity.
 
 # %% [markdown]
 # ## 10. Many-body physics: a GHZ state under local noise
@@ -1211,7 +1216,10 @@ for name, rec in curves.items():
 #   $\sum_kp_k\,(\rho_A^{(k)})^{\mathrm T}\otimes\rho_B^{(k)}$, and transposing a density matrix leaves its eigenvalues
 #   alone. A negative eigenvalue therefore certifies entanglement — and it is possible only because transposition is
 #   positive but *not* completely positive (§7.2). In tensor form the partial transpose is a swap of the ket axis $q$ with the bra axis $N+q$,
-#   one `jnp.transpose`. The details and proofs belong to notebook 25 of Chapter 9 (Peres 1996; Vidal & Werner 2002, see the
+#   one `jnp.transpose`. The engine's `partial_transpose` (shown below) first passes its argument through `as_dm_tensor`,
+#   which reshapes a $(2^N,2^N)$ matrix such as the output of `rdm` or `dm_matrix` into the rank-$2N$ tensor. Without that
+#   step a matrix would have only two axes, the "swap" would transpose the whole matrix, the eigenvalues would not change,
+#   and the negativity would come out as exactly zero for every state. The details and proofs belong to notebook 25 of Chapter 9 (Peres 1996; Vidal & Werner 2002, see the
 #   references); here we use it as a ready-made thermometer. For the dephased GHZ state the partial transpose moves the coherence
 #   $\tfrac c2$, $c=(1-2p)^N$, to a $2\times2$ block between the *unpopulated* basis states $|10..0\rangle,|01..1\rangle$; its
 #   eigenvalues are $\pm\tfrac c2$, so $\mathcal N=\tfrac12(1-2p)^N$.
@@ -1363,20 +1371,21 @@ for name, rec in sweeps.items():
 #   strength. For dephasing it follows $\tfrac12(1-2p)^N$ exactly (checked above): it is tiny beyond $p\approx0.25$ but
 #   vanishes only at $p=0.5$. Under depolarising noise it reaches zero already at a *finite* noise strength (see the last
 #   lines of the printout), a phenomenon known as "sudden death" of entanglement.
-# * Compare the bit-flip curves in the two panels: its *fidelity* falls fastest of all four channels, yet over most of
-#   the range its *negativity* is the **largest** of the four (only amplitude damping, which is not a Pauli channel and
-#   pulls the state towards the pure $|0\dots0\rangle$, still has a non-zero negativity at $p=0.5$).
+# * Compare the bit-flip curves in the two panels: its *fidelity* falls fastest of all four channels, yet up to
+#   $p\approx0.25$ its *negativity* is the **largest** of the four (beyond that amplitude damping, which is not a Pauli
+#   channel and pulls the state towards the pure $|0\dots0\rangle$, overtakes it and is the only channel with a non-zero
+#   negativity at $p=0.5$).
 #   A bit-flip pattern maps the GHZ state to another GHZ-like state $(|s\rangle+|\bar s\rangle)/\sqrt2$ ($\bar s$ = complement of
-#   the bit string $s$), which is orthogonal to the target but just as entangled. "How close am I to the state I wanted?" and
-#   "how much entanglement is left?" are different questions with different answers.
+#   the bit string $s$), which is orthogonal to the target but just as entangled. Fidelity with the target and the
+#   entanglement that remains are different figures of merit, and they can rank the same channels in opposite order.
 
 # %% [markdown]
 # ## 11. Stochastic unravelling: channels on pure states
 #
 # ### 11.1 The idea and the proof
 #
-# The density tensor costs $4^N$ numbers. Can we simulate noise with state vectors of $2^N$ numbers? Yes, if we accept
-# randomness. Recall that the Kraus index $m$ labels what the environment could have recorded. Imagine that somebody
+# The density tensor costs $4^N$ numbers. Noise can also be simulated with state vectors of $2^N$ numbers, at the price
+# of randomness. Recall that the Kraus index $m$ labels what the environment could have recorded. Imagine that somebody
 # *does* look at the environment after every channel. Given the pure state $|\psi\rangle$, record $m$ occurs with probability
 #
 # $$ p_m=\|K_m|\psi\rangle\|^2=\langle\psi|K_m^\dagger K_m|\psi\rangle,\qquad\sum_mp_m=\langle\psi|\textstyle\sum_mK_m^\dagger K_m|\psi\rangle=1\quad\text{(completeness, Eq. 4)}, $$
@@ -1425,8 +1434,8 @@ for name, rec in sweeps.items():
 #
 # > **JAX practice.** Random numbers in JAX are explicit: every random decision consumes a `key`, and new keys are made
 # > with `jax.random.split`. Same key, same trajectory, so stochastic simulations are reproducible and can be
-# > parallelised safely (one key per trajectory). The selection `K[m]` with a *traced* integer `m` is a gather, not a Python
-# > `if`, so the function stays compatible with `jit` and `vmap`.
+# > parallelised safely (one key per trajectory). The selection `K[m]` with a *traced* integer `m` is a gather and involves
+# > no Python `if`, so the function stays compatible with `jit` and `vmap`.
 
 # %%
 # ==============================================================================
@@ -1469,7 +1478,11 @@ assert float(jnp.max(jnp.abs(probs_rdm - jnp.array(probs)))) < TOL
 # $|1\rangle$ with $\langle Z\rangle=\pm1$, and the exact average is $1-2p=0.4$. (ii) Amplitude damping with $\gamma=0.4$ on
 # $|1\rangle$: exact $\langle Z\rangle=2\gamma-1=-0.2$. We run $10^5$ trajectories *in parallel* with `jax.vmap` over an
 # array of keys, estimate $\langle Z\rangle$ from the first $M$ of them, and compare with the exact value **in units of its standard error** $\mathrm{SE}=\mathrm{std}/\sqrt M$. A correct
-# code gives deviations of order one SE, and values beyond 4 SE would be alarming.
+# code gives deviations of order one SE, and values beyond 4 SE would be alarming. A test of this kind is only worth
+# something if a wrong code fails it, so the cell also runs a deliberately broken sampler that draws the branch $m$
+# uniformly instead of with probability $p_m$ (forgetting the Born weights). Its averages are $0$ in both experiments
+# (bit flip: $\tfrac12(+1)+\tfrac12(-1)$; amplitude damping: $K_0|1\rangle\propto|1\rangle$ and $K_1|1\rangle\propto|0\rangle$
+# with equal frequency), and the same $4.5$ SE criterion must reject it.
 
 # %%
 # ==============================================================================
@@ -1501,10 +1514,38 @@ for label, psi0_, Kc, exact in tests:
         print(f"   M = {M:>7d}:  <Z> = {float(mean):+.5f} +- {float(se):.5f}   |error| = {dev:.5f} = {dev / float(se):.2f} SE")
         assert dev < 4.5 * float(se)
 
+
+# ---- wrong control: a sampler that forgets the Born weights must FAIL the same test ------------------------------
+def apply_kraus_uniform(key, psi, kraus, qubits):
+    """DELIBERATELY WRONG unravelling: branch m drawn with probability 1/M_K instead of p_m = ||K_m psi||^2."""
+    K = jnp.asarray(kraus, dtype=CDTYPE)
+    m = jax.random.randint(key, (), 0, K.shape[0])
+    psi = apply_gate(psi, K[m], qubits)
+    return psi / jnp.linalg.norm(psi)
+
+
+@jax.jit
+def uniform_Z_values(key, psi0, kraus):
+    def one_trajectory(k):
+        psi = apply_kraus_uniform(k, psi0, kraus, [0])
+        return jnp.real(jnp.vdot(psi, apply_gate(psi, Z, [0])))
+    return jax.vmap(one_trajectory)(jax.random.split(key, M_max))
+
+
+print("\nwrong control (branches drawn uniformly, Born weights forgotten), M = 100 000:")
+for label, psi0_, Kc, exact in tests:
+    key, sub = jax.random.split(key)
+    vals = uniform_Z_values(sub, psi0_, Kc)
+    z_wrong = abs(float(jnp.mean(vals)) - exact) / (float(jnp.std(vals)) / np.sqrt(M_max))
+    print(f"   {label}:  <Z> = {float(jnp.mean(vals)):+.5f}, {z_wrong:.0f} SE from the exact value")
+    assert z_wrong > 4.5                                        # the test detects the bug
+
 # %% [markdown]
 # The estimates scatter around the exact values by about one standard error, and the standard error itself shrinks by
 # $\sqrt{10}\approx3.2$ for every tenfold increase of $M$. Look at the printed deviations in units of SE: they are of order
-# one at every $M$, which is the signature of an unbiased estimator with correctly estimated error bars.
+# one at every $M$ (largest 1.43), which is the signature of an unbiased estimator with correctly estimated error bars.
+# The broken sampler, analysed with exactly the same criterion, misses the exact values by 126 and 63 standard errors,
+# so the test has the power to detect a wrong unravelling.
 #
 # ### 11.3 Same channel, different trajectories
 #
@@ -1543,17 +1584,22 @@ for label, Kc, key in [("Z-flip unravelling", kraus_dephasing(p_equiv), jax.rand
     print(f"{label:26s}: trajectory values of <X> {uniq} with frequencies {np.round(counts / M, 4)}")
     print(f"{'':26s}  mean = {mean:.5f} +- {std / np.sqrt(M):.5f}   single-trajectory std = {std:.4f}")
     assert abs(mean - exact_x) < 4.5 * std / np.sqrt(M)
+    # wrong control: the misread coherence factor 1 - lambda (instead of sqrt(1 - lambda)) must be rejected
+    z_wrong = abs(mean - (1 - lam)) / (std / np.sqrt(M))
+    print(f"{'':26s}  wrong control 1 - lambda = {1 - lam:.2f}: {z_wrong:.0f} SE away")
+    assert z_wrong > 4.5
 
 # %% [markdown]
 # Both unravellings reproduce $\langle X\rangle=0.8$ within their error bars, but the single-trajectory standard deviation is
 # $\sqrt\lambda=0.6$ for the $Z$-flip version and markedly smaller for the phase-damping version (analytically
 # $\sqrt{\lambda(1-\lambda)/(2-\lambda)}\approx0.37$). Since the number of trajectories needed for a given precision is
 # proportional to the variance, the second unravelling needs
-# $\lambda\big/\big[\lambda(1-\lambda)/(2-\lambda)\big]=(2-\lambda)/(1-\lambda)=2.56$ times fewer of them.
+# $\lambda\big/\big[\lambda(1-\lambda)/(2-\lambda)\big]=(2-\lambda)/(1-\lambda)=2.56$ times fewer of them. Both runs also
+# reject the value $1-\lambda=0.64$ that a misread coherence factor would give (by 38 and 60 standard errors).
 #
 # > **Physics insight.** The channel fixes the *average*; the Kraus representation (what the imagined observer measures on
-# > the environment) fixes the *individual trajectories* and the Monte-Carlo variance. Single trajectories are not merely
-# > a numerical trick: experiments that do monitor the environment (photon counting on a single ion or superconducting
+# > the environment) fixes the *individual trajectories* and the Monte-Carlo variance. Single trajectories also have a
+# > direct experimental meaning: experiments that do monitor the environment (photon counting on a single ion or superconducting
 # > qubit) observe exactly such quantum jumps.
 #
 # ### 11.4 GHZ with one noisy qubit: density tensor against trajectories
@@ -1579,6 +1625,7 @@ def observables_pure(psi):
 print(f"{'channel on qubit 0':20s} | {'<Z_0>':^23s} | {'<Z_0 Z_5>':^23s} | {'<X..X>':^23s} | {'F_GHZ':^23s}")
 print(f"{'':20s} | " + " | ".join([f"{'exact':>8s} {'MCWF':>14s}"] * 4))
 key = jax.random.PRNGKey(2024)
+z_max, z_ctrl = 0.0, {}
 for name, fn in CHANNELS.items():
     Kc = fn(p)
     key, sub = jax.random.split(key)
@@ -1589,9 +1636,23 @@ for name, fn in CHANNELS.items():
     print(f"{name:20s} | " + " | ".join(f"{e:+8.4f} {float(m_):+7.4f}±{float(s_):.4f}" for e, m_, s_ in zip(exact, mean, se)))
     for e, m_, s_ in zip(exact, mean, se):
         assert abs(e - float(m_)) <= 4.5 * float(s_) + 1e3 * TOL
+        if float(s_) > 0:
+            z_max = max(z_max, abs(e - float(m_)) / float(s_))
+    # wrong control: the same trajectories with the branch drawn uniformly (Born weights forgotten)
+    sub_w = jax.random.fold_in(sub, 1)                          # an independent key stream for the control
+    wrong = jax.jit(jax.vmap(lambda k: observables_pure(apply_kraus_uniform(k, ghz, Kc, [0]))))(jax.random.split(sub_w, M))
+    w_mean, w_se = jnp.mean(wrong, axis=0), jnp.std(wrong, axis=0) / jnp.sqrt(M)
+    z_ctrl[name] = max(abs(e - float(m_)) / max(float(s_), 1e-12) for e, m_, s_ in zip(exact, w_mean, w_se))
+    assert z_ctrl[name] > 4.5
+print(f"\nlargest deviation of a non-trivial MCWF estimate from the exact value: {z_max:.2f} SE")
+print("wrong control (uniform branch choice), largest deviation per channel: "
+      + ", ".join(f"{n} {z:.0f} SE" for n, z in z_ctrl.items()))
 
 # %% [markdown]
-# Every trajectory estimate agrees with the exact density-tensor value within its error bar. Several error bars are
+# Every trajectory estimate agrees with the exact density-tensor value within two standard errors. The largest deviation,
+# 1.8 SE, occurs for amplitude damping, and it appears in all four columns at once. This is a single fluctuation: in every
+# trajectory the four observables are fixed functions of one binary event (photon emitted or not), so they share the same
+# random error. The uniform-branch sampler of §11.2 fails this test for every channel (by 38 to 81 SE). Several error bars are
 # **exactly zero**: $\langle Z_0Z_5\rangle$ under dephasing, for instance, equals 1 in *every* trajectory, so there is nothing
 # to average. At the other extreme, $\langle X^{\otimes N}\rangle$ under dephasing is $\pm1$ per trajectory and only the
 # average is $0.6$.
@@ -1602,7 +1663,7 @@ for name, fn in CHANNELS.items():
 # $\propto|0\dots0\rangle+\sqrt{1-\gamma}\,|1\dots1\rangle$: even *not* seeing a photon is information that makes "all zeros" more likely.
 #
 # > **Common pitfall.** Only quantities **linear in $\rho$** are trajectory averages. Each trajectory is pure (purity 1,
-# > entropy 0), so averaging per-trajectory purities gives 1, not $\mathrm{Tr}\rho^2$. Non-linear quantities need
+# > entropy 0), so averaging per-trajectory purities gives 1 instead of $\mathrm{Tr}\rho^2$. Non-linear quantities need
 # > $\bar\rho=\frac1M\sum_i|\psi^{(i)}\rangle\langle\psi^{(i)}|$ itself (which costs $4^N$ again) or special estimators (Exercise 8).
 
 # %%
@@ -1614,13 +1675,26 @@ states = jax.jit(jax.vmap(lambda k: apply_kraus_mcwf(k, ghz, Kc, [0])))(jax.rand
 flat = states.reshape(M, -1)                                    # (M, 2^N): one state vector per row
 rho_bar = jnp.einsum("ti,tj->ij", flat, jnp.conj(flat)) / M     # (1/M) sum_t |psi_t><psi_t| : Eq. (1) with p_t = 1/M
 traj_purities = jnp.real(jnp.einsum("ti,ti->t", jnp.conj(flat), flat)) ** 2   # Tr (|psi><psi|)^2 = <psi|psi>^2
+pur_exact = dm_table["depolarising"][4]
+pur_bar = float(purity(rho_bar))
+# Tr(rho_bar^2) = (1/M^2) sum_{s,t} |<psi_s|psi_t>|^2: the M diagonal terms are 1, so E[Tr rho_bar^2] = (1 - 1/M) Tr rho^2 + 1/M.
+# Its statistical error (a U-statistic) is 2 std(h)/sqrt(M) with h(psi) = <psi| rho |psi>, rho the exact state.
+R_exact = dm_matrix(apply_kraus_dm(to_dm(ghz), Kc, [0]))
+h = jnp.real(jnp.einsum("ti,ij,tj->t", jnp.conj(flat), R_exact, flat))
+pur_expected = (1 - 1 / M) * pur_exact + 1 / M
+se_pur = 2 * float(jnp.std(h)) / np.sqrt(M)
 print(f"mean of single-trajectory purities : {float(jnp.mean(traj_purities)):.4f}   (wrong: always 1)")
-print(f"purity of the averaged projector   : {float(purity(rho_bar)):.4f}")
-print(f"exact (density tensor)             : {dm_table['depolarising'][4]:.4f}")
+print(f"purity of the averaged projector   : {pur_bar:.4f} +- {se_pur:.4f}")
+print(f"exact (density tensor)             : {pur_exact:.4f}   (expected value of the estimator, incl. the 1/M bias: {pur_expected:.4f})")
+assert abs(pur_bar - pur_expected) < 4.5 * se_pur
+assert abs(1.0 - pur_expected) > 4.5 * se_pur                   # the naive average is rejected by the same test
 
 # %% [markdown]
-# The averaged projector reproduces the exact purity up to a small statistical error, while the naive average of
-# purities is 1 by construction.
+# The averaged projector reproduces the exact purity within its statistical error, while the naive average of
+# purities is 1 by construction. Two details of this estimator are worth knowing. Writing
+# $\mathrm{Tr}\,\bar\rho^2=M^{-2}\sum_{s,t}|\langle\psi^{(s)}|\psi^{(t)}\rangle|^2$, the $M$ terms with $s=t$ equal 1, so the
+# estimator is biased upwards by $(1-\mathrm{Tr}\rho^2)/M$ (here $9\times10^{-5}$, far below the statistical error). The
+# terms with $s\ne t$ are the unbiased estimator of Exercise 8.
 #
 # ### 11.5 Layers of noise: `scan` over time, `vmap` over trajectories
 #
@@ -1695,6 +1769,24 @@ worst = float(jnp.max(jnp.abs(mean - obs_exact) / se))
 print(f"largest deviation |MCWF - exact| over all layers and both observables: {worst:.2f} SE")
 assert worst < 4.5
 
+# wrong control: an "exact" reference with the dephasing convention misread as rho_01 -> (1 - p) rho_01 per layer
+# (i.e. kraus_dephasing(p/2)) must be rejected by the same trajectories
+layer_channels_wrong = (kraus_amplitude_damping(gamma_layer), kraus_dephasing(p_layer / 2))
+
+
+def exact_dm_evolution_wrong(rho0):
+    def step(rho, _):
+        for Kc in layer_channels_wrong:
+            rho = apply_kraus_all_dm(rho, Kc)
+        return rho, observe_dm(rho)
+    return lax.scan(step, rho0, None, length=n_layers)[1]
+
+
+obs_wrong = jax.jit(exact_dm_evolution_wrong)(to_dm(ghz8))
+worst_wrong = float(jnp.max(jnp.abs(mean - obs_wrong) / se))
+print(f"wrong control (coherence factor 1 - p per layer): largest deviation {worst_wrong:.1f} SE")
+assert worst_wrong > 4.5
+
 # %%
 # ==============================================================================
 # FIGURE: single trajectories, their average, and the exact density-tensor result
@@ -1727,9 +1819,12 @@ print(f"after {n_layers} layers: exact F = {float(obs_exact[-1, 0]):.4f}, MCWF F
 # jumps the curves drift slowly: the no-jump operator $K_0$ of amplitude damping keeps shrinking the $|1\dots1\rangle$
 # amplitude. (ii) A *dephasing* jump ($Z_q$) flips the relative sign of the two GHZ components: the parity changes sign and
 # the fidelity drops to almost zero; a second such jump restores both. (iii) An *emission* jump ($K_1$) collapses the cat
-# to a product state: the parity is exactly zero from then on, and so is the fidelity. None of the grey lines resembles
+# to a product state: the parity is exactly zero from then on, and so is the fidelity (it could return, to ½, only if
+# every remaining excited qubit also emitted). None of the grey lines resembles
 # the smooth black curve, yet their average does: the blue points (all trajectories) sit on the exact result with error
 # bars smaller than the symbols, and the orange points ($M=200$) scatter around it consistently with their larger error bars.
+# The largest deviation of the full ensemble is 1.43 SE over all layers and both observables, while a reference computed
+# with the dephasing convention misread as $\rho_{01}\to(1-p)\rho_{01}$ per layer is rejected at 20 SE.
 #
 # ### 11.6 Convergence: the $1/\sqrt M$ law
 #
@@ -1777,18 +1872,37 @@ print(f"single-trajectory std sigma = {sigma:.4f};  fitted slope of the RMS erro
 print(f"block size M                 : {rms_M}")
 print(f"number of blocks             : {n_blocks}")
 print(f"RMS error / (sigma/sqrt(M))  : {np.round(rms / (sigma / np.sqrt(rms_M)), 2)}")
+# the RMS about the exact value splits EXACTLY into the scatter of the blocks about their common mean (= the grand mean of
+# all M_traj trajectories) and the offset of that grand mean from the exact value, which every block inherits:
+#   mean_b (b - f_exact)^2 = mean_b (b - g)^2 + (g - f_exact)^2,   g = grand mean
+g_mean = float(jnp.mean(f_final))
+offset_se = (g_mean - f_exact) / (sigma / np.sqrt(M_traj))
+rms_g = np.array([float(jnp.sqrt(jnp.mean((jnp.mean(f_final.reshape(-1, m), axis=1) - g_mean) ** 2))) for m in rms_M])
+print(f"grand mean of all {M_traj} trajectories = {g_mean:.4f}, exact = {f_exact:.4f}: offset = {offset_se:+.2f} SE of the full sample")
+print(f"RMS about the grand mean / (sigma/sqrt(M)): {np.round(rms_g / (sigma / np.sqrt(rms_M)), 2)}")
+n_cover = int(np.sum(np.abs(est - f_exact) <= est_se))
+print(f"left panel: the 1-SE error bar covers the exact value at {n_cover} of {len(Ms)} (nested) estimates")
 assert abs(slope + 0.5) < 0.1
+assert abs(slope + 1.0) > 0.3                                   # wrong control: a 1/M law is rejected by the fit
 
 # %% [markdown]
-# **Interpretation.** Left: the estimates converge to the exact value and the error bars cover it in the way one-sigma
-# error bars should (roughly two thirds of the time; note that the points are not independent, since each estimate
-# contains the trajectories of the previous one). Right, on log–log axes: the block-RMS error (orange squares) follows the
+# **Interpretation.** Left: the estimates converge to the exact value. The one-sigma error bars cover it at 5 of the 11
+# points, fewer than the two thirds expected for independent estimates, but these estimates are nested (each contains the
+# trajectories of the previous one) and therefore share their fluctuations: the full sample of 8192 trajectories lies
+# $+1.40$ SE above the exact value, and the last five points, which consist mostly of the same trajectories, sit above it
+# too. Right, on log–log axes: the block-RMS error (orange squares) follows the
 # line $\sigma/\sqrt M$ with a fitted slope close to $-\tfrac12$, while a *single* estimate (blue dots) fluctuates around and
-# below the line, as any one draw of a random variable does. The last squares are averages over only 8–16 blocks and are
-# therefore noisy themselves (an RMS over $n$ samples has a relative uncertainty of about $1/\sqrt{2n}$), which is why the
-# printed ratios drift away from 1 at the largest block sizes and why the fit uses only block sizes with at least 32 blocks. The practical rule follows: **to gain one more decimal digit you need
-# 100 times more trajectories.** Trajectories are the right tool for answers at the 1 %–0.1 % level and the wrong tool for
-# ten digits. The $N$ dependence enters only through the cost of one trajectory, to which we now turn.
+# below the line, as any one draw of a random variable does. The printed ratios drift away from 1 at the three largest
+# block sizes, and the printout separates the two reasons. The mean square error about the exact value $f$ splits exactly,
+# $\overline{(b-f)^2}=\overline{(b-g)^2}+(g-f)^2$, where $b$ runs over the block means and $g$ is their common mean, the
+# grand mean of all trajectories. Every block inherits the offset $g-f$ of the grand mean, which adds
+# $1.40^2\,M/8192$ to the squared ratio: $0.12$ at $M=512$ and $0.25$ at $M=1024$. The larger part comes from the
+# scatter about $g$ (ratios 1.22, 1.38, 1.32): an RMS over only $n=32$, 16 and 8 blocks is itself a noisy number, with a
+# relative uncertainty of about $1/\sqrt{2n}=0.13$, 0.18 and 0.25, and the three values are correlated because they are
+# built from the same trajectories. This is also why the fit uses only block sizes with at least 32 blocks; its slope is
+# $-0.455$, and a $1/M$ law (slope $-1$) is rejected. The practical rule follows: **to gain one more decimal digit you need
+# 100 times more trajectories.** Trajectories therefore suit answers at the 1 %–0.1 % level; ten-digit accuracy is out of
+# their reach. The $N$ dependence enters only through the cost of one trajectory, to which we now turn.
 
 # %% [markdown]
 # ## 12. Cost: $4^N$ against $M\cdot2^N$
@@ -1798,10 +1912,10 @@ assert abs(slope + 0.5) < 0.1
 # | | density tensor | one trajectory | $M$ trajectories in one `vmap` batch |
 # |---|---|---|---|
 # | numbers stored | $4^N$ | $2^N$ | $M\,2^N$ |
-# | one single-qubit channel | $O(M_K\,4^N)$ | $O(2^N)$ | $O(M\,2^N)$ |
+# | one single-qubit channel | $O(4^N)$ (the $M_K$ Kraus operators are summed first, §12.3) | $O(2^N)$ | $O(M\,2^N)$ |
 #
 # The break-even point "same memory" is $M=2^N$ trajectories. Already at $N=14$ this is $16\,384$ trajectories, more than
-# one typically needs. Beyond $N\approx14$–$15$ the density tensor does not fit into a laptop's memory at all, while single
+# one typically needs. Beyond $N\approx13$–$14$ the density tensor does not fit into a laptop's memory (§5), while single
 # state vectors remain comfortable up to $N\approx25$–$30$. The table is computed below for the precision chosen in the
 # configuration cell.
 
@@ -1880,7 +1994,7 @@ def make_mcwf_run(N, batch):
 
 
 exact_vals = np.array([1 - 2 * p_bench, 0, 0, 1 - 2 * p_bench, 0, 0])
-bench_dm, bench_mc = {}, {}
+bench_dm, bench_mc, x_est = {}, {}, []
 print(f"{'N':>3s} | {'method':14s} | {'<X_0>':>16s} {'<Z_0>':>16s} {'<X_N-1>':>16s} | {'compile+run [s]':>15s} {'run [s]':>9s}")
 for N in sizes_dm:
     vals, t_first, t_run = timed(make_dm_run(N), product_state("+" * N))
@@ -1895,6 +2009,16 @@ for N in sizes_mc:
     assert np.all(np.abs(mean - exact_vals) <= 4.5 * se + 1e3 * TOL)
     cells = [f"{mean[i]:+.3f}±{se[i]:.3f}" for i in (0, 2, 3)]
     print(f"{N:>3d} | {f'MCWF, M={M_bench}':14s} | {cells[0]:>16s} {cells[1]:>16s} {cells[2]:>16s} | {t_first:>15.3f} {t_run:>9.4f}")
+    x_est += [(mean[i], se[i]) for i in (0, 3)]
+
+# pooled test of the 10 independent <X> estimates (two qubits x five sizes), with a wrong control
+x_m, x_se = np.array([m for m, _ in x_est]), np.array([s for _, s in x_est])
+pooled, pooled_se = np.mean(x_m), np.sqrt(np.sum(x_se ** 2)) / len(x_m)
+z_ok, z_wrong = (pooled - (1 - 2 * p_bench)) / pooled_se, (pooled - (1 - p_bench)) / pooled_se
+print(f"\nall {len(x_m)} <X> estimates: largest single deviation {np.max(np.abs(x_m - (1 - 2 * p_bench)) / x_se):.2f} SE; "
+      f"pooled <X> = {pooled:.4f} +- {pooled_se:.4f}")
+print(f"pooled deviation from 1 - 2p = {1 - 2 * p_bench:.1f}: {z_ok:+.2f} SE;  from the misread 1 - p = {1 - p_bench:.1f}: {z_wrong:+.1f} SE")
+assert abs(z_ok) < 4.5 and abs(z_wrong) > 4.5
 
 # %%
 # ==============================================================================
@@ -1911,14 +2035,16 @@ ax.set_title("Two dephasing channels + six expectation values"); ax.legend(fonts
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# **Interpretation.** The trajectory estimates scatter around the exact $\langle X\rangle=0.6$ by one to two standard errors
-# at every $N$ (with $M=100$ the standard error of a $\pm1$-valued quantity is about $0.08$), and $\langle Z\rangle=0$ holds
+# **Interpretation.** The trajectory estimates scatter around the exact $\langle X\rangle=0.6$ by less than two standard
+# errors at every $N$ (largest 1.73 SE; with $M=100$ the standard error of a $\pm1$-valued quantity is about $0.08$).
+# Pooled over the ten independent estimates, $\langle X\rangle=0.602\pm0.025$, which rejects the value $1-p=0.8$ of a
+# misread dephasing convention by 7.9 standard errors. In addition $\langle Z\rangle=0$ holds
 # exactly in each trajectory, since a $Z$-flip maps $|+\rangle$ to $|-\rangle$. For small $N$ the run times are dominated by
 # size-independent overheads (kernel launches, random-number generation) and are almost flat; once the arrays are large
 # the growth steepens towards the reference slopes $4^N$ and $2^N$, drawn as dashed lines through the last point of each
-# curve. Do not read the individual seconds as constants of nature: they depend on the machine and on the memory
+# curve. The individual seconds depend on the machine and on the memory
 # hierarchy (the largest density tensor here no longer fits in cache, so its time is set by memory bandwidth rather than
-# by arithmetic, and it can even grow faster than $4^N$). The important fact is structural: the density-tensor curve *cannot be
+# by arithmetic, and it can even grow faster than $4^N$). Structurally, the density-tensor curve *cannot be
 # continued* much beyond $N\approx13$–$14$, where a single copy of $\rho$ needs gigabytes (see the memory table), whereas
 # the trajectory curve continues to $N\approx25$ and more.
 #
@@ -1958,7 +2084,7 @@ assert err < TOL
 
 # %% [markdown]
 # Both give the same density tensor. The timings printed above are from the machine that built this notebook; on
-# yours they may differ, so treat them as a measurement and not as a law. Structurally, the single einsum lets the
+# yours they may differ, so treat them as a measurement on one machine. Structurally, the single einsum lets the
 # contraction planner first combine $K$ and $K^*$ into a tiny $(2,2,2,2)$ "superoperator" $\sum_mK_m\otimes K_m^*$ (16 numbers) and
 # then perform **one** pass over the $4^N$ entries of $\rho$, independent of the number of Kraus operators, whereas the
 # loop performs two passes per Kraus operator and accumulates $M_K$ full-size arrays.
@@ -1982,8 +2108,9 @@ assert err < TOL
 # * The **stochastic unravelling** samples one Kraus branch with probability $\|K_m\psi\|^2$ and renormalises; the trajectory
 #   average equals the channel *exactly* (Eq. 5), for quantities linear in $\rho$. Error $\sigma/\sqrt M$, independent of $N$;
 #   the variance depends on the Kraus representation.
-# * **Cost**: $4^N$ (exact, $N\lesssim13$) against $M\cdot2^N$ (statistical, $N\lesssim25$–$30$), with trajectories trivially
-#   parallel through `jax.vmap` (or `lax.map` when memory is tight) and time loops through `lax.scan`.
+# * **Cost**: $4^N$ (exact, $N\lesssim13$–$14$) against $M\cdot2^N$ (statistical). Trajectories are independent, so they
+#   need not be held in memory together: one state vector at a time reaches $N\approx25$–$30$, with `jax.vmap` over a
+#   batch, `lax.map` over batches when memory is tight, and time loops through `lax.scan`.
 # * Habit: every new contraction was written by hand for small $N$, compared with dense `kron` algebra, and only then
 #   generalised; every Monte-Carlo result was compared with an exact number in units of its standard error.
 #
@@ -2002,7 +2129,8 @@ assert err < TOL
 #    Bloch map from the Pauli-channel formula of §9.3, verify with `bloch_map`, and add a fifth panel to the Bloch-sphere figure.
 # 3. ★★ **$T_1$ and $T_2$ together.** Apply amplitude damping ($\gamma$) followed by dephasing ($p$) $n$ times to $|+\rangle$. Show
 #    analytically and numerically that $\langle X\rangle_n=[\sqrt{1-\gamma}\,(1-2p)]^n$. With $\gamma=1-e^{-\Delta t/T_1}$ and
-#    $1-2p=e^{-\Delta t/T_\phi}$ derive the famous relation $1/T_2=1/(2T_1)+1/T_\phi$. Does the order of the two channels matter?
+#    $1-2p=e^{-\Delta t/T_\phi}$ derive the relation $1/T_2=1/(2T_1)+1/T_\phi$ and conclude that $T_2\le2T_1$. Does the
+#    order of the two channels matter?
 # 4. ★★ **Mixing two channels.** With probability $\eta$ apply amplitude damping towards $|0\rangle$, otherwise amplitude
 #    damping towards $|1\rangle$. Show that the Kraus operators are $\sqrt{\eta}\,K_0,\sqrt{\eta}\,K_1$ (those of amplitude damping)
 #    and $\sqrt{1-\eta}\,XK_0X,\sqrt{1-\eta}\,XK_1X$. Implement the channel, check completeness, find its Bloch map and its fixed
@@ -2012,7 +2140,7 @@ assert err < TOL
 #    apply it with `apply_kraus_dm(rho, K, [q1, q2])`. Compare its effect on a Bell pair (fidelity, negativity) with that
 #    of two independent single-qubit depolarising channels of the same total error probability, i.e. of strength $p_1$
 #    with $(1-p_1)^2=1-p$, so that "no error at all" has the same probability in both models.
-# 6. ★★ **Physics: which entanglement is robust?** Repeat the sweep of §10 for the W state (`dicke_state(N,1)` in the
+# 6. ★★ **Robustness of GHZ and W entanglement.** Repeat the sweep of §10 for the W state (`dicke_state(N,1)` in the
 #    engine, or build it yourself) under dephasing and under amplitude damping. Compare fidelity and the negativity of
 #    the cut $\{0\}|$rest with the GHZ results. Why does losing one qubit (tracing it out) destroy all entanglement of GHZ but not of W?
 # 7. ★★★ **The best unravelling.** For the dephasing channel, the Kraus sets $K'_m=\sum_nu_{mn}K_n$ with

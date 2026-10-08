@@ -9,10 +9,10 @@
 #
 # $$\Delta\phi\;=\;\frac{1}{\sqrt{N M}}$$
 #
-# after $M$ repetitions. This is the **standard quantum limit** (SQL), and it is not a technical limitation: it is the
-# projection noise of $N$ independent coin flips. Every atomic clock and every atom interferometer in the world is
-# built to reach it. Going *below* it requires the atoms to be correlated — and the cheapest way to correlate them is
-# to let them interact with each other for a short time.
+# after $M$ repetitions. This is the **standard quantum limit** (SQL). It is set by the projection noise of $N$
+# independent coin flips, so better electronics cannot remove it, and atomic clocks and atom interferometers are designed
+# to operate at it. Going *below* it requires the atoms to be correlated, and a simple way to correlate them is to let them
+# interact with each other for a short time.
 #
 # The interaction we study is the simplest one imaginable: every pair of spins feels the same $Z_iZ_j$ coupling. The
 # resulting Hamiltonian, $H=\chi J_z^2$, is called **one-axis twisting** (OAT). It was introduced by Kitagawa and Ueda in
@@ -21,7 +21,7 @@
 # more noise in the perpendicular direction. Feed such a state into a Ramsey sequence and the phase uncertainty drops
 # below the SQL by a factor $\xi_R$, the Wineland squeezing parameter.
 #
-# This notebook builds the whole story from the beginning and checks every claim against numbers produced by the
+# This notebook develops the subject from the definitions and checks every claim against numbers produced by the
 # simulator.
 #
 # **Road map.**
@@ -30,7 +30,7 @@
 #   *isotropic* projection noise $\mathrm{Var}(J_y)=\mathrm{Var}(J_z)=N/4$. The one-axis-twisting Hamiltonian, the exact
 #   relation between $\chi J_z^2$ and $\chi'\sum_{i<j}Z_iZ_j$, and how the interaction is engineered in three different
 #   laboratories.
-# * **Section 5.** Why twisting squeezes: $e^{-i\chi t J_z^2}$ is a rotation about $\hat z$ whose *angle is proportional
+# * **Section 5.** The squeezing mechanism: $e^{-i\chi t J_z^2}$ is a rotation about $\hat z$ whose *angle is proportional
 #   to $J_z$ itself*, so the uncertainty disc is sheared into an ellipse.
 # * **Section 6.** Two exact implementations — one diagonal phase multiplication, and a circuit of $N(N-1)/2$ commuting
 #   $ZZ$ gates — shown to agree to machine precision, with the argument for why the Trotter error is exactly zero.
@@ -38,14 +38,16 @@
 #   $\xi_S^2$ and the Wineland parameter $\xi_R^2$ *derived* from the Ramsey error-propagation formula; the analytic
 #   Kitagawa–Ueda moments, derived here in full and verified to $3\times10^{-14}$.
 # * **Section 10.** The optimal twisting angle and the best squeezing, and their $N^{-2/3}$ scaling — measured from exact
-#   simulations up to $N=20$ and extended with the verified analytic formula to $N=10^5$.
+#   simulations up to $N=20$ and extended with the verified analytic formula to $N=10^6$, with local slopes and the
+#   leading correction for the Wineland parameter.
 # * **Section 11.** The squeezed Ramsey interferometer simulated end to end: rotate the squeezed quadrature onto the
 #   measurement axis, encode $\phi$, sample bit strings, estimate $\phi$ by maximum likelihood, and measure
 #   $\Delta\phi<1/\sqrt{NM}$.
 # * **Section 12.** The Husimi-$Q$ distribution on the Bloch sphere: disc, sheared ellipse, oversqueezed S-shape,
 #   multi-component state, and finally a two-component cat at $\chi t=\pi/2$ — as static panels and as an animation.
-# * **Section 13.** $F_Q(t)$ against $N/\xi_R^2(t)$: squeezing measures the metrological gain only while the state is
-#   still Gaussian-like, and the inequality $F_Q\ge N/\xi_R^2$ becomes very loose afterwards.
+# * **Section 13.** $F_Q(t)$ against $N/\xi_R^2(t)$: the ratio of the two equals the excess of the uncertainty product
+#   over its minimum, Eq. (26a). It is close to $1$ only for $\mu\ll\mu_{\rm opt}$, tends to $3/2$ at the squeezing
+#   optimum for large $N$, and grows without bound afterwards.
 #
 # ### What you will learn
 #
@@ -55,12 +57,14 @@
 # eventually destroyed by the curvature of the sphere;
 # * the two standard squeezing parameters, what each of them is good for, and why $\xi_R^2<1$ certifies both a
 #   metrological advantage and entanglement;
-# * why the best achievable squeezing scales as $N^{-2/3}$ rather than as $1/N$.
+# * why the best achievable squeezing scales as $N^{-2/3}$ rather than as $1/N$, and how slowly the Wineland parameter
+#   approaches that law.
 #
 # *Numerical methods*
 # * an exactly diagonal time evolution implemented as a phase multiplication, cost $O(2^N)$ with no Trotter error;
 # * the same evolution as a circuit of commuting two-qubit gates, and the proof that the two agree exactly;
-# * extracting a power-law exponent from a short range of $N$, and how to tell finite-size drift from the asymptotic law;
+# * extracting a power-law exponent from a short range of $N$, local slopes, and how to tell finite-size drift from the
+#   asymptotic law;
 # * the Husimi-$Q$ distribution as one batched contraction of the state with a grid of product states.
 #
 # *Implementation practice*
@@ -160,7 +164,7 @@ print("helpers ready")
 #
 # $$\mathrm{Var}(J_y)\,\mathrm{Var}(J_z)\;\ge\;\frac{1}{4}\left\vert\langle J_x\rangle\right\vert^2, \tag{2}$$
 #
-# is the whole subject of this notebook in one line: the product of the two transverse variances is bounded from below,
+# contains the subject of this notebook: the product of the two transverse variances is bounded from below,
 # but *each factor separately is not*. Squeezing means pushing one of them down and letting the other grow.
 #
 # ### 3.2 Coherent spin states
@@ -289,18 +293,18 @@ assert abs(float(jnp.linalg.norm(mean_css)) - N_DEMO / 2) < 1e4 * TOL
 #
 # > **Physics insight.** The three platforms differ in everything (particle number, time scale, coupling mechanism) and agree on
 # > the Hamiltonian. That is what makes $H=\chi J_z^2$ worth studying as an abstract object: the conclusions of this
-# > notebook are statements about a *symmetry class*, not about one experiment.
+# > notebook are statements about a *symmetry class* and apply to all three experiments.
 
 # %% [markdown]
-# ## 5. Why twisting squeezes: a rotation whose angle depends on $J_z$
+# ## 5. Shearing by a rotation angle proportional to $J_z$
 #
 # Write the propagator as
 #
 # $$U(t)=e^{-i\chi t J_z^2}=e^{-i\left(\chi t J_z\right)J_z}.$$
 #
 # Read it as a rotation about $\hat z$ — the generator is $J_z$ — by an **operator-valued angle** proportional to $J_z$
-# itself. The angle is *not* $\mu J_z$ with $\mu=\chi t$: the exponent is quadratic in $J_z$, so the rate at which the
-# azimuth advances is the derivative $\partial(\mu m^2)/\partial m=2\mu m$, twice as large. The exact statement is an
+# itself. The angle is $2\mu J_z$ rather than $\mu J_z$ (with $\mu=\chi t$): the exponent is quadratic in $J_z$, so the
+# rate at which the azimuth advances is the derivative $\partial(\mu m^2)/\partial m=2\mu m$. The exact statement is an
 # identity for the raising operator $J_+=J_x+iJ_y$. Since $J_+$ raises $m$ by one, $f(J_z)J_+=J_+f(J_z+1)$ for any
 # function $f$, and therefore
 #
@@ -382,14 +386,14 @@ assert abs(float(jnp.linalg.norm(mean_css)) - N_DEMO / 2) < 1e4 * TOL
 #
 # $$\left[Z_iZ_j,\;Z_kZ_l\right]=0\qquad\text{for all }i<j,\;k<l .$$
 #
-# The Baker–Campbell–Hausdorff series therefore terminates after the first term and Eq. (9) is an *identity*, not an
-# approximation. There is no time step to converge, the gates may be applied in any order, and the result is exact for
+# The Baker–Campbell–Hausdorff series therefore terminates after the first term and Eq. (9) is an exact *identity*.
+# There is no time step to converge, the gates may be applied in any order, and the result is exact for
 # arbitrarily large $\mu$. Compare this with the TEBD evolution of a spin chain
 # ([12 — TEBD](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb)), where the $XX$ and $ZZ$ terms do
 # *not* commute and the Trotter error is the dominant error source.
 #
-# The point of implementing it twice is not efficiency — the diagonal version is obviously faster — but **validation**:
-# two code paths with nothing in common except the physics.
+# The diagonal version is faster; the reason for implementing the propagator twice is **validation**: two code paths
+# with nothing in common except the physics.
 
 # %%
 # ==============================================================================
@@ -442,7 +446,7 @@ for mu in (0.0, 0.05, 0.37, 1.0, np.pi / 2, 3.0):
 # > parameter that a reader could get wrong.
 
 # %% [markdown]
-# ## 7. What we measure: mean spin, covariance, minimal transverse variance
+# ## 7. Mean spin, covariance and minimal transverse variance
 #
 # The three ingredients of every squeezing parameter are
 #
@@ -450,7 +454,7 @@ for mu in (0.0, 0.05, 0.37, 1.0, np.pi / 2, 3.0):
 #   C_{ab}=\tfrac12\left\langle J_aJ_b+J_bJ_a\right\rangle-\langle J_a\rangle\langle J_b\rangle,\qquad
 #   V_{\min}=\min_{\mathbf m\perp\langle\mathbf J\rangle}\mathbf m^{\mathsf T}C\,\mathbf m . \tag{10}$$
 #
-# The symmetrisation in $C_{ab}$ is not cosmetic: $J_aJ_b$ is not Hermitian for $a\neq b$, and only the symmetric
+# The symmetrisation in $C_{ab}$ is required because $J_aJ_b$ is not Hermitian for $a\neq b$; only the symmetric
 # combination is an observable. The engine's `spin_moments` computes both matrix-free: it forms the three states
 # $\vert\phi_a\rangle=J_a\vert\psi\rangle$ (three calls of `apply_collective`, cost $O(N2^N)$) and reads
 #
@@ -530,7 +534,7 @@ for mu in (0.0, 0.05, 0.10, 0.2005, 0.40, 0.80):
 # %% [markdown]
 # ## 8. The two squeezing parameters, derived
 #
-# ### 8.1 What a Ramsey interferometer actually measures
+# ### 8.1 The quantity measured by a Ramsey interferometer
 #
 # Recalled from [31 — Ramsey interferometry](../ch10_quantum_metrology_protocols/31_ramsey_interferometry.ipynb), in the
 # one form we need here. The interferometer prepares a state whose mean spin points along $\hat x$, lets the unknown
@@ -589,7 +593,7 @@ for mu in (0.0, 0.05, 0.10, 0.2005, 0.40, 0.80):
 #   =\frac{4V_{\min}}{N}\cdot\frac{(N/2)^2}{\left\vert\langle\mathbf J\rangle\right\vert^2}
 #   =\frac{\xi_S^2}{\mathcal{C}^2}\;\ge\;\xi_S^2 . \tag{14}$$
 #
-# Equation (14) is the whole content of the $\mu=0.4$ row of the previous table: the noise really is three times smaller
+# Equation (14) explains the $\mu=0.4$ row of the previous table: the noise is three times smaller
 # than the CSS value ($\xi_S^2=0.330$), but more than half the contrast has been spent buying it
 # ($\mathcal{C}=2.385/5=0.477$), and $0.330/0.477^2=1.451$ is what an interferometer sees.
 #
@@ -636,7 +640,7 @@ for mu in (0.0, 0.05, 0.10, 0.2005, 0.40, 0.80):
 #
 # * $\xi_R^2<1$ certifies entanglement **and** a metrological advantage — it is the same quantity under both readings;
 # * $\xi_S^2<1$ certifies only that the noise in one direction is below the coherent-state value, which a product state
-#   can also achieve by giving up its mean spin. $\xi_S^2$ is a measure of *squeezing*, not of entanglement;
+#   can also achieve by giving up its mean spin. $\xi_S^2$ measures the noise reduction alone;
 # * neither is a *necessary* condition for metrological usefulness: a GHZ state has $\vert\langle\mathbf J\rangle\vert=0$
 #   and therefore $\xi_R^2=\infty$, and it is nevertheless the best state there is for a different readout. Section 13 and
 #   notebook 34 return to this.
@@ -845,8 +849,8 @@ assert err_ana < 1e4 * TOL
 
 # %% [markdown]
 # Every entry of Eqs. (17)–(23) reproduces the exact simulation to $10^{-14}$. From here on we may use the closed form
-# wherever a scan over $\mu$ or over $N$ would be expensive — and we will, to reach $N=10^5$ in Section 10 — knowing it is
-# not an approximation but the same physics in a cheaper form.
+# wherever a scan over $\mu$ or over $N$ would be expensive — and we will, to reach $N=10^6$ in Section 10 — knowing it is
+# exact: the same physics in a cheaper form.
 #
 # > **Numerical practice.** An analytic result and a simulation are only worth having *together*. The formula alone can
 # > be mis-transcribed (a factor $2$ inside a cosine is invisible at $\mu=0$); the simulation alone cannot be extrapolated.
@@ -855,7 +859,7 @@ assert err_ana < 1e4 * TOL
 # %% [markdown]
 # ## 10. The optimal twisting angle and the $N^{-2/3}$ scaling
 #
-# ### 10.1 Where the optimum comes from
+# ### 10.1 Origin of the optimum: shear against curvature
 #
 # Expand Eqs. (22)–(23) for large $N$ and small $\mu$. The right variable is not $\mu$ alone but the combination
 #
@@ -957,14 +961,20 @@ def refine_min(x, y):
     return float(x[i]) + delta * h, b - 0.125 * (c - a) ** 2 / curv
 
 
-rows_scan, t_scan = [], time.time()
+rows_scan, t_first, t_rest = [], 0.0, 0.0
 for N in N_SCAN:
     grid = np.linspace(*MU_WINDOW, N_MU) * 3 ** (1 / 6) * N ** (-2 / 3)
-    vals = np.array([[float(x) for x in squeeze_pair(N, float(m))] for m in grid])
+    t0 = time.time()
+    first = [float(x) for x in squeeze_pair(N, float(grid[0]))]    # first call at this N: trace + compile + run
+    t1 = time.time()
+    vals = np.array([first] + [[float(x) for x in squeeze_pair(N, float(m))] for m in grid[1:]])
+    t_first += t1 - t0
+    t_rest += time.time() - t1
     mS, xS = refine_min(grid, vals[:, 0])
     mR, xR = refine_min(grid, vals[:, 1])
     rows_scan.append((N, mS, xS, mR, xR))
-print(f"(exact simulation of {len(N_SCAN)} sizes x {N_MU} twisting angles in {time.time() - t_scan:.1f} s)\n")
+print(f"(exact simulation of {len(N_SCAN)} sizes x {N_MU} twisting angles: first call per size (compile + run) "
+      f"{t_first:.1f} s in total, the other {N_MU - 1} calls per size (run only) {t_rest:.1f} s)\n")
 
 print(f"{'N':>4s} | {'mu_opt(S)':>10s} {'xi_S^2 min':>11s} | {'mu_opt(R)':>10s} {'xi_R^2 min':>11s} | "
       f"{'3^(1/6)N^-2/3':>14s} {'0.5(3/N)^2/3':>13s}")
@@ -995,37 +1005,85 @@ for k, (slope, inter) in fit.items():
 # %% [markdown]
 # The four measured exponents come out as $-0.687$ ($\mu_{\text{opt}}$ from $\xi_S^2$), $-0.544$ ($\xi_S^2$ itself),
 # $-0.576$ ($\mu_{\text{opt}}$ from $\xi_R^2$) and $-0.620$ ($\xi_R^2$). They bracket the predicted $-2/3=-0.667$ but
-# none of them sits on it. This is *not* a numerical error: the simulated states reproduce Eq. (23) to $2\times10^{-15}$
-# and the parabolic refinement locates the minima to a relative $2\times10^{-4}$. It is the honest statement that
-# $N\le20$ is far from the asymptotic regime of Eq. (24). The prefactors say the same: the measured
+# none of them sits on it. The numerics are not the cause: the simulated states reproduce Eq. (23) to $2\times10^{-15}$
+# and the parabolic refinement locates the minima to a relative $2\times10^{-4}$. The cause is that $N\le20$ is far from
+# the asymptotic regime of Eq. (24). The prefactors say the same: the measured
 # $\mu_{\text{opt}}$ (from $\xi_S^2$) is $0.7\%$ below $3^{1/6}N^{-2/3}$ at $N=6$ and $3.3\%$ below it at $N=20$ — the
 # angle is already nearly right, but the *value* $\xi^2_{S,\min}$ is still a factor $0.253/0.315=0.81$ from the
 # asymptotic $\tfrac12(3/N)^{2/3}$ at $N=6$ and $0.937$ at $N=20$.
 #
 # Since Eq. (23) has been validated *exactly*, we can settle the question by evaluating it far beyond what a state-vector
-# simulation can reach.
+# simulation can reach. A fit over a range of $N$ averages a slope that drifts, so we also measure **local slopes**,
+# $\mathrm d\ln\xi^2_{\min}/\mathrm d\ln N$ from neighbouring sizes $N$ and $1.1N$, and compare them with the asymptotic
+# law.
+#
+# ### 10.3 The Wineland parameter at large $N$
+#
+# The asymptotics of $\xi_R^2$ follow from those of $\xi_S^2$. By Eq. (23), $\xi_R^2=\xi_S^2/\cos^{2(N-1)}\mu$, and at
+# fixed $u=N\mu^2$ the contrast factor is $\cos^{2(N-1)}\mu=e^{-u}\left(1+O(\mu^2)\right)$, so
+#
+# $$\xi_R^2\;\simeq\;e^{u}\left(\frac{u^2}{6}+\frac{1}{Nu}\right).$$
+#
+# Near $u_{\rm opt}=(3/N)^{1/3}\to0$ the factor $e^{u}=1+u+\dots$ is a small perturbation of the function minimised in
+# Section 10.1. To first order, a perturbation shifts the minimum *value* by its own value at the unperturbed minimiser
+# (the shift of the minimiser enters only at second order), so
+#
+# $$\xi^2_{R,\min}\;\simeq\;\xi^2_{S,\min}\left(1+u_{\rm opt}\right)
+#   =\frac12\left(\frac{3}{N}\right)^{2/3}\left[1+\left(\frac{3}{N}\right)^{1/3}\right],\qquad
+#   \frac{\mathrm d\ln\xi^2_{R,\min}}{\mathrm d\ln N}\simeq-\frac23-\frac13\,\frac{u_{\rm opt}}{1+u_{\rm opt}} . \tag{24a}$$
+#
+# Both parameters therefore have the *same* asymptotic law, prefactor included, but the Wineland parameter approaches it
+# with a relative correction $(3/N)^{1/3}$: $31\%$ at $N=100$ and still $3\%$ at $N=10^5$. Its local slope is *steeper*
+# than $-2/3$ and approaches it from below.
 
 # %%
 # ==============================================================================
-# STEP 7: the same optimisation from the validated closed form, up to N = 10^5
+# STEP 7: the same optimisation from the validated closed form, up to N = 10^6
 # ==============================================================================
-N_BIG = np.unique(np.round(np.logspace(np.log10(6), 5, 40)).astype(int))
-big = []
-for N in N_BIG:
-    grid = np.linspace(0.3, 2.5, 4001) * 3 ** (1 / 6) * float(N) ** (-2 / 3)
+def opt_closed_form(N, n_grid=4001):
+    """(mu_opt(S), xi_S^2 min, mu_opt(R), xi_R^2 min) of Eq. (23): a grid scan refined parabolically (refine_min)."""
+    grid = np.linspace(0.3, 2.5, n_grid) * 3 ** (1 / 6) * float(N) ** (-2 / 3)
     a = oat_analytic(int(N), grid)
-    iS, iR = int(np.argmin(a["xi_S2"])), int(np.argmin(a["xi_R2"]))
-    big.append((float(N), grid[iS], a["xi_S2"][iS], grid[iR], a["xi_R2"][iR]))
-big = np.array(big)
+    mS, xS = refine_min(grid, a["xi_S2"])
+    mR, xR = refine_min(grid, a["xi_R2"])
+    return mS, xS, mR, xR
 
-print(f"{'range of N':>16s} | {'slope mu_opt(S)':>16s} {'slope xi_S^2':>13s} {'slope xi_R^2':>13s}")
-for lo, hi in ((6, 20), (20, 200), (200, 5000), (5000, 100000)):
+
+N_BIG = np.unique(np.round(np.logspace(np.log10(6), 6, 48)).astype(int))
+big = np.array([(float(N),) + opt_closed_form(N) for N in N_BIG])
+
+print("(a) straight-line fits over ranges of N (an average of a drifting slope)")
+print(f"{'range of N':>18s} | {'slope mu_opt(S)':>16s} {'slope xi_S^2':>13s} {'slope xi_R^2':>13s}")
+for lo, hi in ((6, 20), (20, 200), (200, 5000), (5000, 100000), (100000, 1000000)):
     sel = (big[:, 0] >= lo) & (big[:, 0] <= hi)
     s1 = np.polyfit(np.log(big[sel, 0]), np.log(big[sel, 1]), 1)[0]
     s2 = np.polyfit(np.log(big[sel, 0]), np.log(big[sel, 2]), 1)[0]
     s3 = np.polyfit(np.log(big[sel, 0]), np.log(big[sel, 4]), 1)[0]
-    print(f"{lo:7d} .. {hi:6d} | {s1:16.4f} {s2:13.4f} {s3:13.4f}")
-print(f"{'asymptotic':>16s} | {-2 / 3:16.4f} {-2 / 3:13.4f} {-2 / 3:13.4f}")
+    print(f"{lo:7d} .. {hi:7d} | {s1:16.4f} {s2:13.4f} {s3:13.4f}")
+print(f"{'asymptotic':>18s} | {-2 / 3:16.4f} {-2 / 3:13.4f} {-2 / 3:13.4f}")
+
+print("\n(b) local slopes d ln(xi^2_min)/d ln N from N and 1.1 N, and the ratio of the two minima, against Eq. (24a)")
+print(f"{'N':>8s} | {'xi_S^2 min / Eq.(24)':>20s} {'local slope S':>14s} | {'local slope R':>14s} {'Eq. (24a)':>10s} | "
+      f"{'xi_R^2/xi_S^2':>13s} {'1+(3/N)^(1/3)':>14s}")
+loc = []
+for N in (10, 20, 100, 1000, 10_000, 100_000, 1_000_000):
+    N2 = int(round(1.1 * N))
+    _, xS1, _, xR1 = opt_closed_form(N)
+    _, xS2, _, xR2 = opt_closed_form(N2)
+    sS, sR = np.log(xS2 / xS1) / np.log(N2 / N), np.log(xR2 / xR1) / np.log(N2 / N)
+    u = (3 / N) ** (1 / 3)
+    loc.append((N, sS, sR, -2 / 3 - u / (3 * (1 + u)), xR1 / xS1, 1 + u))
+    print(f"{N:8d} | {xS1 / (0.5 * (3 / N) ** (2 / 3)):20.5f} {sS:14.4f} | {sR:14.4f} {loc[-1][3]:10.4f} | "
+          f"{xR1 / xS1:13.5f} {1 + u:14.5f}")
+loc = np.array(loc)
+big_N = loc[:, 0] >= 1000
+assert np.all(np.abs(loc[big_N, 1] + 2 / 3) < 2e-3)                 # xi_S^2: local slope on -2/3 from N = 10^3
+assert np.all(np.abs(loc[big_N, 2] - loc[big_N, 3]) < 2e-3)         # xi_R^2: local slope follows Eq. (24a)
+assert np.all(np.abs(loc[big_N, 4] / loc[big_N, 5] - 1) < 5e-3)     # ratio of the minima follows Eq. (24a)
+# wrong control: "xi_R^2 already has the slope -2/3 at N = 10^4" is rejected by many times the tolerance
+print(f"\nwrong control: local slope of xi_R^2 at N = 10^4 minus (-2/3) = {loc[4, 2] + 2 / 3:+.4f}"
+      f"   (tolerance used above: 0.002)")
+assert abs(loc[4, 2] + 2 / 3) > 5 * 2e-3
 
 # %%
 # ==============================================================================
@@ -1069,24 +1127,27 @@ fig.tight_layout(); plt.show()
 # narrower than $0.3$.
 #
 # The middle and right panels answer the scaling question. The exact simulations ($N\le20$, symbols) lie on the
-# closed-form curves, and those curves bend onto the asymptotic $N^{-2/3}$ dashed lines only slowly: the fitted local
-# slope of $\xi_S^2$ moves from $-0.532$ over $6\le N\le20$ through $-0.641$ over $20\le N\le200$ and $-0.666$ over
-# $200\le N\le5000$ to $-0.667$ over $5\cdot10^3\le N\le10^5$. The exponent $-2/3$ is correct; $N\le20$ is simply too
-# small to see it. The optimal angle converges faster — its local slope is already $-0.658$ at $20\le N\le200$ — and the
-# Wineland parameter slowest of all: its local slope overshoots to $-0.719$ near $N=100$ and has only come back to
-# $-0.684$ at $N=10^5$, because the contrast factor $\mathcal{C}^{-2}$ of Eq. (14) carries its own slowly decaying
-# correction. Both parameters share the asymptotic power; they do not share the prefactor, and $\xi_R^2$ stays above
-# $\xi_S^2$ everywhere.
+# closed-form curves, and those curves bend onto the asymptotic $N^{-2/3}$ dashed lines only slowly. The local slopes of
+# Step 7(b) show how slowly. For $\xi^2_{S,\min}$ the local slope is $-0.541$ at $N=10$, $-0.654$ at $N=100$ and
+# within $10^{-3}$ of $-2/3$ from $N=10^3$ on, where $\xi^2_{S,\min}$ is also within $0.2\%$ of Eq. (24). The range
+# fits of Step 7(a) average these drifting slopes; reading the fit over $6\le N\le20$ ($-0.54$) as the exponent would be
+# off by $0.13$. The Wineland parameter follows Eq. (24a): its local slope overshoots to $-0.728$ at
+# $N=100$ and returns towards $-2/3$ from below ($-0.6768$ at $N=10^5$, against $-0.6767$ from Eq. (24a)), and the ratio
+# $\xi^2_{R,\min}/\xi^2_{S,\min}$ tracks $1+(3/N)^{1/3}$ to better than $0.5\%$ from $N=10^3$ on. Both parameters share
+# the asymptotic power and the prefactor; $\xi_R^2$ stays above $\xi_S^2$ at every finite $N$, by a margin that decays
+# only as $N^{-1/3}$. A fit that reported $\xi_R^2\propto N^{-0.68}$ from data around $N=10^5$ would therefore be measuring
+# this correction, with no new exponent behind it.
 #
 # > **Numerical practice.** "Measure the exponent" is a loaded instruction whenever the accessible range spans less than a
-# > decade. The defensible procedure is the one used here: fit what you can simulate, state the fitted numbers, and then
-# > extend the range with an *independently validated* closed form rather than with a hope.
+# > decade. The defensible procedure is the one used here: fit what you can simulate and state the fitted numbers, then
+# > extend the range with an *independently validated* closed form, and look at local slopes and at the leading
+# > correction to the asymptotic law rather than at one straight-line fit.
 
 # %% [markdown]
 # ## 11. Squeezing as a Ramsey resource: the full interferometer
 #
-# The squeezing parameter was *defined* by Eq. (12) as the ratio of phase uncertainties. Definitions are cheap; we now
-# run the experiment.
+# The squeezing parameter was *defined* by Eq. (12) as the ratio of phase uncertainties. We now simulate the experiment
+# that the definition describes.
 #
 # ### 11.1 The protocol
 #
@@ -1107,7 +1168,7 @@ fig.tight_layout(); plt.show()
 # 3. **Encode** the unknown phase, $e^{-i\phi J_z}$, which rotates the mean spin from $\hat x$ towards $\hat y$.
 # 4. **Read out.** A $\pi/2$ pulse about $\hat x$ maps the $y$ component onto the $z$ component
 #    ($(J_y,J_z)\mapsto(-J_z,J_y)$ for the *state*), so that the quantity of interest becomes the population imbalance,
-#    which is what an experiment can actually count.
+#    which is what an experiment counts.
 # 5. **Measure** all $N$ qubits in the computational basis and record $m=\tfrac12(N-2k)$, $k$ = number of ones.
 #
 # The only outcome that matters is $m$, because the state is permutation symmetric; we therefore histogram the sampled
@@ -1115,19 +1176,29 @@ fig.tight_layout(); plt.show()
 #
 # > **Numerical practice.** Drawing a full bit string per shot and then throwing away everything but $k$ is what the
 # > experiment does, and the code below does it once, explicitly, and checks that the histogram of $20\,000$ sampled
-# > strings matches the exact $p(m\vert\phi)$. For the $7\,200$ *repeated* experiments that follow we sample $k$ directly
+# > strings matches the exact $p(m\vert\phi)$. For the $24\,000$ *repeated* experiments that follow we sample $k$ directly
 # > from that distribution instead: it is the same random variable, and it avoids an intermediate array of
-# > $800\times600\times2^{10}$ Gumbel variates (about $4$ GB) that the batched categorical sampler would otherwise
-# > allocate. Reducing the sampled object to the statistic you actually use is often the difference between a program
+# > $800\times2000\times2^{10}$ Gumbel variates (about $13$ GB) that the batched categorical sampler would otherwise
+# > allocate. Reducing the sampled object to the statistic you use is often the difference between a program
 # > that runs and one that does not.
 #
-# ### 11.2 Two predictions to test
+# ### 11.2 Three predictions under test
 #
 # * **Error propagation, Eq. (11):** $\Delta\phi=\sqrt{\mathrm{Var}(J_z^{\rm out})}/\vert\partial_\phi\langle J_z^{\rm out}\rangle\vert$
 #   should equal $\xi_R/\sqrt N$ for the squeezed input and $1/\sqrt N$ for the CSS.
 # * **The estimator:** a maximum-likelihood estimate of $\phi$ from $M$ sampled shots should have
 #   $\Delta\hat\phi\approx1/\sqrt{M\,I(\phi)}$ with $I$ the classical Fisher information of $p(m\vert\phi)$, and
 #   $I\ge N$ for the squeezed input.
+# * **The bias of the estimator.** Maximum likelihood is biased at finite $M$; to first order in $1/M$ the bias is
+#   $b_1(\phi)/M$ with $b_1=-\sum_m p'p''/p\,\big/\,(2I^2)$, derived in
+#   [30](../ch10_quantum_metrology_protocols/30_qfi_from_the_sld_prepare_encode_estimate.ipynb), Eq. (14a).
+#   At the working point $\phi=0$ this bias vanishes *exactly*, for a reason of symmetry. Both input states are invariant
+#   under the rotation $R=e^{-i\pi J_x}$ (the twisted state because $R$ maps $J_z\to-J_z$ and leaves $J_z^2$ and
+#   $\vert+x\rangle^{\otimes N}$ unchanged, the alignment and readout pulses because they commute with $R$), while
+#   $Re^{-i\phi J_z}R^\dagger=e^{+i\phi J_z}$ and the measured $J_z$ changes sign. Hence $p(m\vert\phi)=p(-m\vert-\phi)$:
+#   on a symmetric search grid the estimator's distribution at $\phi=0$ is symmetric about $0$, whatever $M$. A bias
+#   measured at $\phi=0$ therefore tests only the sampler. To see the bias we must also run the experiment at a phase
+#   where it is not zero by symmetry.
 
 # %%
 # ==============================================================================
@@ -1223,7 +1294,7 @@ print(f"\nSQL Fisher information: I = N = {N_RAM};   N/xi_R^2 = {N_RAM / float(d
 # ==============================================================================
 # PARAMETERS ------------------------------------------------------------------
 M_SHOTS  = (25, 50, 100, 200, 400, 800)    # shots per experiment
-R_EXP    = 600                              # independent experiments per point (variance + its error bar)
+R_EXP    = 2000                             # independent experiments per point (variance + its error bar)
 PHI_GRID = jnp.linspace(-0.45, 0.45, 601)   # maximum-likelihood search window (well inside one fringe)
 # -----------------------------------------------------------------------------
 
@@ -1246,10 +1317,25 @@ N_DEMO_SHOTS = 20_000
 k_sample = np.array(sample_bitstrings(jax.random.PRNGKey(8), psi_out_sq, N_DEMO_SHOTS)).sum(axis=1)
 freq = np.bincount(k_sample, minlength=N_RAM + 1) / N_DEMO_SHOTS
 exact_p = np.array(ramsey_readout(INPUTS["squeezed"], PHI_TRUE))
+counts_demo = np.bincount(k_sample, minlength=N_RAM + 1)
+
+
+def chi2_dof(counts, p):
+    """Pearson chi^2 per degree of freedom of a histogram against probabilities p, over bins with n p >= 5."""
+    n, keep = counts.sum(), counts.sum() * p >= 5
+    return float(np.sum((counts[keep] - n * p[keep]) ** 2 / (n * p[keep]))) / (int(keep.sum()) - 1), int(keep.sum()) - 1
+
+
+chi2_ok, dof_ok = chi2_dof(counts_demo, exact_p)
+# wrong control: the same histogram tested against the twisted state WITHOUT the alignment rotation
+p_wrong = np.array(ramsey_readout(psi_twist, PHI_TRUE))
+chi2_bad, dof_bad = chi2_dof(counts_demo, p_wrong)
 print(f"\n{N_DEMO_SHOTS} sampled bit strings vs the exact p(m|phi):"
       f"  max deviation {np.max(np.abs(freq - exact_p)):.2e}"
       f"   (expected statistical size {0.5 / np.sqrt(N_DEMO_SHOTS):.2e})")
-assert np.max(np.abs(freq - exact_p)) < 0.02
+print(f"   chi^2/dof = {chi2_ok:.3f} over {dof_ok} dof   (1 +- {np.sqrt(2 / dof_ok):.2f} expected)")
+print(f"   wrong control, p(m|phi) of the un-aligned twisted state: chi^2/dof = {chi2_bad:.1f}")
+assert abs(chi2_ok - 1) < 5 * np.sqrt(2 / dof_ok) and chi2_bad > 1 + 20 * np.sqrt(2 / dof_bad)
 
 
 def ml_experiments(key, logp_grid, p_true, shots, n_exp):
@@ -1260,10 +1346,12 @@ def ml_experiments(key, logp_grid, p_true, shots, n_exp):
         histogram reproduces p(m|phi).  Here we sample the REDUCED outcome k directly from that same
         distribution: statistically identical, but it avoids materialising the 2^N Gumbel variates that
         `jax.random.categorical` would need for every one of the `shots` x `n_exp` bit strings
-        (at 800 shots x 600 experiments x 2^10 amplitudes that intermediate array alone is ~4 GB).
+        (at 800 shots x 2000 experiments x 2^10 amplitudes that intermediate array alone is ~13 GB).
     MATH   log L(phi) = sum_m n_m log p(m|phi)  ->  ONE matrix-vector product logp_grid @ counts,
         evaluated on the whole phi grid at once; the estimate is the arg max.
-    JAX    `vmap` over PRNG keys runs all `n_exp` experiments as a single batched program.
+    JAX    `vmap` over PRNG keys runs all `n_exp` experiments as a single batched program. `shots` and
+        `n_exp` fix array shapes, so they are static: one compilation per (shots, n_exp) pair, shared by
+        both input states (the probability tables are traced arguments of the same shape).
     """
     lp = jnp.log(p_true)
 
@@ -1275,29 +1363,91 @@ def ml_experiments(key, logp_grid, p_true, shots, n_exp):
     return jax.vmap(one)(jax.random.split(key, n_exp))
 
 
-results_ml, t_ml = {}, time.time()
-for name, pin in INPUTS.items():
+ml_jit = jax.jit(ml_experiments, static_argnames=("shots", "n_exp"))
+KEY_ML = jax.random.PRNGKey(2025)
+compiled_ml, results_ml, t_compile, t_run = {}, {}, 0.0, 0.0
+for i_in, (name, pin) in enumerate(INPUTS.items()):
     logp = jnp.log(jnp.clip(jax.vmap(lambda t: ramsey_readout(pin, t))(PHI_GRID), 1e-300, None))
     p_true = jnp.clip(ramsey_readout(pin, PHI_TRUE), 1e-300, None)
     rows = []
-    for M in M_SHOTS:
-        est = jax.jit(partial(ml_experiments, logp_grid=logp, p_true=p_true, shots=M,
-                              n_exp=R_EXP))(jax.random.PRNGKey(2025))
+    for j, M in enumerate(M_SHOTS):
+        key = jax.random.fold_in(KEY_ML, 100 * i_in + j)        # an independent key for every row of both tables
+        if M not in compiled_ml:                                # ahead-of-time compilation, timed apart from the run
+            t0 = time.time()
+            compiled_ml[M] = ml_jit.lower(key, logp, p_true, shots=M, n_exp=R_EXP).compile()
+            t_compile += time.time() - t0
+        t0 = time.time()
+        est = compiled_ml[M](key, logp, p_true).block_until_ready()   # the executable takes the traced arguments
+        t_run += time.time() - t0
         var = float(jnp.var(est))
-        rows.append((M, float(jnp.mean(est)) - PHI_TRUE, var, var * np.sqrt(2 / (R_EXP - 1))))
+        se_bias = float(jnp.std(est)) / np.sqrt(R_EXP)
+        rows.append((M, float(jnp.mean(est)) - PHI_TRUE, var, var * np.sqrt(2 / (R_EXP - 1)), se_bias))
     results_ml[name] = rows
-print(f"\n(simulated {2 * len(M_SHOTS) * R_EXP} experiments in {time.time() - t_ml:.1f} s)\n")
+print(f"\n(simulated {2 * len(M_SHOTS) * R_EXP} experiments: compilation of the {len(M_SHOTS)} shapes {t_compile:.1f} s, "
+      f"execution {t_run:.1f} s)\n")
 
 for name, rows in results_ml.items():
     I_phi = exact_rows[name][0]
     print(f"{name}   (classical Fisher information I = {I_phi:.4f})")
-    print(f"   {'M':>6s} {'bias':>10s} {'Delta phi':>11s} {'1/sqrt(M I)':>12s} {'SQL 1/sqrt(NM)':>15s} "
-          f"{'ratio to SQL':>13s} {'M I Var':>9s}")
-    for M, bias, var, err in rows:
-        print(f"   {M:6d} {bias:+10.5f} {np.sqrt(var):11.6f} {1 / np.sqrt(M * I_phi):12.6f} "
-              f"{1 / np.sqrt(N_RAM * M):15.6f} {np.sqrt(var) * np.sqrt(N_RAM * M):13.4f} {var * M * I_phi:9.3f}")
+    print(f"   {'M':>6s} {'bias +- se':>20s} {'Delta phi':>11s} {'1/sqrt(M I)':>12s} {'SQL 1/sqrt(NM)':>15s} "
+          f"{'ratio to SQL':>13s} {'M I Var +- se':>15s}")
+    for M, bias, var, err, se_b in rows:
+        print(f"   {M:6d} {bias:+10.5f} +- {se_b:.5f} {np.sqrt(var):11.6f} {1 / np.sqrt(M * I_phi):12.6f} "
+              f"{1 / np.sqrt(N_RAM * M):15.6f} {np.sqrt(var) * np.sqrt(N_RAM * M):13.4f} "
+              f"{var * M * I_phi:7.3f} +- {err * M * I_phi:.3f}")
     print()
-assert abs(results_ml["squeezed"][-1][2] * M_SHOTS[-1] * exact_rows["squeezed"][0] - 1.0) < 0.15
+# at phi = 0 the bias is zero by symmetry: every row must be compatible with zero (4 standard errors)
+assert all(abs(r[1]) < 4 * r[4] for rows in results_ml.values() for r in rows)
+# for M >= 200 the estimator is efficient within 4 error bars
+assert all(abs(r[2] * r[0] * exact_rows[nm][0] - 1) < 4 * r[3] * r[0] * exact_rows[nm][0]
+           for nm, rows in results_ml.items() for r in rows if r[0] >= 200)
+
+# %%
+# ==============================================================================
+# STEP 9b: the bias of the estimator, measured where it is not zero by symmetry
+# ==============================================================================
+# PARAMETERS ------------------------------------------------------------------
+PHI_B  = 0.2                       # working point away from the symmetric phi = 0 (on the search grid)
+M_B    = (25, 50, 100)             # shots per experiment
+R_B    = 40_000                    # experiments per row: the bias is ~1e-3, its standard error must be ~1e-4
+# -----------------------------------------------------------------------------
+
+
+def first_order_bias(pin, phi):
+    """b_1(phi) of nb 30, Eq. (14a): E[phi_hat] - phi = b_1/M + O(1/M^2), and the Fisher information I(phi).
+
+    MATH   b_1 = -(1/(2 I^2)) sum_m p'_m p''_m / p_m,   I = sum_m p'_m^2 / p_m   (derivatives in phi)
+    JAX    p' and p'' by forward-mode differentiation of the exact readout distribution (no finite differences).
+    """
+    f = lambda t: ramsey_readout(pin, t)
+    p0, d1, d2 = np.array(f(phi)), np.array(jax.jacfwd(f)(phi)), np.array(jax.jacfwd(jax.jacfwd(f))(phi))
+    ok = p0 > 1e-14
+    I = float(np.sum(d1[ok] ** 2 / p0[ok]))
+    return -float(np.sum(d1[ok] * d2[ok] / p0[ok])) / (2 * I ** 2), I
+
+
+pin_b = INPUTS["squeezed"]
+logp_b = jnp.log(jnp.clip(jax.vmap(lambda t: ramsey_readout(pin_b, t))(PHI_GRID), 1e-300, None))
+p_b = jnp.clip(ramsey_readout(pin_b, PHI_B), 1e-300, None)
+b1, I_b = first_order_bias(pin_b, PHI_B)
+b1_zero, _ = first_order_bias(pin_b, 0.0)
+print(f"squeezed input, N = {N_RAM}:  b_1(phi = {PHI_B}) = {b1:+.5f},  I(phi = {PHI_B}) = {I_b:.4f};"
+      f"   b_1(phi = 0) = {b1_zero:+.1e} (zero by symmetry)\n")
+print(f"{'M':>5s} | {'bias +- se':>22s} {'b_1/M (Eq. 14a of nb 30)':>25s} {'z vs b_1/M':>11s} {'z vs 0':>8s} | "
+      f"{'M I Var +- se':>16s}")
+bias_rows = []
+for j, M in enumerate(M_B):
+    est = jax.jit(ml_experiments, static_argnames=("shots", "n_exp"))(
+        jax.random.fold_in(jax.random.PRNGKey(31), j), logp_b, p_b, shots=M, n_exp=R_B)
+    bias, se = float(jnp.mean(est)) - PHI_B, float(jnp.std(est)) / np.sqrt(R_B)
+    eff = float(jnp.var(est)) * M * I_b
+    bias_rows.append((M, bias, se, (bias - b1 / M) / se, bias / se))
+    print(f"{M:5d} | {bias:+11.5f} +- {se:.5f} {b1 / M:25.5f} {(bias - b1 / M) / se:+11.2f} {bias / se:+8.1f} | "
+          f"{eff:7.4f} +- {eff * np.sqrt(2 / (R_B - 1)):.4f}")
+assert abs(b1_zero) < 1e-8
+assert abs(bias_rows[-1][3]) < 4                      # at M = 100 the first-order bias b_1/M describes the data
+assert bias_rows[0][3] > bias_rows[-1][3]             # the O(1/M^2) excess is largest at the smallest M
+assert max(abs(r[4]) for r in bias_rows) > 5          # wrong control: "unbiased" is rejected
 
 # %%
 # ==============================================================================
@@ -1337,41 +1487,64 @@ axes[2].axhline(1.0, color="k", ls="--", lw=1.2)
 axes[2].axhline(float(jnp.sqrt(d_ram["xi_R2"])), color="k", ls=":", lw=1.2)
 axes[2].text(30, 1.04, "SQL", fontsize=9, color="0.3")
 axes[2].text(30, float(jnp.sqrt(d_ram["xi_R2"])) + 0.03, r"$\xi_R$", fontsize=9, color="0.3")
+axes[2].axhline(np.sqrt(N_RAM / exact_rows["squeezed"][0]), color=PALETTE[1], ls="-.", lw=1.0)
+axes[2].text(30, np.sqrt(N_RAM / exact_rows["squeezed"][0]) - 0.04, r"$\sqrt{N/I}$", fontsize=9, color=PALETTE[1])
+axes[2].set_ylim(0.4, 1.1)
 axes[2].set_xscale("log"); axes[2].set_xlabel("shots per experiment $M$")
 axes[2].set_ylabel(r"$\Delta\hat\phi\,\sqrt{NM}$")
 axes[2].set_title("Gain over the standard quantum limit"); axes[2].legend(fontsize=8)
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# The eight printed shots are what the apparatus actually records: eight strings of ten bits, from which only the number
+# The eight printed shots are what the apparatus records: eight strings of ten bits, from which only the number
 # of ones is kept. Their histogram over $20\,000$ shots reproduces the exact $p(m\vert\phi)$ with a largest deviation of
-# $8.0\times10^{-3}$ — about twice the per-bin statistical size $1/(2\sqrt{20000})=3.5\times10^{-3}$, which is what a
-# *maximum* over eleven bins should look like.
+# $8.0\times10^{-3}$, about twice the largest per-bin standard deviation $1/(2\sqrt{20000})=3.5\times10^{-3}$, and
+# $\chi^2/\mathrm{dof}=2.06$ over $6$ degrees of freedom ($1.8$ standard deviations above $1$). The wrong control, the
+# same histogram tested against the twisted state without the alignment rotation, gives $\chi^2/\mathrm{dof}=5254$: the
+# test resolves the alignment step.
 #
 # The left panel shows what squeezing buys. Both fringes have almost the same shape; what differs is the width of the
-# noise band at the steep point $\phi=0$, and the slope. The squeezed state has a slightly smaller slope (the contrast
+# noise band at the steep point $\phi=0$, and the slope. The squeezed state has a smaller slope (the contrast
 # loss, $\vert\langle\mathbf J\rangle\vert=4.17$ against $5$) and a much smaller noise band ($\sqrt{V_{\min}}=0.73$
 # against $1.58$); the ratio of the two effects is $\xi_R$.
 #
-# The middle and right panels show the estimator actually reaching the promise. For both inputs the measured
-# $\Delta\hat\phi$ falls like $1/\sqrt M$ and sits on its own classical bound $1/\sqrt{MI}$: the scaled quantity
-# $M\,I\,\mathrm{Var}(\hat\phi)$ ranges over $0.94$–$1.04$ for the coherent input and $0.92$–$1.13$ for the squeezed one,
-# against a $5.8\%$ statistical error bar on a variance measured from $600$ experiments (the largest excursion is the
-# $M=25$ point, where an estimator built on $25$ binary-ish outcomes is not yet asymptotic). The right panel plots the
-# gain directly: the coherent-state curve sits on $1$ within its error bars, the squeezed curve sits at $0.48$–$0.54$,
-# i.e. **at or slightly below the $\xi_R=0.557$ line**, because the maximum-likelihood estimator exploits the whole
-# histogram, not just its mean.
+# The middle and right panels compare the estimator with its bounds. Every row of the two tables uses its own PRNG key,
+# so the rows are statistically independent. For both inputs the measured $\Delta\hat\phi$ falls like $1/\sqrt M$ and
+# sits on its own classical bound $1/\sqrt{MI}$: the scaled quantity $M\,I\,\mathrm{Var}(\hat\phi)$ ranges over
+# $0.976$–$1.069$ for the coherent input and $0.985$–$1.119$ for the squeezed one, against a $3.2\%$ statistical error bar
+# on a variance measured from $2000$ experiments. The largest excursion is the squeezed $M=25$ point, $1.119\pm0.035$,
+# where the estimator is not yet asymptotic; Step 9b measures the same finite-$M$ excess with much smaller error bars
+# ($1.159\pm0.008$ at $M=25$, $1.034\pm0.007$ at $M=100$). The right panel plots the gain directly: the coherent-state
+# curve sits on $1$ within about two error bars, and the squeezed curve sits at $0.50$–$0.54$, around the value
+# $\sqrt{N/I}=0.507$ predicted by the classical Fisher information and **below the $\xi_R=0.557$ line**, because the
+# maximum-likelihood estimator exploits the whole histogram rather than its mean alone.
+#
+# The bias at $\phi=0$ is compatible with zero in all twelve rows (largest deviation $1.7$ standard errors), as the
+# symmetry argument of Section 11.2 requires; this tests the sampler and nothing else. At $\phi=0.2$, Step 9b resolves
+# the bias: $+0.00061\pm0.00008$ at $M=100$, against $b_1/M=0.00056$ from Eq. (14a) of notebook 30, and the hypothesis
+# "unbiased" is rejected by $7$ to $18$ standard errors. At $M=25$ and $M=50$ the measured bias exceeds $b_1/M$ by
+# $4.7$ and $3.3$ standard errors. The excess shrinks with $M$ ($0.00082$, $0.00040$ and $0.00005$ at $M=25$, $50$,
+# $100$), as the higher-order terms of the $1/M$ expansion must. The bias is of order $10^{-3}$ against a standard deviation of order $10^{-2}$, so it is negligible in the mean
+# squared error at these $M$.
 #
 # In clock terms, $I=38.98$ against $I=10$ means the squeezed interferometer reaches a given phase uncertainty with
 # $3.9$ times fewer interrogations.
 #
-# > **Physics insight.** Nothing in this protocol is exotic: the twisting is an interaction the atoms have anyway, the
-# > alignment and readout pulses are ordinary $\pi/2$ pulses, and the measurement is the population counting that every
-# > interferometer already performs. That is precisely why spin squeezing, rather than GHZ interferometry, is the quantum
-# > enhancement that has actually entered atomic clocks.
+# Execution of the compiled estimator is fast: the $24\,000$ simulated experiments of Step 9 run in about $1$ s, while
+# compiling the six array shapes (one per $M$; the two inputs share them) takes about ten times longer. Steps 6 and 11
+# print the same split.
+#
+# > **Physics insight.** The protocol uses only standard ingredients: the twisting is an interaction the atoms have
+# > anyway, the alignment and readout pulses are collective rotations, and the measurement is the population counting that
+# > every Ramsey interferometer already performs. These are the ingredients of the 2010 squeezing experiments cited in
+# > Section 4.3. Under independent dephasing during
+# > the interrogation, spin-squeezed probes also reach asymptotically the best resolution available to generalised Ramsey
+# > spectroscopy, a factor $\sqrt e$ better than uncorrelated atoms (Ulam-Orgikh and Kitagawa 2001; the bound and its
+# > derivation are in [32](../ch10_quantum_metrology_protocols/32_ghz_interferometry_heisenberg_limit.ipynb),
+# > Section 13.2).
 
 # %% [markdown]
-# ## 12. Seeing it: the Husimi-$Q$ distribution on the Bloch sphere
+# ## 12. The Husimi-$Q$ distribution on the Bloch sphere
 #
 # Covariance matrices summarise a distribution by its second moments. Once the state stops being Gaussian-like — and it
 # does, quickly — we need to see the distribution itself.
@@ -1398,7 +1571,8 @@ fig.tight_layout(); plt.show()
 # single-point function over the grid and let XLA batch it.
 #
 # We draw the sphere in the **equal-area cylindrical projection** $(\varphi,\cos\theta)$: areas on this map are
-# proportional to areas on the sphere, so a round blob stays round near the equator and the eye is not lied to. The
+# proportional to areas on the sphere, so a round blob near the equator stays round and relative weights are not
+# distorted. The
 # initial CSS sits at $(\varphi,\cos\theta)=(0,0)$.
 
 # %%
@@ -1478,7 +1652,7 @@ fig.suptitle(f"Husimi $Q(\\theta,\\varphi)$ on the Bloch sphere under one-axis t
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# The six panels are the whole story of Section 5 made visible. Each panel carries its own colour scale, running from
+# The six panels show the mechanism of Section 5. Each panel carries its own colour scale, running from
 # $0$ (black) to that panel's own maximum of $Q$ (white): the peak value of $Q$ falls from $1.00$ to $0.27$ between the
 # first panel and the last, and a common scale would darken the late panels. Compare *shapes* across panels, not
 # brightnesses.
@@ -1563,7 +1737,7 @@ make_husimi_gif(psi_q0, MU_FRAMES, jnp.asarray(THETA_M), jnp.asarray(PHI_M), phi
 # > $\mu=\pi/2$ is the most spectacular of those revivals.
 
 # %% [markdown]
-# ## 13. Where squeezing stops measuring the metrological gain
+# ## 13. The limit of squeezing as a measure of metrological gain
 #
 # The Wineland parameter was derived from the error-propagation formula, Eq. (11), which uses only the first two moments
 # of one measured observable. The quantum Fisher information uses the whole state. The general relation is
@@ -1573,8 +1747,23 @@ make_husimi_gif(psi_q0, MU_FRAMES, jnp.asarray(THETA_M), jnp.asarray(PHI_M), phi
 # which follows from the quantum Cramér–Rao bound: $N/\xi_R^2=\vert\langle\mathbf J\rangle\vert^2/V_{\min}$ is
 # $1/(\Delta\phi)^2$ for one *particular* readout strategy (rotate, measure one quadrature, invert the mean signal),
 # while $F_Q$ bounds $1/(\Delta\phi)^2$ for *every* strategy, optimal measurement and optimal estimator included.
-# A specific strategy can never beat the optimum over all of them, hence Eq. (26). Equality holds when the state is
-# Gaussian-like and the optimal measurement is the quadrature measurement — which is exactly the short-$\mu$ regime.
+# A specific strategy can never beat the optimum over all of them, hence Eq. (26).
+#
+# For the twisted states the gap in Eq. (26) has an exact expression. The state is invariant under $e^{-i\pi J_x}$
+# (Section 11.2), which flips $J_y$ and $J_z$ and leaves $J_x$ alone, so $C_{xy}=C_{xz}=0$ and the covariance matrix is
+# block diagonal. Whenever its largest eigenvalue lies in the transverse block (that is, $V_{\max}\ge C_{xx}$), the
+# pure-state QFI is $F_Q^{\max}=4V_{\max}$, and with Eq. (12)
+#
+# $$\frac{F_Q^{\max}}{N/\xi_R^2}\;=\;\frac{4V_{\max}V_{\min}}{\vert\langle\mathbf J\rangle\vert^2}
+#   \;=\;\frac{V_{\min}V_{\max}}{\vert\langle\mathbf J\rangle\vert^2/4}. \tag{26a}$$
+#
+# The ratio is the excess of the transverse uncertainty product over its minimum, Eq. (2). It equals $1$ only for a
+# minimum-uncertainty state; the table of Section 7 shows that the product leaves its minimum as soon as twisting starts
+# ($5.33$ against $4.17^2/4=4.34$ at the optimum for $N=10$, a ratio of $1.2275$, the same number as
+# $F_Q/(N/\xi_R^2)=39.6132/32.2727$ of Section 11). At the squeezing optimum the ratio does not return to $1$ at large
+# $N$: the anti-squeezed variance grows as $F_Q^{\max}\simeq N+3^{1/3}N^{5/3}$ while $N/\xi_R^2\simeq2\cdot3^{-2/3}N^{5/3}$,
+# so the ratio tends to $3/2$, as derived in
+# [34](../ch10_quantum_metrology_protocols/34_oat_to_ghz_full_metrology_protocol.ipynb), Section 6.2.
 #
 # We measure both quantities along the whole evolution. $F_Q$ is $\lambda_{\max}$ of the $3\times3$ QFI matrix
 # $\mathcal F_{ab}=4C_{ab}$, the object derived in
@@ -1613,9 +1802,12 @@ def qfi_and_xi(mu):
     psi = oat_evolve(psi_cmp0, mu)
     d = squeezing_data(psi)
     w, v = jnp.linalg.eigh(4.0 * d["cov"])
-    return w[-1], v[:, -1], d["xi_R2"], d["xi_S2"], d["Jlen"]
+    return w[-1], v[:, -1], d["xi_R2"], d["xi_S2"], d["Jlen"], d["V_min"], d["V_max"]
 
 
+t0 = time.time()
+jax.block_until_ready(qfi_and_xi(float(MU_CMP[0])))          # first call: trace + compile + one run
+t_comp = time.time() - t0
 t0 = time.time()
 cmp_data = [tuple(np.array(x) for x in qfi_and_xi(float(m))) for m in MU_CMP]
 F_max = np.array([float(c[0]) for c in cmp_data])
@@ -1623,7 +1815,10 @@ n_opt = np.array([np.array(c[1]) for c in cmp_data])
 xiR2 = np.array([float(c[2]) for c in cmp_data])
 xiS2 = np.array([float(c[3]) for c in cmp_data])
 Jlen = np.array([float(c[4]) for c in cmp_data])
-print(f"(scan of {len(MU_CMP)} twisting angles at N = {N_CMP} in {time.time() - t0:.1f} s)\n")
+Vmin_c = np.array([float(c[5]) for c in cmp_data])
+Vmax_c = np.array([float(c[6]) for c in cmp_data])
+print(f"(scan of {len(MU_CMP)} twisting angles at N = {N_CMP}: first call (compile + run) {t_comp:.2f} s, "
+      f"then {time.time() - t0:.2f} s for all {len(MU_CMP)} compiled calls)\n")
 
 print(f"{'mu':>7s} | {'F_Q max':>9s} {'N/xi_R^2':>10s} {'ratio':>10s} {'xi_S^2':>8s} {'|<J>|':>9s} "
       f"{'optimal direction':>24s}")
@@ -1638,6 +1833,12 @@ ok_contrast = Jlen > 1e-3
 print(f"minimum of F_Q xi_R^2 / N where |<J>| > 1e-3: {np.min(ratio[ok_contrast]):.4f}   (Eq. (26) requires >= 1)")
 assert np.min(ratio[ok_contrast]) > 1.0 - 1e-6
 assert abs(F_max[-1] - N_CMP ** 2) < 1e-6 * N_CMP ** 2
+# Eq. (26a): where the top eigenvector is transverse, F_Q xi_R^2 / N equals the uncertainty-product excess
+transverse = (np.abs(n_opt[:, 0]) < 1e-6) & ok_contrast
+excess = Vmin_c * Vmax_c / (Jlen ** 2 / 4)                  # from the transverse 2x2 block alone
+print(f"Eq. (26a) on the {int(transverse.sum())} angles with a transverse optimal direction: "
+      f"max |ratio - V_min V_max/(|<J>|^2/4)| / ratio = {np.max(np.abs(ratio - excess)[transverse] / ratio[transverse]):.1e}")
+assert np.allclose(ratio[transverse], excess[transverse], rtol=1e-8)
 
 # %%
 # ==============================================================================
@@ -1665,21 +1866,28 @@ axes[1].set_title("The squeezing regime, magnified"); axes[1].legend(fontsize=9)
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# Equation (26) holds at every twisting angle, as it must, and the two curves tell very different stories.
+# Equation (26) holds at every twisting angle, and the two curves separate early.
 #
 # * At $\mu=0$ both equal $N=12$: a coherent spin state is exactly at the standard quantum limit and the quadrature
-#   readout is optimal for it.
-# * Through the squeezing regime they track each other closely. At $\mu=0.039$ we measure $F_Q=18.243$ against
-#   $N/\xi_R^2=18.235$, a ratio of $1.0004$; at $\mu=0.079$ the ratio is $1.007$. In this window $\xi_R^2$ *is* the
-#   metrological gain, which is why experimentalists quote it.
-# * They separate as soon as the state stops being Gaussian. At $\mu=0.118$ the ratio is $1.04$, at $\mu=0.196$ (just
-#   past the optimum $\mu_{\rm opt}=0.180$) it is $1.355$, and at $\mu=0.39$ it is $15.4$; beyond that the contrast
-#   $\vert\langle\mathbf J\rangle\vert$ collapses, $\xi_R^2$ diverges, and the bound becomes vacuous while $F_Q$ keeps
-#   growing.
-# * $F_Q^{\max}/N^2$ rises to a broad plateau near $0.55$ over most of the evolution and then climbs to exactly $1$ at
-#   $\mu=\pi/2$: the Heisenberg limit, reached by the cat state whose two lobes we saw in the Husimi maps. The optimal
-#   generator direction, read off the eigenvector, starts along $\hat y$, tilts into the $y$–$z$ plane as the ellipse
-#   shears, and ends exactly on $\hat x$ — the axis joining the two lobes.
+#   readout is optimal for it. (The top eigenvalue is then doubly degenerate, $\mathcal F_{yy}=\mathcal F_{zz}=N$, so the
+#   printed direction $\hat y$ is one arbitrary choice in the $y$–$z$ plane.)
+# * For $\mu\ll\mu_{\rm opt}$ they track each other closely. At $\mu=0.039$ we measure $F_Q=18.243$ against
+#   $N/\xi_R^2=18.235$, a ratio of $1.0004$; at $\mu=0.079$ the ratio is $1.007$. In this early window $\xi_R^2$ is
+#   an accurate measure of the metrological gain.
+# * The ratio is $1.04$ at $\mu=0.118$, and $1.355$ at $\mu=0.196$, just past the optimum $\mu_{\rm opt}=0.180$:
+#   at the point where squeezing is best, $F_Q$ already exceeds $N/\xi_R^2$ by $35\%$, and by Eq. (26a) and the
+#   asymptotics of Section 10 the ratio tends to $3/2$ for large $N$. At $\mu=0.39$ the ratio is $15.4$; beyond
+#   that the contrast $\vert\langle\mathbf J\rangle\vert$ collapses, $\xi_R^2$ diverges, and the bound becomes vacuous
+#   while $F_Q$ keeps growing. Eq. (26a) is confirmed to machine precision at every angle where the optimal direction is
+#   transverse.
+# * $F_Q^{\max}/N^2$ rises to $0.58$ near $\mu=0.39$ and then settles on a broad plateau between $0.54$ and $0.56$ over
+#   most of the evolution, close to the value $\tfrac12+\tfrac1{2N}=0.542$ derived in
+#   [34](../ch10_quantum_metrology_protocols/34_oat_to_ghz_full_metrology_protocol.ipynb), and then climbs to exactly $1$
+#   at $\mu=\pi/2$: the Heisenberg limit, reached by the cat state whose two lobes we saw in the Husimi maps. The optimal
+#   generator direction, read off the eigenvector, starts at $45^\circ$ between $\hat y$ and $\hat z$ (it is the
+#   anti-squeezed axis, perpendicular to the squeezed one of Section 5), turns towards $\hat y$ as the ellipse shears
+#   ($0.77\,\hat y+0.64\,\hat z$ at $\mu=0.039$, $0.95\,\hat y+0.31\,\hat z$ at $\mu=0.39$), and ends exactly on $\hat x$,
+#   the axis joining the two lobes.
 #
 # So the useful entanglement keeps growing long after the squeezing parameter has given up. Extracting it requires a
 # different readout than "measure one quadrature and invert the mean" — and that is what
@@ -1696,7 +1904,7 @@ fig.tight_layout(); plt.show()
 # * **One-axis twisting**, $H=\chi J_z^2$, equals $\tfrac{\chi}{2}\sum_{i<j}Z_iZ_j$ up to a constant
 #   (Eq. (6): $\sum_{i<j}Z_iZ_j=2J_z^2-N/2$), and is realised by collisions in a condensate, by cavity feedback and by
 #   the Mølmer–Sørensen interaction in ion traps.
-# * The evolution is a rotation about $\hat z$ by the **operator-valued angle** $\chi t J_z$: it *shears* the uncertainty
+# * The evolution is a rotation about $\hat z$ by the **operator-valued angle** $\simeq2\chi t J_z$: it *shears* the uncertainty
 #   disc. Because all $Z_iZ_j$ terms commute, the gate circuit and the diagonal phase multiplication are **exactly**
 #   equal — zero Trotter error, verified to $10^{-15}$ up to $\mu=3$.
 # * Two squeezing parameters: $\xi_S^2=4V_{\min}/N$ (noise reduction) and
@@ -1705,17 +1913,24 @@ fig.tight_layout(); plt.show()
 #   Section 8.4); random product states reach $\xi_S^2$ far below $1$ while keeping $\xi_R^2>1$.
 # * The closed-form Kitagawa–Ueda results, Eqs. (17)–(23), reproduce the exact simulation to $3\times10^{-14}$. The
 #   optimum scales as $\mu_{\rm opt}\sim3^{1/6}N^{-2/3}$ and $\xi^2_{S,\min}\sim\tfrac12(3/N)^{2/3}$ — a law that only
-#   becomes visible above $N\approx10^2$: fitted over $6\le N\le20$ the exponents come out between $-0.53$ and $-0.69$,
-#   and only over $200\le N\le10^5$ does the fitted $\xi_S^2$ slope settle on $-0.667$.
+#   becomes visible above $N\approx10^2$: fitted over $6\le N\le20$ the exponents come out between $-0.54$ and $-0.69$,
+#   and the local slope of $\xi^2_{S,\min}$ settles on $-2/3$ only from $N\approx10^3$. The Wineland parameter has the same
+#   asymptotic law with a relative correction $(3/N)^{1/3}$, Eq. (24a), so its local slope is steeper than $-2/3$ (about
+#   $-0.73$ near $N=100$) and approaches it very slowly; a fit over a short range of $N$ measures an average of drifting
+#   local slopes.
 # * Simulated end to end at $N=10$ (twist, align, encode, sample bit strings, maximum likelihood), the squeezed
-#   interferometer reaches $\Delta\hat\phi\approx0.50/\sqrt{NM}$, slightly better than the $\xi_R=0.557$ predicted by
-#   error propagation, because the likelihood uses the whole histogram rather than its mean ($I=38.98$ against
-#   $N/\xi_R^2=32.27$, both below $F_Q=39.61$).
+#   interferometer reaches $\Delta\hat\phi=(0.50$–$0.54)/\sqrt{NM}$, around the $\sqrt{N/I}=0.507$ of its classical
+#   Fisher information and below the $\xi_R=0.557$ predicted by error propagation, because the likelihood uses the whole
+#   histogram rather than its mean ($I=38.98$ against $N/\xi_R^2=32.27$, both below $F_Q=39.61$). The estimator's bias
+#   vanishes at $\phi=0$ by symmetry; measured at $\phi=0.2$ it agrees with the first-order prediction $b_1/M$ at
+#   $M=100$.
 # * The Husimi-$Q$ maps show disc $\to$ tilted ellipse $\to$ S-shape $\to$ multi-lobed state $\to$ two-lobed cat at
 #   $\mu=\pi/2$. The spectrum $\chi m^2$ is integer-spaced, so the dynamics is exactly periodic and the "decoherence" at
 #   intermediate times is reversible.
-# * $F_Q\ge N/\xi_R^2$ with near-equality only in the Gaussian regime. Beyond it the squeezing parameter stops measuring
-#   the metrological resource: at $\mu=\pi/2$ the state has $F_Q=N^2$ while $\xi_R^2=\infty$.
+# * $F_Q\ge N/\xi_R^2$, and for twisted states the ratio of the two is exactly the excess of the transverse uncertainty
+#   product over its minimum, Eq. (26a). It is close to $1$ only for $\mu\ll\mu_{\rm opt}$, is $1.35$ just past the
+#   optimum for $N=12$ and tends to $3/2$ at the optimum for large $N$. Beyond the optimum the squeezing parameter stops measuring the
+#   metrological resource: at $\mu=\pi/2$ the state has $F_Q=N^2$ while $\xi_R^2=\infty$.
 #
 # ## 15. Exercises
 #
@@ -1724,27 +1939,46 @@ fig.tight_layout(); plt.show()
 #    global phase $e^{-i\mu N/4}$ still gives the same expectation values.
 # 2. **(★)** Plot $\mathcal{C}(\mu)=\cos^{N-1}\mu$ and $\xi_S^2(\mu)$ on the same axes for $N=20$ and read off the
 #    twisting angle at which the contrast has fallen to $1/e$. Compare it with $\mu_{\rm opt}$.
-# 3. **(★★)** Two-axis counter-twisting. Replace $H=\chi J_z^2$ by $H=\tfrac{\chi}{2i}(J_+^2-J_-^2)$ with
-#    $J_\pm=J_x\pm iJ_y$. This Hamiltonian is *not* diagonal, so build it as a dense matrix for $N\le10$ and evolve with
-#    `expm`. Measure $\xi_S^2$ and show numerically that the best squeezing now scales like $1/N$ rather than $N^{-2/3}$.
+# 3. **(★★)** Two-axis counter-twisting. Replace $H=\chi J_z^2$ by $H=\tfrac{\chi}{2i}(J_+^2-J_-^2)=\chi(J_xJ_y+J_yJ_x)$
+#    with $J_\pm=J_x\pm iJ_y$, and start from $\vert0\rangle^{\otimes N}$, the coherent state along $+\hat z$, which is the
+#    stationary point of this Hamiltonian (from $\vert+x\rangle^{\otimes N}$ the mean spin is rotated away and little
+#    squeezing results). The Hamiltonian is not diagonal in the computational basis; since it is built from collective
+#    operators and the initial state is permutation symmetric, it suffices to work in the $(N+1)$-dimensional symmetric
+#    subspace, with $J_x,J_y,J_z$ the standard spin-$N/2$ matrices, and to evolve with `expm`. Measure the best $\xi_S^2$
+#    for $N$ from $6$ to a few hundred. Fit a power law over $6\le N\le10$ first, then compute the local slopes
+#    $\mathrm d\ln\xi^2_{S,\min}/\mathrm d\ln N$ over the whole range. Over $N\le10$ the fitted exponent cannot be told
+#    apart from the one-axis-twisting value $-2/3$; the local slopes keep falling and reach about $-0.99$ between $N=160$
+#    and $N=320$, approaching the $1/N$ law of counter-twisting (Kitagawa and Ueda 1993) only at large $N$.
 # 4. **(★★)** *Extend the code.* Add inhomogeneous couplings: replace the uniform $\chi$ in `oat_circuit` by a matrix
 #    $\chi_{ij}$ drawn from a distribution with mean $\chi$ and relative width $\sigma$. The gates still commute, so the
-#    evolution is still exact. Measure how $\xi_R^2$ at the optimum degrades with $\sigma$.
+#    evolution is still exact. Measure how $\xi_R^2$ at the optimum degrades with $\sigma$, averaging over several draws
+#    of $\chi_{ij}$.
 # 5. **(★★)** Dephasing during the twisting. Using the density-tensor machinery of
-#    [07](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb), Trotterise the evolution into
-#    (OAT step, dephasing channel with probability $p$) and measure $\xi_R^2(\mu)$ for $N=6$ and several $p$. At which $p$
-#    does the squeezing disappear completely?
+#    [07](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb), split the evolution to $\mu$ into
+#    $n$ steps, each an OAT step of $\Delta\mu=\mu/n$ followed by the dephasing channel
+#    $\rho\to(1-p)\rho+pZ\rho Z$ on every qubit with $p=\gamma\,\Delta\mu$ ($\gamma$ is the dephasing rate in units of
+#    $\chi$). (a) Show that the two operations commute, so the splitting introduces no Trotter error and the result depends
+#    on $n$ only through $(1-2\gamma\Delta\mu)^n\to e^{-2\gamma\mu}$. (b) Using this, write $\langle J_x\rangle$, $C_{yy}$ and
+#    $C_{yz}$ of Section 9 with the factors $\eta=e^{-2\gamma\mu}$ and $\eta^2$ in the right places, and check them
+#    against the density-tensor simulation for $N=6$. (c) Expand $\xi_R^2$ to first order in $\mu$ and show that squeezing
+#    exists at short times only for $\gamma<(N-1)/4$. Confirm numerically for $N=6$ that the minimum of $\xi_R^2$ over
+#    $\mu$ reaches $1$ at $\gamma=1.25$.
 # 6. **(★★)** *Physics.* Prove that $\langle J_z^2\rangle$ is constant under one-axis twisting for *any* initial state,
 #    and that $\langle J_z\rangle$ is too. Then explain why $\langle J_x\rangle$ can decay even though the evolution is
 #    unitary and the state remains pure.
-# 7. **(★★★)** Optimal readout. For the squeezed state at $\mu_{\rm opt}$ and $N=8$, compute the quantum Fisher
-#    information $F_Q$ and compare it with the classical Fisher information of the population readout used in Section 11.
-#    Then build the SLD eigenbasis as in
+# 7. **(★★★)** Optimal readout. For the squeezed state at the $\mu_{\rm opt}$ of $\xi_R^2$ and $N=8$, compute the quantum
+#    Fisher information $F_Q$ of the aligned state for the generator $J_z$ and compare it with the classical Fisher
+#    information of the population readout used in Section 11. Then build the SLD eigenbasis as in
 #    [30](../ch10_quantum_metrology_protocols/30_qfi_from_the_sld_prepare_encode_estimate.ipynb) and check that its
-#    classical Fisher information equals $F_Q$. How much is the simple readout losing at the optimum, and at $\mu=2\mu_{\rm opt}$?
-# 8. **(★★★)** The echo protocol. Instead of reading out directly, apply the *inverse* twisting $e^{+i\mu J_z^2}$ after
-#    the phase encoding and then measure $J_z$. Show numerically that this "interaction-based readout" extracts a Fisher
-#    information close to $F_Q$ even at twisting angles where the simple quadrature readout has failed.
+#    classical Fisher information equals $F_Q$. How much is the population readout losing at the optimum, and at
+#    $\mu=2\mu_{\rm opt}$ (re-computing the alignment angle there)?
+# 8. **(★★★)** The echo protocol. A phase encoded with $J_z$ cannot be read out by an echo: $J_z$ commutes with
+#    $J_z^2$, so the inverse twisting simply undoes the preparation and the Fisher information returns to $N$. Encode
+#    instead with the optimal generator $\mathbf n_{\rm opt}(\mu)\cdot\mathbf J$ of Section 13, apply the inverse twisting
+#    $e^{+i\mu J_z^2}$, then a $\pi/2$ pulse about $\hat y$, and count the qubits in $\vert1\rangle$, i.e. measure $J_x$.
+#    Show numerically for $N=8$ that the classical Fisher information of this "interaction-based readout" at a small
+#    phase equals $F_Q^{\max}(\mu)$ at every twisting angle, including those where the population readout of Section 11
+#    has failed. (Echo protocols of this kind: Davis, Bentsen and Schleier-Smith 2016; Macrì, Smerzi and Pezzè 2016.)
 #
 # ## References
 #
@@ -1767,3 +2001,8 @@ fig.tight_layout(); plt.show()
 #   for quantum metrology*, Nature **464**, 1170 (2010).
 # * I. D. Leroux, M. H. Schleier-Smith and V. Vuletić, *Implementation of cavity squeezing of a collective atomic spin*,
 #   Physical Review Letters **104**, 073602 (2010).
+# * D. Ulam-Orgikh and M. Kitagawa, *Spin squeezing and decoherence limit in Ramsey spectroscopy*, Physical Review A
+#   **64**, 052106 (2001).
+# * E. Davis, G. Bentsen and M. Schleier-Smith, *Approaching the Heisenberg limit without single-particle detection*,
+#   Physical Review Letters **116**, 053601 (2016).
+# * T. Macrì, A. Smerzi and L. Pezzè, *Loschmidt echo for quantum metrology*, Physical Review A **94**, 010102 (2016).

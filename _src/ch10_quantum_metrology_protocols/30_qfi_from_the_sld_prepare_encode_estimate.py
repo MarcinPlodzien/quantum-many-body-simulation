@@ -1,14 +1,14 @@
 #@title: QFI from the symmetric logarithmic derivative — prepare, encode, estimate
 #@part: Chapter 10 — Quantum metrology protocols
-#@description: The complete metrology pipeline for mixed states: encode a parameter unitarily on a density tensor, get the derivative three ways (commutator, finite differences, jax.jacfwd), solve the Lyapunov equation for the symmetric logarithmic derivative, evaluate the quantum Fisher information and cross-check it against 4 Var(G), the engine, and the Bures fidelity susceptibility, build the optimal measurement from the eigenbasis of the SLD and verify by simulated maximum-likelihood experiments that it, and only it, saturates the quantum Cramér–Rao bound.
+#@description: The complete metrology pipeline for mixed states: encode a parameter unitarily on a density tensor, get the derivative three ways (commutator, finite differences, jax.jacfwd), solve the Lyapunov equation for the symmetric logarithmic derivative, evaluate the quantum Fisher information and cross-check it against 4 Var(G), the engine, and the Bures fidelity susceptibility, build the optimal measurement from the eigenbasis of the SLD and verify by simulated maximum-likelihood experiments that it saturates the quantum Cramér–Rao bound while a convenient fixed readout does not, with the finite-sample bias of the estimator predicted and measured.
 
 # %% [markdown]
 # ## 1. Introduction and motivation
 #
 # The previous notebook,
-# [29 — quantum Fisher information](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb),
+# [29 — quantum Fisher information: how fast a quantum state changes under a small parameter shift](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb),
 # established what the quantum Fisher information $F_Q$ *is* — the largest classical Fisher information any measurement can
-# produce — and computed it for **pure** states, where it collapses to $F_Q=4\,\mathrm{Var}(G)$.
+# produce — and computed it for **pure** states, where it reduces analytically to $F_Q=4\,\mathrm{Var}(G)$.
 # Three of its statements were left without proof or without a test:
 #
 # 1. the formula for **mixed** states was quoted, not derived;
@@ -21,20 +21,21 @@
 # $$\text{prepare }\rho\;\longrightarrow\;\text{encode }\rho_\theta=e^{-i\theta G}\,\rho\,e^{+i\theta G}
 #   \;\longrightarrow\;\text{measure}\;\longrightarrow\;\text{estimate }\hat\theta ,$$
 #
-# and we answer, with code and numbers, the four questions it raises:
+# and we work through its four stages with code and numbers:
 #
-# * **How do I encode?** Apply $e^{-i\theta G}$ to a density *tensor* without ever building a $2^N\times2^N$ matrix, and get
+# * **Encoding.** We apply $e^{-i\theta G}$ to a density *tensor* without ever building a $2^N\times2^N$ matrix, and get
 #   $\partial_\theta\rho_\theta$ three independent ways (an exact commutator, central finite differences, and forward-mode
 #   automatic differentiation straight through the encoding function) that must agree.
-# * **How do I get $F_Q$?** Define the **symmetric logarithmic derivative** (SLD) $L$ by the operator equation
+# * **The QFI.** We define the **symmetric logarithmic derivative** (SLD) $L$ by the operator equation
 #   $\partial_\theta\rho=\tfrac12(L\rho+\rho L)$ — a *Lyapunov equation* — solve it line by line in the eigenbasis of $\rho$,
-#   deal honestly with the kernel where $\lambda_m+\lambda_n=0$, and evaluate $F_Q=\mathrm{Tr}(\rho L^2)$.
-# * **Which measurement is best?** The projective measurement in the eigenbasis of $L$. We prove that its classical Fisher
+#   treat the kernel where $\lambda_m+\lambda_n=0$ explicitly, and evaluate $F_Q=\mathrm{Tr}(\rho L^2)$.
+# * **The optimal measurement** is the projective measurement in the eigenbasis of $L$. We prove that its classical Fisher
 #   information equals $F_Q$ (one line, once $L$ is known), prove that no measurement can do better (Cauchy–Schwarz in the
 #   Hilbert–Schmidt inner product — the Braunstein–Caves theorem, now with a proof), and check both numerically against
 #   naive readouts.
-# * **Does it work in a laboratory?** We sample outcomes from the exact Born probabilities, estimate $\theta$ by maximum
-#   likelihood, repeat the experiment hundreds of times and compare the measured variance with $1/(M F_Q)$, with error bars.
+# * **Simulated experiments.** We sample outcomes from the exact Born probabilities, estimate $\theta$ by maximum
+#   likelihood, repeat the experiment tens of thousands of times and compare the measured variance with $1/(M F_Q)$, and
+#   the measured bias with its first-order prediction, with error bars.
 #
 # Along the way we run the machine on the states and generators that the rest of the chapter needs: product, GHZ, W, Dicke
 # and Haar-random states; depolarised, dephased and amplitude-damped GHZ states, with the noise applied **before** and
@@ -57,8 +58,9 @@
 # * three independent derivatives of an operator-valued function, and what their disagreement would have told us;
 # * the Bures/fidelity susceptibility as a finite-difference estimator of $F_Q$, with the classic competition between
 #   truncation error $O(d\theta^2)$ and round-off $O(d\theta^{-2})$;
-# * maximum-likelihood estimation on a grid, `vmap`-ed over hundreds of simulated experiments, with a bootstrap-free error
-#   bar on a variance.
+# * maximum-likelihood estimation on a grid, `vmap`-ed over tens of thousands of simulated experiments, with a
+#   bootstrap-free error bar on a variance, and sampling a sufficient statistic (the counts) instead of individual clicks;
+# * the $O(1/M)$ bias of maximum likelihood, from a second-order expansion of the score equation.
 #
 # *Implementation practice*
 # * density tensors of rank $2N$: ket axes $0\ldots N-1$, bra axes $N\ldots2N-1$, and what "apply an operator from the
@@ -67,7 +69,7 @@
 # * writing engine-style functions with `MATH` / `IMPLEMENTATION` / `COST` docstrings that later notebooks can reuse verbatim.
 #
 # ### Prerequisites
-# * [29 — quantum Fisher information](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb):
+# * [29 — quantum Fisher information: how fast a quantum state changes under a small parameter shift](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb):
 #   estimators, classical Fisher information, Cramér–Rao, $F_Q=4\mathrm{Var}(G)$, the SQL and Heisenberg limits;
 # * [07 — density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb):
 #   density tensors, `apply_gate_dm`, Kraus channels, fidelity;
@@ -304,11 +306,15 @@ for name, gen in (("J_z", gen_collective(N_CHK, Z)), ("J_x", gen_collective(N_CH
 #
 # 1. **the commutator, Eq. (5)** — exact, matrix-free: apply $G$ to the ket axes ($G\rho$), apply $G^{\mathsf T}$ to the
 #    bra axes ($\rho G$), subtract, multiply by $-i$. Cost $O(N4^N)$;
-# 2. **central finite differences** $\left[\rho_{\theta+\epsilon}-\rho_{\theta-\epsilon}\right]/(2\epsilon)$ — two encodings,
-#    error $O(\epsilon^2)$ plus round-off $O(\epsilon^{-1}10^{-16})$;
+# 2. **central finite differences** $\left[\rho_{\theta+\epsilon}-\rho_{\theta-\epsilon}\right]/(2\epsilon)$ — two encodings.
+#    A Taylor expansion to third order gives the truncation error $\tfrac{\epsilon^2}{6}\,\partial_\theta^3\rho$, and
+#    each entry of $\rho$ carries a round-off error of about $\delta\approx10^{-16}$ that the division by $2\epsilon$ amplifies,
+#    so the error of an entry is about $\tfrac{\epsilon^2}{6}c_3+\delta/\epsilon$, with $c_3$ the size of the largest entry of
+#    $\partial_\theta^3\rho$. It is smallest at $\epsilon_\ast=(3\delta/c_3)^{1/3}$;
 # 3. **`jax.jacfwd` through `encode_dm`** — forward-mode automatic differentiation pushed through the whole physical
-#    computation (the $2\times2$ eigendecompositions, the complex exponentials, the $2N$ einsums). Exact, no step size, and
-#    it costs about the same as one extra evaluation of the function.
+#    computation (the $2\times2$ eigendecompositions, the complex exponentials, the $2N$ einsums). Exact, no step size;
+#    forward mode carries a tangent alongside every intermediate value, so it costs a small constant multiple of one
+#    evaluation of the function.
 #
 # The third is the interesting one pedagogically: it means that once you can *simulate* an experiment you can *differentiate*
 # it, with no extra derivation. The first is the one we will use in production, because it is the cheapest and needs no
@@ -359,6 +365,23 @@ for gname, gen in (("J_z", gen_collective(N_D, Z)), ("J_x", gen_collective(N_D, 
         print(f"{gname:>22s} {theta:6.2f} | {e1:16.2e} {e2:19.2e}")
         assert e1 < 1e3 * TOL and e2 < 1e-8
 
+# --- the step of the finite difference: truncation (eps^2/6) c_3 against round-off delta/eps ---------
+# For GHZ under J_z the only theta-dependent entries are the two coherences (1/2) e^{-+ i N theta}, so the largest
+# entry of the third derivative is c_3 = N^3/2 = 32, and the truncation error alone predicts (eps^2/6) * 32.
+gen_fd = gen_collective(N_D, Z)
+d_exact = drho_commutator(encode_dm(rho_start, gen_fd, 0.83), gen_fd)
+c3 = 0.5 * N_D ** 3
+print(f"\n{'eps':>8s} | {'max|findiff - exact|':>21s} {'truncation (eps^2/6) c_3':>25s}")
+fd_err = {}
+for eps in (1e-3, 1e-4, 1e-5, 3e-6, 1e-6, 3e-7, 1e-7, 1e-8):
+    fd_err[eps] = max_abs(drho_findiff(rho_start, gen_fd, 0.83, eps) - d_exact)
+    print(f"{eps:8.0e} | {fd_err[eps]:21.2e} {eps ** 2 / 6 * c3:25.2e}")
+eps_star = (3 * 1e-16 / c3) ** (1 / 3)
+print(f"predicted optimum eps_* = (3 delta / c_3)^(1/3) = {eps_star:.1e}  (delta = 1e-16);  "
+      f"measured best eps = {min(fd_err, key=fd_err.get):.0e}")
+assert abs(fd_err[1e-4] / (1e-8 / 6 * c3) - 1) < 0.01          # truncation-dominated: the eps^2 law holds to 1%
+assert fd_err[1e-8] > 10 * fd_err[1e-6]                          # round-off-dominated below the optimum
+
 # --- and a property every derivative of a density matrix must have: it is traceless and Hermitian ---
 d = drho_commutator(encode_dm(rho_start, gen_collective(N_D, Z), 0.4), gen_collective(N_D, Z))
 dm = dm_matrix(d)
@@ -368,14 +391,19 @@ assert tr_abs < 1e3 * TOL and max_abs(dm - dm.conj().T) < 1e3 * TOL
 
 # %% [markdown]
 # All three routes agree: the commutator and automatic differentiation to machine precision (they compute the same thing by
-# different means), the finite difference to about $10^{-10}$, which is the expected optimum of a central difference at
-# $\epsilon=10^{-5}$. The derivative is traceless — it must be, since $\mathrm{Tr}\rho_\theta=1$ for all $\theta$ — and
-# Hermitian.
+# different means), the finite difference at $\epsilon=10^{-5}$ to between $10^{-12}$ and $6\times10^{-10}$. That default
+# step lies on the truncation side of the optimum. The step sweep makes this quantitative for GHZ under $J_z$: down to
+# $\epsilon=10^{-5}$ the error equals the truncation term $\tfrac{\epsilon^2}{6}c_3$ with $c_3=N^3/2=32$ (the GHZ
+# coherence $\tfrac12e^{-iN\theta}$ has third derivative of modulus $N^3/2$), and below $\epsilon\approx3\times10^{-6}$ round-off
+# takes over and the error grows again like $1/\epsilon$. The predicted optimum
+# $\epsilon_\ast=(3\delta/c_3)^{1/3}\approx2\times10^{-6}$ matches the measured best step $3\times10^{-6}$, with an error below $10^{-10}$;
+# the rule of thumb $\epsilon_\ast\sim\delta^{1/3}\approx5\times10^{-6}$ holds when $c_3$ is of order one. The derivative is
+# traceless — it must be, since $\mathrm{Tr}\rho_\theta=1$ for all $\theta$ — and Hermitian.
 #
 # > **Numerical practice.** Each of the three routes tests a different thing. The commutator tests our *algebra*; the finite
 # > difference tests that `encode_dm` really implements $e^{-i\theta G}$ and not something close to it; `jacfwd` tests that
-# > the whole pipeline is a differentiable function of $\theta$, which we will exploit again when computing exact outcome
-# > probabilities and their derivatives in Section 8.
+# > the whole pipeline is a differentiable function of $\theta$, which we exploit again in Section 9.3, where `jacfwd`
+# > applied twice gives the second derivative of the outcome probabilities that fixes the bias of the estimator.
 
 # %% [markdown]
 # ## 5. The symmetric logarithmic derivative
@@ -417,8 +445,8 @@ assert tr_abs < 1e3 * TOL and max_abs(dm - dm.conj().T) < 1e3 * TOL
 #   $$L_{mn}=\frac{2\,(\partial\rho)_{mn}}{\lambda_m+\lambda_n}. \tag{8}$$
 #
 # * **$\lambda_m+\lambda_n=0$:** since $\lambda\ge0$ this means $\lambda_m=\lambda_n=0$, i.e. both $\vert m\rangle$ and
-#   $\vert n\rangle$ lie in the **kernel** of $\rho$. Equation (7) then reads $0=2(\partial\rho)_{mn}$ — not an equation for
-#   $L_{mn}$ at all, but a **consistency condition** on $\partial_\theta\rho$, with $L_{mn}$ left completely arbitrary.
+#   $\vert n\rangle$ lie in the **kernel** of $\rho$. Equation (7) then reads $0=2(\partial\rho)_{mn}$. It places no
+#   constraint on $L_{mn}$, which is left completely arbitrary, and becomes a **consistency condition** on $\partial_\theta\rho$.
 #
 # ### 5.3 The kernel: the condition holds, and the arbitrariness does not matter
 #
@@ -506,11 +534,16 @@ assert tr_abs < 1e3 * TOL and max_abs(dm - dm.conj().T) < 1e3 * TOL
 # using the completeness relation $\sum_n\vert n\rangle\langle n\vert=\mathbb 1$ in the middle step. This is Eq. (14) of
 # notebook 29. $\square$
 #
-# **(c) Convexity.** For any mixture, $F_Q\!\left[\sum_ip_i\rho_i,G\right]\le\sum_ip_iF_Q[\rho_i,G]$. We quote this
-# (a proof is in Tóth and Apellaniz 2014; it follows from the joint convexity of the Bures metric) and *verify it
-# numerically* in Section 7. Physically: **classical uncertainty about which state was prepared can only reduce the information
-# you can extract.** It is also the missing step in the standard-quantum-limit proof of notebook 29, which bounded $F_Q$
-# only for pure product states; convexity extends the bound $F_Q\le N$ to all separable mixed states.
+# **(c) Convexity.** For any mixture, $F_Q\!\left[\sum_ip_i\rho_i,G\right]\le\sum_ip_iF_Q[\rho_i,G]$. The proof takes two
+# lines once Section 8 has shown that $F_Q$ is the largest classical Fisher information over all measurements. Fix a POVM.
+# The outcome distribution of the mixture is the mixture of the outcome distributions, $p_x=\sum_ip_i\,p^{(i)}_x$, and
+# likewise for $\partial_\theta p_x$. The function $f(a,b)=a^2/b$ is jointly convex for $b>0$ (its Hessian is
+# $\tfrac{2}{b^3}\begin{pmatrix}b^2&-ab\\-ab&a^2\end{pmatrix}\succeq0$), so
+# $I[\text{mixture}]=\sum_xf(\partial_\theta p_x,p_x)\le\sum_ip_i\,I[\rho_i]\le\sum_ip_iF_Q[\rho_i,G]$. Maximising the
+# left-hand side over the POVM gives the claim (see also Tóth and Apellaniz 2014). We *verify it numerically* in
+# Section 7. Physically: **classical uncertainty about which state was prepared can only reduce the information
+# you can extract.** It is also the step that notebook 29 quoted when it extended the standard quantum limit
+# $F_Q\le N$ from pure product states to all separable mixed states.
 
 # %% [markdown]
 # ## 6. From formula to code: the SLD and the QFI
@@ -656,18 +689,27 @@ mixed_zoo = {
 }
 Gz = dense_generator(gen_collective(N_M, Z), N_M)
 print(f"{'state':>26s} | {'purity':>8s} {'Tr(rho L^2)':>13s} {'sum formula':>13s} {'engine':>11s} "
-      f"{'4 Var(G) (WRONG)':>17s}")
+      f"{'max err':>9s} {'4 Var(G) (WRONG)':>17s}")
 for name, rho in mixed_zoo.items():
     rm, dm_ = dm_matrix(rho), dm_matrix(drho_commutator(rho, gen_collective(N_M, Z)))
     f1, f2 = float(qfi_from_sld(rm, dm_)), float(qfi_sum_formula(rm, dm_))
     f3 = float(qfi_mixed(rm, Gz))
     var4 = 4 * float(jnp.real(jnp.trace(rm @ Gz @ Gz)) - jnp.real(jnp.trace(rm @ Gz)) ** 2)
-    print(f"{name:>26s} | {float(purity(rm)):8.4f} {f1:13.6f} {f2:13.6f} {f3:11.6f} {var4:17.4f}")
-    assert abs(f1 - f2) < 1e4 * TOL and abs(f1 - f3) < 1e4 * TOL
+    err = max(abs(f1 - f2), abs(f1 - f3))
+    print(f"{name:>26s} | {float(purity(rm)):8.4f} {f1:13.6f} {f2:13.6f} {f3:11.6f} {err:9.1e} {var4:17.4f}")
+    assert err < 1e4 * TOL
     assert f1 <= var4 + 1e4 * TOL
 
+# --- a mixed state for which F_Q = 4 Var(G) after all: dephased GHZ with G = J_x (explained below) ---
+Gx = dense_generator(gen_collective(N_M, X), N_M)
+rm = dm_matrix(mixed_zoo["GHZ, dephasing p=0.20"])
+f_x = float(qfi_mixed(rm, Gx))
+var4_x = 4 * float(jnp.real(jnp.trace(rm @ Gx @ Gx)) - jnp.real(jnp.trace(rm @ Gx)) ** 2)
+print(f"\nGHZ, dephasing p=0.20, G = J_x:  purity {float(purity(rm)):.4f},  F_Q = {f_x:.6f},  4 Var(J_x) = {var4_x:.6f}")
+assert abs(f_x - var4_x) < 1e4 * TOL
+
 # %% [markdown]
-# Three independent implementations of the mixed-state QFI agree to $10^{-13}$ or better, and for pure states they all
+# Three implementations of the mixed-state QFI agree to $10^{-13}$ or better, and for pure states they all
 # reduce to $4\,\mathrm{Var}(G)$ exactly as Section 5.5(b) predicts — at $\theta=0$ and at $\theta=0.61$ alike, confirming
 # the $\theta$-independence of Section 5.5(a).
 #
@@ -676,11 +718,25 @@ for name, rho in mixed_zoo.items():
 # Fisher information, and it is always an over-estimate (the assert checks that too). The reason is physical: the variance
 # of $G$ in a mixed state contains *classical* fluctuations — uncertainty about which pure state was prepared — that carry no
 # phase information at all. The gap can be enormous: for the strongly dephased GHZ state the variance formula still reports
-# $16$, the full Heisenberg value, where the true QFI is $0.269$ — wrong by a factor of sixty. Even for the mildly mixed
-# $q=1/2$ GHZ it over-reports by $40\%$. The variance formula applies to pure states and to nothing else.
+# $16$, the full Heisenberg value, where the true QFI is $0.269$ — wrong by a factor of sixty. For the equal mixture of
+# GHZ and white noise (purity $0.30$) it over-reports by $40\%$.
 #
-# > **Physics insight.** $F_Q\le4\,\mathrm{Var}(G)$ always, with equality exactly for pure states. The gap measures how
-# > much of the spread of $G$ is classical ignorance rather than quantum coherence.
+# The size of the gap follows from Eq. (12). Writing
+# $4\,\mathrm{Var}(G)=2\sum_{m,n}(\lambda_m+\lambda_n)\vert G_{mn}\vert^2-4\langle G\rangle^2$ in the same eigenbasis and
+# using $(\lambda_m+\lambda_n)-\frac{(\lambda_m-\lambda_n)^2}{\lambda_m+\lambda_n}=\frac{4\lambda_m\lambda_n}{\lambda_m+\lambda_n}$,
+#
+# $$4\,\mathrm{Var}(G)-F_Q=4\Big[\sum_m\lambda_mG_{mm}^2-\Big(\sum_m\lambda_mG_{mm}\Big)^2\Big]
+#   +8\sum_{m\neq n}\frac{\lambda_m\lambda_n}{\lambda_m+\lambda_n}\vert G_{mn}\vert^2\;\ge\;0 .$$
+#
+# The first term is the classical variance of the means $G_{mm}$ over the ensemble $\{\lambda_m\}$; the second collects
+# the matrix elements of $G$ between two *occupied* eigenvectors. Both vanish for a pure state. They also vanish for a
+# mixed state whose occupied eigenvectors share the same mean of $G$ and are not connected by $G$ — the extra line of the
+# output is such a case: the dephased GHZ state with $G=J_x$ has $F_Q=4\,\mathrm{Var}(J_x)=N$ at purity $0.51$, for a
+# reason worked out in Section 10.2.
+#
+# > **Physics insight.** $F_Q\le4\,\mathrm{Var}(G)$ always, with equality for pure states and for the special mixed
+# > states just described. The gap measures how much of the spread of $G$ is classical ignorance rather than quantum
+# > coherence.
 
 # %% [markdown]
 # ## 7. Two more cross-checks: the Bures fidelity susceptibility, and convexity
@@ -768,9 +824,10 @@ fig.tight_layout(); plt.show()
 # At the optimum all three states reproduce the SLD value of $F_Q$ to better than one part in $10^{6}$ — an independent
 # confirmation that our $L$ is correct, obtained without ever writing down an SLD.
 #
-# > **Numerical practice.** Eq. (13) is how experimentalists sometimes *measure* a QFI: the fidelity between two
-# > neighbouring states is accessible by a swap test or by randomised measurements. Numerically, though, the SLD route is
-# > both exact and cheaper — use Eq. (13) as a check, not as a method.
+# > **Numerical practice.** Eq. (13) connects the QFI to a quantity that can be estimated in experiments: for pure states the
+# > fidelity is an overlap, accessible by a swap test or by randomised measurements. For mixed states those protocols
+# > measure overlaps such as $\mathrm{Tr}(\rho\sigma)$ rather than the Uhlmann fidelity, and give bounds on $F_Q$ instead of
+# > its value. Numerically the SLD route is exact and cheaper, so Eq. (13) serves here as an independent check.
 #
 # ### 7.2 Convexity
 #
@@ -808,7 +865,7 @@ fig.tight_layout(); plt.show()
 
 # %% [markdown]
 # The solid curves stay on or below the dashed straight lines, as convexity demands, and the assert makes that a test rather
-# than a picture. Two of the three families are worth a comment.
+# than a picture. Each of the three families shows a different mechanism.
 #
 # * **GHZ mixed with white noise** is strictly convex: at $q=1/2$ the mixture retains $7.11$ out of the
 #   $8.00$ that linear interpolation would suggest, and the curve bends further down at small $q$.
@@ -816,10 +873,17 @@ fig.tight_layout(); plt.show()
 #   orthogonal supports (GHZ lives on the strings $0\cdots0$ and $1\cdots1$, W on the weight-one strings) **and** the
 #   generator $J_z$ does not connect those supports, being diagonal. The mixture therefore splits into two independent
 #   blocks, and Eq. (11) — a sum over pairs of eigenvectors — adds their contributions with weights $q$ and $1-q$ exactly.
-#   Convexity is saturated whenever the mixed states are *perfectly distinguishable and separately optimal*, which makes
-#   physical sense: if a side-channel could tell you which state you hold, mixing would cost nothing.
-# * **GHZ mixed with $\vert0\cdots0\rangle$** falls far below the line, because $\vert0\cdots0\rangle$ has support *inside*
-#   the GHZ support and its admixture directly degrades the coherence that carries the phase.
+#   Had $G$ connected the two supports, a pair $(m,n)$ with $m$ in one and $n$ in the other, with weights $a=q\lambda_m$
+#   and $b=(1-q)\lambda_n$, would contribute $2(a-b)^2/(a+b)\,\vert G_{mn}\vert^2$ to the mixture but
+#   $2(a+b)\,\vert G_{mn}\vert^2$ to the linear interpolation (there each state sees the other's support as kernel), and
+#   $(a-b)^2/(a+b)<a+b$ whenever $ab>0$ — the identity behind the gap formula of Section 6. Convexity is saturated when the mixed states have
+#   orthogonal supports that the generator does not connect: a side channel could then tell you which state you hold
+#   without disturbing the phase, and mixing costs nothing.
+# * **GHZ mixed with $\vert0\cdots0\rangle$** follows the parabola $F_Q=N^2q^2$ ($4.000$ at $q=\tfrac12$). The admixture
+#   lives in the same two-dimensional span of $\vert0\cdots0\rangle$ and $\vert1\cdots1\rangle$ that carries the GHZ
+#   coherence. In that span the state is an effective qubit whose coherence is $q/2$, so its Bloch vector has transverse
+#   length $q$; $J_z$ acts there as $\tfrac N2\sigma^z$, and a qubit rotated by $\tfrac N2\sigma^z$ has $F_Q=N^2$ times the
+#   squared transverse Bloch length (Exercise 1 is the same calculation with the axes relabelled). The admixture adds population without coherence.
 
 # %% [markdown]
 # ## 8. The optimal measurement
@@ -866,7 +930,7 @@ fig.tight_layout(); plt.show()
 # $$I=\sum_x\frac{\left(\ell_xp_x\right)^2}{p_x}=\sum_x\ell_x^2\,p_x
 #   =\sum_x\ell_x^2\,\langle\ell_x\vert\rho\vert\ell_x\rangle=\mathrm{Tr}\!\left(\rho L^2\right)=F_Q. \;\square$$
 #
-# That is the whole theorem. Three warnings that the algebra hides:
+# This completes the proof. Three points are not visible in the algebra:
 #
 # * the optimal basis depends on $\theta$ (through $L_\theta=U(\theta)L_0U^\dagger(\theta)$), so the measurement is only
 #   **locally optimal** — you must already know $\theta$ roughly in order to measure it optimally. In practice one runs an
@@ -948,7 +1012,7 @@ assert float(fisher_of_basis(rm0, dm0, U_X)) < F_Q
 assert float(fisher_of_basis(rm0, dm0, U_Z)) < 1e4 * TOL
 
 # %% [markdown]
-# Exactly as the theorem predicts. The SLD eigenbasis delivers a classical Fisher information equal to $F_Q$ to machine
+# The table follows the theorem. The SLD eigenbasis delivers a classical Fisher information equal to $F_Q$ to machine
 # precision. The computational basis delivers **zero**: the encoding $e^{-i\theta J_z}$ is diagonal in that basis, so it
 # only multiplies amplitudes by phases and the populations $p(s)=\langle s\vert\rho_\theta\vert s\rangle$ do not depend on
 # $\theta$ at all. No estimator, however clever, can extract a phase from data that does not contain it. The $X$ basis — the
@@ -989,8 +1053,8 @@ fig.tight_layout(); plt.show()
 # The SLD curve touches the quantum bound at $\theta_0$: move the true phase away and the fixed basis loses information,
 # symmetrically, falling to **zero** exactly half-way to the next revival, at $\theta_0\pm\pi/(2N)$, i.e. at
 # $\theta=-0.093$ and $\theta=0.693$, where the
-# interference fringe reaches an extremum and the outcome probabilities are stationary in $\theta$. This is the honest
-# content of "the SLD basis is optimal".
+# interference fringe reaches an extremum and the outcome probabilities are stationary in $\theta$. The statement "the SLD
+# basis is optimal" holds at the design point and at its revivals.
 #
 # The curve is *periodic*, with period $\pi/N$: the measurement built at $\theta_0$ is equally optimal at
 # $\theta_0+k\pi/N$, and a direct evaluation gives $I=9.28798186=F_Q$ at $\theta=-0.485,\,0.300,\,1.085$ to thirteen
@@ -1012,36 +1076,79 @@ fig.tight_layout(); plt.show()
 # $$\log\mathcal{L}(\theta)=\sum_x n_x\log p(x\vert\theta), \tag{14}$$
 #
 # and the maximum-likelihood estimate is $\hat\theta=\arg\max_\theta\log\mathcal{L}(\theta)$. We maximise on a fine grid,
-# which is robust, trivially `vmap`-able, and honest about the **phase ambiguity**: $p(x\vert\theta)$ for a GHZ-like state
+# which is robust, trivially `vmap`-able, and makes the **phase ambiguity** explicit: $p(x\vert\theta)$ for a GHZ-like state
 # oscillates with period $2\pi/N$ in $\theta$, so a search over the whole circle would let the estimator lock onto a
 # neighbouring fringe. We take the window $\theta_0\pm\pi/(2N)$ — a quarter of a period on each side, i.e. the width
 # $\pi/N$ over which the Fisher information of Section 8.2 is periodic. The signal is *not* monotone across the whole
 # window (the parity turns over at $\theta=0$, which for $\theta_0=0.3$, $N=4$ lies inside it), but the likelihood is
 # unimodal there, which is what the estimator needs. A window wider than $\pi/N$ would admit a second, equally high peak.
 #
-# ### 9.2 The error bar on a variance
+# ### 9.2 The error bar on a variance, and independent random numbers
+#
+# Equation (14) depends on the data only through the counts $n_x$: they are a **sufficient statistic**. Their joint
+# distribution is multinomial, $(n_x)\sim\mathrm{Mult}\!\left(M;\{p(x\vert\theta)\}\right)$, so an experiment can be
+# simulated by drawing the counts directly instead of drawing $M$ individual clicks and histogramming them. The two are
+# the same random experiment; the click version costs memory proportional to $R\times M\times2^N$, the count version
+# $R\times2^N$. We validate the count sampler against clicks once and then use it for production.
 #
 # We compare the measured $\mathrm{Var}(\hat\theta)$ over $R$ experiments with the Cramér–Rao prediction $1/(M\,I)$. A
 # measured variance is itself a random number: for approximately Gaussian estimates its relative standard error is
-# $\sqrt{2/(R-1)}$, which is $3.2\%$ for the $R=2000$ used below and $5.8\%$ for $R=600$. We plot that as an error bar —
-# otherwise "agreement" is a matter of opinion. The choice of $R$ is not cosmetic: the effect we want to see, the
-# $O(1/M)$ excess of the maximum-likelihood variance over the Cramér–Rao value, is itself only a few per cent here, so at
-# $R=600$ it would be buried under the Monte-Carlo noise of the variance estimate itself.
+# $\sqrt{2/(R-1)}$, which is $0.63\%$ for the $R=50\,000$ used below and $3.2\%$ for $R=2000$. The mean has standard error
+# $\sqrt{\mathrm{Var}/R}$. Both are drawn as error bars. The choice of $R$ matters: the effects we want to see — the
+# $O(1/M)$ excess of the maximum-likelihood variance over the Cramér–Rao value, and the $O(1/M)$ bias — are a few per
+# cent of the variance and a fraction of the standard deviation respectively, and at $R=2000$ they are buried in the
+# Monte-Carlo noise except at the smallest $M$.
+#
+# Every row of the tables below gets its **own** PRNG key (`jax.random.fold_in` of a base key with the row's labels).
+# Reusing one key for all rows, as is tempting, makes the rows statistically dependent: a single fluctuation of the
+# random numbers then shifts the whole column coherently, and a smooth-looking trend across $M$ or across $\theta$ can be
+# one correlated fluctuation.
+#
+# ### 9.3 The bias at finite $M$
+#
+# Maximum likelihood is consistent but not unbiased. The size of the bias follows from expanding the score equation. Let
+# $\ell_x(\theta)=\log p(x\vert\theta)$ be the log-likelihood of one shot, $S_k=\sum_{i=1}^M\ell^{(k)}_{x_i}(\theta)$ the
+# sum of its $k$-th derivatives over the data at the true $\theta$, and $\delta=\hat\theta-\theta$. The estimate solves
+# $0=S_1+\delta S_2+\tfrac12\delta^2S_3+O(\delta^3)$. Write $S_2=-MI+\Delta_2$ (by the second Bartlett identity
+# $\mathbb E[\ell'']=-I$) with $\Delta_2$ a zero-mean fluctuation, and $S_3\approx M\,\mathbb E[\ell''']$. Solving to second
+# order, $\delta\approx S_1/(MI)+\Delta_2S_1/(MI)^2+\tfrac12\,\mathbb E[\ell''']\,S_1^2/(M^2I^3)$. Taking expectations with
+# $\mathbb E[S_1]=0$, $\mathbb E[S_1^2]=MI$ and $\mathbb E[\Delta_2S_1]=M\,\mathbb E[\ell'\ell'']$ (shots are independent,
+# so only equal-shot terms survive),
+#
+# $$\mathbb E[\hat\theta]-\theta=\frac{b_1(\theta)}{M}+O(M^{-2}),\qquad
+#   b_1=\frac{\mathbb E[\ell'\ell'']+\tfrac12\mathbb E[\ell''']}{I^2}
+#      =-\frac{1}{2I^2}\sum_x\frac{\partial_\theta p_x\,\partial^2_\theta p_x}{p_x} . \tag{14a}$$
+#
+# The last form follows from $\ell'=p'/p$, $\ell''=p''/p-(p'/p)^2$, $\ell'''=p'''/p-3p'p''/p^2+2(p'/p)^3$ and
+# $\sum_xp'''_x=0$. For the binary model $p_\pm=(1\pm\cos\theta)/2$ of notebook 29 it gives $b_1=-\cot\theta/2$, the
+# delta-method result of that notebook, Eq. (11a). The code evaluates Eq. (14a) with `jax.jacfwd` applied once and twice to
+# the exact outcome probabilities. The bias is of order $1/M$ while the standard deviation is of order $1/\sqrt M$, so it
+# contributes $b_1^2/M^2$ to the mean squared error, negligible against $1/(MI)$ for large $M$.
 
 # %%
 # ==============================================================================
-# STEP 10: simulated maximum-likelihood experiment
+# STEP 10: simulated maximum-likelihood experiments
 # ==============================================================================
 # PARAMETERS ------------------------------------------------------------------
 M_SHOTS = (50, 100, 200, 400, 800, 1600)     # shots per experiment
-R_EXP = 2000                                  # independent experiments per point (variance + its +-3.2% error bar)
+R_EXP = 50000                                 # experiments per point: variance +-0.63 %, mean +-sqrt(Var/R)
+R_CLICKS, M_CLICKS = 2000, 200                # click-level validation of the count sampler
 N_GRID = 701                                  # grid points of the maximum-likelihood search
 HALF_WINDOW = np.pi / (2 * N_MEAS)            # quarter of a period on each side: the unambiguous window
-# MEMORY: `jax.random.categorical` vmapped over R_EXP experiments materialises an
-# (R_EXP, shots, 2^N) array of Gumbel noise -- 2000 x 1600 x 16 doubles ~ 0.4 GB here. That is fine at
-# N = 4, but it is the reason one never vmaps a bit-string sampler over many repetitions at large N.
+KEY_EXP = jax.random.PRNGKey(2024)            # base key; every table row folds in its own labels
+# MEMORY: the click sampler (`jax.random.categorical` vmapped over experiments) materialises an
+# (R, shots, 2^N) array of Gumbel noise -- 2000 x 200 x 16 doubles = 51 MB here, but 50000 x 1600 x 16 would
+# be 10 GB. The count sampler needs only (R, 2^N). This is why one samples the sufficient statistic.
 # -----------------------------------------------------------------------------
 THETA_GRID = jnp.linspace(THETA_0 - HALF_WINDOW, THETA_0 + HALF_WINDOW, N_GRID)
+
+
+def key_for(*labels):
+    """An independent PRNG key for one table row: fold the row's integer labels into the base key."""
+    k = KEY_EXP
+    for lab in labels:
+        k = jax.random.fold_in(k, lab)
+    return k
 
 
 def outcome_probs(theta, U_basis):
@@ -1049,54 +1156,141 @@ def outcome_probs(theta, U_basis):
     return jnp.clip(basis_probs(dm_matrix(encode_dm(rho_prep, gen_meas, theta)), U_basis), 1e-300, None)
 
 
-def run_experiments(key, U_basis, logp_grid, theta_true, shots, n_exp):
-    """Simulate `n_exp` independent experiments of `shots` shots each and return the ML estimates.
+def ml_from_counts(counts, logp_grid):
+    """Maximum-likelihood estimates on THETA_GRID: Eq. (14) for every grid point as ONE matrix product, then arg max.
 
-    IMPLEMENTATION   one experiment = draw `shots` outcome labels from p(.|theta_true) with
-        `jax.random.categorical`, histogram them into counts n_x, evaluate the log-likelihood
-        of Eq. (14) on the whole theta grid as ONE matrix-vector product  logp_grid @ n,
-        and take the arg max.
-    JAX   `vmap` over PRNG keys turns `n_exp` experiments into a single batched program.
+    counts (R, 2^N), logp_grid (N_GRID, 2^N)  ->  log-likelihoods (R, N_GRID)  ->  estimates (R,)
     """
-    p_true = outcome_probs(theta_true, U_basis)
-    logp_true = jnp.log(p_true)
+    return THETA_GRID[jnp.argmax(counts @ logp_grid.T, axis=-1)]
 
+
+def run_experiments_clicks(key, p_true, logp_grid, shots, n_exp):
+    """`n_exp` experiments drawn click by click: `shots` outcome labels each (jax.random.categorical), histogrammed.
+
+    JAX    `vmap` over PRNG keys; memory O(n_exp * shots * 2^N). Used only to validate the count sampler.
+    """
     def one(k):
-        idx = jax.random.categorical(k, logp_true, shape=(shots,))
-        counts = jnp.bincount(idx, length=p_true.shape[0])
-        return THETA_GRID[jnp.argmax(logp_grid @ counts)]
+        idx = jax.random.categorical(k, jnp.log(p_true), shape=(shots,))
+        return jnp.bincount(idx, length=p_true.shape[0]).astype(logp_grid.dtype)
 
-    return jax.vmap(one)(jax.random.split(key, n_exp))
+    return ml_from_counts(jax.vmap(one)(jax.random.split(key, n_exp)), logp_grid)
 
 
-exp_results = {}
+def run_experiments(key, p_true, logp_grid, shots, n_exp):
+    """`n_exp` experiments drawn as count vectors from the multinomial distribution (the sufficient statistic).
+
+    MATH   (n_x) ~ Mult(shots; p_true)   -- the same random experiment as `run_experiments_clicks`
+    JAX    `shots` may be a traced scalar, so ONE compilation serves every M; memory O(n_exp * 2^N).
+    """
+    p = jnp.broadcast_to(p_true / jnp.sum(p_true), (n_exp, p_true.shape[0]))
+    return ml_from_counts(jax.random.multinomial(key, shots, p), logp_grid)
+
+
+def ml_bias_first_order(p_fn, theta):
+    """First-order bias coefficient b_1 of Eq. (14a):  E[theta_hat] - theta = b_1 / M + O(1/M^2).
+
+    MATH   b_1 = -(1 / (2 I^2)) sum_x p'_x p''_x / p_x ,   I = sum_x p'_x^2 / p_x
+    JAX    p' and p'' by forward-mode differentiation (jacfwd, and jacfwd of jacfwd) of the exact probabilities.
+    """
+    p, dp, d2p = p_fn(theta), jax.jacfwd(p_fn)(theta), jax.jacfwd(jax.jacfwd(p_fn))(theta)
+    ok = p > 1e-12
+    safe_p = jnp.where(ok, p, 1.0)
+    I = jnp.sum(jnp.where(ok, dp ** 2 / safe_p, 0.0))
+    return -0.5 * jnp.sum(jnp.where(ok, dp * d2p / safe_p, 0.0)) / I ** 2
+
+
+run_clicks = jax.jit(run_experiments_clicks, static_argnames=("shots", "n_exp"))
+bases = {"SLD eigenbasis": U_SLD, "X basis": U_X}
+logp_grids = {name: jnp.log(jax.vmap(lambda t, U=U: outcome_probs(t, U))(THETA_GRID)) for name, U in bases.items()}
+probs_fn = {name: (lambda t, U=U: basis_probs(dm_matrix(encode_dm(rho_prep, gen_meas, t)), U))
+            for name, U in bases.items()}
+
+# compile the count sampler ONCE (ahead of time): every call below has the same shapes, only the data change
 t0 = time.time()
-for name, U in (("SLD eigenbasis", U_SLD), ("X basis", U_X)):
-    logp_grid = jnp.log(jax.vmap(lambda t: outcome_probs(t, U))(THETA_GRID))       # (N_GRID, 2^N)
+run_counts = jax.jit(run_experiments, static_argnames="n_exp").lower(
+    KEY_EXP, outcome_probs(THETA_0, U_SLD), logp_grids["SLD eigenbasis"], 1.0, n_exp=R_EXP).compile()
+t_compile = time.time() - t0
+
+
+def var_and_err(est):
+    """Sample variance of the estimates and its standard error sqrt(2/(R-1)) Var (Gaussian approximation)."""
+    v = float(jnp.var(est))
+    return v, v * np.sqrt(2.0 / (est.shape[0] - 1))
+
+
+# --- CHECKPOINT 1: Eq. (14a) reproduces the delta-method bias -cot(theta)/2 of notebook 29 --------
+th_c = np.pi / 3
+b1_binary = float(ml_bias_first_order(lambda t: jnp.stack([(1 + jnp.cos(t)) / 2, (1 - jnp.cos(t)) / 2]), th_c))
+print(f"Eq. (14a) for p = (1 +- cos theta)/2 at theta = pi/3: b_1 = {b1_binary:.6f},  -cot(theta)/2 = "
+      f"{-0.5 / np.tan(th_c):.6f}")
+assert abs(b1_binary + 0.5 / np.tan(th_c)) < 1e-8
+
+# --- CHECKPOINT 2: the count sampler reproduces the click-level experiment ----------------------
+print(f"\nclick sampler (R = {R_CLICKS}) vs count sampler (R = {R_EXP}), M = {M_CLICKS} shots:")
+est_clk, est_cnt = {}, {}
+for b, name in enumerate(bases):
+    p_true = outcome_probs(THETA_0, bases[name])
+    est_clk[name] = run_clicks(key_for(0, b, 0), p_true, logp_grids[name], shots=M_CLICKS, n_exp=R_CLICKS)
+    est_cnt[name] = run_counts(key_for(0, b, 1), p_true, logp_grids[name], float(M_CLICKS))
+
+
+def z_var(e1, e2):
+    """Difference of two sample variances in units of its standard error."""
+    (v1, s1), (v2, s2) = var_and_err(e1), var_and_err(e2)
+    return (v1 - v2) / np.hypot(s1, s2)
+
+
+for name in bases:
+    (vc, sc), (vm, sm) = var_and_err(est_clk[name]), var_and_err(est_cnt[name])
+    z = z_var(est_clk[name], est_cnt[name])
+    print(f"  {name:15s}: Var clicks = {vc:.4e} +- {sc:.1e},  Var counts = {vm:.4e} +- {sm:.1e},  z = {z:+.2f}")
+    assert abs(z) < 4
+z_wrong = z_var(est_clk["SLD eigenbasis"], est_cnt["X basis"])
+print(f"  wrong control (clicks in the SLD basis vs counts in the X basis): z = {z_wrong:+.1f}")
+assert abs(z_wrong) > 10
+
+# --- PRODUCTION: the compiled sampler, one run per (basis, M), each row with its own key ------------------
+exp_results = {}
+t_run = 0.0
+for b, (name, U) in enumerate(bases.items()):
+    p_true = outcome_probs(THETA_0, U)
     I_meas = float(fisher_of_basis(rm0, dm0, U))
+    b1 = float(ml_bias_first_order(probs_fn[name], THETA_0))
     rows = []
     for M in M_SHOTS:
-        est = jax.jit(partial(run_experiments, U_basis=U, logp_grid=logp_grid, theta_true=THETA_0,
-                              shots=M, n_exp=R_EXP))(jax.random.PRNGKey(2024))
-        var = float(jnp.var(est))
-        rows.append((M, float(jnp.mean(est)) - THETA_0, var, var * np.sqrt(2 / (R_EXP - 1))))
-    exp_results[name] = (I_meas, rows)
-print(f"(simulated {2 * len(M_SHOTS) * R_EXP} experiments in {time.time() - t0:.1f} s)\n")
+        t0 = time.time()
+        est = jax.block_until_ready(run_counts(key_for(1, b, M), p_true, logp_grids[name], float(M)))
+        t_run += time.time() - t0
+        var, var_err = var_and_err(est)
+        rows.append((M, float(jnp.mean(est)) - THETA_0, np.sqrt(var / R_EXP), var, var_err))
+    exp_results[name] = (I_meas, b1, rows)
+print(f"\n({len(bases) * len(M_SHOTS) * R_EXP} experiments: compilation of the sampler {t_compile:.2f} s (once), "
+      f"sampling + estimation {t_run:.2f} s)\n")
 
 print(f"F_Q = {F_Q:.4f}   (quantum Cramer-Rao bound: Var >= 1/(M F_Q))\n")
-for name, (I_meas, rows) in exp_results.items():
-    print(f"  {name}:  classical Fisher information I = {I_meas:.4f}  (I/F_Q = {I_meas / F_Q:.3f})")
-    print(f"    {'M':>6s} {'bias':>10s} {'Var(theta^)':>13s} {'+- err':>10s} {'1/(M I)':>11s} "
-          f"{'1/(M F_Q)':>11s} {'Var x M x I':>12s}")
-    for M, bias, var, err in rows:
-        print(f"    {M:6d} {bias:+10.5f} {var:13.3e} {err:10.1e} {1 / (M * I_meas):11.3e} "
-              f"{1 / (M * F_Q):11.3e} {var * M * I_meas:12.3f}")
+for name, (I_meas, b1, rows) in exp_results.items():
+    print(f"  {name}:  I = {I_meas:.4f}  (I/F_Q = {I_meas / F_Q:.3f}),  first-order bias coefficient b_1 = {b1:+.4f}")
+    print(f"    {'M':>6s} {'bias':>10s} {'+- se':>8s} {'b_1/M':>10s} | {'Var(theta^)':>11s} {'1/(M I)':>10s} "
+          f"{'1/(M F_Q)':>10s} {'Var x M x I':>12s} {'+- err':>7s}")
+    for M, bias, se, var, err in rows:
+        print(f"    {M:6d} {bias:+10.5f} {se:8.5f} {b1 / M:+10.5f} | {var:11.3e} {1 / (M * I_meas):10.3e} "
+              f"{1 / (M * F_Q):10.3e} {var * M * I_meas:12.4f} {err * M * I_meas:7.4f}")
     print()
-# the SLD readout must sit ON the quantum bound, the X readout a factor F_Q/I_X above it (4 error bars of room)
-_var_sld = exp_results["SLD eigenbasis"][1][-1][2]
-_var_x, _I_x = exp_results["X basis"][1][-1][2], exp_results["X basis"][0]
-assert abs(_var_sld * M_SHOTS[-1] * F_Q - 1.0) < 0.13
-assert abs(_var_x * M_SHOTS[-1] * F_Q / (F_Q / _I_x) - 1.0) < 0.13
+
+# --- asserts: variance at the largest M, bias at every M, and their wrong controls -----------------
+I_x, b1_x, rows_x = exp_results["X basis"]
+_, b1_s, rows_s = exp_results["SLD eigenbasis"]
+M_last, _, _, var_s, err_s = rows_s[-1]
+_, _, _, var_x, err_x = rows_x[-1]
+assert abs(var_s * M_last * F_Q - 1.0) < 5 * err_s * M_last * F_Q                 # SLD readout ON the quantum bound
+assert abs(var_x * M_last * I_x - 1.0) < 5 * err_x * M_last * I_x                 # X readout on ITS classical bound
+assert var_x * M_last * F_Q - 1.0 > 50 * err_x * M_last * F_Q                     # wrong control: X is not on 1/(M F_Q)
+assert rows_x[0][3] * M_SHOTS[0] * I_x - 1.0 > 5 * rows_x[0][4] * M_SHOTS[0] * I_x   # excess at M = 50 resolved
+for M, bias, se, _, _ in rows_s:
+    assert abs(bias - b1_s / M) < 4 * se                                            # SLD: b_1 ~ 0 at theta_0
+for M, bias, se, _, _ in rows_x[1:]:
+    assert abs(bias - b1_x / M) < 4 * se                                            # X: bias follows Eq. (14a)
+assert abs(rows_x[0][1]) > 4 * rows_x[0][2]                                       # wrong control: "unbiased" fails
 
 # ==============================================================================
 # STEP 10b: the same estimator when the true phase is OFFSET from the design point
@@ -1105,72 +1299,94 @@ assert abs(_var_x * M_SHOTS[-1] * F_Q / (F_Q / _I_x) - 1.0) < 0.13
 # the classical 1/(M I(theta_true)) of the FIXED measurement, not the quantum 1/(M F_Q).
 M_OFF = 400
 OFFSETS = (-0.15, -0.05, 0.0, 0.05, 0.15)
-logp_sld = jnp.log(jax.vmap(lambda t: outcome_probs(t, U_SLD))(THETA_GRID))
+logp_sld = logp_grids["SLD eigenbasis"]
 print(f"fixed SLD basis built at theta_0 = {THETA_0}, M = {M_OFF} shots, {R_EXP} experiments per row\n")
-print(f"{'theta_true':>11s} {'I(theta_true)':>14s} {'I/F_Q':>7s} | {'bias':>10s} {'Var':>11s} {'+- err':>9s} "
-      f"{'1/(M I)':>11s} {'Var x M x I':>12s}")
-for off in OFFSETS:
+print(f"{'theta_true':>11s} {'I(theta_true)':>14s} {'I/F_Q':>7s} | {'bias':>10s} {'+- se':>8s} {'b_1/M':>10s} | "
+      f"{'Var':>10s} {'+- err':>8s} {'1/(M I)':>10s} {'Var x M x I':>12s}")
+off_rows = {}
+for j, off in enumerate(OFFSETS):
     th_true = THETA_0 + off
     r_t = encode_dm(rho_prep, gen_meas, th_true)
     I_th = float(fisher_of_basis(dm_matrix(r_t), dm_matrix(drho_commutator(r_t, gen_meas)), U_SLD))
-    est = jax.jit(partial(run_experiments, U_basis=U_SLD, logp_grid=logp_sld, theta_true=th_true,
-                          shots=M_OFF, n_exp=R_EXP))(jax.random.PRNGKey(77))
-    var = float(jnp.var(est))
-    print(f"{th_true:11.3f} {I_th:14.4f} {I_th / F_Q:7.3f} | {float(jnp.mean(est)) - th_true:+10.5f} "
-          f"{var:11.3e} {var * np.sqrt(2 / (R_EXP - 1)):9.1e} {1 / (M_OFF * I_th):11.3e} "
-          f"{var * M_OFF * I_th:12.3f}")
+    b1_th = float(ml_bias_first_order(probs_fn["SLD eigenbasis"], th_true))
+    est = run_counts(key_for(2, j), outcome_probs(th_true, U_SLD), logp_sld, float(M_OFF))
+    var, var_err = var_and_err(est)
+    bias, se = float(jnp.mean(est)) - th_true, np.sqrt(var / R_EXP)
+    off_rows[off] = (I_th, bias, se, b1_th / M_OFF, var, var_err)
+    print(f"{th_true:11.3f} {I_th:14.4f} {I_th / F_Q:7.3f} | {bias:+10.5f} {se:8.5f} {b1_th / M_OFF:+10.5f} | "
+          f"{var:10.3e} {var_err:8.1e} {1 / (M_OFF * I_th):10.3e} {var * M_OFF * I_th:12.4f}")
+for off in (-0.15, 0.15):
+    I_th, bias, se, pred, var, var_err = off_rows[off]
+    assert abs(bias - pred) < 4 * se                                   # the bias follows Eq. (14a) ...
+    assert abs(var * M_OFF * I_th - 1.0) < 5 * var_err * M_OFF * I_th  # ... and the variance the CLASSICAL bound
+# wrong control: the two +-0.15 rows have biases of opposite sign, resolved by many standard errors
+d_bias = off_rows[0.15][1] - off_rows[-0.15][1]
+assert d_bias > 4 * np.hypot(off_rows[0.15][2], off_rows[-0.15][2])
 
 # %%
 # ==============================================================================
-# FIGURE: measured estimator variance versus the two Cramer-Rao bounds
+# FIGURE: measured bias and variance versus the predictions
 # ==============================================================================
-fig, axes = plt.subplots(1, 2, figsize=(11.4, 4.3))
+fig, axes = plt.subplots(1, 3, figsize=(15.0, 4.3))
 Ms = np.array(M_SHOTS, dtype=float)
-for k, (name, (I_meas, rows)) in enumerate(exp_results.items()):
-    v = np.array([r[2] for r in rows]); e = np.array([r[3] for r in rows])
+for k, (name, (I_meas, b1, rows)) in enumerate(exp_results.items()):
+    bias = np.array([r[1] for r in rows]); se = np.array([r[2] for r in rows])
+    v = np.array([r[3] for r in rows]); e = np.array([r[4] for r in rows])
     axes[0].errorbar(Ms, v, yerr=e, fmt=MARKERS[k], color=PALETTE[k], ms=6, capsize=3, label=f"measured, {name}")
     axes[0].plot(Ms, 1 / (Ms * I_meas), "-", color=PALETTE[k], lw=1.2, alpha=0.8,
                  label=f"$1/(M\\,I)$, {name}")
     axes[1].errorbar(Ms, v * Ms * F_Q, yerr=e * Ms * F_Q, fmt=MARKERS[k] + "-", color=PALETTE[k], ms=6,
                      capsize=3, label=name)
+    axes[2].errorbar(Ms * (1 + 0.03 * k), Ms * bias, yerr=Ms * se, fmt=MARKERS[k], color=PALETTE[k], ms=6,
+                     capsize=3, label=f"measured, {name}")
+    axes[2].axhline(b1, color=PALETTE[k], ls="--", lw=1.2, label=f"$b_1$ from Eq. (14a), {name}")
 axes[0].plot(Ms, 1 / (Ms * F_Q), "k--", lw=1.4, label=r"quantum bound $1/(M F_Q)$")
 axes[0].set_xscale("log"); axes[0].set_yscale("log")
 axes[0].set_xlabel("shots per experiment $M$"); axes[0].set_ylabel(r"$\mathrm{Var}(\hat\theta)$")
-axes[0].set_title(f"Simulated maximum likelihood ({R_EXP} experiments per point)")
+axes[0].set_title(f"Simulated maximum likelihood ({R_EXP} experiments per point)", fontsize=10)
 axes[0].legend(fontsize=7.5)
 axes[1].axhline(1.0, color="k", ls="--", lw=1.2, label=r"quantum bound $M F_Q\mathrm{Var}=1$")
-axes[1].axhline(F_Q / exp_results["X basis"][0], color=PALETTE[1], ls=":", lw=1.2,
-                label=r"$F_Q/I_X=%.3f$" % (F_Q / exp_results["X basis"][0]))
+axes[1].axhline(F_Q / I_x, color=PALETTE[1], ls=":", lw=1.2, label=r"$F_Q/I_X=%.3f$" % (F_Q / I_x))
 axes[1].set_xscale("log")
 axes[1].set_xlabel("shots per experiment $M$"); axes[1].set_ylabel(r"$M\,F_Q\,\mathrm{Var}(\hat\theta)$")
-axes[1].set_title("Distance from the quantum bound"); axes[1].legend(fontsize=8)
+axes[1].set_title("Distance from the quantum bound", fontsize=10); axes[1].legend(fontsize=8)
+axes[2].axhline(0.0, color="0.6", lw=0.8)
+axes[2].set_xscale("log")
+axes[2].set_xlabel("shots per experiment $M$"); axes[2].set_ylabel(r"$M\,(\mathbb{E}[\hat\theta]-\theta)$")
+axes[2].set_title(r"Bias times $M$ at $\theta_0$", fontsize=10); axes[2].legend(fontsize=7.5)
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# The figure contains the central claim of the chapter. Both readouts give an essentially unbiased maximum-likelihood
-# estimator whose variance falls like $1/M$ and approaches *its own* classical Cramér–Rao bound $1/(M\,I)$ from above, as
-# the asymptotic-efficiency discussion of notebook 29 predicts. The approach is visible in the $X$-basis column, where
-# $M\,I\,\mathrm{Var}$ decreases monotonically, $1.13\to1.12\to1.07\to1.06\to1.04\to1.02$, against an error bar of
-# $\pm3.2\%$; the whole excess is a few per cent, which is why it needs $R=2000$ experiments to be seen at all. In the SLD
-# column the excess is smaller than the error bar at every $M$ tested ($1.05$ at $M=50$ down to $0.97$ at $M=1600$, each
-# $\pm3.2\%$): this run establishes that the estimator *reaches* its bound, not the rate at which it does so. Quoting a
-# single one of these ratios as evidence for a trend would be over-reading the data — with $R=600$ the same table
-# fluctuates between $0.95$ and $1.12$ with no pattern.
+# The figure and the tables contain the central claim of the chapter. Both readouts give a maximum-likelihood estimator
+# whose variance falls like $1/M$ and approaches *its own* classical Cramér–Rao bound $1/(M\,I)$ from above, as the
+# asymptotic-efficiency discussion of notebook 29 predicts. With $R=50\,000$ experiments per point ($\pm0.63\%$ on each
+# variance) the approach is resolved for both. In the $X$ basis $M\,I\,\mathrm{Var}=1.127,\,1.056,\,1.010$ at
+# $M=50,\,100,\,200$; in the SLD basis $1.062,\,1.031,\,1.014$. The excess shrinks roughly like $1/M$: times $M$ it is
+# about $3$ for the SLD readout at $M=50$–$200$, and $6.4$ and $5.6$ for the $X$ readout at $M=50$ and $100$ — the
+# $O(1/M)$ correction expected from the next order of the expansion of Section 9.3. From $M=400$ on all values lie within two error bars of $1$
+# (largest deviation $1.7$ error bars).
 #
-# Only the SLD measurement's bound coincides with the quantum bound $1/(M F_Q)$. The right-hand panel plots
+# Only the SLD measurement's bound coincides with the quantum bound $1/(M F_Q)$. The middle panel plots
 # $M F_Q\mathrm{Var}(\hat\theta)$, which settles at $1$ for the SLD basis and at $F_Q/I_X=1.544$ for the $X$ basis
-# (measured $1.58$ at $M=1600$): the convenient readout throws away about a third of the Fisher information the state was
-# carrying, so it needs $54\%$ more shots for the same error bar. Both asserts check exactly that.
+# (measured $1.552\pm0.010$ at $M=1600$): the convenient readout throws away about a third of the Fisher information the
+# state was carrying, so it needs $54\%$ more shots for the same error bar. The asserts check both values to five error
+# bars, and check that the $X$ readout fails the quantum-bound test by more than fifty.
+#
+# The right panel tests Eq. (14a). For the SLD readout $b_1(\theta_0)$ vanishes ($\vert b_1\vert<10^{-9}$), and the measured
+# bias is compatible with zero at every $M$ (at most $1.6$ standard errors). For the $X$ readout $b_1=-0.129$, and the
+# measured bias follows $b_1/M$ within one and a half standard errors from $M=100$ on; at $M=50$ it is $-0.00329\pm0.00027$
+# against $b_1/M=-0.00258$, a $2.6\sigma$ difference that is the expected size of the next, $O(M^{-2})$, term. The
+# hypothesis "unbiased" fails there by twelve standard errors. The bias is nevertheless irrelevant for the error budget:
+# its square, $b_1^2/M^2$, is at most $0.2\%$ of the variance (at $M=50$) and falls like $1/M$ relative to it.
 #
 # The offset table (Step 10b) closes the loop with Section 8.2. Keeping the measurement fixed at the basis built for
-# $\theta_0=0.3$ and moving the *true* phase to $\theta_0\pm0.05$ and $\theta_0\pm0.15$, the maximum-likelihood estimator
-# remains essentially unbiased (the largest bias we measure is $8.8\times10^{-4}$, about $2.3$ Monte-Carlo standard errors
-# $\sqrt{\mathrm{Var}/R}=3.8\times10^{-4}$ of the mean over $R=2000$ experiments; repeating with other seeds shows no
-# systematic pattern in the sign), but its variance grows exactly as the *classical* bound of that fixed measurement
-# demands: at $\theta_0\pm0.15$ the measurement retains only $I/F_Q=0.923$, so $\mathrm{Var}$ should rise by
-# $1/0.923-1=8.3\%$ — measured $8.4\%$ and $9.3\%$ — while $M\,I\,\mathrm{Var}$ stays at $1.00$ throughout. The
-# Cramér–Rao bound that a real experiment meets is the one belonging to the measurement it actually performed; the
-# quantum bound is reached only where the two coincide.
+# $\theta_0=0.3$ and moving the *true* phase to $\theta_0\pm0.05$ and $\theta_0\pm0.15$, two things change. The bias becomes
+# visible and changes sign with the offset, $-0.00048\pm0.00008$ and $+0.00042\pm0.00008$ at $\theta_0\mp0.15$ against
+# the predicted $\mp0.00040$; $b_1$ vanishes at the design point only. And the variance grows as the *classical* bound of the fixed measurement demands: at $\theta_0\pm0.15$ the
+# measurement retains $I/F_Q=0.923$, so $\mathrm{Var}$ should rise by $1/0.923-1=8.3\%$; measured $7.7\%$ and $9.2\%$
+# (each $\pm0.9\%$), while $M\,I\,\mathrm{Var}$ stays within two error bars of $1$ in every row. The Cramér–Rao bound that a
+# real experiment meets is the one belonging to the measurement it actually performed; the quantum bound is reached only
+# where the two coincide.
 #
 # > **Physics insight.** $F_Q$ converts directly into a shot budget: doubling it halves the number of repetitions needed for
 # > a given error bar. The rest of this chapter is an attempt to (i) prepare a state with a large $F_Q$ and (ii) find a
@@ -1219,12 +1435,13 @@ for sname, rho in state_table.items():
 #   $\langle Z_0\rangle=1-2/N=1/2$, and $0.87$ for the random state. For the *mixed* dephased GHZ it drops to $0.17$,
 #   far below the pure-state formula, exactly as Section 6 warned.
 # * The **maximally mixed state** scores exactly $0$ for every generator — it is invariant under every unitary, so nothing is
-#   encoded. This is also the sharpest illustration that the QFI is not a function of the variance of $G$: the maximally
-#   mixed state has a large $\mathrm{Var}(J_z)=N/4$, and zero quantum Fisher information.
+#   encoded. It is also the sharpest illustration of the gap formula of Section 6: the maximally mixed state has
+#   $4\,\mathrm{Var}(J_z)=N$, the standard-quantum-limit value, made entirely of classical fluctuations, and zero quantum
+#   Fisher information.
 #
 # ### 10.2 Noise before and after the encoding
 #
-# A practical question with a clean answer. If the noise channel $\mathcal{E}$ acts *before* the phase is imprinted, the
+# If the noise channel $\mathcal{E}$ acts *before* the phase is imprinted, the
 # final state is $U\,\mathcal{E}(\rho)\,U^\dagger$; if *after*, it is $\mathcal{E}\!\left(U\rho U^\dagger\right)$. These are
 # equal for all $\rho$ precisely when the channel is **covariant** with respect to the encoding group,
 #
@@ -1273,13 +1490,15 @@ for gname, P in (("J_z", Z), ("J_x", X)):
 # the question has an answer at all.
 #
 # The entry $4.000$ is not a rounded number: **local dephasing does not degrade the $J_x$ sensitivity of a GHZ state at
-# all**, at any strength. Dephasing leaves the state inside the two-dimensional span of
+# all**, at any strength, for $N\ge3$. Dephasing leaves the state inside the two-dimensional span of
 # $\vert\mathrm{GHZ}_\pm\rangle=(\vert0\cdots0\rangle\pm\vert1\cdots1\rangle)/\sqrt2$, with eigenvalues
 # $\lambda_\pm=(1\pm(1-2p)^N)/2$. A single spin flip takes either of them out of that span, so
 # $\langle\mathrm{GHZ}_+\vert J_x\vert\mathrm{GHZ}_-\rangle=0$ and the only surviving terms of Eq. (12) are the
 # support–kernel ones, which give $F_Q=4\sum_\pm\lambda_\pm\langle\mathrm{GHZ}_\pm\vert J_x^2\vert\mathrm{GHZ}_\pm\rangle
-# =4\cdot\tfrac N4=N$ independently of $p$. (Checked: $F_Q(J_x)=N$ to ten digits for $N=3,4,5,6$ and
-# $p=0,0.05,0.1,0.25,0.5$, while $F_Q(J_z)$ collapses from $16$ to $0$ over the same range.) The lesson is that "noise"
+# =4\cdot\tfrac N4=N$ independently of $p$. The value $\langle\mathrm{GHZ}_\pm\vert J_x^2\vert\mathrm{GHZ}_\pm\rangle=N/4$ uses
+# $N\ge3$: for $N=2$ the two-flip term $X_1X_2$ connects $\vert00\rangle$ and $\vert11\rangle$, and $F_Q(J_x)$ does decay with
+# $p$ ($4,\,3.62,\,3.28,\,2.50$ at $p=0,\,0.05,\,0.1,\,0.25$). (Checked: $F_Q(J_x)=N$ to ten digits for $N=3,4,5,6$
+# and $p=0,0.05,0.1,0.25,0.5$, while $F_Q(J_z)$ collapses from $16$ to $0$ over the same range.) The lesson is that "noise"
 # is never bad in the abstract — it is bad for the particular coherence the particular generator relies on.
 #
 # > **Physics insight.** This is why the noise model in a metrology paper always specifies *when* the noise acts. In a real
@@ -1403,7 +1622,7 @@ fig.tight_layout(); plt.show()
 # tracks the exact curve, with a largest deviation of $0.94$ at $q=\tfrac12$ — the leakage terms
 # $\tfrac12(F_0-C)+\tfrac12(F_1-C)$ that survive when the cat coherence is gone.
 #
-# The loss is fast. An admixture of $q=0.1$ already costs a third of the sensitivity ($13.99$ out of $21.47$), and between
+# An admixture of $q=0.1$ already costs a third of the sensitivity ($13.99$ out of $21.47$), and between
 # $q=0.2$ and $q=0.3$ the state drops below the standard quantum limit $N=5$ ($4.09$ at $q=0.3$), although its purity
 # is still $0.58$. At $q=\tfrac12$, purity $\tfrac12$, only $0.94$ is left.
 #
@@ -1412,8 +1631,9 @@ fig.tight_layout(); plt.show()
 # saturated-convexity case of Section 7.2, now produced by a symmetry rather than by construction.
 #
 # > **Physics insight.** This is the mixed-state counterpart of the fragility we saw for dephasing in notebook 29. A
-# > Heisenberg-scaling resource built on a macroscopic superposition loses its sensitivity quadratically in the weight of
-# > the parity partner, and the partner is only $\Delta=0.047$ away in energy here: any symmetry-breaking perturbation
+# > Heisenberg-scaling resource built on a macroscopic superposition keeps only the fraction $(1-2q)^2$ of its sensitivity,
+# > a loss of $4q$ already at small admixture $q$ of the parity partner, and the partner is only $\Delta=0.047$ away in
+# > energy here: any symmetry-breaking perturbation
 # > whose matrix element between the two cats is comparable to that splitting mixes them. It is one more reason why
 # > practical quantum metrology aims at squeezed and Dicke-type states rather than at cats.
 
@@ -1455,19 +1675,19 @@ def timed(f, *args, budget=0.3, min_reps=5, max_reps=500):
 
 
 print(f"{'N':>3s} {'dim 2^N':>8s} {'rho entries':>12s} | {'encode [ms]':>12s} {'drho [ms]':>10s} "
-      f"{'SLD+F_Q [ms]':>13s} {'x prev N':>9s} | {'pure 4Var [ms]':>15s}")
+      f"{'SLD+F_Q [ms]':>13s} {'x prev N':>9s} {'(compile [s])':>14s} | {'pure 4Var [ms]':>15s}")
 cost_rows = []
-for N in (2, 3, 4, 5, 6, 7):
+for N in (2, 3, 4, 5, 6, 7, 8):
     gen = gen_collective(N, Z)
     rho = local_channel(to_dm(ghz_state(N)), kraus_dephasing(0.05))
     _, _, t_enc = timed(jax.jit(partial(encode_dm, gen=gen, theta=0.3)), rho)
     _, _, t_der = timed(jax.jit(partial(drho_commutator, gen=gen)), rho)
-    _, _, t_qfi = timed(jax.jit(partial(qfi_unitary, gen=gen)), rho)
+    _, t_qfi_compile, t_qfi = timed(jax.jit(partial(qfi_unitary, gen=gen)), rho)
     _, _, t_pure = timed(jax.jit(lambda p: qfi_pure(p, Z)), ghz_state(N))
     ratio = f"{t_qfi / cost_rows[-1][3]:9.2f}" if cost_rows else f"{'-':>9s}"   # growth of the eigh step
     cost_rows.append((N, t_enc, t_der, t_qfi, t_pure))
     print(f"{N:3d} {2 ** N:8d} {4 ** N:12d} | {t_enc * 1e3:12.3f} {t_der * 1e3:10.3f} {t_qfi * 1e3:13.3f} "
-          f"{ratio} | {t_pure * 1e3:15.3f}")
+          f"{ratio} {t_qfi_compile:14.2f} | {t_pure * 1e3:15.3f}")
 
 fig, ax = plt.subplots(figsize=(7.0, 4.4))
 Ns = np.array([r[0] for r in cost_rows], dtype=float)
@@ -1482,24 +1702,28 @@ ax.legend(fontsize=8)
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# The eigendecomposition is the most expensive of the three steps at every size, as predicted, and the "x prev N" column
-# shows where its $8^N$ growth actually sets in. From $N=2$ to $N=4$ the ratio is only $1.3$–$1.5$: at those sizes the
-# call is dominated by the fixed cost of dispatching a compiled program, a few tens of microseconds, and the arithmetic
-# is invisible. From $N=5$ on it jumps by a factor of several and settles in the range $5$–$8$, which is why the dashed
-# reference line is anchored at $N=5$ rather than drawn across the whole range — anchoring it at $N=2$ would compare a memory-bound
-# dispatch with an arithmetic-bound eigensolver and produce a figure that looks like a disagreement with theory where
-# there is none. The absolute times here are fractions of a millisecond and therefore sensitive to machine load, so read
-# the last two ratios as "of order $8$", not as measurements of an exponent. Meanwhile the pure-state shortcut of
-# notebook 29 stays essentially flat over this range: it never leaves the state-vector representation.
+# The SLD step (eigendecomposition plus four matrix products) is the most expensive of the three at every size, as
+# predicted. Its growth with $N$ shows two regimes. Up to $N=4$ the call takes a few tens of microseconds and grows by
+# small, erratic factors (between $1$ and $2.5$ in our builds): it is dominated by the fixed cost of dispatching a compiled program, a few tens of microseconds, and the arithmetic is
+# invisible. From $N=5$ on the arithmetic dominates and the time grows by about two orders of magnitude between $N=5$
+# and $N=8$, an average factor of roughly $5$ per added qubit — between the $4^N$ of the matrix size and the $8^N$ of the
+# asymptotic cost. The individual ratios scatter between about $2$ and $7$: at these sizes LAPACK's blocked eigensolver
+# is not yet in its asymptotic regime, and sub-millisecond timings move with machine load from one build to the next.
+# The dashed $8^N$ reference is therefore anchored at $N=5$ and is meant as an upper guide for the slope, not a fit; an
+# anchor at $N=2$ would compare a dispatch-bound call with an arithmetic-bound eigensolver. Compilation (the extra
+# column, in seconds) costs $0.1$–$0.2$ s per size, thousands of calls' worth at small $N$, and is excluded from the
+# timings. The pure-state shortcut of notebook 29 stays essentially flat over this range: it never leaves the
+# state-vector representation.
 #
-# **What to do when $N$ is larger.** Three escapes, all used later in the chapter:
+# **What to do when $N$ is larger.** Three escapes:
 #
 # * if the state stays **pure**, use $F_Q=4\,\mathrm{Var}(G)$ — $O(N2^N)$, good to $N\approx20$;
 # * if the state is mixed only because a **few qubits were traced out**, use the Schmidt/QR compression of notebook 29,
 #   Section 14: the rank of the reduced state is bounded by the dimension of what was removed;
 # * if the state is genuinely mixed by noise, either restrict to the **symmetric subspace** (dimension $N+1$ instead of
-#   $2^N$, legitimate whenever state, noise and generator are permutation-invariant) or estimate $F_Q$ from
-#   **quantum-trajectory** samples; both appear in notebooks 34 and 36.
+#   $2^N$, legitimate whenever state, noise and generator are permutation-invariant; Exercise 7 below) or build the
+#   density matrix from **quantum-trajectory** samples and evaluate $F_Q$ on the averaged state (an exercise of
+#   notebook 34).
 
 # %% [markdown]
 # ## 12. Key takeaways
@@ -1526,20 +1750,23 @@ fig.tight_layout(); plt.show()
 #   bound is two lines once $L$ exists, and the proof that nothing beats it is Cauchy–Schwarz in the Hilbert–Schmidt inner
 #   product. It is only *locally* optimal: its Fisher information equals $F_Q$ at the $\theta$ it was designed for and at
 #   the periodic revivals $\theta_0+k\pi/N$, and falls to zero half-way between.
-# * **Simulated experiments confirm all of it.** Maximum likelihood on sampled clicks is essentially unbiased and
-#   approaches $\mathrm{Var}(\hat\theta)=1/(M\,I)$ from above — an excess of a few per cent, resolvable only with
-#   $R=2000$ experiments per point and clearly visible in the $X$-basis column. Only the SLD readout has $I=F_Q$, while
+# * **Simulated experiments confirm all of it.** Maximum likelihood on sampled counts (the sufficient statistic,
+#   validated against click-by-click sampling) approaches $\mathrm{Var}(\hat\theta)=1/(M\,I)$ from above, with an excess
+#   of $6$–$13\%$ at $M=50$ that falls roughly like $1/M$; its bias follows the first-order law $b_1/M$ of Eq. (14a),
+#   zero at the design point of the SLD readout. Resolving these effects needs $R=50\,000$ experiments per point and an
+#   independent PRNG key per row. Only the SLD readout has $I=F_Q$, while
 #   the convenient $X$-basis readout keeps $65\%$ of the Fisher information and therefore needs $54\%$ more shots for the
 #   same error bar on this noisy GHZ state.
 # * **Physics learned along the way.** Noise commutes with the encoding exactly when the channel is covariant under it
 #   (depolarising always; dephasing and amplitude damping under $J_z$ but not under $J_x$) — and when it does not, which
 #   order is better depends on the channel. Local dephasing destroys $F_Q(J_z)$ of a GHZ state but leaves $F_Q(J_x)=N$
-#   untouched at any strength. A single-site generator gives $F_Q=1-\langle Z_0\rangle^2\le1$ however
-#   entangled the state. The maximally mixed state has a large $\mathrm{Var}(J_z)=N/4$ and zero QFI. And a cat ground
+#   untouched at any strength ($N\ge3$). A single-site generator gives $F_Q\le1$ however entangled the state
+#   ($F_Q=1-\langle Z_0\rangle^2$ for pure states). The maximally mixed state has $4\,\mathrm{Var}(J_z)=N$, the SQL value,
+#   and zero QFI. And a cat ground
 #   state with an incoherent admixture $q$ of its parity partner keeps only $\approx(1-2q)^2$ of its $J_z$ sensitivity,
 #   Eq. (17), while its $J_x$ sensitivity interpolates linearly, Eq. (18).
-# * **Cost.** $O(8^N)$ from the eigendecomposition asymptotically — at $N\le7$ the measured growth is still between $4^N$
-#   and $8^N$ — hence $N\le6$–$7$ for full density tensors; escape routes are purity,
+# * **Cost.** $O(8^N)$ from the eigendecomposition asymptotically — at $N\le8$ the measured growth is about a factor $5$
+#   per qubit, between $4^N$ and $8^N$ — hence $N\le6$–$7$ for full density tensors; escape routes are purity,
 #   Schmidt compression, permutation symmetry, or trajectories.
 #
 # ## 13. Exercises
@@ -1562,8 +1789,12 @@ fig.tight_layout(); plt.show()
 #    check numerically, what happens for $G=J_x$, and construct a third pair of states for which convexity is again
 #    saturated.
 # 6. ★★ **Noise during the encoding (physics).** Replace "before" and "after" by "throughout": split the encoding into $K$
-#    steps of $\theta/K$ and apply a channel of strength $p/K$ after each. Plot $F_Q$ versus $K$ at fixed total $\theta$ and
-#    total $p$, and show that it converges. Which of the two extremes of Step 12 does the answer resemble?
+#    steps of $\theta/K$ and apply a channel of strength $p_K$ after each, with $p_K$ chosen so that the $K$ channels compose
+#    to the channel of strength $p$ (for dephasing, $(1-2p_K)^K=1-2p$; a naive $p/K$ composes to $e^{-2p}$ instead). The
+#    final state is no longer a unitary orbit, so `qfi_unitary` does not apply: obtain $\partial_\theta\rho$ with
+#    `jax.jacfwd` through the whole sequence and use `qfi_from_sld`, which is valid for any family, at a stated $\theta$.
+#    Plot $F_Q$ versus $K$ for $G=J_x$ with dephasing and with amplitude damping, and show that it converges. Which of the
+#    two extremes of Step 12 does the answer resemble?
 # 7. ★★★ **The symmetric subspace (extend the code).** For a permutation-invariant state, generator and noise model, the
 #    whole problem lives in the $(N+1)$-dimensional Dicke subspace. Build the $(N+1)\times(N+1)$ matrices of $\rho$ and
 #    $J_z$ for the dephased GHZ state (careful: the collective dephasing channel $\bigotimes_q\mathcal{E}_q$ is
@@ -1572,7 +1803,11 @@ fig.tight_layout(); plt.show()
 # 8. ★★★ **A better probe by optimisation (extend the code).** Fix $N=4$, the amplitude-damping channel with $g=0.2$ and
 #    $G=J_z$. Parametrise a pure input state by a hardware-efficient ansatz (engine `hardware_efficient_ansatz`), and use
 #    `jax.grad` on `qfi_unitary` composed with the channel to maximise the QFI *of the noisy output*. Does the optimiser
-#    find the GHZ state, or something better adapted to the noise?
+#    find the GHZ state, or something better adapted to the noise? Caution: the derivative of `jnp.linalg.eigh` contains
+#    $1/(\lambda_m-\lambda_n)$, and the damped GHZ-like states the optimiser approaches have degenerate spectra, so the
+#    gradient turns into `NaN` after a few hundred steps. A remedy is to solve the Lyapunov equation (6) directly as a
+#    $4^N\times4^N$ linear system, $\tfrac12(\rho\otimes\mathbb 1+\mathbb 1\otimes\rho^{\mathsf T})\,\mathrm{vec}(L)=\mathrm{vec}(\partial_\theta\rho)$
+#    in row-major vectorisation, which is differentiable as long as $\rho$ has full rank (true here for $g>0$).
 #
 # ## References
 #

@@ -53,7 +53,11 @@ website:
           - text: "13 · Quantum phase transitions"
             href: chapters/ch13_quantum_phase_transitions.qmd
       - text: "The engine"
-        href: engine.qmd
+        menu:
+          - text: "Building the engine (notebook 08b)"
+            href: ch03_matrix_free_engine/08b_building_quantum_simulator_engine.ipynb
+          - text: "Engine source code"
+            href: engine.qmd
     right:
       - icon: github
         href: "https://github.com/MarcinPlodzien"
@@ -104,6 +108,8 @@ website:
             text: "Density matrices and quantum channels"
           - href: ch03_matrix_free_engine/08_measurements.ipynb
             text: "Measurements — Born rule, collapse, sampling and shot noise"
+          - href: ch03_matrix_free_engine/08b_building_quantum_simulator_engine.ipynb
+            text: "Building the quantum simulator engine — every ingredient of the simulator with its mathematics"
       - section: "4 · Digital quantum circuits"
         href: chapters/ch04_digital_quantum_circuits.qmd
         contents:
@@ -168,7 +174,7 @@ website:
         href: chapters/ch10_quantum_metrology_protocols.qmd
         contents:
           - href: ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb
-            text: "Quantum Fisher information — how precisely can a quantum state measure a parameter?"
+            text: "Quantum Fisher information — how fast a quantum state changes under a small parameter shift"
           - href: ch10_quantum_metrology_protocols/30_qfi_from_the_sld_prepare_encode_estimate.ipynb
             text: "QFI from the symmetric logarithmic derivative — prepare, encode, estimate"
           - href: ch10_quantum_metrology_protocols/31_ramsey_interferometry.ipynb
@@ -184,7 +190,7 @@ website:
           - href: ch10_quantum_metrology_protocols/36_qfi_with_classical_shadows.ipynb
             text: "Measuring the quantum Fisher information with classical shadows"
           - href: ch10_quantum_metrology_protocols/37_qfi_particle_loss_and_magic.ipynb
-            text: "Particle loss, magic and encoded probes — what survives when qubits go missing?"
+            text: "Particle loss, magic and encoded probes — the quantum Fisher information of the survivors"
           - href: ch10_quantum_metrology_protocols/38_scramblers_and_qfi.ipynb
             text: "Scramblers and the locking of metrological information — analog, digital, and the Haar limit"
           - href: ch10_quantum_metrology_protocols/39_qfi_spreading_in_spin_chains.ipynb
@@ -214,7 +220,7 @@ website:
         contents:
           - href: ch13_quantum_phase_transitions/47_quantum_phase_transitions.ipynb
             text: "Quantum phase transitions — mapping a phase diagram from finite chains"
-      - text: "The engine"
+      - text: "Engine source code"
         href: engine.qmd
   page-footer:
     border: true

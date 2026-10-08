@@ -10,13 +10,12 @@
 # number that is simply available. On a simulator it is: one einsum per Hamiltonian term. On a quantum computer it is
 # not available at all. A quantum computer can only prepare a state and measure qubits, and a measurement returns one
 # bit per qubit drawn from the Born distribution. Every expectation value has to be **estimated** from repetitions, and
-# the number of repetitions is what a real experiment actually pays for.
+# the number of repetitions is what a real experiment pays for.
 #
-# That cost is the subject of this notebook, and it is not a detail. A VQE iteration with a parameter-shift gradient
-# needs $2n$ energy evaluations; each energy is a sum of $O(N)$ (for a spin chain) or $O(N^4)$ (for a molecule) Pauli
-# terms; each term needs enough shots to be resolved. Estimates for chemistry-scale problems have run into days or
-# years of machine time for a single molecule, and the measurement problem — not the gate fidelity — is the reason
-# (Tilly *et al.*, 2022).
+# That cost is the subject of this notebook. A VQE iteration with a parameter-shift gradient needs $2n$ energy
+# evaluations; each energy is a sum of $O(N)$ (for a spin chain) or $O(N^4)$ (for a molecule) Pauli terms; each term
+# needs enough shots to be resolved. For molecular Hamiltonians the number of measurements is one of the dominant
+# costs of the algorithm, and reducing it is an active field of its own (Tilly *et al.*, 2022, review the strategies).
 #
 # Three strategies are compared here, all on the same Hamiltonian and the same state:
 #
@@ -27,32 +26,33 @@
 #    observable afterwards (Huang, Kueng and Preskill, 2020), as built in
 #    [24 — classical shadows](../ch08_quantum_information_protocols/24_classical_shadows.ipynb).
 #
-# The comparison is made at a **fixed total number of shots**, which is the only honest currency, and the winner is
-# decided by measurement rather than by advertising. We then put the winner *and* the shadows inside the optimisation
-# loop and ask a second question, which is subtler: what does a noisy cost function do to the *answer*, as opposed to
-# the convergence rate?
+# The comparison is made at a **fixed total number of shots**, the quantity an experiment pays for, and each
+# deterministic strategy is also given its optimal split of those shots. We then put shadow-estimated energies inside
+# the optimisation loop and study a second effect: what a noisy cost function does to the reported *answer*, in
+# addition to what it does to the convergence.
 #
 # **Road map.** Section 3 counts terms and measurement settings and derives the minimum number of settings for a
 # nearest-neighbour chain. Section 4 derives the variance of the energy estimator for each strategy at fixed budget,
-# including the covariances between terms measured in the same shot — which is where the interesting physics is.
-# Section 5 prepares the state to be measured with the VQE of notebook 42. Section 6 checks all three predictions
-# against simulation. Section 7 estimates the whole nine-panel observable set of notebook 42 from one shadow data set.
-# Section 8 puts shadow energies inside an SPSA loop and measures accuracy against snapshot budget. Section 9 measures
-# the optimisation bias that noisy costs create. Section 10 is a remark on derandomisation. Section 11 is the final
-# characterisation of the converged state with bootstrap error bars.
+# including the covariances between terms measured in the same shot and the optimal split of the shots. Section 5
+# prepares the state to be measured with the VQE of notebook 42. Section 6 checks all three predictions against
+# simulation. Section 7 estimates the six observables of notebook 42's panel (33 Pauli strings) from one shadow data
+# set. Section 8 puts shadow energies inside an SPSA loop and measures accuracy against snapshot budget. Section 9
+# derives and measures the selection bias that noisy costs create. Section 10 is a remark on derandomisation.
+# Section 11 is the final characterisation of the converged state with bootstrap error bars.
 #
 # ### What you will learn
 #
 # *Physics*
-# * why two Pauli observables can be measured in the same experiment if and only if they agree qubit by qubit, and how
-#   many experiments a nearest-neighbour XXZ chain therefore needs — derived, not quoted;
-# * why the covariance between terms measured in the same shot is not a correction but the dominant effect;
-# * what a variational energy estimated from randomised measurements actually costs.
+# * why two Pauli observables can be read off from the same single-qubit measurement setting if and only if they
+#   agree qubit by qubit, and the derivation of how many settings a nearest-neighbour XXZ chain therefore needs;
+# * how the covariance between terms measured in the same shot enters the variance, and when it matters (for the
+#   state studied here it more than triples the variance of one of the three settings);
+# * what a variational energy estimated from randomised measurements costs.
 #
 # *Numerical methods*
 # * the exact single-snapshot covariance of two Pauli estimators under random Pauli bases, and its verification;
-# * why an optimiser driven by a noisy cost reports a final value that is biased *below* the truth, and why the answer
-#   must be re-measured with an independent data set (the winner's curse);
+# * why selecting the best of several noisy cost values reports a number biased *below* the truth, by how much, and
+#   why the answer must be re-measured with an independent data set (the winner's curse);
 # * bootstrap error bars for non-linear functions of the same data set.
 #
 # *Implementation practice*
@@ -97,6 +97,8 @@
 # ==============================================================================
 # PLOT STYLE + the helpers imported from notebooks 24, 41 and 42
 # ==============================================================================
+import itertools
+
 PALETTE = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#4a3aa7"]   # colour-blind-friendly, fixed order
 MARKERS = ["o", "s", "^", "D", "v", "P"]
 plt.rcParams.update({"axes.prop_cycle": plt.cycler(color=PALETTE), "axes.grid": True,
@@ -245,7 +247,7 @@ def bootstrap_std(key, values, n_boot=200):
 #
 # $$\langle H\rangle=\sum_tc_t\langle P_t\rangle ,$$
 #
-# so the task is to estimate $T$ numbers. The catch: a quantum measurement reads each qubit in **one** basis, so
+# so the task is to estimate $T$ numbers. A quantum measurement reads each qubit in **one** basis, so
 # $\langle X_0X_1\rangle$ and $\langle Y_0Y_1\rangle$ cannot both be read from the same shot.
 #
 # ### 3.2 Strategy 1: term by term
@@ -279,9 +281,8 @@ def bootstrap_std(key, values, n_boot=200):
 # $\langle X_i\rangle$ from the same shots; the all-$Y$ and all-$Z$ settings deliver the remaining bond terms. For the
 # Ising chain the all-$Z$ and all-$X$ settings suffice. $\square$
 #
-# Note what just happened to the cost: the number of experiments dropped from $T=4N-3$ to $3$, **independently of
-# $N$**. Grouping is not a marginal optimisation for a local chain; it removes the $N$-dependence of the setting count
-# entirely. (Allowing general commuting sets rather than qubit-wise commuting ones can reduce the count further for
+# The number of experiments drops from $T=4N-3$ to $3$, **independently of $N$**: for a local chain grouping removes
+# the $N$-dependence of the setting count entirely. (Allowing general commuting sets rather than qubit-wise commuting ones can reduce the count further for
 # other Hamiltonians, at the price of a Clifford circuit before the measurement.)
 #
 # ### 3.4 Strategy 3: classical shadows
@@ -315,7 +316,17 @@ def bootstrap_std(key, values, n_boot=200):
 # $$\mathrm{Var}_{\text{term}}(\hat E)=\sum_t\frac{c_t^2\bigl(1-\langle P_t\rangle^2\bigr)}{m}
 #   =\frac{T}{S}\sum_{t}c_t^2\bigl(1-\langle P_t\rangle^2\bigr). \tag{5}$$
 #
-# The factor $T$ is the whole story: splitting a budget $T$ ways costs a factor $T$ in variance.
+# The factor $T$ is the price of splitting the budget $T$ ways. Part of it can be recovered by giving the noisier terms
+# more shots. With $m_t$ shots for term $t$ and $a_t=\lvert c_t\rvert\sqrt{1-\langle P_t\rangle^2}$, the variance is
+# $\sum_ta_t^2/m_t$, to be minimised at fixed $\sum_tm_t=S$. The Cauchy-Schwarz inequality gives
+# $\bigl(\sum_ta_t\bigr)^2=\bigl(\sum_t\tfrac{a_t}{\sqrt{m_t}}\sqrt{m_t}\bigr)^2\le\bigl(\sum_ta_t^2/m_t\bigr)S$,
+# with equality for $m_t\propto a_t$, so the optimal (Neyman) allocation achieves
+#
+# $$\mathrm{Var}^{\text{opt}}_{\text{term}}(\hat E)=\frac1S\Bigl(\sum_t\lvert c_t\rvert\sqrt{1-\langle P_t\rangle^2}\Bigr)^2
+#   \;\le\;\mathrm{Var}_{\text{term}}(\hat E) . \tag{5a}$$
+#
+# The allocation needs the $\langle P_t\rangle$, which are not known in advance; in practice they are taken from a
+# pilot run or from the previous VQE iteration. Equation (5a) is the fair benchmark for the term-by-term protocol.
 #
 # ### 4.2 Grouped settings
 #
@@ -330,8 +341,13 @@ def bootstrap_std(key, values, n_boot=200):
 #   \mathrm{Var}(A_g)=\sum_{t,t'\in g}c_tc_{t'}\Bigl(\langle P_tP_{t'}\rangle-\langle P_t\rangle\langle P_{t'}\rangle
 #   \Bigr). \tag{6}$$
 #
-# The off-diagonal terms of Eq. (6) are **covariances between observables measured in the same shot**, and they are not
-# small. They can be negative, in which case grouping wins more than the factor $T/G$ that the counting suggests.
+# The off-diagonal terms of Eq. (6) are **covariances between observables measured in the same shot**. They can have
+# either sign: negative covariances make grouping win by more than the factor $T/G$ that the counting suggests,
+# positive ones by less. The same Cauchy-Schwarz argument as for Eq. (5a), with $S_g\propto\sqrt{\mathrm{Var}(A_g)}$
+# shots for setting $g$, gives the optimally allocated grouped variance
+#
+# $$\mathrm{Var}^{\text{opt}}_{\text{group}}(\hat E)=\frac1S\Bigl(\sum_g\sqrt{\mathrm{Var}(A_g)}\Bigr)^2 . \tag{6a}$$
+#
 # Because the members of one group are qubit-wise commuting, every product $P_tP_{t'}$ is again a Pauli string (equal
 # single-qubit factors multiply to the identity), so Eq. (6) is exactly computable.
 #
@@ -470,6 +486,14 @@ for p in "XYZ":
         print(f"  all-{p}: " + ", ".join(LABELS[t] for t in GROUPS[p]))
 
 # %% [markdown]
+# The best of the eight restarts has $E-E_0=7.9\cdot10^{-3}$ and fidelity $F=0.9990$ with the exact ground state, and
+# its half-chain entanglement entropy is only $0.039$ bits: the state is close to a product state polarised along
+# $-x$ (the field $h_x=+1$ favours $\langle X_q\rangle=-1$). The sum of the $21$ Pauli expectation values reproduces
+# $\langle\psi\vert H\vert\psi\rangle$ to machine precision, so the list of labels and coefficients is the Hamiltonian,
+# and the three groups are exactly those of Section 3.3: eleven terms read from the all-$X$ setting, five from each of
+# the other two.
+
+# %% [markdown]
 # ## 6. The three variances, predicted and measured
 #
 # ### 6.1 From formula to code
@@ -513,14 +537,19 @@ def expect_label(psi, lab):
 
 
 def predicted_variances(psi, labels, coeffs, groups):
-    """(S x Var) of the energy estimator for the three strategies, from Eqs. (5), (6), (7) and (8).
+    """(S x Var) of the energy estimator for the three strategies, from Eqs. (5)-(8).
 
-    Returns a dict with the three numbers, the per-setting contributions to Eq. (6), and the sum of the
-    individual term variances (the covariance-free comparison point).
+    MATH   term     T sum_t c_t^2 (1 - <P_t>^2)              optimal split: (sum_t |c_t| sqrt(1 - <P_t>^2))^2
+           group    G sum_g Var(A_g)                          optimal split: (sum_g sqrt(Var(A_g)))^2
+           shadow   sum_{t,t'} c_t c_t' Cov(o_t, o_t'),  Cov = 3^|I| <P_t P_t'> - <P_t><P_t'>  (0 - .. if they clash)
+    Returns a dict with the three numbers, their optimally allocated versions, the per-setting contributions
+    to Eq. (6), the sum of the individual term variances (the covariance-free comparison point) and the
+    diagonal (covariance-free) part of the shadow variance.
     """
     ex = np.array([expect_label(psi, lab) for lab in labels])
     T = len(labels)
     v_term = T * float(np.sum(coeffs ** 2 * (1 - ex ** 2)))                    # Eq. (5)
+    v_term_opt = float(np.sum(np.abs(coeffs) * np.sqrt(1 - ex ** 2))) ** 2     # Eq. (5a)
 
     parts = {}
     for p, idx in groups.items():                                              # Eq. (6)
@@ -532,7 +561,9 @@ def predicted_variances(psi, labels, coeffs, groups):
         parts[p] = acc
     v_group = sum(1 for p in groups if groups[p]) * float(sum(parts.values()))
 
-    v_shadow = 0.0                                                             # Eqs. (7) and (8)
+    v_group_opt = float(sum(np.sqrt(max(v, 0.0)) for v in parts.values())) ** 2  # Eq. (6a)
+
+    v_shadow, v_shadow_diag = 0.0, 0.0                                         # Eqs. (7) and (8)
     for a in range(T):
         for b in range(T):
             lab = pauli_product(labels[a], labels[b])
@@ -542,7 +573,10 @@ def predicted_variances(psi, labels, coeffs, groups):
                 ov = sum(1 for ca, cb in zip(labels[a], labels[b]) if ca != "I" and cb != "I")
                 cov = 3.0 ** ov * expect_label(psi, lab) - ex[a] * ex[b]
             v_shadow += coeffs[a] * coeffs[b] * cov
+            if a == b:
+                v_shadow_diag += coeffs[a] ** 2 * cov
     return dict(term=v_term, group=v_group, shadow=float(v_shadow), parts=parts,
+                term_opt=v_term_opt, group_opt=v_group_opt, shadow_diag=float(v_shadow_diag),
                 diagonal=float(np.sum(coeffs ** 2 * (1 - ex ** 2))))
 
 
@@ -551,13 +585,21 @@ var_term, var_group, var_shadow = PRED["term"], PRED["group"], PRED["shadow"]
 
 print("predicted variance of the energy estimator, multiplied by the total budget S:")
 S_TOT = 2100                                   # divisible by T = 21 and by G = 3
-print(f"{'strategy':>24s} {'settings':>9s} {'S x Var(E_hat)':>16s} {'std at S=2100':>15s}")
-for lab, v, g in (("term by term", var_term, T_TERMS), ("grouped (all-X/Y/Z)", var_group, G_SETTINGS),
-                  ("classical shadows", var_shadow, 1)):
-    print(f"{lab:>24s} {g:9d} {v:16.3f} {np.sqrt(v / S_TOT):15.4f}")
+print(f"{'strategy':>24s} {'settings':>9s} {'S x Var, equal split':>21s} {'std at S=2100':>14s} "
+      f"{'S x Var, optimal split':>23s}")
+for lab, v, g, vo in (("term by term", var_term, T_TERMS, PRED["term_opt"]),
+                      ("grouped (all-X/Y/Z)", var_group, G_SETTINGS, PRED["group_opt"]),
+                      ("classical shadows", var_shadow, 1, var_shadow)):
+    print(f"{lab:>24s} {g:9d} {v:21.3f} {np.sqrt(v / S_TOT):14.4f} {vo:23.3f}")
 print(f"\ncontributions to the grouped variance per setting: " +
       ", ".join(f"all-{p}: {PRED['parts'][p]:.3f}" for p in "XYZ"))
+for p in "XYZ":
+    idx = GROUPS[p]
+    diag_p = float(np.sum(COEFFS[idx] ** 2 * (1 - EX_TERM[idx] ** 2)))
+    print(f"  all-{p}: diagonal (individual variances) {diag_p:.3f}, covariances {PRED['parts'][p] - diag_p:+.3f}")
 print(f"sum of the INDIVIDUAL term variances, i.e. Eq. (6) with the covariances dropped: {PRED['diagonal']:.3f}")
+print(f"shadow variance: diagonal part of Eq. (7) {PRED['shadow_diag']:.3f}, "
+      f"covariances {var_shadow - PRED['shadow_diag']:+.3f}")
 
 # %%
 # ==============================================================================
@@ -599,6 +641,7 @@ def shot_values(bits, digits, n_qubits):
 # --- protocol 1: term by term ------------------------------------------------------------------
 key = jax.random.PRNGKey(2024)
 E_term = np.zeros(R_REP)
+shots_term = {}                                                               # per-shot +-1 values, kept for 6.2
 for p in "XYZ":
     idx = GROUPS[p]
     if not idx:
@@ -608,9 +651,11 @@ for p in "XYZ":
     v = v.reshape(R_REP, len(idx), M_TERM, len(idx))
     for j, t in enumerate(idx):                                               # term j uses only ITS OWN shots
         E_term += COEFFS[t] * v[:, j, :, j].mean(axis=1)
+        shots_term[t] = v[:, j, :, j].reshape(-1)
 
 # --- protocol 2: grouped settings --------------------------------------------------------------
 E_group = np.zeros(R_REP)
+shots_group = {}                                                              # per-shot partial energies A_g
 for p in "XYZ":
     idx = GROUPS[p]
     if not idx:
@@ -618,6 +663,7 @@ for p in "XYZ":
     bits = sample_shots(jax.random.fold_in(key, 100 + ord(p)), psi_vqe, R_REP * M_GROUP, p * N_SITES)
     v = np.asarray(shot_values(bits, DIGITS[jnp.asarray(idx)], N_SITES)).reshape(R_REP, M_GROUP, len(idx))
     E_group += (v @ COEFFS[idx]).mean(axis=1)                                 # one partial energy per shot
+    shots_group[p] = (v @ COEFFS[idx]).reshape(-1)
 
 # --- protocol 3: classical shadows -------------------------------------------------------------
 t0 = time.perf_counter()
@@ -652,45 +698,95 @@ axes[1].set_xlabel("total shots $S$"); axes[1].set_ylabel(r"std of $\hat E$ (pre
 axes[1].set_title("Shots needed for a given accuracy"); axes[1].legend(fontsize=8)
 fig.tight_layout(); plt.show()
 
-print(f"\nshots to reach a standard error of 0.01 on the energy:")
-for lab, v in (("term by term", var_term), ("grouped (all-X/Y/Z)", var_group), ("classical shadows", var_shadow)):
-    print(f"  {lab:>24s}: {v / 1e-4:12.3e}")
+print(f"\nshots to reach a standard error of 0.01 on the energy (equal split / optimal split):")
+for lab, v, vo in (("term by term", var_term, PRED["term_opt"]), ("grouped (all-X/Y/Z)", var_group, PRED["group_opt"]),
+                   ("classical shadows", var_shadow, var_shadow)):
+    print(f"  {lab:>24s}: {v / 1e-4:12.3e} / {vo / 1e-4:10.3e}")
+
+# --- CHECKPOINT 1: the spread over the 50 repetitions -------------------------------------------
+# a standard deviation estimated from R Gaussian samples has relative standard error 1/sqrt(2(R-1))
+se_rel = 1.0 / np.sqrt(2 * (R_REP - 1))
+print(f"\nCHECKPOINT std over {R_REP} repetitions vs prediction (relative SE of a sample std: {se_rel:.3f}):")
+for lab, est, v in (("term by term", E_term, var_term), ("grouped", E_group, var_group),
+                    ("shadows", E_shadow, var_shadow)):
+    z = (est.std(ddof=1) / np.sqrt(v / S_TOT) - 1) / se_rel
+    print(f"  {lab:>14s}: z = {z:+.2f}")
+    assert abs(z) < 4
+
+
+# --- CHECKPOINT 2: the per-shot variances, pooled over all repetitions (a much sharper test) -----
+def var_and_se(x):
+    """Sample variance of x and its standard error sqrt((m4 - var^2)/n) from the sample 4th central moment."""
+    x = np.asarray(x, dtype=float); d = x - x.mean(); v = np.mean(d ** 2)
+    return v, np.sqrt((np.mean(d ** 4) - v ** 2) / len(x))
+
+
+vt = {t: var_and_se(x) for t, x in shots_term.items()}
+meas_term = T_TERMS * sum(COEFFS[t] ** 2 * vt[t][0] for t in vt)
+se_term = T_TERMS * np.sqrt(sum((COEFFS[t] ** 2 * vt[t][1]) ** 2 for t in vt))
+vg = {p: var_and_se(x) for p, x in shots_group.items()}
+meas_group = G_SETTINGS * sum(v[0] for v in vg.values())
+se_group = G_SETTINGS * np.sqrt(sum(v[1] ** 2 for v in vg.values()))
+meas_shadow, se_shadow = var_and_se(np.asarray(vals_s @ jnp.asarray(COEFFS)))
+ctrl_group = G_SETTINGS * PRED["diagonal"]            # WRONG control: covariances of Eq. (6) dropped
+ctrl_shadow = PRED["shadow_diag"]                     # WRONG control: covariances of Eq. (7) dropped
+print(f"\nCHECKPOINT S x Var from the per-shot variances ({R_REP * S_TOT} shots per protocol)")
+print(f"{'strategy':>14s} {'measured':>18s} {'Eqs. (5)-(8)':>13s} {'z':>7s} {'covariances dropped':>20s} {'z':>8s}")
+z_t = (meas_term - var_term) / se_term
+z_g, zc_g = (meas_group - var_group) / se_group, (meas_group - ctrl_group) / se_group
+z_s, zc_s = (meas_shadow - var_shadow) / se_shadow, (meas_shadow - ctrl_shadow) / se_shadow
+print(f"{'term by term':>14s} {meas_term:9.2f} +- {se_term:5.2f} {var_term:13.2f} {z_t:+7.2f}")
+print(f"{'grouped':>14s} {meas_group:9.2f} +- {se_group:5.2f} {var_group:13.2f} {z_g:+7.2f} "
+      f"{ctrl_group:20.2f} {zc_g:+8.1f}")
+print(f"{'shadows':>14s} {meas_shadow:9.2f} +- {se_shadow:5.2f} {var_shadow:13.2f} {z_s:+7.2f} "
+      f"{ctrl_shadow:20.2f} {zc_s:+8.1f}")
+assert max(abs(z_t), abs(z_g), abs(z_s)) < 4          # the derivation passes
+assert min(abs(zc_g), abs(zc_s)) > 5                  # the covariance-free formulas fail
 
 # %% [markdown]
 # ### 6.2 What the numbers say
 #
-# **All three predictions are confirmed.** Over 50 independent repetitions at $S=2100$ shots the measured standard
-# deviations are $0.269$, $0.119$ and $0.316$ against the predicted $0.255$, $0.104$ and $0.277$ — ratios of $1.05$,
-# $1.15$ and $1.14$. A standard deviation estimated from $50$ samples carries about $10\%$ of its own uncertainty, so
-# all three agree within one to one and a half standard errors, and the *ordering* and the *factors between the
-# strategies* are reproduced exactly. All three estimators are unbiased: their means sit within a fraction of a
-# standard error of the exact $\langle H\rangle=-11.185$.
+# **All three predictions pass both tests.** Over $50$ independent repetitions at $S=2100$ shots the measured standard
+# deviations are $0.269$, $0.119$ and $0.316$ against the predicted $0.255$, $0.104$ and $0.277$. A standard deviation
+# estimated from $50$ samples has a relative standard error of $1/\sqrt{2\cdot49}=0.10$, so these are $+0.7$, $+1.6$
+# and $+1.5$ standard errors: consistent, but with no power to tell the covariance-free grouped prediction
+# ($\sqrt{19.53/2100}=0.096$) from the correct one. The sharp test is the per-shot variance pooled over all
+# $1.05\cdot10^{5}$ shots of each protocol: $S\,\mathrm{Var}=136.65\pm0.42$, $22.69\pm0.17$ and $160.28\pm0.78$ against
+# the predicted $136.70$, $22.68$ and $161.38$ ($-0.1$, $0.0$ and $-1.4$ standard errors), while the same formulas with
+# the covariances dropped, $19.53$ for grouping and $108.51$ for shadows, are rejected by $18$ and $67$ standard errors.
+# The estimators are unbiased within their errors: the means of the $50$ repetitions differ from
+# $\langle H\rangle=-11.185$ by $+0.2$, $-1.6$ and $-0.1$ standard errors of the mean.
 #
 # **Grouping wins, by a factor of six against term-by-term and seven against shadows.** In variance at equal budget,
-# $136.7:22.7:161.4$. Translated into the currency that matters, the number of runs of the machine needed for a
-# standard error of $10^{-2}$ on the energy: $2.3\cdot10^{5}$ for the grouped protocol against $1.4\cdot10^{6}$ and
-# $1.6\cdot10^{6}$ for the other two. For a **fixed, known** local Hamiltonian, grouping is the right answer and it is
-# not close.
+# $136.7:22.7:161.4$. In machine runs needed for a standard error of $10^{-2}$ on the energy: $2.3\cdot10^{5}$ for the
+# grouped protocol against $1.4\cdot10^{6}$ and $1.6\cdot10^{6}$ for the other two. A fair comparison gives the
+# deterministic protocols their optimal shot allocation, Eqs. (5a) and (6a): term by term improves from $136.7$ to
+# $90.0$, grouping only from $22.7$ to $20.3$ (its three settings are already close to equally useful), and the
+# advantage of grouping over term by term shrinks from $6.0$ to $4.4$. For a **fixed, known** local Hamiltonian
+# grouping is the best of the three by a wide margin.
 #
-# **The counting argument is not the whole story.** Naive counting predicts
-# $\mathrm{Var}_{\text{term}}/\mathrm{Var}_{\text{group}}=T/G=21/3=7$; the measured ratio is $6.03$. The missing
-# factor is the covariance of Eq. (6): the sum of the *individual* term variances is $6.51$, while the sum of the
-# grouped variances $\sum_g\mathrm{Var}(A_g)$ is $7.56$ — the covariances between terms measured in the same shot are
-# **positive** in aggregate here and inflate the grouped variance by $16\%$. Grouping still wins overwhelmingly, but by
-# a smaller factor than the term count suggests, and only a calculation (or a simulation) that keeps the covariances
-# can say by how much.
+# **Counting terms misses the covariances.** Naive counting predicts
+# $\mathrm{Var}_{\text{term}}/\mathrm{Var}_{\text{group}}=T/G=21/3=7$; the predicted ratio is $136.7/22.7=6.03$. The
+# difference is the covariance term of Eq. (6): the sum of the *individual* term variances is $6.51$, while the sum of
+# the grouped variances $\sum_g\mathrm{Var}(A_g)$ is $7.56$ — the covariances between terms measured in the same shot
+# are **positive** in aggregate here and inflate the grouped variance by $16\%$.
 #
 # **Where the grouped variance lives is not where the terms are.** The per-setting contributions are $1.43$ (all-$X$,
 # eleven terms), $4.97$ (all-$Y$, five terms) and $1.16$ (all-$Z$, five terms). The $X$ setting carries twice as many
-# terms as the other two together and contributes least, because the state of Section 5 is nearly polarised along $x$:
-# $\lvert\langle X_q\rangle\rvert\approx0.98$ and $\langle X_qX_{q+1}\rangle\approx0.98$, so each of those
-# measurements is nearly deterministic and its variance $1-\langle P\rangle^2$ is small. The $Y$ correlators, with
-# $\langle YY\rangle\approx0.15$, are the noisy ones. **The measurement cost of a Hamiltonian depends on the state
-# being measured**, which is why it changes during a VQE run.
+# terms as the other two together and contributes least, because the state of Section 5 is nearly polarised along
+# $-x$: $\langle X_q\rangle\approx-0.98$ and $\langle X_qX_{q+1}\rangle\approx+0.98$, so each of those measurements is
+# nearly deterministic and the eleven individual variances add up to only $0.40$. The covariances, however, contribute
+# $+1.03$, more than twice that: the partial energy $A_X=-\sum_qX_qX_{q+1}+\sum_qX_q$ changes by $+6$ when a single
+# bulk spin is found flipped, because the field term and both bonds of that spin change sign *together*. The rare
+# flips are therefore counted three times over, coherently. In the $Y$ and $Z$ settings the covariances are small
+# ($+0.09$ and $-0.06$) and the variance is that of the five correlators with $\lvert\langle YY\rangle\rvert$,
+# $\lvert\langle ZZ\rangle\rvert\approx0.15$. **The measurement cost of a Hamiltonian depends on the state being
+# measured**, and it changes during a VQE run.
 #
-# **Shadows are the most expensive of the three here, and that is the expected price of ignorance.** They pay the
-# $3^k$ of Eq. (4) on every one of the $15$ weight-2 terms, and the compensating factor — one data set serving every
-# observable — buys nothing when the observable list is a single known Hamiltonian. Section 7 changes the question.
+# **Shadows are the most expensive of the three here.** They pay the $3^k$ of Eq. (4) on every one of the $15$
+# weight-2 terms — the diagonal part of Eq. (7) alone is $108.5$ — and the positive covariances of Eq. (8) between
+# overlapping terms add another $52.9$, half as much again. The compensating property, one data set serving every
+# observable, is worth nothing when the observable list is a single known Hamiltonian. Section 7 changes the question.
 
 # %% [markdown]
 # ## 7. One data set, many observables
@@ -713,16 +809,25 @@ for lab, v in (("term by term", var_term), ("grouped (all-X/Y/Z)", var_group), (
 # The ratio is therefore
 #
 # $$\frac{\mathrm{Var}_{\text{shadow}}}{\mathrm{Var}_{\text{group}}}
-#   =\frac{3^{k}-\langle P\rangle^{2}}{3\bigl(1-\langle P\rangle^{2}\bigr)} , \tag{10}$$
+#   =\frac{3^{k}-\langle P\rangle^{2}}{3\bigl(1-\langle P\rangle^{2}\bigr)}\;\ge\;1\quad(k\ge1) , \tag{9}$$
 #
 # and it has two very different limits. For an observable with $\langle P\rangle\approx0$ it is $3^{k-1}$: shadows are
 # on par for single-site magnetisations and a factor of three in variance behind for bond correlators. But as
 # $\lvert\langle P\rangle\rvert\to1$ the denominator vanishes while the numerator does not, and the ratio **diverges**.
 # A dedicated setting measuring an almost deterministic observable gets it almost for free — every shot returns the
 # same sign — whereas a shadow data set still pays the full $3^k$ for the snapshots that happened to measure the wrong
-# axes. The state of Section 5 is nearly polarised, with $\langle X_q\rangle\approx-0.98$, so Eq. (10) predicts a
-# large ratio for the $X$-type observables and a modest one for the rest. The measurement below checks Eq. (10)
-# observable by observable.
+# axes. The state of Section 5 is nearly polarised, with $\langle X_q\rangle\approx-0.98$, so Eq. (9) predicts a
+# large ratio for the $X$-type strings and a modest one for the rest.
+#
+# The six panel quantities are *averages* $\bar O=\frac1K\sum_jP_j$ over sites or bonds, and for an average the
+# covariances enter again. $\bar O$ is a "Hamiltonian" with $K$ terms of coefficient $1/K$, all read from one setting,
+# so Eqs. (6)-(8) apply unchanged. Two strings on disjoint sites have the same covariance
+# $\langle P_jP_l\rangle-\langle P_j\rangle\langle P_l\rangle$ in both protocols (Eq. (8) with $\lvert I\rvert=0$),
+# but in the grouped protocol it is multiplied by the same factor $3$ as the diagonal (one setting gets $S/3$ shots),
+# whereas for shadows the diagonal carries $3^k$ and the disjoint covariances only $1$. Positively correlated strings
+# therefore shift the balance towards shadows, negatively correlated ones towards grouping, and Eq. (9) need not hold
+# for an average. The measurement below computes both standard errors with all covariances and checks the shadow
+# one against the data.
 
 # %%
 # ==============================================================================
@@ -766,24 +871,42 @@ for kind in ("<X>", "<Y>", "<Z>", "<XX>", "<YY>", "<ZZ>"):
           f"{(est - ex) / sem:+8.2f} sd")
 
 dev = np.abs(panel_mean - panel_exact) / panel_sem
-print(f"\nCHECKPOINT all {len(panel_labels)} strings: largest deviation {dev.max():.2f} standard errors, "
-      f"mean |deviation| {dev.mean():.2f} sd (expect ~0.8 for unbiased Gaussian errors)")
+n_str = len(panel_labels)
+print(f"\nCHECKPOINT all {n_str} strings: largest deviation {dev.max():.2f} standard errors, "
+      f"mean |deviation| {dev.mean():.2f} sd (expected for unbiased Gaussian errors: "
+      f"{np.sqrt(2 / np.pi):.2f} +- {np.sqrt((1 - 2 / np.pi) / n_str):.2f})")
 assert dev.max() < 5.0
+# WRONG control: the estimator without the factor 3 per qubit of Eq. (4), i.e. without the inverse channel
+k_panel = np.array([sum(ch != "I" for ch in lab) for lab in panel_labels])
+dev_ctrl = np.abs(panel_mean / 3.0 ** k_panel - panel_exact) / (panel_sem / 3.0 ** k_panel)
+print(f"WRONG CONTROL estimator without the factor 3^k: largest deviation {dev_ctrl.max():.0f} standard errors "
+      f"(blind to the strings with <P> = 0: smallest deviation {dev_ctrl.min():.2f})")
+assert dev_ctrl.max() > 20
 
 # --- what the grouped protocol would give at the same total budget ------------------------------
-print(f"\nstandard error at S = {M_PANEL} shots: shadows (measured and predicted) vs the 3-setting protocol")
-print(f"{'observable':>10s} {'k':>2s} {'shadow sd (meas.)':>18s} {'shadow sd (pred.)':>18s} "
-      f"{'grouped sd (pred.)':>19s} {'ratio':>7s}")
+# The averaged observable (1/K) sum_j P_j is a 'Hamiltonian' with K terms of coefficient 1/K, all read from ONE
+# setting, so Eqs. (6)-(8) apply unchanged: grouped per-shot variance = 3 x Var(A) (that setting gets S/3 shots),
+# shadow per-snapshot variance = Eq. (7) with the covariances of Eq. (8).  'indep.' drops all covariances.
+print(f"\nstandard error at S = {M_PANEL} shots: shadows vs the 3-setting protocol, covariances included")
+print(f"{'observable':>10s} {'k':>2s} {'shadow meas.':>13s} {'shadow Eq.(8)':>14s} {'shadow indep.':>14s} "
+      f"{'grouped Eq.(6)':>15s} {'grouped indep.':>15s} {'ratio':>6s} {'ratio indep.':>13s}")
+panel_ratio = {}
 for kind in ("<X>", "<Y>", "<Z>", "<XX>", "<YY>", "<ZZ>"):
     sel = groups_panel[kind]
     k = 1 if len(kind) == 3 else 2
     ex = panel_exact[sel]
-    # per-site/bond average of correlated estimators -> use the measured per-snapshot variance
+    K = len(sel)
+    pk = predicted_variances(psi_vqe, [panel_labels[i] for i in sel], np.full(K, 1.0 / K), {kind[1]: list(range(K))})
     per_snap = np.asarray(vals_p[:, jnp.asarray(sel)]).mean(axis=1)
     sd_meas = per_snap.std() / np.sqrt(M_PANEL)
-    sd_pred = np.sqrt(np.mean(3.0 ** k - ex ** 2) / len(sel) / M_PANEL)
-    sd_group = np.sqrt(3 * np.mean(1 - ex ** 2) / len(sel) / M_PANEL)
-    print(f"{kind:>10s} {k:2d} {sd_meas:18.5f} {sd_pred:18.5f} {sd_group:19.5f} {sd_meas / sd_group:7.2f}")
+    sd_sh = np.sqrt(pk["shadow"] / M_PANEL)
+    sd_sh_ind = np.sqrt(np.mean(3.0 ** k - ex ** 2) / K / M_PANEL)
+    sd_gr = np.sqrt(3 * pk["parts"][kind[1]] / M_PANEL)
+    sd_gr_ind = np.sqrt(3 * np.mean(1 - ex ** 2) / K / M_PANEL)
+    panel_ratio[kind] = sd_sh / sd_gr
+    print(f"{kind:>10s} {k:2d} {sd_meas:13.5f} {sd_sh:14.5f} {sd_sh_ind:14.5f} {sd_gr:15.5f} {sd_gr_ind:15.5f} "
+          f"{sd_sh / sd_gr:6.2f} {sd_sh_ind / sd_gr_ind:13.2f}")
+    assert abs(sd_meas / sd_sh - 1) < 0.05            # measured shadow error agrees with Eqs. (7)-(8)
 
 fig, ax = plt.subplots(figsize=(9.0, 4.4))
 xs = np.arange(len(panel_labels))
@@ -807,37 +930,42 @@ fig.tight_layout(); plt.show()
 
 # %% [markdown]
 # **Thirty-three Pauli strings, one data set, no prior decision.** The largest deviation from the exact value over the
-# $33$ strings is $3.0$ standard errors and the mean absolute deviation is $0.85$ — against the $0.8$ expected for
-# unbiased Gaussian errors, the small excess being the correlation between estimates built from the same snapshots.
-# The bootstrap standard deviations reproduce the analytic $\sigma/\sqrt M$ to the third digit for every one of the
-# six averaged observables, as they must for a plain sample mean; they earn their keep in Section 11, where the
-# quantity is not a sample mean.
+# $33$ strings is $3.0$ standard errors and the mean absolute deviation is $0.85$, against $\sqrt{2/\pi}=0.80\pm0.10$
+# expected for $33$ unbiased Gaussian errors. The same data processed without the factor $3^k$ of Eq. (4) miss by up to
+# $402$ standard errors; that control is blind only for the strings with $\langle P\rangle\approx0$, where both
+# estimators have mean zero. The bootstrap standard deviations agree with the analytic $\sigma/\sqrt M$ within the
+# $\pm5\%$ Monte-Carlo resolution of $200$ resamples, as they must for a plain sample mean.
 #
-# **Equation (10) is confirmed, including the part that contradicts the naive expectation.** The last column of the
-# second table is the ratio of the shadow standard error to the grouped one:
+# **The measured shadow errors agree with Eqs. (7)-(8) to better than $2\%$ for all six quantities, and the ratio to
+# the grouped protocol behaves as derived.** The last two columns of the second table are the ratio of the shadow
+# standard error to the grouped one, with and without the covariances:
 #
-# * $\langle Y\rangle$ and $\langle Z\rangle$, weight $1$ with $\langle P\rangle\approx0$: ratios $1.05$ and $0.95$ —
-#   the two strategies are **equally good**, as the $3^{k-1}=1$ limit of Eq. (10) says;
-# * $\langle YY\rangle$ and $\langle ZZ\rangle$, weight $2$ with $\langle P\rangle\approx0.15$ and $-0.14$: ratios
-#   $1.78$ and $1.74$, against the $\sqrt{3^{k-1}}=\sqrt3=1.73$ of the same limit;
-# * $\langle X\rangle$ and $\langle XX\rangle$, whose expectation values are $-0.98$ and $+0.98$: ratios $4.3$ and
-#   $10.5$. This is the divergent limit of Eq. (10). A dedicated $X$ setting measuring an almost deterministic
-#   observable gets it for almost nothing — its variance $1-\langle P\rangle^2\approx0.04$ — while the shadow
-#   estimator still pays $3^k$ for the snapshots that measured the wrong axes.
+# * $\langle YY\rangle$ and $\langle ZZ\rangle$, weight $2$ with $\langle P\rangle\approx\pm0.15$: ratios $1.75$ and
+#   $1.79$, close to the $\sqrt{3^{k-1}}=\sqrt3=1.73$ of Eq. (9); the covariances nearly cancel here;
+# * $\langle X\rangle$ and $\langle XX\rangle$, whose strings have expectation values $-0.98$ and $+0.98$: ratios $3.0$
+#   and $8.0$. This is the divergent limit of Eq. (9). A dedicated $X$ setting measuring an almost deterministic
+#   observable gets it cheaply — each string has variance $1-\langle P\rangle^2\approx0.04$ — while the shadow
+#   estimator still pays $3^k$ for the snapshots that measured the wrong axes. The covariances matter for both: they
+#   double the grouped variance of $\langle X\rangle$ (the correlated flips of Section 6.2) and the formula without
+#   them overstates the ratio, $4.2$ and $8.9$;
+# * $\langle Y\rangle$ and $\langle Z\rangle$, weight $1$ with $\langle P\rangle\approx0$, where Eq. (9) gives
+#   $1$ for every single string: the averages come out at $0.92$ and $1.11$. The $Y_q$ of this state are positively
+#   correlated, which raises the grouped variance of the average by $30\%$ and the shadow variance by only $10\%$, so
+#   for $\langle Y\rangle$ **shadows beat the grouped protocol**; the $Z_q$ are anticorrelated and the balance tips the
+#   other way.
 #
-# So the honest summary is that **shadows are never cheaper per observable**; they range from equally good to an order
-# of magnitude worse in standard error, depending on $k$ and on how close $\langle P\rangle$ is to $\pm1$. What they
-# buy is elsewhere: the data set was collected before any of these $33$ strings was named, and estimating a
-# thirty-fourth — say $\langle X_0Y_2Z_4\rangle$ — costs nothing extra, whereas the grouped protocol would need a new
-# setting and a new experiment. The trade is **variance for adaptivity**, and the rigorous version of that statement
-# is the $\log K$ scaling of notebook 24, Eq. (8).
+# For a single Pauli string shadows are never cheaper than a setting that contains it, by Eq. (9); for sums of
+# strings the covariances can reverse that by a modest margin. The range here is from $0.9$ to $8$ in standard error.
+# What shadows buy is elsewhere: the data set was collected before any of these $33$ strings was named, and
+# estimating a thirty-fourth — say $\langle X_0Y_2Z_4\rangle$ — costs nothing extra, whereas the grouped protocol
+# would need a new setting and a new experiment. The trade is **variance for adaptivity**, and the rigorous version of
+# that statement is the $\log K$ scaling of notebook 24, Eq. (8).
 #
-# > **Numerical practice.** The predicted columns treat the $N$ site estimators (or $N-1$ bond estimators) that are
-# > averaged as independent. Equation (8) says they are not: neighbouring bond terms share a qubit, so their shadow
-# > estimators are positively correlated. That is visible in the table — the measured shadow error for
-# > $\langle XX\rangle$ is $0.0106$ against an independent-estimator prediction of $0.0090$, a $19\%$ excess —
-# > and it is one more reason to compute variances from the per-snapshot values rather than from a formula that
-# > assumes independence.
+# > **Numerical practice.** Formulas that treat the $N$ site estimators (or $N-1$ bond estimators) of an average as
+# > independent are wrong in both directions here: they put the shadow error of $\langle XX\rangle$ at $0.0090$
+# > instead of the measured $0.0106$ (neighbouring bonds share a qubit, so Eq. (8) correlates them positively), and
+# > the grouped error of $\langle X\rangle$ at $0.00098$ instead of $0.00138$. Compute variances of averages from the
+# > per-snapshot (or per-shot) values of the average itself, or from the full covariance formulas.
 
 
 # %% [markdown]
@@ -851,14 +979,17 @@ fig.tight_layout(); plt.show()
 # Two changes with respect to the previous sections. First, the chain is shortened to $N=4$ with $L=2$ layers
 # ($n=24$ angles): SPSA needs hundreds of iterations to converge and each iteration buys $2M$ snapshots, so a
 # meaningful budget scan is only affordable on a small system. Everything else — the Hamiltonian, the couplings, the
-# estimator — is unchanged. Second, the step size is measured rather than assumed, on the *exact* cost, because a step
-# size tuned for reverse-mode gradients has no reason to suit SPSA.
+# estimator — is unchanged. Second, the step size is measured rather than assumed: first on the *exact* cost, because a
+# step size tuned for reverse-mode gradients has no reason to suit SPSA, and then again around that value with the
+# shadow costs, because the best step of a noisy optimisation can differ from the noise-free one. Every comparison
+# below is between runs at their own best step.
 #
 # > **JAX practice.** The shadow cost has to live *inside* a `lax.scan` body that is itself `vmap`ped over restarts,
 # > so every snapshot of every restart of every iteration is generated in one compiled program. The memory that costs
-# > is (restarts) $\times$ $M$ $\times$ $2^N$ complex numbers for the batched rotated states; with eight restarts,
-# > $M=1024$ and $N=4$ that is $2\cdot10^{6}$ bytes. It is the quantity to check before raising $N$ or $M$: at $N=6$
-# > and $M=2048$ the same expression is already $1.6\cdot10^{7}$ bytes per evaluation.
+# > is (runs) $\times$ $M$ $\times$ $2^N$ complex numbers of $16$ bytes for the batched rotated states; with
+# > $3\times6$ runs (three step sizes, six restarts), $M=1024$ and $N=4$ that is $4.7\cdot10^{6}$ bytes. It is the
+# > quantity to check before raising $N$ or $M$: at $N=6$ and $M=2048$ the same expression is already
+# > $3.8\cdot10^{7}$ bytes per evaluation.
 #
 # The diagnostic plotted is the **exact** energy error of the current angles, which the optimiser never sees. Plotting
 # the noisy estimate instead would be the mistake analysed in Section 9.
@@ -913,22 +1044,33 @@ err_loop = jax.jit(lambda t: cost_loop(t) - E0_loop)
 print(f"in-loop system: {MODEL} chain, N={N_LOOP}, L={L_LOOP}, n={n_loop} angles, "
       f"T={len(LABELS_L)} Pauli terms; exact E_0 = {E0_loop:.6f}")
 
-# --- CHECKPOINT: the in-loop estimator is unbiased and its spread follows Eqs. (7) and (8) --------
-M_CHK = 60000
-bases_c, bits_c = collect_shadows(jax.random.PRNGKey(55), psi0_loop, M_CHK)
-e_per_snap = np.asarray(snapshot_values(bases_c, bits_c, DIG_L) @ COEF_L)
+# --- CHECKPOINT: the in-loop estimator itself is unbiased and its spread follows Eqs. (7) and (8) --
+# The test uses `shadow_snapshots`, the traced sampler that runs inside the training loop (not the engine
+# collector of the previous sections), in chunks of 4096 snapshots with keys fold_in(key, j).
+M_CHK, CHK_CHUNK = 61440, 4096
+_snap_vals = jax.jit(lambda k, psi: snapshot_values(*shadow_snapshots(k, psi, CHK_CHUNK), DIG_L) @ COEF_L)
+e_per_snap = np.concatenate([np.asarray(_snap_vals(jax.random.fold_in(jax.random.PRNGKey(55), j), psi0_loop))
+                             for j in range(M_CHK // CHK_CHUNK)])
 PRED_L = predicted_variances(psi0_loop, LABELS_L, COEFFS_L, GROUPS_L)
 print(f"\nexact E of the state measured: {E0_loop:.6f};   one data set of {M_CHK} snapshots cut into blocks")
 print(f"{'block size M':>13s} {'blocks':>7s} {'mean of block means':>21s} {'std of block means':>20s} "
-      f"{'predicted std':>14s}")
+      f"{'predicted std':>14s} {'z':>6s}")
 for M in (128, 512, 2048):
     nb_ = M_CHK // M
     blocks = e_per_snap[: nb_ * M].reshape(nb_, M).mean(axis=1)
-    print(f"{M:13d} {nb_:7d} {blocks.mean():21.5f} {blocks.std():20.5f} "
-          f"{np.sqrt(PRED_L['shadow'] / M):14.5f}")
-print(f"single-snapshot variance: measured {e_per_snap.var():.2f}, predicted by Eqs. (7) and (8) "
-      f"{PRED_L['shadow']:.2f}")
-assert abs(e_per_snap.mean() - E0_loop) < 5 * e_per_snap.std() / np.sqrt(M_CHK)
+    sd_pred = np.sqrt(PRED_L['shadow'] / M)
+    # relative standard error of a sample std from nb_ (nearly Gaussian) block means: 1/sqrt(2(nb_-1))
+    z = (blocks.std(ddof=1) / sd_pred - 1) * np.sqrt(2 * (nb_ - 1))
+    print(f"{M:13d} {nb_:7d} {blocks.mean():21.5f} {blocks.std(ddof=1):20.5f} {sd_pred:14.5f} {z:+6.2f}")
+v_chk, se_chk = var_and_se(e_per_snap)
+z_mean = (e_per_snap.mean() - E0_loop) / (e_per_snap.std() / np.sqrt(M_CHK))
+z_var = (v_chk - PRED_L["shadow"]) / se_chk
+z_var_ctrl = (v_chk - PRED_L["shadow_diag"]) / se_chk
+print(f"CHECKPOINT mean: {e_per_snap.mean():.5f} vs E_0 = {E0_loop:.5f}, z = {z_mean:+.2f}")
+print(f"CHECKPOINT single-snapshot variance: measured {v_chk:.2f} +- {se_chk:.2f}, Eqs. (7)-(8) "
+      f"{PRED_L['shadow']:.2f} (z = {z_var:+.2f});  WRONG CONTROL without covariances {PRED_L['shadow_diag']:.2f} "
+      f"(z = {z_var_ctrl:+.1f})")
+assert abs(z_mean) < 4 and abs(z_var) < 4 and abs(z_var_ctrl) > 5
 
 # %%
 # ==============================================================================
@@ -959,7 +1101,7 @@ def grad_spsa_shadow(n_snap, c=0.2, gamma=0.101):
 
 R_LOOP, T_LOOP = 6, 500
 th_l, ks_l = random_starts(R_LOOP, n_loop, seed=301)
-LR_GRID_SPSA = jnp.asarray([0.02, 0.05, 0.1, 0.2, 0.4], dtype=RDTYPE)
+LR_GRID_SPSA = jnp.asarray([0.01, 0.02, 0.05, 0.1, 0.2, 0.4], dtype=RDTYPE)
 t0 = time.perf_counter()
 H_lr = np.asarray(jax.block_until_ready(jax.jit(jax.vmap(lambda lr: jax.vmap(lambda t, k: train(
     t, k, grad_spsa_exact(cost_loop), opt_adam(lr), err_loop, T_LOOP)[1])(th_l, ks_l)))(LR_GRID_SPSA)))
@@ -972,34 +1114,72 @@ for j, lr in enumerate(np.asarray(LR_GRID_SPSA)):
 LR_LOOP = float(np.asarray(LR_GRID_SPSA)[int(np.argmin(med_lr))])
 h_spsa_exact = H_lr[int(np.argmin(med_lr))]
 print(f"best SPSA step size: {LR_LOOP:g}")
+assert 0 < int(np.argmin(med_lr)) < len(LR_GRID_SPSA) - 1     # the optimum is bracketed by the grid
 
 # %%
 # ==============================================================================
 # STEP 8: training with shadow-estimated costs, at three snapshot budgets
 # ==============================================================================
 SNAP_BUDGETS = (64, 256, 1024)
-loop_hist, loop_theta = {}, {}
+LR_SHADOW = jnp.asarray([0.5 * LR_LOOP, LR_LOOP, 2.5 * LR_LOOP], dtype=RDTYPE)   # re-tune around the exact-cost optimum
+_rng_med = np.random.default_rng(0)
+
+
+def median_se(x, n_boot=2000):
+    """Bootstrap standard error of the median of a small sample (resampling the restarts)."""
+    x = np.asarray(x)
+    return float(np.std(np.median(_rng_med.choice(x, (n_boot, len(x))), axis=1)))
+
+
+loop_hist, loop_theta, lr_best, med_scan, t_comp, t_run = {}, {}, {}, {}, {}, {}
 t0 = time.perf_counter()
 for M in SNAP_BUDGETS:
-    th_f, h = jax.block_until_ready(jax.jit(jax.vmap(lambda t, k: train(
-        t, k, grad_spsa_shadow(M), opt_adam(LR_LOOP), err_loop, T_LOOP)))(th_l, ks_l))
-    loop_hist[M] = np.asarray(h); loop_theta[M] = th_f
-_, h_grad = jax.block_until_ready(jax.jit(jax.vmap(lambda t, k: train(
+    # one compilation per budget: vmap over the three step sizes and the restarts.  Ahead-of-time
+    # lower().compile() separates the compilation time from the execution time.
+    fn = jax.jit(jax.vmap(lambda lr: jax.vmap(lambda t, k: train(
+        t, k, grad_spsa_shadow(M), opt_adam(lr), err_loop, T_LOOP))(th_l, ks_l)))
+    tc = time.perf_counter(); compiled = fn.lower(LR_SHADOW).compile(); t_comp[M] = time.perf_counter() - tc
+    tc = time.perf_counter(); th_f, h = jax.block_until_ready(compiled(LR_SHADOW)); t_run[M] = time.perf_counter() - tc
+    h = np.asarray(h)
+    med_scan[M] = np.median(h[:, :, -1], axis=1)
+    j = int(np.argmin(med_scan[M]))
+    lr_best[M], loop_hist[M], loop_theta[M] = float(LR_SHADOW[j]), h[j], th_f[j]
+t_shadow = time.perf_counter() - t0
+th_grad, h_grad = jax.block_until_ready(jax.jit(jax.vmap(lambda t, k: train(
     t, k, grad_exact(cost_loop), opt_adam(0.1), err_loop, T_LOOP)))(th_l, ks_l))
 h_grad = np.asarray(h_grad)
-print(f"{len(SNAP_BUDGETS)} shadow budgets + an exact-gradient reference, {R_LOOP} restarts x {T_LOOP} "
-      f"iterations, in {time.perf_counter() - t0:.1f} s")
+# the exact-gradient runs at a constant Adam step sit on a step-size floor (notebook 42, Section 8.1);
+# continuing them with a ten times smaller step gives an upper bound on the true ansatz floor
+_, h_floor = jax.block_until_ready(jax.jit(jax.vmap(lambda t, k: train(
+    t, k, grad_exact(cost_loop), opt_adam(0.01), err_loop, 3000)))(th_grad, ks_l))
+h_floor = np.asarray(h_floor)
+print(f"{len(SNAP_BUDGETS)} shadow budgets x {len(LR_SHADOW)} step sizes x {R_LOOP} restarts x {T_LOOP} iterations "
+      f"in {t_shadow:.1f} s: compilation " + ", ".join(f"{t_comp[M]:.1f}" for M in SNAP_BUDGETS)
+      + " s, execution " + ", ".join(f"{t_run[M]:.1f}" for M in SNAP_BUDGETS) + f" s for M = {SNAP_BUDGETS}; "
+      f"exact-gradient references in "
+      f"{time.perf_counter() - t0 - t_shadow:.1f} s")
 
-print(f"\n{'snapshots/iteration':>20s} {'total snapshots':>16s} {'noise std of the cost':>22s} "
-      f"{'median final E-E_0':>20s} {'best':>9s}")
+print(f"\nstep-size check with shadow costs (median final E-E_0 over {R_LOOP} restarts):")
+print(f"{'M':>6s} " + " ".join(f"{'eta=' + format(float(lr), 'g'):>11s}" for lr in LR_SHADOW) + f" {'best':>8s}")
+for M in SNAP_BUDGETS:
+    print(f"{M:6d} " + " ".join(f"{m:11.4f}" for m in med_scan[M]) + f" {lr_best[M]:8g}")
+
+print(f"\n{'snapshots/iteration':>20s} {'total snapshots':>16s} {'cost noise std at E_0':>22s} "
+      f"{'median final E-E_0':>22s} {'best':>9s}")
 for M in SNAP_BUDGETS:
     h = loop_hist[M]
     print(f"{2 * M:20d} {2 * M * T_LOOP:16d} {np.sqrt(PRED_L['shadow'] / M):22.4f} "
-          f"{np.median(h[:, -1]):20.5f} {h[:, -1].min():9.5f}")
-print(f"{'exact cost, SPSA':>20s} {0:16d} {0.0:22.4f} {np.median(h_spsa_exact[:, -1]):20.5f} "
-      f"{h_spsa_exact[:, -1].min():9.5f}")
-print(f"{'exact gradient, Adam':>20s} {0:16d} {0.0:22.4f} {np.median(h_grad[:, -1]):20.5f} "
-      f"{h_grad[:, -1].min():9.5f}    (the ansatz floor)")
+          f"{np.median(h[:, -1]):12.4f} +- {median_se(h[:, -1]):6.4f} {h[:, -1].min():9.5f}")
+print(f"{'exact cost, SPSA':>20s} {0:16d} {0.0:22.4f} {np.median(h_spsa_exact[:, -1]):12.4f} +- "
+      f"{median_se(h_spsa_exact[:, -1]):6.4f} {h_spsa_exact[:, -1].min():9.5f}")
+print(f"{'exact gradient, Adam':>20s} {0:16d} {0.0:22.4f} {np.median(h_grad[:, -1]):12.5f} +- "
+      f"{median_se(h_grad[:, -1]):6.5f} {h_grad[:, -1].min():9.5f}    (eta = 0.1, same {T_LOOP} iterations)")
+print(f"{'+3000 its at eta=0.01':>20s} {0:16d} {0.0:22.4f} {np.median(h_floor[:, -1]):12.5f} +- "
+      f"{median_se(h_floor[:, -1]):6.5f} {h_floor[:, -1].min():9.5f}    (upper bound on the ansatz floor)")
+slope = np.polyfit(np.log(SNAP_BUDGETS), np.log([np.median(loop_hist[M][:, -1]) for M in SNAP_BUDGETS]), 1)[0]
+boot_slopes = [np.polyfit(np.log(SNAP_BUDGETS), np.log([np.median(_rng_med.choice(loop_hist[M][:, -1], R_LOOP))
+                                                        for M in SNAP_BUDGETS]), 1)[0] for _ in range(2000)]
+print(f"\nlog-log slope of the median final error against M: {slope:.2f} +- {np.std(boot_slopes):.2f} (bootstrap)")
 
 fig, axes = plt.subplots(1, 2, figsize=(11.5, 4.3))
 it = np.arange(1, T_LOOP + 1)
@@ -1010,137 +1190,225 @@ for j, M in enumerate(SNAP_BUDGETS):
 _, med_ref, _ = bands(np.maximum(h_spsa_exact, 1e-6))
 axes[0].semilogy(it, med_ref, "k--", lw=1.4, label="same optimiser, exact cost")
 _, med_g, _ = bands(np.maximum(h_grad, 1e-6))
-axes[0].semilogy(it, med_g, "k:", lw=1.4, label="exact gradient (ansatz floor)")
+axes[0].semilogy(it, med_g, "k:", lw=1.4, label=r"exact gradient, Adam $\eta=0.1$")
 axes[0].set_xlabel("iteration"); axes[0].set_ylabel(r"$E-E_0$ (exact; median, IQR band)")
 axes[0].set_title(f"Shadow-driven SPSA + Adam, $N={N_LOOP}$, $n={n_loop}$"); axes[0].legend(fontsize=8)
 
 meds = [np.median(loop_hist[M][:, -1]) for M in SNAP_BUDGETS]
-axes[1].loglog(SNAP_BUDGETS, meds, MARKERS[0] + "-", ms=7, color=PALETTE[0], label="median final $E-E_0$")
+axes[1].errorbar(SNAP_BUDGETS, meds, yerr=[median_se(loop_hist[M][:, -1]) for M in SNAP_BUDGETS],
+                 fmt=MARKERS[0] + "-", ms=7, capsize=3, color=PALETTE[0], label=r"median final $E-E_0$ $\pm$ bootstrap SE")
+axes[1].set_xscale("log"); axes[1].set_yscale("log")
 axes[1].loglog(SNAP_BUDGETS, [loop_hist[M][:, -1].min() for M in SNAP_BUDGETS], MARKERS[1] + ":", ms=6,
                color=PALETTE[1], label="best restart")
 axes[1].loglog(SNAP_BUDGETS, [np.sqrt(PRED_L["shadow"] / M) for M in SNAP_BUDGETS], ":", color=PALETTE[2],
                lw=1.6, label=r"noise std of the cost, $\sqrt{\mathrm{Var}/M}$")
 axes[1].axhline(np.median(h_spsa_exact[:, -1]), color="k", ls="--", lw=1.2, label="exact-cost SPSA limit")
-axes[1].axhline(np.median(h_grad[:, -1]), color="k", ls=":", lw=1.2, label="ansatz floor")
+axes[1].axhline(np.median(h_grad[:, -1]), color="k", ls=":", lw=1.2, label=r"exact gradient, $\eta=0.1$")
+axes[1].axhline(np.median(h_floor[:, -1]), color="0.5", ls="-.", lw=1.2, label="exact gradient, converged")
 axes[1].set_xlabel("snapshots per cost evaluation $M$"); axes[1].set_ylabel("energy error / noise")
 axes[1].set_title("Budget per iteration against the result"); axes[1].legend(fontsize=7.5)
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# **Equation (8) is validated to two digits where it matters most.** The single-snapshot variance of the energy
-# estimator on the four-site chain is $96.24$ measured against $96.05$ predicted — a $0.2\%$ agreement for a formula
-# that had to account for the covariance of every one of the $13\times13$ pairs of Hamiltonian terms. The block-mean
-# spreads come out $4$ to $9\%$ *below* the prediction $\sqrt{\mathrm{Var}/M}$; with a few hundred blocks the sample
-# standard deviation of a heavy-tailed quantity is itself biased low, which is exactly the effect notebook 24 analysed
-# for the tails of the shadow estimator.
+# **The in-loop estimator passes the same tests as the engine collector.** The checkpoint draws its snapshots with
+# `shadow_snapshots`, the traced sampler used inside the training loop. Its mean misses $E_0$ by $1.5$ standard errors,
+# and its single-snapshot variance is $96.63\pm0.63$ against $96.05$ from Eqs. (7)-(8) ($+0.9$ standard errors), while
+# the formula without the covariances, $65.93$, is rejected by $49$ standard errors. The spreads of the block means
+# agree with $\sqrt{\mathrm{Var}/M}$ within half a standard error at all three block sizes (the three rows reuse the
+# same snapshots, so they are not independent tests).
 #
-# **The step size dominates everything, again.** Across the sweep the median final energy error runs from $0.052$ at
-# $\eta=0.02$ to $4.32$ at $\eta=0.4$ — a factor of $80$ from one hyper-parameter, measured on the *exact* cost so
-# that the shadows are not blamed for it. The step size that notebook 42 measured as best for Adam with reverse-mode
-# gradients, $0.4$, is the worst one here.
+# **The step size dominates everything, again.** On the exact cost the median final error is $0.052$ at the best step
+# $\eta=0.02$, $0.13$ at both neighbours $0.01$ and $0.05$, and $4.32$ at $\eta=0.4$ — a factor of $80$ from one
+# hyper-parameter, measured without shadows so that the shadows are not blamed for it. The step $0.4$ that served Adam
+# with exact gradients in notebook 42 is the worst one here. With shadow costs the same step $\eta=0.02$ is again the
+# best at every budget; halving it or multiplying it by $2.5$ makes the median worse by a factor of $1.7$ to $3.6$. The
+# budget comparison below is therefore between tuned runs.
 #
-# **The snapshot budget per iteration sets the answer, and it does so through the cost noise.** The median final
-# energy error is $1.01$ at $M=64$, $0.34$ at $M=256$ and $0.17$ at $M=1024$, while the standard deviation of the
-# cost estimate is $1.23$, $0.61$ and $0.31$. For the two larger budgets the final error is $0.55$ and $0.56$ times
-# the cost noise — the optimiser converges to a neighbourhood of the minimum whose size is set by the noise it cannot
-# see through, and a four-fold increase in snapshots halves both. The $M^{-1/2}$ law of the estimator therefore
-# propagates directly into an $M^{-1/2}$ law for the *result*, which is the worst possible scaling: an extra digit of
-# accuracy costs a hundred times the measurements.
+# **The snapshot budget per iteration sets the answer, through the cost noise.** The median final energy error is
+# $1.01\pm0.34$ at $M=64$, $0.337\pm0.029$ at $M=256$ and $0.172\pm0.012$ at $M=1024$ (bootstrap errors over the six
+# restarts), while the standard deviation of the cost estimate near the ground state is $1.23$, $0.61$ and $0.31$. From
+# $M=256$ to $M=1024$ the median halves, as an $M^{-1/2}$ law would have it, and the fitted slope over the three
+# budgets is $-0.64\pm0.12$; six restarts and three budgets do not determine the exponent better than that. Accuracy
+# improving only as $M^{-1/2}$ (or not much faster) means that each extra digit costs about a hundred times the
+# measurements.
 #
-# **Two floors sit underneath.** The same optimiser with an exact cost reaches $0.052$, and the same circuit with an
-# exact gradient reaches $0.0065$. So of the $0.17$ achieved with $10^{6}$ snapshots per run, a factor of three is the
-# shadow noise, a further factor of eight is SPSA rather than a real gradient, and only the last $0.0065$ is the
-# ansatz. **Reporting the ansatz error of a shadow-driven VQE run without those two references would attribute to the
-# circuit what belongs to the measurement budget.**
+# **Two references sit underneath, and only one of them is the ansatz.** The same optimiser with an exact cost
+# reaches $0.052$; the same circuit with exact gradients and Adam at $\eta=0.1$ reaches $0.0065$ in the same $500$
+# iterations. That second number is Adam's constant-step floor (notebook 42, Section 8.1) rather than a property of
+# the circuit: continuing those runs for $3000$ iterations at $\eta=0.01$ brings the median to $7.8\cdot10^{-4}$. So of the
+# $0.17$ reached with $10^{6}$ snapshots per run, a factor of three is the shadow noise, a factor of eight is SPSA
+# against exact gradients at an equal number of iterations, a further factor of eight is the constant step of the
+# exact-gradient reference, and at most $8\cdot10^{-4}$ is the ansatz. **Reporting the ansatz error of a shadow-driven
+# VQE run without these references would attribute to the circuit what belongs to the measurement budget and to the
+# optimiser.**
 
 # %% [markdown]
 # ## 9. Optimisation bias: the winner's curse
 #
-# An optimiser driven by a noisy cost does not only converge more slowly; it converges to the wrong place, and it
-# **reports the wrong number**. The mechanism is elementary and completely general.
+# A noisy cost biases a variational calculation in two opposite directions. The **true** energy of the parameters an
+# optimiser returns can only be too high: $E(\boldsymbol\theta)\ge E_0$ for every $\boldsymbol\theta$, so noise that
+# keeps the optimiser away from the minimum adds a positive error — that is what Section 8 measured. The **reported**
+# energy, the noisy value an experimenter reads off at the end, is biased the other way.
 #
-# Let $\hat C_i=C_i+\varepsilon_i$ be noisy estimates of the true costs $C_i$ of several candidates (iterations,
-# restarts, hyper-parameter settings), with $\mathbb E[\varepsilon_i]=0$. Selecting the candidate with the smallest
-# $\hat C$ and reporting its $\hat C$ gives
+# Let $\hat C_i=C_i+\varepsilon_i$ be independent noisy estimates of the true costs $C_i$ of $R$ candidates
+# (restarts, iterations, hyper-parameter settings), with $\mathbb E[\varepsilon_i]=0$. Selecting the candidate with
+# the smallest $\hat C$ and reporting its $\hat C$ is biased low in two senses. First, $\min_i\hat C_i\le\hat C_j$ for
+# every $j$, so taking expectations,
 #
-# $$\mathbb E\Bigl[\min_i\hat C_i\Bigr]\;\le\;\min_i\mathbb E\bigl[\hat C_i\bigr]=\min_iC_i , \tag{11}$$
+# $$\mathbb E\Bigl[\min_i\hat C_i\Bigr]\;\le\;\min_j\mathbb E\bigl[\hat C_j\bigr]=\min_jC_j . \tag{10}$$
 #
-# because the minimum of a set of random variables is a concave function of them, so Jensen's inequality applies with
-# the inequality pointing downwards. The reported value is biased **below** the truth, and the bias grows with the
-# noise level and with the number of candidates. The selected candidate is also not necessarily the best one: it is
-# the one whose noise happened to be most favourable. In statistics this is the *winner's curse*; in a variational
-# calculation it is the reason a quoted energy can sit below the true ground energy and so appear to violate the
-# variational principle.
+# Second, the reported value minus the true cost of the *selected* candidate, $\varepsilon_{i^*}$, has negative mean:
+# candidate $i$ is selected exactly when $\varepsilon_i$ falls below a threshold $t_i$ set by the other candidates, and
+# for a zero-mean variable $\mathbb E[\varepsilon\,\mathbb 1\{\varepsilon<t\}]\le0$ for every $t$ (for $t\le0$ the
+# integrand is negative; for $t>0$ it equals $-\mathbb E[\varepsilon\,\mathbb 1\{\varepsilon\ge t\}]\le0$). Summing
+# over $i$ gives $\mathbb E[\varepsilon_{i^*}]\le0$.
 #
-# The cure is not subtle: **re-estimate the final answer with an independent data set**, large enough that its own
-# error bar is small, and quote that. The experiment below measures the size of the effect for the runs of Section 8.
+# The size follows from two limits. If the true costs differ by much more than the noise, the selection always picks
+# the same candidate and the bias vanishes. If they are equal and the noise is Gaussian with standard deviation
+# $\sigma$, then $\varepsilon_{i^*}=\min_i\varepsilon_i$ and
+#
+# $$\mathbb E\bigl[\varepsilon_{i^*}\bigr]=-\sigma\,e_R ,\qquad
+#   e_R=\mathbb E\Bigl[\max_{i\le R}z_i\Bigr]=\int_{-\infty}^{\infty}x\,R\,\varphi(x)\,\Phi(x)^{R-1}\,dx , \tag{11}$$
+#
+# with $z_i$ independent standard normals, $\varphi$ and $\Phi$ their density and distribution function. For $R=2$,
+# $e_2=1/\sqrt\pi=0.56$; for the $R=6$ restarts of Section 8, $e_6=1.27$; for large $R$, $e_R\approx\sqrt{2\ln R}$, which
+# overestimates it at small $R$ ($1.89$ for $R=6$). Between the two limits the bias depends on the spacing of the
+# $C_i$ relative to $\sigma$, and a Gaussian model with the actual $C_i$ and $\sigma_i$ predicts it. The selected
+# candidate is also not necessarily the best one: it is the one whose noise happened to be most favourable, so its
+# true cost $C_{i^*}\ge\min_iC_i$ is biased *up*. In statistics this is the *winner's curse*; in a variational
+# calculation it is how a quoted energy can sit below the true ground energy and appear to violate the variational
+# principle.
+#
+# The remedy: **re-estimate the final answer with an independent data set**, large enough that its own error bar is
+# small, and quote that. The experiment below repeats the selection among the six final states of Section 8 a hundred
+# times with fresh data, compares the mean bias with the Gaussian model built from the exact $C_i$ and the
+# $\sigma_i$ of Eqs. (7)-(8), and then re-measures the selected states independently.
 
 # %%
 # ==============================================================================
-# STEP 9: the reported energy versus the true energy of the selected parameters
+# STEP 9: the reported energy versus the true energy of the selected parameters, repeated many times
 # ==============================================================================
 M_VERIFY = 30000                                # the independent, large data set
-print(f"independent verification with {M_VERIFY} snapshots "
-      f"(own standard error {np.sqrt(PRED_L['shadow'] / M_VERIFY):.4f})")
-print(f"\n{'M in loop':>10s} {'restart':>8s} {'in-loop estimate':>18s} {'independent':>13s} {'exact':>10s} "
-      f"{'bias of in-loop':>16s} {'truly best exact':>17s}")
-bias_rows = []
-for M in SNAP_BUDGETS:
-    ests_loop, ests_ind, ex = [], [], []
-    for r in range(R_LOOP):
-        psi_r = hardware_efficient_ansatz(loop_theta[M][r], N_LOOP, L_LOOP)
-        ests_loop.append(float(shadow_energy(jax.random.PRNGKey(900 + r), psi_r, M, DIG_L, COEF_L)))
-        bb, tt = collect_shadows(jax.random.PRNGKey(1900 + r), psi_r, M_VERIFY)
-        ests_ind.append(float((snapshot_values(bb, tt, DIG_L) @ COEF_L).mean()))
-        ex.append(float(energy(terms_loop, psi_r)))
-    ests_loop, ests_ind, ex = np.array(ests_loop), np.array(ests_ind), np.array(ex)
-    r_sel, r_true = int(np.argmin(ests_loop)), int(np.argmin(ex))
-    bias_rows.append((M, ests_loop, ests_ind, ex, r_sel, r_true))
-    print(f"{M:10d} {r_sel:8d} {ests_loop[r_sel]:18.5f} {ests_ind[r_sel]:13.5f} {ex[r_sel]:10.5f} "
-          f"{ests_loop[r_sel] - ex[r_sel]:16.5f} {ex[r_true]:17.5f}")
-print(f"\nmean over all {R_LOOP} restarts of (in-loop estimate - exact energy), which should be zero "
-      f"for an unbiased estimator applied WITHOUT selection:")
-for M, el, ei, ex, r_sel, r_true in bias_rows:
-    print(f"  M = {M:5d}: mean deviation {np.mean(el - ex):+.5f}, "
-          f"deviation of the SELECTED restart {el[r_sel] - ex[r_sel]:+.5f}, "
-          f"selection picked restart {r_sel} (truly best: {r_true})")
-print(f"\nexact ground energy E_0 = {E0_loop:.5f}; an estimate below it signals the bias, not new physics")
+N_SEL = 100                                     # independent repetitions of "estimate all restarts, pick the lowest"
 
-fig, ax = plt.subplots(figsize=(7.2, 4.4))
-for j, (M, el, ei, ex, r_sel, r_true) in enumerate(bias_rows):
-    ax.plot(ex, el, MARKERS[j], ms=9, color=PALETTE[j], label=f"$M={M}$: in-loop estimate")
-    ax.plot(ex, ei, MARKERS[j], ms=5, mfc="none", color=PALETTE[j], label=f"$M={M}$: independent estimate")
-lims = [min(min(r[3]) for r in bias_rows) - 0.5, max(max(r[3]) for r in bias_rows) + 0.5]
+
+def expected_max_normal(R):
+    """e_R = E[max of R independent standard normals] = int x R phi(x) Phi(x)^(R-1) dx  (trapezoid rule)."""
+    x = np.linspace(-10, 10, 20001)
+    phi = np.exp(-x ** 2 / 2) / np.sqrt(2 * np.pi)
+    Phi = 0.5 * (1 + np.vectorize(math.erf)(x / np.sqrt(2)))
+    return float(np.trapezoid(x * R * phi * Phi ** (R - 1), x))
+
+
+e_R = expected_max_normal(R_LOOP)
+print(f"e_R for R = {R_LOOP} candidates: {e_R:.4f}   (asymptotic form sqrt(2 ln R) = {np.sqrt(2 * np.log(R_LOOP)):.4f})")
+
+t0 = time.perf_counter()
+rng_gauss = np.random.default_rng(11)
+bias_rows = []
+for jM, M in enumerate(SNAP_BUDGETS):
+    psis = [hardware_efficient_ansatz(loop_theta[M][r], N_LOOP, L_LOOP) for r in range(R_LOOP)]
+    ex = np.array([float(energy(terms_loop, ps)) for ps in psis])
+    sig = np.array([np.sqrt(predicted_variances(ps, LABELS_L, COEFFS_L, GROUPS_L)["shadow"]) for ps in psis])
+    C_hat = np.zeros((N_SEL, R_LOOP))
+    ests_ind = np.zeros(R_LOOP)
+    for r, ps in enumerate(psis):
+        bb, tt = collect_shadows(jax.random.PRNGKey(10_000 * (jM + 1) + r), ps, N_SEL * M)
+        C_hat[:, r] = np.asarray(snapshot_values(bb, tt, DIG_L) @ COEF_L).reshape(N_SEL, M).mean(axis=1)
+        bb, tt = collect_shadows(jax.random.PRNGKey(1900 + 10 * jM + r), ps, M_VERIFY)
+        ests_ind[r] = float((snapshot_values(bb, tt, DIG_L) @ COEF_L).mean())
+    sel = np.argmin(C_hat, axis=1)                              # the restart an experimenter would pick
+    bias = C_hat[np.arange(N_SEL), sel] - ex[sel]               # reported value minus truth of that restart
+    # Gaussian model of the same selection: C_hat_r ~ N(C_r, sigma_r^2 / M), independent
+    Z = ex + rng_gauss.standard_normal((200_000, R_LOOP)) * sig / np.sqrt(M)
+    sel_g = np.argmin(Z, axis=1)
+    pred_bias = float(np.mean(Z[np.arange(len(Z)), sel_g] - ex[sel_g]))
+    bias_rows.append(dict(M=M, ex=ex, sig=sig, C_hat=C_hat, ind=ests_ind, sel=sel, bias=bias, pred=pred_bias,
+                          p_best=float(np.mean(sel == np.argmin(ex))), p_best_g=float(np.mean(sel_g == np.argmin(ex))),
+                          cost=2 * M * T_LOOP))
+print(f"{len(SNAP_BUDGETS) * R_LOOP * (N_SEL + 1)} data sets collected in {time.perf_counter() - t0:.1f} s")
+
+print(f"\n{'M':>6s} {'sigma/sqrt(M)':>14s} {'spread of C_r':>14s} {'mean bias (measured)':>22s} {'Gaussian model':>15s} "
+      f"{'equal-cost limit':>17s} {'z':>6s} {'z (no bias)':>12s} {'P(pick best)':>13s} {'no selection':>19s}")
+for row in bias_rows:
+    b, s_M = row["bias"], row["sig"].mean() / np.sqrt(row["M"])
+    se = b.std(ddof=1) / np.sqrt(N_SEL)
+    z, z0 = (b.mean() - row["pred"]) / se, b.mean() / se
+    row.update(z=z, z0=z0, se=se)
+    d_all = row["C_hat"] - row["ex"]                            # every estimate, no selection
+    print(f"{row['M']:6d} {s_M:14.4f} {row['ex'].std():14.4f} {b.mean():13.4f} +- {se:6.4f} {row['pred']:15.4f} "
+          f"{-e_R * s_M:17.4f} {z:+6.2f} {z0:+12.1f} {row['p_best']:6.2f} ({row['p_best_g']:.2f}) "
+          f"{d_all.mean():+9.4f} +- {d_all.std() / np.sqrt(d_all.size):.4f}")
+    assert abs(z) < 4                     # the Gaussian selection model reproduces the measured bias
+    assert z0 < -5                        # WRONG control: "an unbiased estimator gives an unbiased reported value"
+
+print(f"\none experiment (repetition 0) and the independent re-measurement with {M_VERIFY} snapshots:")
+print(f"{'M':>6s} {'picked':>7s} {'reported':>10s} {'re-measured':>12s} {'exact':>9s} {'re-measurement cost':>20s}")
+for row in bias_rows:
+    r0 = int(row["sel"][0])
+    print(f"{row['M']:6d} {r0:7d} {row['C_hat'][0, r0]:10.4f} {row['ind'][r0]:12.4f} {row['ex'][r0]:9.4f} "
+          f"{M_VERIFY / row['cost']:19.0%}")
+z_ind = np.concatenate([(row["ind"] - row["ex"]) / (row["sig"] / np.sqrt(M_VERIFY)) for row in bias_rows])
+print(f"CHECKPOINT independent re-measurements of all {len(z_ind)} final states: largest |z| = {np.abs(z_ind).max():.2f}")
+assert np.abs(z_ind).max() < 4
+print(f"exact ground energy E_0 = {E0_loop:.5f}; fraction of the {N_SEL} reported values below E_0: " +
+      ", ".join(f"M={row['M']}: {np.mean(row['C_hat'][np.arange(N_SEL), row['sel']] < E0_loop):.2f}"
+                for row in bias_rows))
+
+fig, axes = plt.subplots(1, 2, figsize=(12.0, 4.4))
+ax = axes[0]
+for j, row in enumerate(bias_rows):
+    ax.plot(row["ex"], row["C_hat"][0], MARKERS[j], ms=9, color=PALETTE[j], label=f"$M={row['M']}$: one estimate")
+    ax.plot(row["ex"], row["ind"], MARKERS[j], ms=5, mfc="none", color=PALETTE[j],
+            label=f"$M={row['M']}$: independent estimate")
+lims = [min(min(r["ex"]) for r in bias_rows) - 0.5, max(max(r["ex"]) for r in bias_rows) + 0.5]
 ax.plot(lims, lims, "k-", lw=1, label="unbiased")
 ax.axvline(E0_loop, color="0.4", ls=":", lw=1.2, label=r"exact $E_0$")
 ax.set_xlim(*lims)
 ax.set_xlabel(r"exact energy of the final parameters")
 ax.set_ylabel("estimated energy")
-ax.set_title("A cheap estimate of the final answer scatters around the truth")
-ax.legend(fontsize=7.5, ncol=2)
+ax.set_title("Estimates of the six final states (repetition 0)")
+ax.legend(fontsize=7, ncol=2)
+ax = axes[1]
+for j, row in enumerate(bias_rows):
+    ax.hist(row["bias"], bins=20, histtype="step", lw=1.6, color=PALETTE[j],
+            label=f"$M={row['M']}$: mean {row['bias'].mean():.3f}, model {row['pred']:.3f}")
+    ax.axvline(row["pred"], color=PALETTE[j], ls="--", lw=1.2)
+ax.axvline(0, color="k", lw=1)
+ax.set_xlabel(r"reported minus true energy of the selected restart")
+ax.set_ylabel(f"repetitions (of {N_SEL})")
+ax.set_title("Selection bias: measured histograms, Gaussian-model means dashed")
+ax.legend(fontsize=7.5)
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# **The effect is large and it points the predicted way.** For each budget the table reports the restart an
-# experimenter would select — the one with the lowest in-loop estimate — and what that estimate was worth. At $M=256$
-# the selected run reported $-7.787$ while its true energy is $-6.773$: the quoted number is too low by $1.01$, and it
-# is $0.66$ **below the exact ground energy** $E_0=-7.124$. Read without the exact reference, that run looks like a
-# violation of the variational principle. It is nothing of the sort; it is Eq. (11) at work. The bias shrinks with the
-# budget, $-0.73$, $-1.01$, $-0.44$ for $M=64,256,1024$, roughly in step with the cost noise, as it must.
+# **The bias is large, negative and predicted.** Over $100$ repetitions of "estimate the six final states with $M$
+# snapshots each, pick the lowest, report it", the reported value lies below the true energy of the selected state by
+# $1.33\pm0.09$, $0.77\pm0.04$ and $0.38\pm0.02$ at $M=64$, $256$ and $1024$. The Gaussian model of Eq. (11) with the
+# exact $C_i$ and $\sigma_i$ predicts $1.38$, $0.78$ and $0.39$ (all within half a standard error), and the
+# hypothesis "an unbiased estimator gives an unbiased reported value" is rejected by $15$ to $19$ standard errors. At
+# $M=256$ and $M=1024$ the six final states differ in true energy by only $0.06$ and $0.02$, far less than the noise
+# $\sigma/\sqrt M=0.61$ and $0.31$, so these are the equal-cost limit of Eq. (11), $-1.27\,\sigma/\sqrt M$; at $M=64$
+# the true energies spread by $0.73$ and the bias stays short of that limit ($-1.54$), as expected when the true costs
+# are spread. The reported value is below the exact ground energy $E_0=-7.124$ in $69\%$, $88\%$ and $87\%$ of the
+# repetitions: read without the exact reference, those runs look like violations of the variational principle.
 #
-# **The bias comes from the selection, not from the estimator.** Averaged over *all* restarts, with no selection, the
-# deviation of the in-loop estimates from the exact energies is $-0.11$, $-0.22$ and $-0.014$, against standard errors
-# of the mean of $0.50$, $0.25$ and $0.13$ — consistent with zero, as an unbiased estimator requires. It is
-# $\min_i\hat C_i$ that is biased, not $\hat C_i$.
+# **The bias comes from the selection.** Averaged over all restarts and repetitions, with no
+# selection, the estimates deviate from the exact energies by $-0.002\pm0.050$, $+0.020\pm0.025$ and $+0.010\pm0.013$ at the three budgets — consistent with zero, as an unbiased estimator
+# requires. Each $\hat C_i$ is unbiased, and their minimum is biased low.
 #
-# **The selected candidate is often not the best one.** At $M=256$ and $M=1024$ the selection picked restart $3$ while
-# the truly best restart was $5$; only at $M=64$ did the two coincide. Noise of the size of the differences between
-# candidates does not merely blur the ranking, it reorders it.
+# **The selected candidate is rarely the best one.** The selection picks the truly best restart in $33\%$, $21\%$ and
+# $18\%$ of the repetitions (Gaussian model: $32\%$, $19\%$, $19\%$); at the two larger budgets that is close to the
+# $1/6$ of a random choice. Noise larger than the differences between candidates does not merely blur the ranking, it
+# replaces it.
 #
-# **The independent estimates are unbiased and cheap.** Re-measuring the selected parameters with $3\cdot10^{4}$ fresh
-# snapshots — a few percent of what the optimisation itself spent — gives $-6.720$, $-6.830$, $-7.016$ against exact
-# values of $-6.765$, $-6.773$, $-6.946$, within one or two of the $0.057$ standard error. In the figure the open
-# markers sit on the diagonal while the filled ones scatter below it.
+# **The independent estimates are unbiased and cheap.** Re-measuring each final state with $3\cdot10^{4}$ fresh
+# snapshots gives all $18$ energies within $1.5$ standard errors of the exact values; for the states picked in
+# repetition $0$, $-6.280$, $-6.814$ and $-6.922$ against exact $-6.282$, $-6.837$ and $-6.918$, where the selection
+# had reported $-8.227$, $-7.529$ and $-7.572$. The re-measurement costs $47\%$, $12\%$ and $3\%$ of the snapshots the
+# optimisation itself spent at $M=64$, $256$ and $1024$. In the left figure the open markers sit on the diagonal while
+# the filled ones scatter around it; in the right one the histograms of the selection bias are centred on the dashed
+# Gaussian-model values.
 #
 # > **Common pitfall.** Quoting the best cost value seen during training is the single most common way to overstate a
 # > variational result. The rule is: **select with the noisy data, report with fresh data.** The same applies to
@@ -1157,38 +1425,41 @@ fig.tight_layout(); plt.show()
 # qubit but replace the uniform distribution over $\{X,Y,Z\}$ by a per-qubit distribution $\beta_q$ optimised for the
 # observables of interest; the inverse channel and the estimator change accordingly, and the variance for the target
 # set drops. **Derandomisation** (Huang, Kueng and Preskill, 2021) goes further and removes the randomness altogether:
-# given a target list of Pauli observables and a desired accuracy, a greedy algorithm chooses each measurement setting
-# deterministically so as to minimise a bound on the worst-case remaining confidence, producing a *schedule* rather
-# than a distribution. It provably never needs more measurements than the randomised scheme, and in the reported
-# benchmarks on molecular Hamiltonians it needs about an order of magnitude fewer, closing most of the gap to
-# problem-specific grouping while remaining applicable to a list of observables of arbitrary structure. Both methods
-# occupy the space between the two extremes measured in Section 6: fully problem-adapted grouping, which is optimal
-# for a known Hamiltonian and useless for anything else, and fully random shadows, which are agnostic and therefore
-# pay the $3^k$ of Eq. (4).
+# given a target list of Pauli observables, a greedy algorithm chooses each measurement setting deterministically so
+# as to minimise a confidence bound on the estimation error, producing a *schedule* rather than a distribution. Its
+# guarantee is that this bound is never worse than the average bound of the randomised scheme. In the molecular
+# benchmarks of that paper (ground-state energies of $\mathrm{H_2}$ to $\mathrm{NH_3}$ under three fermion-to-qubit
+# encodings, $1000$ measurements) its energy error was several times smaller than that of randomised shadows and also
+# below that of locally biased shadows and of a greedy grouping heuristic (largest degree first). Both methods
+# occupy the space between the two extremes measured in Section 6: problem-adapted grouping, which suits a known
+# Hamiltonian and nothing else, and fully random shadows, which are agnostic and therefore pay the $3^k$ of Eq. (4).
 
 # %% [markdown]
 # ## 11. Certifying the prepared state end to end
 #
 # The last step of an experiment: take the state that was prepared, spend one large measurement budget on it, and
-# report everything that is known about it with honest error bars. We certify the six-qubit variational state of
+# report everything that is known about it with error bars. We certify the six-qubit variational state of
 # Section 5 — the one all the measurement studies were performed on — because it is the well-converged one; the
 # shadow-driven states of Section 8 were already re-measured independently in Section 9.
 #
-# The error bars come from the **bootstrap** of notebook 24. The error bars come from the **bootstrap** of
-# Resample the snapshots with replacement, recompute, and take the spread: it is the right tool here because several
-# of the reported quantities (the mean correlators, the fidelity) are functions of the *same* snapshots and therefore
-# correlated.
+# The error bars come from the **bootstrap** of notebook 24: resample the snapshots with replacement, recompute, and
+# take the spread. For the sample means reported here it must reproduce the analytic $\sigma/\sqrt M$, which makes it a
+# check of the pipeline; its real use is for non-linear functions of the same snapshots (ratios, purities, the
+# quantum Fisher information of notebook 36), for which no simple formula exists.
 #
 # The fidelity with the exact ground state deserves a comment. It is the expectation value of the projector
-# $\vert\psi_0\rangle\langle\psi_0\vert$, an $N$-body observable, and notebook 24 measured its single-snapshot second
-# moment to grow exponentially in $N$ for local shadows, reaching about $11$ per snapshot at $N=6$. A data set of
-# $5\cdot10^{4}$ snapshots therefore gives it an error bar near $0.015$ — acceptable here. At $N=20$ it would not be,
-# which is why fidelity estimation from local randomised measurements does not scale and global (Clifford) shadows
-# exist.
+# $\vert\psi_0\rangle\langle\psi_0\vert$, an $N$-body observable. For a product target measured on itself notebook 24
+# derived the single-snapshot second moment $(3/2)^N$ of the local-shadow estimator, $11.39$ at $N=6$. For the
+# entangled target used here we compute the exact value by enumerating all $3^N$ settings and $2^N$ outcomes: the
+# snapshot value is $\hat f(b,s)=\sum_x\lvert\langle x\vert U_b\vert\psi_0\rangle\rvert^2\prod_q\bigl(3\delta_{x_qs_q}-1\bigr)$
+# and it occurs with probability $3^{-N}\lvert\langle s\vert U_b\vert\psi\rangle\rvert^2$. A second moment near $11$
+# gives $5\cdot10^{4}$ snapshots an error bar near $0.015$ — acceptable here. Since the moment grows exponentially
+# with $N$, at $N=20$ the same budget would not suffice, which is why fidelity estimation from local randomised
+# measurements does not scale and global (Clifford) shadows exist.
 
 # %%
 # ==============================================================================
-# STEP 9: energy, correlators and fidelity of the converged state, with bootstrap errors
+# STEP 10: energy, correlators and fidelity of the converged state, with bootstrap errors
 # ==============================================================================
 M_FINAL = 50000
 psi_final = psi_vqe                                   # the variational state of Section 5
@@ -1253,52 +1524,89 @@ for name, ex, per_snap in rows_final:
     print(f"{name:>22s} {ex:+10.4f} {est:+12.4f} +- {sem:.4f} {boot:13.4f} {mom:+16.4f} "
           f"{(est - ex) / sem:+9.2f} sd")
 
-print(f"\nsingle-snapshot second moment of the fidelity estimator: {float(jnp.mean(vals_F ** 2)):.2f}; "
-      f"notebook 24 measured 11.52 for a PRODUCT target at N={N_SITES} and 8.63 for GHZ -- the base of the "
-      f"exponential growth is state-dependent, the growth itself is not")
-print(f"single-snapshot variance of the energy estimator: {float(jnp.var(vals_H)):.2f} "
-      f"(Eqs. (7) and (8) predict {var_shadow:.2f} for this state)")
+def fidelity_second_moment_exact(psi, psi_t):
+    """Exact E[f] and E[f^2] of the local-shadow fidelity estimator of <psi_t|rho|psi_t>, rho = |psi><psi|.
 
-fig, ax = plt.subplots(figsize=(7.6, 4.4))
-names = [r[0] for r in rows_final[1:]]
-ex_v = np.array([r[1] for r in rows_final[1:]])
-est_v = np.array([r[2].mean() for r in rows_final[1:]])
-err_v = np.array([float(bootstrap_std(jax.random.PRNGKey(79), jnp.asarray(r[2]), N_BOOT)[0])
-                  for r in rows_final[1:]])
+    MATH   f(b, s) = sum_x |<x|U_b|psi_t>|^2 prod_q (3 delta(x_q, s_q) - 1),   p(b, s) = 3^-N |<s|U_b|psi>|^2
+    IMPL   enumerate the 3^N basis choices; the kernel prod_q (3 delta - 1) is applied as the 2x2 matrix
+           [[2, -1], [-1, 2]] on every axis of the probability tensor of U_b psi_t.   COST O(3^N N 2^N).
+    """
+    N = psi.ndim
+    rots = [np.asarray(_BASIS_ROT[c]) for c in "XYZ"]
+    kern = np.array([[2.0, -1.0], [-1.0, 2.0]])
+
+    def on_axes(mats, t):
+        for q, m in enumerate(mats):
+            t = np.moveaxis(np.tensordot(m, t, axes=([1], [q])), 0, q)
+        return t
+
+    m1 = m2 = 0.0
+    for b in itertools.product(range(3), repeat=N):
+        U = [rots[c] for c in b]
+        p = np.abs(on_axes(U, np.asarray(psi))) ** 2
+        f = on_axes([kern] * N, np.abs(on_axes(U, np.asarray(psi_t))) ** 2)
+        m1 += np.sum(p * f) / 3 ** N
+        m2 += np.sum(p * f ** 2) / 3 ** N
+    return m1, m2
+
+
+f1_ex, f2_ex = fidelity_second_moment_exact(psi_final, psi_exact)
+m2_meas, m2_se = float(jnp.mean(vals_F ** 2)), float(jnp.std(vals_F ** 2)) / np.sqrt(M_FINAL)
+print(f"\nCHECKPOINT fidelity estimator: exact E[f] = {f1_ex:.6f} (= F, unbiased), "
+      f"second moment measured {m2_meas:.2f} +- {m2_se:.2f} vs exact {f2_ex:.2f} "
+      f"(z = {(m2_meas - f2_ex) / m2_se:+.2f}); product-state value (3/2)^N = {1.5 ** N_SITES:.2f}")
+assert abs(f1_ex - float(fidelity_pure(psi_exact, psi_final))) < 1e-10 and abs(m2_meas - f2_ex) < 4 * m2_se
+v_H, se_H = var_and_se(np.asarray(vals_H))
+print(f"CHECKPOINT single-snapshot variance of the energy estimator: {v_H:.2f} +- {se_H:.2f}, "
+      f"Eqs. (7) and (8) predict {var_shadow:.2f} (z = {(v_H - var_shadow) / se_H:+.2f})")
+assert abs(v_H - var_shadow) < 4 * se_H
+boot_ratio = [float(bootstrap_std(jax.random.PRNGKey(78), jnp.asarray(r[2]), N_BOOT)[0])
+              / (r[2].std() / np.sqrt(r[2].shape[0])) for r in rows_final]
+print(f"bootstrap sd / analytic sd over the eight rows: {min(boot_ratio):.3f} ... {max(boot_ratio):.3f} "
+      f"(Monte-Carlo resolution of {N_BOOT} resamples: +-{1 / np.sqrt(2 * (N_BOOT - 1)):.3f})")
+
+fig, ax = plt.subplots(figsize=(8.4, 4.4))
+names = [r[0] for r in rows_final]
+ex_v = np.array([r[1] for r in rows_final])
+est_v = np.array([r[2].mean() for r in rows_final])
+err_v = np.array([float(bootstrap_std(jax.random.PRNGKey(79), jnp.asarray(r[2]), N_BOOT)[0]) for r in rows_final])
 xs = np.arange(len(names))
-ax.errorbar(xs, est_v, yerr=err_v, fmt="o", ms=7, color=PALETTE[0], capsize=4,
-            label=r"shadow estimate $\pm$ bootstrap sd")
-ax.plot(xs, ex_v, "k_", ms=18, label="exact value")
+# the quantities live on very different scales, so plot the deviation from the exact value
+ax.errorbar(xs, est_v - ex_v, yerr=err_v, fmt="o", ms=7, color=PALETTE[0], capsize=4,
+            label=r"shadow estimate $-$ exact value, $\pm$ bootstrap sd")
+ax.axhline(0, color="k", lw=1)
 ax.set_xticks(xs)
-ax.set_xticklabels([KIND_TEX.get(nm, r"$F$ with the ground state") for nm in names], rotation=20)
-ax.set_ylabel("value")
+TICKS = {"energy <H>": r"$\langle H\rangle$", "fidelity with the GS": r"$F$"}
+ax.set_xticklabels([TICKS.get(nm, KIND_TEX.get(nm, nm)) for nm in names])
+ax.set_yscale("symlog", linthresh=0.02)
+ax.set_ylabel("deviation from the exact value")
 ax.set_title(f"Certifying the converged state with {M_FINAL} randomised measurements")
 ax.legend(fontsize=8)
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# **Everything agrees, and the error bars are honest.** All eight reported quantities sit within one standard error of
-# their exact values: the energy $-11.186\pm0.057$ against $-11.185$, the six averaged observables within $0.9$
-# standard errors, and the fidelity with the exact ground state $0.992\pm0.014$ against $0.9990$. The bootstrap
-# standard deviations agree with the analytic $\sigma/\sqrt M$ to the third digit for every entry, which is the
-# expected behaviour for sample means and the reason the bootstrap can be trusted for the quantities where no analytic
-# formula is at hand.
+# **Every estimate agrees with its exact value, and the error bars are correct.** All eight reported quantities lie
+# within $0.9$ standard errors of their exact values: the energy $-11.186\pm0.057$ against $-11.185$, the six averaged
+# observables, and the fidelity with the exact ground state $0.992\pm0.014$ against $0.9990$. The bootstrap standard
+# deviations agree with the analytic $\sigma/\sqrt M$ to within $8\%$, at most $1.6$ times the $\pm5\%$ Monte-Carlo
+# resolution of $200$ resamples, which is the expected behaviour for sample means.
 #
-# **Equation (8) again, on a different state and a different chain length.** The single-snapshot variance of the energy
-# estimator is $161.56$ measured against $161.38$ predicted — one part in a thousand. The derivation of Section 4.3,
-# covariances included, is exact.
+# **Equation (8) again.** On the six-qubit state the single-snapshot variance of the energy estimator is
+# $161.56\pm1.14$ against $161.38$ predicted ($+0.2$ standard errors), after the $96.63\pm0.63$ against $96.05$ of the
+# four-site ground state in Section 8 and the $160.28\pm0.78$ of Section 6 (a different data set for the same state).
 #
-# **The fidelity is the expensive one.** Its single-snapshot second moment is $10.95$, an order of magnitude above the
-# $3^1=3$ of a single-site magnetisation, which is why $5\cdot10^{4}$ snapshots give it an error bar of $0.014$ while
-# the same data determine $\langle X\rangle$ to $0.003$. Notebook 24 measured this quantity growing exponentially in
-# $N$ — $11.52$ for a product target and $8.63$ for GHZ at $N=6$ — so the base depends on the state but the growth does
-# not. Certifying a twenty-qubit state by local randomised measurements is not possible at this cost, and that is the
-# boundary at which global (Clifford) shadows or direct fidelity estimation take over.
+# **The fidelity is the expensive one.** The estimator is unbiased (its exact mean, from the enumeration, equals
+# $F=0.999044$), and its single-snapshot second moment is $10.95\pm0.62$ measured against $11.33$ exact, close to the
+# $(3/2)^6=11.39$ of a product target: the state is nearly a product state. That is almost four times the $3$ of a
+# single-site magnetisation, which is why $5\cdot10^{4}$ snapshots give the fidelity an error bar of $0.014$ while the
+# same data determine $\langle X\rangle$ to $0.003$. For a product target the second moment grows as $(3/2)^N$, so at
+# $N=20$ it would be $3.3\cdot10^{3}$ and the same budget would leave an error bar of about $0.26$; certifying
+# twenty-qubit states needs either far more snapshots or global (Clifford) shadows.
 #
 # **What the whole pipeline delivered.** A circuit was trained, and then a single data set of integers — $2\times
 # 5\cdot10^{4}\times6$ numbers, no amplitudes, no density matrix — was enough to report its energy, its magnetisation
 # profile, its bond correlators and its overlap with the target, each with an error bar, each agreeing with the exact
-# answer. That is what the method is for.
+# answer.
 
 # %% [markdown]
 # ## 12. Key takeaways
@@ -1308,67 +1616,75 @@ fig.tight_layout(); plt.show()
 #   measuring every qubit in $X$, then $Y$, then $Z$. The setting count is **independent of $N$** while the term count
 #   is not.
 # * **Three estimator variances, derived and then measured.** At a fixed budget $S$, Eqs. (5), (6) and (7)-(8) predict
-#   $S\,\mathrm{Var}=136.7$, $22.7$ and $161.4$ for term-by-term, grouped and shadow estimation of this chain's energy;
-#   the measured standard deviations over $50$ repetitions matched to within $5$, $15$ and $14\%$, i.e. within the
-#   uncertainty of a standard deviation estimated from $50$ samples.
-# * **For a fixed known Hamiltonian, grouping wins and it is not close**: $2.3\cdot10^{5}$ shots for a standard error
-#   of $10^{-2}$ against $1.4\cdot10^{6}$ and $1.6\cdot10^{6}$.
-# * **The covariance between terms measured in the same shot is a leading effect, not a correction.** Dropping it
-#   would predict a ratio $T/G=7$ between term-by-term and grouping; the true ratio is $6.03$, because the
-#   within-setting covariances inflate the grouped variance by $16\%$. For shadows the covariance formula
-#   $\mathrm{Cov}=3^{\lvert I\rvert}\langle P_tP_{t'}\rangle-\langle P_t\rangle\langle P_{t'}\rangle$, Eq. (8),
-#   reproduced the measured single-snapshot variance to $0.2\%$ on one state and $0.1\%$ on another.
+#   $S\,\mathrm{Var}=136.7$, $22.7$ and $161.4$ for term-by-term, grouped and shadow estimation of this chain's energy.
+#   The per-shot variances pooled over $10^{5}$ shots per protocol reproduce them within $1.4$ standard errors, and the
+#   covariance-free versions of the grouped and shadow formulas are rejected by $18$ and $67$ standard errors.
+# * **For a fixed known Hamiltonian, grouping wins by a wide margin**: $2.3\cdot10^{5}$ shots for a standard error of
+#   $10^{-2}$ against $1.4\cdot10^{6}$ (term by term) and $1.6\cdot10^{6}$ (shadows). With the optimal shot allocation
+#   of Eqs. (5a) and (6a) the advantage over term by term is $4.4$ instead of $6.0$.
+# * **Covariances between terms measured in the same shot can dominate a setting.** In the all-$X$ setting the eleven
+#   individual variances add up to $0.40$ and the covariances to $1.03$, because a flipped spin changes a field term
+#   and two bond terms together; overall they make grouping $16\%$ worse than counting suggests. For shadows the
+#   covariances of Eq. (8), $\mathrm{Cov}=3^{\lvert I\rvert}\langle P_tP_{t'}\rangle-\langle P_t\rangle\langle P_{t'}\rangle$,
+#   add half of the diagonal part, and the full formula matched the measured single-snapshot variance on two states.
 # * **The measurement cost depends on the state.** The all-$X$ setting carries eleven of the twenty-one terms and
-#   contributes $1.43$ of the grouped variance, while the all-$Y$ setting carries five terms and contributes $4.97$ —
-#   because the state is nearly polarised along $x$, which makes those measurements nearly deterministic.
-# * **Shadows are never cheaper per observable; they are adaptive.** Equation (10) gives the ratio
-#   $(3^k-\langle P\rangle^2)/(3(1-\langle P\rangle^2))$, measured as $1.05$ and $0.95$ for weight-1 observables with
-#   $\langle P\rangle\approx0$, $1.74$ to $1.78$ for weight-2 ones, and $4.3$ to $10.5$ for observables with
-#   $\lvert\langle P\rangle\rvert\approx0.98$. The compensation is that all $33$ strings of the observable panel came
+#   contributes $1.43$ of the grouped variance, while the all-$Y$ setting carries five terms and contributes $4.97$.
+# * **For a single Pauli string shadows are never cheaper than a setting that contains it; they are adaptive.**
+#   Equation (9) gives the variance ratio $(3^k-\langle P\rangle^2)/(3(1-\langle P\rangle^2))\ge1$. For the averaged
+#   panel observables, with covariances included, the standard-error ratio ranged from $0.92$ ($\langle Y\rangle$,
+#   positively correlated sites) to $8.0$ ($\langle XX\rangle$, nearly deterministic strings). All $33$ strings came
 #   from one data set collected before any of them was named.
-# * **Inside the loop, the snapshot budget per iteration sets the achievable error through the cost noise.** Median
-#   final energy errors of $1.01$, $0.34$ and $0.17$ at $M=64$, $256$ and $1024$ against cost noise of $1.23$, $0.61$
-#   and $0.31$: the final error settled at $0.55$ times the noise, so accuracy improves only as $M^{-1/2}$.
-# * **Separate the three contributions before blaming the circuit.** With $10^{6}$ snapshots the shadow-driven run
-#   reached $0.17$; the same optimiser with an exact cost reached $0.052$; the same circuit with an exact gradient
-#   reached $0.0065$. Measurement noise, optimiser and ansatz each contributed a distinct factor.
-# * **A cost estimated from few measurements is unbiased; the *minimum* of several such costs is not.** Equation (11)
-#   predicts a downward bias, and the selected restart at $M=256$ reported $-7.787$ against a true $-6.773$ — a value
-#   $0.66$ below the exact ground energy. Averaged without selection the same estimates were unbiased to within their
-#   standard errors. Select with the noisy data, report with fresh data.
+# * **Inside the loop, the snapshot budget per iteration sets the achievable error through the cost noise.** With the
+#   step size re-tuned for the noisy cost, the median final errors were $1.01\pm0.34$, $0.337\pm0.029$ and
+#   $0.172\pm0.012$ at $M=64$, $256$ and $1024$ snapshots per cost evaluation, against cost noise of $1.23$, $0.61$ and
+#   $0.31$: accuracy improves roughly as $M^{-1/2}$.
+# * **Separate the contributions before blaming the circuit.** With $10^{6}$ snapshots the shadow-driven run reached
+#   $0.17$; the same optimiser with an exact cost $0.052$; exact gradients at a constant Adam step $0.0065$; the same
+#   runs continued at a smaller step $7.8\cdot10^{-4}$, an upper bound on the ansatz error. A constant-step plateau belongs to
+#   the optimiser.
+# * **A cost estimated from few measurements is unbiased, and the *minimum* of several such costs is biased low.** Selecting the
+#   lowest of six noisy estimates reported energies $1.33$, $0.77$ and $0.38$ below the truth at $M=64$, $256$, $1024$,
+#   as the Gaussian model of Eq. (11) predicts (in the equal-cost limit $-e_R\sigma/\sqrt M$, $e_6=1.27$), and below the
+#   exact ground energy in most repetitions. Select with the noisy data, report with fresh data.
 # * **One data set of integers certifies the whole state.** $5\cdot10^{4}$ randomised measurements gave the energy,
-#   six averaged observables and the fidelity with the exact ground state, all within one standard error, with
-#   bootstrap error bars that reproduced the analytic ones. The fidelity was the expensive entry, with a
-#   single-snapshot second moment of $10.95$ against $3$ for a magnetisation — the exponential-in-$N$ cost that stops
-#   local shadows from certifying large states.
+#   six averaged observables and the fidelity with the exact ground state, all within $0.9$ standard errors, with
+#   bootstrap error bars that reproduced the analytic ones. The fidelity was the expensive entry, with an exact
+#   single-snapshot second moment of $11.33$ against $3$ for a magnetisation, growing like $(3/2)^N$ for near-product
+#   targets.
 #
 # ## 13. Exercises
 #
 # 1. ★ **The Ising count.** Repeat the derivation of Section 3.3 for the transverse-field Ising chain and for the
-#    Heisenberg chain with a longitudinal field $h_z\sum_qZ_q$. How many qubit-wise-commuting settings does each need,
-#    and which terms come for free?
-# 2. ★ **Accuracy for a price.** Using the measured variances of Section 6, compute how many shots each of the three
-#    strategies needs for a standard error of $10^{-3}$ on the energy of this chain, and how that changes if the chain
-#    is twice as long (the variances are extensive — check that numerically).
-# 3. ★★ **The covariance formula (extend the code).** Verify Eq. (8) directly: pick two overlapping bond terms, collect
-#    shadows, and compare the measured $\mathbb E[\hat o_t\hat o_{t'}]$ with $3^{\lvert I\rvert}\langle P_tP_{t'}\rangle$.
-#    Then repeat for two terms that disagree on a shared qubit and confirm that the product is identically zero.
-# 4. ★★ **Locally biased shadows (extend the code).** Replace the uniform basis distribution by a per-qubit
-#    distribution $\beta_q$ and re-derive the estimator: the factor $3$ in Eq. (4) becomes $1/\beta_q$. Optimise
-#    $\beta$ for the XXZ Hamiltonian (hint: the $X$ terms outnumber the others) and measure the variance gain.
+#    Heisenberg chain with a longitudinal field $h_z\sum_qZ_q$. Give the minimal number of qubit-wise-commuting
+#    settings for each and say which terms are read from the same setting as the bond terms.
+# 2. ★ **Accuracy for a price.** Using the variances of Section 6, compute how many shots each of the three strategies
+#    needs for a standard error of $10^{-3}$ on the energy of this chain. Then evaluate Eqs. (5)-(8) on the exact
+#    ground states at $N=6$ and $N=12$ (Lanczos) and check which of the three $S\,\mathrm{Var}$ grow like $N$ and which
+#    faster; explain the exception from the factor $T$ in Eq. (5).
+# 3. ★★ **The covariance formula (extend the code).** Verify Eq. (8) directly: for the overlapping bond terms
+#    $X_0X_1$ and $X_1X_2$, collect shadows of the state of Section 5 and compare the measured
+#    $\mathbb E[\hat o_t\hat o_{t'}]$ with $3^{\lvert I\rvert}\langle P_tP_{t'}\rangle=3\langle X_0X_2\rangle$. Then repeat
+#    for $Y_0Y_1$ and $X_1X_2$, which disagree on qubit $1$, and confirm that the product is identically zero.
+# 4. ★★ **Locally biased shadows (extend the code).** Replace the uniform basis distribution by a distribution
+#    $\beta=(\beta_X,\beta_Y,\beta_Z)$, the same on every qubit, and re-derive the estimator: the factor $3$ per qubit
+#    in Eq. (4) becomes $1/\beta_{\sigma_q}$, and in Eq. (8) $3^{\lvert I\rvert}$ becomes $\prod_{q\in I}1/\beta_{\sigma_q}$.
+#    Minimise the single-snapshot energy variance over $\beta$ for the state of Section 5 (hint: the $X$ terms
+#    outnumber the others) and compare with the uniform $161.4$.
 # 5. ★★ **Shots per iteration versus iterations (physics).** Section 8 fixed the iteration count and varied $M$. Fix
-#    the *total* snapshot budget instead and trade $M$ against the number of iterations. Where is the optimum, and does
-#    it move as the budget grows?
-# 6. ★★ **Median of means in the loop.** Replace the sample mean of the shadow cost by a median of means with $G=9$
-#    groups and repeat Section 8. Does the more robust estimator help the optimiser, or does the loss of effective
-#    sample size hurt more?
-# 7. ★★★ **Quantifying the winner's curse (physics).** For a fixed set of final parameters, draw many independent
-#    shadow estimates of the energy and measure $\mathbb E[\min_i\hat C_i]-\min_iC_i$ of Eq. (9) as a function of the
-#    number of candidates and of $M$. Compare with the Gaussian prediction $-\sigma\sqrt{2\ln R}$ for $R$ independent
-#    candidates.
+#    the *total* snapshot budget $2MT$ instead (for example $2.56\cdot10^{5}$ and $1.02\cdot10^{6}$), trade $M$ against
+#    the number of iterations $T$, and re-tune the step size for each pair. Where is the optimum, and does it move as
+#    the budget grows?
+# 6. ★★ **Median of means in the loop.** Replace the sample mean of the shadow cost by a median of means with $9$
+#    groups and repeat Section 8 at $M=256$ (with its own step-size scan). Compare first the standard deviation of a
+#    single cost estimate of the two estimators on the ground state, then the final errors.
+# 7. ★★★ **Quantifying the winner's curse (physics).** For one fixed state (equal true costs), draw many independent
+#    shadow estimates of the energy, group them into sets of $R$, and measure $\mathbb E[\min_i\hat C_i]-C$ for
+#    $R=2,6,20$ and $M=64,256$. Compare with Eq. (11), $-e_R\sigma/\sqrt M$, and with its large-$R$ form
+#    $-\sigma\sqrt{2\ln R}/\sqrt M$. Where does the asymptotic form fail?
 # 8. ★★★ **A shadow-based gradient (extend the code).** Instead of estimating the cost and applying SPSA, estimate the
 #    parameter-shift gradient from shadows: each of the $2n$ shifted circuits needs its own data set. Derive the total
-#    snapshot cost per iteration, implement it, and compare with SPSA at equal total budget.
+#    snapshot cost per iteration, implement it (check it against `jax.grad` on the exact cost first), and compare with
+#    SPSA at an equal total budget of $2.56\cdot10^{5}$ snapshots, each method at its own best step size and $M$.
 #
 # ## 14. References
 #

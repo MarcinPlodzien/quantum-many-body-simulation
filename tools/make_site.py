@@ -20,6 +20,7 @@ SRC = ROOT / "_src"
 sys.path.insert(0, str(ROOT / "tools"))
 
 COURSE = "Numerical simulations of many-body quantum systems with JAX"
+ENGINE_NB = "ch03_matrix_free_engine/08b_building_quantum_simulator_engine.ipynb"
 PROJECT = "SmoQ.jax"                                   # the engine developed in the course
 ENGINE_TAGLINE = "a matrix-free JAX engine for quantum many-body systems"
 SITE_TITLE = "Quantum Many-Body Simulation"            # the course (navbar, notebook headers)
@@ -144,7 +145,10 @@ def main():
          "    left:", '      - text: "Start here"', "        href: index.qmd", '      - text: "Chapters"', "        menu:"]
     for d, num, name, goal, page, items in chapters:
         y += [f"          - text: {q(f'{num} · {name}')}", f"            href: {page}"]
-    y += ['      - text: "The engine"', "        href: engine.qmd", "    right:", "      - icon: github",
+    y += ['      - text: "The engine"', "        menu:",
+          '          - text: "Building the engine (notebook 08b)"', f"            href: {ENGINE_NB}",
+          '          - text: "Engine source code"', "            href: engine.qmd",
+          "    right:", "      - icon: github",
           f"        href: {q(GITHUB)}", "        aria-label: GitHub",
           "      - icon: house", f"        href: {q(HOMEPAGE)}", "        aria-label: Homepage",
           "  sidebar:", "    logo: assets/qusml_logo.svg", "    style: floating", "    search: true", "    collapse-level: 1", "    contents:",
@@ -153,7 +157,7 @@ def main():
         y += [f"      - section: {q(f'{num} · {name}')}", f"        href: {page}", "        contents:"]
         for path, title, _ in items:
             y += [f"          - href: {path}", f"            text: {q(title)}"]
-    y += ['      - text: "The engine"', "        href: engine.qmd",
+    y += ['      - text: "Engine source code"', "        href: engine.qmd",
           "  page-footer:", "    border: true", f"    left: {q(f'© 2026 {AUTHOR} · {AFFIL}')}",
           "    right: >-", f"      {FOOTER_LINKS}", "",
           "format:", "  html:", "    theme:", "      light: [cosmo, assets/qusml.scss]", "      dark: [darkly, assets/qusml-dark.scss]", "    toc: true", "    toc-depth: 3",
@@ -174,7 +178,7 @@ def main():
           "machine learning.</p>", "",
           f'<p class="hero-author"><a href="{HOMEPAGE}"><b>{AUTHOR}</b></a> · {AFFIL}</p>', "",
           f"[Start with notebook 00a]({first_nb}){{.btn .btn-primary}} [Browse the chapters](#chapters){{.btn .btn-outline-primary}} "
-          "[The engine](engine.qmd){.btn .btn-outline-primary}", ":::", "",
+          f"[The engine]({ENGINE_NB}){{.btn .btn-outline-primary}}", ":::", "",
           "::: {.hero-image}", "![](assets/hero.png){fig-alt=\"Light cone after a local quench, domain-wall melting "
           "computed with MPS-TEBD, the magic of single-qubit states, and Husimi functions of one-axis-twisted cat states\"}",
           ":::", ":::", "",
@@ -238,7 +242,9 @@ def main():
             ix.append(f"- [{what[0].upper() + what[1:]}]({path}) (notebook {nn})")
     ix += ["",
            "## Start here", "",
-           "The engine fits in one file, [`quantum_engine.py`](engine.qmd), and every capability above is a few lines "
+           f"The engine fits in one file, [`quantum_engine.py`](engine.qmd); notebook 08b, [Building the quantum simulator "
+           f"engine]({ENGINE_NB}), explains every function in it with its mathematics and an independent check. Every "
+           "capability above is a few lines "
            "of code on top of it. The snippet below prepares and samples a GHZ state, finds the ground state of a "
            "Heisenberg chain of sixteen spins, lets a Néel state melt under the same Hamiltonian, drives a decaying qubit "
            "with the Lindblad equation, and differentiates the energy of a variational circuit with respect to all its "
@@ -287,8 +293,12 @@ def main():
     (ROOT / "engine.qmd").write_text(
         "---\ntitle: \"The SmoQ.jax engine\"\nsubtitle: \"quantum_engine.py: a matrix-free JAX engine for quantum many-body systems, fully documented\"\n"
         "code-fold: false\n---\n\n"
-        "This file collects every function derived in the notes. The *Engine recap* cell of each notebook is copied "
-        "from it, and `tests/test_core.py` validates it against dense linear algebra.\n\n"
+        "This page lists the complete source of the engine. To learn it, start with notebook 08b, "
+        f"[Building the quantum simulator engine]({ENGINE_NB}), where every function is derived with its "
+        "mathematics, its `einsum` string is read index by index, and an independent dense check confirms it. "
+        "The *Engine recap* cell of each notebook is copied from this file, and `tests/test_core.py` validates it "
+        "against dense linear algebra. The engine is also available as the Python package "
+        "[SmoQ.jax](https://github.com/MarcinPlodzien/SmoQ.jax).\n\n"
         "```python\n" + eng + "\n```\n")
     print(f"[make_site] wrote _quarto.yml, index.qmd, engine.qmd, {len(chapters)} chapter pages  ({n_nb} notebooks)")
 

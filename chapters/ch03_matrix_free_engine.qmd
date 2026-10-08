@@ -40,3 +40,9 @@ Mixed states from ensembles and from entanglement, the rank-2N density tensor, u
 Projective measurements of single spins in any Pauli basis, jit/vmap-compatible stochastic code with explicit PRNG keys, sampling bit strings, shot-noise statistics with error bars, reset and mid-circuit measurements.
 :::
 
+::: {.nb-item}
+[Building the quantum simulator engine — every ingredient of the simulator with its mathematics](../ch03_matrix_free_engine/08b_building_quantum_simulator_engine.ipynb)
+
+A guided tour of the course engine quantum_engine.py, one building block at a time: the equation each function implements, the einsum string that realises it, a minimal example, and an independent dense-linear-algebra check built so that it fails for the typical bug.
+:::
+

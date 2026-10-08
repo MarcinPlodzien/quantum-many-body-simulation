@@ -1,41 +1,39 @@
-#@title: Quantum Fisher information — how precisely can a quantum state measure a parameter?
+#@title: Quantum Fisher information — how fast a quantum state changes under a small parameter shift
 #@part: Chapter 10 — Quantum metrology protocols
 #@description: A from-scratch course on parameter estimation and its quantum limit: estimators, the classical Fisher information and the Cramér–Rao bound derived by Cauchy–Schwarz, the quantum Fisher information as the best measurement's Fisher information, the pure-state formula 4 Var(G), the standard quantum limit versus the Heisenberg limit with proofs, a zoo of many-body states, the 3x3 collective QFI matrix and its optimal direction, QFI as an entanglement witness, and QFI under noise and particle loss.
 
 # %% [markdown]
 # ## 1. Introduction and motivation
 #
-# The most accurate machines humanity has ever built are *measuring* machines. An optical atomic clock loses less than one
-# second in the age of the universe. A gravitational-wave interferometer registers a change of length smaller than one
-# thousandth of a proton radius. A magnetometer built from atoms senses fields a billion times weaker than the Earth's.
-# All three do the same thing:
+# Optical atomic clocks, gravitational-wave interferometers and atomic magnetometers are among the most precise
+# instruments in physics. All three do the same thing:
 #
 # 1. **prepare** a quantum state,
 # 2. let an unknown physical quantity $\theta$ (a frequency, a phase, a magnetic field) **imprint** itself on that state,
 # 3. **measure** the state and **estimate** $\theta$ from the clicks.
 #
-# The question this notebook answers is: *given the state you prepared, what is the best precision any measurement could
-# possibly reach?* The answer is a single number attached to the state and to the way $\theta$ enters — the
+# This notebook determines the best precision that any measurement on a given prepared state can reach. It is set by a
+# single number attached to the state and to the way $\theta$ enters — the
 # **quantum Fisher information** $F_Q$ — and it bounds the error of every conceivable experiment through the
 # **quantum Cramér–Rao bound**
 #
 # $$\Delta\theta \;\ge\; \frac{1}{\sqrt{M\,F_Q}},$$
 #
-# where $M$ is the number of repetitions. Everything else in Chapter 10 — Ramsey interferometry, GHZ interferometry,
+# where $M$ is the number of repetitions and $\Delta\theta$ the standard deviation of an unbiased estimator. Everything else in Chapter 10 — Ramsey interferometry, GHZ interferometry,
 # spin squeezing — is an attempt to make $F_Q$ as large as possible and then to actually reach the bound with a
 # realistic readout.
 #
-# There is a second reason physicists care about $F_Q$. For $N$ qubits prepared independently the bound saturates at
-# $F_Q = N$; any state that beats it *must* be entangled. The quantum Fisher information is therefore an **entanglement
-# witness with an operational meaning**: it does not merely certify that a state is entangled, it says how much that
-# entanglement is worth in a laboratory.
+# There is a second reason physicists care about $F_Q$. For $N$ qubits prepared independently $F_Q$ cannot exceed $N$;
+# any state that beats this value *must* be entangled. The quantum Fisher information is therefore an **entanglement
+# witness with an operational meaning**: besides certifying entanglement, it states how much that entanglement is worth
+# in a laboratory.
 #
 # **Road map.**
 #
 # * **Sections 3–5 — classical estimation theory.** What an estimator is, what bias and variance mean, the Fisher
 #   information of a probability distribution, and the Cramér–Rao bound *derived* from the Cauchy–Schwarz inequality.
-#   We check every statement with simulated coin flips and show numerically that the maximum-likelihood estimator
-#   reaches the bound as the sample grows.
+#   We check every statement with simulated coin flips and show, from sampled data with error bars and from an exact
+#   enumeration, that the maximum-likelihood estimator reaches the bound as the sample grows.
 # * **Sections 6–8 — the quantum step.** A measurement turns the state $\rho_\theta$ into a probability distribution
 #   $p(x\vert\theta)$, so every measurement has a classical Fisher information. The quantum Fisher information is the
 #   maximum over all measurements (Braunstein and Caves). For a pure state and unitary encoding we derive in full that
@@ -55,8 +53,9 @@
 # * what "precision" means mathematically, and why an unbiased estimator cannot do better than the Fisher information allows;
 # * why a product state of $N$ qubits gives $F_Q\le N$ (the standard quantum limit) and why no state gives more than $N^2$
 #   (the Heisenberg limit), with both proofs;
-# * which many-body states are metrologically useful, which are not, and why a highly entangled state can be *useless*
-#   (Haar-random states and cluster states are the instructive counter-examples);
+# * which many-body states are metrologically useful, which are not, and why a highly entangled state can offer no
+#   gain over a product state (Haar-random states, and cluster states up to a boundary term, are the instructive
+#   counter-examples);
 # * how noise and the loss of a single particle destroy the quantum advantage of a GHZ state.
 #
 # *Numerical methods*
@@ -154,8 +153,8 @@ def timed(f, *args, budget=0.3, min_reps=5, max_reps=500):
 #
 # $$\hat\theta \;=\; T(x_1,\dots,x_M)$$
 #
-# which we call an **estimator**. An estimator is just a formula applied to data; it is *not* the true value, and being a
-# function of random data it is itself a random variable. Two numbers describe how good it is:
+# which we call an **estimator**. An estimator is a formula applied to data. Being a function of random data, it is itself
+# a random variable, distinct from the true value $\theta$. Two numbers describe how good it is:
 #
 # $$\mathrm{bias}(\hat\theta)=\mathbb{E}_\theta[\hat\theta]-\theta,\qquad
 #   \mathrm{Var}(\hat\theta)=\mathbb{E}_\theta\!\left[(\hat\theta-\mathbb{E}_\theta[\hat\theta])^2\right],$$
@@ -168,13 +167,13 @@ def timed(f, *args, budget=0.3, min_reps=5, max_reps=500):
 # *Proof of Eq. (1).* Write $\hat\theta-\theta=(\hat\theta-\mathbb{E}[\hat\theta])+(\mathbb{E}[\hat\theta]-\theta)$, square, and
 # take the expectation; the cross term is $2\,\mathbb{E}[\hat\theta-\mathbb{E}[\hat\theta]]\cdot\mathrm{bias}=0$. $\square$
 #
-# An estimator is **unbiased** if its bias vanishes for *every* $\theta$. Unbiasedness is a convenience, not a virtue:
-# Eq. (1) shows that a slightly biased estimator with a much smaller variance can be the better one. But the bound we are
+# An estimator is **unbiased** if its bias vanishes for *every* $\theta$. Unbiasedness is a convenient property rather
+# than a requirement: Eq. (1) shows that a slightly biased estimator with a much smaller variance can be the better one. But the bound we are
 # heading for — the Cramér–Rao bound — is a statement about unbiased estimators, so we keep track of the distinction.
 #
 # ### 3.2 The running example: a biased coin
 #
-# The simplest model in existence: a coin lands heads ($x=1$) with unknown probability $\theta$ and tails ($x=0$) with
+# The simplest statistical model is a coin that lands heads ($x=1$) with unknown probability $\theta$ and tails ($x=0$) with
 # probability $1-\theta$, so $p(x\vert\theta)=\theta^x(1-\theta)^{1-x}$. Flip it $M$ times, count the heads $k$, and use
 #
 # $$\hat\theta_{\text{mean}}=\frac{k}{M},\qquad\text{or}\qquad
@@ -218,9 +217,12 @@ for M in M_LIST:
     assert abs(float(jnp.mean(mean_est)) - THETA_COIN) < 5 * np.sqrt(var_theory / N_REPEAT)
 
 # %% [markdown]
-# The measured variance of the sample mean matches $\theta(1-\theta)/M$ to three digits, and its bias is zero within the
-# Monte-Carlo error. Laplace's estimator is visibly biased — at $M=10$ by about $+0.036$, shrinking like $1/M$ — yet its
-# variance is *smaller* than that of the sample mean at every $M$. That is the bias–variance trade-off of Eq. (1) in one line
+# The measured variance of the sample mean matches $\theta(1-\theta)/M$ to about $1\%$ (the printed values are $1.3\%$,
+# $1.1\%$ and $0.1\%$ off), which is the statistical precision of a variance estimated from $20\,000$ experiments,
+# $\sqrt{2/20\,000}=1\%$; its bias is zero within the Monte-Carlo error, as the assert requires. Laplace's estimator is
+# visibly biased: its exact bias is $\mathbb{E}[(k+1)/(M+2)]-\theta=(1-2\theta)/(M+2)$, i.e. $+0.033$ at $M=10$ (the
+# printed $+0.036$ also contains the sampling fluctuation of $k$ that shows up as $+0.003$ in the first column), and it
+# shrinks like $1/M$. Its variance, exactly $M\theta(1-\theta)/(M+2)^2$, is *smaller* than that of the sample mean at every $M$. That is the bias–variance trade-off of Eq. (1) in one line
 # of output, and the reason the coming bound has to say "unbiased" out loud.
 
 # %% [markdown]
@@ -365,7 +367,7 @@ for th in (0.1, 0.3, 0.5, 0.7, 0.9):
 #
 # $$T(x)-\theta \;=\; \frac{1}{I(\theta)}\,s(x,\theta)\qquad\text{for all }x . \tag{8}$$
 #
-# A model admitting such an estimator is called *efficient*. Applying Eq. (7) to the $M$-sample model, whose Fisher
+# Such an estimator is called *efficient*. Applying Eq. (7) to the $M$-sample model, whose Fisher
 # information is $M I(\theta)$ by Eq. (5), gives the form every experimentalist quotes:
 #
 # $$\Delta\theta\;=\;\sqrt{\mathrm{Var}(\hat\theta)}\;\ge\;\frac{1}{\sqrt{M\,I(\theta)}} , \tag{9}$$
@@ -412,19 +414,32 @@ for th in (0.1, 0.3, 0.5, 0.7, 0.9):
 #
 # $$\hat\theta_{\text{ML}}=\arccos\!\left(\frac{2k}{M}-1\right) .$$
 #
-# Because $\arccos$ is nonlinear, $\hat\theta_{\text{ML}}$ is *biased* at finite $M$ and does not satisfy Eq. (8) exactly.
+# Because $\arccos$ is nonlinear, $\hat\theta_{\text{ML}}$ is in general *biased* at finite $M$ and does not satisfy
+# Eq. (8) exactly. The size of the bias follows from a second-order Taylor expansion (the "delta method") of
+# $g(\hat p)=\arccos(2\hat p-1)$ around $p=p_+$, with $\hat p=k/M$, $\mathbb{E}[\hat p-p]=0$ and $\mathrm{Var}(\hat p)=p(1-p)/M$:
+#
+# $$\mathbb{E}[\hat\theta_{\text{ML}}]-\theta\;\approx\;\tfrac12 g''(p)\,\frac{p(1-p)}{M}
+#   =\frac{1-2p}{4M\sqrt{p(1-p)}}=-\frac{\cot\theta}{2M}, \tag{11a}$$
+#
+# using $g'(p)=-1/\sqrt{p(1-p)}$, $g''(p)=(1-2p)/\left(2[p(1-p)]^{3/2}\right)$, $p(1-p)=\sin^2\theta/4$ and $1-2p=-\cos\theta$.
+# The bias vanishes at $\theta=\pi/2$, and there it vanishes *exactly* for every $M$: at $p_+=\tfrac12$ the distribution
+# of $k$ is symmetric under $k\to M-k$, which maps $\hat\theta_{\text{ML}}\to\pi-\hat\theta_{\text{ML}}$, so
+# $\mathbb{E}[\hat\theta_{\text{ML}}]=\pi/2$. To see a bias at all we must work away from the symmetric point, so the
+# simulation uses two working points, $\theta=\pi/2$ and $\theta=\pi/3$.
+#
 # The general theorem — quoted, not proved here — says that under regularity conditions the maximum-likelihood estimator is
 # **consistent and asymptotically efficient**: its bias falls like $1/M$ and $M\,\mathrm{Var}(\hat\theta_{\text{ML}})\to1/I(\theta)$.
-# The simulation below measures both.
+# The simulation below measures both, with Monte-Carlo error bars, and compares them with the *exact* finite-$M$ moments,
+# which here are a finite sum over the binomial distribution of $k$.
 
 # %%
 # ==============================================================================
 # STEP 3: maximum likelihood saturates the Cramer-Rao bound as M grows
 # ==============================================================================
 # PARAMETERS ------------------------------------------------------------------
-THETA_TRUE = np.pi / 2          # working point: p(+) = 1/2, the steepest part of the fringe
+THETA_LIST = (np.pi / 2, np.pi / 3)   # symmetric working point (bias exactly 0) and an asymmetric one
 M_GRID     = (4, 10, 30, 100, 300, 1000, 3000)
-N_EXP      = 40_000             # independent experiments per M
+N_EXP      = 40_000                   # independent experiments per (theta, M)
 # -----------------------------------------------------------------------------
 
 
@@ -433,47 +448,99 @@ def ramsey_probs(theta):
     return jnp.stack([(1 + jnp.cos(theta)) / 2, (1 - jnp.cos(theta)) / 2])
 
 
-I_ramsey = float(fisher_information_ad(ramsey_probs, THETA_TRUE))
-print(f"Fisher information of the model, Eq. (11), at theta = pi/2 : I = {I_ramsey:.10f}  (analytic: 1)")
-assert abs(I_ramsey - 1.0) < 1e3 * TOL
+def ml_exact_moments(theta, M):
+    """EXACT bias and variance of theta_ML = arccos(2k/M - 1) at finite M.
 
-rows = []
-p_plus = float(ramsey_probs(THETA_TRUE)[0])
-print(f"\n{'M':>6s} | {'bias':>10s} {'M x Var':>10s} {'1/I = 1':>9s} {'ratio':>7s}")
-for M in M_GRID:
-    key = jax.random.PRNGKey(1)
-    k = jnp.sum(jax.random.bernoulli(key, p_plus, (N_EXP, M)), axis=1)     # number of '+' outcomes
-    est = jnp.arccos(jnp.clip(2 * k / M - 1, -1.0, 1.0))                    # maximum-likelihood estimate
-    bias = float(jnp.mean(est)) - THETA_TRUE
-    mvar = float(jnp.var(est)) * M
-    rows.append((M, bias, mvar))
-    print(f"{M:6d} | {bias:+10.5f} {mvar:10.4f} {1 / I_ramsey:9.4f} {mvar * I_ramsey:7.3f}")
-assert abs(rows[-1][2] * I_ramsey - 1.0) < 0.05
+    MATH   E[f(k)] = sum_{k=0}^{M} C(M,k) p^k (1-p)^(M-k) f(k),   p = (1 + cos theta)/2,
+           with log C(M,k) from the log-Gamma function so that M = 3000 does not overflow.
+    """
+    p = (1 + np.cos(theta)) / 2
+    k = np.arange(M + 1)
+    logw = (math.lgamma(M + 1) - np.array([math.lgamma(j + 1) + math.lgamma(M - j + 1) for j in k])
+            + k * np.log(p) + (M - k) * np.log1p(-p))
+    w = np.exp(logw)
+    est = np.arccos(np.clip(2 * k / M - 1, -1.0, 1.0))
+    mean = w @ est
+    return mean - theta, w @ (est - mean) ** 2
+
+
+ml_rows = {}
+print(f"{'theta':>6s} {'M':>5s} | {'bias (MC)':>20s} {'bias (exact)':>13s} | {'M Var (MC)':>17s} {'M Var (exact)':>14s}")
+for j, theta in enumerate(THETA_LIST):
+    I_th = float(fisher_information_ad(ramsey_probs, theta))
+    assert abs(I_th - 1.0) < 1e3 * TOL                                      # Eq. (11): I = 1 at both working points
+    p_plus = float(ramsey_probs(theta)[0])
+    rows = []
+    for i, M in enumerate(M_GRID):
+        key = jax.random.fold_in(jax.random.PRNGKey(1), 100 * j + i)       # a fresh key for every (theta, M)
+        k = jnp.sum(jax.random.bernoulli(key, p_plus, (N_EXP, M)), axis=1)  # number of '+' outcomes
+        est = np.asarray(jnp.arccos(jnp.clip(2 * k / M - 1, -1.0, 1.0)))     # maximum-likelihood estimate
+        bias, var = est.mean() - theta, est.var()
+        se_bias = est.std() / np.sqrt(N_EXP)                                 # standard error of the mean
+        se_var = np.sqrt(np.mean((est - est.mean()) ** 4) - var ** 2) / np.sqrt(N_EXP)   # ... of the variance
+        b_ex, v_ex = ml_exact_moments(theta, M)
+        rows.append((M, bias, se_bias, M * var, M * se_var, b_ex, M * v_ex))
+        print(f"{theta:6.4f} {M:5d} | {bias:+10.5f} +- {se_bias:7.5f} {b_ex:+13.5f} | "
+              f"{M * var:7.4f} +- {M * se_var:6.4f} {M * v_ex:14.5f}")
+        # CHECKPOINT: the sampled moments agree with the exact ones within 4 standard errors
+        assert abs(bias - b_ex) < 4 * se_bias and abs(var - v_ex) < 4 * se_var
+    ml_rows[theta] = rows
+    print()
+
+# CHECKPOINT: the exact moments obey the asymptotic theory
+for theta, rows in ml_rows.items():
+    assert abs(rows[-1][6] - 1.0) < 1e-3                                    # M Var -> 1/I = 1 (efficiency)
+for M, _, _, _, _, b_ex, _ in ml_rows[np.pi / 3]:
+    if M >= 300:                                                           # bias -> -cot(theta)/(2M), Eq. (11a)
+        assert abs(M * b_ex / (-0.5 / np.tan(np.pi / 3)) - 1.0) < 0.01
+assert all(abs(r[5]) < 1e-10 for r in ml_rows[np.pi / 2])                  # exactly unbiased at pi/2 (round-off only)
+# WRONG CONTROL: "the ML estimator is unbiased" must be rejected by the sampled data at theta = pi/3, M = 10
+_, b10, se10, *_ = ml_rows[np.pi / 3][1]
+print(f"wrong control: at theta = pi/3, M = 10 the hypothesis 'bias = 0' is off by {abs(b10) / se10:.0f} standard errors")
+assert abs(b10) > 8 * se10
 
 # %%
 # ==============================================================================
 # FIGURE: convergence of the maximum-likelihood estimator to the Cramer-Rao bound
 # ==============================================================================
 fig, axes = plt.subplots(1, 2, figsize=(11.0, 4.0))
-Ms = np.array([r[0] for r in rows], dtype=float)
-axes[0].loglog(Ms, np.abs([r[1] for r in rows]), "o-", color=PALETTE[0], label=r"$\vert\mathrm{bias}\vert$ (measured)")
-axes[0].loglog(Ms, 0.02 / Ms, "k--", lw=1, label=r"reference slope $\propto 1/M$")
-axes[0].set_xlabel("number of repetitions $M$"); axes[0].set_ylabel(r"$\vert\mathbb{E}[\hat\theta]-\theta\vert$")
-axes[0].set_title("Bias of the maximum-likelihood estimator"); axes[0].legend(fontsize=9)
-
-axes[1].semilogx(Ms, [r[2] for r in rows], "s-", color=PALETTE[1], label=r"$M\,\mathrm{Var}(\hat\theta_{\rm ML})$")
-axes[1].axhline(1 / I_ramsey, color="k", ls="--", lw=1, label=r"Cramér–Rao bound $1/I(\theta)$")
-axes[1].set_xlabel("number of repetitions $M$"); axes[1].set_ylabel(r"$M\,\mathrm{Var}(\hat\theta)$")
+Ms = np.array(M_GRID, dtype=float)
+Mfine = np.unique(np.round(np.logspace(np.log10(4), np.log10(3000), 60)).astype(int))
+for j, (theta, lab) in enumerate(zip(THETA_LIST, (r"\pi/2", r"\pi/3"))):
+    r = np.array(ml_rows[theta])
+    exact_fine = np.array([ml_exact_moments(theta, int(M)) for M in Mfine])
+    axes[0].errorbar(Ms, Ms * r[:, 1], yerr=Ms * r[:, 2], fmt=MARKERS[j], color=PALETTE[j], ms=5, capsize=2,
+                     label=rf"sampled, $\theta={lab}$")
+    axes[0].plot(Mfine, Mfine * exact_fine[:, 0], "-", color=PALETTE[j], lw=1, label=rf"exact, $\theta={lab}$")
+    axes[1].errorbar(Ms, r[:, 3], yerr=r[:, 4], fmt=MARKERS[j], color=PALETTE[j], ms=5, capsize=2,
+                     label=rf"sampled, $\theta={lab}$")
+    axes[1].plot(Mfine, Mfine * exact_fine[:, 1], "-", color=PALETTE[j], lw=1, label=rf"exact, $\theta={lab}$")
+axes[0].axhline(-0.5 / np.tan(np.pi / 3), color="k", ls="--", lw=1, label=r"$-\cot\theta/2$ at $\theta=\pi/3$, Eq. (11a)")
+axes[0].set_xscale("log")
+axes[0].set_xlabel("number of repetitions $M$"); axes[0].set_ylabel(r"$M\,(\mathbb{E}[\hat\theta]-\theta)$")
+axes[0].set_title("Bias of the maximum-likelihood estimator, times $M$"); axes[0].legend(fontsize=8)
+axes[1].axhline(1.0, color="k", ls="--", lw=1, label=r"Cramér–Rao bound $1/I(\theta)=1$")
+axes[1].set_xscale("log")
+axes[1].set_xlabel("number of repetitions $M$"); axes[1].set_ylabel(r"$M\,\mathrm{Var}(\hat\theta_{\rm ML})$")
 axes[1].set_ylim(0.8, 2.0)
-axes[1].set_title("Asymptotic efficiency"); axes[1].legend(fontsize=9)
+axes[1].set_title("Asymptotic efficiency"); axes[1].legend(fontsize=8)
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# Both panels behave as the theory demands. The bias falls on the reference line $\propto 1/M$ until it disappears into the
-# Monte-Carlo noise floor of $40\,000$ experiments. The scaled variance $M\,\mathrm{Var}$ starts well *above* the bound at
-# $M=4$ — a handful of flips is simply not enough to invert a cosine reliably — and settles onto $1/I(\theta)=1$ from about
-# $M\approx30$ onwards, staying within a percent of it thereafter. The Cramér–Rao bound is not merely a bound: for a
-# well-behaved model it is the *achievable* precision, given enough data.
+# Every sampled point agrees with the exact finite-$M$ value within four standard errors (asserted), so the Monte-Carlo
+# data and the binomial sum are two independent views of the same estimator. The left panel plots the bias multiplied by
+# $M$, so that a $1/M$ law appears as a plateau. At $\theta=\pi/3$ the exact curve settles on the delta-method value
+# $-\cot\theta/2=-0.289$ of Eq. (11a) (within $1\%$ from $M=300$ on, asserted), so the bias falls like $1/M$; the sampled
+# points follow it with error bars that grow with $M$, because the bias shrinks faster than the Monte-Carlo noise of
+# $40\,000$ experiments. At $\theta=\pi/2$ the exact bias is zero at every $M$, and the sampled values scatter around zero
+# within their error bars. The wrong control makes the same point quantitatively: at $\theta=\pi/3$, $M=10$ the sampled
+# bias excludes "unbiased" by the number of standard errors printed above.
+#
+# The right panel shows the efficiency. The scaled variance $M\,\mathrm{Var}$ starts well *above* the bound at $M=4$
+# (exactly $1.78$ at $\theta=\pi/2$ and $1.79$ at $\theta=\pi/3$) — a handful of outcomes is not enough to invert a cosine reliably — and
+# approaches $1/I(\theta)=1$ from above: at $\theta=\pi/2$ the exact excess is $3.6\%$ at $M=30$, $1.0\%$ at $M=100$ and
+# $0.03\%$ at $M=3000$; at $\theta=\pi/3$ the approach is slower at small $M$ ($40\%$ excess at $M=10$). For a regular
+# model the Cramér–Rao bound is therefore the *achievable* precision once enough data have been collected.
 #
 # > **Common pitfall.** "My estimator beat the Cramér–Rao bound" almost always means "my estimator is biased". At $M=4$
 # > above one can indeed construct estimators with a smaller variance than $1/(MI)$ — they shrink towards a fixed guess and
@@ -525,7 +592,12 @@ fig.tight_layout(); plt.show()
 #
 # $$\Delta\theta\;\ge\;\frac{1}{\sqrt{M\,I(\theta;\{E_x\})}}\;\ge\;\frac{1}{\sqrt{M\,F_Q}} , \tag{13}$$
 #
-# the **quantum Cramér–Rao bound**.
+# the **quantum Cramér–Rao bound**. It inherits the conditions of Eq. (9): $\hat\theta$ is (locally) unbiased as a
+# function of all $M$ outcomes, and the model is regular at $\theta$. Measuring the $M$ copies *jointly* with an
+# entangled POVM does not beat it either, because the quantum Fisher information is additive over independent copies,
+# $F_Q[\rho_\theta^{\otimes M}]=M\,F_Q[\rho_\theta]$, so Eq. (12) applied to the $M$-copy state gives the same right-hand
+# side. Equality in Eq. (13) is reached asymptotically, for large $M$, by measuring each copy in the optimal basis and
+# processing the outcomes with the maximum-likelihood estimator of Section 5.3.
 #
 # We take this theorem on trust *here* and pay the debt in the next notebook,
 # [30 — QFI from the SLD](../ch10_quantum_metrology_protocols/30_qfi_from_the_sld_prepare_encode_estimate.ipynb), which
@@ -541,7 +613,7 @@ fig.tight_layout(); plt.show()
 #
 # $$\boxed{\;F_Q\;=\;4\left(\langle\psi\vert G^2\vert\psi\rangle-\langle\psi\vert G\vert\psi\rangle^2\right)\;=\;4\,\mathrm{Var}_\psi(G)\;} \tag{14}$$
 #
-# in two independent ways.
+# in two ways: from the SLD theorem, and from the fidelity relation quoted in Eq. (15).
 #
 # ### 7.1 Route 1: straight from the SLD
 #
@@ -576,8 +648,9 @@ fig.tight_layout(); plt.show()
 #
 # ### 7.2 Route 2: the overlap (fidelity) expansion
 #
-# The quantum Fisher information is also the curvature of the **fidelity** between neighbouring states — the standard
-# relation, derived in notebook 30,
+# The quantum Fisher information is also the curvature of the **fidelity** between neighbouring states. This standard
+# relation, which identifies $F_Q/4$ with the Bures metric (Braunstein and Caves 1994), is quoted here; notebook 30
+# verifies it numerically for mixed states,
 #
 # $$F_Q=\lim_{d\theta\to0}\frac{8\left(1-\sqrt{F(\rho_\theta,\rho_{\theta+d\theta})}\right)}{d\theta^2},\qquad
 #   F(\vert\psi\rangle,\vert\phi\rangle)=\left\vert\langle\psi\vert\phi\rangle\right\vert^2 . \tag{15}$$
@@ -612,13 +685,14 @@ fig.tight_layout(); plt.show()
 #
 # One qubit, $\vert\psi\rangle=\vert+\rangle=(\vert0\rangle+\vert1\rangle)/\sqrt2$, generator $G=J_z=Z/2$. Then
 # $\langle J_z\rangle=0$ and $J_z^2=\mathbb 1/4$, so $\mathrm{Var}(J_z)=1/4$ and Eq. (14) gives $F_Q=1$.
-# Is that reachable? Encode and measure along $x$:
+# A measurement along $x$ reaches this value. Encode and measure:
 #
 # $$\vert\psi_\theta\rangle=\frac{e^{-i\theta/2}\vert0\rangle+e^{+i\theta/2}\vert1\rangle}{\sqrt2},\qquad
 # p(\pm\vert\theta)=\left\vert\langle\pm\vert\psi_\theta\rangle\right\vert^2=\frac{1\pm\cos\theta}{2},$$
 #
-# which is precisely the model of Eq. (10) whose Fisher information we computed to be $I=1$ for every $\theta$.
-# So the simplest interferometer in physics saturates the quantum Cramér–Rao bound at every working point. That is the
+# which is precisely the model of Eq. (10), whose Fisher information we computed to be $I=1$ for every $\theta$ except the
+# two irregular points $\theta=0,\pi$. So the single-qubit interferometer saturates the quantum Cramér–Rao bound at every
+# regular working point. That is the
 # Ramsey protocol, and it is the subject of
 # [31 — Ramsey interferometry](../ch10_quantum_metrology_protocols/31_ramsey_interferometry.ipynb).
 
@@ -627,14 +701,14 @@ fig.tight_layout(); plt.show()
 #
 # Equation (14) asks for two numbers, $\langle G^2\rangle$ and $\langle G\rangle$, for a collective generator
 # $G=\mathbf n\cdot\mathbf J$ with $J_a=\tfrac12\sum_q\sigma^a_q$. The textbook route would build a $2^N\times2^N$ matrix
-# (cost $O(4^N)$ in memory alone — impossible past $N\approx13$). The matrix-free route needs only the *action* of $G$:
+# (memory $16\cdot4^N$ bytes in complex double precision: $4.3$ GB at $N=14$, $69$ GB at $N=16$). The matrix-free route needs only the *action* of $G$:
 #
 # * apply $\sigma^a$ to each axis in turn and add up, $\;\vert\phi\rangle=G\vert\psi\rangle=\tfrac12\sum_q\sigma^a_q\vert\psi\rangle$ — that is
 #   `apply_collective`, $N$ einsums, cost $O(N2^N)$;
 # * then $\langle G\rangle=\langle\psi\vert\phi\rangle$ and $\langle G^2\rangle=\langle\phi\vert\phi\rangle$, because $G$ is Hermitian:
 #   $\langle\psi\vert G^2\vert\psi\rangle=\langle G\psi\vert G\psi\rangle$.
 #
-# Two inner products and no operator. This is the engine's `qfi_pure`, whose convention we must read carefully: it applies
+# Only two inner products are needed and no operator is stored. This is the engine's `qfi_pure`, whose convention we must read carefully: it applies
 # $P_q$ *without* the factor $\tfrac12$, i.e. it returns
 #
 # $$\texttt{qfi\_pure}(\psi,P)=\langle \tilde G^2\rangle-\langle \tilde G\rangle^2\quad\text{with }\tilde G=\sum_q P_q=2J_a,$$
@@ -690,15 +764,15 @@ for name, psi in (("GHZ(5)", ghz_state(5)), ("W(5)", w_state(5)), ("Haar(5)", ha
 
 # %% [markdown]
 # Three independent routes — the matrix-free variance, the dense variance, and the general mixed-state
-# (symmetric-logarithmic-derivative) formula applied to a pure density matrix — agree to about $10^{-13}$ for every state and
-# direction. From here on we trust `qfi_pure_direction` and use it freely. One honest reservation: all three routes obtain
-# the generator from the same primitive `apply_collective`, so this test proves that the three *formulas* agree, not that
-# the collective operator itself is built correctly. That gap is closed in Section 14, where the same quantity is
+# (symmetric-logarithmic-derivative) formula applied to a pure density matrix — agree to $10^{-14}$ or better for every state and
+# direction. From here on we trust `qfi_pure_direction` and use it freely, with one reservation: all three routes obtain
+# the generator from the same primitive `apply_collective`, so this test proves that the three *formulas* agree; it does
+# not test whether the collective operator itself is built correctly. That gap is closed in Section 14, where the same quantity is
 # recomputed from a state encoded gate by gate with `apply_gate` and differentiated by automatic differentiation.
 #
 # > **JAX practice.** `apply_collective` loops over qubits in *Python*, but the loop index is a static integer that only
 # > builds einsum strings: after `jax.jit` the whole sum is a single fused XLA program with no Python left in it. Static
-# > structure, traced data — the rule that makes this simulator fast.
+# > structure and traced data are what make this simulator fast.
 
 # %% [markdown]
 # ## 9. The two limits: standard quantum limit and Heisenberg limit
@@ -753,7 +827,20 @@ for name, psi in (("GHZ(5)", ghz_state(5)), ("W(5)", w_state(5)), ("Haar(5)", ha
 #   J_z\vert0\cdots0\rangle=+\frac N2\vert0\cdots0\rangle,\quad J_z\vert1\cdots1\rangle=-\frac N2\vert1\cdots1\rangle,$$
 #
 # so $\langle J_z\rangle=0$, $\langle J_z^2\rangle=N^2/4$, $F_Q=N^2$. The precision limit becomes $\Delta\theta=1/(N\sqrt M)$,
-# the **Heisenberg limit** — a factor $\sqrt N$ better than any unentangled state can do. Let us measure both.
+# the **Heisenberg limit** — a factor $\sqrt N$ better than any unentangled state can do.
+#
+# **What is counted.** Both limits compare strategies at a fixed number of uses of the phase-imprinting interaction. In
+# the parallel scheme used throughout this notebook each of the $N$ qubits acquires the phase exactly once per run
+# (the generator $J_{\mathbf n}$ has one term $\tfrac12\mathbf n\cdot\vec\sigma_q$ per qubit), and the run is repeated $M$
+# times, so the resource is $\nu=MN$ single-qubit phase imprints. The SQL is then $\Delta\theta=1/\sqrt{\nu}$ and the
+# Heisenberg limit $\Delta\theta=\sqrt M/\nu$. Neither the interrogation time, nor ancilla qubits that do not see the
+# phase, nor the cost of preparing the state enters the count; ancillas leave the spectral width of the generator, and
+# therefore the bound $F_Q\le N^2$, unchanged. Giovannetti, Lloyd and Maccone (2006) count resources in exactly this way,
+# as the number of times the system is sampled, and also discuss a sequential protocol in which a single probe passes
+# through the phase shift $N$ times; it reaches the same $1/N$ scaling with the same number of uses and no entanglement
+# between probes.
+#
+# Let us measure both limits.
 
 # %%
 # ==============================================================================
@@ -798,14 +885,14 @@ fig.tight_layout(); plt.show()
 # with $N=14$ qubits the GHZ state promises a phase uncertainty $3.7$ times smaller than the best product state, and the
 # advantage grows as $\sqrt N$.
 #
-# > **Physics insight.** The Heisenberg limit is not a licence to print precision. $F_Q=N^2$ is the *ideal* value; Sections 13
+# > **Physics insight.** $F_Q=N^2$ is the *ideal* value of the Heisenberg limit; Sections 13
 # > and 14 show how quickly it collapses under noise and particle loss, and notebook 32 shows that even the ideal GHZ phase
 # > estimate suffers from an $N$-fold ambiguity, because its signal oscillates $N$ times faster.
 
 # %% [markdown]
 # ## 10. A zoo of many-body states
 #
-# Which states are metrologically useful? We evaluate $F_Q$ for the standard family of $N$-qubit states, each with the
+# This section sorts the standard many-body states by metrological usefulness. We evaluate $F_Q$ for the standard family of $N$-qubit states, each with the
 # generator that suits it, and compare against $N$ and $N^2$. Beyond the two extremes we already know, four entries deserve a
 # prediction before we look:
 #
@@ -820,9 +907,9 @@ fig.tight_layout(); plt.show()
 #
 #   $$F_Q=4\cdot\tfrac12\cdot\tfrac N2\left(\tfrac N2+1\right)=\frac{N(N+2)}{2},$$
 #
-#   i.e. Heisenberg *scaling* (asymptotically $N^2/2$) with a robustly preparable state. Dicke states are the workhorse of
-#   atomic metrology precisely because of this.
-# * **Cluster (graph) state.** Maximally entangled in the stabiliser sense, yet all its $\langle\sigma^a_q\rangle$ and most
+#   i.e. Heisenberg *scaling* (asymptotically $N^2/2$). Section 14 shows that, unlike GHZ, this state keeps a sizeable
+#   part of its QFI when a particle is lost.
+# * **Cluster (graph) state.** A genuinely multipartite entangled stabiliser state, yet all its $\langle\sigma^a_q\rangle$ and most
 #   two-body correlators vanish — we will see what that does to $F_Q$.
 # * **Haar-random pure state.** For a random $\vert\psi\rangle$ the standard unitary-averaging identities
 #   $\mathbb{E}\langle A\rangle=\mathrm{Tr}A/d$ and $\mathbb{E}\langle A\rangle^2=\left[(\mathrm{Tr}A)^2+\mathrm{Tr}A^2\right]/[d(d+1)]$
@@ -830,7 +917,8 @@ fig.tight_layout(); plt.show()
 #
 #   $$\mathbb{E}\left[F_Q\right]=4\left(\frac N4-\frac{N}{4(d+1)}\right)=N\,\frac{d}{d+1}\;\xrightarrow[N\to\infty]{}\;N .$$
 #
-#   A typical state of the Hilbert space is *entangled to the maximum* and yet worth exactly as much as a product state.
+#   A typical state of the Hilbert space is nearly maximally entangled (its half-chain entropy is close to the Page value)
+#   and yet, on average, worth slightly *less* than a product state.
 
 # %%
 # ==============================================================================
@@ -906,25 +994,25 @@ axes[0].set_title("Quantum Fisher information"); axes[0].legend(fontsize=8, ncol
 axes[1].axhline(1.0, color="0.4", ls="--", lw=1.2)
 axes[1].text(6.0, 1.06, "standard quantum limit", fontsize=8, color="0.4")
 axes[1].set_yscale("log"); axes[1].set_xlabel("number of qubits $N$"); axes[1].set_ylabel(r"$F_Q/N$")
-axes[1].set_title("QFI density: who beats the SQL?"); axes[1].legend(fontsize=8)
+axes[1].set_title("QFI density relative to the SQL"); axes[1].legend(fontsize=8)
 fig.suptitle("Metrological usefulness of standard many-body states", y=1.02)
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# Read the figure from the bottom up.
+# The figure, read from the bottom up:
 #
 # * $\vert+\rangle^{\otimes N}$ with $G=J_y$ sits exactly on the SQL line: the best an unentangled state can do.
 # * The **cluster state** also sits exactly on $N$, even though it is a genuinely multipartite entangled stabiliser state —
 #   the standard resource for measurement-based quantum computation. Its collective fluctuations are precisely those of independent
 #   qubits, because all one-body expectation values and all same-Pauli two-body correlators vanish. **Entanglement is
-#   necessary but nowhere near sufficient for metrological gain.** (Section 11 will find a tilted direction where the
-#   cluster state does a little better than $N$ — the effect is a boundary artefact, not a scaling advantage.)
+#   necessary but far from sufficient for metrological gain.** (Section 11 finds a tilted direction where the
+#   cluster state does a little better than $N$; the excess is a boundary term of size $2$ that does not change the scaling.)
 # * The **Haar-random** points also collapse onto $N$, with a scatter that shrinks as $N$ grows; the measured mean at
 #   $N=8$, $7.94\pm0.08$ over $64$ states, is consistent with the exact prediction $N d/(d+1)=7.97$. A state drawn at
-#   random from the Hilbert space is maximally entangled and metrologically worthless — the useful states form a
-#   vanishingly small, highly structured subset.
-# * The **W state** at $3N-2$ beats the SQL by a constant factor but still scales linearly; its advantage disappears in
-#   relative terms as $N$ grows.
+#   random from the Hilbert space is nearly maximally entangled and offers no gain over a product state — the useful
+#   states form a vanishingly small, highly structured subset.
+# * The **W state** at $3N-2$ beats the SQL but still scales linearly: $F_Q/N=3-2/N\to3$, a constant-factor gain over the
+#   SQL that does not grow with $N$, while its share of the Heisenberg value, $(3N-2)/N^2$, vanishes.
 # * The **Dicke state** at $N(N+2)/2$ and the **GHZ state** at $N^2$ are the two Heisenberg-scaling families, differing by
 #   a factor of about $2$.
 #
@@ -992,8 +1080,8 @@ fig.tight_layout(); plt.show()
 # %% [markdown]
 # Deep in the ferromagnetic phase ($h=0.2$) the ground state reaches $F_Q/N^2\approx0.98$: the finite chain really is a
 # near-perfect GHZ state, and preparing the ground state of an Ising magnet is an alternative way to make one. As $h$ grows the cat is destroyed —
-# the ratio $F_Q/N^2$ falls monotonically through the transition region and, by $h=3$, $F_Q$ has dropped to a little above
-# the SQL value $N$. $F_Q/N$ for $G=J_z$ stays above $1$ everywhere we look: the Ising ground state is entangled at every
+# the ratio $F_Q/N^2$ falls monotonically through the transition region and, by $h=3$, $F_Q$ has dropped to about $1.4N$
+# ($1.38N$ at $N=8$, $1.39N$ at $N=10$). $F_Q/N$ for $G=J_z$ stays above $1$ everywhere we look: the Ising ground state is entangled at every
 # finite field, and the QFI witnesses it.
 #
 # The perpendicular generator $J_y$ tells a different and initially surprising story: its QFI density is *not* monotonic.
@@ -1151,9 +1239,13 @@ fig.tight_layout(); plt.show()
 #   same site, only $q\neq q'$ survives in Eq. (16) and $\mathcal{F}_{xz}=\sum_{q\neq q'}\langle X_qZ_{q'}\rangle
 #   =\langle X_0Z_1\rangle+\langle X_{N-1}Z_{N-2}\rangle=1+1=2$, while the diagonal stays at $N$; the eigenvalues are then
 #   $N-2,\,N,\,N+2$, exactly the $(4,6,8)$ printed above. So the cluster state *is* detected as entangled — but only if you
-#   look along the right axis, and the excess is a boundary effect of order $1$ (we measure $F_{\max}=N+2$ at both $N=6$
-#   and $N=8$), not a change of scaling.
-# * The **Haar-random** state is a generic, mildly anisotropic blob with all three eigenvalues near $N$.
+#   look along the right axis, and the excess is a boundary effect of size $2$ (we measure $F_{\max}=N+2$ at both $N=6$
+#   and $N=8$) that leaves the scaling linear.
+# * The **Haar-random** state is a generic anisotropic blob; its three eigenvalues $(4.08,6.29,7.07)$ scatter around
+#   $N=6$, and its optimal direction is a random-looking unit vector.
+#
+# Where $\lambda_{\max}$ is degenerate (W, Dicke, $\vert+\rangle^{\otimes N}$) the printed $\mathbf n_{\text{opt}}$ is one
+# arbitrary vector of the degenerate plane returned by `eigh`; every unit vector in that plane is equally optimal.
 #
 # > **Numerical practice.** Replacing an optimisation over a continuum (here: the unit sphere of directions) by an exact
 # > eigenvalue problem is always worth hunting for. It costs one `eigh` of a $3\times3$ matrix instead of a gradient descent
@@ -1164,8 +1256,8 @@ fig.tight_layout(); plt.show()
 # ## 12. The QFI as an entanglement witness
 #
 # Section 9 proved $F_Q\le N$ for separable states. Turned around, this is one of the most useful entanglement criteria in
-# experimental many-body physics, because it is *operational*: it does not just say "entangled", it says "entangled enough to
-# beat the shot-noise limit in an interferometer".
+# experimental many-body physics, because it is *operational*: a violation certifies entanglement that is strong enough to beat the
+# shot-noise limit in an interferometer.
 #
 # **Criterion 1 (Pezzè and Smerzi 2009).** For every separable state of $N$ qubits and every collective generator
 # $G=\mathbf n\cdot\mathbf J$,
@@ -1227,7 +1319,7 @@ for name, psi, n, gname in wit_states:
 # the standard *quantitative* entanglement measure for pure states — and it is uncorrelated with metrological
 # usefulness. The Haar-random state has by far the largest entropy ($3.21$ bits out of a maximum of $4$, close to the Page
 # value) and yet, even in its optimal direction, it reaches only $F_Q=8.20$ against the separable bound $N=8$: the QFI
-# certifies a depth of merely $2$, i.e. essentially nothing. The cluster state stops at depth $2$ as well, although it is
+# certifies only that the state is entangled (depth $2$). The cluster state stops at depth $2$ as well, although it is
 # a genuinely $8$-partite entangled stabiliser state. The GHZ state has just **one** bit of entropy across the cut — the
 # same as the cluster state — and is certified as genuinely $8$-partite entangled; the Dicke state, with $1.64$ bits,
 # reaches depth $6$.
@@ -1240,8 +1332,8 @@ for name, psi, n, gname in wit_states:
 # `+1e-9` in `entanglement_depth` is what implements "not strictly greater".)
 #
 # > **Physics insight.** "How much entanglement" and "how useful the entanglement is" are different questions with different
-# > answers. Metrology cares about *collective, coherent* superpositions of macroscopically distinct configurations, not
-# > about the volume of the entangled Hilbert space. This is why the phrase "useful entanglement" appears so often in the
+# > answers. Metrology rewards *collective, coherent* superpositions of configurations with very different values of the
+# > generator; the amount of entanglement across a cut is a different quantity. This is why the phrase "useful entanglement" appears so often in the
 # > metrology literature, and why $F_Q$ rather than an entropy is the figure of merit.
 
 # %% [markdown]
@@ -1254,8 +1346,8 @@ for name, psi, n, gname in wit_states:
 # $$F_Q[\rho,G]\;=\;2\sum_{m,n\,:\,\lambda_m+\lambda_n>0}\frac{(\lambda_m-\lambda_n)^2}{\lambda_m+\lambda_n}
 #   \left\vert\langle m\vert G\vert n\rangle\right\vert^2 . \tag{22}$$
 #
-# This is what the engine's `qfi_mixed` implements, and it is the *only* place in this notebook where we use a result without
-# proving it: the full derivation — the Lyapunov equation for the SLD, its solution in the eigenbasis, the treatment of the
+# This is what the engine's `qfi_mixed` implements. Like the Braunstein–Caves theorem of Section 6.1, it is used here
+# without proof: the full derivation — the Lyapunov equation for the SLD, its solution in the eigenbasis, the treatment of the
 # kernel, the reduction of Eq. (22) to $4\mathrm{Var}(G)$ for pure states, and the explicit optimal measurement — is the
 # subject of the next notebook,
 # [30 — QFI from the SLD](../ch10_quantum_metrology_protocols/30_qfi_from_the_sld_prepare_encode_estimate.ipynb).
@@ -1265,14 +1357,19 @@ for name, psi, n, gname in wit_states:
 #
 # One inequality is worth recording now, because it will be used repeatedly later in the chapter. Since
 # $(\lambda_m-\lambda_n)^2\le(\lambda_m+\lambda_n)^2$ for non-negative eigenvalues, Eq. (22) is bounded by
-# $2\sum_{m,n}(\lambda_m+\lambda_n)\left\vert\langle m\vert G\vert n\rangle\right\vert^2=4\langle G^2\rangle$, and a slightly
-# more careful version of the same argument gives
+# $2\sum_{m,n}(\lambda_m+\lambda_n)\left\vert\langle m\vert G\vert n\rangle\right\vert^2=4\langle G^2\rangle$. Eq. (22) is
+# unchanged by the shift $G\to G-\langle G\rangle\mathbb 1$ (the diagonal terms $m=n$ carry the factor
+# $(\lambda_m-\lambda_m)^2=0$, and the off-diagonal matrix elements do not see the shift), so the same bound applied to
+# the shifted generator gives
 #
-# $$F_Q[\rho,G]\;\le\;4\,\mathrm{Var}_\rho(G),$$
+# $$F_Q[\rho,G]\;\le\;4\,\mathrm{Var}_\rho(G).$$
 #
-# with equality if and only if $\rho$ is pure. So $4\,\mathrm{Var}(G)$ never *under*-estimates the quantum Fisher
-# information — it is the right answer for pure states and an upper bound for mixed ones. Notebook 30 proves the
-# inequality and notebook 36 measures how large the gap becomes for noisy states.
+# Equality holds for every pure state (Section 7). For mixed states the inequality is in general strict, although not
+# always: $\rho=\tfrac12(\vert00\rangle\langle00\vert+\vert11\rangle\langle11\vert)$ with $G=\tfrac12X_1$ has
+# $F_Q=4\mathrm{Var}(G)=1$, because the two components rotate in orthogonal subspaces and stay perfectly distinguishable.
+# So $4\,\mathrm{Var}(G)$ never *under*-estimates the quantum Fisher information — it is the right answer for pure states
+# and an upper bound for mixed ones. Notebook 30 shows the gap numerically (a proof of the inequality is in Tóth and
+# Apellaniz 2014), and notebook 36 measures how large it becomes for noisy states.
 #
 # ### 13.1 An analytic test case: dephased GHZ
 #
@@ -1383,7 +1480,7 @@ fig.tight_layout(); plt.show()
 
 # %%
 # ==============================================================================
-# FIGURE: at fixed p, how fast does the advantage die with N?
+# FIGURE: decay of the advantage with N at fixed p
 # ==============================================================================
 fig, axes = plt.subplots(1, 2, figsize=(11.0, 4.1))
 Nn = np.array([2, 3, 4, 5, 6])
@@ -1418,11 +1515,15 @@ for eta in (0.98, 0.90, 0.80):
         cells.append(f"{a:7.4f}{b:8.4f}{b / a:6.2f}")
         assert abs(a - (1 - 2 * p_deph) ** (2 * N)) < 1e4 * TOL      # the dephasing column is still Eq. (23)
         assert b > a - 1e-12                                          # depolarising is never the harsher of the two
+        # amplitude damping, Eq. (23a), at its own parameter p_ad = 1 - eta^2 (same transverse contraction eta)
+        p_ad = 1 - eta ** 2
+        c_ad = float(qfi_noisy(apply_local_channel(to_dm(ghz_state(N)), kraus_amplitude_damping, p_ad), (0, 0, 1), N)) / N ** 2
+        assert abs(c_ad - 2 * (1 - p_ad) ** N / (1 + p_ad ** N + (1 - p_ad) ** N)) < 1e4 * TOL
     print(f"{eta:5.2f} {p_deph:8.3f} {p_depol:9.3f} | " + " ".join(cells))
 
 # %% [markdown]
-# The dephasing panel confirms Eq. (23) exactly (the numerical points lie on the dashed analytic curves, and the checkpoint
-# asserts agreement to $10^{-14}$ relative or better). All three channels behave the same way qualitatively: at fixed
+# The dephasing panel confirms Eq. (23) exactly: the numerical points lie on the dashed analytic curves, and the
+# checkpoint table prints relative deviations below $10^{-14}$. All three channels behave the same way qualitatively: at fixed
 # per-qubit error probability the ratio $F_Q/N^2$ falls with $N$, so the curves for larger $N$ lie *below* the smaller ones.
 # Concretely, at $p=0.02$ (a very good gate) the dephased $N=6$ GHZ retains $F_Q/N^2=0.61$, while at $p=0.10$ it is down to
 # $0.069$. The right-hand figure shows what this means in absolute terms: at $p=0.10$ the *dephased* GHZ state sits below
@@ -1436,8 +1537,8 @@ for eta in (0.98, 0.90, 0.80):
 #
 # **The bookkeeping.** Equal $p$ does not mean equal physical strength. A single qubit under our dephasing channel keeps a
 # fraction $1-2p$ of its transverse Bloch components; under our depolarising channel it keeps $1-4p/3$, because the $X$ and
-# $Y$ errors destroy transverse coherence just as the $Z$ error does — the correct convention factor is $3/2$, not the $3$
-# one would guess from "$Z$ with probability $p/3$". Matching the two contractions, $p_{\text{depol}}=\tfrac32 p_{\text{deph}}$,
+# $Y$ errors destroy transverse coherence just as the $Z$ error does; the convention factor is therefore $3/2$ (counting only
+# "$Z$ with probability $p/3$" would suggest $3$). Matching the two contractions, $p_{\text{depol}}=\tfrac32 p_{\text{deph}}$,
 # is what STEP 11b does.
 #
 # **The physics that is left.** Even at matched contraction the depolarising channel is the milder of the two, and the gap
@@ -1451,14 +1552,28 @@ for eta in (0.98, 0.90, 0.80):
 # ones in $s$. Those blocks contribute less than the top one but not zero, and their contributions are what the
 # depolarising channel retains and the dephasing channel does not.
 #
-# Amplitude damping is milder again, for a third reason: it drives the state towards $\vert0\cdots0\rangle$, which is an
-# eigenstate of $J_z$ with an extreme eigenvalue, so part of the structure that carries the phase survives the decay.
+# Amplitude damping is milder again, and the reason can be computed exactly. Its Kraus operators
+# $K_0=\mathrm{diag}(1,\sqrt{1-p})$ and $K_1=\sqrt p\,\vert0\rangle\langle1\vert$ multiply the GHZ coherence by
+# $(1-p)^{N/2}$ — a transverse contraction $\sqrt{1-p}\approx1-p/2$ per qubit, a much weaker channel than dephasing at the
+# same label $p$ (bookkeeping again). On top of that, the decay keeps the surviving cat *pure*. Within the block spanned by
+# $\vert0\cdots0\rangle$ and $\vert1\cdots1\rangle$ the populations are $a=\tfrac12(1+p^N)$ and $b=\tfrac12(1-p)^N$ and the
+# coherence is $c=\tfrac12(1-p)^{N/2}$, so $c^2=ab$ up to the tiny $p^N$ term: the block is an unbalanced cat
+# $\sqrt a\,\vert0\cdots0\rangle+\sqrt b\,\vert1\cdots1\rangle$ that is unbalanced but pure. The weight that has decayed sits on
+# strings that are eigenstates of $J_z$ with no coherence between them, and contributes nothing. The two-level formula
+# $F_Q=4N^2c^2/(a+b)$ for this block gives
+#
+# $$\frac{F_Q^{\text{AD}}}{N^2}=\frac{2(1-p)^N}{1+p^N+(1-p)^N}, \tag{23a}$$
+#
+# which reproduces the amplitude-damping rows of the STEP 11 table (e.g. $0.8473$ at $N=6$, $p=0.05$) and is asserted in
+# STEP 11b at the three matched contractions. At matched transverse contraction,
+# $(1-p_{\text{AD}})^N=(1-2p_{\text{deph}})^{2N}$, amplitude damping beats dephasing by exactly the factor
+# $2/(1+p^N+(1-p)^N)>1$, the price of renormalising a block that has kept its coherence.
 # What is convention-independent — and what matters for an experiment — is the exponential-in-$N$ decay shared by all three.
 #
 # > **Physics insight.** This is the central practical tension of quantum metrology. The GHZ state has the maximum possible
 # > $F_Q$ and the minimum possible robustness: a coherence spread over $N$ qubits decays $N$ times faster than a single-qubit
-# > coherence. Notebook 32 turns this into a statement about the *optimal* interrogation time, and notebook 33 shows that
-# > moderately squeezed states — with $F_Q$ between $N$ and $N^2$ — are the practical sweet spot.
+# > coherence. Notebook 32 turns this into a statement about the *optimal* interrogation time; notebook 33 introduces
+# > spin-squeezed states, and notebook 34 compares Ramsey, squeezed, GHZ and one-axis-twisting interferometry under noise.
 
 # %% [markdown]
 # ## 14. Losing particles: the QFI of a subsystem, and Schmidt compression
@@ -1590,7 +1705,7 @@ for K in (2, 4, 6):
 
 # %%
 # ==============================================================================
-# STEP 13: how much QFI survives the loss of k qubits?
+# STEP 13: the QFI that survives the loss of k qubits
 # ==============================================================================
 N_LOSS = 8
 loss_states = [("GHZ", ghz_state(N_LOSS), (0, 0, 1)),
@@ -1638,10 +1753,12 @@ fig.tight_layout(); plt.show()
 # Everything else degrades gracefully. The **W** state loses a roughly constant factor of about $0.6$ per lost qubit
 # ($22\to14.44\to9.00\to5.31\to\ldots$); the **Dicke** state pays a steep price for the first loss ($40\to15$) and then
 # settles into a similar geometric decay; the **product** state loses exactly one unit of QFI per qubit
-# ($F_Q=N-k$, as it must, since the survivors are just $N-k$ independent qubits); the cluster and Haar states interpolate,
-# with the Haar state falling off a cliff of its own once more than half the qubits are gone — a random state stores its
-# information in correlations that need most of the system to be read out. For a resource that must survive real
-# detectors, *graceful* beats *maximal*. (In the right-hand panel, curves that touch the floor at $10^{-6}$ are exactly
+# ($F_Q=N-k$, as it must, since the survivors are just $N-k$ independent qubits); the **cluster** state drops by $2$ at the
+# first loss and then by one unit per qubit ($F_Q=N-k-1$ for $k\ge1$); the **Haar** state follows the product state at
+# first and then falls steeply once half of the qubits are gone ($4.00$ at $k=3$, $1.57$ at $k=4$, $0.37$ at $k=5$). For
+# a random state the reduced state of fewer than $N/2$ qubits is close to maximally mixed (the Page regime), and a
+# maximally mixed state carries no phase information. For a resource that must survive real detectors, a graceful
+# decay matters more than the largest ideal value. (In the right-hand panel, curves that touch the floor at $10^{-6}$ are exactly
 # zero: GHZ from $k=1$ on, cluster and Dicke at $k=7$.)
 #
 # > **Physics insight.** This is the quantitative version of the folklore "GHZ states are fragile, Dicke and squeezed states
@@ -1713,18 +1830,18 @@ axes[1].set_title("Subsystem QFI: cost of losing $N-K$ qubits"); axes[1].legend(
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# Read the left panel as a comparison of *slopes*, not of values — the dashed reference is only fixed up to a constant, and
+# The left panel is to be read as a comparison of *slopes*: the dashed reference is only fixed up to a constant, and
 # it has been anchored at the last point. Below $N\approx10$ the measured curve is almost flat: the arithmetic there is
 # faster than the fixed cost of dispatching a compiled program from Python (a few tens of microseconds), so the
-# measurement reports the overhead, not the algorithm. Above $N\approx10$ it turns over and climbs steadily, but its slope
-# stays somewhat *below* the $N2^N$ reference: each additional pair of qubits costs a factor $3$–$4$ rather than the
+# measurement reports the overhead rather than the algorithm. Above $N\approx10$ it turns over and climbs steadily, but its slope
+# stays somewhat *below* the $N2^N$ reference: each additional pair of qubits costs a factor of about $2.5$–$4$ rather than the
 # $4\,(N+2)/N\approx4.7$ that counting operations predicts. Two effects push the same way — the constant overhead has not
 # fully disappeared even at $N=12$, and the largest einsums are the first ones big enough for XLA to spread across several
 # cores. The lesson is the one every benchmark teaches: an $O(\cdot)$ is a statement about arithmetic, a timing is a
 # statement about one machine, and they coincide only in the window where neither dispatch nor parallelism dominates.
-# At $N=16$ (a $65\,536$-dimensional space) one QFI evaluation still takes only a few milliseconds, so a sweep over hundreds
+# At $N=16$ (a $65\,536$-dimensional space) one QFI evaluation takes a few milliseconds or less, so a sweep over hundreds
 # of parameters is a matter of seconds. Compare that with the dense alternative: a $2^{16}\times2^{16}$ complex matrix
-# would need $68$ GB.
+# would need $69$ GB.
 #
 # The right panel is the point of Schmidt compression. Without it the cost rises steeply with the number of *kept* qubits and
 # becomes unusable near $K=N$ — precisely the physically interesting regime of losing one or two particles. With compression
@@ -1742,8 +1859,9 @@ fig.tight_layout(); plt.show()
 # * **Estimation is a statistics problem with a quantum input.** An estimator has bias and variance; the Fisher information
 #   $I(\theta)=\sum_x(\partial_\theta p)^2/p$ of the outcome distribution bounds the variance of any *unbiased* estimator by
 #   $\mathrm{Var}\ge1/I$ (Cauchy–Schwarz, Section 5.1), the Fisher information of $M$ independent repetitions is $MI$, and
-#   maximum likelihood reaches the bound asymptotically — which we measured, seeing $M\,\mathrm{Var}\to1/I$ from about
-#   $M\approx30$ onwards.
+#   maximum likelihood reaches the bound asymptotically — which we measured from sampled data with error bars and confirmed by an exact binomial sum: the bias falls like
+#   $-\cot\theta/(2M)$ (and vanishes identically at the symmetric point $\theta=\pi/2$), and the excess of
+#   $M\,\mathrm{Var}$ over $1/I$ is $1\%$ at $M=100$ for $\theta=\pi/2$.
 # * **The quantum Fisher information is the best measurement's Fisher information**, $F_Q=\max_{\{E_x\}}I(\theta;\{E_x\})$
 #   (Braunstein–Caves), hence $\Delta\theta\ge1/\sqrt{MF_Q}$. It is a property of the state and of the generator only.
 # * **For pure states with unitary encoding, $F_Q=4\,\mathrm{Var}(G)$** — derived twice, from the SLD and from the overlap
@@ -1754,14 +1872,16 @@ fig.tight_layout(); plt.show()
 #   $\mathcal F_{ab}=4C_{ab}$ makes the direction dependence explicit, $F_Q(\mathbf n)=\mathbf n^{\mathsf T}\mathcal F\mathbf n$,
 #   and the optimum over the sphere is the largest eigenvalue of a $3\times3$ matrix — one `eigh`, no optimisation.
 # * **Entanglement is necessary but not sufficient.** $F_Q>\lfloor N/k\rfloor k^2+(N\bmod k)^2$ certifies entanglement
-#   depth $k+1$; yet Haar-random states (maximal entropy) sit exactly at $F_Q\approx N$, and the cluster state only beats $N$ by a boundary term.
-#   Metrology rewards macroscopic coherent superpositions, not entanglement volume.
+#   depth $k+1$; yet Haar-random states (near-maximal entropy) sit at $F_Q\approx N d/(d+1)$, just below the SQL, and the cluster state
+#   beats $N$ only by a boundary term $2$. Metrology rewards coherent superpositions of very different generator
+#   eigenvalues, which the entanglement entropy does not measure.
 # * **Noise and loss destroy the Heisenberg limit.** Dephased GHZ obeys $F_Q=N^2(1-2p)^{2N}$ exactly — the advantage
 #   dies exponentially in $N$ — and losing one single qubit of a GHZ state sets $F_Q$ to exactly zero. States that degrade
-#   gracefully (Dicke, squeezed) are what real experiments use.
+#   gracefully under loss, such as the Dicke state (which keeps $15$ of its $40$ after one lost qubit at $N=8$), are the
+#   better candidates for real detectors.
 # * **Implementation.** Validate every new quantity against at least two independent routes before plotting it (we used
 #   matrix-free, dense, SLD, finite differences and `jax.jacfwd`); exploit rank structure (Schmidt compression turned an
-#   $O(8^K)$ eigendecomposition into an $O(8^{N-K})$ one, two orders of magnitude at $K=9$, $N=12$).
+#   $O(8^K)$ eigendecomposition into an $O(8^{N-K})$ one, more than two orders of magnitude at $K=9$, $N=12$ in our runs).
 #
 # ## 17. Exercises
 #

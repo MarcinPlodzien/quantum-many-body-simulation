@@ -10,27 +10,27 @@
 # and every one of those parameters must be measured to a useful accuracy. Beyond $N\approx10$ the experiment alone is out of
 # reach, and the reconstruction is worse.
 #
-# But look again at what a laboratory actually *wants*. Almost never all $4^N$ numbers. It wants an energy
+# A laboratory rarely needs all $4^N$ numbers. It needs an energy
 # $\langle H\rangle$, a handful of correlators $\langle Z_iZ_j\rangle$, the fidelity with one target state, an entanglement
-# witness, a few subsystem entropies. That is a list of $K$ numbers with $K$ in the tens or hundreds — not $4^N$.
-# **Why should predicting $K$ numbers cost as much as reconstructing the whole state?**
+# witness, a few subsystem entropies: a list of $K$ numbers with $K$ in the tens or hundreds, far fewer than $4^N$.
+# Predicting $K$ numbers need not cost as much as reconstructing the whole state.
 #
-# It does not. In 2018 Scott Aaronson formulated the *shadow tomography* problem — predict $K$ observables of an unknown state
+# In 2018 Scott Aaronson formulated the *shadow tomography* problem — predict $K$ observables of an unknown state
 # using a number of copies growing only **polylogarithmically** in $K$ — and proved it is possible in principle.
 # In 2020 Huang, Kueng and Preskill turned the idea into a concrete measurement protocol:
 #
 # > Measure every qubit along a **randomly chosen** axis. Write down which axes you chose and which bits came out.
-# > Repeat $M$ times. That list of $2NM$ integers — the **classical shadow** — is enough to predict, after the fact,
+# > Repeat $M$ times. That list of $2NM$ integers, the **classical shadow**, is enough to predict, after the fact,
 # > the expectation value of any observable you later become interested in.
 #
-# No setting list is decided in advance; nothing is reconstructed; the state is never stored. Each measurement record is
+# No setting list is decided in advance, nothing is reconstructed, and the state is never stored. Each measurement record is
 # converted into a *classical snapshot* $\hat\rho_m$ — a little $2^N\times2^N$ object with the property that its **average over
 # the randomness is exactly $\rho$**. Any expectation value is then a plain sample mean, with a variance we can compute.
 #
 # **What we will do.**
 #
 # 1. **The measurement channel.** The random measurement defines a linear map $\mathcal M(\rho)=\mathbb E[\,U^\dagger\vert b\rangle\langle b\vert U\,]$.
-#    We derive it for random single-qubit Pauli bases — it is the depolarising channel with parameter $1/3$ — invert it exactly,
+#    We derive it for random single-qubit Pauli bases, where it is the depolarising channel that shrinks the Bloch vector by $1/3$, invert it exactly,
 #    $\mathcal M^{-1}(A)=3A-\mathrm{Tr}(A)\mathbb 1$, and check the inverse numerically (Sections 3–4).
 # 2. **The estimator.** One snapshot gives an unbiased estimate of every observable at once. For a Pauli string of weight $k$
 #    the estimator collapses to a product of signs, and we prove (and measure) that its variance is exactly $3^k-\langle P\rangle^2$ —
@@ -44,8 +44,9 @@
 # 5. **Other random ensembles.** The 24-element single-qubit Clifford group gives *exactly the same* channel as random Pauli bases
 #    (we prove it and check it to machine precision). Entangling **global** Clifford circuits give a completely different channel,
 #    $\mathcal M^{-1}(A)=(2^N+1)A-\mathrm{Tr}(A)\mathbb 1$, which we derive from the 2-design property and verify numerically for the
-#    ensemble we actually sample. The two are complementary: local shadows are cheap for local observables and useless for fidelity;
-#    global shadows are the exact opposite (Sections 9–10).
+#    ensemble we actually sample (a depth-$2N$ random Clifford circuit, which reproduces the second moments of the Clifford group but
+#    not its third). The two are complementary: local shadows are cheap for local observables and exponentially expensive for a
+#    fidelity; global shadows are the other way round (Sections 9–10).
 # 6. **Comparison and scaling.** Reconstruct $\rho$ for $N=3$ and compare with the linear-inversion and projected estimators of
 #    notebook 23 **at an equal total shot budget**; then push local observables to $N=14$ and watch the cost *not* grow (Sections 11–12).
 #
@@ -53,7 +54,7 @@
 #
 # *Physics*
 # * what a randomised measurement is, and why averaging over random bases produces a depolarising channel;
-# * the difference between *reconstructing a state* and *predicting observables*, and why only the second is scalable;
+# * the difference between *reconstructing a state* and *predicting observables*, and why only the second scales to large $N$;
 # * why the accuracy of a $k$-local observable does not depend on the system size, while the accuracy of a fidelity does;
 # * unitary $2$- and $3$-designs, and what the Clifford group has to do with all of this.
 #
@@ -62,7 +63,7 @@
 # * unbiased estimators, their variance, the shadow norm, and Chebyshev/Hoeffding sample-complexity bounds;
 # * median of means as a robust estimator for heavy-tailed random variables;
 # * the bootstrap applied to a data set of snapshots;
-# * Monte-Carlo verification of a moment condition (here: a 2-design property) with honest error bars.
+# * Monte-Carlo verification of a moment condition (here: a 2-design property) with error bars and wrong controls.
 #
 # *Implementation practice*
 # * `vmap` over snapshots with one PRNG key each, and **chunking** a `vmap` so that it does not exhaust memory;
@@ -159,7 +160,7 @@ def pauli_vector(rho_mat, N):
 # 4. **store the pair $(U,b)$** — nothing else.
 #
 # Repeat $M$ times with independent randomness. For random Pauli bases the stored data are two integer arrays of shape $(M,N)$:
-# the basis codes and the outcome bits. That is $2NM$ small integers — for $N=14$ and $M=10^5$ about $3$ MB, whereas a single
+# the basis codes and the outcome bits. That is $2NM$ small integers — for $N=14$ and $M=10^5$ about $3$ MB at one byte per integer, whereas a single
 # density matrix of $14$ qubits would need $4^{14}\approx2.7\cdot10^8$ complex numbers, i.e. $4$ GB.
 #
 # ### 3.2 The classical snapshot
@@ -179,8 +180,8 @@ def pauli_vector(rho_mat, N):
 # $$\boxed{\ \hat\rho\;=\;\mathcal M^{-1}\!\left(U^\dagger\vert b\rangle\langle b\vert U\right)\ }\qquad\text{satisfies}\qquad
 #   \mathbb E\left[\hat\rho\right]=\mathcal M^{-1}\big(\mathcal M(\rho)\big)=\rho . \tag{2}$$
 #
-# $\hat\rho$ is the **classical snapshot**. It is not a quantum state — we will see it has negative eigenvalues, and it must,
-# because it is a *de-blurred* object. It is an unbiased estimator of $\rho$, and therefore
+# $\hat\rho$ is the **classical snapshot**: an unbiased estimator of $\rho$ with negative eigenvalues, as we will see. The negative
+# eigenvalues are forced, because $\hat\rho$ undoes the blurring of $\mathcal M$. Unbiasedness gives
 #
 # $$\hat o\;=\;\mathrm{Tr}\!\left(\hat\rho\,O\right)\qquad\text{satisfies}\qquad\mathbb E[\hat o]=\mathrm{Tr}(\rho\,O)=\langle O\rangle$$
 #
@@ -188,7 +189,7 @@ def pauli_vector(rho_mat, N):
 #
 # > **Physics insight.** Compare with notebook 23. There, the estimator was built *after* choosing which quantity to measure:
 # > the $3^N$ settings were a deterministic sweep designed to make the map $r\mapsto p$ invertible. Here the randomness does the
-# > work: instead of inverting a huge design matrix we invert one small, highly symmetric channel — and the symmetry is what makes
+# > work: instead of inverting a large design matrix we invert one small, highly symmetric channel, and the symmetry makes
 # > the inverse cheap.
 
 # %% [markdown]
@@ -218,14 +219,14 @@ def pauli_vector(rho_mat, N):
 #   =\frac{\mathbb 1}{2}+\frac{1}{3}\,\frac{\vec r\cdot\vec\sigma}{2}
 #   =\frac13\,\rho+\frac23\,\frac{\mathbb 1}{2}. \tag{3}$$
 #
-# Read the last form: **the measurement channel of random Pauli bases is the depolarising channel with parameter $f=1/3$**,
+# In the last form, **the measurement channel of random Pauli bases is the depolarising channel with parameter $f=1/3$**,
 # in the parametrisation $\mathcal D_f(\rho)=f\rho+(1-f)\tfrac{\mathbb 1}{2}$ used by the code below.
-# It shrinks the Bloch vector by a factor $3$ and leaves the identity alone. That is the whole physics: a random axis sees only
-# one third of the Bloch vector, because the two orthogonal components average to zero.
+# It shrinks the Bloch vector by a factor $3$ and leaves the identity alone, because a randomly chosen axis records only
+# one of the three Bloch components and the two orthogonal components average to zero.
 # (Notebook 07 parametrises the same family by the error probability $p$ in
 # $\rho\to(1-p)\rho+\tfrac p3(X\rho X+Y\rho Y+Z\rho Z)$, which shrinks the Bloch vector by $1-\tfrac{4p}{3}$;
 # $f=\tfrac13$ is $p=\tfrac12$. The two conventions are used side by side in the literature — always read off the
-# Bloch-shrinkage factor rather than trusting the letter.)
+# Bloch-shrinkage factor rather than the letter.)
 #
 # ### 4.2 The inverse
 #
@@ -238,9 +239,9 @@ def pauli_vector(rho_mat, N):
 # *Proof.* $\mathcal M\big(3A-\mathrm{Tr}(A)\mathbb 1\big)=\tfrac13\big(3A-\mathrm{Tr}(A)\mathbb 1\big)+\tfrac13\mathrm{Tr}\big(3A-\mathrm{Tr}(A)\mathbb 1\big)\mathbb 1
 # =A-\tfrac13\mathrm{Tr}(A)\mathbb 1+\tfrac13\big(3\mathrm{Tr}A-2\mathrm{Tr}A\big)\mathbb 1=A$. $\square$
 #
-# The map $\mathcal M^{-1}$ is **not** a channel: it is only a linear map. It is not positive — apply it to $\vert0\rangle\langle0\vert$
-# and you get $\mathrm{diag}(2,-1)$, an operator with a negative eigenvalue. That is unavoidable and harmless: we never need
-# $\hat\rho$ to be a state, only its *average* to be one.
+# The map $\mathcal M^{-1}$ is linear but not positive, hence not a channel: applied to $\vert0\rangle\langle0\vert$ it gives
+# $\mathrm{diag}(2,-1)$, an operator with a negative eigenvalue. This is unavoidable and harmless, since the estimator only requires
+# the *average* of the snapshots to be a state.
 #
 # ### 4.3 Many qubits: everything factorises
 #
@@ -328,7 +329,7 @@ for b in range(3):
 # is a pure function of one PRNG key, so `vmap` over `jax.random.split(key, M)` produces all $M$ snapshots in parallel.
 #
 # > **JAX practice.** `vmap` is *not* free in memory: it materialises the batched intermediate, here the rotated state of every
-# > snapshot, i.e. $M\cdot2^N$ complex numbers. For $N=14$ and $M=10^5$ that is $26$ GB and your notebook dies. The fix is
+# > snapshot, i.e. $M\cdot2^N$ complex numbers. For $N=14$ and $M=10^5$ that is $26$ GB, more than the memory of a typical machine. The fix is
 # > **chunking**: run the `vmap` on blocks of a few thousand snapshots and concatenate. The block size is a pure
 # > memory-versus-overhead knob and changes no result — with `jax.random.fold_in` each block gets its own reproducible key.
 
@@ -392,9 +393,20 @@ print(f"   trace = {float(jnp.real(jnp.trace(rho_hat_0))):.3f}   "
 #
 # ### 4.5 Checkpoint: unbiasedness
 #
-# The claim to test is Eq. (2): $\mathbb E[\hat\rho]=\rho$. We test it the honest way — average many snapshots and watch the error
-# fall like $M^{-1/2}$ — and we first verify that our batched `shadow_state` agrees with the engine's explicit, one-snapshot-at-a-time
-# `shadow_snapshot_dm`.
+# The claim to test is Eq. (2): $\mathbb E[\hat\rho]=\rho$. We average many snapshots and compare the error with its predicted size,
+# after verifying that our batched `shadow_state` agrees with the engine's explicit, one-snapshot-at-a-time `shadow_snapshot_dm`.
+# The predicted size follows from Section 6 below: each Pauli coordinate $r_P$ of the snapshot average has variance
+# $(3^{w_P}-r_P^2)/M$ for a string of weight $w_P$, and $\lVert\Delta\rho\rVert_F^2=2^{-N}\sum_{P\neq\mathbb 1}(\Delta r_P)^2$, so
+#
+# $$\mathbb E\lVert\bar\rho-\rho\rVert_F^2=\frac{C}{M},\qquad C=\frac{1}{2^N}\sum_{P\neq\mathbb 1}\big(3^{w_P}-r_P^2\big)
+#   =\frac{(10^N-1)-(2^N\mathrm{Tr}\rho^2-1)}{2^N},$$
+#
+# using $\sum_P3^{w_P}=(1+3\cdot3)^N$. For the two-qubit Bell state $C=(99-3)/4=24$.
+# As a **wrong control** we average the *post-measurement* states $U^\dagger\vert b\rangle\langle b\vert U$ without applying
+# $\mathcal M^{-1}$, i.e. without the factor $3$ per qubit. Their average converges to $\mathcal M(\rho)$, whose weight-2 Pauli
+# coordinates are $r_P/9$; for the Bell state ($r_{XX}=-r_{YY}=r_{ZZ}=1$) this misses $\rho$ by
+# $\lVert\mathcal M(\rho)-\rho\rVert_F=\sqrt{3\,(8/9)^2/4}=0.77$. (On a state whose non-trivial Pauli coordinates all vanish,
+# such as the maximally mixed state, the missing factor $3$ would be invisible, which is why the test state matters.)
 
 # %%
 # ==============================================================================
@@ -407,17 +419,26 @@ err_impl = max_abs(shadow_state(bb, tt) - slow)
 print(f"CHECKPOINT batched `shadow_state` vs the engine's `shadow_snapshot_dm`: max error = {err_impl:.1e}")
 assert err_impl < 1e3 * TOL
 
-print(f"\n{'M':>8s} {'||mean(rho_hat) - rho||_F':>26s} {'reference c/sqrt(M)':>21s}")
-ref = None
+C_BELL = 24.0                                         # (99 - 3) / 4, see the text above
+SNAP_NOINV = (SNAP1 + I2) / 3.0                       # WRONG CONTROL: U^dag|b><b|U, i.e. M^{-1} omitted
+print(f"\n{'M':>8s} {'||mean(rho_hat) - rho||_F':>26s} {'predicted sqrt(C/M)':>20s} {'no M^-1 (wrong)':>16s}")
 for M_chk in (100, 400, 1600, 6400, 25600):
     bb, tt = collect_shadows(jax.random.PRNGKey(1), psi_bell, M_chk)
     err = float(jnp.linalg.norm(shadow_state(bb, tt) - rho_bell_m))
-    ref = err * np.sqrt(M_chk) if ref is None else ref
-    print(f"{M_chk:8d} {err:26.4f} {ref / np.sqrt(M_chk):21.4f}")
-assert err < 0.1          # at M = 25600 the error must be small; the reference above shows it is 1/sqrt(M)
-print("\n(the two columns track each other: the snapshot average converges to rho as M^{-1/2}, as an unbiased mean must)")
+    noinv = (jnp.einsum("mab,mcd->macbd", SNAP_NOINV[bb[:, 0], tt[:, 0]], SNAP_NOINV[bb[:, 1], tt[:, 1]])
+             .reshape(M_chk, 4, 4).mean(0))
+    err_wrong = float(jnp.linalg.norm(noinv - rho_bell_m))
+    print(f"{M_chk:8d} {err:26.4f} {np.sqrt(C_BELL / M_chk):20.4f} {err_wrong:16.4f}")
+print(f"\nCHECKPOINT at M = {M_chk}: error {err:.4f} against the predicted rms {np.sqrt(C_BELL / M_chk):.4f}; "
+      f"wrong control without M^-1: {err_wrong:.3f} (limit 0.770)")
+assert err < 3 * np.sqrt(C_BELL / M_chk)               # unbiased estimator: error of the predicted size
+assert err_wrong > 10 * np.sqrt(C_BELL / M_chk)        # the omitted inverse channel is detected
 
 # %% [markdown]
+# The snapshot average approaches $\rho$ at the predicted rate $\sqrt{C/M}$ (the single data sets scatter around it, as an rms
+# prediction allows), while the average of the un-inverted post-measurement states stalls at $0.77$, the distance between
+# $\mathcal M(\rho)$ and $\rho$: the factor $3$ per qubit is what removes the blur.
+#
 # ## 5. Estimating a Pauli string from snapshots
 #
 # Building $2^N\times2^N$ matrices defeats the purpose. For a **Pauli string** $P=\bigotimes_qP_q$ the estimator collapses to
@@ -514,16 +535,28 @@ print(f"\nCHECKPOINT vectorised Eq. (6) == engine shadow_estimate_pauli (to mach
       f"largest deviation from the exact value: {worst_z:.2f} standard errors")
 assert worst_z < 4.0
 
+# WRONG CONTROL: the same data with the factor 3 per qubit omitted (o -> o / 3^k, i.e. no inverse channel)
+weights_chk = np.array([sum(ch != "I" for ch in lab) for lab in test_labels])
+exact_chk = np.array([float(expect_pauli_string(psi_chk, {q: c for q, c in enumerate(lab) if c != "I"}))
+                      for lab in test_labels])
+z_wrong = (np.asarray(mean_chk) / 3.0 ** weights_chk - exact_chk) / (np.asarray(sem_chk) / 3.0 ** weights_chk)
+print("WRONG CONTROL without the factor 3 per qubit, deviation/sigma: "
+      + ", ".join(f"{lab} {z:+.0f}" for lab, z in zip(test_labels, z_wrong)))
+assert np.abs(z_wrong[exact_chk != 0]).min() > 10       # visible on every string with <P> != 0
+
 # %% [markdown]
-# All six estimates sit within a few standard errors of the exact value, and our batched implementation reproduces the engine's
-# single-string function exactly. Notice the error bars: they grow with the weight of the string, and that is the subject of the
-# next section. The $\mathrm{GHZ}_4$ signature is already visible — $\langle ZZII\rangle=\langle ZIIZ\rangle=1$ (the $Z$-parity
+# All six estimates sit within $1.4$ standard errors of the exact value, and our batched implementation reproduces the engine's
+# single-string function exactly. The wrong control shows what the test can and cannot see: without the factor $3$ per qubit the
+# estimator converges to $\langle P\rangle/3^k$, which is rejected by tens of standard errors on the three strings with
+# $\langle P\rangle=1$ and is indistinguishable from the correct estimator on the three strings with $\langle P\rangle=0$. A test
+# of an inverse channel therefore needs observables with non-zero expectation values. The error bars grow with the weight of the
+# string, which is the subject of the next section. The $\mathrm{GHZ}_4$ signature is already visible — $\langle ZZII\rangle=\langle ZIIZ\rangle=1$ (the $Z$-parity
 # stabilisers), $\langle XXXX\rangle=1$ (the $X$-parity stabiliser), while $\langle YYII\rangle=0$ because $Y_0Y_1$ maps
 # $\vert0000\rangle\to-\vert1100\rangle$ and $\vert1111\rangle\to-\vert0011\rangle$, neither of which is in the GHZ support —
 # with the weight-4 string measured much less precisely than the weight-2 ones, from the very same data.
 
 # %% [markdown]
-# ## 6. How many snapshots? Variance, the shadow norm, and median of means
+# ## 6. Sample complexity: variance, the shadow norm, and median of means
 #
 # ### 6.1 The exact variance of a Pauli estimator
 #
@@ -540,10 +573,13 @@ assert worst_z < 4.0
 # Equation (7) is the central quantitative statement of the method.
 #
 # * **The variance does not depend on $N$.** A two-point correlator $\langle Z_1Z_2\rangle$ costs the same in a chain of $4$ qubits
-#   and in a chain of $400$. Compare with notebook 23, where *every* estimate required completing a sweep over $3^N$ settings.
+#   and in a chain of $400$. At a fixed total number of runs the tomography of notebook 23 shares this property for a two-body
+#   correlator (Section 11.2 shows that its variance is $3^2(1-r_P^2)/T$); its obstacle is that every estimate requires
+#   completing a sweep over all $3^N$ settings, i.e. at least $3^N$ runs.
 # * **The variance grows as $3^k$ with the weight.** Local observables are cheap, global ones are not. To reach an accuracy
 #   $\varepsilon$ on a weight-$k$ string we need $M\gtrsim3^k/\varepsilon^2$ snapshots.
-# * **Equation (7) is a variance per snapshot, not per setting.** Section 11 turns this into a fair comparison with notebook 23.
+# * **Equation (7) is a variance per snapshot**, i.e. per run of the machine. Section 11 turns this into a fair comparison with
+#   notebook 23, whose variances are naturally stated per setting.
 
 # %%
 # ==============================================================================
@@ -568,11 +604,18 @@ for i, lab in enumerate(var_labels):
           f"{float(mean_var[i]):8.3f} +- {float(sem_var[i]):.3f} {e2:16.2f} {3.0 ** k:9.2f} "
           f"{n_useful:9d} ({100 * n_useful / M_VAR:4.1f}%)")
 
-rel = np.array([float((vals_var[:, i] ** 2).mean()) / 3.0 ** len({q for q, ch in enumerate(lab) if ch != "I"})
-                for i, lab in enumerate(var_labels)])
-print(f"\nCHECKPOINT measured E[o^2] / 3^k over the 12 strings: min {rel.min():.3f}, max {rel.max():.3f} "
-      f"(exact value 1; the sampling error of a second moment at M = {M_VAR} is a few percent)")
-assert 0.8 < rel.min() and rel.max() < 1.25
+k_var = np.array([sum(ch != "I" for ch in lab) for lab in var_labels])
+rel = np.array([float((vals_var[:, i] ** 2).mean()) for i in range(len(var_labels))]) / 3.0 ** k_var
+# o^2 = 9^k x Bernoulli(3^-k), so the relative standard error of its sample mean is sqrt((3^k - 1) / M)
+rel_se = np.sqrt((3.0 ** k_var - 1) / M_VAR)
+z_var = (rel - 1) / rel_se
+z_wrong4 = (rel - (4.0 / 3.0) ** k_var) / rel_se            # WRONG CONTROL: the general bound 4^k of Section 6.2
+print(f"\nCHECKPOINT measured E[o^2] / 3^k over the 12 strings: min {rel.min():.3f}, max {rel.max():.3f}; "
+      f"relative standard error sqrt((3^k-1)/M) = {rel_se.min():.3f} (k=1) ... {rel_se.max():.3f} (k=6); "
+      f"largest |deviation| {np.abs(z_var).max():.2f} standard errors")
+print(f"WRONG CONTROL E[o^2] = 4^k: smallest |deviation| {np.abs(z_wrong4).min():.1f} standard errors")
+assert np.abs(z_var).max() < 3.5                         # 12 strings: P(max |z| > 3.5) is below 1 %
+assert np.abs(z_wrong4).min() > 5
 
 # %%
 # ==============================================================================
@@ -616,24 +659,26 @@ fig.tight_layout(); plt.show()
 # $$\lVert O\rVert_{\rm shadow}^2=\max_{\sigma\ \text{state}}\ \mathbb E_{U}\sum_b\langle b\vert U\sigma U^\dagger\vert b\rangle\,
 #   \Big(\langle b\vert U\,\mathcal M^{-1}(O)\,U^\dagger\vert b\rangle\Big)^{2}\;\ge\;\mathrm{Var}(\hat o)+\langle O\rangle^2 .$$
 #
-# It is a norm on observables that depends on the measurement ensemble, and it is the only thing that matters for the cost:
-# $M\gtrsim\lVert O\rVert^2_{\rm shadow}/\varepsilon^2$ snapshots give accuracy $\varepsilon$. The three facts we need:
+# It is a norm on observables that depends on the measurement ensemble, and it sets the cost:
+# $M\gtrsim\lVert O\rVert^2_{\rm shadow}/\varepsilon^2$ snapshots give accuracy $\varepsilon$. The identity part of $O$ adds the
+# same constant $\mathrm{Tr}(O)/2^N$ to every single-snapshot value and therefore no variance, so the bounds are stated for the
+# traceless part $O_0=O-\tfrac{\mathrm{Tr}O}{2^N}\mathbb 1$. The three facts we need:
 #
-# | ensemble | observable | shadow norm |
+# | ensemble | observable | squared shadow norm |
 # |---|---|---|
 # | random Pauli bases | Pauli string of weight $k$ | exactly $3^{k}$ (Eq. (7)) |
-# | random Pauli bases | any $O$ supported on $k$ qubits | $\le 4^{k}\lVert O\rVert_\infty^2$ (quoted) |
-# | global Clifford | any $O$ | $\le 3\,\mathrm{Tr}(O_0^2)$, $O_0=O-\tfrac{\mathrm{Tr}O}{2^N}\mathbb 1$ (quoted) |
+# | random Pauli bases | any $O$ supported on $k$ qubits | $\lVert O_0\rVert^2_{\rm shadow}\le 4^{k}\lVert O\rVert_\infty^2$ (quoted) |
+# | global Clifford group | any $O$ | $\lVert O_0\rVert^2_{\rm shadow}\le 3\,\mathrm{Tr}(O_0^2)$ (quoted) |
 #
-# The first line we derived; it is also Lemma 3 of Huang, Kueng and Preskill (2020), who prove that the maximum over states is
-# attained for every state, so the shadow norm of a weight-$k$ Pauli string is exactly $3^k$. The second line is their
-# Proposition 3 and the third is their Proposition 1; we quote both without proof — but we will *measure* both in Section 10,
-# which is the honest thing to do with a quoted bound. Proposition 1 also gives a matching **lower** bound for the global
-# ensemble, $\mathrm{Tr}(O_0^2)\le\lVert O_0\rVert_{\rm shadow}^2$, so for global shadows the third line is tight up to the
-# factor $3$.
+# The first line we derived: $\mathbb E[\hat o^{\,2}]=3^k$ holds for every state, so the maximum over states in the definition is
+# $3^k$ as well. It is Lemma 3 of Huang, Kueng and Preskill (2020). The second line is their
+# Proposition 3 and the third is their Proposition 1; we quote both without proof. Proposition 1 also gives a matching **lower**
+# bound for the global ensemble, $\mathrm{Tr}(O_0^2)\le\lVert O_0\rVert_{\rm shadow}^2$, so for global shadows the third line is
+# tight up to the factor $3$. Section 10.3 compares the global line with values computed in closed form for the ideal Clifford
+# ensemble and with measurements on the random circuits we can sample, which reproduce only the second moments of the Clifford group.
 #
 # The third line matters because $\mathrm{Tr}(O_0^2)$ does not grow with $N$ for an observable like a fidelity
-# $O=\vert\psi\rangle\langle\psi\vert$, where $\mathrm{Tr}(O^2)=1$. Global shadows estimate a fidelity with $O(1/\varepsilon^2)$
+# $O=\vert\psi\rangle\langle\psi\vert$, where $\mathrm{Tr}(O_0^2)=1-2^{-N}<1$. Global shadows estimate a fidelity with $O(1/\varepsilon^2)$
 # snapshots for *any* number of qubits. Local (Pauli) shadows cannot: a fidelity is an $N$-local observable and its Pauli shadow
 # norm grows exponentially. Section 10.3 shows both effects.
 #
@@ -668,7 +713,7 @@ fig.tight_layout(); plt.show()
 # Equation (8) is a *worst-case guarantee*, and its only input is the variance. A tail bound for the plain sample mean cannot
 # be obtained from the variance alone: Hoeffding's inequality applied to $\hat o$ needs its **range**, which for a weight-$k$
 # Pauli string is $2\cdot3^k$ rather than $\sqrt{3^k}$, and the resulting requirement $M\ge2\cdot9^k\log(2/\delta)/\varepsilon^2$
-# is larger than Eq. (8) by a factor $3^k/16$ (up to the ratio of the two logarithms) — exponential in the weight.
+# is larger than Eq. (8) by a factor $3^k/16$ (up to the ratio of the two logarithms), exponential in the weight.
 # The measurement below compares the two estimators empirically, where no such bound is involved.
 
 # %%
@@ -730,23 +775,33 @@ ratio_mom = np.percentile(err_mom[:, 0], 90) / np.percentile(err_mean[:, 0], 90)
 print(f"\nCHECKPOINT 90th-percentile error of the weight-4 estimator: median of means / sample mean = {ratio_mom:.2f}")
 assert ratio_mom > 1.0       # the claim of the text: at THIS budget MoM does not beat the mean in the tail
 
+# the mechanism: a group mean of the weight-4 string is (3^4 / 270) x (integer) = 0.3 x integer, and with an odd number
+# of groups the median is one of them, so every MoM estimate lies on the grid 0.3 Z; the sample mean lives on 81/2430 Z
+step_g = 3.0 ** 4 / (M_MOM // G_MOM)
+mom_w4 = np.asarray(jax.vmap(partial(median_of_means, n_groups=G_MOM))(vals_mom))[:, 0]
+off_grid = np.abs(mom_w4 / step_g - np.round(mom_w4 / step_g)).max()
+print(f"CHECKPOINT every median-of-means estimate of ZZZZII is a multiple of 3^4/{M_MOM // G_MOM} = {step_g:.2f}: "
+      f"largest distance from the grid {off_grid:.1e}; distinct values over {R_MOM} data sets: "
+      f"{np.unique(np.round(mom_w4, 6)).size}")
+assert off_grid < 1e-9
+
 # %% [markdown]
 # At this budget the two estimators are comparable, and the sample mean is the better of the two in the tail: for the weight-4
 # string its $90$th-percentile error is $0.30$ against $0.40$ for the median of means, and its worst case over $200$ data sets is
 # $0.70$ against $0.80$. The median of means wins only at the median itself ($0.10$ against $0.13$). The reason is visible in the
 # numbers: with $G=9$ groups of $270$ snapshots, a group contains on average $270\cdot3^{-4}\approx3.3$ useful snapshots, so each
 # group mean is a coarse, strongly quantised estimate (its possible values are multiples of $3^4/270=0.3$) and the median of nine
-# such numbers inherits that coarseness. Median of means costs a factor $G$ in the effective sample size of every group; the
+# such numbers inherits that coarseness (the checkpoint confirms that every median-of-means estimate lies on this grid). Median of means costs a factor $G$ in the effective sample size of every group; the
 # condition $M/G\ge4\sigma^2/\varepsilon^2$ in the derivation is exactly the statement that a group must already be a usable
 # estimate on its own.
 #
 # The second half of the explanation is that at this budget the sample mean is already close to Gaussian while a group mean is
 # not. A data set contains $M3^{-4}\approx30$ useful snapshots, enough for the central limit theorem; a group contains three.
-# Note what does *not* explain the outcome: the fact that $\hat o$ is bounded by $3^k$ buys nothing here. Hoeffding's inequality
+# The boundedness of $\hat o$ by $3^k$ plays no role in the outcome. Hoeffding's inequality
 # with the range $2\cdot3^4=162$ gives, at $M=2430$ and $\varepsilon=0.3$, the bound
-# $2\exp(-2M\varepsilon^2/162^2)=1.97$ — vacuous, as the factor $3^k/16$ of Section 6.3 already announced. Equation (8) is the
+# $2\exp(-2M\varepsilon^2/162^2)=1.97$, which is vacuous, as the factor $3^k/16$ derived above anticipated. Equation (8) is the
 # statement that survives at *rigorous* budgets, where both bounds become non-trivial and the variance-only bound is the better
-# of the two; at the budgets an experiment actually uses, neither is informative and the honest tool is the measured spread.
+# of the two; at the budgets an experiment actually uses, neither is informative and the measured spread is the appropriate tool.
 #
 # > **Numerical practice.** Use the median of means when a rigorous simultaneous guarantee for many observables is the deliverable,
 # > and check that $M/G$ is large enough for a single group to be meaningful. For reporting one well-sampled number, use the sample
@@ -842,6 +897,20 @@ print(f"   deviation from exact          = {(E_hat - E_exact) / E_sem:+.2f} stan
 assert abs(E_hat - E_exact) < 5 * E_sem
 assert abs(E_boot - E_sem) < 0.3 * E_sem            # bootstrap reproduces the analytic standard error
 
+# how much do the correlations between the 15 estimators matter?  Var(sum c_P o_P) vs sum c_P^2 Var(o_P)
+var_E_snap = float(E_per_snapshot.var())
+var_E_indep = float(jnp.sum(coef ** 2 * vals_main.var(axis=0)))
+print(f"   per-snapshot variance of the energy estimator = {var_E_snap:.1f};  sum of the 15 individual "
+      f"variances = {var_E_indep:.1f}  (covariances contribute {100 * (var_E_snap / var_E_indep - 1):+.1f} %)")
+
+# WRONG CONTROL: the same snapshots without the factor 3 per qubit (o_P -> o_P / 3^k)
+k_main = jnp.asarray([sum(ch != "I" for ch in lab) for lab in all_lab])
+E_wrong = float(jnp.sum(coef * mean_main / 3.0 ** k_main))
+E_wrong_sem = float((vals_main / 3.0 ** k_main @ coef).std() / np.sqrt(M_MAIN))
+print(f"WRONG CONTROL energy without the inverse channel = {E_wrong:.4f}, "
+      f"{(E_wrong - E_exact) / E_wrong_sem:+.0f} standard errors from the exact value")
+assert abs(E_wrong - E_exact) > 10 * E_wrong_sem
+
 # %%
 # ==============================================================================
 # FIGURE: all nearest-neighbour correlators and all fields, from one data set
@@ -867,18 +936,21 @@ axes[1].set_title("All transverse magnetisations\n(same data set, nothing recoll
 axes[1].legend(fontsize=8)
 fig.tight_layout(); plt.show()
 
-dev = np.abs(np.asarray(mean_main - exact_main)) / np.asarray(sem_main)
-print(f"CHECKPOINT all {len(all_lab)} observables: largest deviation from the exact value = {dev.max():.2f} "
-      f"standard errors; mean |deviation| = {dev.mean():.2f} sd (expected ~0.8 for unbiased Gaussian errors)")
+uniq = [i for i, lab in enumerate(all_lab) if lab not in all_lab[:i]]     # <X_1>, <Z_1Z_2> appear twice in all_lab
+dev = (np.abs(np.asarray(mean_main - exact_main)) / np.asarray(sem_main))[uniq]
+print(f"CHECKPOINT all {len(uniq)} distinct observables: largest deviation from the exact value = {dev.max():.2f} "
+      f"standard errors; mean |deviation| = {dev.mean():.2f} sd (expected 0.80 +- {0.6 / np.sqrt(len(uniq)):.2f} "
+      f"for independent unbiased Gaussian errors)")
 assert dev.max() < 4.5
 
 # %% [markdown]
 # Every correlator and every magnetisation of the chain, with error bars, from a data set collected before any of them was chosen.
-# The largest deviation over the $18$ observables is $2.85$ standard errors and the mean absolute deviation is $1.08$ standard
-# errors, against the $0.8$ expected for unbiased Gaussian errors. The two numbers are not in conflict: the $18$ deviations are
-# strongly correlated (they are computed from the same snapshots, and most snapshots contribute to several of them), so the
-# average of $\lvert z\rvert$ over the list behaves like an average over far fewer than $18$ independent draws and its own
-# standard deviation is of order $0.5$. The bootstrap standard deviations reproduce the analytic $\sigma/\sqrt M$ (for the energy,
+# The largest deviation over the $16$ distinct observables ($\langle X_1\rangle$ and $\langle Z_1Z_2\rangle$ appear both among the
+# named ones and in the lists) is $2.85$ standard errors, and the mean absolute deviation is $1.05$ standard errors against
+# $\sqrt{2/\pi}=0.80$ expected for unbiased Gaussian errors. The standard deviation of that average over $16$ draws is
+# $\sqrt{1-2/\pi}/\sqrt{16}=0.15$; the estimators computed from the same snapshots are only weakly correlated here (a snapshot
+# that measures $Z$ on a site cannot also measure $X$ there), so this independent-draw estimate applies, and the measured value is
+# an upward fluctuation of about $1.7$ standard deviations, which happens in a few percent of data sets. The bootstrap standard deviations reproduce the analytic $\sigma/\sqrt M$ (for the energy,
 # $0.068$ against $0.064$), as they must for a plain sample mean; it is for *non-linear* functions of the snapshots — a purity,
 # a projected density matrix, a fidelity after projection — that the bootstrap is the only error bar available.
 #
@@ -889,9 +961,13 @@ assert dev.max() < 4.5
 #
 # The energy comes out as $-9.939\pm0.064$ against the exact $-9.838$, a deviation of $1.6$ standard errors. Its estimator is a
 # linear combination of $15$ Pauli strings, which lets us build **one energy estimate per snapshot** (`vals_main @ coef`) and treat
-# the energy as a single random variable. Its variance is not the sum of the fifteen individual variances — the estimators are
-# correlated, because they are computed from the same snapshot — and the sample mean handles that automatically. This is how
-# shadows are used inside a variational algorithm, where the energy is the cost function.
+# the energy as a single random variable whose sample variance automatically contains every covariance between the fifteen
+# estimators. For this state the covariances happen to nearly cancel (the printed per-snapshot variance differs from the sum of the
+# fifteen individual variances by $2.7\%$), so here the shortcut of adding the individual error bars in quadrature would also work;
+# the per-snapshot energy does not rely on such a cancellation. This is how
+# shadows are used inside a variational algorithm, where the energy is the cost function. The wrong control removes the factor $3$
+# per qubit from the same snapshots: the energy estimate then converges to $-\sum_i\langle Z_iZ_{i+1}\rangle/9-\sum_i\langle X_i\rangle/3$
+# and misses $E_0$ by hundreds of standard errors.
 
 # %% [markdown]
 # ## 8. Convergence with the number of snapshots
@@ -953,11 +1029,19 @@ for j, m in enumerate(M_GRID):
 slopes = [np.polyfit(np.log(M_GRID), np.log(rms[:, i]), 1)[0] for i in range(4)]
 print(f"\nCHECKPOINT fitted log-log slopes: " + ", ".join(f"{s:+.3f}" for s in slopes) + "  (expected -0.500)")
 assert max(abs(s + 0.5) for s in slopes) < 0.06
-ratio7 = rms[:, :3] / np.array([[np.sqrt((3.0 ** (i + 1) - exact_conv[i] ** 2) / m) for i in range(3)] for m in M_GRID])
-print(f"CHECKPOINT measured rms error / Eq. (7): min {ratio7.min():.3f}, max {ratio7.max():.3f} (expected 1; "
-      f"the large-M points average over only {blocks[M_GRID[-1]].shape[0]} blocks and scatter by "
-      f"~{100 / np.sqrt(2 * blocks[M_GRID[-1]].shape[0]):.0f}%)")
-assert 0.8 < ratio7.min() and ratio7.max() < 1.25
+pred7 = np.array([[(3.0 ** (i + 1) - exact_conv[i] ** 2) / m for i in range(3)] for m in M_GRID])   # Var, Eq. (7)
+ms_err = np.array([[np.mean(blocks[m][:, i] ** 2) for i in range(3)] for m in M_GRID])            # mean squared error
+ms_se = np.array([[np.std(blocks[m][:, i] ** 2, ddof=1) / np.sqrt(blocks[m].shape[0]) for i in range(3)]
+                  for m in M_GRID])                                                                # its standard error
+z7 = (ms_err - pred7) / ms_se
+ratio7 = np.sqrt(ms_err / pred7)
+print(f"CHECKPOINT measured rms error / Eq. (7): min {ratio7.min():.3f}, max {ratio7.max():.3f}; in units of the "
+      f"standard error of the mean squared error (16 to 4800 blocks): largest |deviation| {np.abs(z7).max():.2f}")
+# WRONG CONTROL: Eq. (7) without the -<P>^2 term, i.e. Var = 3^k / M  (an 18 % change for <X_1> = 0.735)
+z7_wrong = (ms_err[0, 0] - 3.0 / M_GRID[0]) / ms_se[0, 0]
+print(f"WRONG CONTROL Var = 3^k/M for <X_1> at M = {M_GRID[0]}: deviation {z7_wrong:+.1f} standard errors")
+assert np.abs(z7).max() < 3.5            # 18 tests
+assert abs(z7_wrong) > 5
 
 # %% [markdown]
 # The fitted log-log slopes are $-0.52$, $-0.47$, $-0.53$ and $-0.49$ against the expected $-1/2$, and the dotted reference lines
@@ -965,11 +1049,17 @@ assert 0.8 < ratio7.min() and ratio7.max() < 1.25
 # at $M=100$ the measured root-mean-square errors are $0.156$, $0.296$ and $0.515$ against the predicted $0.157$, $0.295$
 # and $0.515$. The vertical ordering is the $3^{k/2}$ prefactor: each extra qubit in the support costs a factor
 # $\sqrt3\approx1.7$ in accuracy at fixed budget, or a factor $3$ in budget at fixed accuracy. The scatter of the two largest-$M$
-# points is the finite number of blocks available there ($16$ at $M=3\cdot10^4$), not a failure of the law.
+# points is the finite number of blocks available there ($16$ at $M=3\cdot10^4$): measured in units of the standard error of the
+# mean squared error, which the checkpoint computes from the blocks themselves, every one of the $18$ points lies within
+# $1.9$ standard errors of Eq. (7). The test is sharp enough to resolve the $-\langle P\rangle^2$ term of Eq. (7): for
+# $\langle X_1\rangle=0.735$ at $M=100$, the variance $3/M$ without that term is rejected by $11.5$ standard errors.
 #
-# The energy sits above the three single strings but only by a factor of about two, although it is a sum of fifteen of them. Its
-# variance is not the sum of the fifteen individual variances: the strings are estimated from the same snapshots and are
-# correlated, and most snapshots contribute to several of them at once.
+# The energy curve lies a factor $1.8$ above the weight-3 correlator and a factor $3$ above $\langle Z_1Z_2\rangle$. Its
+# per-snapshot variance, printed in Section 7, equals the sum of the fifteen individual variances to within $3\%$, so the fifteen
+# errors add essentially in quadrature, $\sqrt{7\cdot8.7+8\cdot2.4}\approx9$ per snapshot.
+# Covariances exist but nearly cancel for this state: two overlapping bonds $Z_iZ_{i+1}$ and $Z_{i+1}Z_{i+2}$ are measured
+# together whenever three $Z$ bases coincide (positive covariance), while $Z_iZ_{i+1}$ and $X_i$ are never measured in the same
+# snapshot, so their estimators have covariance $-\langle Z_iZ_{i+1}\rangle\langle X_i\rangle<0$.
 
 # %% [markdown]
 # ## 9. The local-Clifford variant: 24 rotations instead of 3
@@ -995,7 +1085,7 @@ assert 0.8 < ratio7.min() and ratio7.max() < 1.25
 # general 2-design result of Section 10.1 reads $\mathcal M(A)=(A+\mathrm{Tr}(A)\mathbb 1)/(d+1)=(A+\mathrm{Tr}(A)\mathbb 1)/3$,
 # which is Eq. (3) again.
 #
-# Let us check both statements numerically, to machine precision, with the superoperator machinery of Section 4.
+# Both statements are checked numerically below, to machine precision, with the superoperator machinery of Section 4.
 
 # %%
 # ==============================================================================
@@ -1027,14 +1117,25 @@ print(f"CHECKPOINT 20000 Haar-random 1-qubit unitaries vs the same channel: max 
       f"{max_abs(S_haar1 - S_pauli):.3f}  (Monte-Carlo noise ~ {1 / np.sqrt(20000):.3f})")
 assert max_abs(S_haar1 - S_pauli) < 6 / np.sqrt(20000)
 
+# WRONG CONTROL: random rotations about the y axis only (theta uniform) -- a continuous ensemble that is NOT a 2-design;
+# it measures axes in the x-z plane and never y
+th = jax.random.uniform(jax.random.PRNGKey(4), (20000,), minval=0.0, maxval=2 * np.pi)
+U_ry = jax.vmap(lambda t: jnp.array([[jnp.cos(t / 2), -jnp.sin(t / 2)], [jnp.sin(t / 2), jnp.cos(t / 2)]],
+                                    dtype=CDTYPE))(th)
+err_ry = max_abs(measurement_channel(U_ry) - S_pauli)
+print(f"WRONG CONTROL 20000 random y-rotations vs the same channel: max error = {err_ry:.3f}")
+assert err_ry > 6 / np.sqrt(20000)
+
 # %% [markdown]
 # Exactly the same channel, to $10^{-16}$ — and the axis count confirms the geometric argument: each of the six signed axes is
 # measured by precisely four of the $24$ Cliffords. Haar-random single-qubit rotations, which are a $k$-design for every $k$, give
-# the same channel again within Monte-Carlo noise.
+# the same channel again within Monte-Carlo noise. Random rotations about a single axis do not: they are a continuous ensemble but
+# not a 2-design (they never measure $Y$), and the same Monte-Carlo test rejects them by a wide margin.
 #
-# > **Common pitfall.** "More random rotations must be better" is wrong. What enters the estimator is the *second moment* of the
-# > ensemble, and any 2-design has the same second moment. A richer single-qubit ensemble costs more calibration in the laboratory
-# > and buys nothing. The interesting variation is not *more* random single-qubit rotations but **entangling** ones — Section 10.
+# > **Common pitfall.** A larger set of random rotations does not improve the estimator. What enters the channel is the
+# > *second moment* of the ensemble, and any 2-design has the same second moment. A richer single-qubit ensemble costs more
+# > calibration in the laboratory and changes nothing. The variation that does change the channel is **entangling** random
+# > unitaries (Section 10).
 
 # %% [markdown]
 # ## 10. The global variant: entangling Clifford circuits
@@ -1085,17 +1186,17 @@ assert max_abs(S_haar1 - S_pauli) < 6 / np.sqrt(20000)
 # > **every** qubit, followed by CNOTs on the even bonds $(0,1),(2,3),\dots$ in even layers and on the odd bonds $(1,2),(3,4),\dots$
 # > in odd layers. We use $L=2N$.
 #
-# This is *not* the uniform Clifford measure, and we do not claim it is. What we claim — and what **unbiasedness** needs — is that
-# its **second moments** match, i.e. that the measured channel equals Eq. (9). That is a testable statement, and we test it:
+# This ensemble differs from the uniform Clifford measure. **Unbiasedness** needs only that its **second moments** match those of
+# the Clifford group, i.e. that its measurement channel equals Eq. (9). That is a testable statement, and we test it:
 # we build the superoperator of Eq. (1) for the sampled ensemble by Monte Carlo and compare it with Eq. (9), with the Monte-Carlo
 # error bar shown alongside. For reference we do the same for genuinely Haar-random unitaries, which are a $k$-design for every $k$.
 #
 # > **Common pitfall.** A 2-design is enough for $\mathbb E[\hat\rho]=\rho$ and for nothing else. The *variance*
 # > $\mathbb E[\hat o^{\,2}]$ contains three factors of $U$ and three of $U^\dagger$, so it is a **third** moment of the ensemble;
 # > this is why Huang, Kueng and Preskill prove their global-Clifford variance bound using the fact that the Clifford group is a
-# > 3-design (Webb 2016; Zhu 2017 — see also notebook 10, where the Clifford group is shown to be a 3-design but *not* a
-# > 4-design). The channel test below therefore certifies the *unbiasedness* of the depth-$2N$ ensemble, not the variances
-# > measured in Section 10.3; read those as properties of the circuit we sample.
+# > 3-design (Webb 2016; Zhu 2017 — see also notebook 10, where the single-qubit Clifford group is shown numerically to be a 3-design
+# > and to fail as a 4-design). The channel test below therefore certifies the *unbiasedness* of the depth-$2N$ ensemble and says nothing about the
+# > variances measured in Section 10.3; Section 10.3 compares those with the ideal Clifford values and with a deeper circuit.
 
 # %%
 # ==============================================================================
@@ -1181,25 +1282,35 @@ for n in (1, 2, 3):
     Uh = jax.vmap(lambda k: haar_unitary(k, d))(jax.random.split(jax.random.PRNGKey(12), N_CIRC))
     err_h = max_abs(measurement_channel(Uh) - S_pred)
     print(f"{n:2d} {d:3d} {depth:6d} {max_abs(S_glob - S_pred):25.4f} {1 / np.sqrt(N_CIRC):10.4f} {err_h:15.4f}")
-    # a 3-sigma window: tight enough to REJECT depths 1 and 2 at N = 3 (which give 0.077 and 0.071), see Exercise 5
+    # a 3-sigma window: tight enough to REJECT a too-shallow circuit (wrong controls below), see Exercise 5
     assert max_abs(S_glob - S_pred) < 3 / np.sqrt(N_CIRC)
+
+# WRONG CONTROLS at N = 3 (S_pred, d are still those of n = 3): depth 1, depth 2, and depth 2N without any CNOT
+for label, depth_c, bonds_c in (("depth 1", 1, brickwall_bonds(3, 1)), ("depth 2", 2, brickwall_bonds(3, 2)),
+                                ("depth 6, no CNOT", 6, [[] for _ in range(6)])):
+    idxs = jax.random.randint(jax.random.PRNGKey(11), (N_CIRC, depth_c, 3), 0, CLIFF1.shape[0])
+    S_c = measurement_channel(jax.lax.map(lambda ii: clifford_circuit_unitary(ii, bonds_c), idxs))
+    err_c = max_abs(S_c - S_pred)
+    print(f"WRONG CONTROL N = 3, {label:>16s}: max |M_sampled - Eq.(9)| = {err_c:.4f}  "
+          f"({err_c * np.sqrt(N_CIRC):.1f} x MC noise)")
+    assert err_c > 3 / np.sqrt(N_CIRC)
 
 # %% [markdown]
 # For $N=1,2,3$ the measured channel of the random-Clifford-circuit ensemble agrees with Eq. (9) within the Monte-Carlo error
 # $\sim1/\sqrt{4000}=0.016$, and so does the Haar reference. The circuits we sample are therefore a 2-design *for the purpose of
-# Eq. (1)*, which is what unbiasedness needs. This is a numerical statement about the depth we chose, not a theorem, and the test
-# does have the power to reject a shallower circuit: running the same measurement at $N=3$ with $L=1$ and $L=2$ gives
-# $0.077$ and $0.071$, five times the Monte-Carlo noise and well outside the $3\sigma$ window asserted above; removing the CNOT
-# layers altogether gives $0.077$ at any depth, since a product of local Cliffords stays a product of local Cliffords and
+# Eq. (1)*, which is what unbiasedness needs. This is a numerical statement about the depth we chose rather than a theorem, and the test
+# does have the power to reject a shallower circuit: the wrong controls at $N=3$ with $L=1$ and $L=2$ give
+# $0.077$ and $0.071$, about five times the Monte-Carlo noise and outside the $3\sigma$ window asserted above; removing the CNOT
+# layers altogether gives $0.077$, since a product of local Cliffords stays a product of local Cliffords and
 # reproduces the *Pauli* channel instead of Eq. (9). Exercise 5 turns this into a depth scan.
 #
 # ### 10.3 Fidelity: where global shadows win and local shadows lose
 #
 # Consider estimating the **fidelity with a pure target**, $F=\langle\psi_{\rm t}\vert\rho\vert\psi_{\rm t}\rangle$, i.e. the
-# observable $O=\vert\psi_{\rm t}\rangle\langle\psi_{\rm t}\vert$. It has $\mathrm{Tr}(O^2)=1$ independently of $N$, so the quoted
-# bound of Section 6.2 gives $\lVert O\rVert_{\rm shadow}^2\le3$ for global shadows — the cost of certifying a state does **not**
-# grow with its size. For local (Pauli) shadows, $O$ is an $N$-local observable, and the general bound $4^k\lVert O\rVert_\infty^2$
-# gives $4^N$: useless.
+# observable $O=\vert\psi_{\rm t}\rangle\langle\psi_{\rm t}\vert$. Its traceless part has $\mathrm{Tr}(O_0^2)=1-2^{-N}<1$
+# independently of $N$, so the quoted bound of Section 6.2 gives $\lVert O_0\rVert_{\rm shadow}^2<3$ for the global Clifford
+# ensemble: the cost of certifying a state does **not** grow with its size. For local (Pauli) shadows, $O$ is an $N$-local
+# observable, and the general bound $4^k\lVert O\rVert_\infty^2$ evaluates to $4^N$, which says nothing useful.
 #
 # For a product target the variance can be computed exactly rather than bounded. Take $\vert\psi_{\rm t}\rangle=\vert0\rangle^{\otimes N}$ and the state
 # $\rho=\vert0\rangle\langle0\vert^{\otimes N}$. Then $O=\bigotimes_q\tfrac{\mathbb 1+Z_q}{2}$ and, by Eq. (5), the single-snapshot
@@ -1214,8 +1325,29 @@ for n in (1, 2, 3):
 #
 # $$\mathbb E[\hat o^{\,2}]=\prod_q\left(\frac13\cdot4+\frac23\cdot\frac14\right)=\left(\frac32\right)^{N} . \tag{10}$$
 #
-# So the variance of the local-shadow fidelity estimator grows as $1.5^N$: exponential, though with a smaller base than the
-# worst-case bound $4^N$. Let us measure Eq. (10), measure the same thing for a GHZ target, and compare with global shadows.
+# So the variance of the local-shadow fidelity estimator, $(3/2)^N-1$, grows exponentially, with a smaller base than the
+# worst-case bound $4^N$. We measure Eq. (10), measure the same quantity for a GHZ target, and compare with global shadows.
+#
+# For the **ideal** global Clifford ensemble, which is a unitary 3-design, the second moments can be computed in closed form,
+# because $\mathbb E[\hat o^{\,2}]$ involves three copies of $\vert\chi\rangle\langle\chi\vert$ (two from $\hat o^{\,2}$, one
+# from the Born probability). Averaging $\vert\chi\rangle\langle\chi\vert^{\otimes3}$ over Haar-random states gives
+# $P_{\rm sym}^{(3)}/\binom{d+2}{3}$, and contracting it with $\rho\otimes O\otimes O$ for a traceless $O$ leaves only three
+# of the six permutations (the transposition of the two $O$ copies and the two three-cycles), so that
+#
+# $$\mathbb E\big[\hat o^{\,2}\big]=\frac{(d+1)\big(\mathrm{Tr}(O^2)+2\,\mathrm{Tr}(\rho O^2)\big)}{d+2}
+#   \;=\;d+1\quad\text{for a Pauli string, where }O^2=\mathbb 1,\ \mathrm{Tr}(O^2)=d , \tag{10a}$$
+#
+# for every state. For the fidelity with the state itself, $O=\rho=\vert\psi\rangle\langle\psi\vert$, write
+# $x=\vert\langle\psi\vert\chi\rangle\vert^2$, so that $\hat o=(d+1)x-1$ and the outcome $\chi$ occurs with weight
+# $d\,x$ relative to a Haar-random state. With the Haar moments $\mathbb E[x]=\tfrac1d$, $\mathbb E[x^2]=\tfrac{2}{d(d+1)}$,
+# $\mathbb E[x^3]=\tfrac{6}{d(d+1)(d+2)}$,
+#
+# $$\mathbb E\big[\hat o^{\,2}\big]=d\,\mathbb E\big[x\,((d+1)x-1)^2\big]=\frac{6(d+1)}{d+2}-3
+#   \;=\;2.00,\ 2.40,\ 2.67,\ 2.82,\ 2.91\quad(N=2,\dots,6), \tag{10b}$$
+#
+# which tends to $3$ from below; the variance $\mathbb E[\hat o^{\,2}]-1$ tends to $2$. Both formulas use the third moment of
+# the ensemble, which the depth-$2N$ circuit of Section 10.2 is not guaranteed to have, so the experiment below also samples a
+# circuit of depth $4N$.
 #
 # To estimate a fidelity from *local* shadows without building any matrix we use the product form of Eq. (5) once more:
 # $\hat o=\langle\psi_{\rm t}\vert\big(\bigotimes_qA_q\big)\vert\psi_{\rm t}\rangle$ is $N$ `apply_gate` einsums on the target state
@@ -1265,107 +1397,136 @@ def apply_pauli_string_local(psi, ops):
 # --- EXPERIMENT: variance of two estimators vs system size, for both ensembles ---------------------
 N_LIST_F = [2, 3, 4, 5, 6]
 M_LOC, M_GLO = 20480, 4096
+
+
+def second_moment(o):
+    """Sample mean of o^2 and its standard error (o^2 is itself a heavy-tailed random variable)."""
+    o2 = jnp.asarray(o) ** 2
+    return float(o2.mean()), float(o2.std() / np.sqrt(o2.shape[0]))
+
+
 rows = []
 t0 = time.perf_counter()
 for n in N_LIST_F:
     ghz, prod = ghz_state(n), product_state("0" * n)
     zz_ops = {0: "Z", 1: "Z"}
+    # the same key at every N: the bases drawn for qubits 0 and 1 are then identical for all N (see the text below)
     bb, tt = collect_shadows(jax.random.PRNGKey(41), ghz, M_LOC)
     bbp, ttp = collect_shadows(jax.random.PRNGKey(42), prod, M_LOC)
     o_loc_ghz = jax.jit(partial(shadow_fidelity_local, psi_t=ghz))(bb, tt)
     o_loc_prod = jax.jit(partial(shadow_fidelity_local, psi_t=prod))(bbp, ttp)
     o_loc_zz = snapshot_values(bb, tt, pauli_digits(["ZZ" + "I" * (n - 2)]))[:, 0]
-    ch = collect_global_shadows(jax.random.PRNGKey(43), ghz, M_GLO)
+    ch = collect_global_shadows(jax.random.PRNGKey(43), ghz, M_GLO)                                    # depth 2N
     o_glo_ghz = shadow_fidelity_global(ch, ghz)
     o_glo_zz = shadow_pauli_global(ch, ghz.shape, zz_ops)
-    rows.append((n, float((o_loc_zz ** 2).mean()), float((o_loc_ghz ** 2).mean()), float((o_loc_prod ** 2).mean()),
-                 float((o_glo_zz ** 2).mean()), float((o_glo_ghz ** 2).mean()),
-                 float(o_loc_ghz.mean()), float(o_glo_ghz.mean())))
+    ch4 = collect_global_shadows(jax.random.fold_in(jax.random.PRNGKey(44), n), ghz, M_GLO, depth=4 * n)
+    o_glo_zz4 = shadow_pauli_global(ch4, ghz.shape, zz_ops)                                         # depth 4N
+    rows.append((n, second_moment(o_loc_zz)[0], second_moment(o_loc_ghz)[0], second_moment(o_loc_prod)[0],
+                 second_moment(o_glo_zz)[0], second_moment(o_glo_ghz)[0],
+                 float(o_loc_ghz.mean()), float(o_glo_ghz.mean()),
+                 second_moment(o_loc_zz)[1], second_moment(o_loc_prod)[1], second_moment(o_glo_zz)[1],
+                 second_moment(o_glo_ghz)[1], *second_moment(o_glo_zz4)))
 print(f"variance scan done in {time.perf_counter() - t0:.1f} s "
-      f"(local: {M_LOC} snapshots, global: {M_GLO} snapshots per N)\n")
-print(f"{'N':>2s} | {'LOCAL shadows':^34s} | {'GLOBAL shadows':^22s} | {'F_hat (GHZ)':^19s}")
-print(f"{'':>2s} | {'<ZZ>':>9s} {'F(GHZ)':>10s} {'F(|0..0>)':>12s} | {'<ZZ>':>10s} {'F(GHZ)':>10s} | "
-      f"{'local':>9s} {'global':>9s}")
-for r in rows:
-    print(f"{r[0]:2d} | {r[1]:9.2f} {r[2]:10.2f} {r[3]:12.2f} | {r[4]:10.2f} {r[5]:10.2f} | "
-          f"{r[6]:9.3f} {r[7]:9.3f}")
-print(f"\nreference values:  3^2 = 9 (weight-2 Pauli, local)   (3/2)^N, Eq. (10)   "
-      f"3 Tr(O^2) = 3 (bound for global)")
+      f"(local: {M_LOC} snapshots, global: {M_GLO} snapshots per N and depth)\n")
 
-# --- CHECKPOINT: the three laws the figure below claims -------------------------------------------
-ratio_10 = np.array([r[3] / 1.5 ** r[0] for r in rows])          # local fidelity, product target, vs Eq. (10)
-ratio_zz = np.array([r[1] / 9.0 for r in rows])                  # local weight-2 Pauli, vs 3^k = 9
-print(f"CHECKPOINT local E[o^2] for the product-target fidelity / (3/2)^N: min {ratio_10.min():.3f}, "
-      f"max {ratio_10.max():.3f}  (exact value 1; a heavy-tailed second moment at M = {M_LOC} scatters by a few percent)")
-print(f"CHECKPOINT local E[o^2] for <Z_0Z_1> / 3^2 over N = {N_LIST_F[0]}..{N_LIST_F[-1]}: "
-      f"min {ratio_zz.min():.3f}, max {ratio_zz.max():.3f}  (exact value 1, independent of N)")
-print(f"CHECKPOINT global E[o^2] for the GHZ fidelity: max {max(r[5] for r in rows):.2f} "
-      f"(quoted bound 3 Tr(O^2) = 3)")
-assert 0.9 < ratio_10.min() and ratio_10.max() < 1.1
-assert 0.95 < ratio_zz.min() and ratio_zz.max() < 1.05
-assert max(r[5] for r in rows) < 3.3     # ideal global Clifford: <= 3 Tr(O^2) = 3; our depth-2N circuit approximates one
+# ideal global Clifford ensemble (a unitary 3-design): Eq. (10a) for <ZZ>, Eq. (10b) for the fidelity
+ideal_zz = np.array([2.0 ** n + 1 for n in N_LIST_F])
+ideal_fid = np.array([6 * (2.0 ** n + 1) / (2.0 ** n + 2) - 3 for n in N_LIST_F])
+print("second moments E[o^2] (+- standard error)")
+print(f"{'N':>2s} | {'LOCAL shadows':^38s} | {'GLOBAL shadows, depth-2N circuit':^45s} | {'depth 4N':^14s}")
+print(f"{'':>2s} | {'<ZZ>':>11s} {'F(GHZ)':>8s} {'F(|0..0>)':>16s} | {'<ZZ>':>13s} {'ideal':>5s} "
+      f"{'F(GHZ)':>13s} {'ideal':>6s} | {'<ZZ>':>14s}")
+for j, r in enumerate(rows):
+    print(f"{r[0]:2d} | {r[1]:5.2f}+-{r[8]:4.2f} {r[2]:8.2f} {r[3]:7.2f}+-{r[9]:5.2f}  | "
+          f"{r[4]:6.1f}+-{r[10]:4.1f} {ideal_zz[j]:5.0f} {r[5]:5.2f}+-{r[11]:5.2f} {ideal_fid[j]:6.2f} | "
+          f"{r[12]:6.1f}+-{r[13]:4.1f}")
+print("\nfidelity estimates F_hat (GHZ, exact value 1):  local "
+      + " ".join(f"{r[6]:.3f}" for r in rows) + "   global " + " ".join(f"{r[7]:.3f}" for r in rows))
+
+# --- CHECKPOINTS: every law the figure below claims, in units of the measured standard error -------
+z_prod = np.array([(r[3] - 1.5 ** r[0]) / r[9] for r in rows])                 # local, product target, Eq. (10)
+z_zz = np.array([(r[1] - 9.0) / r[8] for r in rows])                           # local weight-2 Pauli, 3^k = 9
+z_fid = np.array([(r[5] - ideal_fid[j]) / r[11] for j, r in enumerate(rows)])  # global fidelity, Eq. (10b)
+z_zz2 = np.array([(r[4] - ideal_zz[j]) / r[10] for j, r in enumerate(rows)])   # global <ZZ>, depth 2N, Eq. (10a)
+z_zz4 = np.array([(r[12] - ideal_zz[j]) / r[13] for j, r in enumerate(rows)])  # global <ZZ>, depth 4N, Eq. (10a)
+z_prod_wrong = np.array([(r[3] - ideal_fid[j]) / r[9] for j, r in enumerate(rows)])
+print(f"CHECKPOINT local fidelity, product target, vs (3/2)^N : deviations {np.array2string(z_prod, precision=1)} sd")
+print(f"CHECKPOINT local <Z_0Z_1> vs 3^2 = 9 at every N        : deviations {np.array2string(z_zz, precision=1)} sd")
+print(f"CHECKPOINT global fidelity vs ideal Clifford, Eq. (10b): deviations {np.array2string(z_fid, precision=1)} sd")
+print(f"CHECKPOINT global <ZZ>, depth 4N, vs 2^N + 1           : deviations {np.array2string(z_zz4, precision=1)} sd")
+print(f"WRONG CONTROL global <ZZ>, depth 2N, vs 2^N + 1        : deviations {np.array2string(z_zz2, precision=1)} sd")
+print(f"WRONG CONTROL local fidelity vs the N-independent global law (10b): "
+      f"deviations {np.array2string(z_prod_wrong, precision=1)} sd")
+assert np.abs(z_prod).max() < 3.5 and np.abs(z_zz).max() < 3.5
+assert np.abs(z_fid).max() < 3.5
+assert np.abs(z_zz4).max() < 3.5
+assert z_zz2.max() > 4.0                  # the depth-2N circuit does NOT have the third moment of the Clifford group
+assert z_prod_wrong[-2:].min() > 5.0      # local shadows do not share the N-independent fidelity cost
 
 # %%
 # ==============================================================================
 # FIGURE: local and global shadows are complementary
 # ==============================================================================
-fig, ax = plt.subplots(figsize=(6.8, 4.6))
+fig, ax = plt.subplots(figsize=(7.6, 5.6))
 ns = np.array([r[0] for r in rows], dtype=float)
 ax.semilogy(ns, [r[1] for r in rows], MARKERS[0] + "-", color=PALETTE[0], label=r"local: $\langle Z_0Z_1\rangle$")
 ax.semilogy(ns, [r[2] for r in rows], MARKERS[1] + "-", color=PALETTE[1], label=r"local: fidelity with GHZ")
 ax.semilogy(ns, [r[3] for r in rows], MARKERS[2] + "-", color=PALETTE[2],
             label=r"local: fidelity with $\vert0\rangle^{\otimes N}$")
 ax.semilogy(ns, (1.5) ** ns, ":", color=PALETTE[2], lw=1.4, label=r"$(3/2)^N$, Eq. (10)")
-ax.semilogy(ns, [r[4] for r in rows], MARKERS[3] + "--", color=PALETTE[3], label=r"global: $\langle Z_0Z_1\rangle$")
-ax.semilogy(ns, 2.0 ** ns + 1.0, ":", color=PALETTE[3], lw=1.4, label=r"$2^N+1$ (ideal global Clifford)")
-ax.semilogy(ns, [r[5] for r in rows], MARKERS[4] + "--", color=PALETTE[4], label=r"global: fidelity with GHZ")
+ax.semilogy(ns, [r[4] for r in rows], MARKERS[3] + "--", color=PALETTE[3],
+            label=r"global (depth-$2N$ circuit): $\langle Z_0Z_1\rangle$")
+ax.semilogy(ns, [r[12] for r in rows], MARKERS[5] + "--", color=PALETTE[5], mfc="none",
+            label=r"global (depth-$4N$ circuit): $\langle Z_0Z_1\rangle$")
+ax.semilogy(ns, ideal_zz, ":", color=PALETTE[3], lw=1.4, label=r"$2^N+1$, Eq. (10a) (ideal Clifford)")
+ax.semilogy(ns, [r[5] for r in rows], MARKERS[4] + "--", color=PALETTE[4],
+            label=r"global (depth-$2N$ circuit): fidelity with GHZ")
+ax.semilogy(ns, ideal_fid, ":", color=PALETTE[4], lw=1.4, label=r"Eq. (10b) (ideal Clifford)")
 ax.axhline(9.0, color="0.4", ls="-.", lw=1.2)
-ax.axhline(3.0, color="0.4", ls=":", lw=1.2)
 ax.text(N_LIST_F[0] + 0.05, 9.6, r"$3^k=9$", fontsize=8, color="0.4")
-ax.text(N_LIST_F[0] + 0.05, 3.2, r"$3\,\mathrm{Tr}(O^2)=3$", fontsize=8, color="0.4")
 ax.set_xticks(N_LIST_F); ax.set_xlabel("number of qubits $N$")
 ax.set_ylabel(r"$E[\hat o^{\,2}]$  (snapshots needed $\propto E[\hat o^2]/\varepsilon^2$)")
 ax.set_title("Measured single-snapshot second moments\nlocal (Pauli) versus global (Clifford) ensembles")
-ax.legend(fontsize=8, ncol=1, loc="upper left")
+ax.legend(fontsize=7, ncol=1, loc="upper left")
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# Every curve in the figure is measured.
+# Every curve in the figure is measured, and every checkpoint above compares a measurement with a prediction in units of its own
+# standard error.
 #
-# * **Local shadows, local observable** (blue): $8.95$ at every $N$ from $2$ to $6$, against the exact $3^k=9$ — the
-#   $N$-independence of Eq. (7).
+# * **Local shadows, local observable** (blue): $8.95\pm0.18$ at every $N$ from $2$ to $6$, against the exact $3^k=9$. The five
+#   values coincide because the same key draws the same bases on qubits $0$ and $1$ at every $N$, and $\hat o^{\,2}$ for
+#   $Z_0Z_1$ depends only on those two bases: the column is one measurement of an $N$-independent quantity, repeated. Section 12
+#   tests the $N$-independence of Eq. (7) with an independent data set at every $N$.
 # * **Local shadows, fidelity** (green, orange): exponential. The product target gives $2.27,\,3.31,\,4.84,\,7.20,\,11.52$ against
 #   the derived $(3/2)^N=2.25,\,3.38,\,5.06,\,7.59,\,11.39$ of Eq. (10); the GHZ target grows at a similar rate
-#   ($2.13\to8.63$, a factor $1.4$ per qubit). Certifying a state with local randomised measurements costs exponentially many runs.
-# * **Global shadows, fidelity** (pink): $1.92\to2.96$, approaching but not exceeding the quoted bound
-#   $3\,\mathrm{Tr}(O^2)=3$ — a fidelity costs $O(1/\varepsilon^2)$ snapshots at any $N$.
+#   ($2.13\to8.63$, a factor $1.4$ per qubit). Certifying a state with local randomised measurements costs exponentially many runs. The wrong control
+#   (the $N$-independent law (10b) of the global ensemble) is rejected at every $N$, by $8$ to $11$ standard errors.
+# * **Global shadows, fidelity** (pink): $1.92,\,2.31,\,2.68,\,2.82,\,2.96$, against the ideal-Clifford values $2.00,\,2.40,\,2.67,\,2.82,\,2.91$ of
+#   Eq. (10b), with which they agree within $1.3$ standard errors. A fidelity costs $O(1/\varepsilon^2)$ snapshots at any $N$.
 # * **Global shadows, local observable** (yellow): $4.90\to106.2$, a factor of about $2$ per qubit. Entangling the measurement
-#   destroys the locality that made Eq. (7) $N$-independent, and the values stay below the quoted bound $3\,\mathrm{Tr}(P^2)=3\cdot2^N$.
+#   destroys the locality that made Eq. (7) $N$-independent.
 #
-# The yellow curve is the one place where the difference between the ideal global Clifford group and the depth-$2N$ circuit we
-# actually sample is visible, and it is worth spelling out, because it is exactly the third-moment gap flagged in Section 10.2.
-# For a *true* 3-design one can compute $\mathbb E[\hat o^{\,2}]$ in closed form. Averaging
-# $\vert\chi\rangle\langle\chi\vert^{\otimes3}$ over Haar-random states gives $P_{\rm sym}^{(3)}/\binom{d+2}{3}$, and contracting
-# it with $\rho\otimes O\otimes O$ for a traceless $O$ leaves only three of the six permutations, so that
-#
-# $$\mathbb E\big[\hat o^{\,2}\big]=\frac{(d+1)\big(\mathrm{Tr}(O^2)+2\,\mathrm{Tr}(\rho O^2)\big)}{d+2}
-#   \;=\;d+1\quad\text{for a Pauli string, where }O^2=\mathbb 1,\ \mathrm{Tr}(O^2)=d . \tag{10a}$$
-#
-# So the ideal value of the yellow curve is $2^N+1=5,9,17,33,65$, sitting exactly on the *lower* bound
-# $\mathrm{Tr}(O_0^2)=2^N$ of Section 6.2 rather than on the upper one. The measured values $4.90,\,10.40,\,22.79,\,55.83,\,106.2$
-# follow it at $N=2$ and then drift above it — by $34\%$ at $N=4$ and $63\%$ at $N=6$. The depth-$2N$ brick-wall circuit passes
-# the second-moment test of Section 10.2 but is not yet a 3-design at these depths, and a *variance* is a third moment. The
-# qualitative message — a factor $\approx2$ per qubit, so global shadows are a bad way to measure a two-body correlator — is
-# unaffected; the numbers themselves belong to our circuit, not to the Clifford group.
+# The yellow curve is where the difference between the ideal global Clifford ensemble and the depth-$2N$ circuit we
+# actually sample becomes visible: this is the third-moment gap flagged in Section 10.2. The ideal values are
+# $2^N+1=5,9,17,33,65$ from Eq. (10a), one unit above the *lower* bound $\mathrm{Tr}(P^2)=2^N$ of Section 6.2 and far below the
+# upper one, $3\cdot2^N$. The depth-$2N$ circuit follows them at $N=2$ and then drifts above them, by $34\%$ at $N=4$ and $63\%$ at
+# $N=6$ (up to $6.1$ standard errors at $N=5$, the wrong control of the checkpoint). Doubling the depth to $4N$ (purple, open symbols)
+# brings the values back to $2^N+1$ within $1.5$ standard errors ($5.0,\,9.5,\,17.0,\,37.8,\,76.3$): the depth-$2N$ brick-wall circuit passes the second-moment test of
+# Section 10.2 but has not yet converged to the third moment of the Clifford group, and a *variance* is a third moment. The
+# measured depth-$2N$ values are therefore properties of that circuit and do not test the bound of Section 6.2, which concerns
+# the ideal ensemble. The qualitative message, a factor $\approx2$ per qubit that makes global shadows a poor way to measure a
+# two-body correlator, holds for both depths.
 #
 # The two ensembles are complementary, and the choice between them is a physical decision about what is to be learnt. In the
-# laboratory there is a third consideration: a global Clifford circuit needs $O(N^2/\log N)$ entangling gates *before every single
-# measurement*, whereas random Pauli bases need one single-qubit rotation per qubit. That is why randomised-measurement
-# experiments on qubit registers use local rotations. The global variant has been realised where a global unitary is *not* an
-# entangling circuit: Struchalin *et al.* (2021) encode up to $2^5$ dimensions in the spatial modes of a single photon and,
-# because a spatial light modulator projects onto an arbitrary vector in one step, they implement the **global** Clifford
-# (stabiliser) ensemble directly — by drawing a random stabiliser state $\vert\psi\rangle=U^\dagger\vert b\rangle$ instead of
-# compiling a Clifford gate sequence. Their Fig. 1 and Table I are worth reading next to Section 11 below.
+# laboratory there is a third consideration: a uniformly random $N$-qubit Clifford unitary needs $O(N^2/\log N)$ gates
+# (Aaronson and Gottesman 2004) *before every single measurement*, whereas random Pauli bases need one single-qubit rotation per
+# qubit. Randomised-measurement experiments on qubit registers therefore use local rotations. The global variant has been realised
+# where a global unitary need not be compiled into an entangling gate sequence: Struchalin *et al.* (2021) prepare states of dimension $D=2,4,\dots,32$
+# (one to five qubits) in the spatial modes of photons and, because a spatial light modulator projects onto an arbitrary vector in
+# one step, they implement the **global** Clifford (stabiliser) ensemble directly, by drawing a random stabiliser state
+# $\vert\psi\rangle=U^\dagger\vert b\rangle$ instead of compiling a Clifford gate sequence. Their Fig. 1 shows the set-up and
+# their Table I the measured fidelities and prediction quality for each dimension.
 #
 # > **Common pitfall.** The measured $E[\hat o^{\,2}]$ is itself a sample average of a heavy-tailed quantity, so it needs its own
 # > budget check. For the local fidelity estimator with the product target, the dominant contribution comes from snapshots that
@@ -1390,7 +1551,7 @@ fig.tight_layout(); plt.show()
 #
 # ### 11.2 The comparison, at an equal number of runs of the machine
 #
-# This is where a comparison usually goes wrong. Notebook 23 measured $m$ shots in each of $3^N$ settings, so its total budget is
+# The budgets must be counted in the same unit. Notebook 23 measured $m$ shots in each of $3^N$ settings, so its total budget is
 # $T=m\cdot3^N$ runs. Shadows use $M$ runs. A fair comparison sets $T=M$.
 #
 # The outcome can be predicted from the two variance formulas. For a weight-$w$ string, notebook 23 (its Eq. (9)) gives
@@ -1554,9 +1715,30 @@ for sname, out in res_cmp.items():
         print(f"{sname:>22s} {T:7d} | {out[j, :, 0].mean():12.4f} {out[j, :, 1].mean():12.4f} | "
               f"{out[j, :, 2].mean():9.1f} ({C_tom:6.1f}) {out[j, :, 3].mean():9.1f} ({C_shd:6.1f})")
     obs = np.array([out[:, :, 2].mean(), out[:, :, 3].mean()])
+    obs_se = np.array([out[:, :, 2].std(ddof=1), out[:, :, 3].std(ddof=1)]) / np.sqrt(out[:, :, 2].size)
     print(f"{'':>22s} {'pooled':>7s} | {'':12s} {'':12s} | "
           f"{obs[0] / C_tom:9.3f} (ratio) {obs[1] / C_shd:9.3f} (ratio)")
-    assert 0.85 < obs[0] / C_tom < 1.15 and 0.85 < obs[1] / C_shd < 1.15
+    # WRONG CONTROL: treat every Pauli coordinate as if it had weight N (i.e. forget that a weight-w string is
+    # seen by 3^(N-w) settings / is useful in a fraction 3^-w of the snapshots)
+    r_true = np.asarray(pauli_vector(dm_matrix(to_dm(states_cmp[sname])), N_CMP))
+    C_tom_w = float(np.sum((3.0 ** N_CMP * (1 - r_true ** 2))[1:]) / 2 ** N_CMP)
+    C_shd_w = float(np.sum((3.0 ** N_CMP - r_true ** 2)[1:]) / 2 ** N_CMP)
+    z_ok = (obs - np.array([C_tom, C_shd])) / obs_se
+    z_w = (obs - np.array([C_tom_w, C_shd_w])) / obs_se
+    z_swap = (obs - np.array([C_shd, C_tom])) / obs_se
+    print(f"{'':>22s} CHECKPOINT pooled vs Eq. (11): {z_ok[0]:+.1f} / {z_ok[1]:+.1f} sd;  "
+          f"WRONG CONTROL all weights = N ({C_tom_w:.0f} / {C_shd_w:.0f}): {z_w[0]:+.1f} / {z_w[1]:+.1f} sd;  "
+          f"constants swapped: {z_swap[0]:+.1f} / {z_swap[1]:+.1f} sd")
+    assert np.abs(z_ok).max() < 3.0
+    assert np.abs(z_w).min() > 5.0
+
+# sign of the difference in the plotted (projected trace distance) means, and its resolution
+n_above = sum(int(out[j, :, 1].mean() > out[j, :, 0].mean()) for out in res_cmp.values() for j in range(len(T_TOTAL)))
+log_ratio = np.concatenate([np.log(out[:, :, 1] / out[:, :, 0]).ravel() for out in res_cmp.values()])
+s_lr = log_ratio.std(ddof=1)
+print(f"\nshadow curve above the tomography curve at {n_above} of {2 * len(T_TOTAL)} budgets; "
+      f"sd of log(D_shadow / D_tomography) for one repeat = {s_lr:.2f}; repeats per budget needed to resolve "
+      f"log(1.07) at two standard errors: {(2 * s_lr / np.log(1.07)) ** 2:.0f}")
 
 # %% [markdown]
 # Equation (11) is confirmed for both estimators and both states: pooling the five budgets, the measured
@@ -1566,19 +1748,29 @@ for sname, out in res_cmp.items():
 # $\sum_{P}r_P^2=2^N\mathrm{Tr}\rho^2=2^N$ regardless of which pure state it is.
 #
 # The predicted advantage of the deterministic sweep is therefore only $\sqrt{124.0/108.0}=1.07$ for GHZ$_3$ and
-# $\sqrt{124.0/110.3}=1.06$ for the random state: a $6$–$7\%$ effect, not a factor. The reason it is so small is that the GHZ
+# $\sqrt{124.0/110.3}=1.06$ for the random state, a $6$–$7\%$ effect in the rms error ($15\%$ and $12\%$ in the mean squared
+# error). The reason it is so small is that the GHZ
 # stabilisers on which tomography has zero variance are $7$ strings out of $63$, and they contribute
 # $3\cdot3^2+4\cdot3^3=135$ to a total of $999$. In the *projected trace distance* plotted above, even that $7\%$ is not
-# resolvable: both curves fall as $T^{-1/2}$, and although the shadow curve does sit at or slightly above the tomography curve
-# at almost every budget — the sign the prediction asks for — the gap is nowhere larger than the error bar of $8$ repeats.
-# Resolving a $7\%$ difference in the mean would need of order $(0.4/0.07)^2\approx30$ times more repeats.
+# resolvable: both curves fall as $T^{-1/2}$, the shadow curve lies above the tomography curve at $5$ of the $10$ budgets and below
+# it at the others, and the gap is nowhere larger than the error bar of $8$ repeats. The printed spread of
+# $\log(D_{\rm shadow}/D_{\rm tomography})$ for a single repeat, $0.26$, means that a $7\%$ difference would need about $60$ repeats
+# per budget to show at two standard errors.
+#
+# The checkpoint also shows what the pooled test of Eq. (11) can and cannot distinguish. Its standard error is about $4\%$, so the
+# wrong control that ignores the weight structure (every coordinate treated as weight $N$, constants $189$ and $212$) is rejected by $15$ to $20$
+# standard errors, while the two correct constants $108$ and $124$, which differ by $15\%$, are separated by only $2.5$ to $3.2$
+# standard errors (the "constants swapped" column).
 #
 # That is the comparison for *state reconstruction* at $N=3$. It leaves out everything else:
 #
 # * tomography must complete **all** $3^N$ settings before it can estimate anything; with $T=270$ runs at $N=3$ that is $10$ shots
 #   per setting, and at $N=10$ it would be zero. The shadow data set has no such structure — any prefix of it is a valid data set;
-# * the observables were fixed in advance for tomography and chosen afterwards for shadows;
-# * and the shadow cost of a *local* observable does not grow with $N$ at all, which is Section 12.
+# * at $N=3$ both methods return a full density matrix, from which any observable can be computed afterwards; at large $N$ only
+#   shadows predict observables chosen afterwards without reconstructing $\rho$;
+# * the shadow cost of a *local* observable does not grow with $N$ at all (Section 12). At a fixed total budget the
+#   tomographic variance $3^w(1-r_P^2)/T$ of a weight-$w$ coordinate is $N$-independent as well; the difference lies in the
+#   minimum budget of $3^N$ runs.
 
 # %% [markdown]
 # ## 12. System-size scaling at fixed accuracy
@@ -1587,10 +1779,9 @@ for sname, out in res_cmp.items():
 # $3^2/\varepsilon^2$ — with no $N$ in it. This is the claim that makes randomised measurements a *many-body* tool, so we test it
 # directly: the same observable, the same number of snapshots, chains from $N=2$ to $N=14$.
 #
-# We also time the data collection. Here we must be careful to say what is being measured: **our simulator** must store and rotate a
+# We also time the data collection. The timing measures **our simulator**, which must store and rotate a
 # $2^N$-dimensional state vector, so its cost per snapshot necessarily grows like $N2^N$. A real experiment pays $N$ single-qubit
-# rotations and one readout, i.e. a cost linear in $N$. The exponential in the timing curve below is a property of the *simulation*,
-# not of the protocol.
+# rotations and one readout, i.e. a cost linear in $N$. The exponential in the timing curve below is a property of the *simulation*.
 
 # %%
 # ==============================================================================
@@ -1652,18 +1843,32 @@ e2_scan = np.array([s[3] for s in scan])
 max_err = max(np.abs(s[1]).max() for s in scan)
 print(f"CHECKPOINT largest deviation over all {len(N_SCAN) * R_SCAN} data sets: {max_err:.4f} "
       f"(predicted sd {np.sqrt(8.0 / M_SCAN):.4f})")
+# o^2 = 81 x Bernoulli(1/9): the mean of R_SCAN x M_SCAN values has standard error sqrt((729 - 81) / (R M))
+se_e2 = np.sqrt((729.0 - 81.0) / (R_SCAN * M_SCAN))
+z_e2 = (e2_scan - 9.0) / se_e2
+z_e2_wrong = (e2_scan - (2.0 ** ns + 1)) / se_e2          # WRONG CONTROL: the global-ensemble law 2^N + 1, Eq. (10a)
+n_out = sum(int(np.sum(np.abs(s[1]) > np.sqrt(8.0 / M_SCAN))) for s in scan)
 print(f"CHECKPOINT E[o^2] over N = {N_SCAN[0]}..{N_SCAN[-1]}: min {e2_scan.min():.2f}, max {e2_scan.max():.2f} "
-      f"(exact value 9, independent of N)")
-assert 7.5 < e2_scan.min() and e2_scan.max() < 10.5
+      f"(exact value 9, independent of N); deviations {np.array2string(z_e2, precision=1)} sd")
+print(f"WRONG CONTROL E[o^2] = 2^N + 1: deviations {np.array2string(z_e2_wrong, precision=0)} sd")
+print(f"data sets outside the +-1 sd band: {n_out} of {len(N_SCAN) * R_SCAN} "
+      f"(expected {0.317 * len(N_SCAN) * R_SCAN:.1f} for Gaussian errors)")
+assert np.abs(z_e2).max() < 3.5
+assert np.abs(z_e2_wrong).min() > 5.0
 
 # %% [markdown]
 # The left panel is the central result of the method: seven system sizes, the same $M=2000$ snapshots, the same accuracy. The
 # measured standard deviation of the estimate is $0.0621,\,0.0627,\,0.0622,\,0.0633,\,0.0629,\,0.0633,\,0.0634$ for
 # $N=2,4,\dots,14$, against the $N$-independent prediction $\sqrt{(3^2-1)/M}=0.0632$, and the measured second moment stays between
-# $8.6$ and $9.1$ against the exact $9$. The individual data sets scatter inside those bands with no trend in $N$. A full Pauli
-# tomography of the $N=14$ point would have required $3^{14}\approx4.8$ million measurement settings.
+# $8.6$ and $9.1$ against the exact $9$, within $1.5$ standard errors at every $N$. The individual data sets scatter around zero
+# with the width of the dashed band and no trend in $N$: $13$ of the $42$ lie outside $\pm1$ standard deviation, against
+# $13.3$ expected for Gaussian errors. The wrong control, the $N$-dependent second moment $2^N+1$ of the global ensemble, is
+# rejected at every $N$ (at $N=3$, not in the scan, it would coincide with $3^2=9$). A full Pauli tomography of the $N=14$ point
+# would have required $3^{14}\approx4.8$ million measurement settings, i.e. at least that many runs; at a fixed total budget its
+# variance for a two-body correlator, $3^2(1-r_P^2)/T$ (Section 11.2; zero here, because $\langle Z_0Z_1\rangle=1$ is
+# deterministic on GHZ), does not depend on $N$ either: the obstacle is the number of settings.
 #
-# The right panel concerns *this notebook*, not the protocol. Our simulator keeps a $2^{14}$-dimensional state vector and rotates it
+# The right panel concerns the cost of *this simulation*. Our simulator keeps a $2^{14}$-dimensional state vector and rotates it
 # once per snapshot, so its cost follows a fixed dispatch overhead plus a term $\propto N2^N$ (dashed line): the overhead dominates
 # up to $N\approx8$, the exponential from $N\approx10$ on. A device performs $N$ single-qubit rotations and one readout per
 # snapshot, a cost linear in $N$. Classical shadows are cheap for the *experiment*; simulating the experiment is as expensive as
@@ -1672,7 +1877,7 @@ assert 7.5 < e2_scan.min() and e2_scan.max() < 10.5
 # %% [markdown]
 # ## 13. Key takeaways
 #
-# * **The protocol is short; the analysis carries the content.** Measure each qubit along a random axis, store $(U,b)$, repeat.
+# * **The protocol.** Measure each qubit along a random axis, store $(U,b)$, repeat.
 #   The randomness defines a measurement channel $\mathcal M(\rho)=\mathbb E\big[U^\dagger\vert b\rangle\langle b\vert U\big]$;
 #   the classical snapshot is $\hat\rho=\mathcal M^{-1}\big(U^\dagger\vert b\rangle\langle b\vert U\big)$ and satisfies
 #   $\mathbb E[\hat\rho]=\rho$ by construction.
@@ -1690,12 +1895,15 @@ assert 7.5 < e2_scan.min() and e2_scan.max() < 10.5
 #   all converging as $M^{-1/2}$ — and none of them was chosen before the data were taken.
 # * **The single-qubit Clifford group buys nothing** (it is a 2-design on one qubit, hence gives exactly the same channel), but
 #   **entangling global Clifford circuits change the channel qualitatively**: $\mathcal M^{-1}(A)=(2^N+1)A-\mathrm{Tr}(A)\mathbb 1$.
-#   Global shadows estimate a fidelity with $O(1)$ snapshots at any $N$ and local observables badly; Pauli shadows do the opposite.
-#   Choose the ensemble according to what you want to know.
+#   Global shadows estimate a fidelity with $O(1/\varepsilon^2)$ snapshots at any $N$ and local observables badly; Pauli shadows
+#   do the opposite. The ensemble is chosen according to what is to be learnt. Unbiasedness needs only the second moments of the
+#   ensemble, the variance needs the third: the depth-$2N$ random Clifford circuit sampled here has the former and, at $N\ge4$,
+#   not yet the latter, so its measured variances must not be read as those of the Clifford group.
 # * **Against full tomography at an equal number of runs**, the two variance formulas predict that shadows lose $6$–$7\%$ in
-#   reconstruction error at $N=3$, on a stabiliser state and on a generic one alike; the measured curves confirm Eq. (11) to $4\%$
-#   and the difference is not resolvable in the projected trace distance. Shadows remain usable at system sizes where the $3^N$
-#   settings of notebook 23 cannot be enumerated.
+#   rms (Frobenius) reconstruction error at $N=3$, on a stabiliser state and on a generic one alike; the measured curves confirm
+#   Eq. (11) to $4\%$ and the difference is not resolvable in the projected trace distance. At a fixed total budget the
+#   tomographic variance of a few-body coordinate is $N$-independent too; what limits tomography is the requirement of at least
+#   $3^N$ runs to complete its settings, and shadows have no such requirement.
 # * **Implementation**: `vmap` over snapshots with one key each and **chunking** to bound the memory; one gather-and-product
 #   (`snapshot_values`) turns an integer array into the estimates of hundreds of observables; a bootstrap written as a
 #   multiplicity-vector matrix product; and one einsum builds a whole superoperator so that every claimed channel can be checked
@@ -1711,9 +1919,11 @@ assert 7.5 < e2_scan.min() and e2_scan.max() < 10.5
 #    $K=\binom{20}{2}$ and compare with the naive union bound over Gaussian tails.
 # 3. ★★ **Subsystem purity (extend the code).** The purity $\mathrm{Tr}(\rho_A^2)$ is quadratic in $\rho$, so it needs **two**
 #    snapshots: $\widehat{\mathrm{Tr}(\rho_A^2)}=\frac{1}{M(M-1)}\sum_{m\neq m'}\mathrm{Tr}\big(\hat\rho_A^{(m)}\hat\rho_A^{(m')}\big)$.
-#    Implement it for $\lvert A\rvert\le3$ using `shadow_snapshot_dm` on the reduced support, and reproduce the second Rényi entropy
-#    of the half chain of the Ising ground state of Section 7. How does the error scale with $M$? (It is *not* $M^{-1/2}$ for a
-#    U-statistic at small $M$ — explain why.)
+#    Implement it for $\lvert A\rvert\le4$ using `shadow_snapshot_dm` on the reduced support, and reproduce the second Rényi entropy
+#    of the half chain of the Ising ground state of Section 7 (sites $0$–$3$). How does the error scale with $M$? Explain why a
+#    U-statistic of order two falls faster than $M^{-1/2}$ at small $M$. *Hint:* for $\lvert A\rvert=4$ it is cheaper to histogram
+#    the $6^4$ possible (basis, bit) patterns of the four sites than to loop over pairs, since $\mathrm{Tr}(A_qA'_q)$ takes only the
+#    values $5$, $-4$ and $\tfrac12$.
 # 4. ★★ **Noisy shadows (physics).** Apply depolarising noise of strength $p$ to every qubit *before* the random rotation
 #    (see [07 — density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb)),
 #    collect shadows from the resulting mixed state and estimate $\langle Z_iZ_{i+1}\rangle$. Show that the estimates track the
@@ -1722,17 +1932,21 @@ assert 7.5 < e2_scan.min() and e2_scan.max() < 10.5
 #    trajectories as in [17 — Monte-Carlo wave function](../ch06_open_quantum_systems/17_monte_carlo_wave_function.ipynb):
 #    before each snapshot, apply to every qubit independently $\mathbb 1$ with probability $1-p$ and one of $X,Y,Z$ with
 #    probability $p/3$ each. Averaging over snapshots then averages over the channel automatically.
-# 5. ★★ **How deep must the circuit be? (extend the code)** Repeat the channel test of Section 10.2 for depths
+# 5. ★★ **Circuit depth needed for the 2-design property (extend the code).** Repeat the channel test of Section 10.2 for depths
 #    $L=1,2,\dots,2N$ at $N=3$ and plot $\lVert\mathcal M_{\rm sampled}-\mathcal M_{\rm Eq.(9)}\rVert$ against $L$ with the
 #    Monte-Carlo error bar. At which depth does the ensemble become a 2-design for the purposes of Eq. (1)? Does the answer change
 #    if you drop the CNOT layers entirely?
-# 6. ★★ **Median of means, properly (extend the code).** For a fixed budget $M$ and a weight-$6$ Pauli string, scan the number of
-#    groups $G$ from $1$ (plain mean) to $M/10$ and plot the mean error, the median error and the $95$th percentile of the error
-#    over $300$ data sets. Where is the optimum, and how does it compare with the theoretical $G=8\log(K/\delta)$?
+# 6. ★★ **Median of means at a realistic budget (extend the code).** For $\mathrm{GHZ}_6$, the string $Z^{\otimes6}$ and $M=20000$
+#    snapshots, scan the number of groups $G$ from $1$ (plain mean) to $M/10$ and plot the mean error, the median error and the
+#    $95$th percentile of the error over $300$ data sets. Locate the optimum and compare it with the theoretical
+#    $G=8\log(K/\delta)$ for $K=1$, $\delta=0.05$. *Hint:* on this state every useful snapshot contributes $+3^6$, so
+#    $\hat o=729\cdot\mathrm{Bernoulli}(1/729)$ and the data sets can be sampled from a binomial distribution once this has been
+#    checked against `collect_shadows`.
 # 7. ★★★ **Energy of a variational circuit (physics).** Prepare the hardware-efficient ansatz of the engine with random parameters
-#    on $N=10$ qubits, and estimate the Ising energy from shadows. How many snapshots are needed for a chemical-accuracy-like
-#    target of $\pm0.01$ per site? Compare with the cost of measuring the $2N-1$ Pauli strings one setting at a time, and explain
-#    why shadows win by a factor of order $N$ here but not asymptotically.
+#    on $N=10$ qubits with $3$ layers, and estimate the energy of the critical Ising chain of Section 7 from shadows. How many
+#    snapshots are needed for a one-standard-deviation accuracy of $0.01$ per site? Compare with (a) measuring each of the $2N-1$
+#    Pauli strings in its own setting with an equal share of the runs and (b) measuring the two commuting groups, all $Z$ and all
+#    $X$, in two settings. Explain why shadows beat (a) by a factor that grows with $N$ and lose to (b) by a constant factor.
 # 8. ★★★ **Derandomised shadows (extend the code).** Instead of drawing the bases uniformly, greedily choose, for each new snapshot,
 #    the basis string that minimises a confidence bound for a *given* list of $K$ Pauli observables (Huang, Kueng and Preskill's
 #    "derandomisation", Phys. Rev. Lett. **127**, 030503 (2021)). Implement a simple greedy version for the $15$ Ising strings
@@ -1756,7 +1970,9 @@ assert 7.5 < e2_scan.min() and e2_scan.max() < 10.5
 #   Sections 9 and 10.
 # * G. I. Struchalin, Ya. A. Zagorovskii, E. V. Kovlakov, S. S. Straupe and S. P. Kulik, *Experimental estimation of quantum state
 #   properties from classical shadows*, PRX Quantum **2**, 010307 (2021) — the protocol carried out in the laboratory, with the
-#   **global** (stabiliser) ensemble on spatial modes of single photons, dimension up to $2^5$.
+#   **global** (stabiliser) ensemble on spatial modes of photons, dimension up to $2^5$.
+# * S. Aaronson and D. Gottesman, *Improved simulation of stabilizer circuits*, Phys. Rev. A **70**, 052328 (2004) — every
+#   $N$-qubit Clifford unitary can be implemented with $O(N^2/\log N)$ gates (Section 10.3).
 # * J. A. Smolin, J. M. Gambetta and G. Smith, *Efficient method for computing the maximum-likelihood quantum state from
 #   measurements with additive Gaussian noise*, Phys. Rev. Lett. **108**, 070502 (2012) — the projection used in Section 11.
 # * M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information* (Cambridge University Press, 2000) — density

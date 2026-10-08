@@ -1063,7 +1063,7 @@ for N_c, basis in ((3, "X"), (3, "Z"), (7, "X")):
 # * $Z$ measurement: the ends are left in a product state ($S=0$). The printed $\langle X_0X_2\rangle=+1$ is not a leftover of entanglement but a classical correlation: $K_0=X_0Z_1$ and $K_2=Z_1X_2$ both commute with the measured $Z_1$, so the
 #   outcome fixes $X_0=X_2=(-1)^m$ separately on each end, and the state is the product $|x_0\rangle|z_1\rangle|x_2\rangle$.
 # * If the record is discarded, $\langle Z_0Z_2\rangle$ averages to zero (within shot noise): the entanglement is only *useful* together with the classical outcome. Turning "a random one of several Bell states" into "always $|\Phi^+\rangle$" requires a correction conditioned on the outcome — feedback,
-#   exactly as in `reset_qubit`, and exactly as in quantum teleportation ([notebook 19, Chapter 8](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb)).
+#   exactly as in `reset_qubit`, and exactly as in quantum teleportation ([notebook 20, Chapter 8](../ch08_quantum_information_protocols/20_quantum_teleportation.ipynb)).
 
 # %% [markdown]
 # ## 14. Performance

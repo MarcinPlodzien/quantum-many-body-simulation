@@ -1,6 +1,6 @@
 #@title: Noisy variational circuits — landscapes, plateaus, training and error mitigation
 #@part: Chapter 11 — Variational quantum circuits
-#@description: Gate noise as a channel after every gate, the dictionary between measured error rates and channel parameters, two exact-in-expectation simulators (density tensor and quantum trajectories) shown to agree, the contraction of the cost landscape derived and measured, the exact invariance of the minimum under global depolarising noise and its shift under amplitude damping, noise-induced barren plateaus, training with density-tensor gradients against SPSA on trajectory costs, optimal-parameter resilience, the depth trade-off and zero-noise extrapolation.
+#@description: Gate noise as a channel after every rotation pair and every two-qubit gate, the dictionary between measured error rates and channel parameters, two exact-in-expectation simulators (density tensor and quantum trajectories) shown to agree, the contraction of the cost landscape derived and measured, the exact invariance of the minimum under global depolarising noise and its shift under local and non-unital noise, noise-induced barren plateaus, training with density-tensor gradients against SPSA on trajectory costs, optimal-parameter resilience, the depth trade-off and zero-noise extrapolation.
 
 # %% [markdown]
 # ## 1. Introduction and motivation
@@ -12,19 +12,21 @@
 # times in a thousand; qubits dephase while they wait; excited states decay. The circuit that runs is not
 # $U(\boldsymbol\theta)$ but a **quantum channel** $\mathcal E_{\boldsymbol\theta}$, and the state it produces is mixed.
 #
-# This changes the optimisation problem itself, not merely the accuracy of its answer. Three questions must be answered
+# This changes the optimisation problem itself as well as the accuracy of its answer. Three questions must be answered
 # before a variational algorithm can be trusted on a noisy device.
 #
 # 1. **What does noise do to the landscape?** If it only rescales the cost, the minimum is where it always was and the
 #    algorithm still finds the right state. If it deforms the cost, the algorithm optimises the wrong function.
-# 2. **What does noise do to the gradients?** A landscape that flattens exponentially with circuit depth cannot be
-#    trained at all, whatever the optimiser.
+# 2. **What does noise do to the gradients?** A landscape that flattens exponentially with circuit depth needs a number
+#    of measurements that grows exponentially with the depth before its gradients can be resolved, and a different
+#    optimiser does not change that.
 # 3. **Can the damage be undone afterwards?** Error *correction* needs many more qubits than exist today; error
 #    *mitigation* trades extra circuit runs for a better estimate of the noiseless expectation value, and works now.
 #
 # **Road map.**
 #
-# * **Section 3** fixes the noise model — a channel after every gate — and derives the dictionary between the numbers a
+# * **Section 3** fixes the noise model — a channel after every rotation pair and on both qubits of every two-qubit
+#   gate — and derives the dictionary between the numbers a
 #   laboratory reports (average gate fidelity, $T_1$, $T_2$) and the channel parameters our simulator takes.
 # * **Section 4** builds the two simulators. The **density tensor** propagates $\rho$ exactly at cost $O(4^N)$; the
 #   **quantum trajectory** unravelling keeps a pure state at cost $O(2^N)$ per sample and converges as $1/\sqrt M$. They
@@ -33,15 +35,16 @@
 #   $(1-4p/3)$ per noisy qubit per layer — and measures the law where its assumptions hold exactly.
 # * **Section 6** proves that a **global** depolarising channel commutes with every unitary, so that
 #   $C_{\rm noisy}(\boldsymbol\theta)=(1-q)\,C(\boldsymbol\theta)+q\,\mathrm{Tr}\,\hat H/2^N$ and the minimiser is
-#   **unchanged**. Section 7 shows by an exactly solvable one-qubit example that **non-unital** noise (amplitude damping)
-#   does move the minimiser, and gives the shifted angle in closed form.
+#   **unchanged**. Section 7 shows that **local** noise moves the minimiser: in closed form for one qubit under
+#   amplitude damping (non-unital) and under dephasing (unital), and for the four-qubit circuit under local
+#   depolarising, dephasing and damping noise through the gradient of the noisy cost at the noiseless optimum.
 # * **Section 8** measures **noise-induced barren plateaus**: the variance of a gradient component against circuit depth,
 #   with and without noise.
 # * **Sections 9 to 11** train under noise — exact gradients through the Kraus einsums against SPSA on trajectory
 #   estimates — test **optimal-parameter resilience** (train noisy, evaluate noiselessly) and measure the **depth
 #   trade-off** between expressivity and accumulated noise.
-# * **Section 12** implements **zero-noise extrapolation** and shows both a regime where it recovers four digits and one
-#   where it fails.
+# * **Section 12** implements **zero-noise extrapolation**, shows a regime where it removes most of the bias and one
+#   where it fails, and quantifies the price in measurement shots.
 # * **Section 13** measures the cost of both simulators against $N$ and locates the crossover.
 #
 # ### What you will learn
@@ -50,13 +53,13 @@
 # * how gate errors, dephasing and energy relaxation are represented as quantum channels, and how the channel parameters
 #   are read off from $T_1$, $T_2$ and a randomised-benchmarking error rate;
 # * why a global depolarising channel leaves the *position* of the variational minimum exactly where it was, while
-#   amplitude damping shifts it;
+#   local channels, unital or not, shift it;
 # * why the useful circuit depth has an optimum that moves to smaller depth as the error rate grows;
 # * what error mitigation can and cannot do.
 #
 # *Numerical methods*
 # * two representations of the same open-system dynamics, one deterministic and $O(4^N)$, one stochastic and $O(2^N)$,
-#   and how to validate either against the other with honest error bars;
+#   and how to validate either against the other with error bars and a deliberately wrong control;
 # * differentiating a channel: reverse-mode automatic differentiation straight through a chain of Kraus einsums;
 # * estimating a decay exponent from data and comparing it with a derived prediction;
 # * Richardson extrapolation of a noisy expectation value in the noise strength.
@@ -170,13 +173,28 @@ def timed(fn, *args, repeat=3):
         ts.append(time.perf_counter() - t0)
     return min(ts)
 
+
+def compile_then_run(fn, *args):
+    """Compile `jax.jit(fn)` for these argument shapes ahead of time, then run it once; time both phases separately.
+
+    JAX   `jit(fn).lower(*args).compile()` traces and compiles without executing, so the second phase is pure run time.
+    Returns (output, compile seconds, run seconds).
+    """
+    t0 = time.perf_counter()
+    compiled = jax.jit(fn).lower(*args).compile()
+    t1 = time.perf_counter()
+    out = jax.block_until_ready(compiled(*args))
+    return out, t1 - t0, time.perf_counter() - t1
+
 # %% [markdown]
 # ## 3. The noise model and its parameters
 #
 # ### 3.1 A channel after every gate
 #
-# The standard phenomenological model of a gate-based device is: **after every gate, every qubit the gate touched passes
-# through a single-qubit channel**. The channel is the vehicle for two physically distinct effects.
+# The standard phenomenological model of a gate-based device is: **after a gate, every qubit the gate touched passes
+# through a single-qubit channel**. In this notebook the two rotations $R_y R_z$ on a qubit are treated as one
+# single-qubit gate followed by one channel, and both qubits of every two-qubit gate receive a channel. The channel is the
+# vehicle for two physically distinct effects.
 #
 # * **Gate errors** — miscalibrated pulses, crosstalk, leakage — are modelled by a **depolarising** channel, because a
 #   randomised gate error looks isotropic on the Bloch sphere once averaged over the randomising circuits used to
@@ -218,11 +236,15 @@ def timed(fn, *args, repeat=3):
 #
 # $$F_{\rm avg}=1-\frac{2p}{3},\qquad r=1-F_{\rm avg}=\frac{2p}{3},\qquad \boxed{\;p=\tfrac32\,r\;}.\tag{4}$$
 #
-# A two-qubit gate with an error per gate $r_2=5\cdot10^{-3}$ — a good number on today's hardware — corresponds to
-# $p_2=7.5\cdot10^{-3}$ in our parametrisation *if* the whole error is assigned to one qubit; our model applies
-# $\mathcal D_{p_2}$ to **both** qubits of the gate, so $p_2=\tfrac34 r_2$ per qubit reproduces the same total error to
-# first order. We keep the simpler convention $p_2=\tfrac32r_2$ per qubit and remember that the model is then slightly
-# pessimistic.
+# A two-qubit gate needs one more step, because its error per gate is averaged over two-qubit inputs. The average
+# fidelity in dimension $d$ is fixed by the process fidelity $F_e=\sum_m\lvert\mathrm{Tr}K_m\rvert^2/d^2$ through
+# $F_{\rm avg}=(dF_e+1)/(d+1)$ (Nielsen 2002, in the references); for one qubit $F_e=1-p$ and this is Eq. (4) again. Our
+# model applies $\mathcal D_{p_2}$ to **both** qubits of the gate, so $F_e=(1-p_2)^2$ and, with $d=4$,
+# $r_2=\tfrac45\bigl[1-(1-p_2)^2\bigr]\simeq\tfrac85p_2$, i.e. $p_2\simeq\tfrac58r_2$ per qubit. Adding the two one-qubit
+# errors, $2\times\tfrac23p_2$, would undercount by a sixth. A two-qubit error per gate $r_2=5\cdot10^{-3}$ — a good
+# number on today's hardware — therefore corresponds to $p_2\approx3.1\cdot10^{-3}$ per qubit. We keep the simpler
+# convention $p_2=\tfrac32r_2$ per qubit and remember that the model's two-qubit gates are then pessimistic by a factor
+# $\tfrac85\cdot\tfrac32=2.4$.
 #
 # ### 3.3 Dephasing and damping from $T_1$ and $T_2$
 #
@@ -238,8 +260,12 @@ def timed(fn, *args, repeat=3):
 # $$p=\tfrac12\bigl(1-e^{-t/T_\varphi}\bigr).\tag{6}$$
 #
 # (The measured $T_2$ combines pure dephasing with the dephasing that damping itself produces,
-# $1/T_2=1/T_\varphi+1/(2T_1)$; Eq. (6) uses the pure-dephasing part.) Both formulas are checked numerically below by
-# applying the channel $n$ times and comparing with the exponential.
+# $1/T_2=1/T_\varphi+1/(2T_1)$; Eq. (6) uses the pure-dephasing part.) Damping multiplies the coherence by
+# $\sqrt{1-\gamma}=e^{-t/(2T_1)}$, so the two channels together give
+#
+# $$\lvert\rho_{01}(t)\rvert=\lvert\rho_{01}(0)\rvert\,e^{-t/(2T_1)}\,e^{-t/T_\varphi}=\lvert\rho_{01}(0)\rvert\,e^{-t/T_2}.\tag{6a}$$
+#
+# Both laws are checked numerically below by applying the channels $n$ times and comparing with the exponentials.
 
 # %%
 # ==============================================================================
@@ -268,6 +294,21 @@ print(f"  average gate fidelity over the 6-state 2-design: {F_avg:.12f}   vs 1-2
 print(f"  error per gate r = {1 - F_avg:.6f}  ->  p = 3r/2 = {1.5 * (1 - F_avg):.6f}   (input was {p_chk})")
 assert abs(F_avg - (1 - 2 * p_chk / 3)) < TOL
 
+# CHECK B2: the two-qubit error per gate of the model (D_p on BOTH qubits), Haar-averaged over two-qubit inputs,
+# against r = (4/5)[1 - (1-p)^2] from the process fidelity, and against the naive sum of two one-qubit errors 4p/3
+p_pair = 0.02
+K1_np = np.asarray(kraus_depolarizing(p_pair))
+K_pair = [np.kron(a, b) for a in K1_np for b in K1_np]                 # Kraus operators of D_p (x) D_p
+rng_pair = np.random.default_rng(0)
+V = rng_pair.normal(size=(20000, 4)) + 1j * rng_pair.normal(size=(20000, 4))
+V /= np.linalg.norm(V, axis=1, keepdims=True)                          # Haar-random two-qubit pure states
+F_pair = sum(np.abs(np.einsum("ni,ij,nj->n", V.conj(), k, V)) ** 2 for k in K_pair)   # <psi|E(psi)|psi>
+r_mc, r_se = 1 - F_pair.mean(), F_pair.std() / np.sqrt(len(F_pair))
+r_formula = 0.8 * (1 - (1 - p_pair) ** 2)
+print(f"\ntwo-qubit gate, D_p on both qubits, p = {p_pair}: Haar average r = {r_mc:.5f} +- {r_se:.5f}")
+print(f"  (4/5)[1-(1-p)^2] = {r_formula:.5f}   first order 8p/5 = {1.6 * p_pair:.5f}   naive 2 x 2p/3 = {4 * p_pair / 3:.5f}")
+assert abs(r_mc - r_formula) < 5 * r_se
+
 # CHECK C: T1 and T2 laws, Eqs. (5) and (6)
 T1, T2phi, dt, n_steps_T = 20.0, 12.0, 0.5, 60
 gam_step = 1 - np.exp(-dt / T1)
@@ -282,13 +323,20 @@ for n in range(n_steps_T + 1):
     rho_T = apply_kraus_dm(rho_T, kraus_dephasing(p_step), [0])
 t_axis = dt * np.arange(n_steps_T + 1)
 pop_pred = 0.5 * np.exp(-t_axis / T1)
+T2_eff = 1 / (1 / T2phi + 1 / (2 * T1))                              # Eq. (6a)
+coh_pred = 0.5 * np.exp(-t_axis / T2_eff)
+err_pop = np.max(np.abs(np.array(pop) - pop_pred))
+err_coh = np.max(np.abs(np.array(coh) - coh_pred))
 print(f"\nT1 = {T1}, T_phi = {T2phi}, step dt = {dt}  ->  gamma = {gam_step:.6f}, p_dephase = {p_step:.6f}")
-print(f"  population  : max |measured - 0.5 exp(-t/T1)| = {np.max(np.abs(np.array(pop) - pop_pred)):.2e}")
+print(f"  population  : max |measured - 0.5 exp(-t/T1)| = {err_pop:.2e}")
+print(f"  coherence   : max |measured - 0.5 exp(-t/T2)| = {err_coh:.2e}   (T2 = {T2_eff:.4f} from Eq. 6a)")
+assert err_pop < TOL and err_coh < TOL
 
 fig, ax = plt.subplots(figsize=(6.6, 4.0))
 ax.semilogy(t_axis, pop, "o", ms=3.5, color=PALETTE[0], label=r"population $\rho_{11}$ (simulated)")
 ax.semilogy(t_axis, pop_pred, "-", lw=1.4, color=PALETTE[0], label=r"$\frac{1}{2} e^{-t/T_1}$")
 ax.semilogy(t_axis, coh, "s", ms=3.5, color=PALETTE[1], label=r"coherence $\vert\rho_{01}\vert$ (simulated)")
+ax.semilogy(t_axis, coh_pred, "-", lw=1.4, color=PALETTE[1], label=r"$\frac{1}{2} e^{-t/T_2}$, Eq. (6a)")
 ax.set_xlabel("idle time $t$ (arbitrary units)")
 ax.set_ylabel("population / coherence")
 ax.set_title("Repeated channels reproduce the exponential decay laws")
@@ -298,12 +346,16 @@ fig.tight_layout(); plt.show()
 # %% [markdown]
 # The three identities of Section 3 hold to machine precision. The Bloch vector shrinks by exactly $1-4p/3$; the average
 # fidelity over the six-state 2-design equals $1-2p/3$ to twelve digits, so a reported error per gate $r$ is converted
-# to a channel parameter by $p=\tfrac32 r$ with no ambiguity; and repeating the two idle channels $n$ times reproduces
-# $e^{-t/T_1}$ and the pure-dephasing decay of the coherence with a maximum deviation at the level of round-off.
+# to a channel parameter by $p=\tfrac32 r$ for a single-qubit gate; and repeating the two idle channels $n$ times
+# reproduces $e^{-t/T_1}$ for the population and $e^{-t/T_2}$ of Eq. (6a) for the coherence with a maximum deviation at
+# the level of round-off. The two-qubit formula $r_2=\tfrac45[1-(1-p_2)^2]$ is confirmed by a Haar average over
+# $20\,000$ random two-qubit states within its standard error, and the printout shows how far it lies from the naive
+# sum $\tfrac43p_2$ of two one-qubit errors.
 #
-# The figure shows the coherence falling faster than the population, which is the generic situation: it is damaged both
-# by pure dephasing and by the damping itself, since a decay event destroys the phase relation along with the
-# population.
+# In the figure the coherence falls faster than the population. That is a property of the chosen times. In general the
+# coherence decays at the rate $1/T_2=1/T_\varphi+1/(2T_1)$ and the population at $1/T_1$, so the coherence is
+# the faster of the two only when $T_2<T_1$ (here $T_2=9.2$ against $T_1=20$). Without pure dephasing $T_2=2T_1$ and the
+# coherence decays at half the rate of the population.
 #
 # > **Physics insight.** The depolarising channel is not a claim that gate errors really are isotropic. It is the
 # > *average* of an arbitrary error channel over the random single-qubit Cliffords used in randomised benchmarking — the
@@ -317,8 +369,9 @@ fig.tight_layout(); plt.show()
 #
 # The circuit is the ansatz of notebook 40: $L$ repetitions of [a rotation block $R_y(\theta)R_z(\theta)$ on every
 # qubit, then a chain of $CZ$ gates], followed by one final rotation block, so the parameter count is $n=2N(L+1)$. The
-# noisy version inserts a channel after every gate: $\mathcal D_{p_1}$ on each qubit after its rotation pair, and
-# $\mathcal D_{p_2}$ on **both** qubits of every $CZ$.
+# noisy version inserts the channels of Section 3.1: $\mathcal D_{p_1}$ on each qubit after its rotation pair, and
+# $\mathcal D_{p_2}$ on **both** qubits of every $CZ$. With $L=2$ and $N=4$ that makes $12$ channels of strength
+# $p_1$ and $12$ of strength $p_2$.
 #
 # Counting the noise locations will matter in Sections 5 and 8. Per layer, each qubit passes through
 #
@@ -377,20 +430,24 @@ def rot_block_dm(rho, row, kraus1, N):
     return rho
 
 
-def ent_block_dm(rho, kraus2, N):
-    """One CZ chain on a density tensor, with a channel on BOTH qubits of every gate."""
+def ent_block_dm(rho, kraus2, N, cz_both=True):
+    """One CZ chain on a density tensor, with a channel on BOTH qubits of every gate.
+
+    `cz_both=False` puts the channel on the first qubit only: a deliberately WRONG model, used as a control below.
+    """
     for q in range(N - 1):
         rho = apply_gate_dm(rho, CZ, [q, q + 1])
         rho = apply_kraus_dm(rho, kraus2, [q])
-        rho = apply_kraus_dm(rho, kraus2, [q + 1])
+        if cz_both:
+            rho = apply_kraus_dm(rho, kraus2, [q + 1])
     return rho
 
 
-def noisy_hea_dm(theta, N, layers, p1, p2, chan1=kraus_depolarizing, chan2=kraus_depolarizing):
+def noisy_hea_dm(theta, N, layers, p1, p2, chan1=kraus_depolarizing, chan2=kraus_depolarizing, cz_both=True):
     """Noisy hardware-efficient ansatz, density-tensor representation.
 
-    MATH  rho = (final rotations) o [ ENT o ROT ]^layers  applied to |0..0><0..0|, with a single-qubit channel
-          after every gate: chan1(p1) after each rotation pair, chan2(p2) on both qubits of every CZ.
+    MATH  rho = (final rotations) o [ ENT o ROT ]^layers  applied to |0..0><0..0|, with single-qubit channels
+          chan1(p1) after each rotation pair and chan2(p2) on both qubits of every CZ.
     COST  O(4^N) memory, O(2^k 4^N) per operation.
     JAX   the repeated layers are a `lax.scan`, so the traced graph (and the gradient graph) has a size that does
           NOT grow with `layers`; p1, p2 are traced, so `vmap` over noise strengths compiles once.
@@ -398,7 +455,8 @@ def noisy_hea_dm(theta, N, layers, p1, p2, chan1=kraus_depolarizing, chan2=kraus
     K1, K2 = chan1(p1), chan2(p2)
     th = theta.reshape(layers + 1, N, 2)
     rho = to_dm(zero_state(N))
-    rho, _ = lax.scan(lambda r, row: (ent_block_dm(rot_block_dm(r, row, K1, N), K2, N), None), rho, th[:layers])
+    rho, _ = lax.scan(lambda r, row: (ent_block_dm(rot_block_dm(r, row, K1, N), K2, N, cz_both), None), rho,
+                      th[:layers])
     return rot_block_dm(rho, th[layers], K1, N)
 
 
@@ -468,8 +526,9 @@ assert err_dm < TOL and err_mc < TOL
 # CHECKPOINT 2: with noise, the trajectory average must reproduce the density tensor
 # ==============================================================================
 M_CHK = 4000
-E_ref = float(jax.jit(lambda t: energy_dm(TERMS, noisy_hea_dm(t, N_Q, L_DEF, P1_RATIO * P2_DEF, P2_DEF)))(theta_test[:hea_num_params(N_Q, L_DEF)]))
 th_chk = theta_test[:hea_num_params(N_Q, L_DEF)]
+E_ref = float(jax.jit(lambda t: energy_dm(TERMS, noisy_hea_dm(t, N_Q, L_DEF, P1_RATIO * P2_DEF, P2_DEF)))(th_chk))
+E_ideal_chk = float(energy(TERMS, hardware_efficient_ansatz(th_chk, N_Q, L_DEF)))
 traj_energy = jax.jit(jax.vmap(lambda k: energy(TERMS, noisy_hea_mcwf(k, th_chk, N_Q, L_DEF,
                                                                      P1_RATIO * P2_DEF, P2_DEF))))
 samples = np.asarray(jax.block_until_ready(traj_energy(jax.random.split(jax.random.PRNGKey(7), M_CHK))))
@@ -480,20 +539,40 @@ print(f"  {M_CHK} trajectories          E = {E_mc:.6f} +- {se_mc:.6f}")
 print(f"  deviation = {abs(E_mc - E_ref) / se_mc:.2f} standard errors")
 assert abs(E_mc - E_ref) < 5 * se_mc
 
-# convergence of the trajectory estimate with M
-Ms = np.array([25, 50, 100, 200, 400, 800, 1600, 3200])
-errs = np.array([abs(np.mean(samples[:m]) - E_ref) for m in Ms])
-ses = np.array([np.std(samples[:m], ddof=1) / np.sqrt(m) for m in Ms])
+# WRONG CONTROLS: the same test must REJECT models that differ from the simulated one
+E_bug = float(energy_dm(TERMS, noisy_hea_dm(th_chk, N_Q, L_DEF, P1_RATIO * P2_DEF, P2_DEF, cz_both=False)))
+for lab, E_wrong in (("noiseless circuit", E_ideal_chk), ("channel on one qubit of each CZ only", E_bug)):
+    z = abs(E_mc - E_wrong) / se_mc
+    print(f"  control, {lab:38s} E = {E_wrong:.6f}   deviation = {z:5.1f} standard errors")
+    assert z > 5
+
+# anatomy of the histogram: the no-jump branch reproduces the NOISELESS state
+n_loc1 = N_Q * (L_DEF + 1)                     # channels of strength p1
+n_loc2 = 2 * (N_Q - 1) * L_DEF                 # channels of strength p2
+P_nojump = (1 - P1_RATIO * P2_DEF) ** n_loc1 * (1 - P2_DEF) ** n_loc2
+print(f"\n  noiseless energy at these angles {E_ideal_chk:.6f};  fraction of trajectories exactly there "
+      f"{np.mean(np.abs(samples - E_ideal_chk) < 1e-9):.4f}")
+print(f"  probability of no jump at any of the {n_loc1 + n_loc2} noise locations = {P_nojump:.4f};  "
+      f"spread of the samples {np.std(samples, ddof=1):.3f};  {np.mean(samples < -1):.4f} of them below -1")
+
+# convergence of the trajectory estimate with M: rms error over 64 INDEPENDENT batches at each M
+N_BATCH, Ms = 64, np.array([25, 50, 100, 200, 400, 800, 1600])
+big = np.asarray(jax.block_until_ready(
+    traj_energy(jax.random.split(jax.random.PRNGKey(8), N_BATCH * int(Ms[-1])))))
+sigma1 = float(np.std(big, ddof=1))            # spread of ONE trajectory
+rms = np.array([np.sqrt(np.mean((big[:N_BATCH * m].reshape(N_BATCH, m).mean(axis=1) - E_ref) ** 2)) for m in Ms])
+print(f"\n  rms error over {N_BATCH} independent batches divided by sigma/sqrt(M):")
+print("   " + "  ".join(f"M={m}: {r / (sigma1 / np.sqrt(m)):.2f}" for m, r in zip(Ms, rms)))
 fig, axes = plt.subplots(1, 2, figsize=(11.5, 4.2))
 axes[0].hist(samples, bins=40, color=PALETTE[0], alpha=0.75)
 axes[0].axvline(E_ref, color="k", ls="--", lw=1.4, label="density tensor (exact)")
 axes[0].axvline(E_mc, color=PALETTE[1], ls="-", lw=1.4, label=f"mean of {M_CHK} trajectories")
+axes[0].axvline(E_ideal_chk, color=PALETTE[2], ls=":", lw=1.6, label="noiseless energy (no-jump branch)")
 axes[0].set_xlabel(r"$\langle H\rangle$ of one trajectory"); axes[0].set_ylabel("count")
 axes[0].set_title("Trajectories scatter; their mean does not"); axes[0].legend(fontsize=8)
-axes[1].loglog(Ms, np.maximum(errs, 1e-6), MARKERS[0] + "-", ms=6, color=PALETTE[0],
-               label="measured $\\vert E_M - E_{\\mathrm{exact}}\\vert$")
-axes[1].loglog(Ms, ses, MARKERS[1] + "--", ms=5, color=PALETTE[1], label="standard error of the mean")
-axes[1].loglog(Ms, ses[0] * np.sqrt(Ms[0] / Ms), "k:", lw=1.4, label=r"$\propto 1/\sqrt{M}$")
+axes[1].loglog(Ms, rms, MARKERS[0] + "-", ms=6, color=PALETTE[0],
+               label=f"rms of $E_M - E_{{\\mathrm{{exact}}}}$ over {N_BATCH} batches")
+axes[1].loglog(Ms, sigma1 / np.sqrt(Ms), "k:", lw=1.4, label=r"$\sigma_1/\sqrt{M}$, Eq. (7)")
 axes[1].set_xlabel("number of trajectories $M$"); axes[1].set_ylabel("error in the energy")
 axes[1].set_title("Statistical convergence of the unravelling"); axes[1].legend(fontsize=8)
 fig.tight_layout(); plt.show()
@@ -501,13 +580,19 @@ fig.tight_layout(); plt.show()
 # %% [markdown]
 # Two simulators built from completely different primitives — one sums over Kraus indices inside an einsum on a
 # rank-$2N$ tensor, the other samples a single Kraus operator per noise location on a rank-$N$ tensor — agree on the
-# energy of the same noisy state.
+# energy of the same noisy state, within $0.32$ standard errors. Agreement alone would also be produced by a test too
+# weak to detect anything, which is what the two wrong controls exclude: the same $4000$ trajectories reject the
+# noiseless energy at $18$ standard errors and a plausible bug (the channel applied to only one qubit of each $CZ$) at
+# $7$ standard errors.
 #
 # The left panel shows *why* the agreement has to be stated with an error bar. A single trajectory is a pure state with
-# its own energy: most land in a narrow peak near the mean, but a tail of unlucky jump sequences reaches below $-1$,
-# and the spread over trajectories is $0.30$ against a mean of $0.488$. There is no sense in which one
-# trajectory "is" the noisy state. Only the mean is meaningful, and the right panel confirms that its deviation from the
-# exact value tracks the standard error of the mean and falls as $1/\sqrt M$.
+# its own energy. With probability $(1-p_1)^{12}(1-p_2)^{12}=0.766$ no jump happens anywhere, every Kraus operator
+# drawn is the identity, and the trajectory is the noiseless state: the tall bar is exactly at the noiseless energy
+# $0.576$, held by $76\%$ of the samples. The remaining quarter spreads over the whole spectrum, down to below $-1$, and
+# pulls the mean to $0.488$; the spread of single trajectories is $0.30$. No single trajectory "is" the noisy state,
+# and the most frequent one is not even close to its mean. The right panel draws $64$ independent batches at every
+# $M$ and shows that the rms error of the batch mean equals $\sigma_1/\sqrt M$ of Eq. (7), $\sigma_1$ being the
+# spread of one trajectory, to within the $\approx10\%$ scatter expected from $64$ batches.
 #
 # > **Numerical practice.** Quoting a trajectory result without its standard error is not a measurement. In the
 # > comparisons below, every trajectory number is reported as mean $\pm$ standard error, and "agreement" always means
@@ -530,9 +615,9 @@ fig.tight_layout(); plt.show()
 # using $XZX=-Z$, $YZY=-Z$, $ZZZ=Z$. The same algebra gives $\lambda X$ and $\lambda Y$ — every non-identity Pauli is an
 # eigenoperator of the depolarising channel with eigenvalue $\lambda=1-4p/3$ — while $\mathcal D_p^\dagger(\mathbb 1)=\mathbb 1$.
 #
-# A Pauli **string** of weight $w$ (non-identity on $w$ qubits) therefore picks up one factor $\lambda$ per noisy qubit
-# in its support. If every qubit passes through $c$ channels per layer and there are $D$ layers, and **if the string is
-# not changed by the intervening unitaries**, then
+# A Pauli **string** of weight $w$ (non-identity on $w$ qubits) therefore picks up one factor $\lambda$ per channel
+# acting on a qubit in its support. If every qubit passes through $c$ channels per layer and there are $D$ layers, and
+# **if the string is not changed by the intervening unitaries**, then
 #
 # $$\langle P\rangle_{\rm noisy}=\lambda^{\,w\,c\,D}\,\langle P\rangle_{\rm ideal},\qquad \lambda=1-\frac{4p}{3}.\tag{9}$$
 #
@@ -541,11 +626,12 @@ fig.tight_layout(); plt.show()
 # zero is also the value of the cost on the maximally mixed state. **The landscape flattens towards the maximally mixed
 # value.**
 #
-# The italicised assumption is the weak point and must be stated clearly: in a real circuit the unitaries between the
-# noise layers rotate $P$ into a *sum* of Pauli strings of generally higher weight, and higher weight means faster
-# contraction. Equation (9) is therefore a *lower bound* on the amount of contraction, and we expect the measured decay
-# to be somewhat faster. Section 5.2 verifies Eq. (9) exactly in a setting where the assumption holds, and Section 8
-# measures the excess in a real circuit.
+# The bold assumption is the weak point. In a real circuit the unitaries between the noise layers rotate $P$ into a
+# *sum* of Pauli strings, and the weight can change in either direction: $CZ$ maps $X\otimes\mathbb 1$ to
+# $X\otimes Z$ (weight $1\to2$) and $X\otimes Z$ back to $X\otimes\mathbb 1$ (weight $2\to1$). Equation (9) with the
+# weight of a term of $\hat H$ is therefore neither an upper nor a lower bound on the contraction of that term in a real
+# circuit, only an estimate. Step 3 verifies Eq. (9) exactly in a setting where the assumption holds; Section 5.2 and
+# Section 8 measure how far a real circuit departs from it, in opposite directions.
 
 # %%
 # ==============================================================================
@@ -648,24 +734,30 @@ fig.tight_layout(); plt.show()
 
 # %% [markdown]
 # The left panel shows the shape of the slice surviving while its amplitude shrinks: the maxima and minima stay at
-# almost the same angles, and the whole curve is pulled towards $\mathrm{Tr}\,\hat H/2^N=0$, the value the cost takes on
-# the maximally mixed state. That is exactly the behaviour Eq. (9) predicts, and it is the first hint of the result
-# proved in the next section.
+# almost the same angles, and the mean of the curve moves towards $\mathrm{Tr}\,\hat H/2^N=0$, the value the cost takes
+# on the maximally mixed state (the maximum, which lies slightly above zero, rises with $p_2$ because the whole curve
+# is drawn towards zero from below). That is the behaviour Eq. (9) predicts. Whether the minimum stays *exactly* in place
+# is decided in Sections 6 and 7.
+#
+# Each slice is a pure sinusoid in $\theta_0$, with or without noise: a channel is linear in $\rho$, and $\rho$ depends on
+# one rotation angle only through $\cos\theta_0$ and $\sin\theta_0$, so the amplitude of a slice is a single number.
 #
 # The right panel turns the observation into a number. The measured amplitude follows a clean power law in $\lambda$
 # over the whole range, $\mathrm{amplitude}\propto\lambda^{4.79}$ — the fitted line and the data are
 # indistinguishable from $p_2=0$ to $p_2=0.25$, so Eq. (9) has the right *functional form* even for a full circuit.
 # The exponent, however, is not the one a single Pauli weight predicts. Counting noise locations for $L=2$ layers as in
 # Section 4.1 gives $3.30$ for a weight-1 term ($X_q$ in the field part of $\hat H$) and $7.27$ for a weight-2 term
-# ($X_iX_{i+1}$ and its partners), and the measured $4.79$ sits between them.
+# ($X_iX_{i+1}$ and its partners), and the measured $4.79$ sits between them, *below* the count for the two-body terms
+# that dominate $\hat H$.
 #
-# That is the expected outcome and it says something useful. The amplitude of a *one-angle* slice is not the size of
+# The amplitude of a *one-angle* slice is not the size of
 # one Pauli expectation value: it is the size of the part of $C$ that depends on $\theta_0$, and that part is a mixture
 # of contributions of different weights sitting at different distances from the qubit whose angle is being scanned.
 # Equation (9) therefore predicts the family of curves; which member of the family applies has to be measured.
 #
-# > **Common pitfall.** "The landscape flattens" is often said as if it implied "the minimum moves". The left panel says
-# > otherwise for this noise model. Whether the minimum moves is a separate question, and it has a sharp answer.
+# > **Common pitfall.** "The landscape flattens" and "the minimum moves" are separate statements. A flattening alone
+# > leaves the minimum in place; a flattening that treats different Pauli strings differently, as local noise does,
+# > moves it. Sections 6 and 7 separate the two cases.
 
 # %% [markdown]
 # ## 6. Global depolarising noise leaves the minimum exactly where it was
@@ -704,9 +796,9 @@ fig.tight_layout(); plt.show()
 #   \nabla C_{\rm noisy}=(1-q)\,\nabla C.\tag{13}$$
 #
 # The *location* of every stationary point, the ordering of every pair of parameter values, and the direction of every
-# gradient are untouched. What noise destroys is the *scale*: the gradient shrinks by $1-q$, which for a deep circuit is
-# exponentially small — and that, not a deformation, is the mechanism of the barren plateau in Section 8. For our
-# Hamiltonian $\mathrm{Tr}\hat H=0$, so Eq. (12) is a pure rescaling.
+# gradient are untouched. What this noise destroys is the *scale*: the gradient shrinks by $1-q=\prod_l(1-q_l)$, which
+# is exponentially small in the depth. The same shrinking, produced by local noise, is measured in Section 8 as a
+# noise-induced barren plateau. For our Hamiltonian $\mathrm{Tr}\hat H=0$, so Eq. (12) is a pure rescaling.
 
 # %%
 # ==============================================================================
@@ -805,7 +897,7 @@ fig.tight_layout(); plt.show()
 # %% [markdown]
 # Both properties hold to machine precision, Eq. (12) reproduces the noisy cost to twelve digits, and the gradient is
 # rescaled by exactly $1-q$ with the cosine of the angle between the two gradients equal to $1$ — the noisy gradient
-# points in precisely the same direction as the noiseless one.
+# points in the same direction as the noiseless one.
 #
 # The contour plots make the consequence visible. At $q=0.8$ only a fifth of the original contrast survives, so the
 # colour scale spans a fifth of the range; the *pattern* of the level sets is identical, and the two surfaces are
@@ -817,21 +909,32 @@ fig.tight_layout(); plt.show()
 # differently. The sets coincide, and the two minimum values are in the exact ratio $1-q$.
 #
 # A variational algorithm running on a device whose only error is global depolarising noise converges to the same angles
-# as on a perfect device — it just has to see through a landscape whose features are $(1-q)$ times as large, which
-# requires $(1-q)^{-2}$ times as many measurement shots.
+# as on a perfect device. It has to see through a landscape whose features are $(1-q)$ times as large, which requires
+# of order $(1-q)^{-2}$ times as many measurement shots for the same resolution (the single-shot variance of the
+# estimator changes as well, so the factor is not exact).
 #
-# > **Physics insight.** This is the theoretical basis of *optimal-parameter resilience* (Sharma, Khatri, Cerezo and
-# > Coles, 2020): for several classes of noise the global optimum of the noisy cost coincides with the noiseless one.
-# > Section 10 tests how far the idea survives when the noise is local rather than global, which is the realistic case.
+# > **Physics insight.** This is the simplest instance of *optimal-parameter resilience* (Sharma, Khatri, Cerezo and
+# > Coles, 2020), who proved for variational *compiling* that the optimal parameters are unaffected by a broad class of
+# > noise models (measurement noise, gate noise, Pauli channel noise) and speculated that the resilience extends to the
+# > variational eigensolver. Section 7 shows that for the eigensolver with local noise the minimum does move, and
+# > Section 10 measures by how much.
 
 # %% [markdown]
-# ## 7. Non-unital noise does move the minimum
+# ## 7. Local noise moves the minimum
 #
-# Equation (11) used only one property of the depolarising channel: it leaves $\mathbb 1$ invariant. A channel with
-# $\mathcal E(\mathbb 1)=\mathbb 1$ is called **unital**. Amplitude damping is not unital — it drives every state towards
-# $\vert0\rangle$, so
-# $\mathcal A_\gamma(\mathbb 1/2)=\tfrac12\mathrm{diag}(1+\gamma,1-\gamma)\neq\mathbb 1/2$ — and the argument fails. Here
-# is the smallest example in which the consequence can be computed in closed form.
+# Equation (11) used one specific property of the global channel: it maps $\rho$ to a combination of $\rho$ itself and
+# $\mathbb 1$, so it shrinks **every** traceless operator by the **same** factor $1-q$. Two weaker properties are not
+# enough.
+#
+# * **Unitality**, $\mathcal E(\mathbb 1)=\mathbb 1$, is not enough. A local dephasing channel is unital, but it
+#   multiplies $X$ and $Y$ by $1-2p$ and leaves $Z$ alone, so it changes the relative weight of the terms of the cost.
+# * **Equal contraction of all Pauli operators on one qubit**, the property of the single-qubit depolarising channel
+#   (Eq. 8), is not enough on $N\geq2$ qubits. A string of weight $w$ is multiplied by $\lambda^w$ (Eq. 9), so one-body
+#   and two-body terms of $\hat H$ are contracted by different factors.
+#
+# Amplitude damping fails on both counts and in addition is **not unital** — it drives every state towards
+# $\vert0\rangle$, so $\mathcal A_\gamma(\mathbb 1/2)=\tfrac12\mathrm{diag}(1+\gamma,1-\gamma)\neq\mathbb 1/2$.
+# Section 7.1 computes the consequence in closed form for one qubit; Section 7.2 treats the four-qubit circuit.
 #
 # ### 7.1 One qubit, solved exactly
 #
@@ -847,6 +950,13 @@ fig.tight_layout(); plt.show()
 #   $C_\lambda(\theta)=-\lambda(\sin\theta+h\cos\theta)=\lambda\,C(\theta)$. The minimiser is unchanged — this is
 #   Eq. (13) again, since a single-qubit depolarising channel *is* the global one for $N=1$.
 #
+# * **Dephasing**, unital, whose Bloch map is $x\to(1-2p)x$, $y\to(1-2p)y$, $z\to z$:
+#   $C_p(\theta)=-(1-2p)\sin\theta-h\cos\theta$, and $C_p'(\theta)=0$ gives
+#
+#   $$\tan\theta_\star(p)=\frac{1-2p}{h}.\tag{14a}$$
+#
+#   The optimum rotates towards the pole, although the channel preserves $\mathbb 1$.
+#
 # * **Amplitude damping**, whose Bloch map is $x\to\sqrt{1-\gamma}\,x$, $y\to\sqrt{1-\gamma}\,y$,
 #   $z\to(1-\gamma)z+\gamma$ (the last term is the non-unital piece):
 #
@@ -858,13 +968,15 @@ fig.tight_layout(); plt.show()
 #
 # The constant $-h\gamma$ is an offset and drops out of the derivative; what survives is that the transverse components
 # are damped by $\sqrt{1-\gamma}$ while the longitudinal one is damped by $1-\gamma$. **The two damping factors are
-# different, so their ratio changes with $\gamma$, and the optimal angle rotates towards the equator.** Equation (15)
+# different, so their ratio changes with $\gamma$, and the optimal angle rotates towards the equator.** Dephasing moves
+# the optimum by the same mechanism in the opposite direction; only the depolarising channel, which damps all three
+# components equally, leaves it in place. Equation (15)
 # reduces to Eq. (14) at $\gamma=0$ and diverges as $\gamma\to1$: with complete damping the state is $\vert0\rangle$
 # whatever $\theta$ is, and the optimum becomes degenerate.
 
 # %%
 # ==============================================================================
-# STEP 7: the one-qubit example, minimised on a fine grid and compared with Eqs. (14)-(15)
+# STEP 7: the one-qubit example, minimised on a fine grid and compared with Eqs. (14), (14a) and (15)
 # ==============================================================================
 H_FIELD = 0.5
 
@@ -879,6 +991,7 @@ def cost_1q(theta, chan, par):
 fine = jnp.linspace(0.0, jnp.pi, 20001)
 cases = [("noiseless", kraus_depolarizing, 0.0, np.arctan(1 / H_FIELD)),
          ("depolarising $p=0.2$", kraus_depolarizing, 0.2, np.arctan(1 / H_FIELD)),
+         ("dephasing $p=0.2$", kraus_dephasing, 0.2, np.arctan((1 - 2 * 0.2) / H_FIELD)),
          ("amplitude damping $\\gamma=0.3$", kraus_amplitude_damping, 0.3,
           np.arctan(1 / (H_FIELD * np.sqrt(1 - 0.3)))),
          ("amplitude damping $\\gamma=0.6$", kraus_amplitude_damping, 0.6,
@@ -897,35 +1010,145 @@ for j, (name, chan, par, pred) in enumerate(cases):
     ax.plot([tmin], [vals.min()], MARKERS[j], ms=8, color=PALETTE[j])
 ax.axvline(np.arctan(1 / H_FIELD), color="k", ls="--", lw=1.1, label=r"noiseless optimum $\arctan(1/h)$")
 ax.set_xlabel(r"$\theta$"); ax.set_ylabel(r"$C(\theta)$")
-ax.set_title("Unital noise rescales the cost; non-unital noise also moves its minimum")
+ax.set_title("Depolarising noise rescales the cost; dephasing and damping move its minimum")
 ax.legend(fontsize=8)
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# The measured minimisers reproduce Eqs. (14) and (15) to the resolution of the grid — the differences in the table are
-# $5\cdot10^{-5}$, a third of the grid spacing $1.57\cdot10^{-4}$. The depolarising curve is a scaled copy of the
-# noiseless one and its minimum sits at $1.107097$, on the dashed line at $\arctan(1/h)=1.107149$; the two
-# amplitude-damping curves have their minima at $1.174641$ and $1.264491$, against the predicted $1.174589$ and
-# $1.264519$ of Eq. (15).
+# The measured minimisers reproduce Eqs. (14), (14a) and (15) to the resolution of the grid — the differences in the
+# table are at most $5\cdot10^{-5}$, a third of the grid spacing $1.57\cdot10^{-4}$. The depolarising curve is a scaled
+# copy of the noiseless one and its minimum sits at $1.107097$, on the dashed line at $\arctan(1/h)=1.107149$; the
+# dephasing curve has its minimum at $0.876$ against the predicted $\arctan(1.2)=0.876058$; the two amplitude-damping
+# curves have their minima at $1.174641$ and $1.264491$, against the predicted $1.174589$ and $1.264519$ of Eq. (15).
 #
-# The shift is not small: at $\gamma=0.6$ the optimal angle has moved by $0.157$ radians, about $9$ degrees. An
-# algorithm that trains under damping and then reports its angles as "the" answer is reporting an answer that is biased,
-# and the bias grows with the damping.
+# The shifts are not small: at $\gamma=0.6$ the optimal angle has moved by $0.157$ radians, about $9$ degrees, and
+# dephasing at $p=0.2$ moves it by $0.23$ radians in the other direction. An algorithm that trains under such noise and
+# then reports its angles as "the" answer reports a biased answer, and the bias grows with the noise.
 #
-# > **Physics insight.** The distinction that matters is *unital* against *non-unital*, not "weak" against "strong".
-# > Depolarising, dephasing and bit flips are unital and preserve the identity, so they contract the landscape about the
-# > mixed state without moving its stationary points. Amplitude damping has a preferred state, and a preferred state is
-# > a bias.
+# ### 7.2 Many qubits: local depolarising noise deforms the cost
+#
+# On $N$ qubits the single-qubit depolarising channel is no longer global, and Eq. (9) shows what replaces Eq. (12).
+# Take the simplest placement: the noiseless circuit, followed by $\mathcal D_p$ on every qubit. By Eq. (8) a Pauli
+# string of weight $w$ is multiplied by $\lambda^w$, so for our Hamiltonian, whose bond terms have weight $2$ and whose
+# field terms have weight $1$,
+#
+# $$C_{\rm noisy}(\boldsymbol\theta)=\lambda^2\sum_{i}\langle J_{xx}X_iX_{i+1}+J_{yy}Y_iY_{i+1}+J_{zz}Z_iZ_{i+1}\rangle
+#   +\lambda\,h_x\sum_i\langle X_i\rangle=\lambda^2\,\langle\hat H'\rangle_{\boldsymbol\theta},
+#   \qquad \hat H'=\hat H\big\vert_{h_x\to h_x/\lambda}.\tag{15a}$$
+#
+# The noisy cost is the noiseless cost of a **different Hamiltonian**, one with a stronger field, and its minimiser is
+# the best approximation to a different ground state. Only if every term of $\hat H$ had the same weight would the
+# minimiser stay put. With the channels interleaved with the gates, as in our circuit, there is no closed form, but the
+# test is simple. At the noiseless minimiser $\boldsymbol\theta^\star$ we have $\nabla C(\boldsymbol\theta^\star)=0$; if
+# the noisy minimiser is the same point, $\nabla C_{\rm noisy}(\boldsymbol\theta^\star)$ must vanish too. Expanding the
+# noisy cost to first order in the noise strength, $C_{\rm noisy}=C+p\,C_1+O(p^2)$, the gradient at
+# $\boldsymbol\theta^\star$ is $p\,\nabla C_1(\boldsymbol\theta^\star)+O(p^2)$: it grows linearly in $p$ unless
+# $\nabla C_1(\boldsymbol\theta^\star)=0$ by a symmetry, and the minimiser moves by an amount of order
+# $p\,\lVert\mathcal H^{-1}\nabla C_1\rVert$, with $\mathcal H$ the Hessian of $C$ at the minimum.
+#
+# The code finds $\boldsymbol\theta^\star$ for $L=2$ with the quasi-Newton method BFGS (Numerical Recipes, §10.9;
+# `jax.scipy.optimize.minimize`, eight random starts in one `vmap`), checks Eq. (15a), and evaluates the gradient of the noisy cost at
+# $\boldsymbol\theta^\star$ for four noise models placed in the circuit as in Section 4.1. The global depolarising
+# channel after every layer is the control: by Eq. (13) its gradient is $(1-q)^{L+1}$ times the noiseless one, which is
+# zero up to the convergence of BFGS.
+
+# %%
+# ==============================================================================
+# STEP 7b: does the minimiser of the four-qubit circuit move?  Gradient of the noisy cost at the noiseless optimum
+# ==============================================================================
+from jax.scipy.optimize import minimize
+
+
+def global_noise_hea_dm(theta, N, layers, q):
+    """The noiseless ansatz with a GLOBAL depolarising channel of strength q after every layer and at the end."""
+    noiseless = kraus_depolarizing(0.0)
+    th = theta.reshape(layers + 1, N, 2)
+    rho = to_dm(zero_state(N))
+    for l in range(layers):
+        rho = apply_global_depolarizing(ent_block_dm(rot_block_dm(rho, th[l], noiseless, N), noiseless, N), q)
+    return apply_global_depolarizing(rot_block_dm(rho, th[layers], noiseless, N), q)
+
+
+cost_ideal_def = lambda t: energy(TERMS, hardware_efficient_ansatz(t, N_Q, L_DEF))
+starts_bfgs, _ = random_starts(8, hea_num_params(N_Q, L_DEF), seed=2024)
+sol, t_c, t_r = compile_then_run(
+    jax.vmap(lambda s: minimize(cost_ideal_def, s, method="BFGS", tol=1e-12, options=dict(maxiter=2000))), starts_bfgs)
+theta_opt = sol.x[int(jnp.argmin(sol.fun))]
+E_opt = float(cost_ideal_def(theta_opt))
+g_opt = max_abs(jax.grad(cost_ideal_def)(theta_opt))
+hess_ev = np.linalg.eigvalsh(np.asarray(jax.hessian(cost_ideal_def)(theta_opt)))
+print(f"BFGS from 8 starts (compile {t_c:.1f} s, run {t_r:.1f} s): best E = {E_opt:.8f}  (exact E0 = {E0_EXACT:.8f})")
+print(f"  max |grad C(theta*)| = {g_opt:.1e};  Hessian eigenvalues from {hess_ev[0]:.1e} to {hess_ev[-1]:.2f}, "
+      f"{int(np.sum(hess_ev < 1e-2))} of them below 1e-2")
+
+# Eq. (15a): local depolarising AFTER the noiseless circuit = noiseless cost of H' with h_x -> h_x / lambda
+p_end = 0.05
+lam_end = 1 - 4 * p_end / 3
+rho_end = to_dm(hardware_efficient_ansatz(theta_opt, N_Q, L_DEF))
+for q in range(N_Q):
+    rho_end = apply_kraus_dm(rho_end, kraus_depolarizing(p_end), [q])
+TERMS_PRIME = heisenberg_terms(N_Q, Jxx=JXX, Jyy=JYY, Jzz=JZZ, hx=HX / lam_end)
+lhs_end = float(energy_dm(TERMS, rho_end))
+rhs_end = lam_end ** 2 * float(energy(TERMS_PRIME, hardware_efficient_ansatz(theta_opt, N_Q, L_DEF)))
+print(f"\nEq. (15a) at p = {p_end}:  C_noisy = {lhs_end:.12f},  lambda^2 <H'> = {rhs_end:.12f}")
+assert abs(lhs_end - rhs_end) < TOL
+
+P_SHIFT = jnp.asarray([0.0025, 0.005, 0.01, 0.02])
+MODELS = (("global depolarising (control)", lambda t, p: energy_dm(TERMS, global_noise_hea_dm(t, N_Q, L_DEF, p))),
+          ("local depolarising", lambda t, p: energy_dm(TERMS, noisy_hea_dm(t, N_Q, L_DEF, P1_RATIO * p, p))),
+          ("local dephasing", lambda t, p: energy_dm(TERMS, noisy_hea_dm(t, N_Q, L_DEF, P1_RATIO * p, p,
+                                                                          kraus_dephasing, kraus_dephasing))),
+          ("amplitude damping", lambda t, p: energy_dm(TERMS, noisy_hea_dm(t, N_Q, L_DEF, P1_RATIO * p, p,
+                                                                            kraus_amplitude_damping,
+                                                                            kraus_amplitude_damping))))
+print(f"\nmax_k |dC_noisy/dtheta_k| at the noiseless optimum (noise strength p2 = p, p1 = {P1_RATIO} p)")
+print(f"{'model':>30s} " + " ".join(f"{'p=' + format(float(p), 'g'):>10s}" for p in P_SHIFT) + f" {'(grad)/p':>10s}")
+grad_at_opt = {}
+for name, f in MODELS:
+    g = np.asarray(jax.jit(jax.vmap(lambda p: jnp.max(jnp.abs(jax.grad(f)(theta_opt, p)))))(P_SHIFT))
+    grad_at_opt[name] = g
+    print(f"{name:>30s} " + " ".join(f"{v:10.2e}" for v in g) + f" {g[0] / float(P_SHIFT[0]):10.2f}")
+assert grad_at_opt["global depolarising (control)"].max() <= g_opt * (1 + 1e-9)
+for name, _ in MODELS[1:]:
+    assert grad_at_opt[name].min() > 1e3 * g_opt
+
+# %% [markdown]
+# BFGS reaches the noiseless optimum of this ansatz, $-4.44772$, about $7\cdot10^{-3}$ above the exact ground energy,
+# with a residual gradient of $4\cdot10^{-6}$. Equation (15a) holds to round-off. The gradient table separates the
+# models cleanly. Under global depolarising noise the gradient at $\boldsymbol\theta^\star$ stays at the noiseless
+# residual, reduced by the factor $(1-q)^{L+1}$: the minimiser does not move. Under each of the three local channels
+# the gradient is three to four orders of magnitude larger and grows almost in proportion to $p$ (each doubling of $p$
+# multiplies it by $1.85$–$1.96$), as the first-order argument requires, so the minimiser moves by an amount of order
+# $p$. Dephasing, which is unital, pushes hardest; damping, which is not, pushes least.
+#
+# The Hessian at $\boldsymbol\theta^\star$ has one eigenvalue that is zero to the precision of BFGS (a redundant
+# direction of the ansatz) and three more below $10^{-2}$, against a largest eigenvalue of $8.1$: there are very soft
+# directions. Along those, a small force produces a large displacement that costs little noiseless energy. That
+# combination, large displacement and small energy penalty, is what Section 10 measures.
+#
+# > **Physics insight.** The property that keeps the minimum in place is that the noise contracts **every** Pauli
+# > string of the cost by the **same** factor, which holds for global depolarising noise and for a single qubit under
+# > depolarising noise. Unitality does not suffice: local dephasing preserves the identity and still moves the
+# > minimum. Non-unital channels such as amplitude damping add a further bias, a preferred state towards which every
+# > noisy output is pulled.
 
 # %% [markdown]
 # ## 8. Noise-induced barren plateaus
 #
 # Notebook 40 measured the barren plateau of a *noiseless* circuit: for a hardware-efficient ansatz the variance of a
-# gradient component falls exponentially with the number of **qubits**. Wang and co-workers (2021) showed that local
-# noise produces a second, independent mechanism: at fixed $N$, the variance falls exponentially with the circuit
-# **depth**. The reasoning is Eq. (9). Each noisy layer multiplies every Pauli expectation value by $\lambda^{wc}$, so
-# after $L$ layers the whole cost function — and with it every derivative — is compressed by $\lambda^{wcL}$, and a
-# variance, being quadratic in the cost, by $\lambda^{2wcL}$:
+# gradient component falls exponentially with the number of **qubits**. Wang and co-workers (2021) identified a second,
+# conceptually different mechanism caused by noise. For local Pauli noise acting on every qubit before and after each
+# of $L$ layers, with $q$ the largest factor by which the noise multiplies $X$, $Y$ or $Z$ ($q=\lambda$ for
+# depolarising noise), they proved an upper bound on **every** partial derivative of the noisy cost, at **every** point
+# of the landscape, proportional to $n^{1/2}q^{cL+1}$ with $c=1/(2\ln2)$ and a prefactor fixed by the Pauli
+# decompositions of the cost and the generators; the cost itself concentrates on its maximally mixed value
+# $\mathrm{Tr}\,\hat O/2^n$ with the same factor. When $L$ grows at least linearly with $n$ the gradient vanishes
+# exponentially in $n$, for any $q<1$. At fixed $N$ their bound decays exponentially with the **depth**. It covers
+# unital Pauli noise; amplitude damping is outside it.
+#
+# The bound does not predict the rate for a particular circuit. A heuristic estimate follows from Eq. (9). If each noisy
+# layer multiplied every relevant Pauli expectation value by $\lambda^{wc}$, then after $L$ layers the cost — and with
+# it every derivative — would be compressed by $\lambda^{wcL}$, and a variance, being quadratic, by $\lambda^{2wcL}$:
 #
 # $$\mathrm{Var}\bigl[\partial_kC\bigr]_{\rm noisy}\ \approx\ \lambda^{2wcL}\;\mathrm{Var}\bigl[\partial_kC\bigr]_{\rm noiseless},
 #   \qquad \ln\frac{\mathrm{Var}_{\rm noisy}}{\mathrm{Var}_{\rm noiseless}}\approx 2\,w\,c\,L\,\ln\lambda.\tag{16}$$
@@ -933,49 +1156,70 @@ fig.tight_layout(); plt.show()
 # The counting of $c$ for our circuit was done in Section 4.1. A two-body term $Z_iZ_{i+1}$ on bond $(i,i+1)$ sees, per
 # layer, the $CZ$ channels of both its qubits: $1+2=3$ for the end bonds and $2+2=4$ for the middle one, so $10/3$ on
 # average over the three bonds of an $N=4$ chain, plus $2\times0.1$ from the two rotation-block channels at
-# $p_1=0.1p_2$. Hence $wc=10/3+0.2=3.53$ for the dominant terms of $\hat H$, and Eq. (16) predicts a slope
+# $p_1=0.1p_2$ (to first order in $p$, a channel of strength $0.1p_2$ contributes $0.1$ to the exponent of
+# $\lambda$). Hence $wc=10/3+0.2=3.53$ for the dominant terms of $\hat H$, and Eq. (16) predicts a slope
 # $2\times3.53\times\ln\lambda$ in a plot of $\ln(\mathrm{Var}_{\rm noisy}/\mathrm{Var}_{\rm noiseless})$ against $L$.
+# Section 5.1 showed why this is only an estimate: the gates change the weight of the strings in both directions.
 #
-# The measurement takes $R$ uniformly random parameter vectors at each depth, differentiates the noisy cost with respect
-# to all of them by reverse-mode automatic differentiation **through the Kraus einsums**, and records the sample
-# variance of the first component. Because $p$ is a traced argument, one `vmap` over noise strengths and one over random
-# draws compile into a single program per depth.
+# The measurement takes $R=96$ uniformly random parameter vectors at each depth, differentiates the noisy cost with
+# respect to all parameters by reverse-mode automatic differentiation **through the Kraus einsums**, and records the
+# sample variance of the first component. The same parameter vectors are used at every noise strength, so the ratio
+# $\mathrm{Var}_{\rm noisy}/\mathrm{Var}_{\rm noiseless}$ is a paired quantity, and its uncertainty is estimated by
+# resampling the $R$ vectors with replacement (bootstrap) and refitting. Because $p$ is a traced argument, one `vmap`
+# over noise strengths and one over random draws compile into a single program per depth.
 
 # %%
 # ==============================================================================
 # STEP 8: gradient variance against circuit depth, with and without noise
 # ==============================================================================
 # PARAMETERS
-R_BP = 24                                   # random parameter vectors per depth
+R_BP = 96                                   # random parameter vectors per depth
 DEPTHS_BP = (1, 2, 4, 6, 8, 12)
 P_BP = jnp.asarray([0.0, 0.005, 0.02])      # two-qubit error probabilities
 
-var_bp = {}
-t_bp = time.perf_counter()
+var_bp, g0_bp = {}, {}
+t_comp_bp = t_run_bp = 0.0
 for L in DEPTHS_BP:
     n_par = hea_num_params(N_Q, L)
     th_bp = jax.random.uniform(jax.random.PRNGKey(10 + L), (R_BP, n_par), minval=-jnp.pi, maxval=jnp.pi)
-    grads = jax.jit(jax.vmap(lambda p: jax.vmap(
-        jax.grad(lambda t: energy_dm(TERMS, noisy_hea_dm(t, N_Q, L, P1_RATIO * p, p))))(th_bp)))
-    G = np.asarray(jax.block_until_ready(grads(P_BP)))               # (n_p, R_BP, n_par)
-    var_bp[L] = [float(np.var(G[j, :, 0])) for j in range(P_BP.size)]
+    grads = jax.vmap(lambda p: jax.vmap(
+        jax.grad(lambda t: energy_dm(TERMS, noisy_hea_dm(t, N_Q, L, P1_RATIO * p, p))))(th_bp))
+    G, t_c, t_r = compile_then_run(grads, P_BP)                         # (n_p, R_BP, n_par)
+    t_comp_bp, t_run_bp = t_comp_bp + t_c, t_run_bp + t_r
+    g0_bp[L] = np.asarray(G[:, :, 0])                                   # dC/dtheta_0, (n_p, R_BP)
+    var_bp[L] = [float(np.var(g0_bp[L][j])) for j in range(P_BP.size)]
 
 print(f"variance of dC/dtheta_0 over {R_BP} uniformly random parameter vectors "
-      f"({time.perf_counter() - t_bp:.1f} s)")
+      f"(compilation {t_comp_bp:.1f} s, run {t_run_bp:.1f} s; relative standard error of one variance "
+      f"~ sqrt(2/(R-1)) = {np.sqrt(2 / (R_BP - 1)):.2f})")
 print(f"{'L':>3s} {'n':>5s} " + " ".join(f"{('p2=' + f'{float(p):g}'):>12s}" for p in P_BP))
 for L in DEPTHS_BP:
     print(f"{L:3d} {hea_num_params(N_Q, L):5d} " + " ".join(f"{v:12.4e}" for v in var_bp[L]))
 
+
+def ratio_slope(j, idx=None):
+    """Least-squares slope of ln[Var(p_j)/Var(0)] against L; `idx` = bootstrap resample of the R vectors per depth."""
+    y = [np.log(np.var(g0_bp[L][j] if idx is None else g0_bp[L][j][idx[L]])
+                / np.var(g0_bp[L][0] if idx is None else g0_bp[L][0][idx[L]])) for L in DEPTHS_BP]
+    return float(np.polyfit(DEPTHS_BP, y, 1)[0])
+
+
 WC = 10 / 3 + 2 * P1_RATIO                  # noise channels per layer seen by an average two-body term
+WC1 = 1.5 + P1_RATIO                        # the same count for a one-body term (WRONG control for the dominant terms)
+rng_bs = np.random.default_rng(11)
 print(f"\nfitted exponential decay of the RATIO Var(p)/Var(0) against depth  (predicted slope 2*{WC:.2f}*ln(1-4p/3))")
 fits = {}
 for j, p in enumerate(np.asarray(P_BP)[1:], start=1):
-    y = np.log([var_bp[L][j] / var_bp[L][0] for L in DEPTHS_BP])
-    slope = float(np.polyfit(DEPTHS_BP, y, 1)[0])
+    slope = ratio_slope(j)
+    boot = np.array([ratio_slope(j, {L: rng_bs.integers(0, R_BP, R_BP) for L in DEPTHS_BP}) for _ in range(1000)])
+    lo, hi = np.percentile(boot, [2.5, 97.5])
     pred = 2 * WC * np.log(1 - 4 * float(p) / 3)
+    pred1 = 2 * WC1 * np.log(1 - 4 * float(p) / 3)
     fits[float(p)] = slope
-    print(f"  p2 = {float(p):.4f}:  measured slope {slope:+.4f}   predicted {pred:+.4f}   "
-          f"ratio measured/predicted {slope / pred:.2f}")
+    print(f"  p2 = {float(p):.4f}:  measured slope {slope:+.4f}  (95% bootstrap interval [{lo:+.4f}, {hi:+.4f}])   "
+          f"Eq. (16) {pred:+.4f}   ratio {slope / pred:.2f} [{hi / pred:.2f}, {lo / pred:.2f}]   "
+          f"weight-1 count {pred1:+.4f}")
+    assert lo < pred1 * 1.5 and not (lo <= pred1 <= hi)
 
 fig, axes = plt.subplots(1, 2, figsize=(11.8, 4.3))
 for j, p in enumerate(np.asarray(P_BP)):
@@ -995,23 +1239,29 @@ axes[1].set_title("The noise-induced part of the decay"); axes[1].legend(fontsiz
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# At $N=4$ the noiseless variance (left panel, blue) is essentially flat: four qubits are far too few for the
-# *noiseless* barren plateau of notebook 40, which needs the Hilbert-space dimension to be large. The noisy curves fall,
-# and they fall faster the larger $p_2$ is. That separation is the point: this plateau is caused by the noise alone, and
-# it appears at a system size where the noiseless landscape is perfectly healthy.
+# At $N=4$ the noiseless variance (left panel, blue) changes little with depth (it falls by a factor $1.4$ between
+# $L=1$ and $L=12$, against a relative standard error of $0.15$ per point): four qubits are far too few for the *noiseless*
+# barren plateau of notebook 40, which needs the Hilbert-space dimension to be large. The noisy curves fall, and they
+# fall faster the larger $p_2$ is. This plateau is caused by the noise alone, and it appears at a system size where the
+# noiseless landscape has no plateau.
 #
-# The right panel divides out the noiseless baseline, which removes the sampling scatter common to both, and compares
-# with Eq. (16). The measured decay is steeper than predicted by $15\%$ at $p_2=0.005$ and by $8\%$ at $p_2=0.02$ — the
-# direction anticipated in Section 5.1, since the estimate assumed a fixed Pauli weight $w=2$ while the circuit spreads
-# each term over strings of higher weight, and higher weight contracts faster. The *rate* of the exponential is
-# therefore predicted to within a fifth by counting noise locations on a diagram.
+# The right panel divides out the noiseless baseline, which removes most of the sampling scatter common to both, and
+# compares with Eq. (16). The measured decay is steeper than Eq. (16) by $25\%$ at $p_2=0.005$ (95% bootstrap interval
+# $19$–$31\%$) and by $16\%$ at $p_2=0.02$ ($10$–$23\%$), so the intervals exclude the prediction itself. The wrong control, the count for a weight-1 term, predicts slopes less than half as steep and is
+# excluded by a wide margin. So the noise-location count of the dominant two-body terms predicts the rate to within
+# about a quarter, and the excess has the sign expected if the circuit spreads these terms over strings of higher weight.
+# The landscape slice of Section 5.2 erred in the other direction (exponent $4.79$ against the count $7.27$), which is
+# why both were measured rather than assumed.
 #
-# The practical statement is the one that ends the argument for hardware: a gradient of size $\epsilon$ needs
-# $O(\epsilon^{-2})$ measurement shots to resolve, so a variance falling like $e^{-\alpha L}$ makes the shot cost grow
-# like $e^{\alpha L}$. **No optimiser can fix this** — the information is not in the data. Stilck França and
-# García-Patrón (2021) turned the same mechanism into a sharper statement: above a fixed noise rate, the output of a
-# noisy variational circuit is so close to the maximally mixed state that its energy can be matched by a trivial
-# classical algorithm.
+# The practical consequence: a gradient of size $\epsilon$ needs $O(\epsilon^{-2})$ measurement shots to resolve, so
+# a variance falling like $e^{-\alpha L}$ makes the shot cost grow like $e^{\alpha L}$. Because the theorem of Wang
+# *et al.* bounds the gradient at every point of the landscape, changing the optimiser or the initialisation does not
+# remove this cost; they make the same point for gradient-free and higher-order methods, and argue that error
+# mitigation acting as an affine map on cost values cannot remove the exponential scaling either, leaving open whether
+# other mitigation strategies can. Stilck França and García-Patrón (2021) attacked the same question from the side of
+# the output state: using entropic inequalities for how fast the state of a noisy circuit converges to the fixed point
+# of the noise, combined with classical sampling of Gibbs states, they concluded that substantial quantum advantages in
+# classical optimisation are unlikely unless noise rates decrease by orders of magnitude.
 
 # %% [markdown]
 # ## 9. Training under noise
@@ -1065,14 +1315,24 @@ METHODS = (("exact gradient, density tensor", lambda t, k, i: jax.grad(cost_nois
            (f"SPSA on M={M_TRAJ} trajectories", grad_spsa_traj()))
 hist_train, theta_train = {}, {}
 for name, rule in METHODS:
-    t0 = time.perf_counter()
-    thf, h = jax.jit(jax.vmap(lambda t, k: train(t, k, rule, opt_adam(LR), monitor_both, N_STEPS)))(th_tr, ks_tr)
-    theta_train[name] = jax.block_until_ready(thf)
+    (thf, h), t_c, t_r = compile_then_run(
+        jax.vmap(lambda t, k: train(t, k, rule, opt_adam(LR), monitor_both, N_STEPS)), th_tr, ks_tr)
+    theta_train[name] = thf
     hist_train[name] = np.asarray(h)                      # (runs, steps, 2): [noisy cost, noiseless cost]
-    print(f"{name:34s} {time.perf_counter() - t0:6.1f} s   "
+    print(f"{name:34s} compile {t_c:5.1f} s, run {t_r:5.1f} s   "
           f"final noisy E: median {np.median(hist_train[name][:, -1, 0]):+.5f}, "
           f"best {np.min(hist_train[name][:, -1, 0]):+.5f}")
 
+# Is the Adam step of the SPSA run a fair choice?  Bracket it by a factor of two on either side.
+for lr_try in (LR / 2, 2 * LR):
+    _, h_try = jax.jit(jax.vmap(lambda t, k: train(t, k, grad_spsa_traj(), opt_adam(lr_try), monitor_both,
+                                                   N_STEPS)))(th_tr, ks_tr)
+    print(f"  SPSA control with Adam step {lr_try:.3f}: final noisy E median {np.median(np.asarray(h_try)[:, -1, 0]):+.5f}")
+
+h_ex = hist_train["exact gradient, density tensor"]
+print(f"  exact-gradient run, median noisy cost at iterations 40 / 150: {np.median(h_ex[:, 39, 0]):+.4f} / "
+      f"{np.median(h_ex[:, -1, 0]):+.4f};  median gap noiseless - noisy at iterations 1 / 40 / 150: "
+      + " / ".join(f"{np.median(h_ex[:, i, 1] - h_ex[:, i, 0]):+.3f}" for i in (0, 39, N_STEPS - 1)))
 print(f"\nreference values:  exact ground energy E0 = {E0_EXACT:+.5f}")
 print(f"{'method':>34s} {'median E_noisy':>15s} {'median E_ideal(theta*)':>23s} {'best E_ideal(theta*)':>21s}")
 for name, _ in METHODS:
@@ -1112,49 +1372,61 @@ print(f"  4000 trajectories       {E_mc_star:+.6f} +- {se_star:.6f}   "
 print(f"  noiseless at the same angles {float(cost_ideal(theta_star)):+.6f}")
 print(f"  exact ground energy          {E0_EXACT:+.6f}")
 assert abs(E_mc_star - E_dm_star) < 5 * se_star
+E_bug_star = float(energy_dm(TERMS, noisy_hea_dm(theta_star, N_Q, L_DEF, P1_DEF, P2_DEF, cz_both=False)))
+print(f"  wrong control (channel on one qubit of each CZ) {E_bug_star:+.6f}   "
+      f"({abs(E_mc_star - E_bug_star) / se_star:.1f} standard errors)")
+assert abs(E_mc_star - E_bug_star) > 5 * se_star
 
 # %% [markdown]
 # The two panels separate two things that are easy to conflate.
 #
 # **Left: the optimiser works.** Both methods reduce the noisy cost. The exact-gradient run reaches a median of
-# $-3.758$ and has converged by iteration 40; the SPSA run reaches $-3.327$ after 150 iterations with $M=32$
-# trajectories per evaluation and is still improving. The stochastic method is slower per iteration, as it was in
-# notebook 41, and for the same reason: two noisy scalars per step against $n=24$ exact ones. Its interquartile band is
-# also much wider, because the noise of the estimate is inherited by the path the optimiser takes.
+# $-3.758$; most of the descent happens in the first 40 iterations, after which the median still falls by $0.16$. The
+# SPSA run reaches $-3.327$ after 150 iterations with $M=32$ trajectories per evaluation and is still improving. Its
+# Adam step was not tuned separately; halving it gives the same median to within $0.003$ and doubling it a clearly
+# worse one ($-3.00$), so $0.05$ is close to the best step for this budget. The stochastic method is slower per iteration, as it was in notebook 41: two noisy scalars per step
+# against $n=24$ exact derivatives. Its interquartile band is also much wider, because the noise of the estimate is
+# inherited by the path the optimiser takes. (The exact gradient is a simulator privilege; on a device it would cost
+# $2n=48$ shot-limited circuit evaluations per iteration, so the two columns do not compare equal budgets.)
 #
 # **Right: the noisy cost is not the physics.** The same angles, evaluated on a perfect device, give a median energy of
 # $-4.382$ for the exact-gradient run against the exact ground energy $E_0=-4.4548$ — a far better number than the
-# $-3.758$ the noisy device reports. The gap between the two panels is the noise floor, and it does not shrink with
-# training. Reporting the noisy cost as "the variational energy" would understate the quality of the state found by
-# about $0.62$ in units where the answer is $-4.45$.
+# $-3.758$ the noisy device reports. The gap between the two panels opens during the first tens of iterations, from
+# $0.08$ at the random start to about $0.63$, because a state with large energy contrast loses more of it to the
+# contraction, and then stays there. Reporting the noisy cost as "the variational energy" would understate the quality
+# of the state found by about $0.62$ in units where the answer is $-4.45$.
 #
 # The checkpoint confirms once more that the two simulators describe the same state: at the angles that minimised the
 # noisy cost, the trajectory estimate $-3.7812\pm0.0209$ agrees with the exact density-tensor value $-3.7784$ within
-# $0.13$ standard errors.
+# $0.13$ standard errors, while the one-sided-channel model is rejected at $12$ standard errors.
 #
-# > **Numerical practice.** The *variational principle does not protect the noisy cost*. $C(\boldsymbol\theta)\ge E_0$
-# > holds for the noisy cost too, since $\mathrm{Tr}(\hat H\rho)\ge E_0$ for any state — but the bound is far from tight,
-# > and a noisy energy above $E_0$ says nothing about how close the state is to the ground state.
+# > **Numerical practice.** The variational bound survives noise, but it loses its use. $C(\boldsymbol\theta)\ge E_0$
+# > holds for the noisy cost too, since $\mathrm{Tr}(\hat H\rho)\ge E_0$ for any state $\rho$. The bound is far from
+# > tight, and a noisy energy above $E_0$ says nothing about how close the prepared state is to the ground state.
 
 # %% [markdown]
 # ## 10. Optimal-parameter resilience
 #
-# Section 6 proved a clean statement for global depolarising noise: the minimiser does not move. Sharma, Khatri, Cerezo
-# and Coles (2020) proved related statements for several noise models in variational *compiling*, and gave the effect
-# its name — **optimal parameter resilience**. Real noise is local, not global, so the proof does not apply directly and
-# the question becomes quantitative: how much does the minimiser move?
+# Section 6 proved that for global depolarising noise the minimiser does not move; Section 7 showed that for local
+# noise it does, by an amount of order $p$. Sharma, Khatri, Cerezo and Coles (2020) proved resilience statements for
+# several noise models in variational *compiling* and gave the effect its name — **optimal parameter resilience**. For
+# local noise and an energy cost the question is quantitative: how much noiseless energy does the move cost?
 #
 # The experiment is the one the name suggests. **Train under noise, then evaluate the parameters found on a noiseless
-# simulator.** If the resilience holds, the noiseless energy of the noisy optimum should stay close to the noiseless
-# optimum's own energy, however large the noise gets. Two channels are compared at five noise strengths each: the
-# unital depolarising channel and the non-unital amplitude-damping channel, both applied after every gate. Because the
-# noise strength is a traced argument, the whole $5\times8$ grid of (noise level, random start) is one compiled program
-# per channel.
+# simulator.** Two channels are compared at five noise strengths each: the depolarising channel and the
+# amplitude-damping channel, placed as in Section 4.1. The same strength number does not mean the same error rate: by
+# the process-fidelity formula of Section 3.2, damping of strength $\gamma$ on one qubit has
+# $F_e=(1+\sqrt{1-\gamma})^2/4$ and error per gate $r\simeq\gamma/3$, half the $2p/3$ of depolarising noise. The training
+# uses the same eight random starts at every noise level, so the noiseless energy reached from a given start can be
+# compared with the one reached from the same start without noise, a **paired** difference. Because the noise strength
+# is a traced argument, the whole $5\times8$ grid of (noise level, random start) is one compiled program per channel.
 
 # %%
 # ==============================================================================
 # STEP 10: train noisy, evaluate noiseless -- for a unital and a non-unital channel
 # ==============================================================================
+import math
+
 # PARAMETERS
 R_RES, N_STEPS_RES = 8, 150
 P_RES = jnp.asarray([0.0, 0.01, 0.02, 0.04, 0.08])
@@ -1168,17 +1440,22 @@ def train_over_noise(chan):
         cn = lambda th: energy_dm(TERMS, noisy_hea_dm(th, N_Q, L_DEF, P1_RATIO * p, p, chan, chan))
         mon = lambda th: jnp.stack([cn(th), cost_ideal(th)])
         return train(t, k, lambda th, kk, i: jax.grad(cn)(th), opt_adam(LR), mon, N_STEPS_RES)[1]
-    return jax.jit(jax.vmap(lambda p: jax.vmap(lambda t, k: one(p, t, k))(th_res, ks_res)))(P_RES)
+    return compile_then_run(jax.vmap(lambda p: jax.vmap(lambda t, k: one(p, t, k))(th_res, ks_res)), P_RES)
+
+
+def sign_test_p(n_pos, n):
+    """Two-sided sign test: probability of a split at least as uneven as n_pos : n - n_pos if + and - were equally likely."""
+    k = max(n_pos, n - n_pos)
+    return min(1.0, 2 * sum(math.comb(n, i) for i in range(k, n + 1)) / 2 ** n)
 
 
 res = {}
-for name, chan in (("depolarising (unital)", kraus_depolarizing),
-                   ("amplitude damping (non-unital)", kraus_amplitude_damping)):
-    t0 = time.perf_counter()
-    res[name] = np.asarray(jax.block_until_ready(train_over_noise(chan)))   # (n_p, runs, steps, 2)
-    print(f"{name:32s} trained at {P_RES.size} noise levels x {R_RES} starts in {time.perf_counter() - t0:.1f} s")
+for name, chan in (("depolarising", kraus_depolarizing), ("amplitude damping", kraus_amplitude_damping)):
+    out, t_c, t_r = train_over_noise(chan)
+    res[name] = np.asarray(out)                                              # (n_p, runs, steps, 2)
+    print(f"{name:20s} trained at {P_RES.size} noise levels x {R_RES} starts: compile {t_c:.1f} s, run {t_r:.1f} s")
 
-E_ref_ideal = float(np.min(res["depolarising (unital)"][0, :, -1, 1]))      # best noiseless optimum found
+E_ref_ideal = float(np.min(res["depolarising"][0, :, -1, 1]))      # best noiseless optimum found
 print(f"\nbest noiseless optimum of this ansatz: E = {E_ref_ideal:.6f}   (exact E0 = {E0_EXACT:.6f})")
 print(f"{'channel':>32s} {'strength':>9s} {'E_noisy median':>15s} {'E_ideal(theta*) median':>23s} "
       f"{'best':>10s} {'penalty vs best':>16s}")
@@ -1188,6 +1465,17 @@ for name in res:
         print(f"{name if j == 0 else '':>32s} {p:9.3f} {np.median(H[:, -1, 0]):15.5f} "
               f"{np.median(H[:, -1, 1]):23.5f} {np.min(H[:, -1, 1]):10.5f} "
               f"{np.min(H[:, -1, 1]) - E_ref_ideal:+16.5f}")
+
+print("\npaired penalty E_ideal(theta*_p) - E_ideal(theta*_0) from the SAME start; convergence diagnostic = median"
+      " |change of the noisy cost over the last 50 iterations|")
+print(f"{'channel':>20s} {'strength':>9s} {'median paired':>14s} {'# > 0':>6s} {'sign-test p':>12s} {'last-50 change':>15s}")
+for name in res:
+    for j, p in enumerate(np.asarray(P_RES)[1:], start=1):
+        d = res[name][j, :, -1, 1] - res[name][0, :, -1, 1]
+        npos = int(np.sum(d > 0))
+        drift = np.median(np.abs(res[name][j, :, -1, 0] - res[name][j, :, -51, 0]))
+        print(f"{name if j == 1 else '':>20s} {p:9.3f} {np.median(d):+14.4f} {npos:3d}/{R_RES} "
+              f"{sign_test_p(npos, R_RES):12.3f} {drift:15.4f}")
 
 fig, ax = plt.subplots(figsize=(7.2, 4.4))
 for j, name in enumerate(res):
@@ -1203,40 +1491,45 @@ ax.legend(fontsize=8, loc="upper left")
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# The measurement supports the resilience claim, and it supports it for **both** channels — including the non-unital
-# one, for which Section 7 proved that the minimiser must move.
+# Read the "best" column first. Training at $p_2=0.08$, an error rate at which the noisy device reports a median energy
+# of $-2.451$ instead of about $-4.41$, still yields angles whose best *noiseless* energy is $-4.3966$, $0.042$ above
+# the best noiseless optimum $-4.4384$ found by the same eight runs. At $p_2=0.01$ the best-of-eight penalty is
+# $2.7\cdot10^{-3}$, about a hundred times smaller than the $0.35$ by which the median reported energy is wrong.
 #
-# Read the last column. Training at $p_2=0.08$, a catastrophic error rate at which the noisy device reports an energy of
-# $-2.451$ instead of $-4.455$, still yields angles whose *noiseless* energy is $-4.3966$, only $0.042$ above the best
-# noiseless optimum $-4.4384$ of the same ansatz. At the smallest non-zero noise, $p_2=0.01$, the penalty is
-# $2.7\cdot10^{-3}$ — three orders of magnitude smaller than the $0.35$ by which the reported energy is wrong.
+# Best-of-eight is a fragile statistic, and the paired table is the more reliable one. At strength $0.01$ the paired
+# penalties have both signs (six and four of eight positive, sign-test $p=0.29$ and $1$): the shift of the minimum is
+# smaller than the run-to-run differences of the optimisation itself and is not resolved. From $0.02$ upwards the
+# penalty is positive in seven or eight of eight starts (sign-test $p=0.07$ and $0.008$) and grows with the noise, to
+# medians of $0.04$–$0.07$ at strengths $0.04$–$0.08$. The two
+# channels are not distinguished by these data: their paired medians cross from one strength to the next, and at
+# equal strength damping has half the error per gate of depolarising noise. The last column is a warning: under strong
+# damping the noisy cost is still changing at the end of the 150 iterations (by $0.41$ over the last 50 at strength
+# $0.08$), so these runs measure the outcome of a
+# fixed training budget; they do not locate the noisy minimum.
 #
-# The two channels are *not* identical, and the difference has the sign Section 7 demands. The non-unital channel costs
-# more at **every** noise level: $5.2\cdot10^{-3}$ against $2.7\cdot10^{-3}$ at strength $0.01$, $0.052$ against
-# $0.034$ at $0.04$, and $0.058$ against $0.042$ at $0.08$. The gap is a consistent factor of about $1.4$, small on the
-# scale of the figure but visible in every row.
-#
-# The smallness of both penalties is not a contradiction of Section 7. That section showed the minimiser *moves*; it did
-# not say how much the cost pays for the move. Near a minimum the cost is quadratic in the displacement, so a shift of
-# the optimum by $\delta$ costs only $O(\delta^2)$ in energy. The honest summary of these numbers is: **the parameters
-# are far more robust than the cost value is**, whether the noise is unital or not, and the useful output of a noisy
-# variational run is the parameter vector, not the energy it reported.
+# The penalties stay small compared with the error of the reported energy because the cost is quadratic in the
+# displacement of the minimiser, and because Section 7.2 found very soft directions in the Hessian, along which a
+# displacement costs little energy. The summary of these numbers is: **the parameters are far more robust than the
+# cost value**, and the useful output of a noisy variational run is the parameter vector rather than the energy it
+# reported.
 #
 # > **Common pitfall.** This conclusion is a measurement on one Hamiltonian, one ansatz and two channels, at
-# > $N=4$. It is not a theorem. What *is* a theorem is Section 6: for global depolarising noise the optimum is exactly
-# > unchanged. For everything else, resilience is an empirical property that has to be re-measured.
+# > $N=4$, with a fixed training budget. It is not a theorem. What *is* a theorem is Section 6: for global depolarising
+# > noise the optimum is exactly unchanged. For local noise the optimum moves (Section 7.2), and how much that costs has
+# > to be measured.
 
 # %% [markdown]
 # ## 11. The depth trade-off
 #
 # Notebook 41 measured that on a *noiseless* simulator more layers are better: extra parameters raise the success rate
-# and lower the achievable floor. Section 8 measured that on a *noisy* device more layers cost exponentially in gradient
-# size. The two effects pull in opposite directions, so there must be an optimum, and it must move to smaller depth as
-# the error rate grows.
+# and lower the achievable floor. Sections 5 and 8 measured that on a *noisy* device every extra layer contracts the
+# cost, and its gradients, further towards the maximally mixed value. The two effects pull in opposite directions, so
+# the reported energy has an optimum in depth, and that optimum should move to smaller depth as the error rate grows.
 #
 # The experiment trains the ansatz at depths $L=1,\dots,6$ and five noise strengths from $0$ to $0.02$, with eight
-# random starts each, and records the best noisy energy reached. Depth is a static quantity (it is the length of the
-# `lax.scan`), so one program is compiled per depth; the noise axis is vmapped inside it.
+# random starts each, 150 Adam iterations per run, and records the best noisy energy reached — the number the device
+# would report. Depth is a static quantity (it is the length of the `lax.scan`), so one program is compiled per depth;
+# the noise axis is vmapped inside it.
 
 # %%
 # ==============================================================================
@@ -1250,7 +1543,7 @@ R_TO, N_STEPS_TO = 8, 150
 best_E = np.zeros((len(DEPTHS_TO), P_TO.size))
 med_E = np.zeros_like(best_E)
 ideal_floor = np.zeros(len(DEPTHS_TO))
-t_to = time.perf_counter()
+t_comp_to = t_run_to = 0.0
 for iL, L in enumerate(DEPTHS_TO):
     n_par = hea_num_params(N_Q, L)
     th_to, ks_to = random_starts(R_TO, n_par, seed=77)
@@ -1261,13 +1554,15 @@ for iL, L in enumerate(DEPTHS_TO):
         return train(t, k, lambda th, kk, i: jax.grad(cn)(th), opt_adam(LR),
                      lambda th: jnp.stack([cn(th), ci(th)]), N_STEPS_TO)[1]
 
-    Hh = np.asarray(jax.block_until_ready(
-        jax.jit(jax.vmap(lambda p: jax.vmap(lambda t, k: one(p, t, k))(th_to, ks_to)))(P_TO)))
+    Hh, t_c, t_r = compile_then_run(jax.vmap(lambda p: jax.vmap(lambda t, k: one(p, t, k))(th_to, ks_to)), P_TO)
+    Hh = np.asarray(Hh)
+    t_comp_to, t_run_to = t_comp_to + t_c, t_run_to + t_r
     best_E[iL] = Hh[:, :, -1, 0].min(axis=1)
     med_E[iL] = np.median(Hh[:, :, -1, 0], axis=1)
     ideal_floor[iL] = Hh[0, :, -1, 1].min()
 
-print(f"best noisy energy over {R_TO} random starts ({time.perf_counter() - t_to:.1f} s); exact E0 = {E0_EXACT:.5f}")
+print(f"best noisy energy over {R_TO} random starts (compilation {t_comp_to:.1f} s, run {t_run_to:.1f} s); "
+      f"exact E0 = {E0_EXACT:.5f}")
 print(f"{'L':>3s} {'n':>5s} " + " ".join(f"{('p2=' + f'{float(p):g}'):>10s}" for p in P_TO))
 for iL, L in enumerate(DEPTHS_TO):
     print(f"{L:3d} {hea_num_params(N_Q, L):5d} " + " ".join(f"{best_E[iL, j]:10.4f}" for j in range(P_TO.size)))
@@ -1303,25 +1598,28 @@ axes[1].set_title("The two competing terms"); axes[1].legend(fontsize=8)
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# The optimum exists and it moves, exactly as the two mechanisms require.
+# The optimum exists and it moves to smaller depth as the noise grows.
 #
-# * On a **perfect** device ($p_2=0$) the energy falls monotonically with depth, from $-4.376$ at $L=1$ to $-4.454$ at
-#   $L=6$, which is $E_0$ to three decimals: extra layers only ever help, and the deepest circuit tried is the best one.
-# * At $p_2=5\cdot10^{-4}$ — a two-qubit error per gate of $r_2=3\cdot10^{-4}$, better than any device today — the
-#   optimum is already at $L=2$.
-# * At $p_2=2\cdot10^{-3}$ it is still $L=2$; at $p_2=8\cdot10^{-3}$ and $p_2=2\cdot10^{-2}$ it has dropped to $L=1$,
-#   the shallowest circuit in the study.
+# * On a **perfect** device ($p_2=0$) the best energy falls from $-4.376$ at $L=1$ to $-4.4545$ at $L=6$, within
+#   $3\cdot10^{-4}$ of $E_0$, but not monotonically: $L=3$ ($-4.4391$) ends above $L=2$ ($-4.4406$). That inversion
+#   belongs to the training budget of 150 constant-step Adam iterations from eight starts; every entry of the table is
+#   the best energy found within that budget.
+# * At $p_2=5\cdot10^{-4}$ the optimum is already at $L=2$. In the dictionary of Section 3.2 this model has a two-qubit
+#   error per gate $r_2=\tfrac45[1-(1-p_2)^2]=8.0\cdot10^{-4}$. The margin to the next depth is small ($-4.4191$ at
+#   $L=2$ against $-4.4114$ at $L=3$), smaller than the effects of the training budget just mentioned.
+# * At $p_2=2\cdot10^{-3}$ the optimum is $L=2$ by a wider margin; at $p_2=8\cdot10^{-3}$ and $p_2=2\cdot10^{-2}$
+#   it has dropped to $L=1$, the shallowest circuit in the study.
 #
 # The right panel shows the two terms whose sum produces the optimum. The noiseless ansatz error falls steeply with
-# depth — from $7.883\cdot10^{-2}$ at $L=1$ to $3.073\cdot10^{-4}$ at $L=6$, a factor of $257$ — while the noise
-# penalty at $p_2=0.02$ grows from $0.347$ to $1.330$. The first curve keeps falling as the ansatz becomes able to
-# represent the ground state; the second never stops rising. Wherever the falling curve stops falling faster than the
-# rising one rises, the sum turns around.
+# depth — from $7.883\cdot10^{-2}$ at $L=1$ to $3.073\cdot10^{-4}$ at $L=6$, a factor of $257$, with the same
+# non-monotonic step at $L=3$ — while the noise penalty at $p_2=0.02$ grows from $0.347$ to $1.330$. The first curve
+# falls as the ansatz becomes able to represent the ground state; the second rises with every layer. Where the first
+# stops falling faster than the second rises, the sum turns around.
 #
-# > **Physics insight.** This is the central design constraint of the NISQ era in one figure. A circuit that is deep
-# > enough to be interesting is too deep to survive, unless the error rate falls below roughly (one over the number of
-# > gates). Every entry in the table can be reproduced with a different ansatz, and the numbers will change; the shape
-# > of the argument will not.
+# > **Physics insight.** This trade-off is a central design constraint for noisy devices. A circuit that is deep
+# > enough to represent the target accumulates noise at every layer, and the accumulated error stays small only while
+# > the error per gate is below roughly one over the number of gates. With a different ansatz or Hamiltonian the
+# > numbers change, since the ansatz error depends on the target state; the competition between the two terms remains.
 
 # %% [markdown]
 # ## 12. Zero-noise extrapolation
@@ -1333,39 +1631,45 @@ fig.tight_layout(); plt.show()
 #
 # ### 12.1 The method
 #
-# Let $E(\lambda)$ be the expectation value measured when every channel strength is multiplied by $\lambda\ge1$. Under
-# mild assumptions $E(\lambda)$ is smooth and $E(0)$ is the noiseless value we want but cannot measure: on hardware
-# $\lambda$ can be raised (by stretching pulses, or by replacing each gate $G$ by $GG^\dagger G$, which is the same
-# unitary with three times the error) but not lowered. **Extrapolate to $\lambda=0$.** With $\lambda_1<\dots<\lambda_m$
-# and the corresponding measurements, fit a polynomial of degree $m-1$ and evaluate it at zero. This is Richardson
-# extrapolation, and the result is the linear combination
+# Let $E(s)$ be the expectation value measured when every channel strength is multiplied by a factor $s\ge1$ (we write
+# $s$ rather than $\lambda$, which is already the Bloch contraction factor). Under mild assumptions $E(s)$ is smooth
+# and $E(0)$ is the noiseless value we want but cannot measure: on hardware $s$ can be raised (by stretching pulses, or
+# by replacing each gate $G$ by $GG^\dagger G$, the same unitary with roughly three times the error, exactly so only if
+# $G^\dagger$ is as noisy as $G$ and the errors add) but not lowered. **Extrapolate to $s=0$.** With
+# $s_1<\dots<s_m$ and the corresponding measurements, fit a polynomial of degree $m-1$ and evaluate it at zero. This
+# is Richardson extrapolation, and the result is the linear combination
 #
-# $$\hat E(0)=\sum_{i=1}^{m}c_i\,E(\lambda_i),\qquad
-#   c_i=\prod_{j\neq i}\frac{\lambda_j}{\lambda_j-\lambda_i},\qquad \sum_ic_i=1,\tag{17}$$
+# $$\hat E(0)=\sum_{i=1}^{m}c_i\,E(s_i),\qquad
+#   c_i=\prod_{j\neq i}\frac{s_j}{s_j-s_i},\qquad \sum_ic_i=1,\tag{17}$$
 #
-# which follows from writing the Lagrange interpolating polynomial through the points
-# $(\lambda_i,E(\lambda_i))$ and evaluating it at $\lambda=0$. For $m=2$ with $\lambda=1,2$ this is
-# $\hat E(0)=2E(1)-E(2)$, ordinary linear extrapolation.
+# which follows from writing the Lagrange interpolating polynomial through the points $(s_i,E(s_i))$ and evaluating it
+# at $s=0$ (Numerical Recipes, §3.2; the same idea, with the step size in place of $s$, is Romberg integration, §4.3). For $m=2$ with $s=1,2$ this is $\hat E(0)=2E(1)-E(2)$, ordinary linear extrapolation.
 #
-# ### 12.2 Why it works, and when it stops
+# ### 12.2 Bias, variance, and when it stops working
 #
-# Expand the noisy expectation value in the noise strength: $E(\lambda)=E_0+a_1\lambda+a_2\lambda^2+\dots$ The degree
-# $m-1$ Richardson combination annihilates the terms $\lambda^1,\dots,\lambda^{m-1}$ exactly and leaves an error of
-# order $\lambda^m$. So mitigation helps when the series converges quickly, that is when $\lambda\times$ (total error
-# probability of the circuit) is small; it fails when the higher-order terms are not small, and it fails badly, because
-# the coefficients $c_i$ alternate in sign and grow with $m$ — the combination $3E(1)-3E(2)+E(3)$ amplifies any
-# statistical error by $\sqrt{9+9+1}=4.4$. **Mitigation trades bias for variance**, and both halves of that trade must
-# be quoted.
+# Expand the noisy expectation value in the noise strength: with base error probability $p$,
+# $E(s)=E_0+a_1(sp)+a_2(sp)^2+\dots$ The degree-$(m-1)$ Richardson combination annihilates the terms of order
+# $1,\dots,m-1$ exactly (because $\sum_ic_is_i^k=0$ for $1\le k\le m-1$) and leaves a **bias** of order $p^m$. So
+# mitigation helps when the series converges quickly, that is when $s_m\times$ (total error probability of the
+# circuit) is small; it fails when the higher-order terms are not small.
+#
+# The price is **variance**. If each $E(s_i)$ is estimated from $M$ shots with single-shot variance $\sigma^2$, the
+# mitigated estimate has variance $\sigma^2\sum_ic_i^2/M$. The coefficients alternate in sign and grow with $m$: for
+# $s=1,2,3$ the combination $3E(1)-3E(2)+E(3)$ has $\sum_ic_i^2=19$, so it needs $19$ times the shots per noise level,
+# $57$ times the shots in total, to match the statistical error of one unmitigated measurement. **Mitigation trades bias
+# for variance**, and both halves of that trade must be quoted. For a deep circuit the trade worsens exponentially: the
+# signal $E(s)-\mathrm{Tr}\hat H/2^N$ is attenuated roughly like $e^{-\kappa sG p}$ for $G$ noisy gates and a constant
+# $\kappa$ of order one (Eq. (9)), and recovering it costs the inverse square of that attenuation in shots.
 
 # %%
 # ==============================================================================
 # STEP 12: Richardson extrapolation of the noisy energy in the noise scaling factor
 # ==============================================================================
-LAMBDAS = np.array([1.0, 2.0, 3.0])
+LAMBDAS = np.array([1.0, 2.0, 3.0])            # the noise scale factors s_i of Eq. (17)
 
 
 def richardson_weights(lams):
-    """Coefficients c_i of Eq. (17): the Lagrange polynomial through (lam_i, E_i), evaluated at lam = 0."""
+    """Coefficients c_i of Eq. (17): the Lagrange polynomial through (s_i, E_i), evaluated at s = 0 (lams = s_i)."""
     lams = np.asarray(lams, dtype=float)
     return np.array([np.prod([lams[j] / (lams[j] - lams[i]) for j in range(lams.size) if j != i])
                      for i in range(lams.size)])
@@ -1375,11 +1679,12 @@ print("Richardson coefficients of Eq. (17)")
 for m in (2, 3, 4):
     c = richardson_weights(LAMBDAS[:m] if m <= 3 else np.arange(1.0, m + 1))
     print(f"  m = {m}: c = {np.round(c, 4)}   sum {c.sum():.6f}   noise amplification "
-          f"sqrt(sum c^2) = {np.sqrt((c ** 2).sum()):.3f}")
+          f"sqrt(sum c^2) = {np.sqrt((c ** 2).sum()):.3f}   total shots / unmitigated = m sum c^2 = "
+          f"{m * (c ** 2).sum():.0f}")
 
 E_exact_star = float(cost_ideal(theta_star))
 print(f"\nzero-noise extrapolation at the trained angles; the target is the noiseless value {E_exact_star:+.6f}")
-print(f"{'base p2':>9s} {'E(lam=1)':>11s} {'E(2)':>11s} {'E(3)':>11s} "
+print(f"{'base p2':>9s} {'E(s=1)':>11s} {'E(2)':>11s} {'E(3)':>11s} "
       f"{'linear (m=2)':>13s} {'Richardson (m=3)':>17s} {'|err| lin':>11s} {'|err| Rich':>11s}")
 zne_rows = []
 for base in (0.0025, 0.005, 0.01, 0.02, 0.04, 0.08):
@@ -1399,7 +1704,7 @@ for j, (base, ys, lin, rich) in enumerate(zne_rows[::2]):
     axes[0].plot(lam_fine, np.polyval(np.polyfit(LAMBDAS, ys, 2), lam_fine), "-", lw=1.4, color=c)
     axes[0].plot([0.0], [rich], "*", ms=14, color=c)
 axes[0].axhline(E_exact_star, color="k", ls="--", lw=1.2, label="noiseless value")
-axes[0].set_xlabel(r"noise scaling factor $\lambda$"); axes[0].set_ylabel(r"$\langle H\rangle$")
+axes[0].set_xlabel(r"noise scaling factor $s$"); axes[0].set_ylabel(r"$\langle H\rangle$")
 axes[0].set_title("Fit in the noise strength, extrapolate to zero"); axes[0].legend(fontsize=8)
 
 bases = np.array([r[0] for r in zne_rows])
@@ -1420,21 +1725,27 @@ fig.tight_layout(); plt.show()
 #
 # **Where it helps.** At $p_2=2.5\cdot10^{-3}$ the raw measurement is wrong by $7.7\cdot10^{-2}$; linear extrapolation
 # from two points reduces the error to $1.3\cdot10^{-3}$, and the three-point Richardson combination to
-# $2.2\cdot10^{-5}$ — three and a half orders of magnitude of bias removed for the price of two extra circuit families.
-# The right panel shows why: the unmitigated error is linear in $p_2$, the two-point estimate is quadratic and the
-# three-point estimate cubic, and each measured curve lies on the dotted reference line of its own order over more than
-# a decade.
+# $2.2\cdot10^{-5}$ — three and a half orders of magnitude of bias removed, for the price of two extra noise levels
+# and, at equal statistical error, $57$ times the shots of one unmitigated measurement. The right panel shows why the
+# bias falls so fast: the unmitigated error is linear in $p_2$, the two-point estimate quadratic and the three-point
+# estimate cubic. Each measured curve stays within $16\%$ of the dotted reference line of its own order from
+# $p_2=2.5\cdot10^{-3}$ to $2\cdot10^{-2}$, and bends below it at larger $p_2$, where the higher-order terms of the
+# expansion take over.
 #
 # **Where it fails.** At $p_2=0.08$ the raw error is $1.9$, the linear estimate is still wrong by $0.81$ and Richardson
-# by $0.34$. Extrapolation is not magic: at $\lambda=3$ and $p_2=0.08$ the circuit has an aggregate error probability of
-# order one, the state is close to maximally mixed — the measured $E(3)=-0.70$ against a noiseless $-4.36$ — and
-# $E(\lambda)$ has flattened out. A function that has already saturated carries little information about its value at
-# $\lambda=0$, and no polynomial through three of its points can invent it.
+# by $0.34$. At $s=3$ and $p_2=0.08$ the circuit has an aggregate error probability of order one, the state is close to
+# maximally mixed — the measured $E(3)=-0.70$ against a noiseless $-4.36$ — and $E(s)$ has flattened out. A function
+# that has already saturated carries little information about its value at $s=0$, and no polynomial through three of
+# its points can recover it.
 #
 # The table of coefficients quantifies the other half of the trade. Going from $m=2$ to $m=4$ raises
-# $\sqrt{\sum_ic_i^2}$ from $2.24$ to $8.31$: shot noise in the inputs is amplified by that factor, so the shot budget
-# must grow by its square — a factor $14$ — to keep the statistical error where it was. A high-order extrapolation on a
-# device is therefore a deliberate exchange of a bias one can bound for a variance one must pay for.
+# $\sqrt{\sum_ic_i^2}$ from $2.24$ to $8.31$: shot noise in the inputs is amplified by that factor, so the shots per
+# noise level must grow by its square — a factor $14$ — to keep the statistical error where it was. A high-order
+# extrapolation on a device is therefore a deliberate exchange of bias for variance. On the noise-induced plateau of
+# Section 8, Wang *et al.* (2021) argue that mitigation acting as an affine map on cost values cannot remove the
+# exponential scaling, consider it unlikely that post-processing in general can, and leave the general question open;
+# for extrapolation, the shot cost of Section 12.2, growing exponentially with the number of noisy gates, is where the
+# difficulty reappears.
 #
 # > **Numerical practice.** Every number in this section came from *exact* density-tensor evaluations, so the
 # > statistical half of the trade-off was switched off deliberately in order to expose the bias half cleanly. Exercise 6
@@ -1446,7 +1757,7 @@ fig.tight_layout(); plt.show()
 # The two representations scale differently, and the crossover decides which one to use.
 #
 # * The **density tensor** holds $4^N$ complex numbers and costs $O(2^k4^N)$ per $k$-qubit operation. It is exact, and
-#   `jax.grad` runs through it, but $N=13$ already needs $4^{13}\times16$ bytes $\approx1$ TB.
+#   `jax.grad` runs through it, but $N=13$ already needs $4^{13}\times16$ bytes $\approx1.1$ GB per array.
 # * **Trajectories** hold $2^N$ complex numbers each. $M$ of them cost $O(M\,2^N)$ and carry a statistical error
 #   $\propto1/\sqrt M$, so *at fixed accuracy* $M$ is fixed and the total cost is $O(M2^N)$ — exponentially cheaper in
 #   the exponent, at the price of never being exact.
@@ -1459,8 +1770,8 @@ fig.tight_layout(); plt.show()
 # STEP 13: measured cost of one circuit evaluation, density tensor vs M trajectories
 # ==============================================================================
 M_COST, L_COST = 200, 2
-N_DM = (2, 3, 4, 5, 6, 7, 8)
-N_MC = (2, 3, 4, 5, 6, 7, 8, 10, 12)
+N_DM = (2, 3, 4, 5, 6, 7, 8, 9, 10)
+N_MC = (2, 3, 4, 5, 6, 7, 8, 9, 10, 12)
 
 
 def make_dm_run(N):
@@ -1476,16 +1787,33 @@ def make_mc_run(N, M):
     return jax.jit(lambda: jax.vmap(lambda k: noisy_hea_mcwf(k, th, N, L_COST, P1_DEF, P2_DEF))(keys))
 
 
-t_dm = {N: timed(make_dm_run(N), repeat=5) for N in N_DM}
-t_mc = {N: timed(make_mc_run(N, M_COST), repeat=5) for N in N_MC}
-print(f"one evaluation of the noisy ansatz, L = {L_COST} layers (compilation excluded)")
-print(f"{'N':>3s} {'DM [ms]':>10s} {'DM memory':>12s} {'MCWF x' + str(M_COST) + ' [ms]':>18s} {'ratio DM/MCWF':>14s}")
+def first_call(fn):
+    """Wall time of the first call of a jitted function: tracing + compilation + one run."""
+    t0 = time.perf_counter()
+    jax.block_until_ready(fn())
+    return time.perf_counter() - t0
+
+
+t_dm, t_mc, c_dm, c_mc = {}, {}, {}, {}
+for N in N_DM:
+    f = make_dm_run(N)
+    c_dm[N] = first_call(f)
+    t_dm[N] = timed(f, repeat=5)
+for N in N_MC:
+    f = make_mc_run(N, M_COST)
+    c_mc[N] = first_call(f)
+    t_mc[N] = timed(f, repeat=5)
+print(f"one evaluation of the noisy ansatz, L = {L_COST} layers (run time excludes compilation; "
+      f"'first' = first call, compilation included)")
+print(f"{'N':>3s} {'DM [ms]':>10s} {'DM first [s]':>13s} {'DM memory':>12s} {'MCWF x' + str(M_COST) + ' [ms]':>18s} "
+      f"{'MCWF first [s]':>15s} {'ratio DM/MCWF':>14s}")
 for N in N_MC:
     dm = f"{t_dm[N] * 1e3:10.2f}" if N in t_dm else f"{'-':>10s}"
+    dmc = f"{c_dm[N]:13.2f}" if N in c_dm else f"{'-':>13s}"
     mem = 16 * 4 ** N
     mem_s = f"{mem / 1024:.1f} kB" if mem < 1024 ** 2 else f"{mem / 1024 ** 2:.1f} MB"
     ratio = f"{t_dm[N] / t_mc[N]:14.2f}" if N in t_dm else f"{'-':>14s}"
-    print(f"{N:3d} {dm} {mem_s:>12s} {t_mc[N] * 1e3:18.2f} {ratio}")
+    print(f"{N:3d} {dm} {dmc} {mem_s:>12s} {t_mc[N] * 1e3:18.2f} {c_mc[N]:15.2f} {ratio}")
 
 fig, ax = plt.subplots(figsize=(7.0, 4.4))
 ax.semilogy(N_DM, [t_dm[N] * 1e3 for N in N_DM], MARKERS[0] + "-", ms=6, color=PALETTE[0], label="density tensor")
@@ -1499,16 +1827,18 @@ ax.legend(fontsize=8)
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# Each curve follows its predicted exponent over the range where the representation is usable: the density tensor
-# steepens towards the $4^N$ reference line, the trajectory batch tracks $2^N$. The *timing* crossover, however, has not
-# been reached by $N=8$ — the ratio in the last column is still below one, so the density tensor is the faster of the
-# two everywhere it can be run at all. The naive estimate $2^N\approx M$, which put the crossover at $N\approx7.6$,
-# counts only floating-point work; a trajectory also pays for one PRNG split and one categorical draw at every noise
-# location, and there are $O(NL)$ of them, which is the constant the estimate ignores.
+# Each curve approaches its predicted exponent once the arrays are large enough for the arithmetic to dominate the fixed
+# overheads: the density tensor steepens towards the $4^N$ reference line, the trajectory batch tracks $2^N$. The
+# ratio in the last column crosses one between $N=8$ and $N=9$, close to the naive estimate $2^N\approx M$, i.e.
+# $N\approx7.6$. The remaining difference is a constant factor the estimate ignores: per noise location a trajectory
+# evaluates all Kraus branches on a small reduced density matrix, draws a random number and renormalises, while the
+# density tensor performs one contraction per Kraus operator on each side.
 #
-# What forces the switch is therefore **memory**, not speed. The density tensor is $1$ MB at $N=8$, $16$ MB at $N=10$
-# and $256$ MB at $N=12$ — per intermediate array, in a graph that holds several of them and, under `jax.grad`, keeps
-# many more. A trajectory is $64$ kB at $N=12$, and two hundred of them run in about a second.
+# Memory adds a second, harder limit. The density tensor is $1$ MB at $N=8$, $16$ MB at $N=10$ and $256$ MB at
+# $N=12$ — per intermediate array, in a graph that holds several of them and, under `jax.grad`, keeps many more. A
+# trajectory is $64$ kB at $N=12$, and two hundred of them run in about a second. The first calls in the table, which
+# include compilation, take between $0.2$ and $4$ s and grow slowly with $N$: the traced graph has one operation per
+# gate and noise location, a number linear in $N$, while the arrays it acts on grow exponentially.
 #
 # The decision rule is not only about resources. The density tensor gives an exact number and an exact gradient; the
 # trajectories give an estimate with an error bar and, in practice, a gradient that has to come from SPSA or parameter
@@ -1519,49 +1849,52 @@ fig.tight_layout(); plt.show()
 # %% [markdown]
 # ## 14. Key takeaways
 #
-# * **The conversion from laboratory numbers to channel parameters is a two-line derivation, not a convention.** The
-#   depolarising channel contracts the Bloch vector by $1-4p/3$ and has average gate fidelity $1-2p/3$, so a reported
-#   error per gate $r$ becomes $p=\tfrac32r$; damping and dephasing follow from $\gamma=1-e^{-t/T_1}$ and
-#   $p=\tfrac12(1-e^{-t/T_\varphi})$. All three were confirmed to twelve digits.
-# * **Two independent simulators agree.** The density tensor and the trajectory unravelling gave the same energy of the
-#   same noisy variational state within one standard error at $4000$ trajectories, and the trajectory error fell as
-#   $1/\sqrt M$ over two decades.
+# * **The conversion from laboratory numbers to channel parameters is a short derivation.** The depolarising channel
+#   contracts the Bloch vector by $1-4p/3$ and has average gate fidelity $1-2p/3$, so a reported single-qubit error per
+#   gate $r$ becomes $p=\tfrac32r$; for the model's two-qubit gates $r_2=\tfrac45[1-(1-p_2)^2]\simeq\tfrac85p_2$;
+#   damping and dephasing follow from $\gamma=1-e^{-t/T_1}$ and $p=\tfrac12(1-e^{-t/T_\varphi})$, with the coherence
+#   decaying at $1/T_2$. All were confirmed numerically.
+# * **Two independent simulators agree, and the test has power.** The density tensor and the trajectory unravelling
+#   gave the same energy of the same noisy variational state within $0.32$ standard errors at $4000$ trajectories,
+#   while a one-sided-channel model was rejected at $7$ standard errors; the rms error over independent batches
+#   followed $\sigma_1/\sqrt M$.
 # * **Local depolarising noise contracts every Pauli expectation value by $\lambda^{wcD}$** with $\lambda=1-4p/3$,
-#   Eq. (9) — exact to round-off where its assumption holds. In a real circuit the functional form survives (the
-#   amplitude of a landscape slice followed $\lambda^{4.79}$ over the whole range $0\le p_2\le0.25$) but the effective
-#   exponent has to be measured: it fell between the weight-1 and weight-2 counts, $3.30$ and $7.27$.
-# * **Global depolarising noise does not move the minimum.** It commutes with every unitary, so
-#   $C_{\rm noisy}=(1-q)C+q\,\mathrm{Tr}\hat H/2^N$ — verified grid point by grid point to $10^{-16}$ on an
-#   $81\times81$ slice. The gradient is rescaled by exactly $1-q$ without rotating (cosine $1.000000000000$), and the
-#   set of minimising grid points is unchanged at $q=0.8$.
-# * **Non-unital noise does move it.** For one qubit with $C=-\langle X\rangle-h\langle Z\rangle$ the optimal angle
-#   obeys $\tan\theta_\star=1/(h\sqrt{1-\gamma})$ under amplitude damping, measured at $1.174641$ and $1.264491$ for
-#   $\gamma=0.3$ and $0.6$ against a noiseless $1.107097$ — a shift of $9$ degrees at $\gamma=0.6$.
-# * **Noise produces a barren plateau in the circuit depth.** At $N=4$, where the noiseless gradient variance is flat in
-#   depth, the noisy variance fell exponentially with slopes $-0.054$ and $-0.207$ per layer at $p_2=0.005$ and
-#   $p_2=0.02$, $15\%$ and $8\%$ steeper than the prediction of Eq. (16) obtained by counting noise locations.
+#   Eq. (9) — exact to round-off where its assumption holds. In a real circuit the gates change the weights in both
+#   directions: the amplitude of a landscape slice followed $\lambda^{4.79}$ over $0\le p_2\le0.25$, below the
+#   two-body count $7.27$, while the gradient variance of Section 8 decayed faster than the same count predicts.
+# * **Global depolarising noise does not move the minimum.** It contracts every traceless operator by the same factor,
+#   so $C_{\rm noisy}=(1-q)C+q\,\mathrm{Tr}\hat H/2^N$ — verified grid point by grid point to $10^{-16}$ on an
+#   $81\times81$ slice; the gradient is rescaled by exactly $1-q$ without rotating.
+# * **Local noise does move it, unital or not.** For one qubit the optimal angle obeys
+#   $\tan\theta_\star=1/(h\sqrt{1-\gamma})$ under amplitude damping and $(1-2p)/h$ under dephasing (measured to a third
+#   of the grid spacing). For the four-qubit circuit local depolarising noise turns the cost into that of a Hamiltonian
+#   with a rescaled field, Eq. (15a), and the gradient of the noisy cost at the noiseless optimum grows linearly in $p$
+#   for local depolarising, dephasing and damping noise, while it stays at the noiseless residual for global noise.
+# * **Noise produces a barren plateau in the circuit depth.** Wang *et al.* bound every gradient component by a factor
+#   decaying exponentially in $L$ for local Pauli noise. At $N=4$, where the noiseless gradient variance hardly changes
+#   with depth, the noisy variance fell exponentially, $16$–$25\%$ steeper than the noise-location count of
+#   Eq. (16), with bootstrap intervals that exclude both Eq. (16) and the weight-1 control.
 # * **The parameters are more robust than the cost.** Training at an error rate so high that the device reports $-2.451$
-#   instead of $-4.455$ still produced angles worth $-4.397$ on a noiseless simulator, $0.042$ from the best this ansatz
-#   can do. Amplitude damping cost consistently more than depolarising — by a factor of about $1.4$ at every noise
-#   level, the sign Section 7 requires — but both penalties stayed small, because the cost is quadratic in the
-#   displacement of a minimiser.
-# * **There is an optimal depth and it shrinks with the error rate.** Measured: $L^\star=6$ (the largest tried) at
-#   $p_2=0$, $L^\star=2$ at $p_2=5\cdot10^{-4}$ and $2\cdot10^{-3}$, $L^\star=1$ at $8\cdot10^{-3}$ and
-#   $2\cdot10^{-2}$.
+#   still produced angles worth $-4.397$ on a noiseless simulator, $0.042$ from the best of the same eight runs. Paired
+#   by start, the penalty is resolved from $p_2\approx0.02$ upwards and reaches a few $10^{-2}$; at $0.01$ it is
+#   smaller than the run-to-run differences of the optimisation.
+# * **There is an optimal depth and it shrinks with the error rate.** Measured with a fixed training budget:
+#   $L^\star=6$ (the largest tried) at $p_2=0$, $L^\star=2$ at $p_2=5\cdot10^{-4}$ and $2\cdot10^{-3}$, $L^\star=1$
+#   at $8\cdot10^{-3}$ and $2\cdot10^{-2}$; the smallest of these margins is within the reach of the training budget.
 # * **Zero-noise extrapolation removes bias order by order and costs variance.** Richardson extrapolation from three
 #   noise levels reduced the error at $p_2=2.5\cdot10^{-3}$ from $7.7\cdot10^{-2}$ to $2.2\cdot10^{-5}$, with residuals
-#   scaling as $p_2^m$ for $m=1,2,3$; at $p_2=0.08$ it left an error of $0.34$, because the observable had already
-#   saturated. The amplification of statistical noise grows from $2.24$ at $m=2$ to $8.31$ at $m=4$.
-# * **Memory, not speed, decides which representation to use.** The density tensor was still the faster of the two at
-#   every $N$ it could be run at ($N\le8$), because a trajectory pays $O(NL)$ PRNG splits that the $M\,2^N$ estimate
-#   ignores; but it needs $256$ MB per array at $N=12$, where a trajectory needs $64$ kB.
+#   scaling as $p_2^m$ for $m=1,2,3$, at $57$ times the shots of an unmitigated estimate of equal statistical error; at
+#   $p_2=0.08$ it left an error of $0.34$, because the observable had already saturated.
+# * **The crossover between the two simulators lies near $2^N\approx M$.** With $M=200$ trajectories the density
+#   tensor is faster up to $N=8$ and slower from $N=9$; beyond that, memory ($256$ MB per array at $N=12$ against
+#   $64$ kB per trajectory) decides as well.
 #
 # ## 15. Exercises
 #
 # 1. ★ **Dephasing instead of depolarising.** Re-run the landscape slice of Section 5.2 with `kraus_dephasing` as both
-#    channels. Dephasing is unital, so the minimum should not move much; is the contraction of the amplitude still
-#    described by Eq. (9), and with what $\lambda$? (Derive the eigenvalue of $\mathcal Z_p^\dagger$ on $X$, $Y$ and $Z$
-#    first — they are not all the same.)
+#    channels. Derive the eigenvalues of $\mathcal Z_p^\dagger$ on $X$, $Y$ and $Z$ first — they are not all the
+#    same. Does the amplitude of the slice still follow a power of a single factor, and how far does the minimum of the
+#    slice move compared with depolarising noise of the same $p_2$?
 # 2. ★ **The weight dependence, directly.** Fix a depth and a noise strength and measure
 #    $\langle P\rangle_{\rm noisy}/\langle P\rangle_{\rm ideal}$ for Pauli strings of weight $1,2,3,4$ *through the real
 #    noisy ansatz*, not the bare noise rounds of Step 3. Plot $\ln$ of the ratio against $w$ and compare its slope with
@@ -1570,9 +1903,11 @@ fig.tight_layout(); plt.show()
 #    depolarising channel. Fit $q$ by least squares from the noisy and noiseless costs at 50 random
 #    $\boldsymbol\theta$, then test the model by predicting the noisy cost at 50 fresh ones. How good is the
 #    single-parameter description at $p_2=0.005$, and at $p_2=0.05$?
-# 4. ★★ **Resilience of the state, not the energy (physics).** Section 10 measured the energy penalty. Measure instead
+# 4. ★★ **Resilience of the prepared state (physics).** Section 10 measured the energy penalty. Measure instead
 #    the fidelity $\lvert\langle\psi(\boldsymbol\theta^\star_{\rm noisy})\vert\psi(\boldsymbol\theta^\star_{\rm ideal})\rangle\rvert^2$
-#    between the two *states* the two optima prepare. Does it degrade faster than the energy does, and why should it?
+#    between the two *states* the two optima prepare, for the paired runs of Section 10. How do the infidelity and the
+#    energy penalty scale with $p_2$, and how is their ratio related to the curvature of the cost and of the fidelity
+#    (Hessian against metric) along the displacement?
 # 5. ★★ **Noise scaling by gate folding (extend the code).** Replace each $CZ$ by $CZ\,CZ^\dagger\,CZ$ in the gate list
 #    and add its noise channels; this triples the error of that gate without changing the ideal unitary, which is how
 #    $\lambda=3$ is realised on hardware. Compare the extrapolation obtained this way with the one of Section 12, where
@@ -1581,8 +1916,9 @@ fig.tight_layout(); plt.show()
 #    of exactly, and plot the total error (bias plus statistics) of the $m=1,2,3$ estimates against $M$ at fixed
 #    $p_2=0.01$. Below which shot budget does mitigation make the answer *worse*?
 # 7. ★★★ **Where the plateau bites (physics).** Repeat Section 8 for $N=3,4,5,6$ and extract the decay rate per layer
-#    for each. Combine it with the noiseless barren-plateau exponent measured in notebook 40 to estimate the largest
-#    $(N,L)$ at which a gradient could still be resolved with $10^6$ shots per circuit at $p_2=10^{-3}$.
+#    for each. Combine it with the noiseless variance scaling measured in Section 13 of notebook 40 (for a local cost it
+#    is not a clean exponential, so use the measured values) to estimate the largest $(N,L)$ at which a gradient
+#    component of typical size could still be resolved with $10^6$ shots per circuit at $p_2=10^{-3}$.
 # 8. ★★★ **Mitigation inside the loop (extend the code).** Train with a *mitigated* cost: at each iteration evaluate
 #    $E(1)$, $E(2)$, $E(3)$ and feed the Richardson combination to the optimiser. Compare the final noiseless energy of
 #    the angles found with the unmitigated run of Section 9, and count the circuit evaluations each spent. Is mitigating
@@ -1605,15 +1941,21 @@ fig.tight_layout(); plt.show()
 #   L. Cincio and P. J. Coles, *Variational quantum algorithms*, Nat. Rev. Phys. **3**, 625 (2021) — the review,
 #   including noise and trainability.
 # * S. Wang, E. Fontana, M. Cerezo, K. Sharma, A. Sone, L. Cincio and P. J. Coles, *Noise-induced barren plateaus in
-#   variational quantum algorithms*, Nat. Commun. **12**, 6961 (2021) — the exponential decay in depth measured in
-#   Section 8.
+#   variational quantum algorithms*, Nat. Commun. **12**, 6961 (2021) — the gradient bound for local Pauli noise
+#   (Section 8) and the discussion of mitigation (Section 12).
 # * K. Sharma, S. Khatri, M. Cerezo and P. J. Coles, *Noise resilience of variational quantum compiling*,
-#   New J. Phys. **22**, 043006 (2020) — optimal-parameter resilience, tested in Section 10.
+#   New J. Phys. **22**, 043006 (2020) — optimal-parameter resilience in variational compiling, tested for the
+#   eigensolver in Section 10.
 # * D. Stilck França and R. García-Patrón, *Limitations of optimization algorithms on noisy quantum devices*,
-#   Nat. Phys. **17**, 1221 (2021) — how a noisy variational output approaches the maximally mixed state.
+#   Nat. Phys. **17**, 1221 (2021) — entropic bounds on how fast a noisy circuit approaches the fixed point of the
+#   noise, and the comparison with classical Gibbs-state sampling.
 # * K. Temme, S. Bravyi and J. M. Gambetta, *Error mitigation for short-depth quantum circuits*,
 #   Phys. Rev. Lett. **119**, 180509 (2017) — zero-noise extrapolation and probabilistic error cancellation.
 # * Y. Li and S. C. Benjamin, *Efficient variational quantum simulator incorporating active error minimization*,
 #   Phys. Rev. X **7**, 021050 (2017) — the independent proposal of extrapolation in the noise strength.
 # * S. Endo, Z. Cai, S. C. Benjamin and X. Yuan, *Hybrid quantum-classical algorithms and quantum error mitigation*,
 #   J. Phys. Soc. Jpn. **90**, 032001 (2021) — the review of mitigation techniques and their costs.
+# * W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes: The Art of Scientific
+#   Computing*, 3rd ed., Cambridge University Press (2007) — §3.2 (polynomial interpolation and extrapolation, the basis
+#   of Eq. (17)), §4.3 (Romberg integration, Richardson extrapolation in the step size) and §10.9 (quasi-Newton
+#   methods, the BFGS minimiser of Section 7.2).

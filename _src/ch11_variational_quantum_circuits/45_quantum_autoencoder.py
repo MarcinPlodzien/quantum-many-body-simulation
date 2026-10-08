@@ -16,15 +16,15 @@
 # $\vert0\cdots0\rangle$ in the first place, because then discarding them removes nothing. Training the encoder to do
 # that for every state of a given family is the whole algorithm, and it compresses $N$ qubits into $N-k$.
 #
-# The question worth asking is not "does it work" but **"what exactly can be compressed, and how well"**. That question
-# has a complete answer, which this notebook derives and then checks against what training actually achieves:
+# The central question is **what exactly can be compressed, and how well**. It has a complete answer, which this
+# notebook derives and then checks against what training actually achieves:
 #
 # $$\boxed{\ \max_{U}\ \overline{F}_{\rm trash}\;=\;\sum_{a=1}^{2^{N-k}}\lambda_a^{\downarrow}\bigl(\bar\rho\bigr)\ }$$
 #
 # the sum of the $2^{N-k}$ largest eigenvalues of the *ensemble-averaged* density matrix $\bar\rho$. Everything follows
 # from it: a single pure state is always compressible (its $\bar\rho$ has rank one), an ensemble is compressible exactly
-# as far as its spectrum allows, and whatever the trained circuit fails to reach is a limitation of the **ansatz**, not
-# of the task.
+# as far as its spectrum allows, and whatever the trained circuit fails to reach below this value is a limitation of the
+# **ansatz** or of the **optimiser** — two causes that Section 8 separates by measurement.
 #
 # **Road map.**
 #
@@ -32,14 +32,17 @@
 # * **Section 4** introduces the two cost functions — the **trash fidelity**, which needs no decoder and is what one
 #   trains on, and the **reconstruction fidelity**, which is what one cares about — and derives the exact relation
 #   $F_{\rm rec}=F_{\rm trash}\,\langle\chi\vert\rho_L\vert\chi\rangle$ between them, with the bounds
-#   $F_{\rm trash}^2\le F_{\rm rec}\le F_{\rm trash}$. Both are verified numerically.
+#   $F_{\rm trash}^2\le F_{\rm rec}\le F_{\rm trash}$ and the conditions under which each is an equality. Both are
+#   verified numerically.
 # * **Section 5** runs the compression channel two ways: **exactly**, as a partial trace over the trash followed by
 #   re-initialisation on the density tensor, and **stochastically**, by measuring the trash qubits and resetting them.
-#   The two agree within error bars, and the second is what a device does.
+#   The two agree within error bars, two wrong models of the channel are rejected by the same data, and the second
+#   execution is what a device does.
 # * **Section 6** proves the eigenvalue criterion above and applies it to four families of states.
 # * **Section 7** trains the encoder with `jax.grad` and Adam over a grid of families, compression ratios and depths,
-#   and compares what is reached with the bound. **Section 8** answers the question that comparison raises — whether a
-#   shortfall is the optimiser's fault or the circuit's — with two diagnostics. **Section 9** re-examines the folklore
+#   and compares what is reached with the bound and with the encoder that does nothing. **Section 8** asks whether a
+#   shortfall is the optimiser's fault or the circuit's, and answers it with success fractions over many random
+#   starts. **Section 9** re-examines the folklore
 #   that "GHZ and W states are easy and Dicke states are hard" in the light of the criterion.
 # * **Section 10** trains on trajectory-estimated costs with SPSA — the device-realistic version.
 # * **Section 11** tests **generalisation**: train on a few members of a family, then measure the compression of
@@ -50,7 +53,7 @@
 # ### What you will learn
 #
 # *Physics*
-# * what "compressing quantum data" means and why it is a statement about an *ensemble*, not about one state;
+# * what "compressing quantum data" means and why it is a statement about an *ensemble* of states;
 # * why the rank and the spectrum of $\bar\rho$ — not the entanglement of the individual states — decide
 #   compressibility;
 # * why a cost function measured only on the trash qubits controls the fidelity of the full reconstruction;
@@ -62,7 +65,7 @@
 # * validating a stochastic implementation against an exact one with binomial and mean-based error bars.
 #
 # *Implementation practice*
-# * writing a cost so that a whole grid — four ensembles, four compression ratios, eight random starts — compiles into
+# * writing a cost so that a whole grid — four ensembles, four compression ratios, six random starts — compiles into
 #   **one** program: the ensemble enters through the eigen-decomposition of $\bar\rho$, and the number of trash qubits
 #   through a traced index into a precomputed mask;
 # * `lax.scan` over circuit layers, and the inverse circuit written as a scan over the reversed parameter array;
@@ -114,6 +117,32 @@ def mean_and_se(x):
     """Sample mean and standard error of the mean of a 1D array of independent samples."""
     x = np.asarray(x)
     return float(np.mean(x)), float(np.std(x, ddof=1) / np.sqrt(x.size))
+
+
+def wilson_interval(successes, n, z=1.0):
+    """Wilson score interval for a success probability from `successes` out of `n` trials (z = 1: 68 %).
+
+    MATH   centre = (p + z^2/2n) / (1 + z^2/n),  half-width = z sqrt(p(1-p)/n + z^2/4n^2) / (1 + z^2/n),  p = s/n.
+           Unlike p +- sqrt(p(1-p)/n) it stays inside [0, 1] and is not zero-width at s = 0 or s = n.
+    """
+    p = successes / n
+    den = 1.0 + z ** 2 / n
+    centre = (p + z ** 2 / (2 * n)) / den
+    half = z * np.sqrt(p * (1 - p) / n + z ** 2 / (4 * n ** 2)) / den
+    return centre - half, centre + half
+
+
+def fisher_exact_p(s1, n1, s2, n2):
+    """Two-sided Fisher exact test of equal success probabilities, s1/n1 against s2/n2.
+
+    MATH   conditional on the total number of successes K = s1 + s2, s1 is hypergeometric,
+           P(x) = C(n1, x) C(n2, K - x) / C(n1 + n2, K);  p = sum of P(x) over all x with P(x) <= P(s1).
+    """
+    from math import comb
+    K = s1 + s2
+    P = lambda x: comb(n1, x) * comb(n2, K - x) / comb(n1 + n2, K)
+    p_obs = P(s1)
+    return float(sum(P(x) for x in range(max(0, K - n2), min(K, n1) + 1) if P(x) <= p_obs * (1 + 1e-9)))
 
 
 def bands(hist):
@@ -183,7 +212,7 @@ def random_starts(n_runs, n_params, seed, scale=jnp.pi):
 #   \Bigl[\mathrm{Tr}_T\bigl(\vert\varphi\rangle\langle\varphi\vert\bigr)\otimes
 #   \vert0\cdots0\rangle\langle0\cdots0\vert_T\Bigr]\,U(\boldsymbol\theta).\tag{3}$$
 #
-# Equation (3) describes a *channel*, not a unitary — $\rho_{\rm out}$ is generally mixed — and it can be realised in two
+# Equation (3) describes a *channel* — $\rho_{\rm out}$ is generally mixed — and it can be realised in two
 # physically different ways which Section 5 shows are the same map:
 #
 # * **discard**: trace out the trash qubits and tensor in $\vert0\rangle\langle0\vert$ (this is Eq. (3) literally);
@@ -310,9 +339,17 @@ for k in range(1, K_MAX + 1):
 #   =\mathrm{Tr}_L\bigl(U\rho\,U^\dagger\bigr).\tag{4}$$
 #
 # It is the probability that measuring all $k$ trash qubits in the $Z$ basis gives $0$ on every one of them — one
-# circuit, $k$ single-qubit measurements, no decoder, no ancillas. It equals $1$ exactly when Eq. (2) holds. This is the
-# cost Romero, Olson and Aspuru-Guzik proposed, and it is a **local** cost in the sense of notebook 40: it involves only
-# $k$ of the $N$ qubits.
+# circuit, $k$ single-qubit measurements, no decoder, no ancillas. It equals $1$ exactly when Eq. (2) holds. Romero,
+# Olson and Aspuru-Guzik proposed this trash-state fidelity as the training cost, for a general reference state of the
+# trash measured with a SWAP test; for the reference $\vert0\cdots0\rangle$ a $Z$ measurement of the trash qubits is
+# enough.
+#
+# In the language of notebook 40 the trash fidelity is a **global** cost on the trash register: like Eq. (9) there, it
+# asks whether *all* $k$ trash qubits are in $\vert0\rangle$ at once. It involves only $k$ of the $N$ qubits, but its
+# observable is a $k$-qubit projector. The corresponding local cost averages single-qubit probabilities,
+# $1-\frac1k\sum_{q\in T}\langle0\vert\rho_q\vert0\rangle$; Cerezo, Sone, Volkoff, Cincio and Coles (2021) used the
+# autoencoder as their example of a global cost whose gradients vanish exponentially in $k$ and whose local version does
+# not. At $k\le4$, as here, the difference is not important.
 #
 # ### 4.2 The reconstruction fidelity, and why the trash fidelity controls it
 #
@@ -327,7 +364,9 @@ for k in range(1, K_MAX + 1):
 # $$\Pi\vert\varphi\rangle=\sqrt F\,\vert\chi\rangle_L\vert0\rangle_T,\qquad
 #   (\mathbb 1-\Pi)\vert\varphi\rangle=\sum_{t\neq0}\vert\xi_t\rangle_L\vert t\rangle_T,\tag{6}$$
 #
-# with $\vert\chi\rangle$ normalised and $\sum_{t\neq0}\lVert\xi_t\rVert^2=1-F$. Tracing out the trash, the cross terms
+# with $\vert\chi\rangle$ normalised, $t$ running over the $2^k-1$ non-zero trash strings, and
+# $\sum_{t\neq0}\lVert\xi_t\rVert^2=1-F$; for uniform notation write also $\vert\xi_0\rangle=\sqrt F\,\vert\chi\rangle$, so that
+# $\vert\varphi\rangle=\sum_t\vert\xi_t\rangle_L\vert t\rangle_T$ with $t$ over all $2^k$ strings. Tracing out the trash, the cross terms
 # vanish because $\langle t\vert0\rangle=0$ for $t\neq0$:
 #
 # $$\rho_L=\mathrm{Tr}_T\vert\varphi\rangle\langle\varphi\vert
@@ -347,15 +386,33 @@ for k in range(1, K_MAX + 1):
 # $$\boxed{\;F_{\rm rec}=F\bigl(F+\langle\chi\vert\sigma\vert\chi\rangle\bigr)\;}
 #   \qquad\Longrightarrow\qquad F^2\le F_{\rm rec}\le F,\tag{9}$$
 #
-# since $0\le\langle\chi\vert\sigma\vert\chi\rangle\le\mathrm{Tr}\,\sigma=1-F$.
+# since $0\le\langle\chi\vert\sigma\vert\chi\rangle\le\mathrm{Tr}\,\sigma=1-F$ ($\sigma$ is positive semi-definite and
+# $\vert\chi\rangle$ is a unit vector).
+#
+# **Equality and inequality.** Equation (8) is an identity, valid for every pure input and every encoder. The relation
+# between $F_{\rm rec}$ and $F_{\rm trash}$ alone is only a pair of bounds, and each bound is attained on a definite set:
+#
+# * $F_{\rm rec}=F$ (upper bound) for $0<F<1$ if and only if $\langle\chi\vert\sigma\vert\chi\rangle=\mathrm{Tr}\,\sigma$, i.e. every
+#   $\vert\xi_t\rangle$ is proportional to $\vert\chi\rangle$. Then $\vert\varphi\rangle=\vert\chi\rangle_L\otimes\vert\tau\rangle_T$ is a
+#   **product** between latent and trash register, with an arbitrary trash state $\vert\tau\rangle$ and
+#   $F=\vert\langle0\cdots0\vert\tau\rangle\vert^2$: the decoder then only has to repair the trash.
+# * $F_{\rm rec}=F^2$ (lower bound) if and only if $\sigma\vert\chi\rangle=0$, i.e. every failed branch $\vert\xi_t\rangle$,
+#   $t\neq0$, is orthogonal to $\vert\chi\rangle$.
+# * Both coincide, and $F_{\rm rec}=F_{\rm trash}$ holds as an equality, at $F=1$ (and trivially at $F=0$).
+#
+# For a Haar-random encoded state $\vert\varphi\rangle$ the failed branches point in directions uncorrelated with
+# $\vert\chi\rangle$, so $\langle\chi\vert\sigma\vert\chi\rangle$ is on average $\mathrm{Tr}\,\sigma/2^{N-k}$ and
+# $F_{\rm rec}-F^2\approx F(1-F)/2^{N-k}$: random encoders sit close to the lower bound. For an ensemble the bounds hold
+# member by member; averaging and Jensen's inequality give
+# $\overline F_{\rm trash}^{\,2}\le\overline{F_{\rm trash}^2}\le\overline F_{\rm rec}\le\overline F_{\rm trash}$.
 #
 # Equation (9) is the justification for training on the local cost. Near perfect compression it gives
 #
 # $$1-F_{\rm rec}\;\le\;1-F^2=(1-F)(1+F)\;\le\;2\,(1-F),\tag{10}$$
 #
-# so driving the trash infidelity to zero drives the reconstruction infidelity to zero at least as fast, up to a factor
-# of two. The reverse is also true, $1-F\le1-F_{\rm rec}$: the two are equivalent figures of merit, and the cheap one
-# may be used.
+# so driving the trash infidelity to zero drives the reconstruction infidelity to zero, up to a factor of at most two.
+# The reverse also holds, $1-F\le1-F_{\rm rec}$. The two infidelities therefore vanish together and differ by at most a
+# factor of two near zero, so the cheap one may be used as the training cost.
 
 # %%
 # ==============================================================================
@@ -450,6 +507,9 @@ print(f"400 random encoders, k = {K_CHK}: F_trash in [{FT.min():.3f}, {FT.max():
 print(f"  every point satisfies F^2 <= F_rec <= F   : {bool(np.all(FR >= FT ** 2 - 1e-12) and np.all(FR <= FT + 1e-12))}")
 print(f"  distance above the lower bound F^2        : mean {resid.mean():.4f}, max {resid.max():.4f}")
 print(f"  distance below the upper bound F          : mean {(FT - FR).mean():.4f}, min {(FT - FR).min():.4f}")
+pred = FT * (1 - FT) / 2 ** (N_Q - K_CHK)                     # Haar-random prediction for F_rec - F^2
+print(f"  Haar prediction F(1-F)/2^(N-k)            : mean {pred.mean():.4f}   "
+      f"(measured {resid.mean():.4f} +- {resid.std(ddof=1) / np.sqrt(resid.size):.4f})")
 
 grid = np.linspace(0, 1, 200)
 fig, ax = plt.subplots(figsize=(6.6, 4.6))
@@ -463,19 +523,22 @@ fig.tight_layout(); plt.show()
 
 # %% [markdown]
 # Equation (8) reproduces the density-tensor computation to twelve digits, and every one of the 400 random encoders
-# falls inside the band of Eq. (9). The scatter hugs the lower bound $F_{\rm rec}=F^2$: for a random encoder the
-# residual $\vert\varphi_\perp\rangle$ of Eq. (6) has essentially no overlap with $\vert\chi\rangle$ in the latent
-# register, so $\langle\chi\vert\sigma\vert\chi\rangle\approx0$ and Eq. (9) is nearly saturated from below.
+# falls inside the band of Eq. (9). The scatter lies close to the lower bound $F_{\rm rec}=F^2$, by the amount
+# predicted for a Haar-random encoded state: the failed branches $\vert\xi_t\rangle$, $t\neq0$, of Eq. (6) have only a
+# small overlap with $\vert\chi\rangle$, $\langle\chi\vert\sigma\vert\chi\rangle\approx(1-F)/2^{N-k}$, and the measured mean
+# distance above $F^2$ agrees with $F(1-F)/2^{N-k}$ within its standard error. The upper bound would require the
+# encoded state to be a product between latent and trash register (Exercise 1), which a random encoder never produces.
 #
 # The two bounds meet at $F=1$, which is the statement that matters for training: the only way to have
 # $F_{\rm rec}=1$ is to have $F_{\rm trash}=1$, and near that point the two infidelities differ by at most the factor of
-# two of Eq. (10). **Minimising the trash infidelity is not an approximation to minimising the reconstruction
-# infidelity; it is an equivalent problem, and it is the cheaper one.**
+# two of Eq. (10). **Minimising the trash infidelity has the same minimisers as minimising the reconstruction
+# infidelity, and it is the cheaper problem.**
 #
-# > **Numerical practice.** The cheap cost also has a better-behaved gradient: $F_{\rm trash}$ needs one circuit and $k$
-# > measurements, while $F_{\rm rec}$ needs the encoder, the reset and the decoder — twice the depth, and on hardware a
-# > swap test or a full tomography to read out the overlap. Whenever a local surrogate can be proved equivalent to the
-# > global quantity, use it.
+# > **Numerical practice.** $F_{\rm trash}$ needs one circuit and $k$ measurements, while $F_{\rm rec}$ needs the encoder,
+# > the reset and the decoder — twice the depth — and on hardware either the inverse of the circuit that prepared
+# > $\vert\psi\rangle$ or a SWAP test with a second copy of the input to read out the overlap. When a cheap surrogate is
+# > proved to vanish exactly where the expensive quantity does, with a bound like Eq. (10) between them, train on the
+# > surrogate. Whether it also trains faster is a separate question (Exercise 4).
 
 # %% [markdown]
 # ## 5. Two executions of the same channel
@@ -534,6 +597,21 @@ print(f"  reconstruction   exact {float(F_rec):.6f}   trajectories {F_rec_mc:.6f
       f"({abs(F_rec_mc - float(F_rec)) / se_rec:.2f} standard errors)")
 assert abs(F_tr_mc - float(F_tr)) < 5 * se_tr and abs(F_rec_mc - float(F_rec)) < 5 * se_rec
 
+# --- WRONG CONTROLS: two channels that are NOT Eq. (3), evaluated exactly, tested against the same trajectories -------
+# Xi[:, t] = |xi_t> of Eq. (6): the latent vector multiplying trash string t
+Xi = np.asarray(phi_chk).reshape(2 ** (N_Q - K_CHK), 2 ** K_CHK)
+p_t = np.sum(np.abs(Xi) ** 2, axis=0)                                  # Born probabilities of the trash strings
+rho_L_np = Xi @ Xi.conj().T
+controls = {
+    "measure, no reset   sum_t p_t^2": float(np.sum(p_t ** 2)),
+    "discard, refill with maximally mixed trash": float(np.real(np.trace(Xi.conj().T @ rho_L_np @ Xi))) / 2 ** K_CHK,
+}
+print(f"  wrong controls for the reconstruction fidelity (trajectory mean {F_rec_mc:.6f} +- {se_rec:.6f}):")
+for lab, val in controls.items():
+    z = abs(F_rec_mc - val) / se_rec
+    print(f"    {lab:44s} {val:.6f}   ({z:5.1f} standard errors away)")
+    assert z > 5                                                        # the data must reject the wrong channels
+
 Ms = np.array([25, 50, 100, 200, 400, 800, 1600, 3200])
 err_tr = np.array([abs(all_zero[:m].mean() - float(F_tr)) for m in Ms])
 err_rec = np.array([abs(fids[:m].mean() - float(F_rec)) for m in Ms])
@@ -545,16 +623,23 @@ axes[0].set_title("Individual trajectories are pure states"); axes[0].legend(fon
 axes[1].loglog(Ms, np.maximum(err_tr, 1e-6), MARKERS[0] + "-", ms=6, color=PALETTE[0], label="trash fidelity")
 axes[1].loglog(Ms, np.maximum(err_rec, 1e-6), MARKERS[1] + "-", ms=6, color=PALETTE[1],
                label="reconstruction fidelity")
-axes[1].loglog(Ms, err_rec[0] * np.sqrt(Ms[0] / Ms), "k:", lw=1.4, label=r"$\propto1/\sqrt{M}$")
-axes[1].set_xlabel("number of trajectories $M$"); axes[1].set_ylabel("deviation from the exact value")
+axes[1].loglog(Ms, np.sqrt(float(F_tr) * (1 - float(F_tr)) / Ms), ":", lw=1.4, color=PALETTE[0],
+               label=r"standard error $\sqrt{F(1-F)/M}$")
+axes[1].loglog(Ms, np.std(fids, ddof=1) / np.sqrt(Ms), ":", lw=1.4, color=PALETTE[1],
+               label=r"standard error $s/\sqrt{M}$")
+axes[1].set_xlabel("number of trajectories $M$ (nested prefixes of one run)")
+axes[1].set_ylabel("deviation from the exact value")
 axes[1].set_title("Convergence of the measure-and-reset estimates"); axes[1].legend(fontsize=8)
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# The stochastic implementation reproduces both exact numbers within a fraction of a standard error, and the deviations
-# fall as $1/\sqrt M$. Equation (11) is therefore not only an algebraic identity: the two very different procedures —
-# an einsum that contracts a pair of tensor axes, and a sequence of random projections with feedback — describe the same
-# channel.
+# The stochastic implementation reproduces both exact numbers within a fraction of a standard error. The test has
+# power: the same 4000 trajectories reject two plausible but wrong channels — measuring the trash without resetting it,
+# and discarding it but refilling it with a maximally mixed state — by many standard errors each. The deviations on
+# the right are those of nested prefixes of a single run, so they scatter around the standard-error curves rather
+# than following them point by point; they stay within a few standard errors at every $M$. Equation (11) is therefore
+# confirmed numerically as well as algebraically: an einsum that contracts a pair of tensor axes and a sequence of random
+# projections with feedback describe the same channel.
 #
 # The histogram shows what is being averaged. Each trajectory is a pure state whose fidelity with the input takes one of
 # a small number of values (one per measurement outcome string), and the distribution is nothing like a narrow peak
@@ -563,14 +648,14 @@ fig.tight_layout(); plt.show()
 #
 # > **Physics insight.** Equation (11) is the statement that *an unread measurement is a channel*. The same identity
 # > underlies the dephasing channel of notebook 07 and the deferred-measurement principle: whether the outcome is looked
-# > at changes what one knows, not what the reduced state of the rest of the system is.
+# > at changes what one knows; the reduced state of the rest of the system is the same either way.
 
 # %% [markdown]
 # ## 6. What can be compressed: an eigenvalue criterion
 #
 # ### 6.1 The averaged trash fidelity is a projector expectation
 #
-# An autoencoder is trained on an **ensemble** $\{p_m,\vert\psi_m\rangle\}$, not on one state. The figure of merit is the
+# An autoencoder is trained on an **ensemble** $\{p_m,\vert\psi_m\rangle\}$ of states. The figure of merit is the
 # average trash fidelity. Using Eq. (4) and the cyclic property of the trace,
 #
 # $$\overline F_{\rm trash}(U)=\sum_m p_m\langle\psi_m\vert U^\dagger\Pi\,U\vert\psi_m\rangle
@@ -603,10 +688,10 @@ fig.tight_layout(); plt.show()
 # ### 6.3 Three consequences
 #
 # * **An ensemble supported on a subspace of dimension $r\le2^{N-k}$ is perfectly compressible**, because then
-#   $\lambda_a=0$ for $a>r$ and the sum in Eq. (13) is $1$. The relevant number is the **rank of $\bar\rho$**, not any
-#   property of the individual states.
+#   $\lambda_a=0$ for $a>r$ and the sum in Eq. (13) is $1$. The relevant number is the **rank of $\bar\rho$**; no other
+#   property of the individual states enters.
 # * **A single pure state is always compressible, to any $k\le N-1$.** Its $\bar\rho$ has rank one, so Eq. (13) gives
-#   $1$ for every $m\ge1$. There is nothing to prove and nothing to discuss: one vector can be rotated onto one vector.
+#   $1$ for every $m\ge1$: one vector can always be rotated into a given subspace.
 #   Compression of a single state is a statement about *which unitary*, never about *whether*.
 # * **When $r>2^{N-k}$ the loss is quantified exactly**: the best possible average trash fidelity is the weight of the
 #   $2^{N-k}$ dominant eigenvectors, and $1-\overline F$ is the weight of the tail that must be thrown away.
@@ -749,11 +834,11 @@ fig.tight_layout(); plt.show()
 # families, and the designed staircase $6/21,5/21,\dots,1/21$ for the graded one. The discrete Fourier grid reproduces
 # the continuous average to $10^{-16}$, so the finite ensembles used from here on are not approximations.
 #
-# The bounds in the table are the whole story of compressibility for these families, and they are not what a
-# rank-counting slogan would suggest.
+# The bounds in the table settle the compressibility of these families by any unitary encoder. They differ from what
+# counting ranks alone would suggest in the last case.
 #
 # * **The GHZ family is perfectly compressible at every $k$ tried**, including $k=4$: rank $2$ fits into a latent space
-#   of dimension $4$. It would still be perfect at $k=5$, where the latent space is a single qubit.
+#   of dimension $4$. It would still be perfect at $k=5$, where the latent space is a single qubit of dimension $2$.
 # * **The W family is perfect up to $k=3$ and then drops to $4/6=0.6667$ at $k=4$**, because its rank is $6$ and the
 #   latent space has shrunk to dimension $4$.
 # * **The Dicke($3$) family is the hardest**: rank $20$, so $k=1$ (latent dimension $32$) is still perfect, $k=2$ gives
@@ -762,10 +847,12 @@ fig.tight_layout(); plt.show()
 #   $0.6667$, because the four dominant eigenvectors carry $(6+5+4+3)/21=18/21$ of the weight instead of $4/6$. Rank
 #   alone does not decide; the *spectrum* does.
 #
-# > **Physics insight.** The ordering GHZ $<$ W $<$ Dicke reproduces the usual folklore, but for a reason that has
-# > nothing to do with how entangled the states are. GHZ states are maximally entangled across every bipartition and are
-# > the *easiest* to compress; Dicke states are less entangled per bipartition and are the hardest. What decides is how
-# > many dimensions the ensemble *occupies*, which is $\mathrm{rank}\,\bar\rho$. Section 9 returns to this.
+# > **Physics insight.** For these four ensembles the bound orders the families as GHZ, W, Dicke, which is the order
+# > usually quoted for compressibility, but the reason is the number of dimensions each ensemble *occupies*,
+# > $\mathrm{rank}\,\bar\rho$, and its spectrum. The entanglement of the individual members does not enter Eq. (13):
+# > every member of the GHZ family carries exactly one bit of entanglement across every cut, and the family is
+# > compressible into a single qubit. Section 9 compares the entanglement of single GHZ, W and Dicke states with what
+# > compressing them achieves.
 
 # %% [markdown]
 # ## 7. Training the encoder
@@ -781,8 +868,15 @@ fig.tight_layout(); plt.show()
 # (family $\times$ $k$ $\times$ random start) to compile into **one** program per depth.
 #
 # The gradient is exact: $U(\boldsymbol\theta)$ is a chain of einsums, so `jax.grad` differentiates through it, and Adam
-# takes it from there. Eight uniformly random initialisations are run for every configuration, because — as in notebook
-# 41 — a single run says nothing about a landscape with many local minima.
+# takes it from there. Six uniformly random initialisations are run for every configuration, because — as in notebook
+# 41 — a single run says nothing about a landscape with many local minima; Section 8 shows that six are too few to
+# estimate how often a configuration succeeds, and uses more where that number matters.
+#
+# A reference point that costs nothing is the encoder with all angles zero. Its rotations are the identity and its
+# $CZ$ chains are diagonal, so it maps every computational basis state to itself up to a sign. All four families have
+# basis states as the eigenvectors of $\bar\rho$, so this encoder scores the weight of those basis states whose last
+# $k$ bits are already zero — for the W family at $k=2$, the four excitations on qubits $0$–$3$ out of six, i.e. $4/6$.
+# A trained value equal to this baseline means the training found nothing better than leaving the input alone.
 
 # %%
 # ==============================================================================
@@ -826,10 +920,13 @@ def sweep(layers, n_steps=N_STEPS, seed=5):
 HIST = {}
 for layers in LAYERS_SWEEP:
     t0 = time.perf_counter()
-    HIST[layers] = np.asarray(jax.block_until_ready(sweep(layers)))
+    compiled = jax.jit(lambda: sweep(layers)).lower().compile()        # trace + XLA compilation only
+    t1 = time.perf_counter()
+    HIST[layers] = np.asarray(jax.block_until_ready(compiled()))      # execution only
+    t2 = time.perf_counter()
     print(f"L = {layers:d}  (n = {hea_num_params(N_Q, layers):3d} angles):  "
           f"{len(FAMILIES)}x{K_MAX}x{R_RUNS} = {len(FAMILIES) * K_MAX * R_RUNS} training runs of {N_STEPS} "
-          f"iterations in {time.perf_counter() - t0:.1f} s")
+          f"iterations: compilation {t1 - t0:.1f} s, execution {t2 - t1:.1f} s")
 
 # %%
 # ==============================================================================
@@ -847,6 +944,15 @@ for layers in LAYERS_SWEEP:
             cells.append(f"{best:7.4f} [{BOUND[name][k - 1]:6.4f}]")
         print(f"{name:>16s}  " + "  ".join(f"{c:>16s}" for c in cells))
 
+# the encoder with all angles zero: rotations = identity, CZ chains diagonal -> basis states are left in place
+BASELINE = {name: np.array([float(avg_trash_fidelity(jnp.zeros(hea_num_params(N_Q, 2)), LAMS[i], VECS[i], k - 1,
+                                                     N_Q, 2)) for k in range(1, K_MAX + 1)])
+            for i, name in enumerate(FAMILIES)}
+print(f"\n--- reference: the encoder with all angles zero ---")
+print(f"{'family':>16s}  " + "  ".join(f"{('k=' + str(k)):>7s}" for k in range(1, K_MAX + 1)))
+for name in FAMILIES:
+    print(f"{name:>16s}  " + "  ".join(f"{v:7.4f}" for v in BASELINE[name]))
+
 fig, axes = plt.subplots(1, len(LAYERS_SWEEP), figsize=(4.2 * len(LAYERS_SWEEP), 4.2), sharey=True)
 ks = np.arange(1, K_MAX + 1)
 for ax, layers in zip(axes, LAYERS_SWEEP):
@@ -854,55 +960,67 @@ for ax, layers in zip(axes, LAYERS_SWEEP):
         best = np.array([1.0 - HIST[layers][i, k - 1, :, -1].min() for k in ks])
         ax.plot(ks, best, MARKERS[i] + "-", ms=7, color=PALETTE[i], label=name if layers == LAYERS_SWEEP[0] else None)
         ax.plot(ks, BOUND[name], "--", lw=1.2, color=PALETTE[i], alpha=0.7)
+        ax.plot(ks, BASELINE[name], ":", lw=1.0, color=PALETTE[i], alpha=0.7)
     ax.set_xlabel("trash qubits $k$"); ax.set_xticks(ks)
     ax.set_title(f"$L={layers}$, $n={hea_num_params(N_Q, layers)}$")
-axes[0].set_ylabel(r"best $\overline{F}_{\mathrm{trash}}$ reached (dashed: bound)")
+axes[0].set_ylabel(r"best $\overline{F}_{\mathrm{trash}}$ (dashed: bound, dotted: $\theta=0$)")
 axes[0].set_ylim(0.0, 1.05); axes[0].legend(fontsize=8, loc="lower left")
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
 # The measured table says two different things in its two halves, and the difference is the subject of Section 8.
 #
-# **The GHZ family behaves exactly as the bound says it should, once the circuit is deep enough.** Its bound is $1$ at
-# every compression ratio. At $L=2$ the training reaches $1$ for $k=1,2$ and then stalls at *exactly* $0.5$ for $k=3$
-# and $k=4$. That value is not an accident: $0.5$ is what an encoder scores when it sends one of the two eigenvectors
-# of $\bar\rho$ into the trash-zero subspace and misses the other, and the two carry weight $1/2$ each. By $L=4$ the
-# bound is reached at every $k$, to four decimals.
+# **The GHZ family reaches its bound once the circuit is deep enough.** Its bound is $1$ at every compression ratio.
+# At $L=2$ the training reaches $1$ for $k=1,2$ and stops at $0.5000$ for $k=3$ and $k=4$, which is exactly the score
+# of the all-zero encoder: $\vert0\cdots0\rangle$ stays in the trash-zero subspace, $\vert1\cdots1\rangle$ stays out of it,
+# and each carries weight $1/2$. This value is not a property of the ensemble. Section 9 trains on the *single* GHZ
+# state, whose bound is $1$ at every $k$ because its $\bar\rho$ has rank one, and finds the same $0.5000$ at $L=2$,
+# $k=3,4$. What limits the two-layer circuit is depth: it can remove the GHZ correlation from two trash qubits but not
+# from three. At $L=4$ and $L=6$ the bound is reached to four decimals for $k\le3$, and to $0.9998$ and $0.9999$ at
+# $k=4$.
 #
-# **The higher-rank families do not reach their bounds at any depth tried.** The W family at $k=2$ climbs $0.667$,
-# $0.723$, $0.833$ as layers are added, against a bound of $1$; the Dicke($3$) family at $k=2$ reaches $0.400$, $0.600$,
-# $0.600$ against a bound of $0.800$; the graded W family at $k=2$ reaches $0.571$, $0.810$, $0.810$ against $1$.
+# **The higher-rank families do not reach their bounds at any depth tried, with six starts.** The W family at $k=2$
+# climbs $0.667$, $0.723$, $0.833$ as layers are added, against a bound of $1$; the Dicke($3$) family at $k=2$ reaches
+# $0.400$, $0.600$, $0.600$ against a bound of $0.800$; the graded W family at $k=2$ reaches $0.571$, $0.810$, $0.810$
+# against $1$.
 #
-# The plateau values are again conspicuously rational — $5/6$, $4/6$, $12/20$, $17/21$ — which is the same signature as
-# the GHZ case: a fixed number of the eigenvectors of $\bar\rho$ is routed and the rest are missed. **Whether that is
-# the fault of the circuit or of the optimiser is a question that has to be answered by measurement, not by
-# assertion**, and Section 8 answers it.
+# The reference table shows how little some of these runs achieved. At $L=2$ the W family at $k=1,2,3$ and the graded W
+# family at $k=1$ end *exactly* at the all-zero baseline ($5/6$, $4/6$, $1/2$, $15/21$): the best of six trained
+# encoders does no better than leaving the input alone. Many other end points are also sums of eigenvalues of
+# $\bar\rho$ — $5/6$, $12/20$, $17/21$ — which is what an encoder scores when it maps some of the basis states that make
+# up $\bar\rho$ completely into the trash-zero subspace and the rest completely out of it. Not every end point is of
+# that form ($0.7228$ for the W family at $L=4$ is not). **Whether a shortfall is the fault of the circuit or of the
+# optimiser has to be decided by measurement**, and Section 8 does that.
 
 # %% [markdown]
 # ## 8. The gap: ansatz or optimiser
 #
-# A trained value below a bound admits exactly two explanations, and they call for opposite responses.
+# A trained value below a bound admits two explanations, and they call for different responses.
 #
-# * **Optimisation failure**: the circuit *can* reach the bound, but the landscape has minima that the optimiser falls
-#   into. Symptoms: the result improves with more iterations, with a different step size, or with more random restarts,
-#   and the successful runs are a minority.
-# * **Expressivity limit**: no choice of angles reaches the bound. Symptoms: every random start converges to the *same*
-#   value, and that value does not move when the optimiser is given more resources.
+# * **Optimisation failure**: the circuit *can* reach the bound, but the landscape has other stationary points in
+#   which runs end. Symptoms: the result depends on the starting point, and with enough random starts some runs
+#   succeed. The quantity to measure is the success fraction over many starts; the best of a handful of runs says little.
+# * **Expressivity limit**: no choice of angles reaches the bound. Symptom: no run succeeds however many starts are
+#   tried. A finite number of failures never proves this; it bounds the success probability from above.
 #
-# The two diagnostics below apply this test to the W family at $k=2$, whose bound is $1$ and whose best reached value
-# at $L=6$ was $0.8333=5/6$.
+# The two diagnostics below apply this test to the W family at $k=2$, whose bound is $1$ and whose best value at
+# $L=6$ in Section 7 was $0.8333=5/6$.
 #
-# 1. **Resource insensitivity.** Run the same problem at two step sizes and two iteration budgets differing by a factor
-#    of five.
-# 2. **Depth.** Add layers well beyond the sweep of Section 7 and see whether the plateau lifts.
+# 1. **Optimiser resources.** Run the same eight starts at two step sizes and two iteration budgets differing by a
+#    factor of five. This tests whether the individual runs have converged — not whether a better point exists.
+# 2. **Depth and many starts.** Train $32$ random starts at each of five depths and count the runs that reach the
+#    bound, with a binomial confidence interval on the success fraction.
+#
+# Both diagnostics carry only the six non-zero eigenvectors of $\bar\rho$ instead of all $R_{\max}=20$ slots of the
+# sweep; the padded slots have weight zero and would cost time without changing the cost.
 
 # %%
 # ==============================================================================
 # STEP 8: diagnosis 1 -- does the plateau move when the optimiser is given more?
 # ==============================================================================
 NAME_D, K_D = "W family", 2
-lams_D, vecs_D = SPECTRA[NAME_D]
-i_D = list(FAMILIES).index(NAME_D)
+R_D = int(np.sum(np.asarray(SPECTRA[NAME_D][0]) > 1e-12))           # rank of rho_avg: 6 non-zero eigenvalues
+lams_D, vecs_D = SPECTRA[NAME_D][0][:R_D], SPECTRA[NAME_D][1][:R_D]   # drop the zero-weight padding
 
 
 def train_diag(layers, lr, n_steps, n_runs=8, seed=7):
@@ -926,19 +1044,33 @@ for lr in (0.02, 0.10):
 # STEP 9: diagnosis 2 -- the plateau against circuit depth
 # ==============================================================================
 DEPTHS_DIAG = (2, 4, 6, 9, 12)
-R_DIAG, N_STEPS_DIAG = 8, 300
+R_DIAG, N_STEPS_DIAG = 32, 300
 diag = {}
 t0 = time.perf_counter()
 for layers in DEPTHS_DIAG:
     diag[layers] = train_diag(layers, LR, N_STEPS_DIAG, n_runs=R_DIAG, seed=7)
-print(f"{NAME_D}, k = {K_D}: reachability against depth ({time.perf_counter() - t0:.1f} s)")
-print(f"{'L':>3s} {'n':>5s} {'best':>9s} {'median':>9s} {'worst':>9s} {'starts above 0.99':>19s}")
+print(f"{NAME_D}, k = {K_D}: reachability against depth, {R_DIAG} random starts per depth "
+      f"({time.perf_counter() - t0:.1f} s, compilation included)")
+print(f"{'L':>3s} {'n':>5s} {'best':>9s} {'median':>9s} {'above 5/6':>10s} {'reach 0.99':>11s} "
+      f"{'success fraction (68 % Wilson)':>31s}")
+SUCC = {}
 for layers in DEPTHS_DIAG:
     F = diag[layers]
-    print(f"{layers:3d} {hea_num_params(N_Q, layers):5d} {F.max():9.5f} {np.median(F):9.5f} {F.min():9.5f} "
-          f"{int(np.sum(F > 0.99)):12d} / {R_DIAG:d}")
+    s_ok = int(np.sum(F > 0.99))
+    lo, hi = wilson_interval(s_ok, R_DIAG)
+    SUCC[layers] = (s_ok / R_DIAG, lo, hi)
+    print(f"{layers:3d} {hea_num_params(N_Q, layers):5d} {F.max():9.5f} {np.median(F):9.5f} "
+          f"{int(np.sum(F > 5 / 6 + 1e-3)):10d} {s_ok:11d}    {s_ok / R_DIAG:5.3f}  [{lo:.3f}, {hi:.3f}]")
 
-fig, ax = plt.subplots(figsize=(7.0, 4.4))
+s9, s12 = int(np.sum(diag[9] > 0.99)), int(np.sum(diag[12] > 0.99))
+h12 = R_DIAG // 2
+print(f"\nFisher exact test, success at L = 9 vs L = 12: p = {fisher_exact_p(s9, R_DIAG, s12, R_DIAG):.2f}")
+print(f"  control, first vs second half of the L = 12 starts ({int(np.sum(diag[12][:h12] > 0.99))}/{h12} vs "
+      f"{int(np.sum(diag[12][h12:] > 0.99))}/{h12}): p = "
+      f"{fisher_exact_p(int(np.sum(diag[12][:h12] > 0.99)), h12, int(np.sum(diag[12][h12:] > 0.99)), h12):.2f}")
+
+fig, axes = plt.subplots(1, 2, figsize=(11.8, 4.4))
+ax = axes[0]
 ns_axis = [hea_num_params(N_Q, L) for L in DEPTHS_DIAG]
 ax.plot(ns_axis, [diag[L].max() for L in DEPTHS_DIAG], MARKERS[0] + "-", ms=7, color=PALETTE[0],
         label=f"best of {R_DIAG} starts")
@@ -950,35 +1082,46 @@ for frac, lab in ((4 / 6, "4/6"), (5 / 6, "5/6")):
     ax.text(ns_axis[0], frac + 0.008, lab, fontsize=8, color="grey")
 ax.set_xlabel("number of angles $n=2N(L+1)$"); ax.set_ylabel(r"$\overline{F}_{\mathrm{trash}}$ reached")
 ax.set_ylim(0.5, 1.05)
-ax.set_title(f"{NAME_D}, $k={K_D}$: the plateau is lifted by depth")
+ax.set_title(f"{NAME_D}, $k={K_D}$: best and median against depth")
 ax.legend(fontsize=8, loc="lower right")
+frac = np.array([SUCC[L][0] for L in DEPTHS_DIAG])
+err = np.array([[SUCC[L][0] - SUCC[L][1], SUCC[L][2] - SUCC[L][0]] for L in DEPTHS_DIAG]).T
+axes[1].errorbar(ns_axis, frac, yerr=err, fmt=MARKERS[0] + "-", ms=7, capsize=4, color=PALETTE[0],
+                 label=r"fraction of starts with $\overline{F}_{\mathrm{trash}}>0.99$ (68 % Wilson)")
+axes[1].set_xlabel("number of angles $n=2N(L+1)$"); axes[1].set_ylabel("success fraction")
+axes[1].set_ylim(-0.02, 1.0); axes[1].legend(fontsize=8, loc="upper left")
+axes[1].set_title(f"{R_DIAG} random starts per depth")
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# **Diagnosis 1: extra optimiser resources buy nothing above $5/6$.** Across a factor of five in the iteration budget
-# and a factor of five in the step size, the best of eight random starts is $0.8332$, $0.83333$, $0.83333$, $0.83333$ —
-# the same value to four decimals in all four settings. The *median* does move, from $0.667$ to $0.833$ and back, which
-# is the ordinary sensitivity of which local minimum a run falls into; what never moves is the ceiling. A value that
-# more iterations and a larger step size cannot exceed is not a value the optimiser is merely failing to find.
+# **Diagnosis 1: the individual runs have converged.** Across a factor of five in the iteration budget and a factor
+# of five in the step size, the best of eight random starts is $0.8332$, $0.83333$, $0.83333$, $0.83333$. The *median*
+# moves, from $0.667$ to $0.833$ and back, because the step size changes which stationary point a run ends in. This
+# shows that more iterations do not move a run off its end point. It does not show that no better point exists:
+# eight runs that all end at or below $5/6$ are equally compatible with a ceiling at $5/6$ and with a rare success.
 #
-# **Diagnosis 2: depth lifts the ceiling.** The plateau is not a property of the task — the bound is $1$ and Section 6
-# proved it is attainable by *some* unitary. It is a property of the $L$-layer hardware-efficient ansatz. The ceiling
-# rises in steps of one eigenvector as layers are added: $4/6$ at $L=2$, $5/6$ at $L=4$ and $L=6$, and at $L=9$ a run
-# reaches $1.00000$ for the first time. The success rate stays low — one start in eight at $L=9$ and at $L=12$ — so
-# the deep circuit has an expressivity problem *and* a trainability problem, and only the first of the two is cured by
-# depth.
+# **Diagnosis 2: success fractions against depth.** With $32$ starts per depth no run at $L\le6$ exceeds $5/6$; the
+# 68 % Wilson interval puts the success probability at these depths below $0.03$, which is a bound, not a proof that
+# the ansatz cannot do it. At $L=9$ three starts in $32$ reach the bound ($0.09$, interval $[0.05,0.16]$) and at $L=12$
+# seven ($0.22$, interval $[0.16,0.30]$). The bound of Section 6 is therefore reachable by the hardware-efficient ansatz
+# from $L=9$ on, and every start that misses it ends at $5/6$ or $4/6$. Whether the success fraction keeps growing
+# with depth is not resolved by $32$ starts: the Fisher exact test of $3/32$ against $7/32$ gives $p=0.30$, comparable
+# to $p=0.39$ for the control comparison of the two halves of the same $L=12$ sample, where no difference exists. Below $L=9$ the evidence points to an
+# expressivity limit; from $L=9$ on the limit is trainability, and most random starts end on the $5/6$ plateau.
 #
-# The depth required is much larger than a parameter count would suggest, and there is a counting argument for why.
-# Requiring $U$ to map an $r$-dimensional subspace into an $m$-dimensional one is $2r(d-m)$ real conditions on $U$,
-# with $d=2^N$. For the W family at $k=2$ that is $2\cdot6\cdot(64-16)=576$ conditions, while $L=6$ supplies only
-# $n=84$ angles. The solution set has codimension $576$ in the unitary group and a generic $84$-dimensional family
-# misses it — whereas the GHZ family, with $r=2$ and $m=32$, needs only $2\cdot2\cdot32=128$ conditions and is found
-# easily. The counting is not a theorem (the ansatz is not in generic position, and the single-state results of
-# Section 9 beat it), but it gets the ordering of difficulty right.
+# A parameter count does not predict the depth needed. Requiring $U$ to map an $r$-dimensional subspace into an
+# $m$-dimensional one imposes $2r(d-m)$ real conditions on $U$, with $d=2^N$ (the subspace's $r$ image vectors must have
+# no component in the $(d-m)$-dimensional complement). A *generic* $n$-parameter family of unitaries misses a set of
+# codimension larger than $n$. The measurements contradict this count in every case: the W family at $k=2$ needs
+# $2\cdot6\cdot48=576$ conditions and is solved by some starts at $L=9$ and $L=12$ with $n=120$ and $156$ angles; the
+# GHZ family at $k=4$ ($2\cdot2\cdot60=240$ conditions) and the single W state at $k=4$ ($2\cdot60=120$) are solved
+# at $L=4$ with $n=60$. The hardware-efficient ansatz is not a generic family — its entangling layers are diagonal and
+# map the basis states that make up these ensembles to themselves — so condition counting gives neither a necessary
+# depth nor a reliable ordering of difficulty.
 #
 # > **Numerical practice.** "The optimiser got stuck" and "the ansatz cannot do it" produce the same number and require
-# > different fixes — more restarts against more layers. The two diagnostics above cost one extra sweep each and settle
-# > the question. Never report the first explanation without running the second.
+# > different fixes — more restarts against more layers. Report the success fraction over many random starts with its
+# > confidence interval; the best of a handful of runs cannot distinguish a rare success from an impossible one.
 
 # %% [markdown]
 # ## 9. The Schmidt-rank narrative, re-examined
@@ -1051,6 +1194,36 @@ axes[1].set_xlabel("trash qubits $k$"); axes[1].set_ylabel(r"best $F_{\mathrm{tr
 axes[1].set_title(f"Compressing ONE state, $L={LAYERS_SWEEP[-1]}$"); axes[1].legend(fontsize=8)
 fig.tight_layout(); plt.show()
 
+# %%
+# ==============================================================================
+# STEP 10b: the Dicke state at L = 6, k = 4 -- is the 1e-3 shortfall the circuit or the constant step?
+# ==============================================================================
+def opt_adam_decay(lr, n_steps, final_ratio, b1=0.9, b2=0.999, eps=1e-8):
+    """Adam with an exponentially decaying step  lr_k = lr * final_ratio**(k / n_steps)."""
+    init, _ = opt_adam(lr)
+
+    def update(theta, state, g, k):
+        m, v = state
+        m = b1 * m + (1 - b1) * g
+        v = b2 * v + (1 - b2) * g ** 2
+        lr_k = lr * final_ratio ** (k / n_steps)
+        return theta - lr_k * (m / (1 - b1 ** k)) / (jnp.sqrt(v / (1 - b2 ** k)) + eps), (m, v)
+
+    return init, update
+
+
+i_dk, k_dk, L_dk, N_STEPS_DK = list(SINGLES).index("Dicke(3) state"), 4, 6, 1500
+theta0_dk, keys_dk = random_starts(R_RUNS, hea_num_params(N_Q, L_dk), seed=9)      # the starts of Step 10
+cost_dk = lambda th: 1.0 - avg_trash_fidelity(th, SINGLE_SPECTRA[i_dk], SINGLE_VECS[i_dk], k_dk - 1, N_Q, L_dk)
+F_dk = {}
+for lab, opt, ns in (("constant step 0.05", opt_adam(LR), N_STEPS_DK),
+                     ("step 0.05 -> 0.001", opt_adam_decay(LR, N_STEPS_DK, 0.02), N_STEPS_DK)):
+    _, h = jax.jit(jax.vmap(lambda t, kk: train(t, kk, lambda th, k2, i: jax.grad(cost_dk)(th), opt, cost_dk,
+                                                ns)))(theta0_dk, keys_dk)
+    F_dk[lab] = 1.0 - np.asarray(h)[:, -1]
+    print(f"Dicke(3) state, L = {L_dk}, k = {k_dk}, {ns} iterations, {lab:20s}: "
+          f"best 1 - F = {1 - F_dk[lab].max():.1e}, median 1 - F = {1 - np.median(F_dk[lab]):.1e}")
+
 # %% [markdown]
 # The Schmidt ranks come out as the folklore says, and the entropies order the same way: the GHZ and W states both have
 # rank $2$ across the balanced cut — a GHZ state because it has two terms, a W state because the excitation is either
@@ -1058,24 +1231,31 @@ fig.tight_layout(); plt.show()
 # with three excitations must distribute them as $3+0$, $2+1$, $1+2$ or $0+3$ and therefore has rank $4$.
 #
 # **That ordering does not predict compressibility of the single states, because all three are perfectly compressible.**
-# Their averaged density matrix has rank $1$, so Eq. (13) gives a bound of $1$ for every $k$, and the training finds it:
-# at $L=6$ every one of the three states reaches a trash fidelity indistinguishable from $1$ at every compression ratio
-# studied. A Dicke state is exactly as compressible as a GHZ state, because compressing one state means rotating one
-# vector onto one vector.
+# Their averaged density matrix has rank $1$, so Eq. (13) gives a bound of $1$ for every $k$, and the training comes
+# close to it: at $L=6$ the best of six starts reaches $1.0000$ for the GHZ and W states at every $k$, and
+# $1.0000$, $1.0000$, $0.9999$, $0.9990$ for the Dicke state at $k=1,\dots,4$. The remaining $10^{-3}$ is the
+# iteration budget of $300$ steps: Step 10b runs the same six starts for $1500$ iterations, and the best start reaches
+# $1-F=3.6\cdot10^{-6}$ with the constant step and $5.8\cdot10^{-8}$ with a step decaying from $0.05$ to $0.001$. The
+# medians ($1.6\cdot10^{-4}$ and $1.4\cdot10^{-3}$) show that some starts converge much more slowly than others. A Dicke state is exactly as compressible as a GHZ state, because compressing one state means rotating
+# one vector into a subspace.
 #
-# What the Schmidt rank does control is a different question — how many parameters a *product-form* or matrix-product
-# representation of that single state needs, and how hard it is for a *shallow, local* circuit to perform the required
-# rotation. Both are visible in the table as the number of layers needed, not as the fidelity reached.
+# The table does show a difference in the *depth* needed. At $L=2$ the GHZ state is compressed perfectly for $k\le2$
+# and stops at exactly $0.5000$ for $k=3,4$ — the same value, from the same cause, as the GHZ *family* in Section 7 —
+# while the W and Dicke states fall short at every $k$; at $L=4$ the GHZ and W states reach $1$ and the Dicke state
+# reaches $0.96$–$0.99$. This ordering, GHZ before W before Dicke, follows the entanglement entropies of the table
+# ($1$, $1$, $1.47$ bits) only in part: the GHZ and W states have the same Schmidt rank and the same entropy across the
+# balanced cut and still need different depths. The Schmidt rank across one cut is therefore at most a rough guide to
+# the depth a shallow nearest-neighbour circuit needs; it does not enter the fidelity that can be reached.
 #
-# The folklore ordering GHZ $<$ W $<$ Dicke is therefore correct, but it belongs to Section 6: it is a statement about
-# the **families**, whose averaged states have rank $2$, $6$ and $20$. Once the question is asked about an ensemble, the
-# right invariant appears, it is the spectrum of $\bar\rho$, and it reproduces the ordering with exact numbers instead
-# of an intuition.
+# The usual ordering of compressibility — GHZ easiest, W intermediate, Dicke hardest — is therefore correct for the
+# **families** of Section 6, whose averaged states have rank $2$, $6$ and $20$ and bounds $1$, $0.6667$, $0.2$ at
+# $k=4$, and it is incorrect for single states. Once the question is asked about an ensemble, the invariant that
+# decides is the spectrum of $\bar\rho$.
 #
 # > **Common pitfall.** "This state is highly entangled, so it is hard to compress" confuses two different resources.
 # > Entanglement is a property of one state across one cut; compressibility is a property of an ensemble, and it is
-# > measured by how many dimensions that ensemble occupies. The GHZ family is maximally entangled and maximally
-# > compressible at the same time.
+# > measured by how many dimensions that ensemble occupies. Every member of the GHZ family carries one bit of
+# > entanglement across every cut, and the family is compressible into a single qubit.
 
 # %% [markdown]
 # ## 10. Training on trajectory estimates
@@ -1083,13 +1263,15 @@ fig.tight_layout(); plt.show()
 # Everything above used the exact cost and its exact gradient, which no device can supply. The device-realistic version
 # replaces Eq. (16) by its measured estimate: run the circuit $M$ times on each ensemble member, measure the trash
 # qubits, and count how often they all come out zero. The cost is then a binomial proportion with standard error
-# $\sqrt{F(1-F)/M}$ per member, and the gradient must come from SPSA (notebook 41), which needs two cost evaluations
-# per iteration regardless of the number of angles.
+# $\sqrt{F(1-F)/M}$ per member. The gradient must then be estimated from costs as well: by the parameter-shift rule
+# ($2n$ cost evaluations per iteration) or by SPSA (notebook 41), which needs two cost evaluations per iteration
+# regardless of the number of angles and is used here.
 #
 # The comparison below runs the same problem three ways from the same initialisations: exact gradients, SPSA on the
 # exact cost (isolating the price of the gradient rule), and SPSA on the trajectory estimate (adding the price of
-# finite statistics). The monitored quantity is always the **exact** trash fidelity, because we want to know how good
-# the encoder really is, not what its noisy estimate claimed.
+# finite statistics). The monitored quantity is always the **exact** trash fidelity, which measures the quality of the
+# encoder itself rather than of its noisy estimate. A step-size scan checks that SPSA is compared at a fair step, and
+# Step 11b gives both SPSA variants ten times more iterations.
 
 # %%
 # ==============================================================================
@@ -1153,61 +1335,130 @@ print(f"\nbound of Eq. (13) for {NAME_T} at k = {K_T}: {BOUND[NAME_T][K_T - 1]:.
 print(f"shot-noise scale of the stochastic cost: 1/sqrt(M * n_members) = "
       f"{1 / np.sqrt(M_SHOT * ens_T.shape[0]):.4f}")
 
-fig, ax = plt.subplots(figsize=(7.2, 4.4))
+# --- step-size control for SPSA on the exact cost: is the step of the comparison a fair one? ----------------
+print("\nSPSA on the exact cost, 200 iterations, other Adam steps:")
+for lr_s in (0.01, 0.2):
+    _, h = jax.jit(jax.vmap(lambda t, kk: train(t, kk, grad_spsa(cost_exact_T, False), opt_adam(lr_s), cost_exact_T,
+                                                N_STEPS_T)))(th_T, ks_T)
+    F_end = 1.0 - np.asarray(h)[:, -1]
+    print(f"  step {lr_s:4.2f}: best {F_end.max():.5f}, median {np.median(F_end):.5f}   (step {LR}: see above)")
+
+# %%
+# ==============================================================================
+# STEP 11b: the same shot budget per evaluation, ten times more iterations
+# ==============================================================================
+# The number of runs with all trash outcomes 0 among M independent trajectories of member m is EXACTLY a
+# Binomial(M, F_m) random variable (independent runs, each succeeding with the Born probability F_m).  For a long
+# run we therefore draw that count directly instead of simulating every trajectory; the checkpoint compares the
+# two samplers at a fixed angle vector.
+N_STEPS_LONG, LR_LONG = 2000, 0.01
+
+
+def cost_binomial(key, theta, M=M_SHOT):
+    """Same distribution as `cost_trajectory`: 1 - mean_m Binomial(M, F_m) / M, with F_m the exact trash fidelity."""
+    F_m = jax.vmap(lambda psi: trash_fidelities(encode(theta, psi, N_Q, L_T))[K_T - 1])(ens_T)
+    counts = jax.random.binomial(key, M, jnp.clip(F_m, 0.0, 1.0))
+    return 1.0 - jnp.mean(counts / M)
+
+
+# --- CHECKPOINT: the binomial shortcut reproduces mean and spread of the trajectory estimator ----------------
+REP = 600
+c_tr = np.asarray(jax.jit(jax.vmap(lambda kk: cost_trajectory(kk, th_T[0])))(jax.random.split(jax.random.PRNGKey(61), REP)))
+c_bi = np.asarray(jax.jit(jax.vmap(lambda kk: cost_binomial(kk, th_T[0])))(jax.random.split(jax.random.PRNGKey(62), REP)))
+se_diff = np.sqrt(c_tr.var(ddof=1) / REP + c_bi.var(ddof=1) / REP)
+print(f"{REP} estimates at one angle vector: trajectories mean {c_tr.mean():.4f} sd {c_tr.std(ddof=1):.4f};  "
+      f"binomial mean {c_bi.mean():.4f} sd {c_bi.std(ddof=1):.4f};  exact {float(cost_exact_T(th_T[0])):.4f}")
+print(f"  difference of the means: {abs(c_tr.mean() - c_bi.mean()) / se_diff:.2f} standard errors")
+assert abs(c_tr.mean() - c_bi.mean()) < 4 * se_diff
+
+hist_L = {}
+for name, rule in (("SPSA, exact cost", grad_spsa(cost_exact_T, False)),
+                   (f"SPSA, M={M_SHOT} shots/member", grad_spsa(cost_binomial, True))):
+    t0 = time.perf_counter()
+    _, h = jax.jit(jax.vmap(lambda t, kk: train(t, kk, rule, opt_adam(LR_LONG), cost_exact_T, N_STEPS_LONG)))(th_T, ks_T)
+    hist_L[name] = np.asarray(jax.block_until_ready(h))
+    F_end = 1.0 - hist_L[name][:, -1]
+    n_ok = int(np.sum(F_end > 0.95))
+    lo, hi = wilson_interval(n_ok, R_T)
+    print(f"{name:30s} step {LR_LONG}, {N_STEPS_LONG} iterations ({time.perf_counter() - t0:5.1f} s, compilation included): "
+          f"best {F_end.max():.5f}, median {np.median(F_end):.5f}, F > 0.95 in {n_ok}/{R_T} [{lo:.2f}, {hi:.2f}]")
+print(f"shots used per start by the stochastic run: {N_STEPS_LONG} x 2 x {M_SHOT} x {ens_T.shape[0]} = "
+      f"{N_STEPS_LONG * 2 * M_SHOT * ens_T.shape[0]:,d}")
+
+fig, axes = plt.subplots(1, 2, figsize=(12.4, 4.4))
+ax = axes[0]
 it_T = np.arange(1, N_STEPS_T + 1)
 for j, (name, _) in enumerate(RULES):
     lo, med, hi = bands(np.maximum(hist_T[name], 1e-12))
     ax.fill_between(it_T, lo, hi, color=PALETTE[j], alpha=0.15)
     ax.semilogy(it_T, med, "-", lw=1.8, color=PALETTE[j], label=name)
-ax.axhline(max(1.0 - BOUND[NAME_T][K_T - 1], 1e-12), color="k", ls=":", lw=1.2,
-           label=f"bound of Eq. (13) = {BOUND[NAME_T][K_T - 1]:.4f}")
 ax.set_ylim(1e-7, 2.0)
 ax.set_xlabel("iteration"); ax.set_ylabel(r"exact $1-\overline{F}_{\mathrm{trash}}$ (median, IQR band)")
-ax.set_title(f"{NAME_T}, $k={K_T}$, $L={L_T}$, $n={n_par_T}$")
+ax.set_title(f"{NAME_T}, $k={K_T}$, $L={L_T}$, $n={n_par_T}$ (bound: $1-F=0$)")
+ax.legend(fontsize=8)
+
+ax = axes[1]
+it_L = np.arange(1, N_STEPS_LONG + 1)
+for j, name in enumerate(hist_L):
+    lo, med, hi = bands(np.maximum(hist_L[name], 1e-12))
+    ax.fill_between(it_L, lo, hi, color=PALETTE[j + 1], alpha=0.15)
+    ax.semilogy(it_L, med, "-", lw=1.8, color=PALETTE[j + 1], label=name)
+ax.set_ylim(1e-4, 2.0)
+ax.set_xlabel("iteration"); ax.set_ylabel(r"exact $1-\overline{F}_{\mathrm{trash}}$ (median, IQR band)")
+ax.set_title(f"SPSA, Adam step {LR_LONG}, {N_STEPS_LONG} iterations")
 ax.legend(fontsize=8)
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# Each step down the list costs accuracy, and the two costs are of different kinds.
-#
 # **The exact gradient solves the problem**: every one of the six starts reaches $\overline F_{\rm trash}=1.00000$, the
-# bound. That is the reference the other two rows are measured against, and it is what makes this configuration the
-# right test bed.
+# bound, within 200 iterations. On a device this gradient would cost $2n=120$ cost evaluations per iteration by the
+# parameter-shift rule, against two for SPSA.
 #
-# **SPSA on the exact cost costs information**: one scalar per iteration instead of $n=60$, so progress is far slower
-# and far more start-dependent — the best run reaches $0.974$ and the median only $0.637$ in the same 200 iterations.
-# This is the behaviour measured in notebook 41, reproduced on a different cost.
+# **SPSA after 200 iterations is limited by the iteration count.** On the exact cost the best run reaches $0.974$ and
+# the median $0.637$; the step $0.05$ is the best of the three tried (medians $0.445$, $0.637$, $0.375$ at steps $0.01$,
+# $0.05$, $0.20$), so the comparison is not handicapped by an untuned step. On the trajectory estimate the best run
+# reaches $0.475$ and the median $0.449$, up from about $0.1$ at the start. Both SPSA variants spend most of the 200
+# iterations near $\overline F_{\rm trash}\approx0.5$, the value at which the exact-gradient runs also pause for a few
+# dozen iterations (left panel): half of the ensemble weight is routed into the trash-zero subspace, the other half
+# not yet.
 #
-# **SPSA on the trajectory estimate costs resolution as well**, and here it is decisive: the best run reaches $0.475$
-# and the median $0.449$, barely above where it started. With $M=64$ runs on each of the two ensemble members the
-# standard error of one cost evaluation is $1/\sqrt{128}\approx0.088$, and the SPSA difference quotient subtracts two
-# such numbers and divides by $2c_k\approx0.3$: the noise in the gradient estimate is of order $0.4$ per component,
-# comparable to the gradient itself. The optimiser is following sampling noise, and a shot budget of $128$ per cost
-# evaluation is simply not enough for this landscape.
+# **Step 11b shows that $128$ shots per cost evaluation are enough.** The binomial shortcut reproduces the mean and
+# spread of the trajectory estimator (difference $0.18$ standard errors), so it can stand in for the trajectories in a
+# long run. With $2000$ iterations at step $0.01$, SPSA on the shot-based cost reaches $\overline F_{\rm trash}>0.95$ in
+# two of six starts (best $0.994$) and SPSA on the exact cost in three of six (best $0.999$); the Wilson intervals
+# $[0.18,0.54]$ and $[0.31,0.69]$ overlap. Shot noise therefore did not set a floor near $0.45$; the 200-iteration
+# runs were too short. What shot noise does cost is visible in the right panel: both variants sit on the
+# $\overline F_{\rm trash}\approx0.5$ plateau first, and the shot-based runs leave it later — their median is still near
+# $0.5$ at iteration $1800$, while the exact-cost median has dropped to an infidelity of about $0.25$ by iteration
+# $1000$. Six starts per variant resolve this difference in timing only qualitatively.
 #
-# > **Numerical practice.** The floor of a shot-limited optimisation is set by the estimator, not by the optimiser.
-# > Raising $M$ lowers the floor as $1/\sqrt M$ and raises the cost linearly, which is why real implementations
-# > increase the shot budget as the run converges rather than paying for precision from the first iteration.
+# > **Numerical practice.** Before blaming shot noise for a poor result, rerun with the exact cost and the same
+# > iteration budget. If that run is no better, the budget, not the estimator, is the limitation. Raising $M$ lowers
+# > the noise of each cost evaluation as $1/\sqrt M$ and raises its price linearly, which is why practical schemes
+# > increase the shot budget, or decrease the step, as the run converges.
 
 # %% [markdown]
 # ## 11. Generalisation
 #
-# An autoencoder is useful only if it compresses states it was **not** trained on. Section 6 makes the prediction sharp:
-# training on a subset $S$ optimises $\mathrm{Tr}(\bar\rho_S\,U^\dagger\Pi U)$, and an encoder optimal for
-# $\bar\rho_S$ is optimal for the full ensemble only if the two averaged states have the same dominant eigenspace.
-# **The number of members that must be seen is therefore the rank of $\bar\rho$, not the size of the family.**
+# An autoencoder is useful only if it compresses states it was **not** trained on. Section 6 makes the prediction sharp.
+# Training on a subset $S$ optimises $\mathrm{Tr}(\bar\rho_S\,U^\dagger\Pi U)$. If the members in $S$ span the support
+# of the full $\bar\rho$ and that support fits into the latent space ($\mathrm{rank}\,\bar\rho\le2^{N-k}$), an encoder
+# that compresses $S$ perfectly maps a basis of the support into the trash-zero subspace, and by linearity every other
+# member of the family as well. **The number of members that must be seen is the rank of $\bar\rho$ (members that
+# span its support); the size of the family does not matter.** When the rank exceeds $2^{N-k}$ the condition becomes
+# that $\bar\rho_S$ and $\bar\rho$ share their dominant $2^{N-k}$-dimensional eigenspace.
 #
 # The test uses a family whose bound Section 7 measured to be reachable, so that the result is about generalisation and
 # not about the ansatz: the one-parameter GHZ family
 #
 # $$\vert\psi(\alpha)\rangle=\cos\alpha\,\vert0\cdots0\rangle+\sin\alpha\,\vert1\cdots1\rangle,
-#   \qquad \alpha_m=\frac{\pi m}{M},\quad m=0,\dots,M-1,\tag{18}$$
+#   \qquad \alpha_m=\frac{\pi m}{M},\quad m=0,\dots,M-1,\tag{17}$$
 #
 # with $M=8$ members. Averaging over the grid kills the cross terms
 # ($\sum_m\cos\alpha_m\sin\alpha_m=\tfrac12\sum_m\sin(2\pi m/M)=0$) and gives
 # $\bar\rho=\tfrac12\vert0\cdots0\rangle\langle0\cdots0\vert+\tfrac12\vert1\cdots1\rangle\langle1\cdots1\vert$, of
 # rank $2$: eight distinct states spanning only two dimensions. Training uses the first $r$ of them, $r=1,\dots,8$,
-# and the encoder is then tested on all eight.
+# and the encoder is then evaluated on the $8-r$ members it has not seen, and on all eight.
 
 # %%
 # ==============================================================================
@@ -1223,7 +1474,7 @@ ens_G = jnp.asarray(_v.reshape((M_FAM,) + (2,) * N_Q), dtype=CDTYPE)
 n_mem = M_FAM
 lam_G_full = np.asarray(ensemble_spectrum(ens_G, r_max=2)[0])
 BOUND_G = float(np.sum(np.sort(lam_G_full)[::-1][:2 ** (N_Q - K_G)]))
-print(f"family of Eq. (18), M = {M_FAM} members: eigenvalues of rho_avg = {np.round(lam_G_full, 6)}, "
+print(f"family of Eq. (17), M = {M_FAM} members: eigenvalues of rho_avg = {np.round(lam_G_full, 6)}, "
       f"bound at k = {K_G}: {BOUND_G:.4f}")
 
 sub_spectra = [ensemble_spectrum(ens_G[:r], r_max=2) for r in range(1, n_mem + 1)]
@@ -1243,29 +1494,37 @@ def train_subset(lams, vecs):
 THETA_G = jax.block_until_ready(jax.jit(jax.vmap(train_subset))(LAMS_G, VECS_G))   # (n_mem, R_GEN, n_par)
 train_F = np.zeros((n_mem, R_GEN))
 test_F = np.zeros((n_mem, R_GEN))
+unseen_F = np.full((n_mem, R_GEN), np.nan)                          # members NOT used for training (none at r = 8)
 per_member = jax.jit(jax.vmap(lambda th: jax.vmap(
     lambda psi: trash_fidelities(encode(th, psi, N_Q, L_G))[K_G - 1])(ens_G)))
 for r in range(1, n_mem + 1):
     F_all = np.asarray(per_member(THETA_G[r - 1]))                 # (R_RUNS, n_mem)
     train_F[r - 1] = F_all[:, :r].mean(axis=1)
     test_F[r - 1] = F_all.mean(axis=1)
+    if r < n_mem:
+        unseen_F[r - 1] = F_all[:, r:].mean(axis=1)
 
 print(f"{NAME_G}, k = {K_G}, L = {L_G}: train on the first r members, test on all {n_mem}")
 print(f"{'r':>3s} {'rank of rho_S':>14s} {'bound on rho_S':>15s} {'F on the training set':>22s} "
-      f"{'F on all members':>18s} {'bound on all':>13s}")
+      f"{'F on unseen members':>20s} {'F on all members':>18s} {'bound on all':>13s}")
 for r in range(1, n_mem + 1):
     lam_S = np.asarray(sub_spectra[r - 1][0])
     bound_S = float(np.sum(np.sort(lam_S)[::-1][:2 ** (N_Q - K_G)]))
     j = int(np.argmax(train_F[r - 1]))                              # the run that did best on its training set
+    unseen = "-" if r == n_mem else f"{unseen_F[r - 1, j]:.4f}"
     print(f"{r:3d} {int(np.sum(lam_S > 1e-10)):14d} {bound_S:15.4f} {train_F[r - 1, j]:22.4f} "
-          f"{test_F[r - 1, j]:18.4f} {BOUND_G:13.4f}")
+          f"{unseen:>20s} {test_F[r - 1, j]:18.4f} {BOUND_G:13.4f}")
+print(f"r = 1, all {R_GEN} starts:  F on the training member {np.round(train_F[0], 4)}")
+print(f"                   F on the 7 unseen members {np.round(unseen_F[0], 4)}")
 
 fig, ax = plt.subplots(figsize=(7.0, 4.4))
 rs = np.arange(1, n_mem + 1)
 best_j = [int(np.argmax(train_F[r - 1])) for r in rs]
 ax.plot(rs, [train_F[r - 1, best_j[r - 1]] for r in rs], MARKERS[0] + "-", ms=7, color=PALETTE[0],
         label="training members")
-ax.plot(rs, [test_F[r - 1, best_j[r - 1]] for r in rs], MARKERS[1] + "-", ms=7, color=PALETTE[1],
+ax.plot(rs[:-1], [unseen_F[r - 1, best_j[r - 1]] for r in rs[:-1]], MARKERS[1] + "-", ms=7, color=PALETTE[1],
+        label="unseen members only")
+ax.plot(rs, [test_F[r - 1, best_j[r - 1]] for r in rs], MARKERS[2] + "--", ms=6, color=PALETTE[2],
         label="all 8 members (training + unseen)")
 ax.axhline(BOUND_G, color="k", ls="--", lw=1.2, label="bound of Eq. (13)")
 ax.axvline(2, color="grey", ls=":", lw=1.3, label=r"rank of $\bar{\rho}$")
@@ -1276,39 +1535,43 @@ ax.set_ylim(0.0, 1.05); ax.legend(fontsize=8, loc="lower left")
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# The transition is as sharp as the theory demands, and it happens at $r=2$, not at $r=8$.
+# The transition happens at $r=2$, the rank of $\bar\rho$, as the argument above predicts.
 #
-# **$r=1$: textbook overfitting.** Trained on the single state $\vert0\cdots0\rangle$, the encoder reaches a trash
-# fidelity of exactly $1$ on that state — and exactly $0.5000$ averaged over the eight. The number is not
-# approximate: $\bar\rho$ of the full family puts weight $\tfrac12$ on $\vert0\cdots0\rangle$ and $\tfrac12$ on
-# $\vert1\cdots1\rangle$, and the encoder learned the first and ignored the second. Perfect on what it saw, worth half
-# on what it did not.
+# **$r=1$: overfitting.** Trained on the single state $\vert0\cdots0\rangle$, every one of the eight starts reaches a
+# trash fidelity of $1.0000$ on that state, $0.4286$ on the seven unseen members and $0.5000$ on all eight. These
+# numbers follow from the trained encoder's behaviour on the two basis states. Write $F_0$ and $F_1$ for the trash
+# fidelities of $\vert0\cdots0\rangle$ and $\vert1\cdots1\rangle$. Since $\Pi U\vert0\cdots0\rangle=U\vert0\cdots0\rangle$ when
+# $F_0=1$, the cross term $\langle0\cdots0\vert U^\dagger\Pi U\vert1\cdots1\rangle=\langle0\cdots0\vert1\cdots1\rangle$
+# vanishes, and member $m$ scores $\cos^2\alpha_m+F_1\sin^2\alpha_m$. With $\sum_{m=0}^{7}\cos^2(\pi m/8)=4$, the
+# family average is $(1+F_1)/2$ and the unseen average $(3+4F_1)/7$; the measured $0.5000$ and $0.4286=3/7$ say
+# $F_1\approx0$. The trained encoders map $\vert1\cdots1\rangle$ almost entirely *out* of the trash-zero subspace —
+# further out than a random encoder, which would leave a weight of about $2^{-k}=1/16$ there.
 #
-# **$r\ge2$: perfect generalisation, immediately.** Two members already span the support of $\bar\rho$, so the encoder
-# trained on them is optimal for all eight — measured trash fidelity $1.0000$ on the training set and $1.0000$ on the
-# full family, unchanged as $r$ grows to $8$. Showing the autoencoder six more states taught it nothing, because there
-# was nothing left to learn.
+# **$r\ge2$: perfect generalisation.** Two members already span the support of $\bar\rho$, so the encoder trained on
+# them compresses every member: the measured trash fidelity is $1.0000$ on the training set, on the unseen members and
+# on the full family, unchanged as $r$ grows to $8$. The six further members add no new direction to the span.
 #
-# > **Physics insight.** A quantum autoencoder does not learn states; it learns a *subspace*. Any training set whose
-# > averaged density matrix has the same dominant eigenspace as the full ensemble produces the same encoder. The size
-# > of the training set is the wrong quantity to report; the rank it spans is the right one.
+# > **Physics insight.** A quantum autoencoder learns a *subspace*. Any training set whose averaged density matrix has
+# > the same dominant eigenspace as the full ensemble leads to an equally good encoder. The quantity to report for a
+# > training set is therefore the rank, or more generally the spectrum, of its averaged density matrix; its size alone
+# > says little.
 
 # %% [markdown]
 # ## 12. Gate noise in the encoder
 #
-# On hardware the encoder is not a unitary but the noisy channel of notebook 44: a depolarising channel of strength
-# $p_1$ after every rotation pair and of strength $p_2$ on both qubits of every $CZ$. Two effects are expected and have
-# opposite signs, so the measurement decides which wins.
+# On hardware the encoder is the noisy channel of notebook 44 rather than a unitary: a depolarising channel of strength
+# $p_1$ after every rotation pair and of strength $p_2$ on both qubits of every $CZ$. Two expectations frame the
+# measurement.
 #
 # * Noise mixes population into trash states other than $\vert0\cdots0\rangle$, which lowers $F_{\rm trash}$ — even for
 #   a perfect encoder.
-# * A depolarised state is closer to the maximally mixed state, whose trash fidelity is $2^{-k}$, so there is a floor
-#   rather than a collapse to zero.
+# * A depolarised state is closer to the maximally mixed state, whose trash fidelity is $2^{-k}$, so the decrease should
+#   level off near $2^{-k}$ instead of continuing to zero.
 #
 # The study drops to $N=4$ so the density tensor stays at $4^4=256$ numbers and `jax.grad` runs through the Kraus
-# einsums cheaply. The ensemble is the four-qubit GHZ family, of rank $2$, compressed to $k=2$ trash qubits: Section 7
-# established that this is a configuration whose noiseless bound of $1$ the ansatz reaches from every random start, so
-# everything the curves show below is the noise.
+# einsums cheaply. The ensemble is the four-qubit GHZ family, of rank $2$, compressed to $k=2$ trash qubits. The
+# $p_2=0$ row of the table below shows that the noiseless three-layer ansatz reaches the bound of $1$ from every random
+# start, so the degradation at $p_2>0$ is due to the noise.
 
 # %%
 # ==============================================================================
@@ -1358,7 +1621,7 @@ def trash_fidelity_dm(rho, k):
 
 
 def avg_trash_noisy(theta, p):
-    """Average trash fidelity of the N_N-qubit W family under gate noise of strength p (traced)."""
+    """Average trash fidelity of the N_N-qubit GHZ family under gate noise of strength p2 = p, p1 = P1_RATIO * p."""
     per = jax.vmap(lambda v: trash_fidelity_dm(
         noisy_encode_dm(theta, to_dm(v), N_N, L_N, P1_RATIO * p, p), K_N))(vecs_N)
     return jnp.sum(lams_N * per)
@@ -1420,11 +1683,18 @@ fig.tight_layout(); plt.show()
 # achievable trash fidelity falls from the noiseless bound towards — but not below — the maximally mixed value
 # $2^{-k}=0.25$, which is what a completely depolarised trash register gives by chance.
 #
-# The important structural point is that the *bound* of Eq. (13) is no longer attainable and is no longer the right
-# target. With noise the encoder is a channel, not a unitary, and the derivation of Section 6.2 used unitarity twice —
-# once to write $U^\dagger\Pi U$ as a projector, and once to say that every projector is reachable. What the trained
-# circuit finds is the best that a *noisy* channel of this family can do, and the gap to the noiseless bound is the
-# price of the hardware.
+# Equation (13) remains a valid upper bound under this noise, but it is no longer attained. With noise the encoder is a
+# channel $\mathcal E$, and $\overline F_{\rm trash}=\mathrm{Tr}\bigl(\Pi\,\mathcal E(\bar\rho)\bigr)=\mathrm{Tr}\bigl(\bar\rho\,
+# \mathcal E^\dagger(\Pi)\bigr)$, where $\mathcal E^\dagger(\Pi)=\sum_iK_i^\dagger\Pi K_i$ for Kraus operators $K_i$. The
+# counting argument of Section 6.2 needs only $0\le c_a\le1$ and $\sum_ac_a=m$ for
+# $c_a=\langle a\vert\mathcal E^\dagger(\Pi)\vert a\rangle$. The first holds for every channel, because
+# $0\le\mathcal E^\dagger(\Pi)\le\mathcal E^\dagger(\mathbb 1)=\mathbb 1$. The second,
+# $\mathrm{Tr}\,\mathcal E^\dagger(\Pi)=\mathrm{Tr}\bigl(\Pi\,\mathcal E(\mathbb 1)\bigr)=m$, holds when the channel is
+# **unital**, $\mathcal E(\mathbb 1)=\mathbb 1$, as unitaries and depolarising and dephasing channels are. So for this noise
+# model the bound still holds and is out of reach; the gap is the price of the hardware. For non-unital noise
+# the bound can be exceeded: a channel that resets the trash qubits to $\vert0\rangle$ (amplitude damping with $\gamma=1$,
+# notebook 44, Section 7) gives $\overline F_{\rm trash}=1$ for any ensemble — and destroys the information that the
+# reconstruction needs, which is why the trash fidelity is a faithful cost only for unitary encoders.
 #
 # > **JAX practice.** The noise strength enters `noisy_encode_dm` as a traced number, so `vmap` over the noise axis and
 # > `vmap` over random starts nest into one compiled program: five noise levels and six initialisations are trained by a
@@ -1438,18 +1708,21 @@ fig.tight_layout(); plt.show()
 # * **Compression for storage and communication.** The original proposal (Romero, Olson and Aspuru-Guzik, 2017) was
 #   motivated by chemistry: the ground states of a molecule along a dissociation curve form a family that occupies far
 #   fewer dimensions than the full Hilbert space, so they can be held in fewer qubits. This is exactly the ensemble
-#   problem of Section 6, with $\bar\rho$ built from the states along the curve. A related experiment compressed
-#   qutrits into qubits photonically (Pepper, Tischler and Pryde, 2019).
+#   problem of Section 6, with $\bar\rho$ built from the states along the curve; their simulations compressed six
+#   ground states of $\mathrm{H}_2$ at different bond lengths from four qubits to two, and ground states of Hubbard
+#   models. A photonic experiment compressed qutrits into qubits (Pepper, Tischler and Pryde, 2019).
 # * **Denoising.** If the ensemble of *clean* states occupies a subspace and noise pushes states out of it, an
 #   autoencoder trained on clean data projects the noisy input back in: the encode–discard–decode cycle removes exactly
-#   the component that the latent space cannot hold. Bondarenko and Feldmann (2020) showed that this recovers states
-#   from noise levels at which naive filtering fails. The mechanism is visible in Section 11: an encoder trained on a
-#   subspace does nothing useful with the directions outside it, which is a failure for generalisation and a feature for
-#   denoising.
+#   the component that the latent space cannot hold. Bondarenko and Feldmann (2020) trained such autoencoders,
+#   without access to the clean states, to denoise GHZ states subject to spin-flip errors and random unitary noise.
+#   The mechanism is visible in Section 11: an encoder trained on a subspace maps the directions outside it out of the
+#   trash-zero subspace, which is a failure for generalisation and a feature for denoising.
 # * **Anomaly detection.** The trash fidelity itself is the output: a state drawn from the training family gives
 #   $F_{\rm trash}\approx1$, and a state from anywhere else gives less. No decoder is needed and no reference state is
-#   needed — one runs the encoder and looks at $k$ measurement outcomes. This has been used to search for new physics
-#   in collider data.
+#   needed — one runs the encoder and looks at $k$ measurement outcomes. Ngairangbam, Spannowsky and Takeuchi (2022)
+#   studied this for collider events, with heavy-Higgs signals as the anomaly against a top-quark-pair background.
+#   Cerezo, Sone, Volkoff, Cincio and Coles (2021) used the autoencoder cost to show how the choice between a global
+#   and a local cost decides whether gradients vanish exponentially with the number of qubits.
 #
 # The variational ingredient is the same in all three, and so is the limitation: Sections 7 and 12 measured that the
 # achievable fidelity is set first by the spectrum of $\bar\rho$, then by the depth of the ansatz, and then by the gate
@@ -1457,46 +1730,50 @@ fig.tight_layout(); plt.show()
 #
 # ## 14. Key takeaways
 #
-# * **The local cost is equivalent to the global one, exactly.** For a pure input,
-#   $F_{\rm rec}=F_{\rm trash}\langle\chi\vert\rho_L\vert\chi\rangle$, hence
-#   $F_{\rm trash}^2\le F_{\rm rec}\le F_{\rm trash}$ — verified to twelve digits and satisfied by all 400 random
-#   encoders tested, which sat essentially on the lower bound. Training the cheap trash fidelity is not an
-#   approximation.
+# * **The trash fidelity controls the reconstruction fidelity, exactly.** For a pure input
+#   $F_{\rm rec}=F_{\rm trash}\langle\chi\vert\rho_L\vert\chi\rangle$ is an identity, and
+#   $F_{\rm trash}^2\le F_{\rm rec}\le F_{\rm trash}$ are bounds: the upper one is attained when the encoded state is a
+#   product of latent and trash register, the lower one when the failed branches are orthogonal to the compressed
+#   state, and both meet at $F_{\rm trash}=1$. The identity was verified to twelve digits; 400 random encoders sat above
+#   the lower bound by the Haar-predicted $F(1-F)/2^{N-k}$. The two infidelities vanish together and differ by at most a
+#   factor of two near zero, so training on the cheap one is justified.
 # * **Discarding, and measuring-then-resetting, are the same channel.** The measure-and-reset trajectories reproduced
-#   the exact trash and reconstruction fidelities within a fraction of a standard error, with deviations falling as
-#   $1/\sqrt M$.
+#   the exact trash and reconstruction fidelities within a fraction of a standard error, and the same data rejected two
+#   wrong channels (measure without reset, refill with a mixed trash) by $19$ and $68$ standard errors.
 # * **Compressibility is an eigenvalue statement.** The best achievable average trash fidelity is the sum of the
 #   $2^{N-k}$ largest eigenvalues of $\bar\rho$, Eq. (13). Rank $\le2^{N-k}$ means perfect compression; otherwise the
-#   loss is the weight of the discarded tail.
+#   loss is the weight of the discarded tail. The bound also holds for every unital noisy encoder.
 # * **A single pure state is always perfectly compressible**, to any $k\le N-1$, because $\bar\rho$ has rank one. GHZ,
-#   W and Dicke states all reached a trash fidelity indistinguishable from $1$ at every $k$ tried, at $L=6$. The
-#   Schmidt rank of the state does not appear in the answer.
-# * **The folklore ordering is about families, not states.** For the phase families of Section 6 the averaged states
-#   have rank $2$, $6$ and $20$, and the bounds at $k=4$ are $1$, $0.6667$ and $0.2$ — the ordering GHZ, W, Dicke, with
-#   numbers instead of intuition. The graded W family has the same rank as the W family and a bound of $0.8571$,
-#   showing that the spectrum, not the rank, is the invariant.
-# * **Whatever the training does not reach is the ansatz, and that can be diagnosed.** The GHZ family at $L=2$ stalled
-#   at exactly $0.5$ for $k=3,4$, half of its bound; the W family at $k=2$ stalled at exactly $5/6$ at $L=6$.
-#   Multiplying the iteration budget and the step size by five left the *ceiling* at $0.8333$ in all four settings,
-#   which rules out an optimisation failure — and adding layers raised it, to $1.00000$ at $L=9$. The depth needed is
-#   far larger than a naive parameter count suggests, and the subspace-mapping condition count
-#   ($2r(2^N-2^{N-k})=576$ conditions against $84$ angles) explains why.
-# * **Expressivity and trainability are separate problems.** At $L=9$ and $L=12$, where the bound is reachable, only
-#   one random start in eight found it. Depth cured the first problem and not the second.
-# * **Generalisation requires spanning the support, and nothing more.** Trained on one member of an eight-member,
-#   rank-two family, the encoder scored $1.0000$ on it and exactly $0.5000$ on the family; trained on two, it scored
-#   $1.0000$ on both and $1.0000$ on all eight, and the six further members changed nothing.
-# * **Shot noise sets a floor.** SPSA on trajectory estimates stalled at a level set by the estimator's standard error,
-#   $1/\sqrt{M\cdot n_{\rm members}}$, not by the optimiser.
-# * **Gate noise lowers the achievable compression towards $2^{-k}$, not towards zero**, and it invalidates the bound:
-#   Eq. (13) was derived for unitary encoders, and a noisy encoder is a channel.
+#   W and Dicke states all reached a trash fidelity of at least $0.999$ at every $k$ tried at $L=6$, and the Dicke state
+#   at $k=4$ reached the bound to $6\cdot10^{-8}$ with a longer, decaying-step run. Entanglement and Schmidt rank do not
+#   enter the bound; at most they influence the circuit depth needed.
+# * **The usual ordering GHZ, W, Dicke is about families.** For the phase families of Section 6 the averaged states
+#   have rank $2$, $6$ and $20$, and the bounds at $k=4$ are $1$, $0.6667$ and $0.2$. The graded W family has the same
+#   rank as the W family and a bound of $0.8571$: the spectrum, not only the rank, decides.
+# * **Shortfalls must be attributed by measurement.** At $L=2$ the GHZ family, and the single GHZ state, stop at exactly
+#   $0.5$ for $k=3,4$ — the score of the encoder with all angles zero — and several other trained values equal that
+#   baseline. For the W family at $k=2$, 32 random starts per depth give a success fraction below $0.03$ (68 % bound)
+#   for $L\le6$ and $3/32$ and $7/32$ at $L=9$ and $12$; every failed start ends at $5/6$ or $4/6$. Converged runs and a
+#   handful of starts cannot distinguish a rare success from an impossible one; success fractions with confidence
+#   intervals can. Counting the conditions on $U$ does not predict the depth needed.
+# * **Generalisation requires spanning the support.** Trained on one member of an eight-member, rank-two family, the
+#   encoder scored $1.0000$ on it, $3/7$ on the unseen members and exactly $0.5$ on the family; trained on two, it scored
+#   $1.0000$ on every member.
+# * **Shot noise slows training down; in this test it did not set a floor.** SPSA with $128$ shots per cost evaluation
+#   reached $0.45$ in 200 iterations, but so did SPSA on the exact cost at its best step ($0.64$ median, overlapping
+#   spread), and with $2000$ iterations the shot-based runs reached $\overline F_{\rm trash}>0.95$ in two of six starts
+#   against three of six for the exact cost.
+# * **Gate noise lowers the achievable compression towards the maximally mixed value $2^{-k}$.** The bound of Eq. (13) stays valid for
+#   depolarising noise, which is unital, but is no longer reached; non-unital noise can exceed it while destroying the
+#   information the decoder needs.
 #
 # ## 15. Exercises
 #
-# 1. ★ **The upper bound, saturated.** Section 4 found the random encoders sitting on $F_{\rm rec}=F^2$. Construct an
-#    encoder for which $F_{\rm rec}$ is close to the *upper* bound $F$ instead. (Hint: Eq. (9) needs
-#    $\langle\chi\vert\sigma\vert\chi\rangle\approx1-F$, so the failed part of the state must reuse the same latent
-#    vector; try an encoder that acts trivially on the latent register.)
+# 1. ★ **The upper bound, saturated.** Section 4 found the random encoders close to $F_{\rm rec}=F^2$. Construct an
+#    input and an encoder for which $F_{\rm rec}$ equals the *upper* bound $F$ instead, and check it with
+#    `autoencoder_exact`. (Hint: by Section 4.2 the encoded state must be a product
+#    $\vert\chi\rangle_L\otimes\vert\tau\rangle_T$; start from a product input and an encoder that does not entangle the
+#    two registers.)
 # 2. ★ **A different trash register.** Nothing in the derivation required the trash to be the *last* $k$ qubits. Modify
 #    `trash_fidelities` to take an arbitrary set of trash qubits and re-run one configuration of Section 7 with the trash
 #    at the two ends of the chain. Does the bound change? Does the depth needed to reach it change?
@@ -1507,11 +1784,11 @@ fig.tight_layout(); plt.show()
 # 4. ★★ **Reconstruction fidelity as the training cost.** Train directly on $1-F_{\rm rec}$ using the density-tensor
 #    pass of Step 2, at a configuration where Section 7 reached the bound. Compare the iterations needed and the final
 #    trash fidelity with training on $1-F_{\rm trash}$. Was the cheap cost also the faster one?
-# 5. ★★ **Denoising (physics).** Take the W family, add depolarising noise to the *input* states (not to the gates),
-#    and train the autoencoder on the clean family. Measure the fidelity of the output with the clean input as a
+# 5. ★★ **Denoising (physics).** Take the W family at $k=1$ (Section 7 reached its bound at $L=6$), add depolarising
+#    noise to the *input* states (the gates stay noiseless), and train the autoencoder on the clean family. Measure the fidelity of the output with the clean input as a
 #    function of the input noise strength, and compare with the fidelity of the noisy input itself. Where does the
 #    autoencoder help?
-# 6. ★★ **Anomaly detection (extend the code).** Train an encoder on the W family at $k=2$, then evaluate
+# 6. ★★ **Anomaly detection (extend the code).** Train an encoder on the W family at $k=1$, then evaluate
 #    $F_{\rm trash}$ on states outside it: the GHZ family, Dicke states, Haar-random states. Plot the distribution of
 #    $F_{\rm trash}$ for "normal" and "anomalous" inputs and quote the shot budget needed to distinguish them at a given
 #    confidence.
@@ -1527,7 +1804,8 @@ fig.tight_layout(); plt.show()
 # ## References
 #
 # * J. Romero, J. P. Olson and A. Aspuru-Guzik, *Quantum autoencoders for efficient compression of quantum data*,
-#   Quantum Sci. Technol. **2**, 045001 (2017) — the construction of Section 3 and the trash-fidelity cost of Eq. (4).
+#   Quantum Sci. Technol. **2**, 045001 (2017) — the construction of Section 3, the trash-fidelity cost of Eq. (4) and
+#   the inequality $F_{\rm rec}\le F_{\rm trash}$.
 # * K. H. Wan, O. Dahlsten, H. Kristjánsson, R. Gardner and M. S. Kim, *Quantum generalisation of feedforward neural
 #   networks*, npj Quantum Inf. **3**, 36 (2017) — an independent variational autoencoder proposal.
 # * A. Pepper, N. Tischler and G. J. Pryde, *Experimental realization of a quantum autoencoder: the compression of
@@ -1540,6 +1818,9 @@ fig.tight_layout(); plt.show()
 #   Schmidt decomposition, partial trace, fidelity, Schumacher compression.
 # * B. Schumacher, *Quantum coding*, Phys. Rev. A **51**, 2738 (1995) — the information-theoretic ancestor: the
 #   asymptotically optimal compression rate of an ensemble is its von Neumann entropy.
+# * M. Cerezo, A. Sone, T. Volkoff, L. Cincio and P. J. Coles, *Cost function dependent barren plateaus in shallow
+#   parametrized quantum circuits*, Nat. Commun. **12**, 1791 (2021) — global versus local trash costs, Sections 4.1
+#   and 13.
 # * M. Cerezo, A. Arrasmith, R. Babbush, S. C. Benjamin, S. Endo, K. Fujii, J. R. McClean, K. Mitarai, X. Yuan,
 #   L. Cincio and P. J. Coles, *Variational quantum algorithms*, Nat. Rev. Phys. **3**, 625 (2021) — the review, with
 #   the autoencoder among the applications.

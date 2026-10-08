@@ -12,16 +12,16 @@
 # is the simplest thing one can write down that is *genuinely* $N$-partite entangled, and it is simultaneously the most fragile.
 # Every qubit is perfectly correlated with every other one, yet no pair of qubits shares any entanglement at all; the whole
 # resource lives in a single coherence between two basis states that are as far apart as two basis states can be. That is what
-# makes it the standard benchmark of every quantum platform: preparing $\vert\mathrm{GHZ}_N\rangle$ and *proving* that you have it
-# is the hardest thing a device of $N$ qubits can be asked to do. Ion traps reached $N=6$ (Leibfried and co-workers, 2005) and
-# $N=14$ (Monz and co-workers, 2011); superconducting and neutral-atom processors have since pushed further, and every one of
-# those papers reports exactly the quantities we will compute here: pairwise correlators, **parity oscillations**, and a
-# **fidelity witness**.
+# makes it a standard benchmark of quantum platforms: preparing $\vert\mathrm{GHZ}_N\rangle$ and *proving* that you have it
+# tests the coherence of the whole register at once. Ion traps reached $N=4$ (Sackett and co-workers, 2000), $N=6$ (Leibfried and
+# co-workers, 2005) and $N=14$ (Monz and co-workers, 2011); superconducting and neutral-atom processors have since pushed further.
+# The ion-trap experiments characterise the state through the quantities we compute here: the two extreme **populations**, the
+# **parity oscillation** that measures the coherence between them, and the **fidelity** built from the two.
 #
 # The state also has a place in the foundations of quantum mechanics. Greenberger, Horne and Zeilinger showed in 1989 that for
-# three or more qubits the conflict with local realism becomes an *all-or-nothing* contradiction: not a statistical inequality
-# like CHSH, but a single sign that classical physics gets wrong with certainty. We will derive that contradiction from the
-# stabilisers in Section 5 — it costs three lines once the algebra is set up.
+# three or more qubits the conflict with local realism becomes an *all-or-nothing* contradiction: where CHSH is a statistical
+# inequality, here a single sign is predicted wrongly with certainty by every local-realistic model. We derive that contradiction
+# from the stabilisers in Section 5; it takes three lines once the algebra is set up.
 #
 # And it is the workhorse of quantum metrology: the phase accumulated by $\vert\mathrm{GHZ}_N\rangle$ is $N$ times faster than that
 # of a single qubit, which is the origin of the Heisenberg limit (Chapter 10). The very same $N$-fold enhancement makes it decay
@@ -43,13 +43,13 @@
 #    **quantum trajectories**, check the $1/\sqrt M$ convergence with error bars, and use them to reach $N=12$, where a density
 #    tensor would need $2^{24}$ complex numbers (Sections 10–14).
 # 6. Quantify the **fragility**: the noise level at which the witness stops working shrinks roughly like $1/N$ (Section 15).
-# 7. Compare with the **W state**, which is entangled in a completely different way: it is robust against the loss of a qubit,
-#    where GHZ is annihilated (Section 16).
+# 7. Compare with the **W state**, which is entangled in a completely different way: part of its entanglement survives the loss
+#    of a qubit, while that of GHZ is destroyed completely (Section 16).
 #
 # ### What you will learn
 #
 # *Physics*
-# * what "genuinely $N$-partite" entanglement means, and why $\langle Z_iZ_j\rangle=1$ for all pairs is *not* evidence of it;
+# * what "genuinely $N$-partite" entanglement means, and why $\langle Z_iZ_j\rangle=1$ for all pairs carries no evidence of it;
 # * stabiliser formalism in its smallest useful instance: $N$ commuting operators that determine a state uniquely;
 # * $N$-body coherence, parity oscillations, and why their frequency is the resource that metrology exploits;
 # * entanglement witnesses: a *sufficient* certificate that is cheap to measure, and what it does and does not prove;
@@ -137,7 +137,7 @@ def neg_cut(rho_tensor, cut):
     return float(negativity(rho_tensor, list(cut))[0])
 
 # %% [markdown]
-# ## 3. The state, and the first thing to notice about it
+# ## 3. The state and its bipartite entanglement
 #
 # ### 3.1 Definition
 #
@@ -147,9 +147,9 @@ def neg_cut(rho_tensor, cut):
 #   \vert\bar0\rangle=\vert0\rangle^{\otimes N},\quad\vert\bar1\rangle=\vert1\rangle^{\otimes N}.$$
 #
 # As a rank-$N$ tensor of shape $(2,\dots,2)$ it has exactly **two** non-zero entries out of $2^N$, both equal to $1/\sqrt2$:
-# `psi[0,0,...,0] = psi[1,1,...,1] = 1/sqrt(2)`. It is therefore extremely cheap to write down — and extremely hard to make.
+# `psi[0,0,...,0] = psi[1,1,...,1] = 1/sqrt(2)`. Two numbers specify it completely; Sections 10–15 show how quickly local noise destroys it.
 #
-# ### 3.2 Why it is not "just a big Bell state"
+# ### 3.2 Schmidt decomposition across an arbitrary cut
 #
 # For $N=2$ it *is* a Bell state, $\vert\Phi^+\rangle$. For $N\ge3$ something new happens. Split the qubits into any two groups
 # $A$ and $B$; the Schmidt decomposition across that cut reads
@@ -159,11 +159,11 @@ def neg_cut(rho_tensor, cut):
 # with Schmidt coefficients $(1/\sqrt2,1/\sqrt2)$ — so **every** bipartition carries exactly $1$ bit of entanglement entropy, no
 # matter how the qubits are split. That is already unusual: a random state of $N$ qubits has entropy close to $\min(\vert A\vert,\vert B\vert)$
 # bits. Across a single-qubit cut one bit is the maximum possible, so the GHZ state is *maximally* entangled there; across a
-# balanced cut of $N=10$ qubits the maximum is five bits and the GHZ state still delivers one, the smallest value an entangled
-# state can have. The same number means opposite things at the two ends, and that is the first hint that the entanglement of
-# this state is not a bipartite quantity at all.
+# balanced cut of $N=10$ qubits the maximum is five bits and the GHZ state still delivers only one, the most that Schmidt rank
+# $2$ allows. The same number is maximal at one end and small at the other, the first hint that the entanglement of this state
+# is a property of the whole register and cannot be described cut by cut.
 #
-# Let us build it and check that.
+# The next cell builds the state and checks this.
 
 # %%
 # ==============================================================================
@@ -209,11 +209,13 @@ assert errS < 1e-9
 #
 # Each $\mathrm{CNOT}$ extends the correlated block by one qubit, because $\mathrm{CNOT}$ acting on $\vert x\rangle\vert0\rangle$
 # gives $\vert x\rangle\vert x\rangle$ and the map is linear, so the two branches of the superposition are copied independently.
-# (This is *not* cloning: it copies a basis state, not an unknown superposition — see the no-cloning discussion in
+# (The no-cloning theorem is respected: the $\mathrm{CNOT}$ copies the basis states $\vert0\rangle$ and $\vert1\rangle$, and no
+# unknown superposition is duplicated; see the no-cloning discussion in
 # [20 — quantum teleportation](../ch08_quantum_information_protocols/20_quantum_teleportation.ipynb).)
 #
 # Cost: $1$ Hadamard and $N-1$ $\mathrm{CNOT}$s. But every $\mathrm{CNOT}$ waits for the previous one, so the **circuit depth** is
-# $N-1$ two-qubit layers. On hardware with a fixed gate time and a fixed coherence time, depth is what kills you.
+# $N-1$ two-qubit layers. On hardware with a fixed gate time and a fixed coherence time, the depth sets how long the register is
+# exposed to noise before the state is complete.
 #
 # ### 4.2 The log-depth tree
 #
@@ -226,10 +228,11 @@ assert errS < 1e-9
 # | 1 | $0\to1$ | 2 |
 # | 2 | $0\to2$, $1\to3$ | 4 |
 # | 3 | $0\to4$, $1\to5$, $2\to6$, $3\to7$ | 8 |
-# | $d$ | $q\to q+2^{d-1}$ for $q<2^{d-1}$ | $2^{d}$ |
+# | $d$ | $q\to q+2^{d-1}$ for $q<\min(2^{d-1},N-2^{d-1})$ | $\min(2^{d},N)$ |
 #
-# The number of gates is unchanged ($N-1$ $\mathrm{CNOT}$s — each one adds exactly one qubit to the block, so no arrangement can use
-# fewer), but the depth drops to $\lceil\log_2N\rceil$. For $N=14$ that is $4$ layers instead of $13$; for $N=64$, $6$ instead of
+# The number of gates is unchanged, $N-1$ $\mathrm{CNOT}$s, and no circuit of two-qubit gates can use fewer: the GHZ state is
+# entangled across every cut, so the graph whose edges are the gates must connect all $N$ qubits, and a connected graph on $N$
+# vertices has at least $N-1$ edges. The depth drops to $\lceil\log_2N\rceil$. For $N=14$ that is $4$ layers instead of $13$; for $N=64$, $6$ instead of
 # $63$. The price is connectivity: the tree needs $\mathrm{CNOT}$s between distant qubits, which a nearest-neighbour chain does not
 # provide. This is the classic depth-versus-connectivity trade-off of circuit design.
 #
@@ -286,8 +289,10 @@ for N in (2, 3, 4, 5, 6, 8, 10, 12, 14):
 
 # %% [markdown]
 # Both circuits reproduce the reference state to machine precision and both use exactly $N-1$ $\mathrm{CNOT}$s, but the tree needs
-# $\lceil\log_2N\rceil$ layers where the cascade needs $N-1$. At $N=14$ that is $4$ against $13$ — a factor of three less exposure
-# to decoherence during the preparation itself, which matters enormously once we start adding noise in Section 10.
+# $\lceil\log_2N\rceil$ layers where the cascade needs $N-1$: at $N=14$, $4$ layers against $13$ during which the register is
+# exposed to noise. In Sections 10–15 the noise acts after an ideal preparation. Exercise 4 puts it inside the two circuits: with
+# depolarising noise on every qubit after every layer, the tree's infidelity is smaller by close to the ratio of the layer counts
+# at weak noise ($5/3$ at $N=6$, about $7/3$ at $N=8$), and the advantage shrinks as the noise grows.
 #
 # > **Numerical practice.** Two independent constructions of the same object are the cheapest checkpoint there is. Here the
 # > "independent references" are (i) the analytically constructed tensor `ghz_state`, (ii) a depth-$(N-1)$ circuit and (iii) a
@@ -342,8 +347,8 @@ for N in (2, 3, 4, 5, 6, 8, 10, 12, 14):
 #
 # The first three correlators demand $x_0y_1y_2=y_0x_1y_2=y_0y_1x_2=-1$; multiplying them and using
 # $y_q^2=1$ gives $x_0x_1x_2=(-1)^3=-1$. The fourth demands $x_0x_1x_2=+1$. **No assignment of values exists**, for any state
-# of the hidden variables — the contradiction is between $+1$ and $-1$, not between two probability distributions. Unlike CHSH,
-# no statistics are needed: one run of each of the four settings already exhibits it. We verify the four
+# of the hidden variables: the contradiction is between the definite values $+1$ and $-1$. In contrast to CHSH, no statistics are
+# needed for an ideal state, and one run of each of the four settings already exhibits it. We verify the four
 # signs numerically below; the statistical cousin of this argument is developed in
 # [19 — Bell states and CHSH](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb) and its many-body version in
 # [26 — many-body Bell correlators](../ch09_entanglement_and_complexity/26_many_body_bell_correlators.ipynb).
@@ -389,7 +394,7 @@ assert all(abs(ghz_signs[k] + 1) < 1e3 * TOL for k in ("XYY", "YXY", "YYX"))
 # printed numbers. Local hidden variables would need $\langle XXX\rangle=-1$.
 
 # %% [markdown]
-# ## 6. All pairs correlated — and no pair entangled
+# ## 6. Correlated pairs without pairwise entanglement
 #
 # Now the central paradox. Compute the two-qubit reduced state of any pair $(i,j)$ by tracing out the other $N-2$ qubits:
 #
@@ -401,14 +406,16 @@ assert all(abs(ghz_signs[k] + 1) < 1e3 * TOL for k in ("XYY", "YXY", "YYX"))
 #
 # $$\rho_{ij}=\frac12\vert00\rangle\langle00\vert+\frac12\vert11\rangle\langle11\vert . \tag{1}$$
 #
-# Read Eq. (1) carefully. It is a **classical mixture**: "both qubits are $0$, or both are $1$, with probability one half each".
-# It gives $\langle Z_iZ_j\rangle=1$ (perfect correlation!) but $\langle X_iX_j\rangle=\langle Y_iY_j\rangle=0$, it is manifestly
+# Eq. (1) is a **classical mixture**: "both qubits are $0$, or both are $1$, with probability one half each".
+# It gives perfect correlation, $\langle Z_iZ_j\rangle=1$, but $\langle X_iX_j\rangle=\langle Y_iY_j\rangle=0$, it is manifestly
 # separable, and its negativity and concurrence are $0$. Two dice that always show the same face are perfectly correlated and
 # contain no entanglement whatsoever.
 #
 # For $N=2$ nothing is traced out, Eq. (1) does not apply, and $\rho_{01}=\vert\Phi^+\rangle\langle\Phi^+\vert$ is maximally
-# entangled. **The pairwise entanglement of the GHZ state disappears the moment a third qubit joins.** This is *monogamy* of
-# entanglement in its starkest form.
+# entangled. **The pairwise entanglement of the GHZ state disappears the moment a third qubit joins.** Monogamy of entanglement
+# forbids qubit $0$ to remain maximally entangled with qubit $1$ once it is entangled with qubit $2$, but it does not force the pair
+# entanglement all the way to zero; that is a property of the GHZ structure, and the W state of Section 16 keeps a non-zero amount
+# in every pair.
 
 # %%
 # ==============================================================================
@@ -437,15 +444,15 @@ for N in (2, 3, 4, 5):
 # concurrence $1$. For every $N\ge3$ and every pair — neighbours or not — the reduced state is *exactly* the classical mixture of
 # Eq. (1): perfect $Z$ correlation, no $X$ or $Y$ correlation, zero entanglement.
 #
-# > **Common pitfall.** "All the pairwise correlators are maximal, so the state must be strongly entangled." No: correlators along
-# > **one** axis are a classical phenomenon. It is the *simultaneous* presence of correlations along complementary axes that
+# > **Common pitfall.** "All the pairwise correlators are maximal, so the state must be strongly entangled." Correlations along
+# > **one** axis are reproduced by a classical mixture. It is the *simultaneous* presence of correlations along complementary axes that
 # > certifies entanglement, and here $\langle X_iX_j\rangle=0$. The entanglement of GHZ is invisible to any two-qubit observable;
 # > you must look at all $N$ qubits at once, which is precisely what $X^{\otimes N}$ does.
 
 # %% [markdown]
-# ## 7. Genuine $N$-partite entanglement: lose one qubit, lose everything
+# ## 7. Genuine $N$-partite entanglement and the loss of one qubit
 #
-# What happens if one qubit is not measured but simply **lost** — it escapes, it decays, the detector misses it? The remaining
+# Suppose one qubit is not measured but simply **lost**: it escapes, it decays, or the detector misses it. The remaining
 # $N-1$ qubits are described by the partial trace, and by exactly the argument of Eq. (1) the cross terms vanish:
 #
 # $$\rho_{\text{rest}}=\mathrm{Tr}_{q}\,\vert\mathrm{GHZ}_N\rangle\langle\mathrm{GHZ}_N\vert
@@ -511,8 +518,8 @@ assert worst < 1e-9
 #  =e^{-iN\varphi/2}\,c\,e^{-iN\varphi/2}=c\,e^{-iN\varphi},$$
 #
 # the two factors coming from the ket side and from the bra side. In general
-# $\langle X^{\otimes N}\rangle=\sum_x\rho_{x\bar x}$, the sum over all $2^{N-1}$ pairs of bit strings related by flipping
-# every bit; for the GHZ state and for everything the three channels of Section 10 do to it, only the pair
+# $\langle X^{\otimes N}\rangle=\sum_x\rho_{x\bar x}$, a sum of $2^N$ terms, two for each of the $2^{N-1}$ pairs of bit strings
+# related by flipping every bit; for the GHZ state and for everything the three channels of Section 10 do to it, only the pair
 # $(\bar0,\bar1)$ survives, which the closed forms of Section 11 confirm numerically to $10^{-15}$. So
 #
 # $$\langle X^{\otimes N}\rangle(\varphi)=c\,e^{-iN\varphi}+c^{*}e^{+iN\varphi}
@@ -643,10 +650,11 @@ fig.tight_layout(); plt.show()
 # needs $\arg c=0$; in general $A=2\vert c\vert$ is the **amplitude of the parity fringe** of Eq. (3), so Eq. (4) with $A$ is an
 # *upper bound* on $F$, saturated when the fringe peaks at $\varphi=0$. Experiments arrange exactly that, or equivalently declare
 # the target to be $(\vert\bar0\rangle+e^{i\arg c}\vert\bar1\rangle)/\sqrt2$, which is GHZ up to one local $Z$ rotation.
-# That is the recipe of Sackett and co-workers (2000) and of every GHZ paper since: two measurement
-# settings and a fit, instead of $3^N$ settings of full tomography.
+# That is the recipe of Sackett and co-workers (2000); Leibfried and co-workers (2005) write the same expression with
+# $\vert c\vert$ in place of $\mathrm{Re}\,c$. It needs two measurement settings and a fit, instead of the $3^N$ settings of
+# full tomography.
 #
-# ### 9.2 Why $F>1/2$ proves genuine multipartite entanglement
+# ### 9.2 Proof that $F>1/2$ certifies genuine multipartite entanglement
 #
 # Call a pure state **biseparable** if it factorises across *some* bipartition, $\vert\psi\rangle=\vert\alpha\rangle_A\vert\beta\rangle_B$.
 # A mixed state is biseparable if it is a mixture of such states (possibly with different cuts). We claim
@@ -674,8 +682,10 @@ fig.tight_layout(); plt.show()
 # $\mathcal W=\tfrac12\mathbb 1-\vert\mathrm{GHZ}\rangle\langle\mathrm{GHZ}\vert$ is an **entanglement witness**: $\mathrm{Tr}(\mathcal W\rho)\ge0$
 # for every biseparable $\rho$, and a negative value proves genuine multipartite entanglement (Gühne and Tóth, 2009).
 #
-# The implication runs one way only: $F>1/2$ is *sufficient*, not necessary. A state may be genuinely entangled and have small GHZ fidelity —
-# the witness only sees states that are close to *this* target.
+# The implication runs one way only: $F>1/2$ is *sufficient* and not necessary. A state may be genuinely entangled and have small
+# GHZ fidelity; the witness detects only states close to *this* target. The W state of Section 16 is an example: it is genuinely
+# $N$-partite entangled, and its fidelity with $\vert\mathrm{GHZ}_N\rangle$ is exactly $0$ (it contains only strings with a single
+# $1$, the GHZ state only $0\cdots0$ and $1\cdots1$).
 
 # %%
 # ==============================================================================
@@ -743,7 +753,8 @@ assert worst_bs < 0.5 and abs(F_tight - 0.5) < 1e3 * TOL
 # %% [markdown]
 # Equation (4) reproduces the exact fidelity in every case. Only the ideal GHZ state has $F>1/2$; the classical mixture sits
 # exactly *at* the boundary $F=1/2$ (it is separable, so the witness correctly fails to certify it), and the two other separable
-# references sit below. The witness is doing precisely what it was designed to do.
+# references sit below. The largest fidelity reached by $560$ random pure biseparable states is $0.296$, well inside the bound,
+# and the product state $\vert\bar0\rangle$ attains $1/2$ exactly.
 
 # %% [markdown]
 # ## 10. Decoherence: what the three channels do to one qubit
@@ -772,10 +783,10 @@ assert worst_bs < 0.5 and abs(F_tight - 0.5) < 1e3 * TOL
 #
 # the same factor $\lambda=1-\tfrac{4p}{3}$ for all three components, which is what makes the channel *isotropic*. The amplitude
 # damping line is read off the Kraus operators directly; trace preservation then fixes the fourth entry,
-# $\rho_{00}\to\rho_{00}+\gamma\rho_{11}$ — population is *moved*, not merely lost, and that is the whole difference between
+# $\rho_{00}\to\rho_{00}+\gamma\rho_{11}$: population is *moved* to $\vert0\rangle$, and that is the whole difference between
 # this channel and the other two.
 #
-# We use these one-qubit facts to derive *exact* $N$-qubit formulas in the next section, so let us first verify them numerically.
+# We use these one-qubit facts to derive *exact* $N$-qubit formulas in the next section, so we first verify them numerically.
 
 # %%
 # ==============================================================================
@@ -802,9 +813,9 @@ for name, kr in CHANNELS.items():
         assert abs(f_coh - pred_c) < 1e3 * TOL and abs(z_after - pred_z) < 1e3 * TOL
 
 # %% [markdown]
-# Every single-qubit factor matches the table. The amplitude-damping row is the odd one out: the coherence shrinks by $\sqrt{1-\gamma}$ while
-# $\langle Z\rangle$ of $\vert1\rangle$ moves as $-(1-2\gamma)$ — the channel is *not* unital, it drags the state towards
-# $\vert0\rangle$ rather than towards the centre of the Bloch sphere. That asymmetry will show up in the GHZ formulas.
+# Every single-qubit factor matches the table. The amplitude-damping row differs from the other two: the coherence shrinks by
+# $\sqrt{1-\gamma}$ while $\langle Z\rangle$ of $\vert1\rangle$ moves as $-(1-2\gamma)$. The channel is *not* unital; it drags the
+# state towards $\vert0\rangle$ instead of towards the centre of the Bloch sphere. That asymmetry will show up in the GHZ formulas.
 
 # %% [markdown]
 # ## 11. Exact $N$-qubit formulas
@@ -862,8 +873,11 @@ for name, kr in CHANNELS.items():
 #
 # $$\langle Z_iZ_j\rangle=\frac{1+(1-2\gamma)^2}{2}. \tag{9}$$
 #
-# Note $F(\gamma=1)=1/2$: a completely damped state is $\vert\bar0\rangle$, which still has overlap $1/2$ with the GHZ state.
-# The witness $F>1/2$ therefore never *quite* fires at full damping — a reminder that fidelity alone can be misleading.
+# At complete damping $F(\gamma=1)=1/2$: the state is the product $\vert\bar0\rangle$, which has overlap $1/2$ with the GHZ state
+# and sits exactly on the witness boundary of Section 9. For $N\ge3$ the fidelity is therefore **not monotonic** in $\gamma$. It
+# first falls below $1/2$ (the coherence and $P_{\bar1}$ decay), reaches a minimum, and returns to $1/2$ as $\gamma\to1$, because
+# the term $\gamma^N/4$, the probability that every qubit has decayed into $\vert\bar0\rangle$, takes over. A fidelity close to
+# $1/2$ can thus describe a product state.
 #
 # All of Eqs. (6)–(9) are now checked against the exact density tensor.
 
@@ -958,16 +972,18 @@ fig.tight_layout(); plt.show()
 # working for every $p<1/2$ — while the signal it relies on becomes exponentially small in $N$ and would need exponentially many
 # shots to resolve.
 # **Depolarising** (middle): $F$ crosses $1/2$ at a finite noise level, and does so earlier for larger $N$.
-# **Amplitude damping** (right): $F$ also falls, but flattens out near $1/2$ because a fully damped state is $\vert\bar0\rangle$,
-# which retains overlap $1/2$ with the target.
+# **Amplitude damping** (right): for $N=2$, $F=1-\gamma+\gamma^2/2=\tfrac12+\tfrac12(1-\gamma)^2$ stays above $1/2$ for every
+# $\gamma<1$. For $N=4$ and $6$ it crosses $1/2$ inside the plotted range (at $\gamma=0.361$ and $0.255$, Section 15) and is still
+# falling at $\gamma=0.5$; the return to $1/2$ described in Section 11.3 happens at larger $\gamma$, outside the panel.
 
 # %% [markdown]
-# ## 12. The cost of the exact route, and the way out
+# ## 12. The cost of the exact route and the trajectory unravelling
 #
 # The density tensor stores $4^N$ complex numbers, $16$ bytes each: $4$ kB for $N=4$, $1$ MB for $N=8$, $256$ MB for $N=12$ and
 # $4$ GB for $N=14$ — and an out-of-place channel application needs a second copy. Every Kraus channel costs $O(4^N)$ operations
-# per qubit. This is the hard wall of exact open-system simulation; the benchmark of Section 17 puts it just past $N=12$ on this
-# machine, and every further qubit costs a factor of four in both time and memory.
+# per qubit. This is the hard wall of exact open-system simulation: every further qubit costs a factor of four in both time and
+# memory. At $N=14$ the $4$ GB still fit into a workstation, but the benchmark of Section 17 extrapolates to the order of an hour per
+# noisy evaluation; at $N=16$ one copy alone needs $64$ GB.
 #
 # The **Monte-Carlo wave function** (MCWF, or "quantum trajectory") method trades it for statistics. The identity it rests on is
 #
@@ -988,7 +1004,7 @@ fig.tight_layout(); plt.show()
 # > **Common pitfall.** Only **linear** functionals of $\rho$ can be estimated by averaging over trajectories. $F$,
 # > $\langle X^{\otimes N}\rangle$ and $\langle Z_iZ_j\rangle$ are linear — fine. The negativity, the purity and the von Neumann
 # > entropy are **not**: $\mathcal N\big(\mathbb E[\rho_m]\big)\ne\mathbb E\big[\mathcal N(\rho_m)\big]$, and averaging the
-# > trajectory-wise values gives a systematically wrong answer (each trajectory is pure, so its "entropy" is zero!). For those one
+# > trajectory-wise values gives a systematically wrong answer (each trajectory is pure, so its von Neumann entropy is zero). For those one
 # > must first reconstruct $\bar\rho=\frac1M\sum_m\vert\psi_m\rangle\langle\psi_m\vert$ — which costs $4^N$ again — or use a
 # > different technique altogether. We demonstrate the failure explicitly below.
 
@@ -1031,16 +1047,37 @@ for lab, m, s, e in zip(("F", "<X...X>", "<Z0Z1>"), mean, sem, exact):
     print(f"{lab:>14s} {m:11.5f} +- {s:7.5f} {e:23.6f} {pull:7.2f}")
     assert abs(m - e) < 5 * max(s, 1e-12)
 
+# --- every Kraus operator is a Pauli matrix times a number: each trajectory ends in P|GHZ>, so F_m is 0 or 1
+#     and <X...X>_m is +1 or -1 (the error bars above are binomial, sqrt(F(1-F)/M))
+print(f"\nlargest distance of a single-trajectory F from {{0, 1}}: {np.max(np.minimum(obs[:, 0], 1 - obs[:, 0])):.1e};"
+      f"  of <X...X> from {{-1, +1}}: {np.max(np.abs(1 - np.abs(obs[:, 1]))):.1e}")
+assert np.max(np.minimum(obs[:, 0], 1 - obs[:, 0])) < 1e-9 and np.max(1 - np.abs(obs[:, 1])) < 1e-9
+
+# --- WRONG CONTROL: a coherence factor 1-p per qubit (instead of the engine's 1-2p) must be rejected ----
+wrong_X = (1 - P_T) ** N_T
+pull_wrong = (mean[1] - wrong_X) / sem[1]
+print(f"control: <X...X> against the wrong law (1-p)^N = {wrong_X:.6f} gives a pull of {pull_wrong:+.1f}  (must fail)")
+assert abs(pull_wrong) > 5
+
 # %% [markdown]
 # All three trajectory estimates agree with the exact density-tensor values within their statistical error bars (the "pull" column,
 # deviation divided by standard error, is $O(1)$). The observable $\langle Z_0Z_1\rangle$ has *zero* error bar: under dephasing every
-# individual trajectory has $\langle Z_0Z_1\rangle=1$ exactly, because $Z$ errors do not touch populations. A vanishing variance is
-# a feature of the unravelling, not a bug.
+# individual trajectory has $\langle Z_0Z_1\rangle=1$ exactly, because $Z$ errors do not touch populations; the vanishing variance
+# is a property of this unravelling.
+#
+# The other two error bars can be predicted as well. Both Kraus operators of the dephasing channel (and all four of the
+# depolarising channel) are Pauli matrices times numbers, so every trajectory ends in $P\vert\mathrm{GHZ}\rangle$ for some Pauli
+# string $P$. A Pauli string maps the GHZ basis $(\vert x\rangle\pm\vert\bar x\rangle)/\sqrt2$ onto itself up to a phase, hence
+# $P\vert\mathrm{GHZ}\rangle$ is either the GHZ state or orthogonal to it, and $F_m\in\{0,1\}$; likewise $P$ commutes or
+# anticommutes with $X^{\otimes N}$, so $\langle X^{\otimes N}\rangle_m=\pm1$. The estimates are binomial, with standard errors
+# $\sqrt{F(1-F)/M}=0.0107$ and $\sqrt{(1-\langle X^{\otimes N}\rangle^2)/M}=0.0213$, as printed. The control line tests the
+# channel convention: had `kraus_dephasing(p)` shrunk each coherence by $1-p$, the parity would be $(0.9)^6=0.531$ instead of
+# $(0.8)^6=0.262$, and the trajectories reject that value by more than ten standard errors.
 
 # %% [markdown]
-# ## 13. $1/\sqrt M$ convergence, with honest error bars
+# ## 13. $1/\sqrt M$ convergence and calibration of the error bars
 #
-# How fast does a trajectory estimate converge? The trajectories are i.i.d., so the central limit theorem gives
+# The trajectories are independent and identically distributed, so the variance of their mean is
 #
 # $$\mathrm{Var}\big[\hat O_M\big]=\frac{\mathrm{Var}[O]}{M}\quad\Longrightarrow\quad
 #   \text{standard error}=\frac{\sigma_O}{\sqrt M}\propto M^{-1/2}.$$
@@ -1048,6 +1085,13 @@ for lab, m, s, e in zip(("F", "<X...X>", "<Z0Z1>"), mean, sem, exact):
 # We check both the *scaling* and the *calibration* of the error bars: for each $M$ we run several independent batches and compare
 # the scatter of their means with the error bar each batch reports. A stochastic estimator whose error bars are not calibrated is
 # worse than no error bars at all.
+#
+# For the fidelity there is also an independent prediction. By the argument at the end of Section 12, every depolarising trajectory
+# has $F_m\in\{0,1\}$, so $\sigma_F=\sqrt{F(1-F)}$ with $F$ from Eq. (7), and the squared deviation of a batch mean from $F$,
+# divided by $F(1-F)/M$, has expectation exactly $1$. Summed over all $24\times5$ batches this statistic $T$ has mean $120$ and,
+# for nearly Gaussian batch means, standard deviation $\sqrt{2\cdot120}=15.5$. A test that accepts $T$ within three standard
+# deviations must also be able to reject error bars that are wrong by a factor of two, which multiply $T$ by $4$ or by $1/4$;
+# we check that it does.
 
 # %%
 # ==============================================================================
@@ -1060,7 +1104,8 @@ print(f"GHZ_{N_C}, depolarising p = {P_C}, {N_REP} independent batches per M "
       f"(so the RMS column itself carries a relative uncertainty of about {100 / np.sqrt(2 * (N_REP - 1)):.0f}%)\n")
 print(f"{'M':>6s} {'<F> (mean of batches)':>22s} {'RMS error':>11s} {'reported s.e.':>14s} "
       f"{'ratio':>7s} {'exact F':>9s}")
-rms_F, sem_F = [], []
+rms_F, sem_F, T_stat = [], [], 0.0
+F7 = analytic("depolarising", N_C, P_C)[0]                     # Eq. (7): independent of the trajectory code
 key_c = jax.random.PRNGKey(123)
 for M in M_LIST:
     means, sems = [], []
@@ -1071,14 +1116,23 @@ for M in M_LIST:
     means, sems = np.array(means), np.array(sems)
     rms = np.sqrt(np.mean((means - exact_C[0]) ** 2))
     rms_F.append(rms); sem_F.append(sems.mean())
+    T_stat += np.sum((means - F7) ** 2 / (F7 * (1 - F7) / M))
     print(f"{M:6d} {means.mean():22.6f} {rms:11.5f} {sems.mean():14.5f} "
-          f"{rms / sems.mean():7.2f} {exact_C[0]:9.6f}")
+          f"{rms / sems.mean():7.2f} {exact_C[0]:9.6f}   binomial prediction {np.sqrt(F7 * (1 - F7) / M):.5f}")
 
 slope = np.polyfit(np.log(M_LIST), np.log(rms_F), 1)[0]
-print(f"\nfitted slope of log(RMS error) vs log(M): {slope:+.3f}   (theory: -0.5)")
+print(f"\nfitted slope of log(RMS error) vs log(M): {slope:+.3f}   (theory: -0.5; a 1/M law would give -1)")
 print(f"mean ratio RMS / reported error bar over all M: {np.mean(np.array(rms_F) / np.array(sem_F)):.2f}  "
       f"(1.0 = perfectly calibrated)")
-assert abs(slope + 0.5) < 0.15
+assert abs(slope + 0.5) < 0.15 and abs(slope + 1.0) > 0.15
+
+# --- CHECKPOINT: calibration against the binomial variance F(1-F)/M, with Eq. (7) for F --------------------
+n_b = N_REP * len(M_LIST)
+print(f"T = sum over {n_b} batches of (mean - F)^2 / (F(1-F)/M) = {T_stat:.1f}   "
+      f"(expected {n_b} +- {np.sqrt(2 * n_b):.1f})")
+print(f"controls: error bars too small by 2 -> T = {4 * T_stat:.1f};  too large by 2 -> T = {T_stat / 4:.1f}  (must fail)")
+assert abs(T_stat - n_b) < 3 * np.sqrt(2 * n_b)
+assert abs(4 * T_stat - n_b) > 3 * np.sqrt(2 * n_b) and abs(T_stat / 4 - n_b) > 3 * np.sqrt(2 * n_b)
 
 # %%
 # ==============================================================================
@@ -1126,11 +1180,13 @@ fig.tight_layout(); plt.show()
 # Left: the measured RMS error follows the $M^{-1/2}$ reference line, and the error bars the code *reports* track the error it
 # actually *makes*. The two curves do not lie exactly on top of each other, and they should not: with a finite number of batches the
 # RMS column is itself a noisy estimate (its relative uncertainty is printed above the table), so agreement at the ten-per-cent level
-# is all one can ask for. The fitted slope is what matters, and it is close to the theoretical $-1/2$: a hundred times more
-# trajectories buy one extra digit, which is the universal Monte-Carlo bargain.
+# is all one can ask for. The sharper test is the statistic $T$, which compares every batch with the binomial variance predicted
+# from Eq. (7): it lies within its expected range, while error bars wrong by a factor of two would have been rejected. The fitted
+# slope is close to the theoretical $-1/2$: a hundred times more trajectories buy one extra digit, as for every Monte-Carlo
+# estimate.
 #
-# Right: the trap. Averaging the purity *of each trajectory* gives the constant $1$ — every trajectory is a pure state — which is
-# spectacularly wrong. Reconstructing $\bar\rho=\frac1M\sum_m\vert\psi_m\rangle\langle\psi_m\vert$ first and only then computing
+# Right: the trap. Averaging the purity *of each trajectory* gives the constant $1$, because every trajectory is a pure state,
+# whereas the true purity falls to $0.07$ at $p=0.5$. Reconstructing $\bar\rho=\frac1M\sum_m\vert\psi_m\rangle\langle\psi_m\vert$ first and only then computing
 # $\mathrm{Tr}\bar\rho^2$ reproduces the exact curve. It does so only up to two finite-$M$ effects, and it is worth separating
 # them. The plug-in estimator is *biased*, because $\mathrm{Tr}\bar\rho^2$ is quadratic in $\bar\rho$:
 #
@@ -1139,8 +1195,9 @@ fig.tight_layout(); plt.show()
 #
 # a positive bias of order $1/M$, here at most $10^{-3}$ and largest where the true purity is smallest. On top of it sits the
 # ordinary statistical scatter of order $M^{-1/2}$, which at $M=1024$ is a few times larger — which is why the deviations in the
-# panel are of both signs and do not grow with $p$. The lesson is the bias term, not its size: it does not vanish as more
-# trajectories are added at fixed cost, it only shrinks as $1/M$, whereas a *linear* observable has no bias at all.
+# panel are of both signs and do not grow with $p$. The size of the bias is small here; what matters is that it exists: an
+# estimate of a nonlinear quantity built from $M$ trajectories is biased at every finite $M$, while the trajectory average of a
+# *linear* observable is unbiased.
 # Reconstruction also costs $4^N$ memory, so this route does not scale —
 # but for the *linear* observables of Section 11 no reconstruction is needed at all.
 
@@ -1151,8 +1208,9 @@ fig.tight_layout(); plt.show()
 # ($256$ MB) and each channel application would touch all of them; a single trajectory needs $2^{12}=4096$ numbers, i.e. $64$ kB,
 # which fits in a CPU cache, and a batch of a thousand still occupies only $64$ MB. We sweep the noise strength for
 # $N=4,6,8,10,12$ and compare with the analytic formulas of Section 11. For $N=4$ and $6$ the exact density tensor has already
-# confirmed those formulas in Section 11; from $N=8$ on the trajectories are the only check we run here, and at $N=14$ the exact
-# route would no longer fit on this machine at all.
+# confirmed those formulas in Section 11; from $N=8$ on the trajectories are the only check we run here. The control at the end
+# of the cell compares the same trajectories with the other common parametrisation of the depolarising channel,
+# $\rho\to(1-p)\rho+p\,\mathbb 1/2$, whose Bloch factor is $1-p$ instead of $1-\tfrac{4p}{3}$; it must be rejected.
 
 # %%
 # ==============================================================================
@@ -1164,12 +1222,14 @@ M_LARGE = 1024
 CH_LARGE = "depolarising"
 
 big = {}
+dist01 = 0.0                                   # largest distance of a single-trajectory F from {0, 1}
 t0 = time.perf_counter()
 for N in N_LARGE:
     F_m, F_s, X_m, X_s = [], [], [], []
     for i, p in enumerate(P_LARGE):
         keys = jax.random.split(jax.random.PRNGKey(1000 * N + i), M_LARGE)
         o = np.asarray(jax.block_until_ready(traj_batch(keys, kraus_depolarizing(float(p)), N)))
+        dist01 = max(dist01, float(np.max(np.minimum(o[:, 0], 1 - o[:, 0]))))
         F_m.append(o[:, 0].mean()); F_s.append(o[:, 0].std(ddof=1) / np.sqrt(M_LARGE))
         X_m.append(o[:, 1].mean()); X_s.append(o[:, 1].std(ddof=1) / np.sqrt(M_LARGE))
     big[N] = tuple(np.array(a) for a in (F_m, F_s, X_m, X_s))
@@ -1188,8 +1248,23 @@ for N in N_LARGE:
         worst_pull = max(worst_pull, abs(pF), abs(pX))
         print(f"{N:3d} {p:5.2f} {F_m[i]:11.5f} +-{F_s[i]:6.5f} {aF:10.5f} {pF:6.2f} "
               f"{X_m[i]:13.5f} +-{X_s[i]:6.5f} {aX:9.5f} {pX:6.2f}")
-print(f"\nlargest pull over all {len(N_LARGE) * len(P_LARGE) * 2} comparisons: {worst_pull:.2f} sigma")
-assert worst_pull < 4.5
+n_cmp = len(N_LARGE) * (len(P_LARGE) - 1) * 2
+print(f"\nlargest pull over the {n_cmp} comparisons with p > 0: {worst_pull:.2f} sigma"
+      f"   (single-trajectory F within {dist01:.0e} of 0 or 1)")
+assert worst_pull < 4.5 and dist01 < 1e-9
+
+# --- WRONG CONTROL: the parametrisation rho -> (1-p) rho + p 1/2 (Bloch factor 1-p) must be rejected -------
+def eq7_with_lambda(N, lam_):
+    """(F, <X...X>) of Eq. (7) for a given Bloch factor lam_."""
+    return 0.5 * (((1 + lam_) / 2) ** N + ((1 - lam_) / 2) ** N) + lam_ ** N / 2, lam_ ** N
+
+
+worst_wrong = max(max(abs(big[N][0][i] - eq7_with_lambda(N, 1 - p)[0]) / big[N][1][i],
+                      abs(big[N][2][i] - eq7_with_lambda(N, 1 - p)[1]) / big[N][3][i])
+                  for N in N_LARGE for i, p in enumerate(P_LARGE) if p > 0)
+print(f"control: F and <X...X> against Eq. (7) with lambda = 1-p instead of 1-4p/3: "
+      f"largest pull {worst_wrong:.1f} sigma  (must fail)")
+assert worst_wrong > 4.5
 
 # %%
 # ==============================================================================
@@ -1224,17 +1299,21 @@ fig.tight_layout(); plt.show()
 
 # %% [markdown]
 # The trajectory estimates sit on the analytic curves within their error bars for every $N$ up to $12$; the largest deviation
-# over the $50$ comparisons is the $2.3\sigma$ printed above, which is what one expects from $50$ independent pulls. The right
-# panel, on a symmetric-log axis, is the fragility statement in its purest form: at fixed $p$ the curves for
-# $N=4,6,8,10,12$ are spaced by equal *factors*, because the coherence is $\lambda^N$ and each additional pair of qubits
-# multiplies the signal by the same $\lambda^2<1$. (The $N=12$, $p=0.30$ point comes out slightly *negative*: the true value
+# over the $40$ comparisons with $p>0$ is the $2.3\sigma$ printed above (at $p=0$ every trajectory is exact and the error bar is
+# zero). That is an ordinary value for the largest of $40$ standard normal deviates, although the $F$ and the parity estimate at
+# the same $(N,p)$ come from the same trajectories and are correlated. The control with the Bloch factor $1-p$ is rejected
+# by many standard deviations, so the agreement singles out the engine's convention $\lambda=1-\tfrac{4p}{3}$. The right
+# panel, on a symmetric-log axis, shows the fragility directly: at fixed $p$ the curves for $N=4,6,8,10,12$ are spaced by
+# equal *factors* (above $10^{-2}$, where the axis is logarithmic), because the coherence is $\lambda^N$ and each additional
+# pair of qubits multiplies the signal by the same $\lambda^2<1$. (The $N=12$, $p=0.30$ point comes out slightly *negative*: the true value
 # there is $0.002$ and the standard error is $0.031$, so a negative estimate is the expected behaviour of an unbiased estimator
 # at a value indistinguishable from zero. Plotting $\vert\langle X^{\otimes N}\rangle\vert$ instead would have hidden that.)
 #
-# The error bars behave in a way worth reading off. At small $p$ the fidelity estimate is almost noiseless (most trajectories suffer no error
-# at all); at larger $p$ and larger $N$ the trajectories spread out and $M=1024$ starts to be visible. Estimating an exponentially
-# small quantity to a *relative* accuracy requires exponentially many trajectories — exactly the same problem an experiment has
-# with shots.
+# The error bars follow from the binomial argument of Section 12. The fidelity error is $\sqrt{F(1-F)/M}$: largest,
+# $1/(2\sqrt M)=0.0156$, where $F\approx1/2$, and small where $F$ is close to $0$ or $1$ ($0.006$ at $N=12$, $p=0.3$). The parity
+# error is $\sqrt{(1-\lambda^{2N})/M}$, which tends to $1/\sqrt{M}=0.031$ as the signal vanishes. The *relative* error of the
+# coherence is therefore $\approx\lambda^{-N}/\sqrt M$, and estimating an exponentially small coherence to a fixed relative
+# accuracy requires exponentially many trajectories, the same problem an experiment has with shots.
 
 # %% [markdown]
 # ## 15. Fragility: the closing of the useful window
@@ -1269,9 +1348,8 @@ fig.tight_layout(); plt.show()
 # $$p_{\rm crit}^{\rm depol}\ \simeq\ \frac{3\ln\varphi}{2N}=\frac{0.72182}{N}.$$
 #
 # The same substitution in Eq. (8) gives $\big(1+e^{-c/2}\big)^2=2$, hence
-# $p_{\rm crit}^{\rm damp}\simeq2\ln(1+\sqrt2)/N=1.76275/N$. Both limits are checked numerically below.
-#
-# All of this is computed below, together with the fitted power laws.
+# $p_{\rm crit}^{\rm damp}\simeq2\ln(1+\sqrt2)/N=1.76275/N$. Both limits are checked numerically below, together with power laws
+# fitted at finite $N$ ($N=2,\dots,20$ for $p_{1/2}$, $N=6,\dots,20$ for the depolarising threshold).
 
 # %%
 # ==============================================================================
@@ -1299,8 +1377,8 @@ print(f"{'N':>3s} {'p_1/2 (dephasing)':>19s} {'ln2/(2N)':>10s} {'p_crit (depol.)
 for i, N in enumerate(N_FRAG):
     if N in (2, 3, 4, 6, 8, 10, 14, 20):
         print(f"{N:3d} {p_half[i]:19.5f} {np.log(2) / (2 * N):10.5f} {p_wit[i]:16.5f} {p_wit_ad[i]:19.5f}")
-print(f"\nfitted power law:  p_1/2 ~ N^({sl_half:+.3f})      p_crit(depolarising) ~ N^({sl_wit:+.3f})"
-      f"   (asymptotically both are 1/N)")
+print(f"\nfitted power law:  p_1/2 ~ N^({sl_half:+.3f}) over N = 2..20      "
+      f"p_crit(depolarising) ~ N^({sl_wit:+.3f}) over N = 6..20   (asymptotically both are 1/N)")
 assert abs(sl_half + 1.0) < 0.12 and abs(sl_wit + 1.0) < 0.2
 
 # --- a checkpoint on the bisection: the witness threshold really is where F = 1/2 -------------------
@@ -1361,18 +1439,20 @@ fig.tight_layout(); plt.show()
 # modest dephasing $p=0.02$ a $24$-qubit GHZ state retains only about $38\%$ of its coherence, and at $p=0.1$ only about $0.5\%$.
 # Depolarising noise of the same nominal strength is *milder* on the coherence — its per-qubit factor is $1-\tfrac{4p}{3}$ against
 # dephasing's $1-2p$ — but it attacks the populations and the two-qubit correlators as well, which dephasing leaves untouched.
-# **This exponential-in-$N$ decay, and not the number of gates, is why large GHZ states are hard.**
+# **The gate count grows only linearly in $N$; the coherence decays exponentially in $N$, and that decay is what makes large GHZ
+# states hard.**
 
 # %% [markdown]
 # ## 16. The other kind of multipartite entanglement: the W state
 #
-# GHZ is not the only way $N$ qubits can be entangled. The **W state**
+# The GHZ state is one of several ways for $N$ qubits to be entangled. The **W state**
 #
 # $$\vert W_N\rangle=\frac{1}{\sqrt N}\Big(\vert10\cdots0\rangle+\vert010\cdots0\rangle+\cdots+\vert0\cdots01\rangle\Big)$$
 #
 # (a single excitation delocalised over all sites — the Dicke state with $k=1$) is genuinely $N$-partite entangled too, but Dür,
-# Vidal and Cirac proved in 2000 that for $N=3$ it cannot be converted into a GHZ state by *any* local operations and classical
-# communication, even with vanishing probability: they are **inequivalent classes** of tripartite entanglement.
+# Vidal and Cirac proved in 2000 that for $N=3$ it cannot be converted into a GHZ state by local operations and classical
+# communication, not even with a small non-zero probability of success (and the GHZ state cannot be converted into it either):
+# they are **inequivalent classes** of tripartite entanglement.
 #
 # The physical difference shows up immediately under particle loss. Trace out one qubit of $\vert W_N\rangle$: with probability
 # $1/N$ the excitation was on the lost qubit and the rest is $\vert\bar0\rangle$; otherwise it is still delocalised over the
@@ -1384,11 +1464,24 @@ fig.tight_layout(); plt.show()
 #
 # $$\rho_{ij}=\frac2N\vert\Psi^+\rangle\langle\Psi^+\vert+\Big(1-\frac2N\Big)\vert00\rangle\langle00\vert,$$
 #
-# has concurrence exactly $2/N$ — small, but non-zero, where GHZ has exactly $0$. **W distributes a little entanglement over all
+# has concurrence exactly $2/N$, small but non-zero where GHZ has exactly $0$. **W distributes a little entanglement over all
 # pairs; GHZ concentrates all of it in the global structure and keeps none pairwise.** Robustness against loss and strength of the
 # correlations are traded against each other.
 #
-# Let us measure all of this, and then compare the two states under noise.
+# The entanglement that survives the loss can be computed in closed form for the cut $1\vert(N-2)$ of the survivors (qubit $1$
+# against the other $N-2$). Write $\vert W_{N-1}\rangle=a\vert1\rangle\vert\bar0\rangle+b\vert0\rangle\vert W_{N-2}\rangle$ with
+# $a=1/\sqrt{N-1}$, $b=\sqrt{(N-2)/(N-1)}$, and $q=1/N$ for the weight of $\vert\bar0\rangle$ in Eq. (10). The partial transpose on
+# the single qubit moves the cross term $ab(1-q)\vert1,\bar0\rangle\langle0,W_{N-2}\vert$ into the block spanned by
+# $\vert0,\bar0\rangle$ and $\vert1,W_{N-2}\rangle$, where it meets the diagonal entries $q$ and $0$. That $2\times2$ block,
+# $\begin{pmatrix}q&\kappa\\ \kappa&0\end{pmatrix}$ with $\kappa=(1-q)ab=\sqrt{N-2}/N$, has the negative eigenvalue
+# $\tfrac12\big(q-\sqrt{q^2+4\kappa^2}\big)$, and the rest of the partial transpose is non-negative, so
+#
+# $$\mathcal N_{1\vert(N-2)}=\frac{\sqrt{4N-7}-1}{2N}. \tag{11}$$
+#
+# It equals $0.206$ at $N=3$ and $0.25$ at $N=4$, peaks at $0.261$ near $N=5,6$, and then decays as $1/\sqrt N$: the survivors stay
+# entangled for every $N$, but the amount across this cut shrinks slowly.
+#
+# We now compute these quantities numerically and then compare the two states under noise.
 
 # %%
 # ==============================================================================
@@ -1411,12 +1504,12 @@ for N in (3, 4, 5, 6):
     assert Cg < 1e-9 and ng < 1e-9 and abs(Cw - 2 / N) < 1e-9 and nw > 0.1
 
 # %% [markdown]
-# The table contrasts the two states sharply. GHZ: zero pairwise concurrence, and after losing one qubit the largest negativity
+# The table separates the two states cleanly. GHZ: zero pairwise concurrence, and after losing one qubit the largest negativity
 # over *all* cuts of the survivors is zero — the resource is gone. W: pairwise concurrence exactly $2/N$ as predicted, and after
 # losing one qubit the survivors are still clearly entangled. The column "neg after loss" is the *largest* negativity over all
 # cuts of the $N-1$ survivors, and for the W state it grows with $N$ ($0.206$, $0.250$, $0.312$, $0.333$ for $N=3,\dots,6$),
 # because the best cut is the most balanced one and there are more of them to choose from. The figure below instead follows one
-# fixed cut, $1\vert(N-2)$, which is the fairer comparison across sizes.
+# fixed cut, $1\vert(N-2)$, and compares it with Eq. (11).
 #
 # Now the same comparison under noise. We use the fidelity with the respective target state and, for $N=4$ where the density tensor
 # is cheap, the negativity of the $2\vert2$ cut — a *nonlinear* quantity, so this must be done on the density tensor.
@@ -1475,6 +1568,29 @@ print(f"depolarising, p > 0:  min (F_W - F_GHZ) = {dF.min():+.6f} > 0      "
 assert dF.min() > 0 and dN.min() > -1e-12
 # (iii) and GHZ keeps a non-zero negativity one grid point further than W.
 assert p_ent[("GHZ", "depolarising")] > p_ent[("W", "depolarising")]
+# (iv) under dephasing the FIDELITIES cross: F_W = 1/N + (1-1/N)(1-2p)^2 (populations untouched, every W coherence
+#      spans two qubits) against F_GHZ = 1/2 + (1-2p)^N/2; for N = 4 they meet where (1-2p)^2 = 1/2.
+e_fw = max(abs(cmp_data[("W", "dephasing")][0][i] - (1 / N_CMP + (1 - 1 / N_CMP) * (1 - 2 * p) ** 2))
+           for i, p in enumerate(P_CMP))
+p_cross = (1 - 2 ** -0.5) / 2
+above = cmp_data[("W", "dephasing")][0] > cmp_data[("GHZ", "dephasing")][0]
+print(f"dephasing fidelity of W against 1/N + (1-1/N)(1-2p)^2: max error {e_fw:.2e};  F_W > F_GHZ exactly for "
+      f"0 < p < (1 - 2^(-1/2))/2 = {p_cross:.4f}")
+assert e_fw < 1e-9 and np.all(above[1:] == (P_CMP[1:] < p_cross))
+
+# (v) WHY W keeps the higher fidelity under depolarising noise: F = sum_w lambda^w D(w), where
+#     D(w) = 2^{-N} sum over Pauli strings of weight w of <P>^2 is the Pauli weight distribution of the target.
+D_w = {}
+for sname, st in (("GHZ", ghz_state(N_CMP)), ("W", w_state(N_CMP))):
+    d = np.zeros(N_CMP + 1)
+    for s in itertools.product("IXYZ", repeat=N_CMP):
+        d[sum(c != "I" for c in s)] += float(expect_pauli_string(st, "".join(s))) ** 2 / 2 ** N_CMP
+    D_w[sname] = d
+    e_D = max(abs(sum(d[k] * (1 - 4 * p / 3) ** k for k in range(N_CMP + 1)) - cmp_data[(sname, "depolarising")][0][i])
+              for i, p in enumerate(P_CMP))
+    print(f"Pauli weight distribution D(w), w = 0..{N_CMP}, of {sname:>3s}: {np.round(d, 4)}   "
+          f"mean weight {np.dot(np.arange(N_CMP + 1), d):.3f};  |sum lambda^w D(w) - F| <= {e_D:.1e}")
+    assert e_D < 1e-9
 
 # %%
 # ==============================================================================
@@ -1497,7 +1613,7 @@ for k, (sname, ls) in enumerate((("GHZ", "-"), ("W", "--"))):
 axes[1].set_xlabel("noise strength $p$"); axes[1].set_ylabel(r"negativity of the $2\vert2$ cut")
 axes[1].set_title("Mixed-state entanglement"); axes[1].legend(fontsize=8)
 
-Ns_loss = np.arange(3, 9)
+Ns_loss = np.arange(3, 11)
 gh, ww, cw = [], [], []
 for N in Ns_loss:
     g_rest = dm_tensor(rdm(ghz_state(N), list(range(1, N))), N - 1)
@@ -1505,30 +1621,43 @@ for N in Ns_loss:
     gh.append(neg_cut(g_rest, [0]))
     ww.append(neg_cut(w_rest, [0]))
     cw.append(concurrence(rdm(w_state(N), [0, 1])))
+eq11 = (np.sqrt(4 * Ns_loss - 7) - 1) / (2 * Ns_loss)
+Nfine = np.linspace(3, 10, 200)
 axes[2].plot(Ns_loss, gh, MARKERS[0] + "-", color=PALETTE[0], ms=6, label="GHZ, one qubit lost")
-axes[2].plot(Ns_loss, ww, MARKERS[1] + "-", color=PALETTE[1], ms=6, label="W, one qubit lost")
+axes[2].plot(Ns_loss, ww, MARKERS[1], color=PALETTE[1], ms=6, label="W, one qubit lost")
+axes[2].plot(Nfine, (np.sqrt(4 * Nfine - 7) - 1) / (2 * Nfine), "-", color=PALETTE[1], lw=1.3, label="Eq. (11)")
 axes[2].plot(Ns_loss, cw, MARKERS[2] + "--", color=PALETTE[2], ms=6, label=r"W: pair concurrence $2/N$")
-axes[2].set_xlabel("number of qubits $N$"); axes[2].set_ylabel("entanglement of the survivors")
+axes[2].set_xlabel("number of qubits $N$")
+axes[2].set_ylabel(r"negativity of the $1\vert(N-2)$ cut / concurrence")
 axes[2].set_title("Robustness against particle loss"); axes[2].legend(fontsize=8)
 fig.tight_layout(); plt.show()
 
+print("W survivors, 1|(N-2) negativity:  " + "  ".join(f"N={N}: {v:.4f}" for N, v in zip(Ns_loss, ww)))
+print(f"max |numerical - Eq. (11)| over N = 3..10: {np.max(np.abs(np.array(ww) - eq11)):.2e}")
+assert np.max(np.abs(np.array(ww) - eq11)) < 1e-9 and max(gh) < 1e-9
+
 # %% [markdown]
-# The comparison is more subtle than "one state is better".
+# Neither state is better in every respect.
 #
-# Under **depolarising** noise the two curves nearly coincide at $N=4$: the W state keeps a slightly *higher fidelity* with its own
-# target (it is less concentrated, so isotropic noise costs it less), but the GHZ state keeps a slightly *higher negativity* across
-# the $2\vert2$ cut and survives to a slightly larger $p$ before the negativity vanishes — the printed thresholds differ by one grid
-# point. Fidelity and entanglement are different questions and they can rank two states in opposite orders.
+# Under **depolarising** noise the two curves nearly coincide at $N=4$. The W state keeps a slightly *higher fidelity* with its own
+# target. The reason is visible in the printed Pauli weight distributions: the fidelity under a local depolarising channel is
+# $F=\sum_w\lambda^wD(w)$, and $56\%$ of the GHZ weight sits on strings of the maximal weight $4$, which are damped by $\lambda^4$,
+# against $25\%$ for W (mean weights $3.00$ and $2.75$). The GHZ state, on the other hand, keeps a slightly *higher negativity*
+# across the $2\vert2$ cut and stays entangled to a slightly larger $p$; the printed thresholds differ by one grid point. Fidelity
+# and entanglement measure different things, and they can rank two states in opposite orders.
 #
-# Under **dephasing** the difference is unambiguous and large: W wins everywhere. Dephasing attacks exactly the one coherence the
-# GHZ state consists of, and that coherence connects two basis states differing on all $N$ qubits, so it decays as $(1-2p)^N$. The
-# W state's coherences connect basis states differing on only **two** qubits, so they decay as $(1-2p)^2$ regardless of $N$. That
-# single exponent is the whole story.
+# Under **dephasing** the negativity ranking is unambiguous: W keeps more entanglement at every $p$. Dephasing attacks exactly the
+# one coherence the GHZ state consists of, and that coherence connects two basis states differing on all $N$ qubits, so it decays
+# as $(1-2p)^N$. The W state's coherences connect basis states differing on only **two** qubits, so they decay as $(1-2p)^2$
+# regardless of $N$; the checkpoint confirms both laws for the $2\vert2$ negativity. The fidelities behave differently: they cross at
+# $p=(1-2^{-1/2})/2=0.146$, beyond which the GHZ fidelity is the larger one, because dephasing leaves the GHZ populations untouched
+# and $F_{\rm GHZ}$ cannot fall below $1/2$, while $F_W$ falls to $1/N$. A large fidelity is therefore no measure of how much
+# entanglement is left.
 #
-# Right panel: the loss picture, all three curves for the same fixed cut $1\vert(N-2)$ of the survivors. GHZ's negativity after
-# losing one qubit is identically zero for every $N$, as Section 7 proved. The W state's survivors keep a negativity that *does
-# not shrink* with $N$ — it sits between $0.21$ and $0.26$ for every size we measured — even
-# though the pairwise concurrence $2/N$ falls off. Entanglement survives the loss; it simply spreads out.
+# Right panel: the loss picture for the fixed cut $1\vert(N-2)$ of the survivors. GHZ's negativity after losing one qubit is
+# identically zero for every $N$, as Section 7 proved. The W state's survivors stay entangled, with the negativity of Eq. (11):
+# it rises from $0.206$ to $0.261$ at $N=5,6$ and then decreases slowly, as $1/\sqrt N$ for large $N$, while the pairwise
+# concurrence $2/N$ falls faster.
 #
 # > **Physics insight.** There is no "best" multipartite entangled state. GHZ maximises the *global* correlation and the metrological
 # > phase gain, at the cost of being annihilated by a single loss. W spreads a weaker correlation over all pairs and survives loss.
@@ -1547,13 +1676,13 @@ fig.tight_layout(); plt.show()
 # | nonlinear quantities | direct | need $\bar\rho$, i.e. $O(4^N)$ again |
 #
 # In memory, trajectories win as soon as $M\ll2^N$ — and they win *absolutely* once $4^N$ no longer fits at all. In *time* the
-# verdict is less obvious, so let us simply measure both on this machine.
+# verdict is less obvious, so we measure both on this machine.
 
 # %%
 # ==============================================================================
 # BENCHMARK: density tensor vs trajectories, per noise-strength evaluation
 # ==============================================================================
-def timed(fn, *args, repeats=2):
+def timed(fn, *args, repeats=5):
     """(first call incl. compilation, best of `repeats` further calls) in seconds."""
     t0 = time.perf_counter(); jax.block_until_ready(fn(*args)); first = time.perf_counter() - t0
     best = np.inf
@@ -1586,28 +1715,33 @@ print(f"\nmeasured growth per added qubit:  density tensor x{g_dm:.1f}   "
 print(f"extrapolating the density tensor from N=10: at N=14 it would need {16 * 4 ** 14 / 1024 ** 3:.1f} GB and "
       f"roughly {bench_rows[3][2] * g_dm ** 8 / 3600:.1f} h per evaluation with the measured factor "
       f"({bench_rows[3][2] * 4 ** 8 / 3600:.1f} h with the asymptotic factor 4).")
+print(f"extrapolating the trajectories from N=12: a batch of {M_BENCH} at N=14 would take roughly "
+      f"{bench_rows[4][4] * g_tr ** 2:.1f} s and {16 * M_BENCH * 2 ** 14 / 1024 ** 2:.0f} MB.")
 print(f"the two routes cross at N ~ {np.log(bench_rows[3][4] / bench_rows[3][2]) / np.log(g_dm / g_tr) + 10:.1f} "
       f"for M = {M_BENCH} trajectories, on the basis of the two measured growth factors.")
 
 # %% [markdown]
-# Read the table carefully, because the naive expectation is wrong: on this machine the exact density tensor is **faster** than
-# $512$ trajectories at every size we could measure — the ratio column stays below $1$ throughout. That is not a paradox. The
-# trajectory method is primarily a **memory** optimisation: one exact evaluation replaces $M$ stochastic ones, so as long as $4^N$
-# fits, the exact route wins on time *and* returns an answer with no error bar at all.
+# The table contradicts the naive expectation: on this machine the exact density tensor is **faster** than $512$ trajectories at
+# every size we measured, and the ratio column stays below $1$ throughout. The reason is that the trajectory method is primarily a
+# **memory** optimisation: one exact evaluation replaces $M$ stochastic ones, so as long as $4^N$ fits, the exact route wins on
+# time *and* returns an answer with no error bar at all.
 #
 # What changes the verdict is the growth rate. The density tensor costs $O(4^N)$ in time *and* memory, and the measured factor per
-# added qubit is close to (in fact slightly above, because of cache effects) the asymptotic $4$. The trajectory batch costs
+# added qubit is at least the asymptotic $4$ (above it in our builds, from cache effects and machine load). The trajectory batch costs
 # $O(M\,2^N)$ and grows by about $2$ per qubit at fixed $M$. From $N=8$ on the ratio column climbs steeply, and the crossover
-# extrapolated from the two measured growth factors is printed above, a little past $N=11$. By $N=14$ the exact route needs
-# gigabytes of memory and the hours printed in the cell, while the same extrapolation leaves a batch of $512$ trajectories at
-# tens of seconds. (Those absolute timings depend on what else the machine is doing — several builds may run concurrently here —
-# so read the *ratios* and the *growth factors*, not the seconds.) At $N=16$ the density tensor would need $64$ GB and is simply
-# out of the question, while a thousand trajectories still fit in a few hundred megabytes.
+# extrapolated from the two measured growth factors is printed above, between $N=10$ and $N=12$ in our builds. At $N=14$ the
+# exact route needs $4$ GB per copy of the density tensor and, extrapolated with the asymptotic factor $4$, between half an hour
+# and an hour per evaluation in our builds, while a batch of $512$ trajectories extrapolates to a few seconds and $128$ MB. The absolute timings depend on what
+# else the machine is doing (several builds may run concurrently here, and a single slow $N=10$ timing inflates the measured
+# growth factor and with it the first extrapolation), so the *ratios* and the asymptotic growth are the reproducible part of
+# the table. At $N=16$ the density tensor would need $64$ GB per copy, while $512$ trajectories need $512$ MB, or $1$ MB each if
+# they are run one at a time.
 #
 # > **Numerical practice.** The crossover also depends on the accuracy you need. A statistical error $\varepsilon$ costs
 # > $M\sim\sigma^2/\varepsilon^2$ trajectories, so demanding one more digit costs a factor of $100$ in time. If you need $10^{-8}$
 # > on a small system, use the density tensor; if you need $10^{-2}$ on a system that does not fit, use trajectories. And if you
-# > need a *nonlinear* quantity on a large system, neither works — that is an open problem, not a missing feature.
+# > need a *nonlinear* quantity on a large system, neither method provides it; estimating nonlinear functionals of large mixed
+# > states is a research problem of its own.
 
 # %% [markdown]
 # ## 18. Key takeaways
@@ -1615,13 +1749,14 @@ print(f"the two routes cross at N ~ {np.log(bench_rows[3][4] / bench_rows[3][2])
 # * **The GHZ state is two amplitudes and one coherence.** Every bipartition carries exactly one bit of entanglement entropy; the
 #   whole resource is the single matrix element $\rho_{\bar0\bar1}$, which is why everything about it is fragile.
 # * **Preparation.** $1$ Hadamard and $N-1$ $\mathrm{CNOT}$s, either as a depth-$(N-1)$ cascade or as a depth-$\lceil\log_2N\rceil$
-#   tree; the gate count cannot be improved, the depth can, at the price of long-range connectivity. Both circuits reproduced the
+#   tree; no circuit of two-qubit gates uses fewer than $N-1$, while the depth can be reduced at the price of long-range
+#   connectivity. Both circuits reproduced the
 #   reference tensor exactly, to the last bit of double precision.
 # * **Certification is cheap.** $N$ stabiliser generators ($Z_qZ_{q+1}$ and $X^{\otimes N}$) determine the state uniquely; two
 #   measurement settings (populations and a parity fringe) give the fidelity through Eq. (4); and $F>1/2$ *proves* genuine
 #   $N$-partite entanglement by the Cauchy–Schwarz argument of Eq. (5). The same stabilisers produce the Greenberger–Horne–Zeilinger
 #   all-or-nothing contradiction with local realism — verified here as four exact signs.
-# * **Perfect correlation is not entanglement.** Every pair has $\langle Z_iZ_j\rangle=1$, yet for $N\ge3$ every two-qubit reduced
+# * **Perfect correlation without pairwise entanglement.** Every pair has $\langle Z_iZ_j\rangle=1$, yet for $N\ge3$ every two-qubit reduced
 #   state is the *separable* classical mixture of Eq. (1), with zero negativity and zero concurrence, and losing one qubit leaves a
 #   state with zero entanglement across **every** cut.
 # * **Parity oscillations measure the $N$-body coherence.** A collective $R_z(\varphi)$ makes $\langle X^{\otimes N}\rangle$
@@ -1629,25 +1764,29 @@ print(f"the two routes cross at N ~ {np.log(bench_rows[3][4] / bench_rows[3][2])
 #   $2\vert\rho_{\bar0\bar1}\vert$. A classical mixture gives a flat line.
 # * **Decoherence has closed forms.** Dephasing: coherence $(1-2p)^N$, $F=\tfrac12+\tfrac12(1-2p)^N$, $\langle Z_iZ_j\rangle=1$
 #   untouched. Depolarising: everything multiplied by $\lambda^{w}$ with $\lambda=1-\tfrac{4p}{3}$, giving Eq. (7) for the fidelity.
-#   Amplitude damping: Eqs. (8)–(9). All checked against exact Kraus evolution to $10^{-9}$ for $N\le6$ and against trajectories up
-#   to $N=12$.
+#   Amplitude damping: Eqs. (8)–(9), with a fidelity that returns to $1/2$ at complete damping. All checked against exact Kraus
+#   evolution to $10^{-9}$ for $N\le6$, and the depolarising case against trajectories up to $N=12$, where a control with the
+#   Bloch factor $1-p$ is rejected.
 # * **Fragility scales like $1/N$.** The dephasing half-point is $p_{1/2}=(1-2^{-1/N})/2\simeq\ln2/(2N)$; the depolarising and
-#   amplitude-damping witness thresholds tend to $3\ln\varphi/(2N)=0.7218/N$ and $2\ln(1+\sqrt2)/N=1.7627/N$. A power law fitted
-#   over $N=2,\dots,20$ gives exponents $-0.944$ and $-0.966$ rather than $-1$; the $O(1/N)$ correction to the expansion
-#   accounts for the difference, and widening the window to $N=10^2,\dots,10^4$ returns $-1.000$. At fixed per-qubit noise the
-#   coherence decays *exponentially* in $N$ — this, not the gate count, is the real obstacle to large cat states. The $1/N$ law
+#   amplitude-damping witness thresholds tend to $3\ln\varphi/(2N)=0.7218/N$ and $2\ln(1+\sqrt2)/N=1.7627/N$. Power laws
+#   fitted at finite $N$ come out shallower than $-1$: $-0.944$ for $p_{1/2}$ over $N=2,\dots,20$, which the $O(1/N)$ correction
+#   to the expansion explains ($-1.000$ over $N=10^2,\dots,10^4$), and $-0.966$ for the depolarising threshold over
+#   $N=6,\dots,20$. At fixed per-qubit noise the coherence decays *exponentially* in $N$, while the gate count grows only
+#   linearly; the decay is the real obstacle to large cat states. The $1/N$ law
 #   assumes independent environments; a common-mode field gives the $N^2$ superdecoherence measured in ion traps.
 # * **Trajectories versus density tensors.** MCWF trades $4^N$ memory for $M\cdot2^N$ and a $1/\sqrt M$ statistical error; our
 #   measured RMS error followed a fitted power law close to $M^{-1/2}$ and the reported error bars were calibrated to about ten per
-#   cent. It is a *memory* optimisation: the measured timings show the exact density tensor is the faster route wherever it fits at
-#   all, and the reason to abandon it is the $\times4$ per qubit growth, not the speed at any single $N$. Only **linear** functionals may be averaged
-#   over trajectories: averaging the purity of each (pure!) trajectory gives the constant $1$, a mistake the figure in Section 13
-#   makes on purpose.
-# * **GHZ is not the only option.** The W state has pairwise concurrence $2/N$ where GHZ has $0$, and survives the loss of a qubit
-#   (negativity of the survivors across the $1\vert(N-2)$ cut between $0.21$ and $0.26$ for $N=3,\dots,8$) where GHZ does not. Under dephasing it is far more robust,
-#   because its coherences involve two qubits and therefore decay as $(1-2p)^2$ instead of $(1-2p)^N$; under depolarising noise the
-#   two are nearly equivalent at $N=4$, and which one looks "better" even depends on whether you ask about fidelity or about
-#   negativity. The two are inequivalent resources, and the right choice depends on the dominant error in the hardware.
+#   cent; for Pauli channels every trajectory has $F_m\in\{0,1\}$, so the error bars are binomial and were checked against
+#   $\sqrt{F(1-F)/M}$. It is a *memory* optimisation: the measured timings show the exact density tensor is the faster route up to
+#   $N=10$, and the reason to abandon it is its $\times4$ growth per qubit. Only **linear** functionals may be averaged over
+#   trajectories: averaging the purity of each trajectory, which is pure, gives the constant $1$, a mistake the figure in
+#   Section 13 makes on purpose.
+# * **The W state as the alternative.** The W state has pairwise concurrence $2/N$ where GHZ has $0$, and its survivors stay
+#   entangled after the loss of a qubit, with negativity $(\sqrt{4N-7}-1)/(2N)$ across the $1\vert(N-2)$ cut (Eq. (11): $0.21$ to
+#   $0.26$ for $N=3,\dots,8$, decaying as $1/\sqrt N$ beyond), where GHZ keeps none. Under dephasing its entanglement is far more
+#   robust, because its coherences involve two qubits and decay as $(1-2p)^2$ instead of $(1-2p)^N$, although its fidelity drops
+#   below that of GHZ for $p>0.146$; under depolarising noise the two are nearly equivalent at $N=4$, and the ranking depends on
+#   whether one asks about fidelity or about negativity. The two are inequivalent resources, and the right choice depends on the dominant error in the hardware.
 #
 # ## 19. Exercises
 #
@@ -1666,20 +1805,23 @@ print(f"the two routes cross at N ~ {np.log(bench_rows[3][4] / bench_rows[3][2])
 #    interferometer when one qubit is miscalibrated.
 # 4. ★★ **Noise during preparation (physics).** Apply depolarising noise of strength $p$ to **every** qubit after every
 #    $\mathrm{CNOT}$ layer (the idling qubits decohere too — that is the point), for the cascade and for the tree. The cascade
-#    then has $N-1$ noise layers, the tree $\lceil\log_2N\rceil$. Compute the final fidelity for $N=6$ as a function of $p$ and
-#    show quantitatively how much the log-depth circuit gains. At which $p$ does $1-F$ differ by more than a factor of two?
+#    then has $N-1$ noise layers, the tree $\lceil\log_2N\rceil$. Compute the final fidelity for $N=6$ and $N=8$ as a function of
+#    $p$ and show quantitatively how much the log-depth circuit gains. Compare the ratio of the two infidelities at small $p$ with
+#    the ratio of the layer counts, explain why the ratio falls as $p$ grows, and find, for $N=8$, the range of $p$ in which the
+#    tree's infidelity is less than half that of the cascade. Is there such a range for $N=6$?
 # 5. ★★ **Error bars on the witness.** For $N=8$ and depolarising $p=0.05$, estimate $F$ from $M$ trajectories and determine the
 #    smallest $M$ for which the statement "$F>1/2$" holds at the $3\sigma$ level. Repeat for $N=12$ and comment on the scaling.
 #    Then try $p=0.1$ and explain what you find: Eq. (7) gives $F=0.447$ at $N=8$, below the threshold, so *no* number of
 #    trajectories can make the witness fire — the state really is past the point where this certificate works.
 # 6. ★★ **Dicke states (extend the code).** Repeat Section 16 for the Dicke state $\vert D_N^{N/2}\rangle$ (half the qubits
 #    excited), using the engine's `dicke_state`. Compute its pairwise concurrence, its behaviour under the loss of one qubit and
-#    its fidelity under dephasing, and place it between GHZ and W on the robustness scale.
+#    its fidelity under dephasing, and compare each of the three with the GHZ and the W state of the same $N$.
 # 7. ★★★ **Coherence half-life in time (physics).** Model dephasing as a continuous process, $p(t)=\tfrac12(1-e^{-t/T_2})$, and show
 #    that the GHZ coherence decays as $e^{-Nt/T_2}$: the $N$-qubit coherence time is $T_2/N$. Simulate it with trajectories for
 #    $N=2,\dots,12$, extract $T_2^{(N)}$ from an exponential fit, and reproduce the $1/N$ law. Then repeat with a *common* random
-#    phase drawn once per shot and applied to all $N$ qubits, and show that the decay rate now grows as $N^2$ — the
-#    superdecoherence that Monz and co-workers measured on up to eight ions.
+#    phase $\phi$, drawn once per shot from a Gaussian of variance $2t/T_2$ (chosen so that a single qubit again loses its
+#    coherence as $e^{-t/T_2}$) and applied as $R_z(\phi)$ to all $N$ qubits, and show that the decay rate now grows as $N^2$:
+#    the superdecoherence that Monz and co-workers measured on up to eight ions.
 # 8. ★★★ **Decoherence-free encoding (extend the code).** Under *collective* dephasing — the same $Z$ rotation applied to all
 #    qubits — the state $(\vert01\rangle-\vert10\rangle)/\sqrt2$ is untouched. Build the four-qubit state
 #    $\vert\Psi^-\rangle\otimes\vert\Psi^-\rangle$ and an encoded GHZ-like superposition inside the decoherence-free subspace,

@@ -15,8 +15,8 @@
 # qubits $1$ and $2$ — and afterwards $0$ and $3$ are in a maximally entangled state. Nothing travelled between the two outer qubits
 # except a two-bit classical message saying which of four outcomes occurred. Entanglement was *swapped* from the pairs
 # $(0,1)$ and $(2,3)$ onto the pair $(0,3)$. The idea is due to Żukowski, Zeilinger, Horne and Ekert (1993), was demonstrated with
-# photons by Pan and co-workers (1998), and is the elementary step of a **quantum repeater**: the only known way to distribute
-# entanglement over distances much larger than the attenuation length of an optical fibre.
+# photons by Pan and co-workers (1998), and is the elementary step of a **quantum repeater**, the standard proposal for distributing
+# entanglement through optical fibre over distances much larger than its attenuation length.
 #
 # **Superdense coding.** Alice and Bob share one entangled pair, prepared long ago. Alice now wants to send Bob two classical bits.
 # She applies one of four single-qubit gates to *her half of the pair*, physically sends that one qubit to Bob, and Bob — measuring
@@ -50,7 +50,8 @@
 # ### What you will learn
 #
 # *Physics*
-# * what a Bell measurement is, why it has four outcomes, and why each of them occurs with probability $1/4$ no matter what;
+# * what a Bell measurement is, why it has four outcomes, and why each of them occurs with probability $1/4$ whenever the two
+#   relay qubits are each maximally mixed (and with other probabilities when they are not);
 # * that entanglement can be created between particles that never interacted, and that this does **not** transmit information —
 #   the outer pair is maximally mixed until the classical message arrives;
 # * the resource arithmetic of quantum communication: $1$ ebit $+$ $2$ classical bits $\to$ $1$ qubit (teleportation),
@@ -138,8 +139,9 @@ def concurrence(rho_mat):
            Pure product state: C = 0.  Bell state: C = 1.  (An entanglement measure for two qubits:
            the entanglement of formation is a monotone function of C.)
     IMPLEMENTATION  rho rho~ is not Hermitian, so instead of a general eigenvalue problem we use the
-           equivalent Hermitian form sqrt(rho) rho~ sqrt(rho), whose eigenvalues are the SAME
-           (similar matrices) and real non-negative -- `eigvalsh` is stable and differentiable.
+           Hermitian form sqrt(rho) rho~ sqrt(rho).  With A = sqrt(rho) and B = sqrt(rho) rho~ we have
+           rho rho~ = AB and sqrt(rho) rho~ sqrt(rho) = BA, and AB, BA have the SAME eigenvalues (also
+           for singular rho); they are real and non-negative, so `eigvalsh` applies.
     """
     YY_ = jnp.kron(Y, Y)
     rho_mat = jnp.asarray(rho_mat, dtype=CDTYPE)
@@ -313,7 +315,7 @@ assert min(max_abs(lhs_g - apply_gate(phi_plus, m, [0]))
 # The second block confirms Eq. (4) and shows why the choice of test matrix matters. For $X$ the transpose, the conjugate and the
 # adjoint all give $0$ — that row proves nothing. For $Y$ the conjugate happens to coincide with the transpose, so it also passes.
 # Only the generic $M$ separates the four candidates: $M^{\mathsf T}$ reproduces the left-hand side exactly while $M$, $M^{*}$ and
-# $M^{\dagger}$ all land about $1.5$ away. A checkpoint is only as good as the data you feed it.
+# $M^{\dagger}$ all land $1.5$ to $1.6$ away. With Pauli matrices alone the checkpoint could not have failed.
 
 # %% [markdown]
 # ## 4. Entanglement swapping: the complete algebra
@@ -388,7 +390,8 @@ assert min(max_abs(lhs_g - apply_gate(phi_plus, m, [0]))
 # Equation (5) *is* entanglement swapping. Read it as a physicist reads a Schmidt decomposition:
 #
 # * the four terms are orthogonal, each with amplitude $1/2$, so a Bell measurement on the middle pair yields each of the four
-#   outcomes with probability $\vert 1/2\vert^2=1/4$ — **always, independently of anything**;
+#   outcomes with probability $\vert 1/2\vert^2=1/4$. This holds for the state $\vert\chi\rangle$ and, more generally, whenever
+#   each relay qubit on its own is maximally mixed; links that are less than maximally entangled change it (Section 9);
 # * conditioned on outcome $k$, the outer pair collapses into the **same** Bell state $\vert B_k\rangle_{03}$ — a maximally
 #   entangled state of two qubits that were never in contact;
 # * Bob restores the standard form by applying $U_{o_1o_2}=X^{o_2}Z^{o_1}$ to his qubit, where $(o_1,o_2)$ are exactly
@@ -416,7 +419,7 @@ assert min(max_abs(lhs_g - apply_gate(phi_plus, m, [0]))
 #
 # > **Physics insight.** Nothing in this list transports a quantum state from $0$ to $3$. The measurement in step 3 is performed on
 # > *other* qubits entirely, and the message in step 3 is classical. What the protocol does is **consume** two units of entanglement
-# > (one per pair) and **produce** one unit across a longer distance. Entanglement is not conserved — it is spent.
+# > (one per pair) and **produce** one unit across a longer distance. Entanglement is spent in the process.
 
 # %% [markdown]
 # ## 5. From formula to code
@@ -432,7 +435,8 @@ assert min(max_abs(lhs_g - apply_gate(phi_plus, m, [0]))
 # renormalised $P_o\psi/\sqrt{p}$. Finally `rdm(psi, [0, 3])` returns the reduced density matrix of the outer pair as a $4\times4$
 # matrix — the contraction `"abcd,AbcD->adAD"` followed by a reshape to $(4,4)$: the middle letters $b,c$ are repeated in both
 # operands and absent from the output, so they are summed, i.e. traced out; the kept ket indices $a,d$ come first and the kept bra
-# indices $A,D$ second, which is what makes the reshaped object a matrix $\rho[(a d),(A D)]$ rather than its index-scrambled cousin.
+# indices $A,D$ second, which is what makes the reshaped object the matrix $\rho[(a d),(A D)]$ (the order `aAdD` would give a
+# $4\times4$ array that is not even Hermitian).
 #
 # Because we want *all four* outcomes and their exact probabilities, we do not sample here: we simply project onto each of the four
 # possibilities in turn. Sampling comes in Section 9.
@@ -480,8 +484,8 @@ assert err_mixed < 1e3 * TOL
 # %% [markdown]
 # Exactly as predicted: the outer pair starts in $\rho_{03}=\mathbb 1_4/4$, the *maximally mixed* two-qubit state. Its purity is
 # $\mathrm{Tr}\rho^2=1/4$, the smallest value possible in dimension $4$, and both entanglement measures return $0$. Qubits $0$ and
-# $3$ are as uncorrelated as two qubits can be. Remember these four numbers — we are about to change three of them without touching
-# either qubit.
+# $3$ are as uncorrelated as two qubits can be. Three of these four numbers change under the Bell measurement of the next section,
+# although neither qubit $0$ nor qubit $3$ is touched.
 
 # %% [markdown]
 # ## 6. Checkpoint: the four conditional outer states
@@ -520,8 +524,8 @@ for lab, (o1, o2) in zip(BELL_LABELS, BELL_BITS):
 # $X^{o_2}Z^{o_1}$ the outer pair is in $\vert\Phi^+\rangle$ with fidelity $1$. The negativity of the conditional outer state is
 # $1/2$ and the concurrence is $1$ — the maximal values for two qubits — although before the measurement both were $0$.
 #
-# > **Common pitfall.** "The measurement created entanglement at a distance, so something must have travelled." Nothing did. The
-# > measurement is a *local* operation on qubits $1$ and $2$, which happen to be entangled with $0$ and $3$ respectively. What it
+# > **Common pitfall.** "The measurement created entanglement at a distance, so something must have travelled." No physical system
+# > and no signal travelled between qubits $0$ and $3$. The measurement is a *local* operation on qubits $1$ and $2$, which happen to be entangled with $0$ and $3$ respectively. What it
 # > produces at Alice's and Bob's site is a *random* one of four Bell states; which one, only the relay knows. The next section
 # > shows that without that knowledge the outer pair is still exactly $\mathbb 1_4/4$.
 
@@ -568,14 +572,14 @@ for lab, (o1, o2) in zip(BELL_LABELS, BELL_BITS):
 # where the last step is the completeness relation, Eq. (2). The averaged state is *identical* to the state before the measurement.
 # It is separable, has negativity $0$, and contains no correlation of any kind.
 #
-# This is not an accident of this particular protocol — it is the **no-signalling theorem** in action. If the outer pair's state
+# This is an instance of the **no-signalling theorem**, and it holds for every protocol of this kind. If the outer pair's state
 # depended on whether the relay measured, Alice and Bob could detect the relay's decision instantaneously, at any distance. Quantum
 # mechanics forbids that: any operation performed on qubits $1,2$ alone leaves the reduced state of $0,3$ untouched, because the
 # partial trace over $1,2$ of $(\mathbb 1_{03}\otimes M_{12})\,\rho\,(\mathbb 1_{03}\otimes M_{12})^\dagger$ summed over a complete
 # set of Kraus operators $M_k$ (one with $\sum_k M_k^\dagger M_k=\mathbb 1$) is the partial trace of $\rho$.
 #
-# **The entanglement is therefore in the correlation between the classical record and the quantum state, not in the quantum state
-# alone.** Those two classical bits are not bookkeeping: they are what converts a useless maximally mixed pair into a Bell pair.
+# **The entanglement therefore resides in the correlation between the classical record and the quantum state.** The two classical
+# bits are what converts a maximally mixed pair, useless for any protocol, into a Bell pair.
 # Let us verify Eq. (6) numerically, in two independent ways.
 
 # %%
@@ -615,8 +619,8 @@ assert e_a < 1e3 * TOL and e_b < 1e3 * TOL
 #
 # > **Physics insight.** Compare the three numbers we have now measured for the *same* pair of qubits: negativity $0$ before,
 # > $1/2$ after the measurement *given the outcome*, and $0$ after the measurement *without* the outcome. Entanglement is a property
-# > of the state one assigns, and the state one assigns depends on the information one has. The two classical bits are worth exactly
-# > one ebit here — no more, no less.
+# > of the state one assigns, and the state one assigns depends on the information one has. Here the two classical bits turn a
+# > state with $\mathcal N=0$ into one with $\mathcal N=1/2$, one ebit.
 
 # %%
 # ==============================================================================
@@ -657,7 +661,7 @@ fig.tight_layout(); plt.show()
 
 # %% [markdown]
 # The left panel shows the flat $p_k=1/4$ distribution over outcomes together with the maximal entanglement of every conditional
-# state. The middle panel is the moral of the section: negativity and concurrence jump from $0$ to their maxima only when the
+# state. The middle panel summarises the section: negativity and concurrence jump from $0$ to their maxima only when the
 # outcome is known, while the purity of the *unconditional* state stays at $1/4$. The right panel shows that
 # $\bar\rho_{03}$ really is the flat diagonal matrix $\mathbb 1_4/4$ — no off-diagonal coherence anywhere.
 
@@ -675,17 +679,33 @@ fig.tight_layout(); plt.show()
 #   \vert\psi\rangle\to\frac{P_o\vert\psi\rangle}{\lVert P_o\vert\psi\rangle\rVert},$$
 #
 # where the projector is *selected* by `jnp.where(o == 0, P0, P1)` rather than chosen by a Python `if`. Both branches are traced,
-# and XLA evaluates the selection on $2\times2$ matrices — utterly negligible. The correction is selected the same way, inside
+# and XLA evaluates the selection on $2\times2$ matrices, at negligible cost. The correction is selected the same way, inside
 # `pauli_correction`. The result is a pure function `(key) -> (o1, o2, fidelity)` that can be `jit`-compiled once and `vmap`-ed over
 # an array of keys: thousands of independent runs of the experiment, in one fused XLA program, no Python loop.
 #
 # > **JAX practice.** `jax.random.split(key, 2)` produces two statistically independent keys from one. Splitting *explicitly* (never
-# > reusing a key) is what makes stochastic JAX code reproducible: the same seed gives the same 4000 shots on any machine, and
+# > reusing a key) is what makes stochastic JAX code reproducible: the same seed gives the same 4000 shots on any machine with the
+# > same JAX version, and
 # > `vmap` over `jax.random.split(key, n_shots)` is the idiomatic "run the experiment $n$ times".
 #
 # One subtlety deserves attention: the two relay qubits must be measured **in sequence**, each conditioned on the collapse caused by
 # the previous one. Measuring qubit $1$ changes the probabilities for qubit $2$ (here it does not, because the four outcomes are
-# equiprobable and independent — but in general it does), so the code threads the collapsed state from one measurement into the next.
+# equiprobable and independent — but in general it does), so the code threads the collapsed, **renormalised** state from one
+# measurement into the next.
+#
+# A frequency test against $p_k=1/4$ is a weak test of this code. All four outcomes are equally likely, so it cannot tell whether the
+# read-out codes were mapped onto the right Bell labels, and it cannot detect a wrong correction at all. The checkpoint below
+# therefore adds three tests that a faulty implementation fails:
+#
+# * **unequal outcome probabilities.** Replace both links by the less-than-maximally entangled pair
+#   $\sqrt{a}\,\vert00\rangle+\sqrt{1-a}\,\vert11\rangle$ with $a=0.8$. The relay qubits are then in
+#   $\mathrm{diag}(a,1-a)\otimes\mathrm{diag}(a,1-a)$, and projecting onto the Bell basis gives
+#   $p(\Phi^\pm)=\tfrac12\big(a^2+(1-a)^2\big)=0.34$ and $p(\Psi^\pm)=a(1-a)=0.16$, so a permuted label map is detected;
+# * **a forgotten renormalisation.** If the state is not divided by its norm after the first collapse, the second Born probability
+#   is computed from a state of norm $1/2$: $p(o_2=0)=1/4$ instead of $1/2$, and the outcome frequencies become
+#   $(1/8,1/8,3/8,3/8)$;
+# * **swapped correction bits.** Applying $X^{o_1}Z^{o_2}$ instead of $X^{o_2}Z^{o_1}$ gives the right correction for $(0,0)$ and
+#   $(1,1)$ and the orthogonal Bell state for $(1,0)$ and $(0,1)$, so the mean fidelity drops to $1/2$.
 
 # %%
 # ==============================================================================
@@ -704,22 +724,29 @@ def measure_z(key, psi, q):
     return o, psi / jnp.linalg.norm(psi)
 
 
-@jax.jit
-def swap_one_shot(key):
-    """One complete run of entanglement swapping. Returns (o1, o2, fidelity of (0,3) with |Phi+> after correction).
+def swap_shot_from(key, psi0, measure=measure_z, correction=pauli_correction):
+    """One run of entanglement swapping starting from the four-qubit state psi0.
+    Returns (o1, o2, fidelity of (0,3) with |Phi+> after correction).
 
-    STEPS  two Bell pairs -> rotate the Bell basis of (1,2) -> measure qubit 1 -> measure qubit 2
+    STEPS  rotate the Bell basis of (1,2) -> measure qubit 1 -> measure qubit 2
            -> feed-forward correction X^{o2} Z^{o1} on Bob's qubit 3 -> fidelity of the outer pair.
-    JAX    the whole thing is one traced function of a PRNG key: jit compiles it once, vmap runs many shots.
+    `measure` and `correction` are arguments only so that the checkpoint can insert deliberately wrong versions.
     """
     k1, k2 = jax.random.split(key)
-    psi = bell_basis_change(two_bell_pairs(), QM1, QM2)
-    o1, psi = measure_z(k1, psi, QM1)
-    o2, psi = measure_z(k2, psi, QM2)
-    psi = apply_gate(psi, pauli_correction(o1, o2), [QB])          # Bob's feed-forward
+    psi = bell_basis_change(psi0, QM1, QM2)
+    o1, psi = measure(k1, psi, QM1)
+    o2, psi = measure(k2, psi, QM2)
+    psi = apply_gate(psi, correction(o1, o2), [QB])                # Bob's feed-forward
     rho_out = rdm(psi, [QA, QB])
     F = jnp.real(jnp.vdot(phi_plus_vec, rho_out @ phi_plus_vec))
     return o1, o2, F
+
+
+@jax.jit
+def swap_one_shot(key):
+    """One complete run of entanglement swapping on |Phi+>_{01} |Phi+>_{23}.
+    JAX    the whole thing is one traced function of a PRNG key: jit compiles it once, vmap runs many shots."""
+    return swap_shot_from(key, two_bell_pairs())
 
 
 N_SHOTS = 4000
@@ -740,11 +767,61 @@ print(f"\nfidelity with |Phi+> after the feed-forward correction: "
       f"min = {Fs.min():.12f}   mean = {Fs.mean():.12f}   max = {Fs.max():.12f}")
 assert Fs.min() > 1 - 1e3 * TOL and np.all(np.abs(freq - 0.25) < 5 * err)
 
+
+# --- CHECKPOINT with teeth: unequal probabilities, and two deliberately wrong implementations ---------
+def bell_freqs(o1s_, o2s_, order_):
+    """Outcome frequencies in BELL_LABELS order, from read-out bits and a code -> label map."""
+    c = 2 * np.asarray(o1s_) + np.asarray(o2s_)
+    return np.array([np.mean(c == k) for k in order_])
+
+
+def run_shots(shot_fn, seed):
+    """vmap a one-shot function over N_SHOTS keys."""
+    return [np.asarray(x) for x in jax.vmap(shot_fn)(jax.random.split(jax.random.PRNGKey(seed), N_SHOTS))]
+
+
+def max_pull(f_hat, p_true):
+    """Largest |f_hat - p| / sigma, with the binomial sigma of the HYPOTHESIS p."""
+    return float(np.max(np.abs(f_hat - p_true) / np.sqrt(p_true * (1 - p_true) / N_SHOTS)))
+
+
+A_WEAK = 0.8                                                       # sqrt(a)|00> + sqrt(1-a)|11> on both links
+link = jnp.array([[np.sqrt(A_WEAK), 0.0], [0.0, np.sqrt(1 - A_WEAK)]], dtype=CDTYPE)
+weak_pairs = jnp.einsum("ab,cd->abcd", link, link)
+p_weak = np.array([0.5 * (A_WEAK**2 + (1 - A_WEAK)**2)] * 2 + [A_WEAK * (1 - A_WEAK)] * 2)   # Phi+, Phi-, Psi+, Psi-
+o1w, o2w, _ = run_shots(jax.jit(lambda k: swap_shot_from(k, weak_pairs)), 2026)
+z_right, z_permuted = max_pull(bell_freqs(o1w, o2w, order), p_weak), max_pull(bell_freqs(o1w, o2w, [0, 1, 2, 3]), p_weak)
+print(f"\nweak links (a = {A_WEAK}): predicted p = {np.round(p_weak, 4)}, measured {np.round(bell_freqs(o1w, o2w, order), 4)}")
+print(f"  largest pull with the label map used above: {z_right:5.2f} sigma;  with codes read as (o2,o1): {z_permuted:5.2f} sigma")
+
+
+def measure_z_unnormalised(key, psi, q):
+    """WRONG on purpose: Born rule + projection, but the collapsed state is not renormalised."""
+    p0 = jnp.real(rdm(psi, [q])[0, 0])
+    o = (jax.random.uniform(key) >= p0).astype(jnp.int32)
+    return o, apply_gate(psi, jnp.where(o == 0, P0, P1), [q])
+
+
+o1u, o2u, _ = run_shots(jax.jit(lambda k: swap_shot_from(k, two_bell_pairs(), measure=measure_z_unnormalised)), 2025)
+z_unnorm = max_pull(bell_freqs(o1u, o2u, order), np.full(4, 0.25))
+print(f"forgotten renormalisation: frequencies {np.round(bell_freqs(o1u, o2u, order), 4)}, "
+      f"largest pull from 1/4 = {z_unnorm:.1f} sigma")
+_, _, Fsw = run_shots(jax.jit(lambda k: swap_shot_from(k, two_bell_pairs(),
+                                                        correction=lambda a, b: pauli_correction(b, a))), 2025)
+print(f"swapped correction bits X^o1 Z^o2: mean fidelity {Fsw.mean():.4f}, min {Fsw.min():.4f}")
+assert z_right < 5 and z_permuted > 5 and z_unnorm > 5 and Fsw.min() < 0.5
+
 # %% [markdown]
 # The four outcomes come out flat at $1/4$ within the binomial error bars (the "pulls" column is the deviation in units of the
 # standard error and should be $O(1)$), and — this is the point of the feed-forward — **every single shot** ends with the outer pair
-# in $\vert\Phi^+\rangle$ with fidelity $1$ to machine precision, not on average but individually. A protocol that only worked on
-# average would be useless: Bob has one pair, not an ensemble.
+# in $\vert\Phi^+\rangle$ with fidelity $1$ to machine precision, shot by shot. This is what Bob needs: he holds one pair, and a
+# protocol that reached fidelity $1$ only on average over shots would be of no use to him.
+#
+# The second block shows that these tests can fail. With the weak links the outcome probabilities are $0.34$ and $0.16$, and the
+# frequencies match them only with the label map `order` used above; reading the codes with the two bits interchanged misses by many
+# standard deviations. A forgotten renormalisation after the first collapse moves the frequencies to $(1/8,1/8,3/8,3/8)$, far outside
+# the error bars, and interchanging the two correction bits leaves half of the shots in a Bell state orthogonal to
+# $\vert\Phi^+\rangle$ (fidelity $0$), so the mean fidelity falls to about $1/2$.
 #
 # `vmap` bought thousands of independent mid-circuit-measurement experiments, each with its own random numbers, in a
 # single compiled call, with no Python loop anywhere. This is the pattern for every shot-based experiment in this course.
@@ -848,8 +925,14 @@ fig.tight_layout(); plt.show()
 #
 # $$\boxed{\,W_{\text{out}}=W_1\,W_2\,} \tag{10}$$
 #
-# — the Werner parameters **multiply**. This is why $W$, and not the fidelity $F=\tfrac{1+3W}{4}$, is the natural variable of a
-# repeater analysis: $W$ is multiplicative under swapping, $F$ is not.
+# — the Werner parameters **multiply**. In terms of the fidelities $F_i=\tfrac{1+3W_i}{4}$, i.e. $W_i=\tfrac{4F_i-1}{3}$,
+#
+# $$F_{\text{out}}=\frac{1+3W_1W_2}{4}=\frac{1+4F_1F_2-F_1-F_2}{3}=F_1F_2+\frac{(1-F_1)(1-F_2)}{3} . \tag{10a}$$
+#
+# The second form can be read off the error picture directly: the output is error-free if both links are error-free (probability
+# $F_1F_2$) or if both carry the *same* error, which cancels in the product $\sigma_a^{\mathsf T}\sigma_b$ (probability
+# $\tfrac{1-F_1}{3}\cdot\tfrac{1-F_2}{3}$ for each of the three errors). The fidelity composes by this bilinear law, which is less
+# convenient than a product; that is why $W$ is the natural variable of a repeater analysis.
 #
 # ### 10.4 When the output is still entangled
 #
@@ -948,9 +1031,10 @@ def werner_parameter(rho_mat):
 print(f"{'W1':>6s} {'W2':>6s} {'outcome':>8s} {'p':>8s} {'W_out':>9s} {'W1*W2':>9s} {'err':>9s} "
       f"{'N(out)':>8s} {'(3W-1)/4':>9s} {'C(out)':>8s} {'|rho-Werner|':>13s}")
 err_prod, err_neg, err_iso = 0.0, 0.0, 0.0
+err_F = 0.0
 for W1, W2 in [(1.0, 1.0), (0.9, 0.9), (0.8, 0.6), (0.5, 0.5), (0.4, 0.9), (0.3, 1.0)]:
     rho4w = two_links_dm(W1, W2)
-    for (o1, o2) in ([(0, 0), (1, 1)] if W1 == W2 == 0.9 else [(0, 0)]):
+    for (o1, o2) in (BELL_BITS if W1 == W2 == 0.9 else [(0, 0)]):
         p, rho_out = swap_dm(rho4w, o1, o2)
         Wo, Nn, Cc = werner_parameter(rho_out), neg2(rho_out), concurrence(rho_out)
         Npred = max(0.0, (3 * W1 * W2 - 1) / 4)
@@ -958,11 +1042,15 @@ for W1, W2 in [(1.0, 1.0), (0.9, 0.9), (0.8, 0.6), (0.5, 0.5), (0.4, 0.9), (0.3,
         err_prod = max(err_prod, abs(Wo - W1 * W2))
         err_neg = max(err_neg, abs(Nn - Npred))
         err_iso = max(err_iso, d_iso)
+        F1, F2, F_out = (1 + 3 * W1) / 4, (1 + 3 * W2) / 4, float(jnp.real(rho_out[0, 0] + rho_out[0, 3]
+                                                                         + rho_out[3, 0] + rho_out[3, 3])) / 2
+        err_F = max(err_F, abs(F_out - (F1 * F2 + (1 - F1) * (1 - F2) / 3)))   # Eq. (10a)
         print(f"{W1:6.2f} {W2:6.2f} {str((o1, o2)):>8s} {float(p):8.4f} {Wo:9.6f} {W1 * W2:9.6f} "
               f"{abs(Wo - W1 * W2):9.1e} {Nn:8.5f} {Npred:9.5f} {Cc:8.5f} {d_iso:13.1e}")
 print(f"\nmax |W_out - W1 W2| = {err_prod:.2e}     max |N - max(0,(3W-1)/4)| = {err_neg:.2e}"
       f"     max |rho_out - rho_Werner(W1 W2)| = {err_iso:.2e}")
-assert err_prod < 1e3 * TOL and err_neg < 1e3 * TOL and err_iso < 1e3 * TOL
+print(f"max |F_out - [F1 F2 + (1-F1)(1-F2)/3]| = {err_F:.2e}   (Eq. (10a))")
+assert err_prod < 1e3 * TOL and err_neg < 1e3 * TOL and err_iso < 1e3 * TOL and err_F < 1e3 * TOL
 # the isotropy column really is an independent test: a skewed link with the same fidelity fools the others
 lam_skew = [(1 + 3 * 0.81) / 4, 0.1425 * 0.7, 0.1425 * 0.2, 0.1425 * 0.1]
 rho_skew = bell_diag_matrix(lam_skew)
@@ -988,9 +1076,9 @@ assert max_abs(rho_g - bell_diag_matrix(q_pred)) < 1e3 * TOL          # Bell-dia
 assert max_abs(rho_g - werner_matrix(werner_parameter(rho_g))) > 0.01  # but not isotropic
 
 # %% [markdown]
-# The measured $W_{\text{out}}$ equals $W_1W_2$ to machine precision for every pair we tried, for both Bell outcomes tested, and the
-# whole output density matrix coincides with $\rho_{W_1W_2}$ entry by entry — the output really is Werner, not merely a state with
-# the right fidelity. The outcome probability stays at $1/4$ regardless of how noisy the links are: each half of a Bell-diagonal
+# The measured $W_{\text{out}}$ equals $W_1W_2$ to machine precision for every pair we tried (for $W_1=W_2=0.9$ for all four Bell
+# outcomes), the fidelity obeys Eq. (10a), and the whole output density matrix coincides with $\rho_{W_1W_2}$ entry by entry, so the
+# output is a Werner state and agrees with the prediction in more than its fidelity. The outcome probability stays at $1/4$ regardless of how noisy the links are: each half of a Bell-diagonal
 # pair is maximally mixed, so the relay's own statistics are flat and it learns *nothing* about the quality of the links from them.
 # The negativity follows $\max(0,(3W-1)/4)$ exactly, and the last row of the grid is the interesting one: two links with $W_1=0.3$ and
 # $W_2=1.0$ give $W_{\text{out}}=0.3<1/3$, so the swapped pair is **separable** — the protocol ran perfectly and produced no
@@ -998,14 +1086,15 @@ assert max_abs(rho_g - werner_matrix(werner_parameter(rho_g))) > 0.01  # but not
 #
 # The last block tests the *general* statement of Section 10.3 on two links that are Bell-diagonal but deliberately not isotropic.
 # The measured output populations reproduce the group convolution $q_a*q_b$ to $10^{-16}$, the output has no Bell-basis coherences,
-# and it is **not** a Werner state — which is exactly why the isotropy column above is a meaningful test rather than a formality.
+# and it is **not** a Werner state. This is why the isotropy column above is a meaningful test: a non-isotropic output is possible
+# and would be detected.
 #
 # > **Numerical practice.** We verified an analytic claim (Eq. (10)) that was derived by a *group-theoretic* argument — error
 # > distributions convolving — using a completely different numerical route: projectors and partial traces on a rank-8 density
 # > tensor. When two such different derivations agree to $10^{-16}$, the chance that both are wrong in the same way is negligible.
 # > But notice how carefully the comparison had to be chosen: $W$, the negativity and the concurrence of a Bell-diagonal state are
 # > all functions of its largest population alone, so all three agree with the Werner prediction even for states that are not
-# > Werner at all. A checkpoint that cannot fail for the error it is supposed to catch is decoration, not a test.
+# > Werner at all. A checkpoint is useful only if it can fail for the error it is supposed to catch.
 
 # %% [markdown]
 # ## 11. Repeater chains: why purification is not optional
@@ -1021,10 +1110,10 @@ assert max_abs(rho_g - werner_matrix(werner_parameter(rho_g))) > 0.01  # but not
 #
 # $$n_{\max}=\frac{\ln(1/3)}{\ln W}$$
 #
-# links. For $W=0.95$ that is about $21$ links; for $W=0.9$ about $10$. This is *not* a loss problem — every
-# link and every Bell measurement was assumed to succeed — it is pure error accumulation.
+# links. For $W=0.95$ that is about $21$ links; for $W=0.9$ about $10$. Every link and every Bell measurement was assumed to
+# succeed, so photon loss plays no role here: the decay is caused by error accumulation alone.
 #
-# The cure, and the reason the 1998 proposal of Briegel, Dür, Cirac and Zoller counts as the birth of the quantum repeater, is
+# The remedy, proposed in 1998 by Briegel, Dür, Cirac and Zoller in the paper that introduced the quantum repeater, is
 # **entanglement purification**: take two noisy pairs of parameter $W$, perform local operations and classical communication, and
 # with some probability obtain *one* pair with a **higher** $W$. Interleaving purification with swapping keeps the working fidelity
 # above threshold at every nesting level. In the scheme of Briegel, Dür, Cirac and Zoller the channel is cut into $N$ segments and
@@ -1036,7 +1125,8 @@ assert max_abs(rho_g - werner_matrix(werner_parameter(rho_g))) > 0.01  # but not
 # "purification" half is a protocol of the same family (local Bell-type measurements plus classical communication), and Exercise 7
 # asks for one round of it.
 #
-# Let us verify the chain formula by actually iterating the swap on density tensors.
+# Let us verify the chain formula by iterating the swap on density tensors. The chain carries the full $4\times4$ output state from
+# one swap to the next, so that the final comparison with $\rho_{W^n}$ also tests that the state stays isotropic along the chain.
 
 # %%
 # ==============================================================================
@@ -1047,18 +1137,19 @@ W_LIST = [1.0, 0.98, 0.95, 0.90, 0.80]
 
 chain, chain_neg = {}, {}
 for W in W_LIST:
-    Ws, negs_, current = [W], [neg2(werner_matrix(W))], W    # after 1 link: the link itself
+    rho_chain = werner_matrix(W)                              # after 1 link: the link itself
+    Ws, negs_ = [werner_parameter(rho_chain)], [neg2(rho_chain)]
     for n in range(2, N_LINKS_MAX + 1):
-        p, rho_out = swap_dm(two_links_dm(current, W), 0, 0)  # connect the chain so far with one more link
-        current = werner_parameter(rho_out)
-        Ws.append(current)
-        negs_.append(neg2(rho_out))                           # negativity measured on the actual output state
+        p, rho_chain = swap_dm(two_links_dm(rho_chain, W), 0, 0)   # connect the chain so far (full state) with one more link
+        Ws.append(werner_parameter(rho_chain))
+        negs_.append(neg2(rho_chain))                         # negativity measured on the actual output state
     chain[W], chain_neg[W] = np.array(Ws), np.array(negs_)
     pred = W ** np.arange(1, N_LINKS_MAX + 1)
+    d_state = max_abs(rho_chain - werner_matrix(W ** N_LINKS_MAX))
     print(f"W = {W:.2f}:  measured W_chain = " + " ".join(f"{x:7.4f}" for x in chain[W]))
     print(f"           W^n           = " + " ".join(f"{x:7.4f}" for x in pred) +
-          f"   max err = {np.max(np.abs(chain[W] - pred)):.1e}")
-    assert np.max(np.abs(chain[W] - pred)) < 1e-9
+          f"   max err = {np.max(np.abs(chain[W] - pred)):.1e}   |rho_8 - Werner(W^8)| = {d_state:.1e}")
+    assert np.max(np.abs(chain[W] - pred)) < 1e-9 and d_state < 1e-9
 
 nmax = {W: (np.log(1 / 3) / np.log(W) if W < 1 else np.inf) for W in W_LIST}
 print("\nlast link at which the end-to-end pair is still entangled (W^n > 1/3):")
@@ -1136,8 +1227,9 @@ fig.tight_layout(); plt.show()
 #    four mutually orthogonal states by a unitary acting on $\vert a\rangle$ alone (there are only two orthogonal directions available
 #    in a single qubit).
 # 2. **Alice's qubit alone carries no information.** Her reduced state is $\mathbb 1/2$ before *and* after the encoding, for every
-#    message — we verify this below. An eavesdropper who intercepts the travelling qubit and does not hold $B$ learns nothing at all.
-#    (This is the reason dense coding is also a primitive for quantum cryptography.)
+#    message — we verify this below. An eavesdropper who intercepts the travelling qubit and does not hold $B$ learns nothing about
+#    the message from it (Section 13 makes this quantitative). She can, however, disturb or withhold the qubit, so this property
+#    alone does not make the protocol secure.
 # 3. **The entanglement is consumed.** After step 4 the pair is in a computational basis state: no entanglement is left. One ebit
 #    was spent to carry one extra bit.
 #
@@ -1150,8 +1242,9 @@ fig.tight_layout(); plt.show()
 # | teleportation | $1$ ebit $+$ $2$ classical bits | $1$ transmitted qubit |
 # | superdense coding | $1$ ebit $+$ $1$ transmitted qubit | $2$ classical bits |
 #
-# They are *duals*: each one's output appears in the other's input list, and composing them is consistent (teleport a qubit using
-# an ebit and two bits, then use that qubit plus another ebit to send two bits — no free lunch, no contradiction). Both are built
+# They are *duals*: each one's output appears in the other's input list, and composing them is consistent (teleporting a qubit
+# with one ebit and two bits, then using that qubit and a second ebit to send two bits, returns two bits for two ebits and two
+# bits, with no net gain). Both are built
 # from the identical hardware primitives: prepare a Bell pair, apply $X^{a}Z^{b}$ on one half, perform a Bell measurement. In
 # teleportation the Bell measurement comes *first* and the Pauli comes *second* (as a correction chosen by the message); in dense
 # coding the Pauli comes *first* (as the encoding chosen by the message) and the Bell measurement comes *second*. Entanglement
@@ -1192,7 +1285,7 @@ print(f"\ndecoding error probability = {1 - np.mean(np.diag(conf_ideal)):.2e}   
 # %% [markdown]
 # The table is the identity matrix: every one of the four messages is decoded **with certainty**, so one qubit really did carry two
 # bits. And the right-hand column shows that Alice's travelling qubit is in the maximally mixed state $\mathbb 1/2$ for all four
-# messages — the information is not *in* the qubit, it is in the correlation between the qubit and the one Bob already had.
+# messages. The information resides in the correlation between the travelling qubit and the one Bob already holds.
 
 # %% [markdown]
 # ## 13. Why two bits is the maximum: the Holevo bound
@@ -1203,15 +1296,16 @@ print(f"\ndecoding error probability = {1 - np.mean(np.diag(conf_ideal)):.2e}   
 #
 # $$I(M:O)\;\le\;\chi=S\Big(\sum_ip_i\rho_i\Big)-\sum_ip_iS(\rho_i)\;\le\;S\Big(\sum_ip_i\rho_i\Big)\;\le\;\log_2 d ,$$
 #
-# where $S$ is the von Neumann entropy. The chain uses only $S\ge0$ and the fact that the entropy of a $d$-dimensional state is at
-# most $\log_2d$ (the maximally mixed state). For one qubit $d=2$, so **one qubit carries at most one bit**. Dense coding does not
+# where $S$ is the von Neumann entropy. The first inequality is Holevo's theorem; the other two use only $S\ge0$ and the fact that
+# the entropy of a $d$-dimensional state is at most $\log_2d$ (the maximally mixed state). For one qubit $d=2$, so **one qubit carries at most one bit**. Dense coding does not
 # contradict this at all: what Bob measures is a *two-qubit* system, $d=4$, and $\log_24=2$. The pre-shared half was delivered
 # earlier, at a time when Alice did not yet know her message — it carries no information about it, and indeed we just measured that
 # Alice's travelling qubit alone is $\mathbb 1/2$ for every message.
 #
 # The accounting is honest: dense coding uses one qubit of *communication at message time* plus one ebit of *entanglement
-# distributed earlier*, and the earlier distribution itself required sending a qubit. Two qubits were sent in total for two bits —
-# but the expensive, latency-critical one is only one of them, and that is exactly the practical win.
+# distributed earlier*, and the earlier distribution itself required sending a qubit. Two qubits were sent in total for two bits.
+# The practical gain is that only one of them has to be sent after the message is known, so the latency-critical transmission is
+# halved.
 #
 # Let us check the Holevo quantities numerically for the dense-coding ensemble, both as seen by Bob (the full two-qubit ensemble)
 # and as seen by an eavesdropper holding only the travelling qubit.
@@ -1244,7 +1338,8 @@ assert abs(chi_bob - 2.0) < 1e-9 and abs(chi_eve) < 1e-9
 # %% [markdown]
 # Bob's Holevo quantity is exactly $2$ bits — the bound is saturated, which is why the decoding is perfect — while the
 # eavesdropper's is exactly $0$: her four conditional states are all $\mathbb 1/2$, so their average has the same entropy as each of
-# them and $\chi$ vanishes. An intercepted dense-coding qubit is *provably* information-free.
+# them and $\chi$ vanishes. By the Holevo bound, no measurement on the intercepted qubit alone yields any information about the
+# message.
 
 # %% [markdown]
 # ## 14. Dense coding with a noisy pair: confusion matrices, rate and capacity
@@ -1253,7 +1348,7 @@ assert abs(chi_bob - 2.0) < 1e-9 and abs(chi_eve) < 1e-9
 # **Alice's half of the stored pair** applies a random Pauli $\sigma_e$ with probability $q_e$, while the transmission of that qubit
 # at message time is assumed perfect. (Fixing *where* the noise sits matters for the comparison at the end of the section; we return
 # to it there.) The code applies the channel *after* the encoding, which for a Pauli channel is the same thing: conjugating a Pauli
-# channel by a Pauli permutes its Kraus operators up to signs and therefore leaves the distribution $q$ unchanged, so
+# Kraus operator $\sigma_e$ by a Pauli $U_m$ returns $\pm\sigma_e$, the sign cancels in $\sigma_e\rho\sigma_e$, and therefore
 # $\mathcal E(U_m\rho U_m^\dagger)=U_m\mathcal E(\rho)U_m^\dagger$.
 #
 # Because the encoding is also a Pauli, $U_{m}$, and Paulis commute up to a phase, the error simply **adds** to
@@ -1282,7 +1377,9 @@ assert abs(chi_bob - 2.0) < 1e-9 and abs(chi_eve) < 1e-9
 #
 # $$R=\log_2\vert G\vert-H(q)=2-H(q),\qquad H(q)=-\sum_eq_e\log_2q_e \ \text{bits}, \tag{12}$$
 #
-# since $H(O)=2$ bits for uniform input. Specialising:
+# since $H(O)=2$ bits for uniform input. Like every mutual information of a classical channel, $R$ is a rate in Shannon's sense:
+# a single use of the protocol still delivers two bits that are wrong with probability $1-q_{\mathbb 1}$, and $R$ bits per use are
+# delivered reliably only by a classical error-correcting code spread over many uses. Specialising:
 #
 # $$R_{\text{deph}}(p)=2-h(p),\qquad R_{\text{depol}}(p)=2-h(p)-p\log_23 ,$$
 #
@@ -1290,8 +1387,9 @@ assert abs(chi_bob - 2.0) < 1e-9 and abs(chi_eve) < 1e-9
 # error: one clean bit plus one bit through a binary symmetric channel, $1+(1-h(p))$. The depolarising formula follows from
 # $H(q)=h(p)+p\log_23$ for $q=(1-p,\,p/3,\,p/3,\,p/3)$.
 #
-# The decoding error probability is $1-q_{\mathbb 1}=p$ in both cases — but the *rates* differ, because dephasing errors are
-# less confusing: they tell Bob which of two messages it was not.
+# The decoding error probability is $1-q_{\mathbb 1}=p$ in both cases, but the *rates* differ. A dephasing error can only exchange a
+# message with one fixed partner, so Bob always knows the message up to a pair; a depolarising error can turn it into any of the
+# other three.
 #
 # ### 14.2 Eq. (12) and the capacity
 #
@@ -1304,13 +1402,27 @@ assert abs(chi_bob - 2.0) < 1e-9 and abs(chi_eve) < 1e-9
 #
 # Our shared states are Bell-diagonal with weights $q$, so $\rho_B=\mathbb 1/2$, $S(\rho_B)=1$ bit and $S(\rho_{AB})=H(q)$. With
 # $d_A=2$, Eq. (13) gives $1+1-H(q)=2-H(q)$ — exactly Eq. (12). The simple protocol of this notebook is therefore **optimal** for
-# these states: no cleverer unitary encoding and no collective measurement can beat $2-H(q)$.
+# these states among all unitary encodings: no cleverer unitary encoding and no collective measurement can beat $2-H(q)$.
 #
-# One caveat completes the picture. Alice is never obliged to use the shared pair: she can throw it away and send a freshly prepared
-# qubit, which carries $\log_2 d_A=1$ bit. Allowing that (formally: allowing a general completely positive encoding, not just a
-# unitary one — Winter 2002; Horodecki, Horodecki, Horodecki, Leung and Terhal 2001) the capacity is
-# $\max\big(1,\;2-H(q)\big)$ and can never fall below one bit. So the curve we are about to plot is the rate of *this* protocol;
-# where it dips below $1$ bit it is no longer the capacity, and the message is simply that the pair has become worthless.
+# The regime of validity of Eq. (13) is worth stating: one fresh copy of $\rho_{AB}$ is used per transmitted qubit, the transmission
+# itself is noiseless, Alice's encodings are unitary, and the rate is reached asymptotically, with block codes and collective
+# measurements over many uses (the Holevo quantity is achievable in that limit). The formula is additive over copies, so encoding
+# unitarily on many pairs at once does not help either. If Alice and Bob may consume an unlimited number of noisy pairs per
+# transmitted qubit, the question changes and so does the answer (Horodecki, Horodecki, Horodecki, Leung and Terhal 2001).
+#
+# Alice is, however, not restricted to unitaries. She can discard the pair and send a freshly prepared qubit, which carries
+# $\log_2 d_A=1$ bit, or more generally apply any channel $\Lambda$ to her half before a unitary encoding. For such general encodings
+# Horodecki and Piani (2012) give the single-copy capacity as
+#
+# $$C^{(1)}_{\text{dc}}(\rho_{AB})=\log_2 d_A+S(\rho_B)-\min_{\Lambda}S\big((\Lambda\otimes\mathbb 1)\rho_{AB}\big) . \tag{14}$$
+#
+# The identity channel gives back Eq. (13); a channel that replaces Alice's qubit by a fixed pure state gives
+# $S\big((\Lambda\otimes\mathbb 1)\rho_{AB}\big)=S(\rho_B)$ and hence $\log_2d_A=1$ bit. So for our states
+# $C^{(1)}_{\text{dc}}\ge\max\big(1,\;2-H(q)\big)$, and the capacity never falls below one bit. Exercise 9 asks you to check
+# numerically that no other $\Lambda$ lowers the entropy further for the depolarised and dephased pairs of this section, i.e. that
+# the bound is an equality there. Whether general encodings acting jointly on many pairs can exceed the single-copy value is an
+# additivity question (Winter 2002) that Eq. (14) leaves open. The curve we are about to plot is therefore the rate of *this*
+# protocol: above $1$ bit it equals the unitary-encoding capacity, and below $1$ bit Alice does better by discarding the pair.
 #
 # We now measure the full $4\times4$ confusion matrix on the density tensor, extract the empirical mutual information, and compare it
 # with Eq. (12) *and* with Eq. (13). Nothing about Eq. (11) is assumed by the code: the channel is applied as Kraus operators, the
@@ -1440,20 +1552,20 @@ ax.set_title("Rate of the dense-coding protocol"); ax.legend(fontsize=8); ax.set
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# The two confusion matrices tell the whole story. For **dephasing** the matrix is block-diagonal in the pairs
+# The two confusion matrices show which messages are confused. For **dephasing** the matrix is block-diagonal in the pairs
 # $\{\Phi^+,\Phi^-\}$ and $\{\Psi^+,\Psi^-\}$: a $Z$ error flips the phase bit and nothing else, so $\Phi$ is never mistaken for
 # $\Psi$ — the flip bit $m_2$ arrives untouched. For **depolarising** all three wrong messages receive the same weight $p/3$, because
 # $X$, $Y$ and $Z$ are equally likely and they flip $(0,1)$, $(1,1)$ and $(1,0)$ respectively.
 #
-# The right panel adds the practical message: dense coding is only worth its ebit while $I>1$ bit, because Alice can always discard
-# the pair and send a *freshly prepared, noiseless* qubit carrying the bit in $\vert0\rangle$ or $\vert1\rangle$. That is exactly the
-# fall-back which makes the true capacity $\max(1,\,2-H(q))$ of Section 14.2. The dashed line is at $1$ bit **because the noise in
-# this model sits on the stored pair and not on the transmission**: if the same channel also acted on the travelling qubit, the
+# The right panel adds the practical consequence: dense coding is worth its ebit only while $I>1$ bit, because Alice can always
+# discard the pair and send a *freshly prepared, noiseless* qubit carrying the bit in $\vert0\rangle$ or $\vert1\rangle$. This
+# fall-back is the reason the capacity of Section 14.2 is at least $\max(1,\,2-H(q))$. The dashed line is at $1$ bit **because the
+# noise in this model sits on the stored pair and not on the transmission**: if the same channel also acted on the travelling qubit, the
 # fall-back would be worth less, and under depolarising noise much less — a $Z$-basis bit is flipped by $X$ or $Y$, i.e. with
-# probability $2p/3$, so the bare qubit would deliver only $1-h(2p/3)=0.45$ bits at $p=0.19$. Read the dashed line as "a fresh qubit
-# through a clean channel", not as "any qubit".
+# probability $2p/3$, so the bare qubit would deliver only $1-h(2p/3)=0.45$ bits at $p=0.19$. The dashed line therefore stands for
+# a fresh qubit sent through a clean channel.
 #
-# The two channels behave very differently, and the reason is structural rather than quantitative: under dephasing the flip bit $m_2$
+# The two channels behave very differently for a structural reason: under dephasing the flip bit $m_2$
 # is *never* corrupted, so $R_{\text{deph}}=2-h(p)$ can never fall below $1$ bit — the worst case is $p=1/2$, where the phase bit is
 # pure noise and exactly one clean bit survives. Under depolarising all four error patterns compete, and the rate does cross the line.
 # Let us locate the crossing by bisection and verify the claim about dephasing by scanning.
@@ -1491,8 +1603,8 @@ assert abs(I_dph[i_min] - 1.0) < 1e-9 and np.max(np.abs(I_dph - (2 - binary_entr
 # evaluated there returns $1.000000$ bits: the analytic break-even point of Eq. (12) and the simulated device agree. At that same $p$
 # the entropic formula Eq. (13) also returns $1$ bit, which says the same thing in the language of states: $S(\rho_{AB})=S(\rho_B)$,
 # the shared pair has exactly as much global entropy as Bob's half alone, and its coherent information has run out. Beyond that
-# point the pair is a liability rather than a resource; Alice should discard it and send a fresh qubit, which is why the *capacity*
-# flattens at $1$ bit there while the rate of this fixed protocol keeps falling. The pair is still entangled at the break-even
+# point using the pair costs information; Alice should discard it and send a fresh qubit, which is why the *capacity* stays at
+# $1$ bit or above while the rate of this fixed protocol keeps falling. The pair is still entangled at the break-even
 # point — depolarising noise leaves it entangled up to $p=1/2$ — so "entangled" and "useful for dense coding" are different
 # thresholds. Under pure dephasing the scan confirms the structural argument: the measured rate dips to exactly $1$ bit at $p=1/2$
 # and rises again (a "dephasing" with $p>1/2$ is a deterministic $Z$ plus weaker noise), so the protocol is never worse than the
@@ -1537,23 +1649,50 @@ print(f"\nmutual information: sampled {I_hat:.4f} bits   exact {I_exact:.4f} bit
 print(f"largest deviation of any entry from the exact value: {np.max(pulls):.2f} sigma")
 assert np.max(pulls) < 5.0
 
+# wrong control: the other common depolarising convention, rho -> (1-p) rho + p 1/2, i.e. X, Y, Z each with
+# probability p/4 (error rate 3p/4).  The sampled matrix must reject it.
+q_alt = np.array([1 - 3 * P_SAMPLE / 4] + [P_SAMPLE / 4] * 3)
+M_alt = np.array([[q_alt[BELL_BITS.index((m[0] ^ o[0], m[1] ^ o[1]))] for o in BELL_BITS] for m in BELL_BITS])
+pulls_alt = np.abs(M_hat - M_alt) / np.maximum(E_hat, 1e-12)
+print(f"same data against the p/4 convention (error rate {3 * P_SAMPLE / 4:.2f}): largest deviation {np.max(pulls_alt):.1f} sigma")
+assert np.max(pulls_alt) > 5.0
+
+# how good is a single estimate of I?  Repeat the whole experiment R times with independent keys.
+R_REP = 400
+rep_keys = jax.random.split(jax.random.PRNGKey(8), R_REP * 4).reshape(R_REP, 4, 2)
+draws_rep = np.asarray(jax.vmap(jax.vmap(lambda k, pr: sample_readout(k, pr, SHOTS_PER_MSG), in_axes=(0, 0)),
+                                in_axes=(0, None))(rep_keys, jnp.asarray(M_exact)))      # (R, 4 messages, shots)
+I_rep = np.array([mutual_information_bits(np.stack([np.bincount(d, minlength=4) / SHOTS_PER_MSG for d in rep]))
+                  for rep in draws_rep])
+bias, spread = I_rep.mean() - I_exact, I_rep.std(ddof=1)
+print(f"{R_REP} repetitions: mean of the estimates - exact = {bias:+.4f} +- {spread / np.sqrt(R_REP):.4f} bits,  "
+      f"spread of one estimate = {spread:.4f} bits")
+assert abs(bias) < 0.25 * spread and 0.003 < spread < 0.05
+
 # %% [markdown]
-# Every entry of the sampled confusion matrix agrees with the exact one within a few standard errors, and the mutual information
-# estimated from $4\times3000$ simulated runs reproduces the exact value to within a few thousandths of a bit. The mutual
-# information is a *non-linear* functional of the frequencies, so its estimator is biased at finite shot number — a small
-# effect here, but the reason serious rate and capacity measurements quote bootstrap intervals.
+# Every entry of the sampled confusion matrix agrees with the exact one within a few standard errors, while the same data reject the
+# other depolarising convention (error rate $3p/4$ instead of $p$) by many standard errors, so the test can distinguish the two
+# conventions.
+#
+# The single estimate of $I(M{:}O)$ from $4\times3000$ runs happens to land within a few thousandths of a bit of the exact value.
+# The repetitions show what to expect in general: one estimate scatters by about one hundredth of a bit, so the close agreement of
+# the first run is partly luck. The mutual information is also a *non-linear* function of the frequencies, so its plug-in estimate
+# is biased: each entropy estimate is too low by an amount of order $1/n_{\text{shots}}$, the conditional entropy (from $3000$ shots
+# per row) more so than the output entropy (from all $12\,000$), which makes $\hat I$ slightly too high on average. The printed
+# mean offset is of order $10^{-3}$ bits, comparable to its own standard error and far below the scatter of a single estimate. For an
+# experiment the scatter (a bootstrap interval, for instance) is therefore the number to quote.
 
 # %% [markdown]
 # ## 16. Cost and scaling
 #
 # All of this is cheap, and it is worth seeing why. The protocols involve $N=2$ or $N=4$ qubits, so a state vector has $2^N\le16$
 # complex numbers and a density tensor $4^N\le256$. The expensive-looking objects — the $16\times16$ projectors of the Bell
-# measurement, the $256$-dimensional superoperator of a Kraus channel — are never built: `apply_gate` contracts a $2\times2$ or
+# measurement, the $256\times256$ superoperator of a Kraus channel — are never built: `apply_gate` contracts a $2\times2$ or
 # $4\times4$ matrix into the chosen axes, and `apply_kraus_dm` sums over the Kraus index *inside* one einsum.
 #
 # The interesting scaling question is the **shot** dimension. One shot of the swapping protocol is a fixed number of einsums on a
 # 16-element tensor; `vmap` turns $n_{\text{shots}}$ of them into the same einsums on tensors with a leading batch axis, which XLA
-# executes as a handful of batched matrix multiplications. The cost is therefore linear in the number of shots with a very small
+# executes as batched contractions. The cost is therefore linear in the number of shots with a very small
 # prefactor, and the compile time is paid once. Let us measure it.
 
 # %%
@@ -1582,36 +1721,41 @@ print("\n(The first call includes tracing and XLA compilation; it is paid once p
 # batch grows, because the fixed overhead of a dispatch is amortised over more work. This is the standard JAX picture: *compile once,
 # batch as much as memory allows*.
 #
-# > **Numerical practice.** Always report compile time and run time separately. A benchmark that includes tracing in the timing of a
-# > single call can be wrong by two orders of magnitude, and the mistake always flatters the slower alternative.
+# > **Numerical practice.** Always report compile time and run time separately. In the table above the first call at the smallest
+# > batch takes several hundred times longer than the following ones, so a benchmark that times a single first call measures the
+# > compiler, and any comparison with an uncompiled alternative is biased against the compiled code.
 
 # %% [markdown]
 # ## 17. Key takeaways
 #
-# * **One identity does all the work.** Equation (5) rewrites two Bell pairs as a sum of four terms in which the *middle* pair and
+# * **Equation (5) contains the protocol.** It rewrites two Bell pairs as a sum of four terms in which the *middle* pair and
 #   the *outer* pair carry the same Bell label. Measuring the middle pair therefore projects the outer pair — which never
-#   interacted — into a maximally entangled state, with probability $1/4$ per outcome, always.
-# * **Entanglement is spent, not created.** Two ebits go in (one per link), one ebit comes out across a longer distance, plus two
+#   interacted — into a maximally entangled state, with probability $1/4$ per outcome. The flat distribution requires maximally
+#   mixed relay qubits; for weaker links ($a=0.8$) it becomes $0.34,0.34,0.16,0.16$, which the shot test confirmed.
+# * **Entanglement is consumed.** Two ebits go in (one per link), one ebit comes out across a longer distance, plus two
 #   classical bits of message. The measured negativity of the outer pair goes $0\to1/2$ *conditioned on the outcome*, and stays $0$
 #   when the outcome is discarded — no-signalling in a single number.
 # * **Feed-forward without branching.** `jnp.where` selects both the projector and the Pauli correction from traced outcomes, so a
 #   mid-circuit measurement plus a classical decision compiles into one XLA program and `vmap`s over shots. All 4000 simulated shots
-#   ended with fidelity $1$ to round-off.
+#   ended with fidelity $1$ to round-off, and the shot tests reject a permuted label map, a missing renormalisation and swapped
+#   correction bits.
 # * **Noise multiplies.** A Werner link of parameter $W$ is a Bell pair with a random Pauli error; swapping convolves the error
-#   distributions, and for isotropic noise this gives exactly $W_{\text{out}}=W_1W_2$, verified to $10^{-16}$ on the density tensor.
+#   distributions, and for isotropic noise this gives exactly $W_{\text{out}}=W_1W_2$, or
+#   $F_{\text{out}}=F_1F_2+(1-F_1)(1-F_2)/3$ for the fidelities, verified to $10^{-16}$ on the density tensor.
 #   A chain of $n$ links has $W^n$, loses entanglement once $W^n\le1/3$, and therefore needs **purification** interleaved with
 #   swapping — this is the content of the quantum-repeater proposal.
 # * **Superdense coding is the time-reverse of teleportation.** Encode with $X^{m_2}Z^{m_1}$, send one qubit, decode with a Bell
 #   measurement: two bits, error-free, measured as an exact identity confusion matrix. The travelling qubit alone is $\mathbb 1/2$
-#   for every message, and its Holevo $\chi$ is exactly $0$ — provably information-free in transit — while Bob's two-qubit
+#   for every message, and its Holevo $\chi$ is exactly $0$, so no measurement on it alone reveals the message, while Bob's two-qubit
 #   $\chi$ is exactly $2$ bits, saturating the Holevo bound for $d=4$.
 # * **A noisy pair turns dense coding into a classical additive-noise channel** on two bits, Eq. (11). Dephasing corrupts only the
 #   phase bit ($R=2-h(p)$, block-diagonal confusion matrix); depolarising corrupts all three wrong messages equally
 #   ($R=2-h(p)-p\log_23$). Both formulas were reproduced exactly by the simulated device.
-# * **Rate is not capacity.** Eq. (12) is the rate of *this* encoding and decoding. It happens to coincide with the entropic
-#   dense-coding capacity $\log_2 d_A+S(\rho_B)-S(\rho_{AB})$ of Eq. (13) for Bell-diagonal pairs — verified to $10^{-16}$ — so the
-#   protocol is optimal; but Alice can always discard the pair and send a fresh qubit, so the capacity never falls below $1$ bit
-#   while the rate does, at $p=0.1893$ for depolarising noise.
+# * **The rate of a protocol and the capacity of a resource are different quantities.** Eq. (12) is the rate of *this* encoding and
+#   decoding, reached with classical block codes over many uses. It coincides with the unitary-encoding dense-coding capacity
+#   $\log_2 d_A+S(\rho_B)-S(\rho_{AB})$ of Eq. (13) for Bell-diagonal pairs (verified to $10^{-14}$), so the protocol is optimal
+#   among unitary encodings; but Alice can always discard the pair and send a fresh qubit, so the capacity with general encodings,
+#   Eq. (14), never falls below $1$ bit, while the rate does, at $p=0.1893$ for depolarising noise.
 # * **Method lesson.** Every analytic claim in this notebook was checked by a *structurally different* computation: pure-state
 #   projection against density-tensor Kraus evolution, group convolution against explicit partial transposes, exact probabilities
 #   against sampled frequencies with binomial error bars. Agreement across such different routes is what makes a simulator
@@ -1634,8 +1778,8 @@ print("\n(The first call includes tracing and XLA compilation; it is paid once p
 #    entangled? Solve $W_1W_2>1/3$ by hand and confirm with `swap_dm`. Then: given a *total* noise budget $W_1W_2=\text{const}$, does
 #    it matter how it is distributed between the links?
 # 5. ★★ **Dense coding with a Werner pair (extend the code).** Replace the perfect $\vert\Phi^+\rangle$ in `dense_confusion` by
-#    $\rho_W$ of Eq. (7). Predict the confusion matrix from Eq. (8) and Eq. (11) before running it, then measure the capacity as a
-#    function of $W$ and find the $W$ at which the rate of Eq. (12) drops to $1$ bit. Compare with the entanglement
+#    $\rho_W$ of Eq. (7). Predict the confusion matrix from Eq. (8) and Eq. (11) before running it, then measure the rate
+#    $I(M{:}O)$ as a function of $W$ and find the $W$ at which it drops to $1$ bit. Compare with the entanglement
 #    threshold $W=1/3$: are they the same number? Should they be? (Check your answer against Eq. (13): the condition is
 #    $S(\rho_{AB})=S(\rho_B)=1$ bit.)
 # 6. ★★ **Amplitude damping (physics).** Repeat Section 14 with `kraus_amplitude_damping(\gamma)`. This channel is *not* a random
@@ -1656,6 +1800,12 @@ print("\n(The first call includes tracing and XLA compilation; it is paid once p
 # 8. ★★★ **Swapping with imperfect measurement (physics).** Model a relay whose Bell measurement occasionally reports the wrong
 #    outcome (probability $\varepsilon$ of a random other label). Derive the resulting end-to-end state, show that it is again
 #    Werner-like, and find the combined condition on $(W,\varepsilon)$ for the chain of $n$ links to remain entangled.
+# 9. ★★★ **General encodings (physics).** Eq. (14) minimises $S\big((\Lambda\otimes\mathbb 1)\rho_{AB}\big)$ over all channels
+#    $\Lambda$ on Alice's qubit. Parametrise $\Lambda$ by four $2\times2$ Kraus operators obtained from a random $8\times2$ isometry
+#    (QR decomposition of a complex Gaussian matrix), minimise the entropy with `scipy.optimize.minimize` from many random starts,
+#    and do this for the depolarised pair at $p=0.1,\ 0.3,\ 0.5$ and the dephased pair at $p=0.3$. Compare the minimum with
+#    $\min\big(1,H(q)\big)$, the value reached by the identity channel and by the channel that prepares a pure state. Does any other
+#    channel do better? What does your answer imply for the single-copy capacity $C^{(1)}_{\text{dc}}$ of these states?
 #
 # ## References
 #
@@ -1679,9 +1829,13 @@ print("\n(The first call includes tracing and XLA compilation; it is paid once p
 # * D. Bruß, G. M. D'Ariano, M. Lewenstein, C. Macchiavello, A. Sen(De) and U. Sen, *Distributed quantum dense coding*,
 #   Phys. Rev. Lett. **93**, 210501 (2004) — the same formula for $d_A\ne d_B$ and for several senders.
 # * M. Horodecki, P. Horodecki, R. Horodecki, D. Leung and B. Terhal, *Classical capacity of a noiseless quantum channel assisted by
-#   noisy entanglement*, Quantum Inf. Comput. **1**(3), 70 (2001); A. Winter, *Scalable programmable quantum gates and a new aspect
-#   of the additivity problem for the classical capacity of quantum channels*, J. Math. Phys. **43**, 4341 (2002) — general
-#   (non-unitary) encodings, which is why the capacity never falls below $\log_2d_A$.
+#   noisy entanglement*, Quantum Inf. Comput. **1**(3), 70 (2001) — the capacity when an arbitrary amount of noisy entanglement may
+#   be used per channel use.
+# * M. Horodecki and M. Piani, *On quantum advantage in dense coding*, J. Phys. A: Math. Theor. **45**, 105306 (2012) — general
+#   encoding operations; the single-copy capacity Eq. (14), with the minimisation over Alice's pre-processing channel.
+# * A. Winter, *Scalable programmable quantum gates and a new aspect of the additivity problem for the classical capacity of quantum
+#   channels*, J. Math. Phys. **43**, 4341 (2002) — noisy dense coding with general encodings and the associated additivity
+#   problem.
 # * R. F. Werner, *Quantum states with Einstein-Podolsky-Rosen correlations admitting a hidden-variable model*,
 #   Phys. Rev. A **40**, 4277 (1989) — Werner states.
 # * A. Peres, *Separability criterion for density matrices*, Phys. Rev. Lett. **77**, 1413 (1996); M. Horodecki, P. Horodecki and

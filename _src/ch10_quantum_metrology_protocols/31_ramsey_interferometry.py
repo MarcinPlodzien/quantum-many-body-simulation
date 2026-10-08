@@ -13,14 +13,15 @@
 # 3. **measure** the atoms;
 # 4. **estimate** $\varphi$ from the measurement record, and quote an uncertainty.
 #
-# Norman Ramsey's *method of separated oscillating fields* (1950) is the oldest and still the most used implementation of steps
-# 1–3. Two short resonant pulses, separated by a long period of free evolution, convert an unknown detuning between the laser (or
-# microwave) frequency and the atomic transition frequency into a number of atoms found in the excited state. Every optical clock
-# in the world today is a Ramsey interferometer with a very long free-evolution time.
+# Norman Ramsey's *method of separated oscillating fields* (1950) is the standard implementation of steps 1–3. Two short
+# resonant pulses, separated by a long period of free evolution, convert an unknown detuning between the laser (or microwave)
+# frequency and the atomic transition frequency into a number of atoms found in the excited state. Atomic clocks use this
+# sequence or close relatives of it; the review by Ludlow and co-workers (Section 20) describes how it is done in the
+# laboratory.
 #
 # This notebook simulates that protocol **end to end**: we build the state with the einsum engine, encode a phase, sample real
 # measurement records (bit strings, one bit per atom per repetition), feed them to two estimators, and compare the *measured*
-# uncertainty with the *theoretical* bounds. Nothing is asserted that is not also measured.
+# uncertainty with the *theoretical* bounds. Every claim about a sensitivity is checked against simulated data.
 #
 # The central result is a number. With $N$ uncorrelated atoms and $M$ repetitions of the experiment, the phase uncertainty of the
 # Ramsey protocol is
@@ -29,18 +30,19 @@
 #
 # the **standard quantum limit** (SQL). We will derive it three different ways — error propagation, classical Fisher information,
 # quantum Fisher information — see all three give the same answer, and then watch several thousand simulated experiments per
-# data point reproduce it to about one per cent. We will also see exactly where the protocol *fails*: at the extrema of the
+# data point reproduce it to about one per cent. We will also see where the protocol *fails*: at the extrema of the
 # fringe, and beyond a phase window of width $\pi$.
 #
-# The last part of the notebook adds the only thing that really limits a clock: **decoherence during the interrogation**.
+# The last part of the notebook adds the effect that limits the interrogation time of a clock: **decoherence during the
+# interrogation**.
 # Dephasing at a rate $\gamma$ multiplies the fringe contrast by $e^{-\gamma T}$ after an interrogation time $T$. Longer
 # interrogation means more phase per repetition but less contrast, and at a fixed total experiment time the compromise has a
 # sharp optimum,
 #
 # $$T_{\mathrm{opt}}=\frac{1}{2\gamma},$$
 #
-# which we derive and then verify by brute force on simulated data. That single formula is the reason clock builders fight so
-# hard for long coherence times.
+# which we derive and then verify on simulated data. Through it, the coherence time sets the best achievable frequency
+# resolution.
 #
 # **Road map.**
 #
@@ -65,17 +67,18 @@
 # * the coherent spin state as the quantum-mechanical analogue of a classical spin, and its **projection noise**;
 # * the standard quantum limit $\Delta\varphi=1/\sqrt{NM}$, derived independently from error propagation and from Fisher
 #   information;
-# * why atom counting is an optimal measurement for this state, and why that is not automatic;
+# * why atom counting is an optimal measurement for this state, and under which conditions that optimality holds;
 # * how dephasing enters as a contrast factor $e^{-\gamma T}$ and fixes the optimal interrogation time of a clock.
 #
 # *Numerical methods*
-# * turning a physical protocol into a sampling problem: Born-rule sampling of bit strings, not just expectation values;
+# * turning a physical protocol into a sampling problem: Born-rule sampling of bit strings in addition to expectation values;
 # * two estimators — method of moments and maximum likelihood — and the fact that here they coincide because the total atom
 #   count is a **sufficient statistic**;
 # * measuring a standard deviation from a finite ensemble of experiments, and putting an error bar on the standard deviation
 #   itself;
 # * fitting a power law on a log-log plot and reading off the exponent;
-# * the difference between an *unbiased* estimator and a *good* one, and how bias appears near the edges of a parameter range.
+# * the difference between an *unbiased* estimator and a *good* one, how large the bias is away from mid-fringe
+#   ($\approx-\cot\varphi/(2NM)$), and how it grows near the edges of a parameter range.
 #
 # *Implementation practice*
 # * `vmap` over shots and over independent experiments with explicit, deterministically split PRNG keys;
@@ -151,7 +154,7 @@ def std_of_std(sigma, n):
     return np.asarray(sigma) / np.sqrt(2.0 * (n - 1))
 
 # %% [markdown]
-# ## 3. What we import from estimation theory
+# ## 3. Results imported from estimation theory
 #
 # Notebooks [29](./29_quantum_fisher_information.ipynb) and
 # [30](./30_qfi_from_the_sld_prepare_encode_estimate.ipynb) built the machinery; this section only restates the four facts we
@@ -171,7 +174,12 @@ def std_of_std(sigma, n):
 #
 # $$\Delta\varphi\ \ge\ \frac{1}{\sqrt{M\,F(\varphi)}}. \tag{2}$$
 #
-# The bound is *achievable* asymptotically: the maximum-likelihood estimator saturates it as $M\to\infty$.
+# The bound holds under two conditions (notebook 29, Section 5.2): the estimator is (locally) unbiased,
+# $\partial_\varphi\mathbb E[\hat\varphi]=1$ at the working point, and the model is *regular* there, meaning that the set of
+# outcomes with non-zero probability does not change with $\varphi$. It is *attainable* asymptotically: under the same
+# regularity conditions the maximum-likelihood estimator has a bias that falls like $1/M$ and a variance that approaches
+# $1/(MF)$ as $M\to\infty$. Both conditions fail somewhere in this notebook (Sections 7.1 and 13), and the bias at finite
+# $M$ is measured in Section 11.1.
 #
 # **(iv) Quantum Fisher information.** Maximising $F$ over all possible measurements of the state $\rho_\varphi$ gives the
 # quantum Fisher information $F_Q[\rho_\varphi]$, and hence $\Delta\varphi\ge1/\sqrt{MF_Q}$ (the *quantum* Cramer-Rao bound).
@@ -184,13 +192,21 @@ def std_of_std(sigma, n):
 # $$F_Q=2\sum_{m,n:\ \lambda_m+\lambda_n>0}\frac{(\lambda_m-\lambda_n)^2}{\lambda_m+\lambda_n}\,\vert\langle m\vert G\vert n\rangle\vert^2. \tag{4}$$
 #
 # Equations (3) and (4) are implemented in the engine as `qfi_pure` and `qfi_mixed`; we use them as *benchmarks* for the
-# measured sensitivities.
+# measured sensitivities. The quantum Cramer-Rao bound inherits the conditions of (iii), and measuring the $M$ copies
+# *jointly* does not beat it, because the quantum Fisher information is additive over independent copies,
+# $F_Q[\rho_\varphi^{\otimes M}]=MF_Q[\rho_\varphi]$.
 #
-# > **Numerical practice.** A bound is a claim about *every* estimator, so a simulation can only ever confirm it by exhibiting
-# > an estimator that comes close, never by "proving" it. Throughout this notebook the logic is: derive the bound, build an
-# > estimator, measure its spread over many independent experiments, and check that the measured spread sits on (not below) the
-# > bound. If a measured point ever fell *below* a Cramer-Rao bound, the estimator would be biased — that is the first thing to
-# > check, not the last.
+# **What is counted.** As in notebook 29 (Section 9.2), the resource is the number of single-atom phase imprints,
+# $\nu=NM$: each of the $N$ atoms acquires the phase once per repetition, and the protocol is repeated $M$ times. The
+# standard quantum limit is $\Delta\varphi=1/\sqrt\nu$ and the Heisenberg limit $\Delta\varphi=\sqrt M/\nu$. The
+# interrogation time does not enter this count; it enters only in Section 16, where the quantity to be estimated is a
+# frequency and the resource is a fixed total time.
+#
+# > **Numerical practice.** A bound is a claim about *every* estimator, so a simulation can confirm it only by exhibiting
+# > an estimator that comes close; it cannot prove it. Throughout this notebook the logic is: derive the bound, build an
+# > estimator, measure its spread over many independent experiments, and check that the measured spread sits on the bound
+# > and never below it. A measured point *below* a Cramer-Rao bound means that the estimator is biased there, and the bias
+# > is the first thing to check.
 
 # %% [markdown]
 # ## 4. The physics: from a detuning to a phase
@@ -213,8 +229,8 @@ def std_of_std(sigma, n):
 # $$H=\delta\,J_z,\qquad\text{so after a free evolution of duration }T:\quad U=e^{-i\delta T J_z}=e^{-i\varphi J_z},\quad
 # \boxed{\ \varphi=\delta\,T\ } \tag{5}$$
 #
-# **This is the whole reason interferometry measures frequencies.** The unknown $\delta$ is converted into a phase, and the
-# phase grows linearly with the time you are willing to wait.
+# This is how interferometry measures frequencies: the unknown $\delta$ is converted into a phase, and the phase grows
+# linearly with the interrogation time.
 #
 # ### 4.2 Many atoms: the collective spin
 #
@@ -227,7 +243,7 @@ def std_of_std(sigma, n):
 # evolution (5) becomes $e^{-i\varphi J_z}$: a rotation of that big spin about the $z$ axis by the angle $\varphi$. A global
 # pulse resonant with the transition is a rotation about an axis in the equatorial plane.
 #
-# Two things make this picture quantitative rather than decorative:
+# Two facts make this picture quantitative:
 #
 # * $J_z$ counts atoms. If $n_1$ of the $N$ atoms are found in $\vert1\rangle$, then $J_z=\tfrac12(N-n_1)-\tfrac12 n_1=\tfrac N2-n_1$.
 #   **Measuring $J_z$ = counting excited atoms**, which is exactly what a camera or a photomultiplier does.
@@ -295,9 +311,9 @@ def std_of_std(sigma, n):
 #
 # $$S(\varphi)\equiv\langle J_z\rangle=\frac N2-\langle n_1\rangle=\frac N2-Np(\varphi)=\frac N2\cos\varphi. \tag{7}$$
 #
-# One full fringe per $2\pi$ of phase — **one**, regardless of how many atoms take part. That number matters: in
-# [notebook 32](./32_ghz_interferometry_heisenberg_limit.ipynb) an entangled probe will produce $N$ fringes instead, and that
-# single difference is the whole Heisenberg story.
+# The signal has one fringe per $2\pi$ of phase, regardless of how many atoms take part. In
+# [notebook 32](./32_ghz_interferometry_heisenberg_limit.ipynb) an entangled probe produces $N$ fringes per $2\pi$ instead,
+# and that difference is the origin of the Heisenberg scaling there.
 
 # %% [markdown]
 # Now the code. Every step is one `apply_gate` per atom: the pulses and the free evolution are single-qubit gates applied to
@@ -371,8 +387,9 @@ assert S_max < 1e3 * TOL
 # %% [markdown]
 # The circuit reproduces the analytic fringe to machine precision, and the second Schmidt coefficient is zero across every cut:
 # the probe of a standard Ramsey interferometer carries **no entanglement at all**. Everything this notebook achieves — the
-# $1/\sqrt{NM}$ sensitivity, the optimality of atom counting — is achieved by $N$ completely independent atoms. Entanglement is
-# not needed to reach the standard quantum limit; it is needed only to *beat* it.
+# $1/\sqrt{NM}$ sensitivity, the optimality of atom counting — is achieved by $N$ completely independent atoms. The standard
+# quantum limit is reached without entanglement; with $\nu=NM$ phase imprints counted as the resource, beating it requires
+# an entangled probe.
 
 # %% [markdown]
 # ### 5.4 The protocol on the Bloch sphere
@@ -384,8 +401,7 @@ assert S_max < 1e3 * TOL
 #
 # $$\frac{\Delta J_\perp}{N/2}=\frac{\sqrt{N}/2}{N/2}=\frac{1}{\sqrt N},$$
 #
-# the angular radius of the fuzzy patch at the tip of the arrow. The figure below is drawn from the computed numbers, not
-# sketched.
+# the angular radius of the fuzzy patch at the tip of the arrow. The figure below is drawn from the computed numbers.
 
 # %%
 # ==============================================================================
@@ -477,7 +493,7 @@ fig.tight_layout(); plt.show()
 #
 # **Right.** Looking down the $z$ axis at the interrogation stage. The phase $\varphi$ is the angle of the arrow, and the
 # shaded wedges are its uncertainty $1/\sqrt N$: the angular resolution of the interferometer is set by how narrow that wedge
-# is. Quadrupling the atom number halves it — the standard quantum limit, before any algebra. Beating it requires making the
+# is. Quadrupling the atom number halves it, which is the standard quantum limit read off the geometry. Beating it requires making the
 # patch at the tip of the arrow *non-circular*, squeezed in the azimuthal direction
 # ([notebook 33](./33_spin_squeezing_one_axis_twisting.ipynb)), or abandoning the picture of a long arrow altogether
 # ([notebook 32](./32_ghz_interferometry_heisenberg_limit.ipynb)).
@@ -493,8 +509,8 @@ fig.tight_layout(); plt.show()
 # \mathrm{Var}(J_z)=\mathrm{Var}\!\left(\frac N2-n_1\right)=Np(1-p)=\frac N4\sin^2\varphi, \tag{8}$$
 #
 # using $p(1-p)=\tfrac{1-\cos\varphi}{2}\cdot\tfrac{1+\cos\varphi}{2}=\tfrac14\sin^2\varphi$. This is **quantum projection
-# noise** (Itano and co-workers, 1993): it is not technical noise, not detector noise; it is the irreducible randomness of
-# projecting $N$ independent superpositions onto the measurement basis. On the Bloch sphere it is the fuzzy patch at the tip of
+# noise** (Itano and co-workers, 1993): the randomness of projecting $N$ independent superpositions onto the measurement
+# basis, present even with a noiseless apparatus and a perfect detector. On the Bloch sphere it is the fuzzy patch at the tip of
 # the arrow, of angular radius $\sim1/\sqrt N$.
 #
 # ### 6.2 Error propagation
@@ -519,7 +535,7 @@ fig.tight_layout(); plt.show()
 # $$\Delta\varphi=\frac{1}{\sqrt{NM}}\,\frac{\sqrt{1-C^2\cos^2\varphi}}{C\,\vert\sin\varphi\vert}, \tag{11}$$
 #
 # which **diverges at the fringe extrema** $\varphi=0,\pi$ whenever $C<1$ and is minimal at **mid-fringe** $\varphi=\pi/2$,
-# where it equals $1/(C\sqrt{NM})$. This is why every clock is operated at the half-height point of its fringe.
+# where it equals $1/(C\sqrt{NM})$. This is why clocks are operated at the half-height points of their fringe.
 #
 # **(b) At perfect contrast the extrema are a $0/0$ limit, and the bound stops describing any usable estimator.** Setting
 # $C=1$ in (11) gives $1/\sqrt{NM}$ for every $\varphi$ in the open interval $(0,\pi)$, including the limit $\varphi\to0$.
@@ -527,8 +543,9 @@ fig.tight_layout(); plt.show()
 # to propagate errors through, the estimator cannot tell $+\varphi$ from $-\varphi$, and — as Section 13 will show by measuring
 # it — the estimator becomes strongly biased and its distribution strongly non-Gaussian. Exactly at $\varphi=0$ the limit and
 # the value disagree: $\lim_{\varphi\to0^+}\Delta\varphi=1/\sqrt{NM}$, but the outcome distribution at $\varphi=0$ is
-# deterministic and carries *no* information at all, so the bound there is $+\infty$ (Section 7.1). A bound can be perfectly
-# correct and simultaneously useless for a particular estimator.
+# deterministic, its Fisher information is $F=0$, and the regularity condition of the Cramer-Rao theorem fails, so the
+# theorem makes no statement at that point (Section 7.1). A bound can be correct and still describe no estimator that is
+# used in practice.
 
 # %%
 # ==============================================================================
@@ -574,8 +591,8 @@ assert err_var < 1e3 * TOL
 #
 # A Ramsey measurement of $N$ uncorrelated atoms therefore carries exactly **one unit of Fisher information per atom, at every
 # operating point strictly inside the fringe**. The Cramer-Rao bound (2) with $M$ repetitions is then
-# $\Delta\varphi\ge1/\sqrt{NM}$ — the same Eq. (10) as before, now as a statement about *all* estimators, not just about
-# inverting the mean.
+# $\Delta\varphi\ge1/\sqrt{NM}$ — the same Eq. (10) as before, now as a statement about *all* (locally unbiased)
+# estimators, of which inverting the mean is one.
 #
 # > **Common pitfall (the endpoints are not in the "every").** The cancellation in (12) is a $0/0$ limit: both $\partial_\varphi p$
 # > and $p(1-p)$ vanish at $\varphi=0$ and $\varphi=\pi$. At $\varphi=0$ *exactly*, $p=0$: only the outcome "no atom excited"
@@ -583,7 +600,8 @@ assert err_var < 1e3 * TOL
 # > $\varphi=\pi$. The function is therefore **discontinuous** at the two endpoints, and the Cramer-Rao theorem does not apply
 # > there at all: its regularity conditions require the set of outcomes with $p>0$ to be independent of the parameter, and that
 # > set collapses from two elements to one exactly at the extrema. In code, `cfi_binomial(0.0, N, 1.0)` evaluates $0/0$ and
-# > returns `nan` — which is the honest answer, and the reason every scan below starts at $\varphi=0.02$ rather than $0$.
+# > returns `nan`, which correctly signals that the formula does not apply; every scan below therefore starts at
+# > $\varphi=0.02$ rather than $0$.
 # > Section 13 measures what this costs an actual estimator.
 #
 # ### 7.2 Quantum Fisher information of the probe
@@ -600,9 +618,11 @@ assert err_var < 1e3 * TOL
 #
 # $$F(\varphi)=N=F_Q\qquad\text{for }0<\varphi<\pi .$$
 #
-# **Counting atoms after the second $\pi/2$ pulse extracts every bit of phase information the coherent spin state contains.**
-# No cleverer measurement exists, and no cleverer estimator can beat $1/\sqrt{NM}$ with this probe. To do better one must change
-# the *probe* — entangle the atoms — which is the subject of the rest of this chapter.
+# **Counting atoms after the second $\pi/2$ pulse extracts all the phase information the coherent spin state contains.**
+# No other measurement, including a joint measurement of all $M$ copies, gives more Fisher information, and no locally
+# unbiased estimator can beat $1/\sqrt{NM}$ with this probe at an interior working point. A biased estimator can show a
+# smaller spread (Section 13), but not a smaller error over a range of phases. To do better at fixed $\nu=NM$ one must
+# change the *probe* — entangle the atoms — which is the subject of the rest of this chapter.
 #
 # The value $F_Q=N$ is also exactly the boundary between classical and quantum: $F_Q>N$ for a state of $N$ qubits is a
 # sufficient criterion for entanglement (see notebook [29](./29_quantum_fisher_information.ipynb)). Ramsey interferometry sits
@@ -704,7 +724,8 @@ assert abs(frac.mean() - p_true) < 5 * np.sqrt(p_true * (1 - p_true) / (N_ * M_ 
 
 # %% [markdown]
 # The sampled excited fraction agrees with $p(\pi/2)=1/2$ and its spread agrees with the binomial prediction
-# $\sqrt{p(1-p)/(NM)}$ — the simulator really is producing binomial data, not something that merely has the right mean.
+# $\sqrt{p(1-p)/(NM)}$ within the $4\%$ statistical precision of $K=300$ experiments, so the spread, and not only the mean,
+# has the binomial value. Section 9 makes this test sharper.
 #
 # > **Common pitfall (memory).** `jax.random.categorical` works by adding Gumbel noise to the **full** vector of $2^N$
 # > log-probabilities and taking an `argmax`, so one call with `shots` samples temporarily allocates `shots` $\times\,2^N$
@@ -720,21 +741,21 @@ assert abs(frac.mean() - p_true) < 5 * np.sqrt(p_true * (1 - p_true) / (N_ * M_ 
 # variables** with the same $p(\varphi)$, and sampling $N\cdot M$ coins is *exactly* the same statistical experiment as
 # sampling from the $2^N$-dimensional Born distribution — at cost $O(NM)$ instead of $O(M2^N)$.
 #
-# This is not a numerical approximation; it is an exact consequence of the product structure. Still, "it is exact" is a claim,
-# and claims get tested.
+# The equivalence is an exact consequence of the product structure, with no numerical approximation involved. It is
+# nevertheless a claim about code, and the cell below tests it.
 #
 # **Designing a test that can fail.** The claim being made has two halves: the atoms have the right *marginal* probability
 # $p(\varphi)$, and they are *independent*. A two-sample comparison of the mean count tests only the first half — the mean of
 # the total count is $NMp$ whether the $N$ bits of a repetition are independent or perfectly correlated. The second half
 # shows up in the **variance**: independent atoms give $\mathrm{Var}(k)=NMp(1-p)$, whereas $N$ atoms locked together would
 # give $N^2Mp(1-p)$, a factor $N$ larger. The cell below therefore runs a two-sample $z$-test on the mean *and* on the
-# variance, and — so that the reader can see that the second one has teeth — feeds the same test a deliberately **wrong**
+# variance, and, to show that the second one detects correlations, feeds the same test a deliberately **wrong**
 # sampler in which all $N$ atoms of a repetition report the same bit. That control has exactly the right mean and must fail
 # the variance test.
 #
-# > **Numerical practice.** A checkpoint that cannot fail for the error it is supposed to catch is decoration. Before writing
-# > an `assert`, name the wrong implementation you are guarding against and convince yourself the statistic responds to it —
-# > if it is cheap, run the wrong version and show the test firing.
+# > **Numerical practice.** A checkpoint that cannot fail for the error it is supposed to catch verifies nothing. Before
+# > writing an `assert`, name the wrong implementation you are guarding against and check that the statistic responds to
+# > it; if it is cheap, run the wrong version and show the test firing.
 
 # %%
 # ==============================================================================
@@ -804,15 +825,15 @@ print(f"\nworst |z| of the MEAN test against the wrong sampler: {z_wrong_worst:.
       f"(it passes -- the mean carries no information about independence)")
 
 # %% [markdown]
-# Every $z$-score of the honest comparison — of the mean *and* of the variance — is well inside $\pm4$, and the standard
+# Every $z$-score of the engine-versus-coins comparison — of the mean *and* of the variance — is well inside $\pm4$, and the standard
 # deviations agree to the third digit. The coin sampler is the engine sampler for this state, and we may use it for the large
 # sweeps without losing any physics.
 #
 # The last two columns are the reason to trust that conclusion. The wrong sampler, whose $N$ atoms are locked together, passes
 # the mean test (the worst $\vert z\vert$ over the six cases is printed above) and is rejected by the variance test at
 # $\vert z\vert\simeq30$–$50$. Had the checkpoint compared means only, it would have certified a sampler that gets the physics
-# of projection noise completely wrong — which is exactly the error that matters here, since the whole point of the product
-# structure is the *independence* of the atoms. (For an entangled probe the coin sampler would be flatly wrong in just this
+# of projection noise completely wrong, and the property the coin sampler relies on is precisely the *independence* of the
+# atoms. (For an entangled probe the coin sampler would be wrong in just this
 # way — see [notebook 32](./32_ghz_interferometry_heisenberg_limit.ipynb), where the $N$ bits of a GHZ record are maximally
 # correlated, exactly like the control sampler above.)
 
@@ -843,9 +864,8 @@ print(f"\nworst |z| of the MEAN test against the wrong sampler: {z_wrong_worst:.
 # \ \Longrightarrow\ k(1-p)=(NM-k)p\ \Longrightarrow\ p(\hat\varphi)=\frac{k}{NM}=\hat p .$$
 #
 # **The maximum-likelihood estimator coincides exactly with the method of moments here**, because $k$ is a *sufficient
-# statistic* for $\varphi$: the record contains no information beyond the total count. That is a genuine and useful fact, not a
-# coincidence to be swept away — but it also means we should not pretend that "doing the MLE numerically" adds precision. What
-# it adds is machinery that generalises: the likelihood curve shows us the *shape* of our knowledge, including the two-fold
+# statistic* for $\varphi$: the record contains no information beyond the total count. Computing the MLE numerically
+# therefore adds no precision. What it adds is machinery that generalises: the likelihood curve shows us the *shape* of our knowledge, including the two-fold
 # ambiguity $\varphi\leftrightarrow-\varphi$, and the same code will work in situations (unknown contrast, several parameters,
 # [notebook 32](./32_ghz_interferometry_heisenberg_limit.ipynb)) where no closed form exists.
 #
@@ -973,14 +993,101 @@ fig.tight_layout(); plt.show()
 # $1/\sqrt{800}=0.035355$, and the measured bias with its own statistical error. The bias vanishes *exactly* at mid-fringe,
 # and the argument is one line: at $\varphi=\pi/2$ the count $k$ is $\mathrm{Binomial}(NM,\tfrac12)$, so $u=1-2k/(NM)$ is
 # symmetrically distributed about $0$; and $\arccos$ satisfies $\arccos(u)+\arccos(-u)=\pi$ identically, so pairing $u$ with
-# $-u$ gives $\mathbb E[\hat\varphi]=\pi/2$ with no approximation. (Expanding $\hat\varphi=\pi/2-u-u^3/6-\dots$ and killing
-# the odd moments one by one gives the same answer, more laboriously.) At mid-fringe the elementary estimator (14) is
-# unbiased and saturates the Cramer-Rao bound — there is nothing left to gain.
+# $-u$ gives $\mathbb E[\hat\varphi]=\pi/2$ with no approximation. (Expanding $\hat\varphi=\pi/2-u-u^3/6-\dots$ and removing
+# the odd moments one by one gives the same answer.) The measured bias printed above is therefore pure sampling noise, and
+# it is consistent with zero; a measurement of the bias has to be made away from $\pi/2$ (Section 11.1).
 #
-# The residual gap above unity in the ratio is not noise-free either: expanding $\mathrm{Var}(\hat\varphi)=
-# \mathrm{Var}(u+u^3/6+\dots)=\sigma_u^2(1+\sigma_u^2+\dots)$ with $\sigma_u^2=1/(NM)$ predicts a measured-to-bound ratio of
-# $1+1/(2NM)=1.00125$ at $N=8$, $M=100$ — one fifth of the statistical error on the printed ratio, so the experiment cannot
-# yet see it.
+# The estimator is unbiased at mid-fringe, but it does not saturate the bound exactly at finite $NM$. Expanding
+# $\mathrm{Var}(\hat\varphi)=\mathrm{Var}(u+u^3/6+\dots)=\sigma_u^2(1+\sigma_u^2+\dots)$ with $\sigma_u^2=1/(NM)$ gives a
+# standard deviation $\sqrt{1+1/(NM)}\approx1+1/(2NM)=1.000625$ times the bound at $N=8$, $M=100$ (the exact binomial sum
+# gives $1.000626$). That is one tenth of the statistical error $0.0065$ on the printed ratio, so the simulation cannot
+# resolve it.
+
+# %% [markdown]
+# ### 11.1 The bias away from mid-fringe
+#
+# Away from $\varphi=\pi/2$ the symmetry is gone, and the curvature of $\arccos$ produces a bias at finite $NM$. Its size
+# follows from a second-order Taylor expansion (the delta method of notebook 29, Section 5.3) of
+# $g(\hat p)=\arccos\big[(1-2\hat p)/C\big]$ around $p$, with $\mathbb E[\hat p-p]=0$ and $\mathrm{Var}(\hat p)=p(1-p)/(NM)$.
+# Writing $x=(1-2p)/C=\cos\varphi$, we have $dx/dp=-2/C$ and $d^2\arccos x/dx^2=-x/(1-x^2)^{3/2}$, so
+# $g''(p)=-4\cos\varphi/(C^2\sin^3\varphi)$; with $p(1-p)=\tfrac14(1-C^2\cos^2\varphi)$,
+#
+# $$\mathbb E[\hat\varphi]-\varphi\ \approx\ \tfrac12\,g''(p)\,\frac{p(1-p)}{NM}
+# =-\frac{\cos\varphi\,\big(1-C^2\cos^2\varphi\big)}{2NM\,C^2\sin^3\varphi}
+# \ \xrightarrow{\ C=1\ }\ -\frac{\cot\varphi}{2NM}. \tag{14a}$$
+#
+# This is Eq. (11a) of notebook 29 with the $M$ single-atom repetitions there replaced by the $NM$ atom detections here. It
+# vanishes at $\varphi=\pi/2$, as the symmetry argument requires; at $C=1$ it is negative for $\varphi<\pi/2$ and positive
+# for $\varphi>\pi/2$, so it pushes the estimate away from mid-fringe towards the nearer fringe extremum; and it falls like $1/(NM)$, faster than the spread $1/\sqrt{NM}$, so that the ratio bias/spread decays like $1/\sqrt{NM}$.
+# The same expansion to first order reproduces the variance of Eq. (11).
+#
+# Because $\hat\varphi$ is a function of the single binomial count $k$, its mean and variance can also be computed
+# **exactly**, by summing over the $NM+1$ possible counts. The cell below measures the bias at $\varphi=\pi/4$, where
+# Eq. (14a) gives $NM\cdot\mathrm{bias}\to-\tfrac12$, compares the sampled numbers (with standard errors) with the exact sums,
+# and runs a wrong control: the hypothesis "the estimator is unbiased" must be rejected by the same data.
+
+# %%
+# ==============================================================================
+# STEP 7b: the bias at phi = pi/4 -- sampled, exact, and Eq. (14a)
+# ==============================================================================
+def mom_moments_exact(phi, N, shots, contrast=1.0):
+    """EXACT mean and variance of the estimator (14), summed over all NM+1 possible counts.
+
+    MATH   k ~ Binomial(n, p),  n = N*shots,  p = (1 - C cos phi)/2,
+           phi_hat(k) = arccos(clip((1 - 2k/n)/C, -1, 1)),
+           E[phi_hat]   = sum_k P(k) phi_hat(k),   Var = sum_k P(k) phi_hat(k)^2 - E[phi_hat]^2.
+    IMPLEMENTATION  the binomial pmf through log-gamma, so n = 600 causes no overflow.
+    COST   O(N*shots) per phase -- no Monte Carlo, hence no statistical error of its own.
+    """
+    n = N * shots
+    k = jnp.arange(n + 1, dtype=RDTYPE)
+    p = jnp.clip((1 - contrast * jnp.cos(phi)) / 2, 1e-15, 1 - 1e-15)
+    logP = (gammaln(n + 1.0) - gammaln(k + 1.0) - gammaln(n - k + 1.0)
+            + k * jnp.log(p) + (n - k) * jnp.log1p(-p))
+    P = jnp.exp(logP)
+    est = jnp.arccos(jnp.clip((1 - 2 * k / n) / contrast, -1.0, 1.0))
+    m1 = jnp.sum(P * est)
+    return m1, jnp.clip(jnp.sum(P * est ** 2) - m1 ** 2, 0.0, None)
+
+
+
+PHI_B, N_B, K_B = np.pi / 4, 4, 40000
+print(f"phi = pi/4, N = {N_B}, K = {K_B} experiments per row;  Eq. (14a): NM * bias -> -cot(phi)/2 = "
+      f"{-0.5 / np.tan(PHI_B):+.4f}\n")
+print(f"{'M':>5s} {'bias sampled':>13s} {'+- SE':>9s} {'bias exact':>12s} {'Eq. (14a)':>11s} {'NM*bias exact':>14s} "
+      f"{'z(samp-exact)':>14s} {'sd sampled':>11s} {'sd exact':>10s} {'z(bias = 0)':>12s}")
+z_null = {}
+for M in (10, 25, 100):
+    nm = N_B * M
+    k = ramsey_counts_fast(jax.random.fold_in(jax.random.PRNGKey(303), M), PHI_B, N_B, M, K_B)
+    est = np.asarray(phi_hat_mom(k, N_B, M))
+    b_s, sd_s = est.mean() - PHI_B, est.std(ddof=1)
+    se = sd_s / np.sqrt(K_B)
+    m_x, v_x = mom_moments_exact(PHI_B, N_B, M)
+    b_x, sd_x = float(m_x) - PHI_B, float(jnp.sqrt(v_x))
+    b_d = -1.0 / (2 * nm * np.tan(PHI_B))
+    z_ex = (b_s - b_x) / se
+    z_null[M] = b_s / se                                     # WRONG CONTROL: "the bias is zero"
+    print(f"{M:5d} {b_s:+13.5f} {se:9.5f} {b_x:+12.5f} {b_d:+11.5f} {nm * b_x:+14.4f} {z_ex:+14.2f} "
+          f"{sd_s:11.5f} {sd_x:10.5f} {z_null[M]:+12.1f}")
+    assert abs(z_ex) < 4, "sampled bias disagrees with the exact binomial sum"
+    assert abs(sd_s - sd_x) < 4 * float(std_of_std(sd_x, K_B)), "sampled spread disagrees with the exact sum"
+    if M == 100:
+        assert abs(nm * b_x / (-0.5 / np.tan(PHI_B)) - 1) < 0.02, "exact bias does not approach Eq. (14a)"
+print(f"\nwrong control 'bias = 0' rejected at {abs(z_null[10]):.1f} and {abs(z_null[25]):.1f} standard errors "
+      f"(M = 10, 25)")
+assert abs(z_null[10]) > 5 and abs(z_null[25]) > 5
+m_mid, _ = mom_moments_exact(np.pi / 2, N_B, 100)
+print(f"exact bias at mid-fringe, same N and M = 100: {float(m_mid) - np.pi / 2:+.1e}   (zero by symmetry)")
+assert abs(float(m_mid) - np.pi / 2) < 1e-10
+
+# %% [markdown]
+# The sampled bias agrees with the exact binomial sum in every row, within the printed standard errors, and the hypothesis
+# of an unbiased estimator is rejected by many standard errors at $M=10$ and $M=25$. The exact $NM\cdot\mathrm{bias}$ is
+# $-0.563$, $-0.518$ and $-0.504$ for $NM=40$, $100$, $400$, approaching the $-\tfrac12$ of Eq. (14a) with a correction
+# of order $1/(NM)$. At $M=100$ the bias, $-1.3\cdot10^{-3}$ rad, is $2.5\%$ of the spread $0.050$: it is real, and it
+# is negligible next to the projection noise. At mid-fringe the exact sum gives zero to rounding. Section 13 follows the
+# bias to the fringe edges, where the expansion (14a) breaks down.
 
 # %% [markdown]
 # ## 12. Scaling: $\Delta\varphi$ against $N$ and $M$
@@ -1083,9 +1190,9 @@ fig.tight_layout(); plt.show()
 # %% [markdown]
 # Both sweeps sit on the Cramer-Rao line over the whole scanned range: the measured-to-bound ratios in the tables stay within
 # $1.6\%$ of unity, and the fitted exponents printed above are $1.9\sigma$ ($N$ sweep) and $0.7\sigma$ ($M$ sweep) from the
-# predicted $-1/2$. The bound is not merely respected, it is *attained*.
+# predicted $-1/2$. The estimator attains the bound within the error bars.
 #
-# The residual $N$-sweep tension is expected rather than mysterious: the $1+1/(2NM)$ correction of Section 11 is largest at the
+# Part of the residual $N$-sweep tension has a known origin: the $1+1/(2NM)$ correction of Section 11 is largest at the
 # small-$N$ end of the sweep ($1.0025$ at $N=2$ against $1.0003$ at $N=16$) and tilts the fitted slope by about $-0.001$. That
 # is a quarter of $\sigma_s$ — visible in principle, invisible at $K=8000$.
 #
@@ -1095,15 +1202,16 @@ fig.tight_layout(); plt.show()
 # > 32](./32_ghz_interferometry_heisenberg_limit.ipynb) is to make the left panel steeper: slope $-1$ instead of $-1/2$.
 
 # %% [markdown]
-# ## 13. Where the protocol fails: the fringe extrema
+# ## 13. Failure of the protocol at the fringe extrema
 #
-# Section 6 gave two warnings about the extrema $\varphi=0,\pi$, and they are of different natures. We now test both by
-# measurement.
+# Section 6 gave two warnings about the extrema $\varphi=0,\pi$, of different natures. We now test both by measurement.
 #
 # **Warning 1 (perfect contrast).** Eq. (9) is a $0/0$ limit there; the bound $1/\sqrt{NM}$ is flat in $\varphi$ and remains
 # correct, but the *estimator* runs into the boundary of its range. Near $\varphi=0$ the true probability $p=\sin^2(\varphi/2)$
 # is tiny, most experiments return $k=0$, and $\arccos(1-2\hat p)$ then returns exactly $0$ whatever the true $\varphi$ was.
-# The estimator stops responding — a **dead zone** — and acquires a bias.
+# The estimator stops responding and acquires a bias. We call the region where its response slope
+# $\partial_\varphi\mathbb E[\hat\varphi]$ falls below $\tfrac12$ the **dead zone**: there the reported phase moves by less
+# than half of any change of the true phase.
 #
 # **Warning 2 (imperfect contrast).** With $C<1$ the analytic sensitivity (11),
 # $\Delta\varphi=\sqrt{1-C^2\cos^2\varphi}\,/\,(C\vert\sin\varphi\vert\sqrt{NM})$, genuinely **diverges** at the extrema,
@@ -1112,10 +1220,10 @@ fig.tight_layout(); plt.show()
 # We therefore scan the whole fringe twice, at $C=1$ and at $C=0.8$, and record for each $\varphi$ the mean of $\hat\varphi$
 # (the *response curve*) and its spread.
 #
-# ### 13.1 What the Cramer-Rao bound says about a *biased* estimator
+# ### 13.1 The Cramer-Rao bound for a *biased* estimator
 #
-# The spread we are about to measure will fall **below** $1/\sqrt{NM}$ near the extrema at $C=1$. That looks like a violation
-# of Eq. (2), and it is not: Eq. (2) holds for unbiased estimators. The general statement, which we will need, carries the
+# The spread we are about to measure will fall **below** $1/\sqrt{NM}$ near the extrema at $C=1$. This does not violate
+# Eq. (2), which holds for unbiased estimators only. The general statement, which we will need, carries the
 # derivative of the bias. Write $b(\varphi)=\mathbb E[\hat\varphi]-\varphi$. Repeating the standard Cauchy-Schwarz derivation
 # of the Cramer-Rao inequality with $\mathbb E[\hat\varphi]=\varphi+b(\varphi)$ in place of $\varphi$ replaces the numerator
 # $1$ by $\partial_\varphi\mathbb E[\hat\varphi]=1+b'(\varphi)$:
@@ -1124,14 +1232,14 @@ fig.tight_layout(); plt.show()
 #
 # Two things follow. An estimator whose response curve is *flatter* than the diagonal, $b'<0$, is allowed a smaller variance —
 # in the extreme case $b'=-1$ (an estimator that ignores the data) the bound is zero, which is why "small variance" on its own
-# is never evidence of a good estimator. And the quantity that *is* bounded from below by $1/(MF)$ in all cases is the mean
-# squared error only when $b=0$; otherwise one must quote $\mathrm{bias}^2+\mathrm{Var}$, which is what the tables and the
-# dashed curves below do.
+# is never evidence of a good estimator. Second, the figure of merit of a biased estimator is the mean squared error,
+# $\mathrm{bias}^2+\mathrm{Var}\ge b^2+(1+b')^2/(MF)$, which can lie below $1/(MF)$ at a single phase; this is what the
+# RMS columns of the tables and the dashed curves below report.
 #
-# Equation (13) is a sharp, checkable statement, so we check it. For this estimator no sampling is needed: $\hat\varphi$ is a
-# function of a single $\mathrm{Binomial}(NM,p(\varphi))$ variable, so $\mathbb E[\hat\varphi]$ and $\mathrm{Var}(\hat\varphi)$
-# can be summed **exactly** over the $NM+1$ possible counts, and $b'(\varphi)$ obtained by differentiating that sum
-# numerically. The cell after the scan does this and asserts (13) at every scanned phase.
+# Equation (16) is a sharp, checkable statement, so we check it. For this estimator no sampling is needed: as in
+# Section 11.1, $\mathbb E[\hat\varphi]$ and $\mathrm{Var}(\hat\varphi)$ are exact sums over the $NM+1$ possible counts,
+# and $b'(\varphi)$ follows by differentiating the exact mean numerically. The cell after the scan does this and asserts
+# (16) at all $31$ scanned phases for both contrasts.
 
 # %%
 # ==============================================================================
@@ -1160,36 +1268,16 @@ for C in CONTRASTS:
     bias = mean_e - PHI_SCAN
     rms = np.sqrt(bias ** 2 + sig_e ** 2)
     print(f"\ncontrast C = {C}:   flat-contrast bound 1/sqrt(NM) = {crb_sc:.6f} rad")
-    print(f"{'phi':>8s} {'E[phi_hat]':>12s} {'bias':>11s} {'Delta phi':>11s} {'Eq. (11)':>11s} "
+    print(f"{'phi':>8s} {'E[phi_hat]':>12s} {'bias':>11s} {'+- SE':>9s} {'Delta phi':>11s} {'Eq. (11)':>11s} "
           f"{'RMS/Eq.(11)':>13s}")
     for i in (0, 1, 2, 5, 10, 15, 20, 25, 28, 29, 30):
-        print(f"{PHI_SCAN[i]:8.4f} {mean_e[i]:12.5f} {bias[i]:+11.5f} {sig_e[i]:11.6f} "
-              f"{crb_phi[C][i]:11.6f} {rms[i] / crb_phi[C][i]:13.4f}")
+        print(f"{PHI_SCAN[i]:8.4f} {mean_e[i]:12.5f} {bias[i]:+11.5f} {sig_e[i] / np.sqrt(K_SC):9.5f} "
+              f"{sig_e[i]:11.6f} {crb_phi[C][i]:11.6f} {rms[i] / crb_phi[C][i]:13.4f}")
 
 # %%
 # ==============================================================================
-# STEP 9b: is the sub-bound spread really bias?  The biased Cramer-Rao bound, Eq. (16)
+# STEP 9b: the sub-bound spread and the biased Cramer-Rao bound, Eq. (16)
 # ==============================================================================
-def mom_moments_exact(phi, N, shots, contrast=1.0):
-    """EXACT mean and variance of the estimator (14), summed over all NM+1 possible counts.
-
-    MATH   k ~ Binomial(n, p),  n = N*shots,  p = (1 - C cos phi)/2,
-           phi_hat(k) = arccos(clip((1 - 2k/n)/C, -1, 1)),
-           E[phi_hat]   = sum_k P(k) phi_hat(k),   Var = sum_k P(k) phi_hat(k)^2 - E[phi_hat]^2.
-    IMPLEMENTATION  the binomial pmf through log-gamma, so n = 600 causes no overflow.
-    COST   O(N*shots) per phase -- no Monte Carlo, hence no statistical error of its own.
-    """
-    n = N * shots
-    k = jnp.arange(n + 1, dtype=RDTYPE)
-    p = jnp.clip((1 - contrast * jnp.cos(phi)) / 2, 1e-15, 1 - 1e-15)
-    logP = (gammaln(n + 1.0) - gammaln(k + 1.0) - gammaln(n - k + 1.0)
-            + k * jnp.log(p) + (n - k) * jnp.log1p(-p))
-    P = jnp.exp(logP)
-    est = jnp.arccos(jnp.clip((1 - 2 * k / n) / contrast, -1.0, 1.0))
-    m1 = jnp.sum(P * est)
-    return m1, jnp.clip(jnp.sum(P * est ** 2) - m1 ** 2, 0.0, None)
-
-
 def bias_slope(phi, N, shots, contrast=1.0, h=1e-4):
     """d E[phi_hat] / d phi = 1 + b'(phi), by a central difference on the EXACT mean."""
     return (mom_moments_exact(phi + h, N, shots, contrast)[0]
@@ -1200,20 +1288,29 @@ def bias_slope(phi, N, shots, contrast=1.0, h=1e-4):
 print("Eq. (16): the biased Cramer-Rao bound, checked against the exact binomial moments\n")
 print(f"{'C':>5s} {'phi':>8s} {'sd exact':>10s} {'sd sampled':>11s} {'1 + b prime':>12s} "
       f"{'bound Eq.(16)':>14s} {'sd / bound':>11s} {'sd / Eq.(11)':>13s}")
-worst_ratio = np.inf
+worst_ratio, worst_z = np.inf, 0.0
+exact = {}
 for C in CONTRASTS:
-    for i in (0, 1, 2, 5, 15, 25, 29, 30):
+    m_x_all, sd_x_all = [], []
+    for i in range(len(PHI_SCAN)):                                 # ALL 31 phases; a subset is printed
         phi = float(PHI_SCAN[i])
-        _, var_x = mom_moments_exact(phi, N_SC, M_SC, C)
+        m_x, var_x = mom_moments_exact(phi, N_SC, M_SC, C)
         sd_x = float(jnp.sqrt(var_x))
+        m_x_all.append(float(m_x)); sd_x_all.append(sd_x)
         slope = float(bias_slope(phi, N_SC, M_SC, C))
         fisher = float(cfi_binomial(phi, N_SC, C))                 # per repetition
         bound = abs(slope) / np.sqrt(M_SC * fisher)                # Eq. (16)
         worst_ratio = min(worst_ratio, sd_x / bound)
-        print(f"{C:5.1f} {phi:8.4f} {sd_x:10.6f} {scan[C][1][i]:11.6f} {slope:12.4f} "
-              f"{bound:14.6f} {sd_x / bound:11.4f} {sd_x / crb_phi[C][i]:13.4f}")
-print(f"\nsmallest  sd / (biased Cramer-Rao bound)  over all scanned phases and both contrasts: "
+        # the sampled mean of Section 13 against the exact mean, in units of its standard error
+        worst_z = max(worst_z, abs(scan[C][0][i] - float(m_x)) / (sd_x / np.sqrt(K_SC)))
+        if i in (0, 1, 2, 5, 15, 25, 29, 30):
+            print(f"{C:5.1f} {phi:8.4f} {sd_x:10.6f} {scan[C][1][i]:11.6f} {slope:12.4f} "
+                  f"{bound:14.6f} {sd_x / bound:11.4f} {sd_x / crb_phi[C][i]:13.4f}")
+    exact[C] = (np.array(m_x_all), np.array(sd_x_all))
+print(f"\nsmallest  sd / (biased Cramer-Rao bound)  over all 31 phases and both contrasts: "
       f"{worst_ratio:.4f}   (must be >= 1)")
+print(f"largest |sampled mean - exact mean| / SE over all 62 scan points: {worst_z:.2f}")
+assert worst_z < 4.0, "the sampled response curve disagrees with the exact binomial sum"
 assert worst_ratio > 0.995, "the biased Cramer-Rao bound Eq. (16) is violated -- a bug, not physics"
 # power: the FLAT bound 1/sqrt(NM) is violated by the same numbers, which is the point of the test.
 flat_worst = min(float(jnp.sqrt(mom_moments_exact(float(PHI_SCAN[i]), N_SC, M_SC, 1.0)[1])) / crb_sc
@@ -1224,9 +1321,23 @@ assert flat_worst < 0.6
 
 # %%
 # ==============================================================================
-# FIGURE 3: the estimator across the fringe -- sensitivity and response curve
+# FIGURE 3: the estimator across the fringe -- sensitivity, bias, response slope
 # ==============================================================================
-fig, axes = plt.subplots(1, 2, figsize=(11.5, 4.2))
+# exact bias and response slope 1 + b' on fine grids (vmap over phi; N_SC, M_SC are closed over, so static)
+PHI_FINE = np.linspace(0.005, np.pi - 0.005, 600)
+PHI_LOG = np.geomspace(0.002, np.pi / 2, 400)                      # left half; the right half is its mirror image
+bias_fine, slope_log, dead_edge = {}, {}, {}
+for C in CONTRASTS:
+    mean_fn = jax.vmap(lambda ph: mom_moments_exact(ph, N_SC, M_SC, C)[0])
+    bias_fine[C] = np.asarray(mean_fn(jnp.asarray(PHI_FINE))) - PHI_FINE
+    h = 1e-4
+    slope_log[C] = np.asarray(mean_fn(jnp.asarray(PHI_LOG + h)) - mean_fn(jnp.asarray(PHI_LOG - h))) / (2 * h)
+    dead_edge[C] = float(PHI_LOG[np.argmax(slope_log[C] >= 0.5)])      # first phase with 1 + b' >= 1/2
+    print(f"C = {C}:  dead zone (response slope < 1/2) for phi < {dead_edge[C]:.3f} and phi > pi - "
+          f"{dead_edge[C]:.3f};  largest slope {slope_log[C].max():.3f} at phi = {PHI_LOG[slope_log[C].argmax()]:.3f}")
+
+fig, axes = plt.subplots(1, 3, figsize=(15.5, 4.4))
+ticks = ([0, np.pi / 4, np.pi / 2, 3 * np.pi / 4, np.pi], ["0", r"$\pi/4$", r"$\pi/2$", r"$3\pi/4$", r"$\pi$"])
 
 for j, C in enumerate(CONTRASTS):
     mean_e, sig_e = scan[C]
@@ -1239,74 +1350,97 @@ for j, C in enumerate(CONTRASTS):
                  label=rf"RMS error, $C={C}$")
 axes[0].set_yscale("log")
 axes[0].set_xlabel(r"true phase $\varphi$"); axes[0].set_ylabel(r"[rad]")
-axes[0].set_xticks([0, np.pi / 4, np.pi / 2, 3 * np.pi / 4, np.pi])
-axes[0].set_xticklabels(["0", r"$\pi/4$", r"$\pi/2$", r"$3\pi/4$", r"$\pi$"])
-axes[0].set_title(rf"Sensitivity across the fringe ($N={N_SC}$, $M={M_SC}$)")
+axes[0].set_xticks(ticks[0]); axes[0].set_xticklabels(ticks[1])
+axes[0].set_title(rf"(a) Sensitivity across the fringe ($N={N_SC}$, $M={M_SC}$)", fontsize=10)
 axes[0].legend(fontsize=7, ncol=2, loc="upper center")
 
-axes[1].plot(PHI_SCAN, PHI_SCAN, color="k", lw=1.0, ls=":", label=r"ideal response $\hat\varphi=\varphi$")
+axes[1].axhline(0, color="k", lw=0.8, ls=":")
 for j, C in enumerate(CONTRASTS):
     mean_e, sig_e = scan[C]
-    axes[1].errorbar(PHI_SCAN, mean_e, yerr=sig_e, fmt=MARKERS[j], color=PALETTE[j], ms=5, capsize=2,
-                     ls="-", lw=1.0, label=rf"$\mathbb{{E}}[\hat\varphi]\pm\Delta\hat\varphi$, $C={C}$")
-axes[1].axvspan(0, 0.25, color="0.7", alpha=0.45)
-axes[1].axvspan(np.pi - 0.25, np.pi, color="0.7", alpha=0.45, label="dead zones")
-axes[1].set_xlabel(r"true phase $\varphi$"); axes[1].set_ylabel(r"$\hat\varphi$ [rad]")
-axes[1].set_xticks([0, np.pi / 4, np.pi / 2, 3 * np.pi / 4, np.pi])
-axes[1].set_xticklabels(["0", r"$\pi/4$", r"$\pi/2$", r"$3\pi/4$", r"$\pi$"])
-axes[1].set_title("Response curve of the estimator")
-axes[1].legend(fontsize=8, loc="upper left")
+    axes[1].plot(PHI_FINE, bias_fine[C], color=PALETTE[j], lw=1.6, label=rf"exact, $C={C}$")
+    axes[1].errorbar(PHI_SCAN, mean_e - PHI_SCAN, yerr=sig_e / np.sqrt(K_SC), fmt=MARKERS[j], color=PALETTE[j],
+                     ms=4, capsize=2, ls="none", label=rf"sampled $\pm$ SE, $C={C}$")
+ph_d = np.linspace(0.3, np.pi - 0.3, 200)
+axes[1].plot(ph_d, -1 / (2 * N_SC * M_SC * np.tan(ph_d)), color="k", ls="--", lw=1.0,
+             label=r"Eq. (14a), $C=1$: $-\cot\varphi/(2NM)$")
+axes[1].set_xlabel(r"true phase $\varphi$"); axes[1].set_ylabel(r"bias $\mathbb{E}[\hat\varphi]-\varphi$ [rad]")
+axes[1].set_xticks(ticks[0]); axes[1].set_xticklabels(ticks[1])
+axes[1].set_title("(b) Bias of the estimator", fontsize=10)
+axes[1].legend(fontsize=7, loc="upper right")
+
+axes[2].axhline(1, color="k", lw=0.8, ls=":", label=r"ideal response, $1+b'=1$")
+axes[2].axhline(0.5, color="0.4", lw=0.8, ls="-.")
+for j, C in enumerate(CONTRASTS):
+    axes[2].plot(PHI_LOG, slope_log[C], color=PALETTE[j], lw=2.0, label=rf"exact $1+b'(\varphi)$, $C={C}$")
+    axes[2].axvspan(PHI_LOG[0], dead_edge[C], color=PALETTE[j], alpha=0.18,
+                    label=rf"dead zone ($1+b'<1/2$), $C={C}$")
+axes[2].axvline(1 / np.sqrt(N_SC * M_SC), color="0.4", lw=0.8, ls="--")
+axes[2].text(1.08 / np.sqrt(N_SC * M_SC), 0.06, r"$1/\sqrt{NM}$", fontsize=8, color="0.3")
+axes[2].set_xscale("log"); axes[2].set_xlim(PHI_LOG[0], PHI_LOG[-1])
+axes[2].set_xlabel(r"true phase $\varphi$ (log scale; $\pi-\varphi$ is the mirror image)")
+axes[2].set_ylabel(r"response slope $\partial_\varphi\mathbb{E}[\hat\varphi]=1+b'$")
+axes[2].set_title("(c) Response slope near the fringe edge", fontsize=10)
+axes[2].legend(fontsize=7, loc="upper left")
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# The table and the figure confirm both warnings, and the two failure modes look quite different.
+# The tables and the figure confirm both warnings, and the two failure modes look quite different.
 #
 # * **Central region.** For $\varphi$ between about $0.4$ and $2.7$ the measured spread lies on the Cramer-Rao curve for both
-#   contrasts (ratios between $0.97$ and $1.06$ in the tables), the bias is at most a few $10^{-3}$ rad, and the response curve
-#   is the straight line $\hat\varphi=\varphi$. Here the interferometer works exactly as advertised.
+#   contrasts (ratios between $0.97$ and $1.06$ in the tables). The bias there is small but not zero: it is the
+#   delta-method bias of Eq. (14a), at most $6\cdot10^{-3}$ rad in the printed rows (at $C=0.8$, $\varphi=2.60$:
+#   $+0.0059\pm0.0012$), and panel (b) shows the sampled points on the exact curve everywhere (largest deviation
+#   $2.7$ standard errors over all $62$ scan points). Here the interferometer works as advertised.
 # * **Imperfect contrast, $C=0.8$ (warning 2).** The bound of Eq. (11) rises steeply towards both edges — a genuine
-#   divergence, clearly visible on the logarithmic axis — and the measured points follow it up: $\Delta\hat\varphi$ grows from
-#   $0.0507$ at mid-fringe to $0.136$ at $\varphi=0.227$, a factor of $2.7$. Further in, the measured spread *stops* following
-#   the bound and saturates near $0.13$ rad, simply because $\hat\varphi$ is confined to $[0,\pi]$ and the data have become
-#   uninformative: at $\varphi=0.02$ the estimator reports $0.098\pm0.120$, which says nothing about a phase of $0.02$.
-# * **Perfect contrast, $C=1$ (warning 1).** The bound stays flat at $1/\sqrt{NM}=0.0408$, and yet the measured spread *falls
-#   below* it at the edges, down to $0.0185$. That is not a violation: Eq. (2) constrains **unbiased** estimators only. The
-#   right panel shows what really happened — in the shaded dead zones the response curve flattens away from the diagonal
-#   ($\mathbb E[\hat\varphi]=0.0050$ when $\varphi=0.0200$), so the estimator returns nearly the same answer for a range of
-#   true phases. An estimator that always answers "zero" has zero variance and is completely useless; this is a mild version
-#   of that.
+#   divergence, clearly visible on the logarithmic axis of panel (a) — and the measured points follow it up:
+#   $\Delta\hat\varphi$ grows from $0.0507$ at mid-fringe to $0.136$ at $\varphi=0.227$, a factor of $2.7$. Further in, the
+#   measured spread *stops* following the bound and saturates near $0.13$ rad, because $\hat\varphi$ is confined to
+#   $[0,\pi]$ and the data have become uninformative: at $\varphi=0.02$ the estimator reports $0.098\pm0.120$, which says
+#   nothing about a phase of $0.02$. Panel (c) quantifies this: the response slope drops below $\tfrac12$ for
+#   $\varphi<0.130$ (and $\varphi>\pi-0.130$), and is $0.07$ at $\varphi=0.02$.
+# * **Perfect contrast, $C=1$ (warning 1).** The bound stays flat at $1/\sqrt{NM}=0.0408$, and yet the measured spread falls
+#   below it at the edges, down to $0.0185$. Eq. (2) constrains **unbiased** estimators only, and this estimator is biased
+#   there. Its dead zone is narrow: the response slope is below $\tfrac12$ only for $\varphi<0.021$, roughly half of
+#   $1/\sqrt{NM}=0.041$, and at $\varphi=0.02$ the mean estimate is $0.0050$. Between the dead zone and the central region
+#   the response *overshoots*, with slope $1.21$ at $\varphi\approx0.09$ (panel (c)); that is why the spread at
+#   $\varphi=0.123$ lies about $22\%$ *above* the flat bound, and Eq. (16) accounts for it.
 #
-#   The checkpoint above turns that sentence into a number. At $\varphi=0.02$ with $C=1$ the exact response slope is
-#   $1+b'=0.473$, so the *correct* bound, Eq. (16), is $0.473/\sqrt{NM}=0.0193$ — and the exact standard deviation of the
-#   estimator is $0.0194$, i.e. $1.005$ times its bound. The factor by which the estimator appears to "beat" the flat bound,
-#   $0.4756$, is nothing other than the factor by which its response curve is flattened. Over all $31$ phases and both
-#   contrasts the smallest ratio to Eq. (16) is $1.0000$ (attained, as it must be, at mid-fringe, where $b'=0$); the smallest
-#   ratio to the unbiased bound is $0.476$. Bias, not a broken bound.
-# * The honest single figure of merit is the **root-mean-square error** $\sqrt{\mathrm{bias}^2+\Delta\hat\varphi^2}$ (dashed).
-#   It exceeds the Cramer-Rao curve wherever the bias matters — by $24\%$ at $\varphi=0.123$ for $C=1$ — and falls below it
-#   only in the regime where the estimator has stopped responding at all.
+#   The checkpoint above turns this into numbers. At $\varphi=0.02$ with $C=1$ the exact response slope is $1+b'=0.473$,
+#   so the bound of Eq. (16) is $0.473/\sqrt{NM}=0.0193$, and the exact standard deviation of the estimator is $0.0194$,
+#   i.e. $1.005$ times its bound. The factor by which the estimator appears to "beat" the flat bound, $0.4756$, is the
+#   factor by which its response curve is flattened. Over all $31$ phases and both contrasts the smallest ratio to
+#   Eq. (16) is $1.0000$ (attained at mid-fringe, where $b'\approx1/(2NM)$ is negligible); the smallest ratio to the
+#   unbiased bound is $0.476$. The sub-bound spread is a consequence of the bias, and the correct bound holds everywhere.
+# * The single figure of merit that does not depend on the bias is the **root-mean-square error**
+#   $\sqrt{\mathrm{bias}^2+\Delta\hat\varphi^2}$ (dashed in panel (a)). It exceeds the Cramer-Rao curve wherever the bias
+#   matters — by $24\%$ at $\varphi=0.123$ for $C=1$ — and falls below it only in the dead zone, where the estimator has
+#   stopped responding to the phase.
 #
 # > **Common pitfall.** Quoting a standard deviation as "the error" is only meaningful for an unbiased estimator. Whenever a
 # > parameter sits near the boundary of its allowed range — here $\hat p\ge0$ forces $\hat\varphi\ge0$ — measure the bias
 # > first, plot the *response curve*, and report the RMS error.
 #
-# The practical consequence is the rule every clock obeys: **operate at mid-fringe**. There the estimator is unbiased, the
-# response is linear, the sensitivity is best for any contrast, and the Cramer-Rao bound is saturated.
+# The practical consequence is the operating rule of clocks: **operate at mid-fringe**. There the estimator is unbiased, the
+# response is linear, the sensitivity is best for any contrast, and the Cramer-Rao bound is attained up to the
+# $1+1/(2NM)$ correction of Section 11.
 
 # %% [markdown]
 # ## 14. Phase wrapping: the interferometer's blind spots
 #
-# The outcome probability $p(\varphi)=\sin^2(\varphi/2)$ is $2\pi$-periodic *and* even. Two consequences, both fatal if ignored:
+# The outcome probability $p(\varphi)=\sin^2(\varphi/2)$ is $2\pi$-periodic *and* even:
 #
 # $$p(\varphi)=p(-\varphi)\qquad\text{and}\qquad p(\varphi)=p(\varphi+2\pi).$$
 #
-# **No measurement whatsoever** — not a better estimator, not more shots — can distinguish $\varphi$ from $-\varphi$ or from
+# Neither a better estimator nor more repetitions of this protocol can distinguish $\varphi$ from $-\varphi$ or from
 # $\varphi+2\pi k$. The likelihood function (15) is literally identical at those points. The unambiguous window of a Ramsey
 # interferometer therefore has width $\pi$; conventionally $\varphi\in[0,\pi]$, which is the interval our grid search uses.
 #
-# In frequency language, $\varphi=\delta T$ means the unambiguous detuning range is $\vert\delta\vert<\pi/T$ — the longer the
-# interrogation, the finer the resolution *and the narrower the window*. Real clocks resolve this with a servo loop that keeps
-# $\delta$ near zero, or with a sequence of interrogations of increasing $T$ (each one refining the previous estimate). The same
+# In frequency language, $\varphi=\delta T$ means that the protocol determines $\vert\delta\vert$ unambiguously only for
+# $\vert\delta\vert<\pi/T$, and never determines the sign of $\delta$; the longer the interrogation, the finer the resolution
+# *and the narrower the window*. Shifting the phase of the second pulse by $\pi/2$ (Section 16.3) makes the fringe odd in
+# $\delta$, $p=\tfrac12(1+C\sin\delta T)$, which resolves the sign inside the window $\vert\delta T\vert<\pi/2$, again of
+# width $\pi$. Clocks handle the remaining ambiguity with a servo loop that keeps $\delta$ near zero, or with a sequence of
+# interrogations of increasing $T$, each one refining the previous estimate. The same
 # problem returns $N$ times worse in [notebook 32](./32_ghz_interferometry_heisenberg_limit.ipynb).
 #
 # The cell below demonstrates the aliasing by plotting the likelihood produced by one data set over an extended range.
@@ -1356,9 +1490,10 @@ fig.tight_layout(); plt.show()
 
 # %% [markdown]
 # Four peaks of exactly equal height inside $[-2\pi,2\pi]$, at $\pm\hat\varphi$ and $\pm\hat\varphi\mp2\pi$ — and the pattern
-# repeats forever. The printed log-likelihoods at the four aliases of the *true* phase are identical to all digits shown, which
-# is the statement that no amount of data can separate them. The data pin the phase down to a *set*, not to a number;
-# restricting the estimator to the shaded window is a piece of prior knowledge, not something the measurement provides. (The
+# repeats with period $2\pi$. The printed log-likelihoods at the four aliases of the *true* phase are identical to all digits
+# shown, which is the statement that no amount of data from this protocol can separate them. The data determine the phase
+# only up to this set of aliases; restricting the estimator to the shaded window is prior knowledge that the measurement
+# does not provide. (The
 # dotted lines mark $\pm0.9$, the true phase; the dashed lines mark the maximum-likelihood estimate, which differs from it by
 # one statistical fluctuation of a single $M=100$ experiment.)
 
@@ -1368,7 +1503,7 @@ fig.tight_layout(); plt.show()
 # ### 15.1 Dephasing and the contrast $e^{-\gamma T}$
 #
 # During the free evolution the atoms are not isolated: fluctuating fields randomise the relative phase between $\vert0\rangle$
-# and $\vert1\rangle$. The simplest and most important model is **Markovian dephasing**, described for each atom by the
+# and $\vert1\rangle$. The simplest model is **Markovian dephasing**, described for each atom by the
 # master equation
 #
 # $$\frac{d\rho}{dt}=-i[\delta J_z,\rho]+\frac{\gamma}{2}\big(Z\rho Z-\rho\big).$$
@@ -1395,7 +1530,7 @@ fig.tight_layout(); plt.show()
 # encoding $e^{-i\varphi J_z}$: both are diagonal in the computational basis. Noise "during" the interrogation and noise
 # "after" it are therefore the same map here — a convenience we will lose in other channels.)
 #
-# ### 15.3 What it does to the Fisher informations
+# ### 15.3 Effect on the Fisher informations
 #
 # After dephasing the $N$-atom state is still a *product* of identical one-atom mixed states, with Bloch vector
 # $\mathbf r=(C\cos\varphi,\ C\sin\varphi,\ 0)$. Quantum Fisher information is additive over a product state, so
@@ -1429,7 +1564,7 @@ fig.tight_layout(); plt.show()
 # ### 15.4 Amplitude damping, for comparison
 #
 # If instead the excited state *decays* with probability $g$ during the interrogation (the engine's
-# `kraus_amplitude_damping`), the channel is **non-unital**: it does not merely shrink the Bloch vector, it also pushes it
+# `kraus_amplitude_damping`), the channel is **non-unital**: besides shrinking the Bloch vector, it also pushes it
 # towards the pole. Starting from the encoded equatorial state $(\cos\varphi,\sin\varphi,0)$, the Kraus pair
 # $K_0=\mathrm{diag}(1,\sqrt{1-g})$, $K_1=\sqrt g\,\sigma^-$ gives
 #
@@ -1527,9 +1662,9 @@ assert err_ad < 1e-9
 N_NOISY, M_NOISY, K_NOISY = 8, 100, 3000
 print(f"N = {N_NOISY}, M = {M_NOISY}, K = {K_NOISY}, operating at mid-fringe\n")
 print(f"{'gamma*T':>8s} {'C':>9s} {'Delta phi measured':>20s} {'error bar':>11s} "
-      f"{'1/(C sqrt(NM))':>16s} {'ratio':>8s}")
+      f"{'1/(C sqrt(NM))':>16s} {'ratio':>8s} {'exact ratio':>12s}")
 key = jax.random.PRNGKey(909)
-gTs, meas, pred_l = [], [], []
+gTs, meas, pred_l, exact_l = [], [], [], []
 for gT in (0.0, 0.25, 0.5, 0.75, 1.0, 1.5, 2.0):
     C = float(np.exp(-gT))
     key, sub = jax.random.split(key)
@@ -1537,14 +1672,19 @@ for gT in (0.0, 0.25, 0.5, 0.75, 1.0, 1.5, 2.0):
     est = np.asarray(phi_hat_mom(k, N_NOISY, M_NOISY, contrast=C))
     s = float(est.std(ddof=1))
     crb_ = 1 / (C * np.sqrt(N_NOISY * M_NOISY))
-    gTs.append(gT); meas.append(s); pred_l.append(crb_)
-    print(f"{gT:8.2f} {C:9.5f} {s:20.6f} {float(std_of_std(s, K_NOISY)):11.6f} {crb_:16.6f} {s / crb_:8.4f}")
+    sd_x = float(jnp.sqrt(mom_moments_exact(PHI_TRUE, N_NOISY, M_NOISY, C)[1]))   # exact binomial sum
+    gTs.append(gT); meas.append(s); pred_l.append(crb_); exact_l.append(sd_x)
+    print(f"{gT:8.2f} {C:9.5f} {s:20.6f} {float(std_of_std(s, K_NOISY)):11.6f} {crb_:16.6f} {s / crb_:8.4f} "
+          f"{sd_x / crb_:12.4f}")
+    assert abs(s - sd_x) < 4 * float(std_of_std(sd_x, K_NOISY)), "measured spread disagrees with the exact sum"
 assert abs(meas[0] / pred_l[0] - 1) < 0.1 and abs(meas[3] / pred_l[3] - 1) < 0.15
 
 # %% [markdown]
-# The measured sensitivity tracks $e^{\gamma T}/\sqrt{NM}$ across a factor $e^2\simeq7.4$ in contrast; the ratios stay near
-# unity until the contrast becomes so small ($C=0.135$ at $\gamma T=2$) that the estimator starts to feel the clipping of
-# Eq. (14) again. Decoherence costs sensitivity *exponentially* in the interrogation time — which immediately raises the
+# The measured sensitivity tracks $e^{\gamma T}/\sqrt{NM}$ across a factor $e^2\simeq7.4$ in contrast, and every row
+# agrees with the exact binomial sum within four error bars (asserted). The ratios stay near unity until the contrast is
+# small: at $\gamma T=2$ ($C=0.135$) the exact ratio is $1.043$. This excess is the curvature of $\arccos$, the
+# $1+1/(2NM)$ correction of Section 11 with $NM$ replaced by $NMC^2=15$ effective detections ($1+1/30=1.033$ to that
+# order); clipping at the edge of the $\arccos$ domain plays no role here (it occurs with probability $10^{-4}$). Decoherence costs sensitivity *exponentially* in the interrogation time — which immediately raises the
 # question of the next section.
 
 # %% [markdown]
@@ -1592,9 +1732,9 @@ assert abs(meas[0] / pred_l[0] - 1) < 0.1 and abs(meas[3] / pred_l[3] - 1) < 0.1
 # * the best achievable frequency uncertainty scales as $\sqrt{\gamma}$ — **halving the decoherence rate improves a clock by
 #   $\sqrt2$**, whatever else you do;
 # * it scales as $1/\sqrt N$ — the standard quantum limit survives decoherence intact;
-# * the optimum is *universal*: interrogate for half a coherence time, no matter how many atoms you have. (In
-#   [notebook 32](./32_ghz_interferometry_heisenberg_limit.ipynb) an entangled probe changes that to $1/(2N\gamma)$, with
-#   consequences.)
+# * the optimum does not depend on $N$: interrogate for half a coherence time, whatever the atom number. (In
+#   [notebook 32](./32_ghz_interferometry_heisenberg_limit.ipynb) a GHZ probe moves the optimum to $1/(2N\gamma)$ and ends
+#   up with the same $\Delta\delta_{\min}$.)
 #
 # ### 16.3 Verification
 #
@@ -1624,8 +1764,20 @@ def delta_hat(k, N, shots, T, contrast):
     return jnp.arcsin(jnp.clip((2 * k / (N * shots) - 1) / contrast, -1.0, 1.0)) / T
 
 
+def delta_sd_exact(N, shots, T, contrast):
+    """EXACT standard deviation of `delta_hat` at delta = 0 (p = 1/2), summed over all N*shots+1 counts,
+    together with the probability that the arcsin argument is clipped.  Same log-gamma pmf as Section 11.1."""
+    n = N * shots
+    k = jnp.arange(n + 1, dtype=RDTYPE)
+    P = jnp.exp(gammaln(n + 1.0) - gammaln(k + 1.0) - gammaln(n - k + 1.0) - n * jnp.log(2.0))
+    x = (2 * k / n - 1) / contrast
+    d = delta_hat(k, N, shots, T, contrast)
+    m1 = jnp.sum(P * d)
+    return float(jnp.sqrt(jnp.sum(P * d ** 2) - m1 ** 2)), float(jnp.sum(jnp.where(jnp.abs(x) >= 1, P, 0.0)))
+
+
 T_GRID = np.array([0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.65, 0.8, 1.0, 1.4, 2.0, 3.0])
-meas_dd, pred_dd, Ms = [], [], []
+meas_dd, pred_dd, Ms, exact_dd, pclip = [], [], [], [], []
 key = jax.random.PRNGKey(4242)
 for T in T_GRID:
     M = max(int(T_TOT // T), 1)
@@ -1636,6 +1788,9 @@ for T in T_GRID:
     meas_dd.append(float(d.std(ddof=1)))
     pred_dd.append(float(np.exp(GAMMA * T) / np.sqrt(N_CLOCK * M * T ** 2)))
     Ms.append(M)
+    sd_x, pc = delta_sd_exact(N_CLOCK, M, float(T), C)
+    exact_dd.append(sd_x); pclip.append(pc)
+    assert abs(meas_dd[-1] - sd_x) < 4 * float(std_of_std(sd_x, K_CLOCK)), "clock spread disagrees with the exact sum"
 
 i_meas = int(np.argmin(meas_dd))
 T_fine = np.linspace(0.05, 3.0, 2000)
@@ -1644,10 +1799,10 @@ T_opt_analytic = 1 / (2 * GAMMA)
 
 print(f"gamma = {GAMMA}, total time = {T_TOT}, N = {N_CLOCK} atoms, K = {K_CLOCK} clock runs per point\n")
 print(f"{'T':>7s} {'M = T_tot/T':>12s} {'C = e^{-gT}':>12s} {'Delta delta measured':>22s} "
-      f"{'error bar':>11s} {'Eq. (23)':>11s} {'ratio':>7s}")
-for T, m, mm, pp in zip(T_GRID, Ms, meas_dd, pred_dd):
+      f"{'error bar':>11s} {'Eq. (23)':>11s} {'ratio':>7s} {'exact ratio':>12s} {'P(clip)':>9s}")
+for T, m, mm, pp, xx, pc in zip(T_GRID, Ms, meas_dd, pred_dd, exact_dd, pclip):
     print(f"{T:7.2f} {m:12d} {np.exp(-GAMMA * T):12.5f} {mm:22.6f} "
-          f"{float(std_of_std(mm, K_CLOCK)):11.6f} {pp:11.6f} {mm / pp:7.4f}")
+          f"{float(std_of_std(mm, K_CLOCK)):11.6f} {pp:11.6f} {mm / pp:7.4f} {xx / pp:12.4f} {pc:9.1e}")
 print(f"\nanalytic optimum          T_opt = 1/(2 gamma) = {T_opt_analytic:.4f},  gamma*T_opt = {GAMMA * T_opt_analytic:.4f}")
 print(f"minimum of the analytic curve (fine grid):        T = {T_fine[int(np.argmin(dd_fine))]:.4f}")
 print(f"best MEASURED point on the simulated grid:        T = {T_GRID[i_meas]:.4f}   "
@@ -1693,7 +1848,8 @@ axes[1].legend(fontsize=8)
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# The simulated clock runs land on the analytic curve over the whole scanned range. The lowest measured point is the grid
+# The simulated clock runs land on the analytic curve over the scanned range up to $T\approx2/\gamma$ (the last point is
+# discussed below). The lowest measured point is the grid
 # point $T=0.5/\gamma$, which is $T_{\mathrm{opt}}=1/(2\gamma)$ from Eq. (24), and the analytic curve minimises at
 # $T=0.5001/\gamma$ on the fine grid (grid resolution $1.5\cdot10^{-3}$). The agreement of the *value* is the informative
 # statement: $0.0408\,\gamma$ against $\sqrt{2e\gamma/(NT_{\mathrm{tot}})}=0.0412\,\gamma$ from Eq. (25), a difference of
@@ -1702,42 +1858,46 @@ fig.tight_layout(); plt.show()
 # The *position* of the minimum is much weaker evidence, and it is worth seeing why. Each point carries a relative error
 # $1/\sqrt{2(K-1)}=1.3\%$, whereas the analytic curve rises by only $1.2\%$ between $T=0.5$ and $T=0.4$ and by $1.9\%$ between
 # $T=0.5$ and $T=0.65$ — the minimum of $e^{\gamma T}/\sqrt T$ is quadratically flat, so the argument of the minimum over this
-# grid is decided by noise among its three central points. Repeating the whole scan with other seeds confirms this: the lowest
-# point lands on $T=0.5$ in roughly two thirds of the runs and on $T=0.4$ or $T=0.65$ in the rest, never further away (the
+# grid is decided by noise among its three central points. Repeating the whole scan with $200$ other seeds (binomial counts
+# drawn with NumPy, same estimator) confirms this: the lowest point lands on $T=0.5$ in $128$ runs, on $T=0.4$ in $51$ and
+# on $T=0.65$ in $21$, never further away (the
 # next grid points out, $T=0.3$ and $T=0.8$, lie $5.7\%$ and $6.7\%$ above the minimum, more than four standard errors). The
 # assert below is written accordingly: it tolerates a shift by one grid point in the position, and is tight on the value.
 #
-# Both ends of the scan sit above the curve, for different reasons. At $T=0.05$ the excess is $2.4\%$ (under two standard
-# errors, so barely significant). At $T=3$ it is $17\%$, and that is a real effect, not noise: the contrast has collapsed to
-# $C=0.05$, so the argument $(2\hat p-1)/C$ of the $\arcsin$ in `delta_hat` has a standard deviation of $0.6$ and is clipped
-# to $\pm1$ in a sizeable fraction of the runs. Eq. (23) is a linear-response formula and stops applying once the estimator
-# spends its time against the edge of its range — the same failure as at the fringe extrema in Section 13, arriving here
-# through the contrast instead of through the phase.
+# Both ends of the scan sit above the curve, for different reasons, and the exact column separates them. At $T=0.05$ the
+# measured excess is $2.4\%$, under two standard errors, while the exact ratio is $1.0000$: it is a sampling fluctuation.
+# At $T=3$ the measured excess is $17\%$ and the exact ratio is $1.182$, so the effect is real: the contrast has
+# collapsed to $C=0.05$, the argument $(2\hat p-1)/C$ of the $\arcsin$ in `delta_hat` has a standard deviation of $0.62$,
+# the curvature of $\arcsin$ amplifies the large excursions, and $10\%$ of the runs are clipped to $\pm1$ (column
+# `P(clip)`). Eq. (23) is a linear-response formula and stops applying once the estimator explores the curved part and
+# the edge of its range — the same failure as at the fringe extrema in Section 13, arriving here through the contrast
+# instead of through the phase. Every measured point agrees with its exact value within four error bars (asserted).
 #
 # The right panel shows *why* there is an optimum: the useful phase per run grows linearly with $T$, the contrast falls
 # exponentially, and their combination — together with the fact that long runs mean few runs — peaks at half a coherence time.
 # Below $T_{\mathrm{opt}}$ one wastes coherence; above it one pays an exponential penalty for it.
 #
-# > **Physics insight.** Equation (25) is the number that decides how good a clock can be. It contains $\gamma$ and $N$ and
-# > nothing else — no cleverness of the readout, no better estimator. The only two ways forward are *reduce $\gamma$* (better
-# > isolation, dynamical decoupling, longer-lived transitions) or *change the probe state*. The next notebook takes the second
-# > road and measures how much it buys.
+# > **Physics insight.** Within the four assumptions of Section 16.1, Equation (25) sets the frequency resolution of the
+# > clock. It depends on $\gamma$, $N$ and $T_{\mathrm{tot}}$ only: the readout is already optimal at mid-fringe, so a
+# > better estimator cannot improve it. What remains is to reduce $\gamma$ (better isolation, dynamical decoupling,
+# > longer-lived transitions) or to change the probe state. [Notebook 32](./32_ghz_interferometry_heisenberg_limit.ipynb)
+# > tries the second option with a GHZ probe and finds, under the same independent dephasing, the same
+# > $\Delta\delta_{\min}$ (Huelga *et al.*, 1997).
 
 # %% [markdown]
 # ## 17. Performance notes
 #
 # Two cost models coexist in this notebook. We measure both.
 #
-# * The **engine sampler** works on the full $2^N$ Born distribution: honest for any state, but it allocates
-#   $K\cdot M\cdot2^N$ numbers inside the `vmap` and therefore hits a memory wall around $N\simeq10$ with the batch sizes used
-#   here.
+# * The **engine sampler** works on the full $2^N$ Born distribution: correct for any state, but it allocates
+#   $K\cdot M\cdot2^N$ numbers inside the `vmap`, which grows by a factor of two per atom.
 # * The **coin sampler** costs $O(KMN)$ and is exact *for product states only*.
 #
 # The cell below times both at the same $(N,M,K)$ and reports the ratio, separating compilation from execution.
 
 # %%
 # ==============================================================================
-# STEP 14: honest timings -- compile time vs run time, engine sampler vs coin sampler
+# STEP 14: timings -- compile time vs run time, engine sampler vs coin sampler
 # ==============================================================================
 def timeit_jax(fn, *args, repeats=3):
     """(compile+first call, best of `repeats` subsequent calls) in seconds, with block_until_ready."""
@@ -1758,17 +1918,18 @@ for N, M, K in ((4, 50, 400), (7, 50, 400), (10, 50, 200)):
           f"{tr1 / tr2:9.1f} {K * M * 2 ** N:21.3e}")
 
 # %% [markdown]
-# The engine sampler is already a few times slower at $N=4$ and two orders of magnitude slower at $N=10$ (the exact factor
-# depends on how loaded the machine is: successive builds of this notebook measured factors between $80$ and $160$), and the last column shows why: its transient memory grows by a factor of two
-# with every added atom while the coin sampler grows linearly in $N$. At the modest batch sizes of this table the memory is
-# not yet a problem — the largest entry, $10^7$ doubles, is $82$ MB — but the growth rate is what matters: at the $K=400$,
-# $M=200$ of the sweeps in Section 12 the same column would read $3\cdot10^8$ doubles, $2.6$ GB, at $N=12$ alone. (Read the run times, not the compile times: compilation is a one-off cost, and it is even mildly non-monotonic here
-# because XLA reuses work across calls.) The lesson is general and worth
-# stating as a rule: **exact Born sampling is the right default; special structure is an optimisation you may use only after
-# verifying it**, which is precisely what the checkpoint in Section 9 did.
+# The run times are the relevant comparison. The engine sampler is a few times slower at $N=4$ and about two orders of
+# magnitude slower at $N=10$ (speed-ups between $140$ and $160$ in successive builds of this notebook; the exact factor
+# depends on the load of the machine), and the last column shows why: its transient memory grows by a factor of two with every added
+# atom, while the coin sampler grows linearly in $N$. At the batch sizes of this table the memory is not yet a problem —
+# the largest entry, $10^7$ doubles, is $82$ MB — but the growth rate is: the $N$ sweep of Section 12 ($K=8000$, $M=100$,
+# up to $N=16$) would need $8000\cdot100\cdot2^{16}\approx5\cdot10^{10}$ doubles, about $420$ GB, with the engine sampler.
+# Compilation is a one-off cost, of a fraction of a second to about two seconds here, and it is not even monotonic in $N$,
+# because XLA reuses work across calls. The general rule: **exact Born sampling is the default; special structure is an
+# optimisation to be used only after it has been verified**, which is what the checkpoint in Section 9 did.
 #
 # > **JAX practice.** The compile times are much larger than the run times. When benchmarking anything in JAX,
-# > always call the function once before timing it, and always `block_until_ready` — JAX dispatches asynchronously, so a
+# > call the function once before timing it, and always `block_until_ready` — JAX dispatches asynchronously, so a
 # > timing loop without it measures the speed of the Python interpreter, not of the computation.
 
 # %% [markdown]
@@ -1778,25 +1939,25 @@ for N, M, K in ((4, 50, 400), (7, 50, 400), (10, 50, 200)):
 #   state $\to e^{-i\varphi J_z}\to$ second pulse $\to$ count atoms. The probe carries no entanglement (second Schmidt
 #   coefficient measured at $10^{-16}$ across every cut), and the accumulated phase is $\varphi=\delta T$.
 # * **Signal and noise, both exact.** $\langle J_z\rangle=\tfrac N2\cos\varphi$ and $\mathrm{Var}(J_z)=\tfrac N4\sin^2\varphi$,
-#   verified against the engine to $3\cdot10^{-15}$ and $2\cdot10^{-14}$. The variance is quantum projection noise — the
-#   irreducible randomness of
-#   projecting $N$ independent superpositions.
+#   verified against the engine to $3\cdot10^{-15}$ and $2\cdot10^{-14}$. The variance is quantum projection noise, the
+#   randomness of projecting $N$ independent superpositions.
 # * **The standard quantum limit, three times over.** Error propagation, the classical Fisher information of the binomial
-#   record ($F=N$ at every phase strictly inside the fringe; the two extrema are a removable singularity of the limit at
-#   which the Cramer-Rao regularity conditions fail, Section 7.1), and the quantum Fisher information of the probe
-#   ($F_Q=4\mathrm{Var}(J_z)=N$) all give
-#   $\Delta\varphi=1/\sqrt{NM}$. Because $F=F_Q$, atom counting is an **optimal** measurement: no better readout exists for this
-#   probe.
-# * **Measured, not assumed.** Sweeping $N=2\dots16$ and $M=10\dots1000$ with $8000$ independent experiments per point, the
+#   record ($F=N$ at every phase strictly inside the fringe; at the two extrema $F=0$ while its limit is $N$, and the
+#   Cramer-Rao regularity condition fails, Section 7.1), and the quantum Fisher information of the probe
+#   ($F_Q=4\mathrm{Var}(J_z)=N$) all give $\Delta\varphi=1/\sqrt{NM}$, with $\nu=NM$ phase imprints as the resource.
+#   Because $F=F_Q$, atom counting is an **optimal** measurement: no better readout exists for this probe.
+# * **The scaling, measured.** Sweeping $N=2\dots16$ and $M=10\dots1000$ with $8000$ independent experiments per point, the
 #   measured $\Delta\varphi$ followed power laws with fitted exponents $-0.508\pm0.004$ and $-0.499\pm0.002$ ($1.9\sigma$ and
 #   $0.7\sigma$ from $-1/2$), and stayed within $1.6\%$ of the Cramer-Rao bound at every point.
 # * **The estimator is only good where the fringe is steep.** Method of moments and maximum likelihood coincide exactly here
-#   (the atom count is a sufficient statistic; agreement measured to better than one grid step). Near the fringe extrema two
-#   different things go wrong: at imperfect contrast the Cramer-Rao bound itself diverges, Eq. (11); at perfect contrast the
-#   bound stays flat but the estimator enters a **dead zone** where its response curve flattens, it becomes biased, and its
-#   standard deviation drops misleadingly *below* the bound — by a factor $0.476$, which is exactly the flattening factor
-#   $1+b'$ of the response curve, as the biased Cramer-Rao bound Eq. (16) requires and as the exact binomial moments confirm
-#   to four digits. Operate at mid-fringe.
+#   (the atom count is a sufficient statistic; agreement measured to better than one grid step). At finite $NM$ it is
+#   biased everywhere except at mid-fringe, by $\approx-\cot\varphi/(2NM)$, Eq. (14a), measured at $\varphi=\pi/4$ with
+#   error bars against the exact binomial sum, while "bias $=0$" is rejected by $18$ and $12$ standard errors at $M=10$
+#   and $25$. Near the fringe extrema two different things go wrong: at imperfect contrast the Cramer-Rao bound itself
+#   diverges, Eq. (11); at perfect contrast the bound stays flat but the estimator enters a **dead zone** (response slope
+#   below $\tfrac12$ for $\varphi<0.021$ at $NM=600$) where it is strongly biased and its standard deviation drops *below*
+#   the flat bound, by a factor $0.476$. The biased Cramer-Rao bound, Eq. (16), accounts for this: the exact standard
+#   deviation is $1.005$ times $(1+b')/\sqrt{NM}$ there. Operate at mid-fringe.
 # * **The phase is known only modulo aliases.** $p(\varphi)=p(-\varphi)=p(\varphi+2\pi)$, so the likelihood has infinitely many
 #   equal maxima and the unambiguous window has width $\pi$.
 # * **Dephasing is a contrast.** $C=e^{-\gamma T}$ (verified against exact Kraus evolution to $3\cdot10^{-15}$). The QFI is
@@ -1808,10 +1969,11 @@ for N, M, K in ((4, 50, 400), (7, 50, 400), (10, 50, 200)):
 # * **A clock has one optimal interrogation time,** $T_{\mathrm{opt}}=1/(2\gamma)$ — half a coherence time, independent of $N$
 #   — giving $\Delta\delta_{\min}=\sqrt{2e\gamma/(NT_{\mathrm{tot}})}$ (Huelga *et al.*, 1997; assumes uncorrelated atoms,
 #   Markovian dephasing and no dead time). Simulated clock runs reproduced the minimum value to $0.9\%$, within its $1.3\%$
-#   error bar; the *position* is only resolved to one grid point, because the minimum is quadratically flat.
+#   error bar; the *position* is only resolved to one grid point, because the minimum is quadratically flat. Every point
+#   of the scan agrees with the exact binomial sum, including the $17\%$ excess at $T=3/\gamma$ (exact: $18\%$), where the contrast is $0.05$.
 # * **Implementation discipline.** Born sampling is the default; the $O(NM)$ coin sampler is used only because a two-sample
 #   test on the mean **and on the variance** confirmed it is statistically identical for this (product) state. The variance
-#   half of that test is the one with teeth: a deliberately wrong sampler with correlated atoms has exactly the right mean
+#   half of that test is the one that detects correlations: a deliberately wrong sampler with correlated atoms has exactly the right mean
 #   and is rejected at $\vert z\vert\simeq30$--$50$. It would be wrong in precisely that way for the entangled probe of the
 #   next notebook.
 #
@@ -1821,18 +1983,18 @@ for N, M, K in ((4, 50, 400), (7, 50, 400), (10, 50, 200)):
 #    Compute $\langle J_z\rangle(\varphi)$ with the engine for $\epsilon=0.05,0.1,0.2$, fit $A+B\cos\varphi$, and check whether
 #    the loss of contrast is second order in $\epsilon$. What does this imply for the calibration tolerance of a clock?
 #    (Fit on $\varphi\in[0,2\pi)$ with the endpoint *excluded*, or the discrete Fourier coefficients come out biased.)
-# 2. ★ **Where is the information?** Plot `cfi_binomial(phi, N, C)` against $\varphi$ for $C=1,0.8,0.5,0.2$. Verify that the
+# 2. ★ **The Fisher information across the fringe.** Plot `cfi_binomial(phi, N, C)` against $\varphi$ for $C=1,0.8,0.5,0.2$. Verify that the
 #    maximum is always at mid-fringe and equals $NC^2$, and that the width of the useful region shrinks as $C$ falls. Then
 #    show analytically that the half-maximum points sit at $\cos^2\varphi=1/(2-C^2)$, so the full width at half maximum
 #    shrinks from $\pi$ at $C=1$ to $\pi/2$ as $C\to0$. (Use a $\varphi$ grid that *excludes* $0$ and $\pi$: at $C=1$ the
 #    function is $0/0$ there and returns `nan` — see the pitfall box in Section 7.1.)
-# 3. ★★ **The MLE really is asymptotically efficient (extend the code).** At $\varphi=0.1$ (deep in the biased region) compute
+# 3. ★★ **Asymptotic efficiency of the estimator at finite $NM$ (extend the code).** At $\varphi=0.1$ (deep in the biased region) compute
 #    the RMS error of $\hat\varphi$ as a function of $M$ from $10$ to $10^5$ at $N=4$, using `mom_moments_exact` so that the
 #    answer carries no Monte-Carlo noise. The behaviour is **not** monotone, and working out why is the exercise: at $NM=40$
 #    the estimator is still inside its dead zone and the RMS error sits *below* $1/\sqrt{NM}$ (the biased bound, Eq. (16), is
 #    the one it respects); the ratio then rises to a maximum of about $1.35$ near $NM=400$, where bias and spread are
 #    comparable, and only afterwards falls back to $1$ from above because the bias decays as $1/(NM)$ while the spread decays
-#    as $1/\sqrt{NM}$. How large must $NM$ be for the bias to be below a tenth of the standard deviation?
+#    as $1/\sqrt{NM}$ (Eq. (14a)). How large must $NM$ be for the bias to be below a tenth of the standard deviation?
 # 4. ★★ **Detection noise (extend the code).** Real cameras miscount. Add a per-atom detection error: with probability
 #    $\eta$ the reported bit is flipped. Derive the resulting contrast $C=1-2\eta$, modify `ramsey_counts_fast`, and verify the
 #    prediction by measuring $\Delta\varphi$ for $\eta=0,0.05,0.1$.
@@ -1840,22 +2002,27 @@ for N, M, K in ((4, 50, 400), (7, 50, 400), (10, 50, 200)):
 #    the dephasing channel into random $Z$ / identity events on a pure product state, `vmap` over trajectories, and show that
 #    the trajectory-averaged fringe converges to Eq. (18) with the expected $1/\sqrt{n_{\rm traj}}$ error. Which quantities may
 #    be averaged over trajectories, and which may not?
-# 6. ★★ **Two-stage phase estimation (physics).** Phase wrapping limits the window to width $\pi$. Design a two-stage protocol:
-#    spend half the repetitions at a short interrogation time $T_1$ (wide window, poor resolution), use the result to choose
-#    the branch, then spend the rest at $T_2=10T_1$. Simulate it and show that the final uncertainty is that of $T_2$ while the
-#    unambiguous range is that of $T_1$.
+# 6. ★★ **Two-stage phase estimation (physics).** Phase wrapping limits the window to width $\pi$. Use the $\pi/2$-offset
+#    fringe of Section 16.3, $p=\tfrac12(1+\sin\delta T)$, whose window is $\vert\delta\vert<\pi/(2T)$, and design a
+#    two-stage protocol: spend half the repetitions at a short interrogation time $T_1$ (wide window, poor resolution), use
+#    the result to choose the branch, then spend the rest at $T_2=10T_1$. Simulate it for detuning values spread over the
+#    $T_1$ window and show that the final uncertainty is that of a $T_2$ measurement with half the repetitions, while the
+#    unambiguous range is that of $T_1$. State the condition on $NM$ under which the first stage picks the wrong branch
+#    only rarely.
 # 7. ★★★ **Correlated dephasing, and where Section 16 breaks (physics).** Replace independent dephasing by *collective*
-#    dephasing: the same random phase $\theta$, drawn from a Gaussian of width $\sigma$, is applied to all atoms. Show
+#    dephasing: the same random phase $\theta$, drawn from a Gaussian of width $\sigma$ afresh in every repetition, is
+#    applied to all atoms of that repetition. Show
 #    analytically that the mean signal is multiplied by $\mathbb E[e^{i\theta}]=e^{-\sigma^2/2}$, independently of $N$, and
 #    verify it numerically. Then check whether the *sensitivity* follows the same law. It does not: conditioned on $\theta$
 #    the atoms are still independent, but $\theta$ is common to all of them, so
 #    $\mathrm{Var}(n_1)=N\,\mathbb E[p(1-p)]+N^2\,\mathrm{Var}_\theta(p)$ and the second term survives the division by $N$.
-#    For small $\sigma$ at mid-fringe this gives $\Delta\varphi=\sqrt{1/(NM)+\sigma^2/M}$ — an $N$-independent floor
+#    For small $\sigma$ at mid-fringe, with the estimator (14) at contrast $C=e^{-\sigma^2/2}$, this gives
+#    $\Delta\varphi\approx\sqrt{1/(NM)+\sigma^2/M}$ — an $N$-independent floor
 #    $\sigma/\sqrt M$ that the product-state formula (22) misses badly (at $\sigma=0.5$, $N=64$, $M=100$ the true spread is
 #    $0.052$ against $0.014$ from Eq. (22)). Conclude that the derivation of Section 16, which feeds Eq. (22) into the
-#    optimisation, does **not** carry over to common-mode noise, and say which of its four assumptions has failed. (This is
-#    the noise model relevant to laser frequency noise in an optical clock, which is why real clocks fight it with a separate
-#    technique — a stable local oscillator — rather than with more atoms.)
+#    optimisation, does **not** carry over to common-mode noise, and say which of its four assumptions has failed. (Noise
+#    common to all atoms, such as the frequency noise of the interrogating laser, has this structure, and adding atoms does
+#    not average it away.)
 # 8. ★★★ **Beat the SQL with a squeezed probe.** Anticipating [notebook 33](./33_spin_squeezing_one_axis_twisting.ipynb),
 #    replace the coherent spin state by a one-axis-twisted state, $e^{-i\chi t J_z^2}\vert+\rangle^{\otimes N}$ (the engine's
 #    `oat_evolve`), rotate it so that the squeezed quadrature points along the measurement direction, and measure
