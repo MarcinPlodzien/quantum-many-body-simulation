@@ -72,7 +72,7 @@
 # is $i=\sum_q s_q 2^{N-1-q}$ (spin 0 = most significant bit). Entropies are measured in **bits** ($\log_2$).
 
 # %% [markdown]
-# ## 2. A zoo of many-body states, built directly as tensors
+# ## 2. A zoo of many-body states as rank-$N$ tensors
 #
 # We start from what notebook 05 established: an $N$-spin state is a **rank-$N$ array** `psi[s0, s1, ..., s_{N-1}]` of shape
 # `(2,)*N`, and a small operator acts on it through `apply_gate` (one einsum). The cell below is the *engine recap*:
@@ -399,7 +399,7 @@ fig.tight_layout(); plt.show()
 # ($2^{|A|}$ rows, $2^{|B|}$ columns), Eq. (1) reads $\rho_A=MM^\dagger$. We will meet $M$ again in Section 6.
 
 # %% [markdown]
-# ### 3.2 From formula to einsum, by hand for $N=3$
+# ### 3.2 From formula to einsum string for $N=3$
 #
 # Equation (1) is a contraction of $\psi$ with $\psi^*$ in which
 # * the indices of $B$ are **shared** by the two tensors and do **not** appear in the output $\Rightarrow$ summed (traced out);
@@ -479,7 +479,7 @@ print(np.round(np.asarray(rho_0), 4))
 # Hermitian. What the einsum did **not** do matters as much: it never formed the $8\times8$ projector, but contracted two
 # rank-3 tensors directly into a $2\times2$ result.
 #
-# ### 3.3 The general function, line by line
+# ### 3.3 The einsum string for arbitrary $N$ and `keep`
 #
 # For arbitrary $N$ and an arbitrary list `keep` we generate the string programmatically, exactly as we did for
 # `apply_gate` in notebook 05:

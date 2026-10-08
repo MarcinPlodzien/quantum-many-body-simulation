@@ -860,7 +860,7 @@ print(f"                    sum    = {m_a + m_b:.10f},  M_2(A x B) = {m_ab:.10f}
 assert abs(m_a + m_b - m_ab) < 1e3 * TOL
 
 # %% [markdown]
-# ### 7.3 Haar-random states: the average magic, derived
+# ### 7.3 The average magic of Haar-random states
 #
 # How magical is a *typical* state? Take $\vert\psi\rangle=g/\lVert g\rVert$ with $g$ a vector of $d=2^N$ independent
 # complex Gaussians — exactly what `haar_state` builds, and a Haar-random state because the Gaussian measure is unitarily
@@ -1297,7 +1297,7 @@ print("the Walsh-Hadamard routine reproduces it for all four indices (asserted a
 # > $\vert0\rangle$, GHZ and $(T\vert+\rangle)^{\otimes N}$ passes either way, because none of those states has a negative
 # > Pauli expectation value. Include $\vert-\rangle$ in the test suite.
 #
-# ### 9.7 Batching, memory and the cost in practice
+# ### 9.7 Batch size, memory and run time
 #
 # The batch size is the one free parameter. It controls the peak memory — the vmapped kernel materialises `batch` arrays of
 # $2^N$ complex numbers, i.e. $16\cdot\texttt{batch}\cdot2^N$ bytes in double precision — and it controls how much work

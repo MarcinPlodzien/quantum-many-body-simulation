@@ -532,7 +532,7 @@ for mu in (0.0, 0.05, 0.10, 0.2005, 0.40, 0.80):
 # interferometry. Section 8 explains which of the two an interferometer cares about, and why.
 
 # %% [markdown]
-# ## 8. The two squeezing parameters, derived
+# ## 8. The Wineland and Kitagawa–Ueda squeezing parameters
 #
 # ### 8.1 The quantity measured by a Ramsey interferometer
 #

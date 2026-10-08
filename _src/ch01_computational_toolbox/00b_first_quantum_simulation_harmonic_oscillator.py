@@ -2855,7 +2855,7 @@ fig.tight_layout(); plt.show()
 # > Crank–Nicolson without the linear solve.
 
 # %% [markdown]
-# ## 13. Seeing it move: animations
+# ## 13. Animations of the evolving density
 #
 # Static snapshots of a time-dependent wave function are a poor substitute for watching it. We now write one
 # reusable function that turns a stack of densities into an animated GIF, and *embeds the GIF in the notebook
@@ -3071,7 +3071,7 @@ fig.tight_layout(); plt.show()
 # refrain one last time.
 
 # %% [markdown]
-# ## 14. The workflow, and what to take away
+# ## 14. Workflow checklist and key takeaways
 #
 # ### 14.1 The checklist
 #

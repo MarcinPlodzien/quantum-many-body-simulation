@@ -1,4 +1,4 @@
-#@title: JAX from scratch — NumPy that compiles, batches and differentiates
+#@title: JAX — NumPy that compiles, batches and differentiates
 #@part: Chapter 1 — Computational toolbox
 #@description: The JAX foundation of the course: from NumPy to JAX (jit, vmap, scan, grad, PRNG keys, precision and timing of compiled code), ending with a Rabi-oscillation mini-project.
 
@@ -77,7 +77,7 @@
 # [02 — einsum from scratch](02_einsum_from_scratch.ipynb).
 
 # %% [markdown]
-# ## 2. The Configuration cell, line by line
+# ## 2. The Configuration cell
 #
 # The cell above opens **every** notebook of this course. Its lines, one by one:
 #
@@ -1302,7 +1302,7 @@ assert np.all(np.abs(ratio - 1) < 0.15), ratio
 # re-running the notebook reproduces every digit.
 
 # %% [markdown]
-# ## 11. Pytrees in one paragraph
+# ## 11. Pytrees
 #
 # Real programs do not pass around single arrays but *structures*: a dictionary of model parameters, a tuple
 # `(state, time)`, a list of matrices. JAX calls any nested combination of tuples, lists and dicts whose leaves are

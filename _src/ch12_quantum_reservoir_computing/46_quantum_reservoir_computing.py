@@ -143,7 +143,7 @@
 # the two, and finding its useful range is the main experimental work. For our quantum reservoir the knob is the evolution
 # time $\tau$ per input step.
 #
-# ### 2.4 The readout: ridge regression, derived
+# ### 2.4 The ridge-regression readout
 #
 # Collect the features of the $n$ training steps in a matrix $X\in\mathbb{R}^{n\times p}$ (row $k$ = the $p$ features at step
 # $k$) and the targets in $\mathbf{y}\in\mathbb{R}^{n}$. With weights $\mathbf{w}\in\mathbb{R}^p$ and bias $b$ we minimise
@@ -1122,7 +1122,7 @@ assert np.sqrt(np.mean(((F_mean - F_wrong) / sem)[alive] ** 2)) > 10, "the wrong
 # > neither optimistic nor inflated. Always look at what the outliers of a pull distribution are before trusting or blaming
 # > them.
 #
-# ## 5. The echo-state property, measured
+# ## 5. The echo-state property: trace distance of two driven copies
 #
 # Section 3.3 argued that the reset makes the machine forget. The direct test: start two copies in different states, drive
 # them with the *same* input, and watch the trace distance

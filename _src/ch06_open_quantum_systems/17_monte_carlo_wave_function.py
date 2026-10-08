@@ -258,7 +258,7 @@
 # the fixed-grid schemes and keeps $dt$ small; Exercise 7 builds the waiting-time version.
 
 # %% [markdown]
-# ## 3. One MCWF step, tested on a single qubit
+# ## 3. One MCWF step for a single qubit
 #
 # ### 3.1 From formula to code
 #

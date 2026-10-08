@@ -273,7 +273,7 @@ def std_of_std(sigma, n):
 # The engine's single-qubit rotation is $R_y(\theta)=e^{-i\theta Y/2}$; step 3 is literally the inverse of step 1, which gives
 # the protocol its defining property: if nothing happened in between, every atom returns to $\vert0\rangle$.
 #
-# ### 5.2 One atom, all the algebra
+# ### 5.2 The single-atom Ramsey signal
 #
 # Start from $\vert0\rangle$ and use $R_y(\pi/2)=\tfrac{1}{\sqrt2}\begin{pmatrix}1&-1\\1&1\end{pmatrix}$:
 #

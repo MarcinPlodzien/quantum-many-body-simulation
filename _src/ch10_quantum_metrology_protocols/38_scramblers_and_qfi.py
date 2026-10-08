@@ -405,7 +405,7 @@ assert gap_wrong > 0.1
 # suppression is governed by $2^{k}/2^{N-k}=4^{k}/2^{N}$, which crosses unity at $k=N/2$. The next subsection
 # turns this into formulas for both sides of the threshold.
 #
-# ### 4.1 The Haar locking curve, derived
+# ### 4.1 The closed-form Haar locking curve
 #
 # Write $d_A=2^k$, $d_B=2^{N-k}$, $d=d_Ad_B$ and $\rho_k=\mathbb{1}/d_A+\delta$.
 #

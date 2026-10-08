@@ -1,9 +1,9 @@
 ---
-title: "2 · Quantum many-body spin systems: the textbook way"
+title: "2 · Quantum many-body spin systems with dense matrices"
 code-tools: false
 ---
 
-![](../assets/thumbs/ch02.png){width=60% fig-align=center fig-alt="Quantum many-body spin systems: the textbook way"}
+![](../assets/thumbs/ch02.png){width=60% fig-align=center fig-alt="Quantum many-body spin systems with dense matrices"}
 
 A chain of $N$ spins-1/2 is put on the computer the way textbooks do it. Operators acting on one spin are lifted to
 the full $2^N$-dimensional space with Kronecker products, model Hamiltonians (transverse-field Ising, Heisenberg)
@@ -23,7 +23,7 @@ From one spin-1/2 to interacting spin chains: tensor products, Kronecker-product
 :::
 
 ::: {.nb-item}
-[Time evolution the textbook way — propagators, ODE solvers and Trotterization](../ch02_spin_systems_textbook_way/04_time_evolution_the_textbook_way.ipynb)
+[Time evolution with dense matrices — propagators, ODE solvers and Trotterization](../ch02_spin_systems_textbook_way/04_time_evolution_the_textbook_way.ipynb)
 
 Solving the many-body Schrödinger equation with dense matrices: exact propagators, why Euler fails and what RK4 does, Trotterization derived from scratch with measured error scaling, a transverse-field Ising quench, and the cost wall that motivates matrix-free methods.
 :::

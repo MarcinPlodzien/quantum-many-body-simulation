@@ -744,7 +744,7 @@ plt.show()
 # quantity that grows as two spins are pulled apart is not measuring their mutual entanglement; for a pure global state
 # it measures the entanglement of the *pair* with the rest of the chain.
 #
-# ### Monogamy, measured
+# ### Monogamy of concurrence in the spin chain
 #
 # A spin of the zero-field chain is maximally mixed, so its tangle with the rest is maximal, $\tau_i = 4\det\rho_i = 1$.
 # The monogamy inequality of Section 3 says how much of it pairs can hold: $\sum_j C_{ij}^2 \le \tau_i$. The cell

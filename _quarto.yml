@@ -29,7 +29,7 @@ website:
         menu:
           - text: "1 · Computational toolbox"
             href: chapters/ch01_computational_toolbox.qmd
-          - text: "2 · Quantum many-body spin systems: the textbook way"
+          - text: "2 · Quantum many-body spin systems with dense matrices"
             href: chapters/ch02_spin_systems_textbook_way.qmd
           - text: "3 · The matrix-free engine"
             href: chapters/ch03_matrix_free_engine.qmd
@@ -88,18 +88,18 @@ website:
           - href: ch01_computational_toolbox/00d_two_soliton_collisions.ipynb
             text: "Two-soliton collisions — particle-like scattering in the nonlinear Schrödinger equation"
           - href: ch01_computational_toolbox/01_jax_from_scratch.ipynb
-            text: "JAX from scratch — NumPy that compiles, batches and differentiates"
+            text: "JAX — NumPy that compiles, batches and differentiates"
           - href: ch01_computational_toolbox/02_einsum_from_scratch.ipynb
-            text: "Index notation and einsum from scratch"
+            text: "Index notation and einsum"
           - href: lecture_notes_notebooks/49_single_excitation_on_a_lattice.ipynb
             text: "A single excitation on a lattice"
-      - section: "2 · Quantum many-body spin systems: the textbook way"
+      - section: "2 · Quantum many-body spin systems with dense matrices"
         href: chapters/ch02_spin_systems_textbook_way.qmd
         contents:
           - href: ch02_spin_systems_textbook_way/03_quantum_many_body_spin_systems.ipynb
             text: "Quantum many-body spin systems — the textbook (dense-matrix) way"
           - href: ch02_spin_systems_textbook_way/04_time_evolution_the_textbook_way.ipynb
-            text: "Time evolution the textbook way — propagators, ODE solvers and Trotterization"
+            text: "Time evolution with dense matrices — propagators, ODE solvers and Trotterization"
       - section: "3 · The matrix-free engine"
         href: chapters/ch03_matrix_free_engine.qmd
         contents:
@@ -149,7 +149,7 @@ website:
         href: chapters/ch08_quantum_information_protocols.qmd
         contents:
           - href: ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb
-            text: "Bell states and the CHSH inequality — from entanglement to a measured violation"
+            text: "Bell states and the CHSH inequality — violation of local realism in simulated measurements"
           - href: ch08_quantum_information_protocols/20_quantum_teleportation.ipynb
             text: "Quantum teleportation — no-cloning, Bell measurement and classical feed-forward"
           - href: ch08_quantum_information_protocols/21_entanglement_swapping_and_superdense_coding.ipynb
@@ -204,7 +204,7 @@ website:
           - href: ch11_variational_quantum_circuits/40_parametrized_gates_and_gradients.ipynb
             text: "Parametrized gates and gradients — differentiating a quantum circuit four ways"
           - href: ch11_variational_quantum_circuits/41_optimizers.ipynb
-            text: "Optimisers for variational circuits — from the update equation to a measured benchmark"
+            text: "Optimisers for variational circuits — update rules and a benchmark on GHZ preparation and the Ising chain"
           - href: ch11_variational_quantum_circuits/42_variational_quantum_eigensolver.ipynb
             text: "The variational quantum eigensolver — ground states of spin chains from a trained circuit"
           - href: ch11_variational_quantum_circuits/43_vqe_with_classical_shadows.ipynb

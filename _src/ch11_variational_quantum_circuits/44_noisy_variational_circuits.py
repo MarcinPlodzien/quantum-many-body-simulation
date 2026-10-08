@@ -936,7 +936,7 @@ fig.tight_layout(); plt.show()
 # $\vert0\rangle$, so $\mathcal A_\gamma(\mathbb 1/2)=\tfrac12\mathrm{diag}(1+\gamma,1-\gamma)\neq\mathbb 1/2$.
 # Section 7.1 computes the consequence in closed form for one qubit; Section 7.2 treats the four-qubit circuit.
 #
-# ### 7.1 One qubit, solved exactly
+# ### 7.1 The exactly solvable one-qubit case
 #
 # Take one qubit, the cost $C(\theta)=-\langle X\rangle-h\langle Z\rangle$ with a fixed $h>0$, and the one-parameter
 # ansatz $\vert\psi(\theta)\rangle=R_y(\theta)\vert0\rangle$, whose Bloch vector is

@@ -1931,7 +1931,7 @@ print(f"\nVar(local)/Var(global) at N = {N_LIST[-1]}:  L=2: {res['l2'][-1] / res
 # 3. ★★ **A two-qubit rotation ansatz (extend the code).** Replace the fixed $CZ$ entanglers of the hardware-efficient
 #    ansatz by parametrized $R_{ZZ}(\theta)$ gates. Count the new parameters, check that the two-term parameter-shift rule
 #    still applies (what is the generator's spectrum?), and verify it against `jax.grad`.
-# 4. ★★ **The four-term rule from scratch.** Derive the analogue of Eq. (19) for a cost whose frequencies in $\theta$ are
+# 4. ★★ **The four-term parameter-shift rule.** Derive the analogue of Eq. (19) for a cost whose frequencies in $\theta$ are
 #    $\{1,2\}$, for instance one angle shared by two gates $R_z(\theta)\otimes R_z(\theta)$, i.e.
 #    $e^{-i\theta(Z_1+Z_2)/2}$ with generator eigenvalues $\{-1,0,0,1\}$. Verify it numerically on a two-qubit circuit,
 #    and show that the two-term rule fails there. How many evaluations per parameter does it need?

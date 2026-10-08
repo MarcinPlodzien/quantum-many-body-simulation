@@ -796,7 +796,7 @@ print(f"(for reference: <Z_2 Z_9> = {float(mps_correlator(B_g, lam_g, Z, 2, Z, 9
 # demanding part of this course. We therefore build it one element at a time. Every element is derived, written as a small function, and checked against a dense calculation on a
 # chain short enough to be diagonalised exactly, before it is used.
 #
-# **The idea in one paragraph.** We look for the MPS with the lowest energy $\langle\psi|H|\psi\rangle/\langle\psi|\psi\rangle$. Varying all tensors at once is a hard non-linear problem. DMRG
+# **The idea of DMRG.** We look for the MPS with the lowest energy $\langle\psi|H|\psi\rangle/\langle\psi|\psi\rangle$. Varying all tensors at once is a hard non-linear problem. DMRG
 # varies **two neighbouring tensors at a time** and keeps all others fixed. With the other tensors in canonical form (Section 3.4), this local problem is exactly the
 # Rayleigh–Ritz problem of [notebook 11 (Chapter 5)](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb): minimise the energy in a subspace, which
 # is a small eigenvalue problem, solved with Lanczos. The subspace is spanned by the states "left block $\otimes$ two free spins $\otimes$ right block". After solving it, we move

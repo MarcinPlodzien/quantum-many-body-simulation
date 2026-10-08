@@ -1,4 +1,4 @@
-#@title: Optimisers for variational circuits — from the update equation to a measured benchmark
+#@title: Optimisers for variational circuits — update rules and a benchmark on GHZ preparation and the Ising chain
 #@part: Chapter 11 — Variational quantum circuits
 #@description: Gradient descent, heavy-ball momentum, Adam, SPSA with Spall's gain sequences, the SPSA–Adam hybrid and the quantum natural gradient, each derived from its update equation, compiled into lax.scan training loops, vmapped over random initialisations, and benchmarked on GHZ state preparation and on the ground energy of a transverse-field Ising chain with exact and shot-noisy costs.
 
@@ -550,7 +550,7 @@ fig.tight_layout(); plt.show()
 # are therefore damped and flat directions are amplified, which is a crude diagonal substitute for the curvature
 # information that the Newton step would use.
 #
-# ### 6.2 The bias correction, derived
+# ### 6.2 The Adam bias correction
 #
 # Both moments start at zero, which biases them towards zero in the early iterations. Unroll the first recursion with
 # $\mathbf m_0=0$:

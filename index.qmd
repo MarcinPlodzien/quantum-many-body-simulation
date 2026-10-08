@@ -35,7 +35,7 @@ The simulator is written in [JAX](https://docs.jax.dev) and grows chapter by cha
 
 Hamiltonians on arbitrary graphs, exact diagonalisation and matrix-free Lanczos, symmetries, entanglement, phase diagrams and quantum phase transitions.
 
-Chapters: [2 · Quantum many-body spin systems: the textbook way](chapters/ch02_spin_systems_textbook_way.qmd) · [5 · Ground states and unitary dynamics](chapters/ch05_ground_states_and_unitary_dynamics.qmd) · [13 · Quantum phase transitions](chapters/ch13_quantum_phase_transitions.qmd)
+Chapters: [2 · Quantum many-body spin systems with dense matrices](chapters/ch02_spin_systems_textbook_way.qmd) · [5 · Ground states and unitary dynamics](chapters/ch05_ground_states_and_unitary_dynamics.qmd) · [13 · Quantum phase transitions](chapters/ch13_quantum_phase_transitions.qmd)
 :::
 ::: {.feature}
 **Unitary dynamics**
@@ -159,9 +159,9 @@ Simulate a single quantum particle on a grid and write fast, batched, differenti
 <span class="nbcount">7 notebooks</span>
 :::
 ::: {.chapter-card}
-[![](assets/thumbs/ch02.png){fig-alt="Quantum many-body spin systems: the textbook way"}](chapters/ch02_spin_systems_textbook_way.qmd)
+[![](assets/thumbs/ch02.png){fig-alt="Quantum many-body spin systems with dense matrices"}](chapters/ch02_spin_systems_textbook_way.qmd)
 
-[2 · Quantum many-body spin systems: the textbook way](chapters/ch02_spin_systems_textbook_way.qmd)
+[2 · Quantum many-body spin systems with dense matrices](chapters/ch02_spin_systems_textbook_way.qmd)
 
 Build spin-chain Hamiltonians as dense matrices, diagonalise them and evolve states in time.
 

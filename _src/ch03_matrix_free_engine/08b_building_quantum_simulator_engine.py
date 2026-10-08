@@ -74,7 +74,7 @@
 #
 # ### Prerequisites
 #
-# * [01 — JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb) and [02 — Index notation and einsum from scratch](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb);
+# * [01 — JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb) and [02 — Index notation and einsum](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb);
 # * [05 — Matrix-free operators](05_matrix_free_operators.ipynb), [06 — States, observables and entanglement](06_states_observables_entanglement.ipynb),
 #   [07 — Density matrices and quantum channels](07_density_matrices_and_quantum_channels.ipynb), [08 — Measurements](08_measurements.ipynb).
 #
@@ -508,7 +508,7 @@ check("jax.grad of <Z> after rx = -sin(theta)", abs(jax.grad(z_after_rx)(theta) 
 # with $a_1,b_1$ in position $q_1$ and $a_2,b_2$ in position $q_2$. Nothing requires $q_1<q_2$ or $\vert q_1-q_2\vert=1$. For $k$ qubits the
 # pattern is the same with $k$ output and $k$ input indices.
 #
-# ### 5.2 The einsum string, built index by index
+# ### 5.2 The einsum string of `apply_gate`
 #
 # `apply_gate` writes Eq. (19) as an `einsum` string, constructed by the program from the static list `qubits`:
 #

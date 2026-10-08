@@ -1710,7 +1710,7 @@ for name, psi in (("GHZ(5)", ghz_state(5)), ("W(5)", w_state(5)), ("Haar(5)", ha
 # > structure and traced data are what make this simulator fast.
 
 # %% [markdown]
-# ## 9. Product state versus GHZ, measured
+# ## 9. Product state versus GHZ: simulated encoding, parity and QFI
 #
 # We now check Section 7 against the simulator. The encoding $e^{-i\theta J_z}$ is applied gate by gate, one
 # $R_z(\theta)=e^{-i\theta Z/2}$ per qubit with `apply_gate`, so the check does not rely on the analytic formula

@@ -100,7 +100,7 @@
 # %% [markdown]
 # ## 2. Two solitons on one ring
 #
-# ### 2.1 The one-soliton family, recalled
+# ### 2.1 The one-soliton family of notebook 00c
 #
 # Notebook 00c derived the stationary solutions of Eq. (1) on the infinite line. With the normalisation left
 # free, the family is (Eq. (25) of 00c)
@@ -436,7 +436,7 @@ print(f"density midway        : {np.abs(psi0_main[N_X // 2]) ** 2:.3e}   "
 # $e^{-2\kappa\vert x+x_0\vert}$ of the left soliton alone. The two agree over eighteen decades, which is the
 # statement that on this ring each soliton is an isolated object to a part in $10^{9}$.
 #
-# ### 2.6 How far the sum is from a solution: measured
+# ### 2.6 The deviation of the two-soliton sum from a solution
 #
 # The quantitative version of Eq. (6). Three quantities are compared with the value they would have if the two
 # solitons were infinitely far apart, where the sum *would* be exact:
@@ -564,7 +564,7 @@ print("CHECKPOINT 2 passed: norm, energy and momentum survive the collision.")
 # physical leak.
 
 # %% [markdown]
-# ## 4. The collision, seen and measured
+# ## 4. Space-time map and elasticity of the collision
 #
 # ### 4.1 The space-time map
 #

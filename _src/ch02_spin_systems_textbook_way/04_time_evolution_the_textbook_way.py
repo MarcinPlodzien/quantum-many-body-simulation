@@ -1,5 +1,5 @@
-#@title: Time evolution the textbook way — propagators, ODE solvers and Trotterization
-#@part: Chapter 2 — Quantum many-body spin systems: the textbook way
+#@title: Time evolution with dense matrices — propagators, ODE solvers and Trotterization
+#@part: Chapter 2 — Quantum many-body spin systems with dense matrices
 #@description: Solving the many-body Schrödinger equation with dense matrices: exact propagators, why Euler fails and what RK4 does, Trotterization derived from scratch with measured error scaling, a transverse-field Ising quench, and the cost wall that motivates matrix-free methods.
 
 # %% [markdown]
@@ -30,7 +30,7 @@
 # 4. **Section 6** — treating the Schrödinger equation as an ordinary differential equation: the **Euler** method fails (we predict
 #    *and* measure the blow-up of the norm), **RK4** works much better but comes with a step-size rule $dt\,\|H\|\le2\sqrt2$ that tightens as the chain
 #    grows — and we discuss why physicists nevertheless prefer *unitary* integrators.
-# 5. **Section 7, the centrepiece — Trotterization from scratch.** Exponentials of non-commuting matrices, the Baker–Campbell–Hausdorff formula
+# 5. **Section 7, the centrepiece — Trotterization of the propagator.** Exponentials of non-commuting matrices, the Baker–Campbell–Hausdorff formula
 #    derived to the order we need, first-order (Lie–Trotter) and second-order (Strang) splitting, the even/odd decomposition of a chain,
 #    measured error scaling against $dt$ with reference slopes, and error growth in time.
 # 6. **Section 8** — physics: a quench in the transverse-field Ising chain. Magnetisation dynamics, the light cone of correlations,
@@ -822,7 +822,7 @@ for n_norm in (4, 6, 8, 10, 12):
 # exponentials of *small* matrices only, and is the basis of the most important algorithms for quantum many-body dynamics — on classical and on quantum computers alike.
 
 # %% [markdown]
-# ## 7. Trotterization from scratch
+# ## 7. Trotterization of the propagator
 #
 # ### 7.1 The problem: $e^{A+B}\neq e^Ae^B$
 #

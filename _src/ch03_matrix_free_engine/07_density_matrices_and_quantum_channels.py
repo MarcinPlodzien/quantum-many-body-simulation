@@ -756,7 +756,7 @@ print(f"N=1: error = {e_a:.1e} | N=2, qubit 0: error = {e_b:.1e} | N=2, qubit 1:
 assert max(e_a, e_b, e_c) < TOL
 
 # %% [markdown]
-# ### 8.2 The engine version, line by line
+# ### 8.2 The engine function `apply_kraus_dm`
 #
 # `apply_kraus_dm(rho, kraus, qubits)` generates these strings for any $N$ and any $k$-qubit channel:
 #

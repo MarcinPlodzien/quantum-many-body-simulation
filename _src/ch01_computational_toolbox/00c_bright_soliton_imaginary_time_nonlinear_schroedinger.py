@@ -3175,7 +3175,7 @@ plt.show()
 # repeat the convergence study of Section 9.5, and check that the fitted slope is $4$. At which $\Delta t$ does
 # it become cheaper than the second-order method for a given accuracy?
 #
-# **6. (★★) How good is the variational ansatz, really?** Extend Section 6.1 to a trial family
+# **6. (★★) The two-parameter ansatz $\mathrm{sech}^{p}(x/w)$.** Extend Section 6.1 to a trial family
 # $\psi\propto\mathrm{sech}^{p}(x/w)$ with two parameters $p$ and $w$, minimise $E$ numerically over both with
 # `jax.grad`, and confirm that the optimum is $p=1$, $w=2/g$. Then repeat with a trap added and watch $p$ grow:
 # $\mathrm{sech}^{p}(x/w)\to\exp[-px^{2}/(2w^{2})]$ as $p\to\infty$ at fixed $w/\sqrt p$, so a Gaussian is the

@@ -166,7 +166,7 @@ def timed(f, *args, budget=0.3, min_reps=3, max_reps=200):
     return out, t_compile, best
 
 # %% [markdown]
-# ## 3. Classical shadows, recalled
+# ## 3. The classical-shadow protocol
 #
 # The protocol of notebook 24, in four lines. For each of $M$ repetitions:
 #
@@ -768,7 +768,7 @@ print(f"{'lambda_max':>16s} {lam_exact:10.4f} {lam_est:10.4f} {float(lam_boot_de
 # equals that of $\mathcal{F}_{yy}$ to three digits: the largest eigenvalue of this matrix is, to first order, the
 # entry along its own eigenvector, which the next subsection uses.
 #
-# ### 7.2 The per-snapshot standard deviation, derived
+# ### 7.2 The per-snapshot standard deviation from perturbation theory
 #
 # The bootstrap measures the error; we can also predict it. For a non-degenerate largest eigenvalue, first-order
 # perturbation theory gives $\lambda_{\max}(\widehat{\mathcal{F}})\approx\mathbf n^{\mathsf T}\widehat{\mathcal{F}}
@@ -986,7 +986,7 @@ fig.tight_layout(); plt.show()
 # > the per-sample record and the operation becomes a matrix product that XLA fuses.
 
 # %% [markdown]
-# ## 8. A zoo of states, measured
+# ## 8. QFI estimates for a zoo of states
 #
 # We now run the whole procedure on the states this chapter cares about, all at the same $N$ and the same snapshot
 # budget, and compare with the exact values:

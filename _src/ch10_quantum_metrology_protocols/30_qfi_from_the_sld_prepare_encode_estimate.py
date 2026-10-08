@@ -423,7 +423,7 @@ assert tr_abs < 1e3 * TOL and max_abs(dm - dm.conj().T) < 1e3 * TOL
 # analogue of the classical score. Equation (6) is a **Lyapunov equation**: linear in the unknown $L$, of the form
 # $AL+LA=B$ with $A=\rho/2$ and $B=\partial_\theta\rho$. Such equations are solved by going to the eigenbasis of $A$.
 #
-# ### 5.2 Solving it, line by line
+# ### 5.2 The solution in the eigenbasis of $\rho$
 #
 # Diagonalise the state, $\rho=\sum_m\lambda_m\vert m\rangle\langle m\vert$ with $\lambda_m\ge0$ and $\sum_m\lambda_m=1$.
 # Sandwich Eq. (6) between $\langle m\vert$ and $\vert n\rangle$ and use $\rho\vert n\rangle=\lambda_n\vert n\rangle$,

@@ -527,7 +527,7 @@ print(f"\nPage value at the middle cut: {page_entropy_bits(2 ** (N_MAIN // 2), 2
 # %% [markdown]
 # ## 6. The collective quantum Fisher information of a random state
 #
-# ### 6.1 The Haar average, derived
+# ### 6.1 The Haar average of the QFI
 #
 # What is $F_Q=4\,\mathrm{Var}(J_{\mathbf n})$ for a state drawn uniformly at random? The calculation needs one
 # input, the **second moment of the Haar measure** on pure states: for any operators $A,B$ on a $d$-dimensional
@@ -1182,7 +1182,7 @@ fig.tight_layout(); plt.show()
 # along the axis of the cat lobes, and the half-chain entropy. Second, **layer by layer** out to depth $24$ for three
 # system sizes.
 #
-# ### 9.1 The first layer, derived
+# ### 9.1 The first Haar layer acting on the cat
 #
 # The first layer can be done exactly on paper. Up to phases that drop out below, the cat is
 # $\left(\vert a\rangle+\vert b\rangle\right)/\sqrt2$ with $\vert a\rangle=\vert+\rangle^{\otimes N}$ and

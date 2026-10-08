@@ -1,4 +1,4 @@
-#@title: Index notation and einsum from scratch
+#@title: Index notation and einsum
 #@part: Chapter 1 — Computational toolbox
 #@description: From sums over indices to einsum, reshape/transpose, Kronecker products, partial traces, contraction cost and programmatically built einsum strings - the array language of the whole course.
 
@@ -164,7 +164,7 @@ check("matvec: einsum vs  A @ x", y_einsum, y_numpy)
 # > alphabetically*). This is a source of silent bugs -- in this course we **always write the `->` part explicitly**.
 
 # %% [markdown]
-# ## 3. The classic examples, one by one
+# ## 3. The classic einsum examples
 #
 # For each operation: sum formula, loops, einsum string, NumPy reference. Read the string aloud:
 # `"ij,jk->ik"` = "A has indices i, j; B has indices j, k; the result has indices i, k; therefore j is summed".

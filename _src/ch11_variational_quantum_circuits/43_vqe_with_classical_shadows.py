@@ -494,7 +494,7 @@ for p in "XYZ":
 # the other two.
 
 # %% [markdown]
-# ## 6. The three variances, predicted and measured
+# ## 6. Predicted and sampled variances of the three estimators
 #
 # ### 6.1 From formula to code
 #

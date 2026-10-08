@@ -794,7 +794,7 @@ assert abs(E_est - E0) < 4 * E_se
 # Every estimate agrees with its exact value within a few standard errors (the `assert`s allow four). Note $\langle Z_3\rangle$: by the spin-flip symmetry of the Hamiltonian its exact value is 0, and the estimate is "zero within the error bar" — not zero.
 # The energy comes out with a relative error of a fraction of a percent after $8000$ state preparations. Because of the $1/\sqrt M$ law, a variational algorithm that needs the energy with a standard error of $10^{-2}$ at every optimisation step would need about 30 times more shots, and $10^{-3}$ about 3000 times more: this measurement overhead is a central practical issue of near-term quantum algorithms ([notebook 41, Chapter 11](../ch11_variational_quantum_circuits/41_optimizers.ipynb)).
 #
-# ### 11.3 The $1/\sqrt M$ law and the central limit theorem, measured
+# ### 11.3 The $1/\sqrt M$ law and the central limit theorem over $R=400$ repetitions
 #
 # To *see* the statistics we repeat the whole experiment $R=400$ times for each number of shots $M$ — `vmap` over $R$ independent keys — and look at the distribution of the estimates of $\langle Z_3Z_4\rangle$:
 # its root-mean-square error against the exact value should follow $\sigma/\sqrt M$ with $\sigma=\sqrt{1-\langle Z_3Z_4\rangle^2}$ (no fit parameter), its histogram should be Gaussian, and the error bars

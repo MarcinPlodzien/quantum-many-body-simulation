@@ -953,7 +953,7 @@ assert err < 100 * TOL
 # (Section 9) are always scanned.
 
 # %% [markdown]
-# ## 7. Circuit identities, verified numerically
+# ## 7. Circuit identities for compilation
 #
 # Circuit identities are the "algebra rules" used to rewrite (compile) a circuit into the native gates of a device. The
 # most useful ones:

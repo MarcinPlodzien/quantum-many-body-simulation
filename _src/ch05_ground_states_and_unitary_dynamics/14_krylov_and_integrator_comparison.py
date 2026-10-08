@@ -67,7 +67,7 @@
 #
 # Truncated Taylor series, Chebyshev sums — every polynomial method picks *some* element of this space. The Krylov method lets the Schrödinger equation itself choose the element.
 #
-# ### 2.2 An orthonormal basis: Lanczos in one paragraph
+# ### 2.2 An orthonormal basis: the Lanczos iteration
 #
 # The raw vectors $H^k|\psi\rangle$ are a terrible basis (they all turn towards the eigenvector with the largest $|E|$ and become numerically parallel). The **Lanczos iteration**, derived in
 # [Hamiltonians and ground states](11_hamiltonians_and_ground_states.ipynb), orthonormalises them on the fly. For Hermitian $H$ each new vector needs to be orthogonalised only against the previous two:

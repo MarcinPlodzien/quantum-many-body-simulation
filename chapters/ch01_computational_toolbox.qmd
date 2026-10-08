@@ -51,13 +51,13 @@ Two bright solitons are launched at each other in the Gross-Pitaevskii equation;
 :::
 
 ::: {.nb-item}
-[JAX from scratch — NumPy that compiles, batches and differentiates](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)
+[JAX — NumPy that compiles, batches and differentiates](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)
 
 The JAX foundation of the course: from NumPy to JAX (jit, vmap, scan, grad, PRNG keys, precision and timing of compiled code), ending with a Rabi-oscillation mini-project.
 :::
 
 ::: {.nb-item}
-[Index notation and einsum from scratch](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb)
+[Index notation and einsum](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb)
 
 From sums over indices to einsum, reshape/transpose, Kronecker products, partial traces, contraction cost and programmatically built einsum strings - the array language of the whole course.
 :::

@@ -1058,7 +1058,7 @@ for scheme, dt_h in (("2", 0.1), ("2", 0.05), ("4", 0.2), ("4", 0.1)):
 # %% [markdown]
 # The estimate agrees with the true error to within a few percent — as long as both step sizes are in the asymptotic regime. This is the convergence test to use on large systems, ideally on the *observable of interest* rather than on the full state.
 #
-# ### 11.2 Domain-wall melting at $N=18$, checked against free fermions
+# ### 11.2 Domain-wall melting at $N=18$ and the free-fermion solution
 #
 # We now go beyond the reach of dense references: $N=18$ spins ($2^{18}=262\,144$ amplitudes; the dense propagator would need 1.1 TB). Initial state: a **domain wall** $|\!\uparrow\cdots\uparrow\downarrow\cdots\downarrow\rangle$. Hamiltonian: the XXZ chain with $\Delta=0$ (the "XX chain") and with $\Delta=1$ (Heisenberg).
 #

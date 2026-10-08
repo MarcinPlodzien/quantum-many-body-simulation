@@ -1,5 +1,5 @@
 #@title: Quantum many-body spin systems — the textbook (dense-matrix) way
-#@part: Chapter 2 — Quantum many-body spin systems: the textbook way
+#@part: Chapter 2 — Quantum many-body spin systems with dense matrices
 #@description: From one spin-1/2 to interacting spin chains: tensor products, Kronecker-product operators, model Hamiltonians, exact diagonalisation of the transverse-field Ising and Heisenberg chains, and the exponential wall.
 
 # %% [markdown]

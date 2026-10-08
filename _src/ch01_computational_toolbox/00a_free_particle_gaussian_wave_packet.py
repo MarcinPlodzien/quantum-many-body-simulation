@@ -86,7 +86,7 @@
 # * **Section 2** — the free Schrödinger equation in SI units, and **non-dimensionalisation**: how we strip
 #   $\hbar$ and $m$ out of the equation by measuring lengths, times and energies in units built from the problem
 #   itself. This is done once, very slowly, because we will do it in every notebook of this course.
-# * **Section 3** — the exact solution, derived in full: Fourier transform, Gaussian integral, free propagation,
+# * **Section 3** — the exact solution of the free Schrödinger equation: Fourier transform, Gaussian integral, free propagation,
 #   transform back. Results: $\langle x \rangle(t)$, $\sigma(t)$, the chirp, the uncertainty product.
 # * **Section 4** — the **grid**: what an array holds, what periodic boundary conditions mean, which wave numbers
 #   a grid can represent, and what happens when you ask for one it cannot (aliasing).
@@ -312,7 +312,7 @@ for name, mass, x0 in cases:
 # > round-off" and $10^{3}$ means "something is wrong".
 
 # %% [markdown]
-# ## 3. The exact solution, derived in full
+# ## 3. The exact solution of the free Schrödinger equation
 #
 # Before we compute anything we solve the problem on paper. This is our reference: every number the computer
 # produces will be compared with a formula from this section.
@@ -1265,7 +1265,7 @@ print("\nCHECKPOINT passed: both methods move at exactly the speed their own dis
 #
 # $$ C(t) \;=\; \tfrac12\big\langle \hat x\hat p + \hat p\hat x\big\rangle - \langle x\rangle\langle p\rangle . $$
 #
-# ### 8.2 Ehrenfest's theorem, derived
+# ### 8.2 Ehrenfest's theorem for the free particle
 #
 # How does $\langle x\rangle$ change in time? Differentiate under the integral and use Eq. (2) in the form
 # $\partial_t\psi = \tfrac{i}{2}\partial_x^2\psi$ (and its complex conjugate
@@ -1631,7 +1631,7 @@ plt.show()
 # > Bose-Einstein condensate is measured, and it is the same formula we just verified to thirteen digits.
 
 # %% [markdown]
-# ## 9. The verdict: convergence, conservation, cost
+# ## 9. Convergence, conservation and cost
 #
 # ### 9.1 The reference we compare against
 #
@@ -2224,7 +2224,7 @@ plt.show()
 # the cone is $\pm\sigma_k = \pm 1/(2\sigma_0)$, the velocity spread of the packet.
 
 # %% [markdown]
-# ## 11. What the ring really does: wrap-around, self-interference, revivals
+# ## 11. Long times on the ring: wrap-around, self-interference, revivals
 #
 # So far we were careful to keep the packet away from the seam. Now let us stop being careful and run for a long
 # time. Three things will happen, in this order:

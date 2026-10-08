@@ -23,7 +23,7 @@ What a variational quantum algorithm is, how parametrized gates and ansätze are
 :::
 
 ::: {.nb-item}
-[Optimisers for variational circuits — from the update equation to a measured benchmark](../ch11_variational_quantum_circuits/41_optimizers.ipynb)
+[Optimisers for variational circuits — update rules and a benchmark on GHZ preparation and the Ising chain](../ch11_variational_quantum_circuits/41_optimizers.ipynb)
 
 Gradient descent, heavy-ball momentum, Adam, SPSA with Spall's gain sequences, the SPSA–Adam hybrid and the quantum natural gradient, each derived from its update equation, compiled into lax.scan training loops, vmapped over random initialisations, and benchmarked on GHZ state preparation and on the ground energy of a transverse-field Ising chain with exact and shot-noisy costs.
 :::
