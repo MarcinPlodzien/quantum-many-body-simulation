@@ -28,13 +28,13 @@
 #   \tag{1}$$
 #
 # the XXZ chain in a field transverse to its anisotropy axis, over the plane $-2.5\le\Delta\le2.5$,
-# $0.1\le h_x/J\le3$. Because $N=8$ is small, every ground state is available exactly, and so is every observable one
+# $0.1\le h_x/J\le5$. Because $N=8$ is small, every ground state is available exactly, and so is every observable one
 # might have chosen as an order parameter. The exact data serve as the reference against which the anomaly maps are
 # judged.
 #
 # **Road map.**
 #
-# * **Section 3** computes the 1230 ground states of the grid by Lanczos inside the two sectors of the spin-flip
+# * **Section 3** computes the 2050 ground states of the grid by Lanczos inside the two sectors of the spin-flip
 #   symmetry of Eq. (1), and draws the reference phase diagram from exact observables. The finite chain has sharp lines
 #   (level crossings and a narrowly avoided crossing) and smooth crossovers, which we compare with the phase diagram of
 #   the infinite chain.
@@ -42,10 +42,12 @@
 #   infidelity $1-p_0$ are bounded by each other, $D_H\le1-p_0\le kD_H$; the score of a frozen encoder is bounded by the
 #   infidelity of the input with the training state; the encoder with all angles zero scores exactly $1/2$ on every
 #   ground state. We also measure how the gradients of the two costs compare at random initialisation.
-# * **Section 5** trains encoders at three reference points, with the step size bracketed for both costs and success
+# * **Section 5** trains encoders at four reference points, with the step size bracketed for both costs and success
 #   statistics over random starts.
-# * **Section 6** applies the frozen encoders to all ground states, compares the maps with the exact observables along
-#   two cuts, tests them against untrained encoders and against each other, and varies the number of trash qubits.
+# * **Section 6** applies the frozen encoders to all ground states, tests them against untrained encoders, and
+#   compares the maps with exact data along two cuts: one through the avoided crossing at small field, and one through
+#   the field-induced transition from the ferromagnet to the field-polarised phase, where the exact finite-size
+#   precursors are followed at $N=6$, $8$ and $10$. It closes by varying the number of trash qubits.
 # * **Section 7** lists what limits the method.
 #
 # ### What you will learn
@@ -54,7 +56,8 @@
 # * how a symmetry of the Hamiltonian organises the ground states of a finite chain, and why states of opposite
 #   symmetry are exactly orthogonal;
 # * how the phase diagram of the infinite chain appears at $N=8$: an avoided crossing at a phase boundary, level
-#   crossings inside the symmetry-broken phases, and crossovers in place of transitions;
+#   crossings inside the symmetry-broken phases, and a smooth crossover in place of an Ising-type transition, whose
+#   finite-size precursors (fidelity-susceptibility peak, scaled gap) move towards the critical field as $N$ grows;
 # * what the anomaly score of a frozen autoencoder measures, and what it does not.
 #
 # *Numerical methods*
@@ -64,7 +67,7 @@
 #   statistics over random starts with Wilson intervals.
 #
 # *Implementation practice*
-# * one compiled program for 2460 Lanczos runs, and one for many training runs that differ in cost function, step size,
+# * one compiled program for 4100 Lanczos runs, and one for many training runs that differ in cost function, step size,
 #   input state and trash register, all entering as traced arrays;
 # * the trash register as a 0/1 mask, so that changing it does not trigger a recompilation;
 # * separating compilation time from execution time with `jax.jit(...).lower(...).compile()`.
@@ -150,13 +153,20 @@ def mean_and_se(x):
 # For the infinite chain in the transverse field, Dmitriev, Krivnov, Ovchinnikov and Langari (2002) showed that the
 # field opens a gap in the easy-plane regime and proposed a ground-state phase diagram with three ordered phases below
 # a critical field $h_c(\Delta)$ — Néel order along $z$ for $\Delta>1$, ferromagnetic order along $z$ for $\Delta<-1$,
-# and Néel order along $y$ for $\vert\Delta\vert<1$ — and a disordered phase above it. The order–disorder line belongs
-# to the universality class of the transverse-field Ising chain; the lines $\Delta=\pm1$ stay gapless up to a finite
+# and Néel order along $y$ for $\vert\Delta\vert<1$ — and a disordered phase above it. They argue that the
+# order–disorder line belongs to the universality class of the transverse-field Ising chain, as it does exactly in the
+# limits $\Delta\to\pm\infty$; the lines $\Delta=\pm1$ stay gapless up to a finite
 # field and separate the ordered phases. Their Hamiltonian is written with spin operators $S=\sigma/2$, so their field
-# $h$ corresponds to $h_x=2Jh$ in Eq. (1). Below $h_c$ lies the **classical line**
+# $h$ corresponds to $h_x=2Jh$ in Eq. (1). For $\Delta>-1$ the **classical line**
 # $h_x^{\rm cl}(\Delta)=2J\sqrt{2(1+\Delta)}$, on which the exact ground state of the periodic chain is a product
-# state. We use their results as orientation and
-# compare the finite chain with them at the end of Section 3.2; everything else is computed at $N=8$.
+# state, lies below $h_c$. Translated to Eq. (1), the critical field they give behaves as $h_c\simeq\vert\Delta\vert J$
+# in the Ising limits $\Delta\to\pm\infty$, equals $4J$ at $\Delta=1$, and is $h_c\approx2.91J$ at $\Delta=0$ (from
+# finite chains, just above $h_x^{\rm cl}=2.83J$). For other $\Delta$ their Fig. 1 draws $h_c(\Delta)$ from a
+# mean-field treatment in fermion variables, which is exact in the Ising limits and less accurate near $\Delta=-1$:
+# at $\Delta=2$ this line runs close to the classical line, near $5J$, and at $\Delta=-2$ it lies at $h\approx1.27$,
+# i.e. $h_c\approx2.55J$. Section 6.4 checks this last value independently with periodic chains. We use their
+# results as orientation and compare the finite chain with them at the end of Section 3.2 and in Section 6.4;
+# everything else is computed here, the encoders at $N=8$ and the finite-size comparison at $N=6$, $8$ and $10$.
 #
 # **The spin-flip symmetry.** Let $P=\prod_iX_i$. A single $X_i$ commutes with $X_i$ and anticommutes with $Y_i$ and
 # $Z_i$. Conjugating a two-site term by $P$ therefore gives
@@ -283,7 +293,7 @@ assert abs(E_eng - float(E_sec)) < 1e-8 and abs(ovl_eng - 1) < 1e-8
 # ==============================================================================
 # PARAMETERS
 DELTAS = np.round(np.linspace(-2.5, 2.5, 41), 6)      # anisotropy, spacing 0.125
-HXS = np.round(np.linspace(0.1, 3.0, 30), 6)          # transverse field / J, spacing 0.1 (h_x = 0 excluded, see text)
+HXS = np.round(np.linspace(0.1, 5.0, 50), 6)          # transverse field / J, spacing 0.1 (h_x = 0 excluded, see text)
 TIE = 1e-9                                            # sector energies closer than this count as degenerate -> P = +1
 
 DD, HH = np.meshgrid(DELTAS, HXS)                     # shape (n_h, n_Delta): rows = h_x, columns = Delta
@@ -327,8 +337,8 @@ def grid_index(delta, hx):
     return int(np.argmin(np.abs(HXS - hx))), int(np.argmin(np.abs(DELTAS - delta)))
 
 # %% [markdown]
-# All 2460 Lanczos runs are one call of one compiled function; the residuals stay below $10^{-7}$ and every state has
-# parity $\pm1$ to machine precision. About a third of the grid has an odd ground state.
+# All 4100 Lanczos runs are one call of one compiled function; the residuals stay below $10^{-7}$ and every state has
+# parity $\pm1$ to machine precision. About a quarter of the grid has an odd ground state.
 #
 # The grid starts at $h_x=0.1$. At $h_x=0$ and $\Delta<-1$ the two ferromagnetic states belong to different sectors of
 # the conserved magnetisation $\sum_iZ_i$, the even and odd combinations are exactly degenerate, and "the" ground state
@@ -379,7 +389,7 @@ NB[:, :-1] = np.maximum(NB[:, :-1], 1 - np.asarray(overlap2(PSI[:, :-1], PSI[:, 
 NB[:-1, :] = np.maximum(NB[:-1, :], 1 - np.asarray(overlap2(PSI[:-1, :], PSI[1:, :])))
 
 for name, (d_, h_) in {"ferromagnetic  (-2.0, 0.3)": (-2.0, 0.3), "Neel           ( 2.0, 0.3)": (2.0, 0.3),
-                       "middle band    ( 0.0, 1.0)": (0.0, 1.0), "large field    (-2.0, 2.5)": (-2.0, 2.5)}.items():
+                       "middle band    ( 0.0, 1.0)": (0.0, 1.0), "large field    (-2.0, 4.5)": (-2.0, 4.5)}.items():
     i, j = grid_index(d_, h_)
     print(f"{name}:  <X> = {MX[i, j]:+.3f}   <ZZ> = {ZZC[i, j]:+.3f}   <YY> = {YYC[i, j]:+.3f}   "
           f"S_half = {SHALF[i, j]:.3f} bits   P = {PARITY[i, j]:+.0f}")
@@ -394,6 +404,15 @@ for d_ in (-1.25, -1.125, -1.0, -0.875, -0.75):
     i, j = grid_index(d_, 0.3)
     print(f"  Delta = {d_:+.3f}:  E1 - E0 in the even sector = {we[1] - we[0]:.4f}   neighbour infidelity "
           f"(to Delta + 0.125) = {1 - float(overlap2(PSI[i, j], PSI[i, j + 1])):.3f}")
+
+# the parity crossings along three lines of constant Delta, against the classical line of Section 3.1
+print("\nparity changes of the ground state along lines of constant Delta (midpoints of the grid intervals):")
+for d_ in (-2.0, 0.0, 2.0):
+    col = PARITY[:, grid_index(d_, 0.1)[1]]
+    x_par = HXS[:-1][np.diff(col) != 0] + 0.05
+    h_cl = f"{2 * J * np.sqrt(2 * (1 + d_)):.2f}" if d_ > -1 else "none"
+    print(f"  Delta = {d_:+.1f}: {len(x_par)} changes, at h_x = {', '.join(f'{x:.2f}' for x in x_par) or '-'};"
+          f"  classical line h_x^cl = {h_cl}")
 
 
 def draw_parity_lines(ax, color="w"):
@@ -427,11 +446,13 @@ fig.tight_layout(); plt.show()
 # * **Ferromagnetic** ($\Delta\lesssim-1$, small field): $\langle Z_iZ_{i+1}\rangle=+0.996$ and $S_{N/2}=1.000$ bit at
 #   $(-2,0.3)$. The state is close to the even combination of $\vert0\cdots0\rangle$ and $\vert1\cdots1\rangle$, which
 #   carries exactly one bit of entanglement across any cut.
-# * **Large field** (upper left): $\langle X_i\rangle$ moves towards $-1$ as $h_x$ grows. At the point $(-2,2.5)$ the
-#   ferromagnetic correlations are still sizeable, $\langle Z_iZ_{i+1}\rangle=+0.632$: they fade gradually, and neither
-#   the neighbour infidelity nor the parity marks a line between this region and the ferromagnetic one. In the infinite
-#   chain an ordered ferromagnet and a disordered large-field phase are expected to be separated by an order–disorder
-#   transition; at $N=8$ there is only a smooth crossover.
+# * **Large field** (upper part of the plane, above the highest dashed line and, for $\Delta\lesssim-1$, above the
+#   ferromagnetic region): $\langle X_i\rangle$ moves towards $-1$ as $h_x$ grows. At the point $(-2,4.5)$
+#   $\langle X_i\rangle=-0.884$ and $S_{N/2}=0.224$ bits, while the nearest-neighbour correlations
+#   $\langle Z_iZ_{i+1}\rangle=+0.362$ are still sizeable. Between this region and the ferromagnetic one neither the
+#   neighbour infidelity nor the parity marks a line: the correlations fade gradually. In the infinite chain the two
+#   are separated by the order–disorder transition at $h_c\approx2.55J$ ($\Delta=-2$); at $N=8$ there is only a smooth
+#   crossover, and Section 6.4 shows how its finite-size precursors locate the transition.
 # * **Small-field antiferromagnetic region** ($\Delta\gtrsim-1$, below the lowest dashed line):
 #   $\langle Z_iZ_{i+1}\rangle<0$, $\langle X_i\rangle\approx0$. No map shows a feature at $\Delta=1$, where the infinite
 #   chain has its Kosterlitz–Thouless transition at $h_x=0$ and a gapless line between Néel order along $z$ and along
@@ -446,22 +467,27 @@ fig.tight_layout(); plt.show()
 # is: the gap to the second level of the even sector falls from $0.87$ at $\Delta=-1.25$ to $0.043$ at $\Delta=-1$
 # ($h_x=0.3$), a **narrowly avoided crossing**, and the neighbour infidelities across the two grid intervals around
 # $\Delta=-1$ are $0.436$ and $0.733$. A smooth crossover, such as the one between the ferromagnetic and large-field
-# regions, leaves no line. These three kinds of behaviour are the reference against which the anomaly maps are judged.
+# regions, leaves no sharp line, only a faint brightening of the neighbour infidelity (at most $0.004$ along
+# $\Delta=-2$, Section 6.4). These three kinds of behaviour are the reference against which the anomaly maps are judged.
 #
 # **The finite chain and the infinite chain.** The sharp lines of the finite chain are not the phase boundaries of
 # Section 3.1. All three ordered phases of the infinite chain break the spin-flip symmetry ($P$ reverses
 # $Y_i$ and $Z_i$, and with them the Néel and ferromagnetic order parameters), so their ground state is a doublet of
 # one even and one odd state. On a finite chain the two members are split, and Dmitriev *et al.* observed, on periodic
 # chains of 10 to 18 sites, that the two lowest levels cross $N/2$ times as the field grows, the last crossing on the
-# classical line. Our open chain
-# behaves in the same way: along $\Delta=0$ the eight-site chain has four parity crossings, the last near
-# $h_x\approx2.75J$, just below $h_x^{\rm cl}=2\sqrt2J\approx2.83J$; along $\Delta=2$ it has four below $h_x\approx4.7J$,
-# of which the grid shows the two lowest. Chains of $6$ and $10$ sites have three and five crossings, and the lowest one
+# classical line. Our open chain behaves in the same way (last printed lines): along $\Delta=0$ the eight-site chain
+# has four parity crossings, the last between $h_x=2.7J$ and $2.8J$, just below $h_x^{\rm cl}=2\sqrt2J\approx2.83J$;
+# along $\Delta=2$ it has four as well, the last between $4.6J$ and $4.7J$, below $h_x^{\rm cl}=2\sqrt6J\approx4.90J$;
+# along $\Delta=-2$, where the classical line does not exist, it has none, and neither do chains of $6$ and $10$
+# sites. Along $\Delta=0$ and $\Delta=2$ chains of $6$ and $10$ sites have three and five crossings, and the lowest one
 # moves to smaller fields as $N$ grows (Exercise 6). The parity crossings are therefore finite-size features inside
 # the ordered phases and mark no transition; in the infinite chain they merge into the degenerate doublet. The avoided
 # crossing at $\Delta\approx-1$, by contrast, is the finite-size image of the boundary between the ferromagnetic phase
-# and the phase with Néel order along $y$; the order–disorder line $h_c(\Delta)$ and the gapless line at $\Delta=1$
-# leave no sharp trace at $N=8$.
+# and the phase with Néel order along $y$. The order–disorder line $h_c(\Delta)$ and the gapless line at $\Delta=1$
+# leave no sharp trace at $N=8$. For $\Delta<-1$ the order–disorder transition is the only feature of a line of
+# increasing field, free of parity crossings; for $\Delta\gtrsim0$ it lies just above the last parity crossing
+# ($h_c\approx2.91J$ against $2.83J$ at $\Delta=0$, both near $5J$ at $\Delta=2$) and cannot be told apart from it at
+# $N=8$. This is why Section 6.4 follows the transition along $\Delta=-2$.
 
 # %% [markdown]
 # ## 4. The anomaly score of a frozen autoencoder
@@ -474,6 +500,17 @@ fig.tight_layout(); plt.show()
 # the chain ($k=2$: qubits $0$ and $7$); Exercise 4 compares this choice with two adjacent trash qubits at one end.
 # Kottmann *et al.* used a different circuit, with $R_y$ rotations only and $CZ$ gates between trash and non-trash
 # qubits and among the trash qubits; the inequalities derived below hold for any encoder.
+#
+# ![The quantum autoencoder of this notebook and its use for anomaly detection: (a) encoder U(theta) on eight qubits, trash qubits 0 and 7 discarded and replaced by fresh zeros, decoder U-dagger(theta); (b) training of the encoder on the reference ground state by the local cost of the trash qubits; (c) the frozen encoder applied to the ground state at every grid point, with the same cost as anomaly score](figures/qae_anomaly_detection.svg)\
+# **Figure 1.** (a) The quantum autoencoder of notebook 45 at $N=8$ with the trash register $T=\{0,7\}$, $k=2$: the
+# encoder $U(\boldsymbol\theta)$ maps the input to a state whose trash qubits are close to $\vert0\rangle$; they are
+# discarded and replaced by fresh $\vert0\rangle$'s, and the decoder $U^\dagger(\boldsymbol\theta)$ rebuilds the input from
+# the six latent qubits. (b) Training needs only the encoder: the trash qubits are measured and Adam lowers their local
+# cost $D_H$, Eq. (4), on the reference ground state $\vert\psi_0(\lambda_\star)\rangle$ to $10^{-3}$ or below
+# (Section 5.3).
+# (c) Anomaly detection: the trained encoder $U(\boldsymbol\theta_\star)$ is kept fixed and applied to the ground state
+# at every point of the $(\Delta,h_x)$ grid; the same local cost is the anomaly score of Eq. (8). The latent qubits are
+# never measured and the decoder is never run.
 #
 # Write the encoded state in the computational basis of the trash register,
 #
@@ -525,13 +562,6 @@ fig.tight_layout(); plt.show()
 # $$\mathcal A_k(\lambda\,\vert\,\lambda_\star)=D_H\bigl(U(\boldsymbol\theta_\star)\vert\psi_0(\lambda)\rangle\bigr) .\tag{8}$$
 #
 # No retraining happens during the scan; one forward pass of the circuit per grid point suffices.
-#
-# ![Variational quantum anomaly detection: (a) the encoder U(theta) is trained on the reference ground state by minimising the local cost of the trash qubits 0 and 7; (b) the trained encoder is frozen and applied to the ground state at every grid point, and the same local cost is the anomaly score](figures/qae_anomaly_detection.svg)\
-# **Figure 1.** The two stages of the protocol at $N=8$, $k=2$. (a) Training: the encoder acts on the reference ground
-# state $\vert\psi_0(\lambda_\star)\rangle$, only the trash qubits $0$ and $7$ are measured, and Adam lowers the local
-# cost $D_H$ of Eq. (4) to about $10^{-3}$. (b) Scan: the trained encoder $U(\boldsymbol\theta_\star)$ is kept fixed and
-# applied to the ground state at each of the $1230$ grid points; the local cost is the anomaly score of Eq. (8). The
-# latent qubits are never measured and the decoder of notebook 45 is never run.
 #
 # To see what Eq. (8) measures, let $\Pi=\mathbb 1_L\otimes\vert0\cdots0\rangle\langle0\cdots0\vert_T$ and
 # $Q=U^\dagger\Pi U$, the projector onto the $2^{N-k}$-dimensional subspace of inputs that the encoder compresses
@@ -663,8 +693,8 @@ assert max_abs(dh_id - 0.5) < 1e-8
 
 # %% [markdown]
 # `trash_costs` agrees with the reduced density matrices of the trash qubits to ten digits for every $k$. Equation (6)
-# holds for all 6000 random encoder–state pairs, with the ratio $(1-p_0)/D_H$ between $1.19$ and $3.05$; Exercise 1
-# shows that both bounds are attained by suitable states. The identity encoder returns $1/2$ on all 1230 ground states,
+# holds for all 6000 random encoder–state pairs, with the ratio $(1-p_0)/D_H$ between $1.15$ and $3.29$; Exercise 1
+# shows that both bounds are attained by suitable states. The identity encoder returns $1/2$ on all 2050 ground states,
 # as Eq. (10) requires.
 
 # %% [markdown]
@@ -819,20 +849,22 @@ for c_i, (c, lr) in enumerate(cfg):
 # or less per run and iteration to execute.
 
 # %% [markdown]
-# ### 5.3 Three reference points
+# ### 5.3 Four reference points
 #
-# We train on the local cost with $\eta=0.1$ at three reference points, one in each of three regions of Section 3.2:
-# Néel $(2,0.3)$, large field $(-2,2.5)$, and the middle band $(0,1)$, whose ground state has $P=-1$. Twelve
-# random starts per point give the success fraction with its Wilson interval.
+# We train on the local cost with $\eta=0.1$ at four reference points, one in each region of Section 3.2: Néel
+# $(2,0.3)$, ferromagnetic $(-2,0.3)$, the middle band $(0,1)$, whose ground state has $P=-1$, and large field
+# $(-2,4.5)$. The ferromagnetic and the large-field points lie on the same line $\Delta=-2$, on the two sides of the
+# order–disorder transition at $h_c\approx2.55J$; Section 6.4 uses them as a pair. Twelve random starts per point give
+# the success fraction with its Wilson interval.
 
 # %%
 # ==============================================================================
-# STEP 7: success statistics at three reference points
+# STEP 7: success statistics at four reference points
 # ==============================================================================
 # PARAMETERS
 LR = 0.1                                               # from the bracket of Step 6
 R_RUNS = 12                                            # random starts per reference point
-REFS = {"Neel": (2.0, 0.3), "large field": (-2.0, 2.5), "middle band": (0.0, 1.0)}
+REFS = {"Neel": (2.0, 0.3), "ferromagnetic": (-2.0, 0.3), "middle band": (0.0, 1.0), "large field": (-2.0, 4.5)}
 
 ref_names = list(REFS)
 B = len(REFS) * R_RUNS
@@ -871,20 +903,23 @@ ax.legend(fontsize=8)
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# All twelve starts succeed at the Néel and large-field points, eleven of twelve in the middle band, where the median
-# final infidelity is also the largest. The curves fall steeply during the first few tens of iterations and slowly
-# afterwards; no run reaches zero within 300 iterations. A residual $\varepsilon\approx10^{-3}$ is enough for the anomaly
-# map: in Eq. (9) it enters as $\sqrt\varepsilon\approx0.03$, a small correction to the overlap amplitude.
+# All twelve starts succeed at the Néel, ferromagnetic and large-field points, eleven of twelve in the middle band,
+# where the median final infidelity is also the largest ($2.5\times10^{-3}$). The two points on $\Delta=-2$ train an
+# order of magnitude better (median $1.3\times10^{-4}$). The curves fall steeply during the first few tens of iterations
+# and slowly afterwards; no run reaches zero within 300 iterations. The maps of Section 6.1 use the best start at each
+# point, whose residual is at most $\varepsilon=1.1\times10^{-3}$; in Eq. (9) it enters as $\sqrt\varepsilon\le0.034$,
+# a small correction to the overlap amplitude.
 
 # %% [markdown]
 # ## 6. Anomaly maps over the phase diagram
 #
 # ### 6.1 Frozen encoders on all ground states
 #
-# For each reference point the encoder with the lowest final $1-p_0$ is frozen and Eq. (8) is evaluated on all 1230
-# ground states — one `vmap` over states, nested in a `vmap` over encoders. Beneath each map we draw the exact
-# infidelity with the reference state, $1-\vert\langle\psi_\star\vert\psi_0(\lambda)\rangle\vert^2$, and the code checks
-# Eq. (9) at every grid point.
+# For each reference point the encoder with the lowest final $1-p_0$ is frozen and Eq. (8) is evaluated on all 2050
+# ground states — one `vmap` over states, nested in a `vmap` over encoders. The first figure shows the four maps, the
+# second the exact infidelity of every ground state with the reference state,
+# $1-\vert\langle\psi_\star\vert\psi_0(\lambda)\rangle\vert^2$, in the same arrangement; the code checks Eq. (9) at
+# every grid point.
 
 # %%
 # ==============================================================================
@@ -922,51 +957,74 @@ for r, name in enumerate(ref_names):
     assert excess < 1e-10                                                  # Eq. (9) at every grid point
     assert np.all(amp[PARITY != PARITY[i, j]] < 1e-8)                      # opposite parity: exactly orthogonal
 
-fig, axes = plt.subplots(2, 3, figsize=(14.5, 8.0), sharex=True, sharey=True)
-for r, name in enumerate(ref_names):
-    d_, h_ = REFS[name]
-    for row, (data, lab, vmax) in enumerate([(A_BEST[r], r"anomaly map $\mathcal{A}_2(\lambda\,|\,\lambda_{*})$", 0.6),
-                                             (1 - OVL[name], r"$1-|\langle\psi_{*}|\psi_0(\lambda)\rangle|^2$", 1.0)]):
-        ax = axes[row, r]
-        im = ax.pcolormesh(DELTAS, HXS, data, shading="nearest", cmap="viridis", vmin=0, vmax=vmax)
+# mean scores of each encoder over three regions of Section 3.2, and the Neel encoder between the crossings of Delta = 2
+REGIONS = {"ferromagnetic (Delta <= -1.25, h_x <= 1)": (DD <= -1.25) & (HH <= 1.0),
+           "large field (Delta <= -1.25, h_x >= 3.5)": (DD <= -1.25) & (HH >= 3.5),
+           "odd-parity points (P = -1)": PARITY < 0}
+print(f"\n{'mean score over':>42s} " + " ".join(f"{n:>13s}" for n in ref_names))
+for lab, msk in REGIONS.items():
+    print(f"{lab:>42s} " + " ".join(f"{A_BEST[r][msk].mean():13.3f}" for r in range(len(REFS))))
+col2 = grid_index(2.0, 0.1)[1]
+edges = np.concatenate([[0], np.where(np.diff(PARITY[:, col2]) != 0)[0] + 1, [len(HXS)]])
+print("Neel encoder along Delta = 2, between successive parity changes: " + ";  ".join(
+    f"h_x {HXS[a]:.1f}-{HXS[b - 1]:.1f}: {A_BEST[0][a:b, col2].min():.3f}-{A_BEST[0][a:b, col2].max():.3f}"
+    for a, b in zip(edges[:-1], edges[1:])))
+
+for data_of, lab, vmax, sup in [
+        (lambda r, name: A_BEST[r], r"$\mathcal{A}_2(\lambda\,|\,\lambda_{*})$", 0.6,
+         f"Anomaly maps of the frozen encoders ($k=2$, $L={LAYERS}$) on all {n_pts} ground states "
+         "(colour scale clipped at 0.6)"),
+        (lambda r, name: 1 - OVL[name], r"$1-|\langle\psi_{*}|\psi_0(\lambda)\rangle|^2$", 1.0,
+         "Infidelity of every ground state with the reference state")]:
+    fig, axes = plt.subplots(2, 2, figsize=(11.5, 10.0), sharex=True, sharey=True)
+    for r, name in enumerate(ref_names):
+        ax = axes.flat[r]
+        im = ax.pcolormesh(DELTAS, HXS, data_of(r, name), shading="nearest", cmap="viridis", vmin=0, vmax=vmax)
         draw_parity_lines(ax)
-        ax.plot(d_, h_, "*", ms=15, color="#00e5ff", mec="k")
-        ax.set_title(f"{lab}, reference {name} {REFS[name]}", fontsize=9)
+        ax.plot(*REFS[name], "*", ms=15, color="#00e5ff", mec="k")
+        ax.set_title(f"{lab}, reference {name} {REFS[name]}", fontsize=10)
         ax.grid(False)
         fig.colorbar(im, ax=ax)
-for ax in axes[:, 0]:
-    ax.set_ylabel(r"$h_x/J$")
-for ax in axes[1, :]:
-    ax.set_xlabel(r"$\Delta$")
-fig.suptitle(f"Top: frozen encoders ($k=2$, $L={LAYERS}$) on all {n_pts} ground states (colour scale clipped at 0.6). "
-             "Bottom: infidelity with the reference state. Dashed: parity changes.", fontsize=10)
-fig.tight_layout(); plt.show()
+    for ax in axes[:, 0]:
+        ax.set_ylabel(r"$h_x/J$")
+    for ax in axes[1, :]:
+        ax.set_xlabel(r"$\Delta$")
+    fig.suptitle(sup + "; star: reference point; dashed: parity changes", fontsize=11)
+    fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# Equation (9) holds at every grid point for all three encoders (the largest value of $\mathcal A$ minus the bound is
+# Equation (9) holds at every grid point for all four encoders (the largest value of $\mathcal A$ minus the bound is
 # negative), and every ground state whose parity differs from that of the reference state is orthogonal to it to
 # machine precision.
 #
-# The bottom row, the exact infidelity with the reference state, is the strictest possible similarity test. On a
+# The exact infidelity with the reference state (second figure) is the strictest possible similarity test. On a
 # device it would require both states at once, for a swap test, whereas the anomaly score needs only $Z$ measurements
-# of the $k$ trash qubits of one state. The infidelity is exactly one on the whole region of opposite parity, and only $8$–$10\,\%$ of the plane has
-# $\vert\langle\psi_\star\vert\psi_0\rangle\vert^2>0.95$. The anomaly maps in the top row have much larger regions of small
-# score. Calling a state **compressed** when its score is below a threshold $\tau=0.05$, the compressed states cover
-# $27$–$30\,\%$ of the plane. The encoder trained at the Néel point compresses the ground
-# states of the whole small-field antiferromagnetic region, and gives small scores also in the middle band, growing
-# towards larger field (along $\Delta=2$: $0.02$–$0.05$ between the two crossings, $0.18$–$0.19$ above the second), although every
-# middle-band state with $P=-1$ is orthogonal to the reference state. This is the freedom identified after Eq. (9): the
-# compressed subspace $Q$ has 64 dimensions and training fixes one of them. The encoder trained in the middle band also
-# compresses the small-field antiferromagnetic region and the band, and gives lower scores than the Néel encoder in the
-# large-field region. The encoder trained at large field compresses the large-field region and gives intermediate
-# scores, between $0.08$ and $0.20$, in the ferromagnetic region.
+# of the $k$ trash qubits of one state. The infidelity is exactly one on the whole region of opposite parity, and only
+# $4$–$6\,\%$ of the plane has $\vert\langle\psi_\star\vert\psi_0\rangle\vert^2>0.95$ for the three references at small
+# or intermediate field, $19\,\%$ for the large-field reference. The anomaly maps (first figure) have larger regions of
+# small score. Calling a state **compressed** when its score is below a threshold $\tau=0.05$, the compressed states
+# cover $7\,\%$ of the plane for the ferromagnetic encoder, $18\,\%$ for the Néel and middle-band encoders, and $44\,\%$
+# for the large-field encoder. The second printed table gives the mean score of each encoder over three regions.
+#
+# * The **ferromagnetic** encoder compresses the ferromagnetic region (mean score $0.012$) and nothing else: its score
+#   is $0.26$ on average at large field and $0.69$ on the odd-parity points.
+# * The **large-field** encoder compresses the large-field region on both sides of $\Delta=-1$ (mean $0.001$ for
+#   $\Delta\le-1.25$, $h_x\ge3.5$) and gives intermediate scores, $0.22$ on average, in the ferromagnetic region.
+# * The **Néel** encoder compresses the small-field antiferromagnetic region and gives small scores also in the lower
+#   part of the middle band, growing step by step towards larger field. Along $\Delta=2$ its score is at most $0.003$
+#   below the first parity crossing, $0.02$–$0.05$ between the first and the second, $0.18$–$0.22$ between the second and
+#   the third, and above $0.44$ beyond. Every middle-band state with $P=-1$ is orthogonal to the reference state. This
+#   is the freedom identified after Eq. (9): the compressed subspace $Q$ has 64 dimensions and training fixes one of them.
+# * The **middle-band** encoder compresses the small-field antiferromagnetic region and the band, and gives lower scores
+#   than the Néel encoder in the large-field region ($0.11$ against $0.77$).
 #
 # The edges of the regions of small score lie on the sharp features of Section 3.2: the avoided crossing at
-# $\Delta\approx-1$ at small field, and the parity changes, in particular the highest dashed line, which bounds the middle
-# band on the large-field side. By the comparison at the end of Section 3.2, only the first of these is the finite-size
-# image of a boundary between phases of the infinite chain; the parity changes lie inside its ordered phases. Between the ferromagnetic and the large-field region, where the exact data show a smooth
-# crossover, the maps also change smoothly. Section 6.2 shows why the edges sit where the ground state jumps, and
-# Section 6.3 quantifies both statements along two cuts.
+# $\Delta\approx-1$ at small field, and the parity changes, in particular the highest dashed line, which bounds the
+# middle band on the large-field side. By the comparison at the end of Section 3.2, only the first of these is the
+# finite-size image of a boundary between phases of the infinite chain; the parity changes lie inside its ordered
+# phases. Between the ferromagnetic and the large-field region, where the exact data show a smooth crossover, the maps
+# also change smoothly. Section 6.2 shows why the edges sit where the ground state jumps; Section 6.3 follows the
+# avoided crossing along $h_x=0.3J$, and Section 6.4 the order–disorder transition along $\Delta=-2$.
 
 # %% [markdown]
 # ### 6.2 Untrained encoders and level crossings
@@ -1026,16 +1084,16 @@ axes[0].set_ylabel(r"$h_x/J$")
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# No untrained encoder compresses any ground state. The smallest score on the grid is $0.349\pm0.015$ on average over
-# the 16 encoders and never below $0.16$, and none of the 19680 encoder–state pairs falls below $0.05$. The maps of
-# untrained encoders are nevertheless far from featureless: the score changes on average by $0.045$ between neighbouring
-# grid points on opposite sides of a parity change and by $0.0028$ between all other neighbours, a ratio of $16\pm1$.
+# No untrained encoder compresses any ground state. The smallest score on the grid is $0.340\pm0.016$ on average over
+# the 16 encoders and never below $0.16$, and none of the 32800 encoder–state pairs falls below $0.05$. The maps of
+# untrained encoders are nevertheless far from featureless: the score changes on average by $0.042$ between neighbouring
+# grid points on opposite sides of a parity change and by $0.0022$ between all other neighbours, a ratio of $19.5\pm1.4$.
 #
 # For a fixed encoder, $D_H=\langle\psi_0(\lambda)\vert\,O\,\vert\psi_0(\lambda)\rangle$ with the
 # fixed observable $O=U^\dagger\bigl(\frac1k\sum_{j\in T}n_j\bigr)U$, and every expectation value jumps where the ground
-# state jumps. The level crossings of Section 3.2 are therefore visible to any encoder, trained or not. The trained
-# encoders change more across a crossing ($0.13$ and $0.14$ for the Néel and large-field encoders), the one trained in the
-# middle band not more than an untrained one ($0.039$).
+# state jumps. The level crossings of Section 3.2 are therefore visible to any encoder, trained or not. Three of the
+# trained encoders change more across a crossing ($0.10$ to $0.15$ for the ferromagnetic, large-field and Néel
+# encoders), the one trained in the middle band not more than an untrained one ($0.041$).
 #
 # Two conclusions follow. A step in an anomaly map is no evidence by itself that the encoder has learned anything; its
 # position is a property of the spectrum of the finite chain. What training contributes is the zero level: a region
@@ -1043,103 +1101,331 @@ fig.tight_layout(); plt.show()
 # the identity encoder (a flat map at $1/2$) nor random encoders (no compressed state at all) produce one.
 
 # %% [markdown]
-# ### 6.3 Two cuts, compared with the exact observables
+# ### 6.3 The avoided crossing at small field
 #
 # The maps of Section 6.1 come from one encoder per reference point. To see how much they depend on the training run,
-# we evaluate all successful encoders of Step 7 along two cuts through the plane: $h_x=0.3$ with $\Delta$ varying,
-# which crosses from the ferromagnetic into the antiferromagnetic region, and $\Delta=2$ with $h_x$ varying, which starts
-# in the Néel regime and enters the band of level crossings. Below each cut we plot the exact observables. Dotted vertical
-# lines mark parity changes of the ground state.
+# we evaluate all successful encoders of Step 7 along two cuts through the plane, and compare them with exact data.
+# The first cut, $h_x=0.3J$ with $\Delta$ varying, crosses the avoided crossing at $\Delta\approx-1$: in the infinite
+# chain it passes from the ferromagnetic phase into the phase with Néel order along $y$, and at $\Delta=1$ into the one
+# with Néel order along $z$. The ground state has $P=+1$ along the whole cut.
 
 # %%
 # ==============================================================================
-# STEP 10: spread over trained starts, and two cuts compared with the exact observables
+# STEP 10: spread over trained starts, and the cut h_x = 0.3 compared with the exact observables
 # ==============================================================================
 A_ALL = {name: np.asarray(anomaly_map(jnp.asarray(TH_REF[r, OK_RUNS[name]]), trash_mask(2))).reshape(
     (len(OK_RUNS[name]),) + SHAPE) for r, name in enumerate(ref_names)}
-i_cut, j_cut = grid_index(0.0, 0.3)[0], grid_index(2.0, 0.1)[1]
-CUTS = [("h_x = 0.3", DELTAS, (slice(None), i_cut, slice(None)), (i_cut, slice(None)), r"$\Delta$"),
-        ("Delta = 2", HXS, (slice(None), slice(None), j_cut), (slice(None), j_cut), r"$h_x/J$")]
-CUT_TEX = {"h_x = 0.3": r"$h_x=0.3J$", "Delta = 2": r"$\Delta=2$"}       # cut names for the figure titles
+i_cut = grid_index(0.0, 0.3)[0]
 
-fig, axes = plt.subplots(2, 2, figsize=(13.0, 7.6), sharex="col")
-for c, (cname, xs, sl, sl2, xl) in enumerate(CUTS):
-    ax = axes[0, c]
+
+def plot_scores(ax, xs, take):
+    """Mean anomaly score of the successful encoders of every reference point along a cut, band = min..max."""
     for r, name in enumerate(ref_names):
-        a = A_ALL[name][sl]
+        a = take(A_ALL[name])
         ax.plot(xs, a.mean(axis=0), MARKERS[r] + "-", ms=3.5, color=PALETTE[r],
                 label=f"reference {name} {REFS[name]}, {a.shape[0]} encoders")
         ax.fill_between(xs, a.min(axis=0), a.max(axis=0), color=PALETTE[r], alpha=0.25)
     ax.set_ylabel(r"$\mathcal{A}_2$: mean, band = min..max over encoders")
-    ax.set_title(f"anomaly score along {CUT_TEX[cname]}", fontsize=10); ax.legend(fontsize=7)
-    ax = axes[1, c]
-    ax.plot(xs, MX[sl2], "-", color=PALETTE[3], label=r"$\langle X_i\rangle$")
-    ax.plot(xs, ZZC[sl2], "-", color=PALETTE[4], label=r"$\langle Z_iZ_{i+1}\rangle$")
-    ax.plot(xs, YYC[sl2], "-", color=PALETTE[5], label=r"$\langle Y_iY_{i+1}\rangle$")
-    ax.plot(xs, SHALF[sl2] / (N // 2), "--", color="k", label=r"$S_{N/2}/(N/2)$")
-    ax.set_xlabel(xl); ax.set_title(f"exact observables along {CUT_TEX[cname]}", fontsize=10); ax.legend(fontsize=7)
-    for a_ in axes[:, c]:
-        for x_ in xs[:-1][np.diff(PARITY[sl2]) != 0]:
-            a_.axvline(x_ + 0.5 * (xs[1] - xs[0]), color="grey", ls=":", lw=1.0)
+
+
+fig, axes = plt.subplots(1, 2, figsize=(13.0, 4.3), sharex=True)
+plot_scores(axes[0], DELTAS, lambda A: A[:, i_cut, :])
+axes[0].set_title(r"anomaly score along $h_x=0.3J$", fontsize=10); axes[0].legend(fontsize=7)
+ax = axes[1]
+ax.plot(DELTAS, MX[i_cut], "-", color=PALETTE[3], label=r"$\langle X_i\rangle$")
+ax.plot(DELTAS, ZZC[i_cut], "-", color=PALETTE[4], label=r"$\langle Z_iZ_{i+1}\rangle$")
+ax.plot(DELTAS, YYC[i_cut], "-", color=PALETTE[5], label=r"$\langle Y_iY_{i+1}\rangle$")
+ax.plot(DELTAS, SHALF[i_cut] / (N // 2), "--", color="k", label=r"$S_{N/2}/(N/2)$")
+ax.set_title(r"exact observables along $h_x=0.3J$", fontsize=10); ax.legend(fontsize=7)
+for ax in axes:
+    ax.set_xlabel(r"$\Delta$")
+    for x_ in DELTAS[:-1][np.diff(PARITY[i_cut]) != 0]:
+        ax.axvline(x_ + 0.5 * (DELTAS[1] - DELTAS[0]), color="grey", ls=":", lw=1.0)
 fig.tight_layout(); plt.show()
 
-print("largest change of A between neighbouring grid points along each cut (mean over encoders), and where:")
-for cname, xs, sl, sl2, xl in CUTS:
-    for name in ref_names:
-        d = np.abs(np.diff(A_ALL[name][sl].mean(axis=0)))
-        m = int(np.argmax(d))
-        print(f"  {cname:>10s}, reference {name:>12s}: {d[m]:.3f} between {xs[m]:+.3f} and {xs[m + 1]:+.3f}")
-j2 = grid_index(-2.0, 0.1)[1]
-a_x = A_ALL["large field"][:, :, j2].mean(axis=0)
-print("\nreference large field, along Delta = -2 (no level crossing on this line):")
-print("  h_x          : " + " ".join(f"{h:6.1f}" for h in HXS[::3]))
-print("  mean A       : " + " ".join(f"{a:6.3f}" for a in a_x[::3]))
-print("  exact <ZZ>   : " + " ".join(f"{z:6.3f}" for z in ZZC[::3, j2]))
-print(f"  largest step of A between neighbouring h_x: {np.abs(np.diff(a_x)).max():.3f};  largest neighbour infidelity "
-      f"on this line: {NB[:, j2].max():.4f}")
+print("along h_x = 0.3: largest change of A between neighbouring grid points (mean over encoders), and where:")
+for name in ref_names:
+    d = np.abs(np.diff(A_ALL[name][:, i_cut, :].mean(axis=0)))
+    m = int(np.argmax(d))
+    print(f"  reference {name:>13s}: {d[m]:.3f} between Delta = {DELTAS[m]:+.3f} and {DELTAS[m + 1]:+.3f}")
 for name in ref_names:
     spread = A_ALL[name].max(axis=0) - A_ALL[name].min(axis=0)
-    print(f"{name:>12s}: {A_ALL[name].shape[0]} trained encoders; spread (max - min) of A over encoders: "
+    print(f"{name:>13s}: {A_ALL[name].shape[0]} trained encoders; spread (max - min) of A over encoders: "
           f"median over the grid {np.median(spread):.3f}, largest {spread.max():.3f}")
 
 # %% [markdown]
-# Along $h_x=0.3$ all three maps take their largest step at the avoided crossing: between $\Delta=-1$ and $-0.875$ for
-# the Néel and large-field encoders, between $-1.125$ and $-1$ for the middle-band encoder, the two intervals across
-# which the neighbour infidelity is $0.733$ and $0.436$. The exact $\langle Z_iZ_{i+1}\rangle$ and
-# $\langle Y_iY_{i+1}\rangle$ jump at the same place. Along $\Delta=2$ the ground state changes parity twice, between
-# $h_x=0.9$ and $1.0$ and between $2.6$ and $2.7$, and every map steps at both places. The sizes of the steps depend on
-# the reference point: the Néel encoder takes its largest step ($0.128$) at the second crossing and a small one at the
-# first, the large-field encoder its largest ($0.208$) at the first. Between the crossings both the maps and the
-# observables are nearly flat. In the infinite chain the whole cut, up to $h_x=3J$, lies inside the phase with Néel
-# order along $z$ (at $\Delta=2$ the classical line lies at $h_x^{\rm cl}=2\sqrt6J\approx4.9J$, and $h_c$ is higher
-# still): both steps are level
-# crossings of the finite chain, and their positions shift with $N$.
+# All four maps take their largest step at the avoided crossing: between $\Delta=-1$ and $-0.875$ for the Néel,
+# ferromagnetic and large-field encoders, between $-1.125$ and $-1$ for the middle-band encoder, the two intervals
+# across which the neighbour infidelity is $0.733$ and $0.436$. The exact $\langle Z_iZ_{i+1}\rangle$ and
+# $\langle Y_iY_{i+1}\rangle$ jump at the same place. The ferromagnetic and the Néel encoders see the boundary from its
+# two sides: the first compresses the ferromagnetic states (mean score $0.012$ in that region, Section 6.1) and its
+# score rises by $0.39$ across the crossing; the second scores $0.96$ there on average and drops by $0.43$ across the
+# crossing. This boundary is a genuine one: it is the finite-size image of the transition between the ferromagnetic
+# phase and the phase with Néel order along $y$, and both encoders locate it, each trained on a single state far from
+# it. The gapless line at $\Delta=1$, on the other hand, leaves no mark: the Néel encoder's score falls smoothly through
+# it, as do the exact observables.
 #
-# Along $\Delta=-2$ the chain passes from the ferromagnetic into the large-field region without a level crossing (the
-# largest neighbour infidelity on this line is $0.004$). The score of the large-field encoder falls smoothly from
-# $0.187$ at $h_x=0.1$ to zero at $h_x=2.5$, with no step larger than $0.017$, while $\langle Z_iZ_{i+1}\rangle$ falls
-# smoothly from $1.000$ to $0.632$ over the same range. The finite chain has no sharp boundary on this line, and the map has none either:
-# here finite size has replaced a transition by a crossover, and no threshold on $\mathcal A$ would locate it without an
-# arbitrary choice.
+# The bands show how much the maps depend on the training run. Over the grid, the median spread between the largest
+# and the smallest score of the successful encoders is $0.08$ to $0.11$ for three references and $0.24$ for the
+# middle band, and the largest spread is between $0.17$ and $0.39$. The step positions are the same for every encoder;
+# the levels between the steps are not.
 #
-# The bands show how much the maps depend on the training run. Over the grid, the median spread between the largest and
-# the smallest score of the successful encoders is $0.05$ to $0.07$, and the largest spread is between $0.17$ and $0.32$.
-# The step positions are the same for every encoder; the levels between the steps are not.
+# ### 6.4 The order–disorder transition along $\Delta=-2$
+#
+# Along $\Delta=-2$ the infinite chain has a field-induced transition from the ferromagnet along $z$ to the
+# field-polarised phase at $h_c\approx2.55J$ (Section 3.1), in the universality class of the transverse-field Ising
+# chain. The line is free of parity crossings, and the reference points $(-2,0.3)$ and $(-2,4.5)$ lie on its two
+# sides. At $N=8$ nothing in Section 3.2 is sharp here, so we use the finite-size tools of notebook 47 and follow them
+# over three chain lengths, $N=6$, $8$ and $10$. For chains this short a dense diagonalisation inside each parity sector
+# (dimension $2^{N-1}\le512$) gives all levels at once.
+#
+# * The **fidelity susceptibility** of the ground state $\vert0\rangle$ with respect to the field
+#   ([notebook 47, Section 7](../ch13_quantum_phase_transitions/47_quantum_phase_transitions.ipynb)),
+#
+#   $$\chi_F(h_x)=\Bigl\lVert\partial_{h_x}\psi_0\Bigr\rVert^2
+#     =\sum_{m\ne0}\frac{\vert\langle m\vert\sum_iX_i\vert0\rangle\vert^2}{(E_m-E_0)^2},\tag{11}$$
+#
+#   is the second-order coefficient of the neighbour infidelity, $1-\vert\langle\psi_0(h_x)\vert\psi_0(h_x+\delta)\rangle\vert^2
+#   \approx\chi_F\,\delta^2$, with $\partial_{h_x}\psi_0$ taken orthogonal to $\psi_0$. Equation (11) is the total
+#   susceptibility of the chain; the plots show $\chi_F/N$. Since $\sum_iX_i$ commutes with $P$, only states
+#   $\vert m\rangle$ of the ground-state sector contribute. For the Ising class $\chi_F/N$ develops a peak that grows
+#   with $N$ (as $N$ itself at large $N$, since $\nu=1$) and moves towards $h_c$.
+# * The **doublet splitting** $s_N=E_0^{P=-1}-E_0^{P=+1}$. In the ordered phase it is the tunnelling splitting of the
+#   two ferromagnetic states and vanishes exponentially with $N$; in the disordered phase it tends to a finite gap; at
+#   $h_c$ it falls as $1/N$ (dynamical exponent $z=1$). The curves $Ns_N$ for two sizes therefore cross near $h_c$,
+#   the locator of [notebook 47, Section 5](../ch13_quantum_phase_transitions/47_quantum_phase_transitions.ipynb).
+# * The **gap inside the even sector**, $E_1^{P=+1}-E_0^{P=+1}$, which has a minimum near the transition, and the
+#   **end-to-end correlator** $\langle Z_0Z_{N-1}\rangle$, a finite-chain stand-in for the squared order parameter.
+#
+# One more relation connects the anomaly score with Eq. (11). Take the ground state real and normalised; then
+# $\partial_{h_x}\langle\psi_0\vert\psi_0\rangle=2\langle\partial_{h_x}\psi_0\vert\psi_0\rangle=0$, and for any fixed
+# observable $O$
+#
+# $$\Bigl\vert\frac{d\langle O\rangle}{dh_x}\Bigr\vert
+#   =2\,\Bigl\vert{\rm Re}\,\bigl\langle\partial_{h_x}\psi_0\bigm\vert\bigl(O-\langle O\rangle\bigr)\psi_0\bigr\rangle\Bigr\vert
+#   \le2\sqrt{\chi_F}\;\lVert(O-\langle O\rangle)\psi_0\rVert ,\tag{12}$$
+#
+# by the Cauchy–Schwarz inequality; the subtraction of $\langle O\rangle$ is allowed because the derivative is
+# orthogonal to $\psi_0$. The anomaly score is such an expectation value, with
+# $O=U^\dagger\bigl(\frac1k\sum_{j\in T}n_j\bigr)U$ (Section 6.2), whose eigenvalues lie in $[0,1]$, so that the last factor is at most
+# $1/2$ and $\vert d\mathcal A/dh_x\vert\le\sqrt{\chi_F}$, for a trained encoder and for an untrained one alike.
+# The score can change quickly only where the ground state does.
+
+# %%
+# ==============================================================================
+# STEP 11: the cut Delta = -2 -- exact finite-size precursors for N = 6, 8, 10, and the anomaly scores at N = 8
+# ==============================================================================
+# PARAMETERS
+D_CUT = -2.0                                           # the cut: ferromagnet along z -> field-polarised phase
+NS_FSS = (6, 8, 10)                                    # chain lengths of the finite-size comparison (open chains)
+H_FINE = np.round(np.arange(0.1, 5.0001, 0.05), 6)     # field values of the dense scan
+H_PBC = np.round(np.arange(2.3, 2.8001, 0.05), 6)      # fields of the periodic-chain check around h_c
+H_C_REF = 2.55                                         # h_c(Delta = -2) in units of J, read off Dmitriev et al., Fig. 1
+
+
+def sector_basis(n, sign):
+    """Orthonormal basis of the sector P = sign of n spins: (|s> + sign |s'>)/sqrt(2), s' = s with every bit flipped.
+
+    P = prod_i X_i flips every bit, i.e. it maps the basis index s to 2^n - 1 - s; the strings with first bit 0
+    label each pair {s, s'} once, so there are 2^(n-1) basis vectors."""
+    dim = 2 ** n
+    s = np.arange(dim // 2)
+    B = np.zeros((dim, dim // 2))
+    B[s, s] = 1 / np.sqrt(2)
+    B[dim - 1 - s, s] = sign / np.sqrt(2)
+    return B
+
+
+def cut_spectrum(n, delta, hs, periodic=False):
+    """Dense diagonalisation inside both parity sectors along a line of constant delta, for a chain of n spins
+    (open, or periodic with the extra bond (n-1, 0)).
+
+    Returns, per field value: E0 of the even and the odd sector, the gap E1 - E0 inside the even sector, the fidelity
+    susceptibility per site of the even ground state, and its end-to-end correlator <Z_0 Z_{n-1}>.
+    MATH   chi_F = sum_{m>0} |<m| sum_i X_i |0>|^2 / (E_m - E_0)^2  (notebook 47, Sec. 7), evaluated inside the even
+           sector, which the derivative dH/dh_x = sum_i X_i does not leave.
+    COST   the three parts of H are projected on the sectors once; then one dense eigendecomposition of dimension
+           2^(n-1) per sector and field value (512 for n = 10).
+    """
+    dense = lambda t: np.real(np.asarray(dense_hamiltonian(t, n)))
+    parts = [dense(heisenberg_terms(n, Jxx=J, Jyy=J, Jzz=0.0, periodic=periodic)),
+             dense(heisenberg_terms(n, Jxx=0.0, Jyy=0.0, Jzz=J, periodic=periodic)), dense([((i,), X) for i in range(n)])]
+    Be, Bo = sector_basis(n, +1), sector_basis(n, -1)
+    xy_e, zz_e, x_e = [Be.T @ p @ Be for p in parts]                  # H restricted to P = +1
+    xy_o, zz_o, x_o = [Bo.T @ p @ Bo for p in parts]                  # H restricted to P = -1
+    z_end_e = Be.T @ dense([((0, n - 1), ZZ_)]) @ Be                  # Z_0 Z_{n-1} commutes with P
+    out = []
+    for h in hs:
+        we, ve = np.linalg.eigh(xy_e + delta * zz_e + h * x_e)
+        wo = np.linalg.eigvalsh(xy_o + delta * zz_o + h * x_o)
+        m = ve.T @ x_e @ ve[:, 0]
+        chi = np.sum(m[1:] ** 2 / (we[1:] - we[0]) ** 2) / n
+        out.append((we[0], wo[0], we[1] - we[0], chi, ve[:, 0] @ z_end_e @ ve[:, 0]))
+    return np.array(out)
+
+
+t0 = time.perf_counter()
+FSS = {n: cut_spectrum(n, D_CUT, H_FINE) for n in NS_FSS}
+FSS_PBC = {n: cut_spectrum(n, D_CUT, H_PBC, periodic=True) for n in NS_FSS}
+print(f"dense scans along Delta = {D_CUT} for N = {NS_FSS}: open chains at {H_FINE.size} fields, periodic chains at "
+      f"{H_PBC.size} fields around h_c, {time.perf_counter() - t0:.1f} s in total")
+
+# --- CHECKPOINT: the dense N = 8 scan reproduces the Lanczos grid on this line ------------------------------
+j_cut = grid_index(D_CUT, 0.1)[1]
+on_grid = np.isin(H_FINE, HXS)
+err_e = np.max(np.abs(FSS[N][on_grid, 0] - np.asarray(E0_g).reshape(SHAPE)[:, j_cut]))
+print(f"N = {N}: |E0(dense, even sector) - E0(Lanczos grid)| along the cut: {err_e:.1e};  "
+      f"ground-state parity on the cut: {set(PARITY[:, j_cut].astype(int).tolist())}")
+assert err_e < 1e-8 and np.all(PARITY[:, j_cut] > 0)
+split_min = {n: float(np.min(FSS[n][:, 1] - FSS[n][:, 0])) for n in NS_FSS}
+print("smallest E0_odd - E0_even along the cut (no parity crossing if >= 0 up to round-off): "
+      + ", ".join(f"N = {n}: {v:.1e}" for n, v in split_min.items()))
+assert all(v > -1e-10 for v in split_min.values())
+
+
+def crossings(x, y):
+    """Zeros of y(x) by linear interpolation between grid points."""
+    k = np.where(np.diff(np.sign(y)) != 0)[0]
+    return x[k] - y[k] * (x[k + 1] - x[k]) / (y[k + 1] - y[k])
+
+
+print(f"\n{'N':>3s} {'peak of chi_F/N at h_x':>23s} {'height':>7s} {'min of even-sector gap at h_x':>30s} {'value':>7s}")
+PEAK = {}
+for n in NS_FSS:
+    e0, e0o, gap, chi, zend = FSS[n].T
+    PEAK[n] = H_FINE[np.argmax(chi)]
+    print(f"{n:3d} {PEAK[n]:23.2f} {chi.max():7.3f} {H_FINE[np.argmin(gap)]:30.2f} {gap.min():7.3f}")
+HC_FSS, HC_PBC = {}, {}
+for n1, n2 in zip(NS_FSS[:-1], NS_FSS[1:]):
+    for res, spec, hs, lab in ((HC_FSS, FSS, H_FINE, "open    "), (HC_PBC, FSS_PBC, H_PBC, "periodic")):
+        y = n1 * (spec[n1][:, 1] - spec[n1][:, 0]) - n2 * (spec[n2][:, 1] - spec[n2][:, 0])
+        res[(n1, n2)] = crossings(hs, y)
+        print(f"crossing of N (E0_odd - E0_even), {lab} chains, N = {n1}, {n2}: h_x = "
+              f"{', '.join(f'{x:.3f}' for x in res[(n1, n2)])}")
+print(f"h_c of the infinite chain (Dmitriev et al., Fig. 1, mean-field line): about {H_C_REF} J")
+assert PEAK[6] < PEAK[8] < PEAK[10] < H_C_REF                     # the fidelity peak drifts up towards h_c
+assert all(len(x) == 1 and abs(x[0] - H_C_REF) < 0.1 for x in list(HC_FSS.values()) + list(HC_PBC.values()))
+assert HC_FSS[(8, 10)][0] < HC_PBC[(8, 10)][0]                     # open and periodic chains bracket h_c
+
+# --- the anomaly scores along the cut ----------------------------------------------------------------------
+ref_cut = {name: A_ALL[name][:, :, j_cut] for name in ref_names}
+mid = HXS[:-1] + 0.05
+print(f"\nanomaly scores along Delta = {D_CUT} (N = {N}; mean over the successful encoders):")
+print("  h_x           : " + " ".join(f"{h:6.1f}" for h in HXS[::4]))
+for name in ref_names:
+    print(f"  {name:13s} : " + " ".join(f"{a:6.3f}" for a in ref_cut[name].mean(axis=0)[::4]))
+fer, lrg = ref_cut["ferromagnetic"], ref_cut["large field"]
+last_f = [HXS[np.argmax(a >= TAU) - 1] for a in fer]                    # last field below tau, from the left
+first_l = [HXS[len(HXS) - np.argmax(a[::-1] >= TAU)] for a in lrg]     # first field below tau, from the right
+steep_f = [mid[np.argmax(np.diff(a))] for a in fer]
+x_fl = crossings(HXS, fer.mean(axis=0) - lrg.mean(axis=0))
+print(f"  ferromagnetic encoders: A < {TAU} up to h_x = {min(last_f):.1f}..{max(last_f):.1f}; steepest rise at "
+      f"h_x = {min(steep_f):.2f}..{max(steep_f):.2f} (median {np.median(steep_f):.2f})")
+print(f"  large-field encoders  : A < {TAU} from h_x = {min(first_l):.1f}..{max(first_l):.1f} upwards")
+print(f"  the two mean scores cross at h_x = {', '.join(f'{x:.2f}' for x in x_fl)} "
+      f"(score {np.interp(x_fl[0], HXS, fer.mean(axis=0)):.3f})")
+nb_h = 1 - np.asarray(overlap2(PSI[:-1, j_cut], PSI[1:, j_cut]))        # infidelity between neighbours along h_x only
+print(f"  largest infidelity between neighbouring grid points along the cut: {nb_h.max():.4f} at h_x = "
+      f"{mid[np.argmax(nb_h)]:.2f};  chi_F (N = {N}) * 0.1^2 at its peak: {N * FSS[N][:, 3].max() * 0.01:.4f}")
+A_RAND_CUT = A_RAND[:, :, j_cut]
+steep_r = mid[np.argmax(np.abs(np.diff(A_RAND_CUT, axis=1)), axis=1)]
+print(f"  wrong control, {R_RAND} untrained encoders: steepest change at h_x = "
+      f"{', '.join(f'{x:.2f}' for x in np.sort(steep_r))}")
+
+# --- CHECKPOINT: Eq. (12), |dA/dh_x| <= sqrt(chi_F), for every trained and untrained encoder on the cut ----------
+chi_tot = N * FSS[N][:, 3]                                              # chi_F of the N = 8 ground state (not per site)
+sqrt_chi = np.array([np.sqrt(chi_tot[(H_FINE > a - 1e-9) & (H_FINE < a + 0.1 + 1e-9)].max()) for a in HXS[:-1]])
+slopes = np.abs(np.diff(np.concatenate([ref_cut[n] for n in ref_names] + [A_RAND_CUT]), axis=1)) / 0.1
+print(f"\nEq. (12) on the cut, {slopes.shape[0]} encoders: largest ratio |Delta A / Delta h_x| / sqrt(chi_F) = "
+      f"{(slopes / sqrt_chi).max():.3f};  largest |Delta A / Delta h_x| = {slopes.max():.3f}")
+print(f"sqrt(chi_F) at N = {N}: {np.sqrt(chi_tot[0]):.3f} at h_x = {H_FINE[0]}, {np.sqrt(chi_tot.max()):.3f} at the peak "
+      f"(h_x = {PEAK[N]}), {np.sqrt(chi_tot[-1]):.3f} at h_x = {H_FINE[-1]}")
+assert np.all(slopes < sqrt_chi)
+
+fig, axes = plt.subplots(2, 2, figsize=(13.0, 8.0), sharex=True)
+ax = axes[0, 0]
+plot_scores(ax, HXS, lambda A: A[:, :, j_cut])
+ax.axhline(TAU, color="k", ls=":", lw=1.0, label=fr"$\tau={TAU}$")
+ax.set_title(r"anomaly score along $\Delta=-2$, $N=8$", fontsize=10); ax.legend(fontsize=7)
+ax = axes[0, 1]
+ax.plot(HXS, MX[:, j_cut], "-", color=PALETTE[3], label=r"$\langle X_i\rangle$")
+ax.plot(HXS, ZZC[:, j_cut], "-", color=PALETTE[4], label=r"$\langle Z_iZ_{i+1}\rangle$")
+ax.plot(H_FINE, FSS[N][:, 4], "-", color=PALETTE[5], label=r"$\langle Z_0Z_{N-1}\rangle$")
+ax.plot(HXS, SHALF[:, j_cut] / (N // 2), "--", color="k", label=r"$S_{N/2}/(N/2)$")
+ax.set_title(r"exact observables along $\Delta=-2$, $N=8$", fontsize=10); ax.legend(fontsize=7)
+for c, n in enumerate(NS_FSS):
+    e0, e0o, gap, chi, zend = FSS[n].T
+    axes[1, 0].plot(H_FINE, chi, "-", color=PALETTE[c], label=f"$N={n}$")
+    axes[1, 0].plot(PEAK[n], chi.max(), "v", color=PALETTE[c], ms=7)
+    axes[1, 1].plot(H_FINE, n * (e0o - e0), "-", color=PALETTE[c], label=f"$N={n}$")
+    axes[1, 1].plot(H_PBC, n * (FSS_PBC[n][:, 1] - FSS_PBC[n][:, 0]), ":", color=PALETTE[c], lw=1.8)
+for x_c in HC_FSS.values():
+    axes[1, 1].plot(x_c, np.interp(x_c, H_FINE, 8 * (FSS[8][:, 1] - FSS[8][:, 0])), "ko", ms=5)
+for x_c in HC_PBC.values():
+    axes[1, 1].plot(x_c, np.interp(x_c, H_PBC, 8 * (FSS_PBC[8][:, 1] - FSS_PBC[8][:, 0])), "kD", ms=4, mfc="w")
+axes[1, 0].set_title(r"fidelity susceptibility per site $\chi_F/N$ (even sector); $\blacktriangledown$: peaks", fontsize=10)
+axes[1, 1].set_title(r"scaled splitting $N s_N$; solid: open, dotted: periodic; $\bullet$, $\diamond$: crossings",
+                     fontsize=10)
+axes[1, 1].set_ylim(0, 12)
+for ax in axes[1]:
+    ax.legend(fontsize=8); ax.set_xlabel(r"$h_x/J$")
+for ax in axes.flat:
+    ax.axvline(H_C_REF, color="k", lw=1.2)
+    ax.axvline(PEAK[N], color="grey", ls="--", lw=1.0)
+fig.suptitle(r"Solid vertical line: $h_c$ of the infinite chain; dashed: peak of $\chi_F$ at $N=8$", fontsize=10)
+fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# ### 6.4 The number of trash qubits
+# **The exact precursors.** The dense scan at $N=8$ reproduces the Lanczos energies of the grid to $4\times10^{-14}$,
+# and the ground state has $P=+1$ along the whole cut. The peak of $\chi_F/N$ lies at $h_x=1.55J$, $1.85J$ and $2.00J$
+# for $N=6$, $8$ and $10$, and grows from $0.039$ to $0.051$; the minimum of the even-sector gap moves in step, from
+# $1.40J$ to $1.90J$. Both drift towards $h_c$, but slowly: on open chains this short the peak at $N=8$ sits $0.7J$
+# below $h_c$. The crossings of $Ns_N$ converge much faster. On open chains they lie at $h_x=2.520J$ ($N=6,8$) and
+# $2.531J$ ($N=8,10$) and move up with $N$; on periodic chains, which have no ends, they lie at $2.567J$ and
+# $2.559J$ and move down. If both sequences keep converging monotonically, they bracket the critical field,
+# $2.53J<h_c<2.56J$, in agreement with the $2.55J$ read off the mean-field line of Dmitriev *et al.* The
+# correlator $\langle Z_0Z_{N-1}\rangle$ falls from $1$ to nearly $0$ (top right panel). At $N=8$ the transition is a crossover, but a crossover whose position
+# moves with $N$ and whose $Ns_N$ crossings locate $h_c$. The neighbour infidelity explains why the maps of
+# Section 3.2 show nothing here: between neighbouring grid points along the cut it is at most $0.0036$, at
+# $h_x=1.85J$, which is $\chi_F\,\delta^2$ for the peak value $\chi_F\approx0.36$ at $N=8$ and the grid spacing
+# $\delta=0.1J$.
+#
+# **The anomaly scores at $N=8$.** The two encoders trained on this line divide it into three parts. The
+# ferromagnetic encoder compresses the ground states up to $h_x=1.3J$ to $1.5J$, depending on the training run; the
+# large-field encoder compresses those from $1.9J$ to $2.3J$ upwards; in between, neither score is below
+# $\tau=0.05$. The two mean scores cross at $h_x=1.76J$, and the score of the ferromagnetic encoder rises fastest
+# at $h_x=1.75J$ to $1.95J$ (median $1.85J$), which coincides with the peak of $\chi_F$ at $N=8$. The Néel and the
+# middle-band encoders, trained on states of other phases, compress nothing on this line; their scores fall smoothly
+# with the field. With two references the anomaly map therefore separates, without any order parameter, the
+# ordered from the disordered states along the cut, and places the boundary between them at the precursor of the
+# transition, in the window where the exact ground state changes fastest.
+#
+# The map does not locate $h_c$ of the infinite chain. At $h_x=2.55J$ the large-field encoder already compresses the
+# ground state; the boundary of the map sits at the finite-size precursor, $0.7J$ lower. The position of the steepest
+# rise is not specific to training either. Equation (12) holds for all 63 encoders on this line (the largest ratio of
+# slope to $\sqrt{\chi_F}$ is $0.57$), and ten of the 16 untrained encoders also change fastest between $1.55J$ and
+# $2.25J$; five change fastest at the low-field end of the grid ($h_x\le0.3J$) and one at $1.15J$. Equation (12) makes
+# this concentration plausible without enforcing it: $\sqrt{\chi_F}$ is largest, $0.60$, at $h_x=1.85J$, falls
+# to $0.09$ at $h_x=5J$, but is still $0.37$ at the low-field end. The bound therefore forbids fast changes deep in the
+# field-polarised phase, while at small field it leaves room for them. What training adds is again the zero level: the
+# two compressed regions, one on each side, which no untrained encoder produces. Moving the boundary of the map to
+# $h_c$ requires the same finite-size analysis as for the exact observables, with encoders trained at several $N$
+# (Exercise 6).
+
+# %% [markdown]
+# ### 6.5 The number of trash qubits
 #
 # The compressed subspace has dimension $2^{N-k}$: 128 for $k=1$, 16 for $k=4$. More trash qubits leave fewer
 # directions free, which suggests that the region of small scores shrinks with $k$; the training problem also becomes
 # harder. We test both. We repeat the
 # training at the Néel reference point for $k=1,2,3,4$ (trash registers in the `TRASH` table: always the outermost
 # qubits), eight starts each, and compare the maps of all successful encoders by three numbers: the area with
-# $\mathcal A<0.05$, the mean score on the odd-parity part of the middle band (all grid points with $P=-1$), and the mean score for
-# $\Delta\le-1.25$.
+# $\mathcal A<0.05$, the mean score on the odd-parity part of the middle band (all grid points with $P=-1$), and the
+# mean score in the ferromagnetic region ($\Delta\le-1.25$, $h_x\le1$).
 
 # %%
 # ==============================================================================
-# STEP 11: the number of trash qubits
+# STEP 12: the number of trash qubits
 # ==============================================================================
 # PARAMETERS
 R_K = 8                                                # starts per k
@@ -1159,11 +1445,12 @@ print(f"{B} training runs in {time.perf_counter() - t0:.1f} s (compilation inclu
 TH_K = np.asarray(TH_K).reshape(len(ks), R_K, N_PAR)
 H_K = np.asarray(H_K).reshape(len(ks), R_K, N_STEPS, 2)
 
-odd, left = PARITY < 0, DD <= -1.25
-fig, axes = plt.subplots(1, 4, figsize=(17.0, 4.0), sharey=True)
+odd, left = PARITY < 0, (DD <= -1.25) & (HH <= 1.0)
+fig, axes = plt.subplots(2, 2, figsize=(11.5, 9.0), sharex=True, sharey=True)
+axes = axes.ravel()
 print("mean +- standard error over the successful encoders of each k:")
 print(f"\n{'k':>3s} {'dim Q':>6s} {'success':>8s} {'68% Wilson':>13s} {'area A<0.05':>15s} {'mean A, P=-1':>15s} "
-      f"{'mean A, Delta<=-1.25':>21s}")
+      f"{'mean A, ferromagnetic':>22s}")
 for a, k in enumerate(ks):
     fin = H_K[a, :, -1, 1]
     s = int(np.sum(fin < SUCCESS))
@@ -1175,22 +1462,25 @@ for a, k in enumerate(ks):
     mo, ml = A_ok[:, odd].mean(axis=1), A_ok[:, left].mean(axis=1)
     fmt = lambda v: f"{v.mean():.3f} +- {v.std(ddof=1) / np.sqrt(v.size):.3f}" if v.size > 1 else f"{v.mean():.3f}"
     print(f"{k:3d} {2 ** (N - k):6d} {s:4d}/{R_K:<3d} [{lo:.2f}, {hi:.2f}] {fmt(area):>15s} {fmt(mo):>15s} "
-          f"{fmt(ml):>21s}")
+          f"{fmt(ml):>22s}")
     im = axes[a].pcolormesh(DELTAS, HXS, A_k, shading="nearest", cmap="viridis", vmin=0, vmax=0.6)
     draw_parity_lines(axes[a])
     axes[a].plot(*REFS[REF_K], "*", ms=15, color="#00e5ff", mec="k")
     axes[a].set_title(f"$k={k}$, trash {TRASH[k]}, best $1-p_0$ = {fin.min():.1e}", fontsize=9)
-    axes[a].set_xlabel(r"$\Delta$"); axes[a].grid(False)
-fig.colorbar(im, ax=axes[-1])
-axes[0].set_ylabel(r"$h_x/J$")
+    axes[a].grid(False)
+    fig.colorbar(im, ax=axes[a])
+for a in (0, 2):
+    axes[a].set_ylabel(r"$h_x/J$")
+for a in (2, 3):
+    axes[a].set_xlabel(r"$\Delta$")
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
 # Training becomes harder as $k$ grows: all starts succeed for $k=1$ and $k=2$, seven of eight for $k=3$, two of eight
 # for $k=4$. The maps, however, do not shrink with $k$. Over the successful encoders the area with $\mathcal A<0.05$ is
-# $0.257$, $0.267$, $0.212$ and $0.248$ for $k=1,\dots,4$, with standard errors of $0.01$ to $0.02$: no monotonic
-# decrease. The mean score on the odd-parity points is $0.10$–$0.11$ for every $k$. Only deep in the ferromagnetic region does
-# the score fall with $k$, from $0.87$ ($k=1$) to $0.71$ ($k=3$); the value for $k=4$ rests on two encoders. Reducing
+# $0.154$, $0.160$, $0.127$ and $0.149$ for $k=1,\dots,4$, with standard errors of $0.005$ to $0.012$: no monotonic
+# decrease. The mean score on the odd-parity points is $0.18$–$0.19$ for every $k$. Only in the ferromagnetic region
+# does the score fall with $k$, from $0.96$ ($k=1$) to $0.75$ ($k=3$); the value for $k=4$ rests on two encoders. Reducing
 # the compressed subspace from 128 to 16 dimensions does not, in this test, reduce the region that the frozen encoder
 # compresses; what fills that region is decided by the ansatz and the training run as much as by the dimension count.
 #
@@ -1204,9 +1494,11 @@ fig.tight_layout(); plt.show()
 #   finite spectrum, and their positions move with $N$ (Exercise 6). The parity crossings, $N/2$ of them along a line of
 #   increasing field, lie inside the ordered phases of the infinite chain and mark no transition; only the avoided
 #   crossing at $\Delta\approx-1$ corresponds to a phase boundary. The order–disorder transition appears here as a
-#   smooth crossover, and the gapless line at $\Delta=1$ leaves no trace. A step in an anomaly map is therefore at best a
-#   finite-size precursor of a transition, and often not even that; establishing a transition requires the finite-size
-#   analysis of notebook 47.
+#   smooth crossover whose precursors lie well below $h_c$ (the peak of $\chi_F$ at $1.85J$ against $h_c\approx2.55J$
+#   along $\Delta=-2$), and the gapless line at $\Delta=1$ leaves no trace. A step or an edge in an anomaly map is
+#   therefore at best a finite-size precursor of a transition, and often not even that; establishing a transition and
+#   its critical field requires the finite-size analysis of notebook 47, as the crossings of $Ns_N$ in
+#   Section 6.4 illustrate.
 # * **What the steps encode.** Section 6.2 showed that the steps sit where the ground state jumps and that untrained
 #   encoders show them too. The information specific to training is the region of small score, and its extent depends on
 #   the training run, on the threshold $\tau$, and on directions of the compressed subspace that training does not fix.
@@ -1216,7 +1508,8 @@ fig.tight_layout(); plt.show()
 # * **Cost of the scan.** Every grid point needs its own ground state, prepared on a device by a variational or
 #   adiabatic algorithm, and enough shots to estimate $D_H$ to the resolution of the steps one wants to see. The standard
 #   error of $D_H$ from $M$ shots is $\sqrt{\mathrm{Var}(w)/M}/k$; Exercise 3 turns this into a shot budget. In this
-#   notebook the classical cost is dominated by the 2460 Lanczos runs; training and the scan take seconds.
+#   notebook the classical cost is dominated by the 4100 Lanczos runs and the dense scans of Section 6.4; training and
+#   the scan take seconds.
 # * **Trainability at larger sizes.** At $k=2$ the local and global costs trained equally well, and for $k\le4$ their
 #   gradient variances differ by at most a factor of two. The advantage of the local cost is a statement about scaling
 #   with the number of qubits, which these sizes cannot test.
@@ -1226,26 +1519,36 @@ fig.tight_layout(); plt.show()
 # * **The anomaly score is a local cost with two exact bounds.** $D_H\le1-p_0\le kD_H$ connects it to the global trash
 #   infidelity, $F_{\rm rec}\ge(1-kD_H)^2$ to the reconstruction fidelity, and Eq. (9) bounds the score of a frozen
 #   encoder by the infidelity of the input with the training state. Equations (6) and (9) were checked numerically
-#   (6000 random pairs, and every grid point for three trained encoders).
-# * **Exact reference first.** The 1230 ground states of $H(\Delta,h_x)$ at $N=8$, computed by Lanczos in the two
+#   (6000 random pairs, and every grid point for four trained encoders), and Eq. (12) bounds how fast any score can
+#   change by the fidelity susceptibility of the ground state.
+# * **Exact reference first.** The 2050 ground states of $H(\Delta,h_x)$ at $N=8$, computed by Lanczos in the two
 #   sectors of $P=\prod_iX_i$, show three kinds of behaviour: level crossings between parity sectors, an avoided
 #   crossing at $\Delta\approx-1$ (gap $0.043$), and smooth crossovers. Only the avoided crossing is the image of a
 #   phase boundary of the infinite chain; the parity crossings are the split symmetry-broken doublet of its ordered
-#   phases.
+#   phases, and the order–disorder transition is a crossover at this size.
 # * **Training on one state is easy at this size.** With the step size bracketed for both costs, every one of 48 runs
-#   succeeded ($1-p_0<10^{-2}$), and 35 of 36 at three reference points. Local and global costs trained equally well
+#   succeeded ($1-p_0<10^{-2}$), and 47 of 48 at four reference points. Local and global costs trained equally well
 #   at $k=2$, and their gradient variances differ by at most a factor of two for $k\le4$.
-# * **Frozen encoders compress far beyond the training state.** The regions with score below $0.05$ cover $27$–$30\,\%$ of
-#   the plane, against $8$–$10\,\%$ with overlap above $0.95$ with the reference state, and include states orthogonal to
-#   it.
-# * **The edges are where the ground state jumps.** Along both cuts the steps of every map coincide with the level
-#   crossings and the avoided crossing. Untrained encoders show the same steps (16 times larger across a parity change
-#   than elsewhere) but compress no state; the identity encoder gives exactly $1/2$ everywhere by symmetry. A step
-#   therefore locates a jump of the finite-chain ground state, which need not be a phase transition.
-# * **Smooth crossovers stay smooth.** Between the ferromagnetic and large-field regions neither the exact observables
-#   nor the map have a sharp feature; finite size has removed the transition that the infinite chain has there.
+# * **Frozen encoders compress far beyond the training state.** The regions with score below $0.05$ cover $7$ to
+#   $44\,\%$ of the plane, against $4$ to $19\,\%$ with overlap above $0.95$ with the reference state, and include
+#   states orthogonal to it.
+# * **Two phase boundaries are seen without an order parameter.** Along $h_x=0.3J$ the ferromagnetic and the Néel
+#   encoders, trained far from it, both place their edge at the avoided crossing that marks the boundary between the
+#   ferromagnet and the Néel order along $y$. Along $\Delta=-2$ the ferromagnetic and the large-field encoders compress
+#   the two sides of the order–disorder transition and leave a window between $1.3J$–$1.5J$ and $1.9J$–$2.3J$ that
+#   contains the peak of $\chi_F$ at $N=8$ ($1.85J$), the finite-size precursor of the transition.
+# * **The map finds the finite-size precursor and leaves $h_c$ to finite-size scaling.** The fidelity peak moves
+#   from $1.55J$ to $2.00J$ between $N=6$ and $10$, while the crossings of $Ns_N$ on open and periodic chains
+#   bracket $h_c$ between $2.53J$ and $2.56J$, in agreement with $2.55J$ from Dmitriev *et al.*; the map at $N=8$
+#   places the boundary $0.7J$ below $h_c$.
+# * **The edges are where the ground state changes.** The steps of every map coincide with the level crossings and the
+#   avoided crossing. On the smooth line $\Delta=-2$ the trained scores change fastest near the peak of $\chi_F$, and
+#   Eq. (12) bounds the slope of every score by $\sqrt{\chi_F}$.
+#   Untrained encoders show the same steps ($20$ times larger across a parity change than elsewhere) but compress no
+#   state; the identity encoder gives exactly $1/2$ everywhere by symmetry. What training adds is the region of
+#   compressed states.
 # * **More trash qubits make training harder without shrinking the map.** Success fell from $8/8$ ($k=1,2$) to $2/8$
-#   ($k=4$); the area of small score stayed between $0.21$ and $0.27$, with no monotonic trend.
+#   ($k=4$); the area of small score stayed between $0.13$ and $0.16$, with no monotonic trend.
 #
 # ## 9. Exercises
 #
@@ -1256,19 +1559,23 @@ fig.tight_layout(); plt.show()
 #    parity is no longer conserved, so compute the ground states with `lanczos_lowest` without the projector. Evaluate the
 #    identity encoder of Eq. (10) on the new grid. Is its map still flat? Which exact observable does it reproduce?
 # 3. ★★ **Shot budget.** On hardware, $D_H$ is estimated from $M$ measurements of the $k$ trash bits, with standard error
-#    $\sqrt{\mathrm{Var}(w)/M}/k$. For the frozen Néel encoder, compute the distribution of $w$ at every grid point of
-#    the cut $\Delta=2$ and the number of shots per point needed to resolve each of the two steps at three standard
-#    errors. Check one answer by sampling.
+#    $\sqrt{\mathrm{Var}(w)/M}/k$. For the frozen ferromagnetic and Néel encoders, compute the distribution of $w$ at
+#    every grid point of the cut $h_x=0.3J$ and the number of shots per point needed to resolve the step at the avoided
+#    crossing at three standard errors. Repeat for the ferromagnetic encoder along $\Delta=-2$: how many shots are
+#    needed to tell the score at $h_x=1.8J$ from that at $1.9J$? Check one answer by sampling.
 # 4. ★★ **Position of the trash register (extend the code).** Add the adjacent pair $(6,7)$ to `TRASH`, train 16 starts at
 #    the Néel reference point with it and with the pair $(0,7)$, and compare the success fractions and the median final
 #    $1-p_0$. Repeat with fewer layers.
 # 5. ★★ **The other sign of $J$ (physics).** Repeat Sections 3 and 6.1 for $J=-1$. Which parity sectors does the ground
 #    state visit, how many sharp lines does the exact phase diagram have, and what do the maps of encoders trained at
 #    $(0,2.5)$, $(2,0.3)$ and $(-2,0.3)$ look like?
-# 6. ★★★ **Finite size.** Repeat the cut $\Delta=2$ for $N=6$ and $N=10$: sector ground states, parity, and a Néel
-#    encoder ($L=4$, trash at the ends) trained at $(2,0.3)$. Where does the ground state change parity, and where does the
-#    anomaly score step? Extend the cut to $h_x=6J$, count the crossings for each $N$, and compare the last one with the
-#    classical line $h_x^{\rm cl}=2\sqrt6J$ for an open and for a periodic chain.
+# 6. ★★★ **Finite size.** (a) Train ferromagnetic and large-field encoders ($L=4$, trash at the ends) at $(-2,0.3)$
+#    and $(-2,4.5)$ for $N=6$ and $N=10$, and evaluate them along $\Delta=-2$. Do the steepest rise of the ferromagnetic
+#    score, the crossing of the two mean scores and the edges of the two compressed regions move with $N$ as the peak of
+#    $\chi_F$ does? Can any of them be extrapolated to $h_c$? (b) Along $\Delta=2$, count the parity crossings for
+#    $N=6$, $8$, $10$ up to $h_x=6J$ and compare the last one with the classical line $h_x^{\rm cl}=2\sqrt6J$ for an
+#    open and for a periodic chain. Where does the anomaly score of a Néel encoder step, and why do these steps mark no
+#    transition?
 #
 # ## References
 #
@@ -1288,7 +1595,8 @@ fig.tight_layout(); plt.show()
 #   with a quantum autoencoder.
 # * D. V. Dmitriev, V. Ya. Krivnov, A. A. Ovchinnikov and A. Langari, *One-dimensional anisotropic Heisenberg model in
 #   the transverse magnetic field*, J. Exp. Theor. Phys. **95**, 538 (2002) — the ground-state phase diagram of the
-#   infinite XXZ chain in a transverse field.
+#   infinite XXZ chain in a transverse field: the ordered phases, the classical line, the Ising-type transition line
+#   $h_c(\Delta)$ (their Fig. 1), and the parity crossings of finite chains.
 # * P. Zanardi and N. Paunković, *Ground state overlap and quantum phase transitions*, Phys. Rev. E **74**, 031123
 #   (2006) — the overlap of ground states at neighbouring couplings as a detector of transitions (the neighbour
 #   infidelity of Section 3.2).
