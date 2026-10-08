@@ -53,7 +53,7 @@ Two bright solitons are launched at each other in the Gross-Pitaevskii equation;
 ::: {.nb-item}
 [JAX from scratch — NumPy that compiles, batches and differentiates](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)
 
-The JAX foundation of the course: from NumPy to JAX (jit, vmap, scan, grad, PRNG keys, precision and honest timing), ending with a Rabi-oscillation mini-project.
+The JAX foundation of the course: from NumPy to JAX (jit, vmap, scan, grad, PRNG keys, precision and timing of compiled code), ending with a Rabi-oscillation mini-project.
 :::
 
 ::: {.nb-item}

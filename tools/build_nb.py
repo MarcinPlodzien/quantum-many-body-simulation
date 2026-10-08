@@ -47,7 +47,8 @@ SRC = ROOT / "_src"
 AUTHOR_BLOCK = (
     "**Marcin Płodzień** — Institute of Theoretical Physics, Jagiellonian University  \n"
     "[ORCID 0000-0002-0835-1644](https://orcid.org/0000-0002-0835-1644) · "
-    "[github.com/MarcinPlodzien](https://github.com/MarcinPlodzien)\n\n"
+    "[github.com/MarcinPlodzien](https://github.com/MarcinPlodzien) · "
+    "[www](https://chaos.if.uj.edu.pl/marcinplodzien/)\n\n"
     "*Quantum Many-Body Simulation — {part}*"
 )
 
@@ -80,12 +81,11 @@ CONFIG_TAIL = (
 FOOTER = (
     "---\n"
     "**About these lectures.** Written by Marcin Płodzień (Institute of Theoretical Physics, Jagiellonian University; "
-    "[ORCID](https://orcid.org/0000-0002-0835-1644), [GitHub](https://github.com/MarcinPlodzien)) as self-study "
-    "material for the course *Quantum Many-Body Simulation: from a single spin to quantum machine learning*. The notebook is self-contained: the *Engine "
-    "recap* cell holds every function of the SmoQ.jax engine it uses. If you use this material in teaching or "
-    "research, please credit the author:\n\n"
-    "> M. Płodzień, *Quantum Many-Body Simulation: from a single spin to quantum machine learning*, hands-on lectures "
-    "in JAX with the SmoQ.jax engine (2026), https://marcinplodzien.github.io/quantum-many-body-simulation/"
+    "[ORCID](https://orcid.org/0000-0002-0835-1644) · [GitHub](https://github.com/MarcinPlodzien) · "
+    "[www](https://chaos.if.uj.edu.pl/marcinplodzien/)) as self-study material for the course "
+    "*Quantum Many-Body Simulation: from a single spin to quantum machine learning*.\n\n"
+    "**Citation:** M. Płodzień, *Quantum Many-Body Simulation: from a single spin to quantum machine learning* (2026), "
+    "https://marcinplodzien.github.io/quantum-many-body-simulation/"
 )
 
 
@@ -150,14 +150,14 @@ class Engine:
         header = ('#| code-fold: true\n#| code-summary: "Engine recap — the simulator primitives used in this notebook '
                   '(click to expand)"\n'
                   "# ==============================================================================\n"
-                  "# ENGINE RECAP  (copied from quantum_engine.py, the SmoQ.jax engine)\n"
-                  "# Every function below is explained, with its mathematics and an independent check, in\n"
-                  "# notebook 08b (Chapter 3), 'Building the quantum simulator engine'.\n"
+                  "# ENGINE RECAP: the functions of quantum_engine.py (SmoQ.jax) used in this notebook.\n"
+                  "# Each one is derived, with its mathematics and an independent check, in notebook 08b\n"
+                  "# (Chapter 3), 'Building the quantum simulator engine'.\n"
                   "# States are rank-N tensors of shape (2,)*N; every operator acts through ONE einsum.\n"
                   "# ==============================================================================\n")
-        if show:   # Part 0: the function was just derived in the notebook -> show its final engine form, unfolded
+        if show:   # the function was derived in this notebook -> show its engine form, unfolded
             header = ("# ==============================================================================\n"
-                      "# FINAL ENGINE VERSION  (verbatim from quantum_engine.py -- this is what later notebooks reuse)\n"
+                      "# Functions of quantum_engine.py derived in this notebook\n"
                       "# ==============================================================================\n")
         return header + "\n".join(out).strip("\n") + "\n"
 

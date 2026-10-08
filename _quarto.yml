@@ -4,6 +4,7 @@ project:
   render:
     - index.qmd
     - engine.qmd
+    - about.qmd
     - "chapters/*.qmd"
     - "ch*/*.ipynb"
     - "lecture_notes_notebooks/*.ipynb"
@@ -58,6 +59,8 @@ website:
             href: ch03_matrix_free_engine/08b_building_quantum_simulator_engine.ipynb
           - text: "Engine source code"
             href: engine.qmd
+      - text: "About"
+        href: about.qmd
     right:
       - icon: github
         href: "https://github.com/MarcinPlodzien"

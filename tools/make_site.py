@@ -77,6 +77,10 @@ def ensure_front_matter(nb_path, meta):
             if fixed.startswith("---\n**About these"):                    # footer written under an earlier course title
                 from build_nb import FOOTER
                 fixed = FOOTER
+            if "[github.com/MarcinPlodzien](https://github.com/MarcinPlodzien)\n" in fixed:   # author line without www
+                fixed = fixed.replace("[github.com/MarcinPlodzien](https://github.com/MarcinPlodzien)\n",
+                                      "[github.com/MarcinPlodzien](https://github.com/MarcinPlodzien) · "
+                                      "[www](https://chaos.if.uj.edu.pl/marcinplodzien/)\n", 1)
             changed |= fixed != c.source
             c.source = fixed
     if nb.cells and nb.cells[0].cell_type == "raw":
@@ -136,7 +140,7 @@ def main():
             pg += ["::: {.nb-item}", f"[{title}](../{path})", "", desc, ":::", ""]
         (ROOT / page).write_text("\n".join(pg) + "\n")
     # ---------------------------------------------------------------- _quarto.yml
-    y = ["project:", "  type: website", "  output-dir: _site", "  render:", "    - index.qmd", "    - engine.qmd",
+    y = ["project:", "  type: website", "  output-dir: _site", "  render:", "    - index.qmd", "    - engine.qmd", "    - about.qmd",
          '    - "chapters/*.qmd"', '    - "ch*/*.ipynb"', '    - "lecture_notes_notebooks/*.ipynb"', "",
          "execute:", "  enabled: false   # use the outputs stored in the notebooks; rebuild them with tools/build_nb.py", "",
          "website:", f"  title: {q(SITE_TITLE)}", f"  site-url: {q(SITE_URL)}", f"  repo-url: {q(COURSE_REPO)}",
@@ -148,7 +152,8 @@ def main():
     y += ['      - text: "The engine"', "        menu:",
           '          - text: "Building the engine (notebook 08b)"', f"            href: {ENGINE_NB}",
           '          - text: "Engine source code"', "            href: engine.qmd",
-          "    right:", "      - icon: github",
+                    '      - text: "About"', "        href: about.qmd",
+"    right:", "      - icon: github",
           f"        href: {q(GITHUB)}", "        aria-label: GitHub",
           "      - icon: house", f"        href: {q(HOMEPAGE)}", "        aria-label: Homepage",
           "  sidebar:", "    logo: assets/qusml_logo.svg", "    style: floating", "    search: true", "    collapse-level: 1", "    contents:",
@@ -288,6 +293,38 @@ def main():
            f"> M. Płodzień, *{SITE_TITLE}: {HERO_TITLE.lower()}*, "
            f"hands-on lectures in JAX with the {PROJECT} engine (2026), {SITE_URL}", ""]
     (ROOT / "index.qmd").write_text("\n".join(ix))
+    # ---------------------------------------------------------------- about.qmd
+    ab = ["---", 'title: "About"', "toc: false", "code-tools: false", "---", "",
+          "## The author", "",
+          f"[![](assets/qusml_logo.svg){{width=320px fig-alt=\"QuSML: Quantum Systems and Machine Learning\"}}]({HOMEPAGE})", "",
+          f"### [Dr Marcin Płodzień]({HOMEPAGE})", "",
+          "I am an Assistant Professor at the Institute of Theoretical Physics, Jagiellonian University. I work at the "
+          "intersection of many-body quantum systems, quantum information theory, and quantum technologies, with a focus "
+          "on quantum metrology, quantum simulation, and quantum computation. My research interests also include using "
+          "deep learning to study many-body quantum systems and using quantum simulators for machine learning tasks.", "",
+          f"[www]({HOMEPAGE}) · "
+          "[Google Scholar](https://scholar.google.com/citations?user=eC9nCmgAAAAJ&hl=en) · "
+          "[arXiv](https://arxiv.org/search/?searchtype=author&query=P%C5%82odzie%C5%84%2C+M) · "
+          "[ORCID](https://orcid.org/0000-0002-0835-1644) · "
+          "[ResearcherID](https://publons.com/researcher/K-7326-2017/) · "
+          "[GitHub](https://github.com/MarcinPlodzien) · "
+          "[LinkedIn](https://www.linkedin.com/in/marcin-plodzien/)", "",
+          "## The course", "",
+          f"*{SITE_TITLE}: {HERO_TITLE.lower()}* is a set of hands-on lectures on simulating quantum systems in JAX, from "
+          "scratch. It is written for students who have taken one semester of quantum mechanics and a first Python course, "
+          "and for anyone who wants to learn how many-body quantum simulations are written in practice. Every derivation is "
+          "carried out step by step and every result is checked numerically. The course is under active review: notebooks "
+          "are being checked and improved, and their content may change.", "",
+          "## The engine", "",
+          f"The simulation engine developed in the lectures is available as the Python package "
+          f"[{PROJECT}](https://github.com/MarcinPlodzien/SmoQ.jax), {ENGINE_TAGLINE}. Its functions are explained one by one "
+          f"in [notebook 08b]({ENGINE_NB}), and the full source is on the [engine page](engine.qmd).", "",
+          "## How to cite", "",
+          f"> M. Płodzień, *{SITE_TITLE}: {HERO_TITLE.lower()}* (2026), {SITE_URL}", "",
+          "## License and feedback", "",
+          f"Code and lecture material are released under the MIT License. Corrections and suggestions are welcome as "
+          f"[issues on GitHub]({COURSE_REPO}/issues).", ""]
+    (ROOT / "about.qmd").write_text("\n".join(ab))
     # ---------------------------------------------------------------- engine.qmd
     eng = (ROOT / "quantum_engine.py").read_text()
     (ROOT / "engine.qmd").write_text(
@@ -300,7 +337,7 @@ def main():
         "against dense linear algebra. The engine is also available as the Python package "
         "[SmoQ.jax](https://github.com/MarcinPlodzien/SmoQ.jax).\n\n"
         "```python\n" + eng + "\n```\n")
-    print(f"[make_site] wrote _quarto.yml, index.qmd, engine.qmd, {len(chapters)} chapter pages  ({n_nb} notebooks)")
+    print(f"[make_site] wrote _quarto.yml, index.qmd, engine.qmd, about.qmd, {len(chapters)} chapter pages  ({n_nb} notebooks)")
 
 
 if __name__ == "__main__":

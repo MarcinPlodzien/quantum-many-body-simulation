@@ -43,7 +43,7 @@ Building N-qubit GHZ states with a CNOT cascade and with a log-depth tree, certi
 ::: {.nb-item}
 [Quantum state tomography — linear inversion, least squares and maximum likelihood](../ch08_quantum_information_protocols/23_quantum_state_tomography.ipynb)
 
-How to reconstruct an unknown density matrix from measured click statistics: the Pauli/Bloch linear model and its design matrix, ordinary and weighted least squares with error propagation, the unphysical-estimate problem and its projection fix, the RρR and gradient-based maximum-likelihood estimators, and an honest accuracy-versus-shots assessment up to four qubits.
+How to reconstruct an unknown density matrix from measured click statistics: the Pauli/Bloch linear model and its design matrix, ordinary and weighted least squares with error propagation, the unphysical-estimate problem and its projection fix, the RρR and gradient-based maximum-likelihood estimators, and an accuracy-versus-shots assessment up to four qubits.
 :::
 
 ::: {.nb-item}
