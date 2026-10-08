@@ -54,6 +54,7 @@ SITE_SECTION = {
     "45b": "Quantum autoencoder and unsupervised discovery of phase boundaries",
     "44b": "Variational quantum metrology",
     "45c": "Quantum approximate optimisation",
+    "45d": "Quantum kernel methods",
 }
 SITE_SECTION_DEFAULT = {"ch11_variational_quantum_circuits": "Foundations: parametrised circuits, gradients, optimisers and noise"}
 # reading order inside a subsection where it differs from the file order (the introductory VQE notebook first)

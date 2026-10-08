@@ -211,6 +211,8 @@ website:
                 text: "Noisy variational circuits — landscapes, plateaus, training and error mitigation"
           - section: "Variational quantum eigensolver"
             contents:
+              - href: ch11_variational_quantum_circuits/42a_variational_quantum_eigensolver_hamiltonians_ansatze_training.ipynb
+                text: "The variational quantum eigensolver — spin-chain Hamiltonians, circuit ansätze and training against exact diagonalisation"
               - href: ch11_variational_quantum_circuits/42_variational_quantum_eigensolver.ipynb
                 text: "The variational quantum eigensolver — ground states of spin chains from a trained circuit"
               - href: ch11_variational_quantum_circuits/43_vqe_with_classical_shadows.ipynb

@@ -41,6 +41,12 @@ Gate noise as a channel after every rotation pair and every two-qubit gate, the 
 ### Variational quantum eigensolver
 
 ::: {.nb-item}
+[The variational quantum eigensolver — spin-chain Hamiltonians, circuit ansätze and training against exact diagonalisation](../ch11_variational_quantum_circuits/42a_variational_quantum_eigensolver_hamiltonians_ansatze_training.ipynb)
+
+The transverse-field Ising and XXZ chains as sums of Pauli strings measured in two or three bases, their exact ground states by diagonalisation, four circuit ansätze (hardware-efficient, Hamiltonian-variational, and staircase and brick-wall circuits of general two-qubit blocks), Adam training with energy, fidelity, entanglement, magnetisations and correlators recorded against the exact values during training, the gradient variance of the energy over random angles from two to ten qubits and the shot count it implies, and warm-started scans across both phase diagrams.
+:::
+
+::: {.nb-item}
 [The variational quantum eigensolver — ground states of spin chains from a trained circuit](../ch11_variational_quantum_circuits/42_variational_quantum_eigensolver.ipynb)
 
 The Rayleigh-Ritz principle proved, the error relations a practitioner needs (energy error second order in the state error, and bounded below by the gap times the infidelity), and the full VQE loop applied to XXZ, XY and transverse-field Ising chains: energy, fidelity, entanglement, magnetisations and bond correlators against Lanczos, depth and symmetry studies, the phase diagram, an excited state by deflation, and a shot-noise comparison at equal measurement budget.

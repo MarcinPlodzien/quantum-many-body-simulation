@@ -1,0 +1,15 @@
+% Hamiltonian-variational ansatz for the XXZ chain (hva_xxz in notebook 42a), drawn for N = 4.
+% Reference: singlets (|01>-|10>)/sqrt2 on bonds (0,1),(2,3): X on both qubits, Hadamard on the first, CNOT.
+% Layer l: on the odd bonds (1,2) Rzz(2 alpha_l) then Rxx+yy(2 beta_l); on the even bonds (0,1),(2,3)
+% Rzz(2 gamma_l) then Rxx+yy(2 delta_l).  R_{XX+YY}(t) = exp(-i t (XX+YY)/2).  n_params = 4L.
+\documentclass[tikz,border=6pt]{standalone}
+\usepackage{amsmath,amssymb}
+\usetikzlibrary{quantikz}
+\begin{document}
+\begin{quantikz}[row sep=0.35cm, column sep=0.3cm]
+\lstick{$q_0\colon\ \ket{0}$} & \gate{X}\gategroup[4,steps=3,style={dashed,rounded corners,inner xsep=1pt},background,label style={label position=above,anchor=south,yshift=0.1cm}]{singlets on $(0,1),(2,3)$} & \gate{H} & \ctrl{1} & \qw & \qw\gategroup[4,steps=4,style={dashed,rounded corners,inner xsep=1pt},background,label style={label position=above,anchor=south,yshift=0.1cm}]{layer $l=1,\dots,L$} & \qw & \gate[wires=2]{R_{ZZ}(2\gamma_l)} & \gate[wires=2]{R_{XX+YY}(2\delta_l)} & \qw \rstick[wires=4]{$\ket{\psi(\boldsymbol\alpha,\boldsymbol\beta,\boldsymbol\gamma,\boldsymbol\delta)}$}\\
+\lstick{$q_1\colon\ \ket{0}$} & \gate{X} & \qw & \targ{} & \qw & \gate[wires=2]{R_{ZZ}(2\alpha_l)} & \gate[wires=2]{R_{XX+YY}(2\beta_l)} & \qw & \qw & \qw \\
+\lstick{$q_2\colon\ \ket{0}$} & \gate{X} & \gate{H} & \ctrl{1} & \qw & \qw & \qw & \gate[wires=2]{R_{ZZ}(2\gamma_l)} & \gate[wires=2]{R_{XX+YY}(2\delta_l)} & \qw \\
+\lstick{$q_3\colon\ \ket{0}$} & \gate{X} & \qw & \targ{} & \qw & \qw & \qw & \qw & \qw & \qw
+\end{quantikz}
+\end{document}
