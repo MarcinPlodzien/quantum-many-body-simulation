@@ -58,7 +58,7 @@
 # * why a Taylor expansion of $e^{-iHt}$ is numerically useless and the Chebyshev one is not (catastrophic cancellation);
 # * spectral rescaling, Lanczos bounds, safety factors, and the exponential blow-up if the spectrum leaks out of $[-1,1]$;
 # * what is left when a method has no time-step error: truncation and round-off, how large each is, and how they accumulate over chained steps;
-# * work–precision diagrams: comparing algorithms honestly at *equal accuracy*.
+# * work–precision diagrams: comparing algorithms at *equal accuracy*.
 #
 # *Implementation practice*
 # * a three-term recurrence on $2^N$-component states as a `jax.lax.scan` with a three-vector carry;

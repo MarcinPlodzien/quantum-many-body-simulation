@@ -862,7 +862,7 @@ print("checkpoint passed: first-order perturbation theory in dx^2 predicts the d
 # level, six decades across the panel — and the ratio is $1.000$ on the fine grids. Read the
 # left panel as a practical tool: it tells you *in advance* how many grid points you need. Want $E_{10}$ to
 # $10^{-6}$? Equation (10) gives $\Delta x^2 \le 32\times10^{-6}/(2\cdot100+2\cdot10+1) = 1.4\times10^{-7}$, i.e.
-# $\Delta x \le 3.8\times10^{-4}$, i.e. $N_x \gtrsim 53\,000$ for $L=20$. That is the honest cost of a second-order
+# $\Delta x \le 3.8\times10^{-4}$, i.e. $N_x \gtrsim 53\,000$ for $L=20$. That is the cost of a second-order
 # method, and it is the reason Exercise 3 asks you to build a fourth-order one.
 #
 # > **Numerical practice.** "It converges" is worth little; "it converges at the rate my derivation predicts" is
@@ -1460,7 +1460,7 @@ print("       sits in <x^2>; then E_num - E_n = (1/2)d<x^2> while <T>-<V> = -(1/
 #
 # ### 10.5 One panel for every experiment
 #
-# The next two sections run three dynamical experiments. To keep the comparison honest and uniform, we write **one**
+# The next two sections run three dynamical experiments. To show all experiments in the same format, we write **one**
 # plotting function that always shows the same six things and always draws the analytic prediction underneath the
 # numerical points.
 
@@ -2592,7 +2592,7 @@ print("checkpoints passed: Eqs. (19), (20), (21), squeezing, and agreement of th
 # $r=2$ *below* that of the new trap's own ground state — a **squeezed state**, produced here by nothing more
 # exotic than suddenly stiffening a trap and waiting a quarter of a breathing period.
 #
-# One honest caveat about the uncertainty panel. The printed minimum is $0.24992$, a hair *below* the Heisenberg
+# One caveat about the uncertainty panel. The printed minimum is $0.24992$, a hair *below* the Heisenberg
 # bound $\tfrac14$. Heisenberg is not in danger: what we compute on the grid is not $\mathrm{Var}(p)$ but its
 # three-point approximation, which by Eq. (10) undershoots by $O(\Delta x^2)$ — and $8\times10^{-5}$ is exactly
 # that size. A discretised operator obeys the discrete algebra, not the continuum one; if a bound must hold

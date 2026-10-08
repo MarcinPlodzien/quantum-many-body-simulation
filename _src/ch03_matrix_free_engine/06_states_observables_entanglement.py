@@ -59,7 +59,7 @@
 # *Implementation practice*
 # * writing einsum strings by hand, then generating them programmatically for any $N$ and any subsystem;
 # * broadcasting tricks that build states and correlation matrices without loops;
-# * `jax.jit` with static subsystem labels, `jax.vmap` over batches of random states, honest timing.
+# * `jax.jit` with static subsystem labels, `jax.vmap` over batches of random states, timing with compilation separated from execution.
 #
 # ### Prerequisites
 # * [02 — einsum from scratch](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb): index notation, `reshape`/`transpose`, partial traces of small matrices;
@@ -1859,7 +1859,7 @@ for d in cut_deltas:
 # %% [markdown]
 # ### 10.7 The gap and the entropy versus $N$: telling the phases apart
 #
-# A single chain length cannot decide whether a gap is finite or closing; the honest test is to follow it with $N$. We take four representative
+# A single chain length cannot decide whether a gap is finite or closing; the gap has to be followed as a function of $N$. We take four representative
 # points: the critical XX chain $(\Delta,h_x)=(0,0)$, where Eq. (14) predicts $\Delta_N=4\sin\frac{\pi}{2(N+1)}$; the same chain in a field $(0,1)$,
 # where the field should open a gap; the ferromagnet $(-2,0)$; and $(2,0)$, on the Néel side. For each $N=6,8,10,12$ we build the sectors afresh
 # (at $N=12$ each has dimension 2048) and record the gap in the sector and $S(N/2)$.
@@ -1922,7 +1922,7 @@ plt.tight_layout(); plt.show()
 #   $3$ from both sides.
 # * **The Néel side and the field.** At $(2,0)$ the gap still decreases at $N=12$ ($3.19\to1.98$), and at $(0,1)$ it decreases as well ($1.53\to0.93$).
 #   The theory predicts finite gaps at both points, but the correlation lengths there are comparable to the chains we can diagonalise, and
-#   $N\le12$ cannot decide between a finite limit and a slow closing. This is the honest limit of exact diagonalisation, and the reason for the
+#   $N\le12$ cannot decide between a finite limit and a slow closing. This is the practical limit of exact diagonalisation, and the reason for the
 #   methods of later chapters: iterative eigensolvers that reach $N\approx20$--$24$, finite-size scaling, and matrix product states for hundreds of spins.
 
 # %%
@@ -1949,7 +1949,7 @@ for n in (8, 12):
 # | `entanglement_entropy(psi, A)` | $O(D\,2^{\min(\vert A\vert,\vert B\vert)})$ | $O(D)$ | SVD; worst case (half cut) $O(D^{3/2})$ |
 # | dense textbook route | $O(D^2)$–$O(D^3)$ | $O(D^2)$ | impossible beyond $N\approx14$ |
 #
-# We now *measure* it. Rules of honest timing (notebook 01): JAX dispatches work asynchronously, so we wait for the result with `jax.block_until_ready`; the first call of a jitted function includes tracing and
+# We now *measure* it. Rules for timing JAX code (notebook 01): JAX dispatches work asynchronously, so we wait for the result with `jax.block_until_ready`; the first call of a jitted function includes tracing and
 # XLA compilation, so we time it separately. The subsystem labels are **static** arguments — they determine the einsum string, hence the compiled program — so each distinct `keep` compiles its own program;
 # we fix them with `functools.partial` before `jax.jit`.
 

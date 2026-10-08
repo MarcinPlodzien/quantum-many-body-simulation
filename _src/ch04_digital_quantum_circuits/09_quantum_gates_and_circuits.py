@@ -853,7 +853,7 @@ assert err < 100 * TOL
 # is a one-off compilation that takes far longer than a single run. Compilation pays off whenever the same circuit
 # *structure* is executed many times - with different angles (optimisation, parameter sweeps), different input states,
 # or different random numbers (trajectories). The precise numbers depend on your machine; the pattern does not.
-# (`block_until_ready()` is essential for honest timing because JAX dispatches work asynchronously, notebook 01.)
+# (`block_until_ready()` is essential for timing because JAX dispatches work asynchronously, notebook 01.)
 #
 # > **JAX practice.** A new compilation is triggered whenever the *shapes* or the *static structure* change: another
 # > $N$, another number of layers, another qubit pattern. Changing the *values* of `theta` or `psi0` never recompiles.

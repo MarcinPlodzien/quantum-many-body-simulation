@@ -2052,7 +2052,7 @@ fig.tight_layout(); plt.show()
 #
 # `apply_kraus_dm` sums over $m$ inside one einsum. The obvious alternative is a Python loop
 # $\sum_m$ `apply_gate_dm(rho, K[m], q)` (which works because `apply_gate_dm` never assumed unitarity). Under `jit` both
-# are compiled by XLA, so the honest way to decide is to measure.
+# are compiled by XLA, so we decide between them by measuring.
 
 # %%
 # ==============================================================================

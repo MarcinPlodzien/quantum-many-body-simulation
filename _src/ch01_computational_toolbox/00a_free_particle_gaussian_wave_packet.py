@@ -624,7 +624,7 @@ print(f"Nyquist wave number pi/dx = {np.pi / dx_demo:.4f}  = largest |k| on the 
 # %% [markdown]
 # The printout shows the structure once and for all: eight positions $0, 1, \ldots, 7$ (the ninth, $x=8$, *is*
 # $x=0$), and eight wave numbers in units of $2\pi/L$: $0,1,2,3,-4,-3,-2,-1$. The "wrap" after $n=3$ is the
-# wrapped ordering, and $\vert k\vert_{\max} = 4\cdot 2\pi/8 = \pi = \pi/\Delta x$ as promised.
+# wrapped ordering, and $\vert k\vert_{\max} = 4\cdot 2\pi/8 = \pi = \pi/\Delta x$, as stated above.
 #
 # ### 4.6 The parameters of the main experiment
 #
@@ -1841,7 +1841,7 @@ print("\nCHECKPOINT passed: norm, <k> and <E> conserved; <x>(t) and sigma(t) mat
 #   column ($0.015, 0.047, 0.119, 0.259$ at $t=1,2,4,8$) to a few per cent. Note that this deficit is *not*
 #   linear in $t$; it only becomes so once $\tau\gg1$.
 #
-# Two honest remarks about these checks:
+# Two remarks about these checks:
 #
 # * The norm, $\langle k\rangle$ and $\langle E\rangle$ are conserved **by construction** here: our propagator
 #   multiplies each Fourier coefficient by a pure phase, which cannot change $\vert\phi(k)\vert$. So these checks
@@ -1863,7 +1863,7 @@ print("\nCHECKPOINT passed: norm, <k> and <E> conserved; <x>(t) and sigma(t) mat
 #   Timings on a shared laptop CPU fluctuate; what matters is how they SCALE with N_x.
 # ==============================================================================
 def best_of(fn, n_calls=200, n_batches=8):
-    """Median-free honest timing: run n_calls, repeat n_batches times, keep the FASTEST batch."""
+    """Best-batch wall-clock timing: run n_calls, repeat n_batches times, keep the FASTEST batch."""
     best = np.inf
     for _ in range(n_batches):
         t0 = time.perf_counter()

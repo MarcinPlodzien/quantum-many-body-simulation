@@ -1407,7 +1407,7 @@ fig.tight_layout(); plt.show()
 # $$\boxed{\ \widehat{\mathcal E}=\vert\bar z\vert^2-\frac{S^2}{M}\ } \tag{20}$$
 #
 # is an **exactly unbiased** estimator of $\mathcal E$ for every $M>1$. It can come out slightly negative when the true
-# $\mathcal E$ is near zero — that is the price of unbiasedness, and it is honest: clipping it at zero would reintroduce a
+# $\mathcal E$ is near zero — that is the price of unbiasedness, and the negative value is kept because clipping it at zero would reintroduce a
 # positive bias.
 #
 # Error bars come from the **bootstrap** (Efron 1979): resample the $M$ trajectory values with replacement, recompute
@@ -1618,7 +1618,7 @@ fig.tight_layout(); plt.show()
 # $p=0.20$ the naive estimator returns $3.0\cdot10^{-4}$ where the exact answer is $7.1\cdot10^{-5}$ — a factor of four —
 # because there the true signal has fallen below the $\sigma^2/M$ floor and the estimator is measuring its own variance.
 # The corrected value, $1.3\cdot10^{-4}\pm5.4\cdot10^{-4}$, is consistent with the exact one and
-# honestly reports that the measurement cannot resolve it.
+# its error bar shows that the measurement cannot resolve it.
 #
 # The right panel shows what that means for the certificate. The error bars on $Q_{\rm B}$ blow up exactly where
 # $\mathcal E$ approaches zero, because $\sigma_Q=\sigma_{\mathcal E}/(\mathcal E\ln2)$ diverges — and at the last two points

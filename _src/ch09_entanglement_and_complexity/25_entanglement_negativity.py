@@ -1544,7 +1544,7 @@ for j, (A, B, ell) in enumerate(configs):
           f"(peak {traj[:, j].max():.4f} at t = {ts_q[int(np.argmax(traj[:, j]))]:.2f})")
 
 # ------------------------------------------------------------------------------
-# Is the onset an artefact of the threshold?  The only honest way to answer is to vary it.
+# To check whether the onset is an artefact of the threshold, we vary the threshold.
 # ------------------------------------------------------------------------------
 print(f"\nonset time t_on as a function of the detection threshold\n{'threshold':>10s}" +
       "".join(f"{'l = %d' % c[2]:>9s}" for c in configs[:3]))
@@ -2033,7 +2033,7 @@ print(f"  the full density tensor of {N_big} spins would need {16*4**N_big/2**30
 # 8. ★★★ **Negativity scaling at criticality.** For the critical TFIM at $h=1$, compute the negativity between two *adjacent*
 #    blocks of $\ell$ spins each, centred in a chain of $N=14$, for $\ell=1,2,3$. Fit $E_{\mathcal N}$ against $\log_2\ell$ and
 #    compare the slope with the conformal-field-theory prediction $c/4$ with $c=1/2$ (Calabrese, Cardy and Tonni, 2012). Comment
-#    honestly on whether three points at such small $\ell$ can determine a slope.
+#    on whether three points at such small $\ell$ can determine a slope.
 #
 # ## 14. References
 #

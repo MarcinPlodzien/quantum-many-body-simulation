@@ -62,7 +62,7 @@
 # **Implementation practice**
 # * explicit PRNG keys: one key per trajectory, split per time step, split again per jump operator — reproducible randomness;
 # * `lax.scan` (time) inside `jax.vmap` (trajectories) inside `jax.jit`; random branching without Python `if` (`jax.random.categorical` + `lax.switch`);
-# * honest timing: compilation separated from execution, batches instead of wasted warm-up runs.
+# * timing with compilation separated from execution, batches instead of wasted warm-up runs.
 #
 # ### Prerequisites
 # * [notebook 16 (Chapter 6) — the Lindblad master equation](16_lindblad_master_equation.ipynb): Eq. (1), jump operators, RK4 and Trotter–Kraus steps on the density tensor;
@@ -819,7 +819,7 @@ assert sys_err < 2e-2
 #
 # 1. **Does the error decrease like $1/\sqrt M$?** Split the 1000 trajectories into $G=1000/M'$ disjoint groups of size $M'$, average each
 #    group, and measure the root-mean-square deviation from the reference (over groups and over times $t\ge1$). Prediction from Eq. (4): $\sqrt{\overline{s^2(t)}/M'}$.
-# 2. **Are the error bars honest?** For groups of $M'=50$ compute the pulls $(\bar O_{\rm group}-O_{\rm ref})/\mathrm{SE}_{\rm group}$. If Eq. (4) is right they
+# 2. **Calibration of the error bars.** For groups of $M'=50$ compute the pulls $(\bar O_{\rm group}-O_{\rm ref})/\mathrm{SE}_{\rm group}$. If Eq. (4) is right they
 #    are (nearly) standard normal: mean 0, standard deviation 1. We take time points $\Delta t=1$ apart to reduce correlations.
 
 # %%
@@ -860,7 +860,7 @@ ax[0].legend(); ax[0].grid(alpha=.3, which="both")
 xs = np.linspace(-4, 4, 200)
 ax[1].hist(pulls, bins=40, density=True, color="C1", alpha=.6, label=rf"pulls, groups of {Mp}")
 ax[1].plot(xs, np.exp(-xs ** 2 / 2) / np.sqrt(2 * np.pi), "k-", label="standard normal")
-ax[1].set_xlabel(r"(group mean $-$ reference) / SE"); ax[1].set_ylabel("density"); ax[1].set_title("Are the error bars honest?")
+ax[1].set_xlabel(r"(group mean $-$ reference) / SE"); ax[1].set_ylabel("density"); ax[1].set_title("Calibration of the error bars")
 ax[1].legend(); ax[1].grid(alpha=.3)
 plt.tight_layout(); plt.show()
 
@@ -1329,7 +1329,7 @@ plt.tight_layout(); plt.show()
 # * Implementation: write one trajectory as a `lax.scan` over per-step keys, `vmap` it over per-trajectory keys, `jit` the whole thing; branch with
 #   `categorical` + `lax.switch`, never with Python `if`.
 # * Two errors: systematic $O(dt)$ and statistical $s/\sqrt M$, with $s\le1$ independent of $N$ for *bounded* observables but $s\sim\sqrt N$ for
-#   *extensive* ones. The trajectory mean is unbiased for quantities linear in $\rho$ only. Validate with pulls; check that error bars are honest;
+#   *extensive* ones. The trajectory mean is unbiased for quantities linear in $\rho$ only. Validate with pulls; check that the error bars cover the reference at the stated rate;
 #   remember that a pull test cannot see a bias smaller than its own error bar.
 # * Choose $dt$ from $\sum_j\delta p_j=dt\sum_j\gamma_j\langle L_j^\dagger L_j\rangle\lesssim0.1$ — an extensive condition, so $dt\propto1/N$ at fixed
 #   $\gamma$ — unless the stepper decides each channel independently, as the Trotter one does. The fixed-grid schemes approximate the

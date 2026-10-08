@@ -40,7 +40,7 @@
 # `reshape` and `transpose` really do. Sections 7-9: composite indices (a $4\times4$ matrix *is* a $(2,2,2,2)$ tensor),
 # the Kronecker product and partial traces. Sections 10-13: tensor-network diagrams, batched contractions, the cost of a
 # contraction and why the order matters, `einsum` vs `tensordot` vs `matmul`. Section 14: building einsum strings
-# *programmatically*. Section 15: einsum in JAX (`jit`, `vmap`, `grad`) with honest timings. Section 16: a light preview of
+# *programmatically*. Section 15: einsum in JAX (`jit`, `vmap`, `grad`) with timings of the compiled functions. Section 16: a light preview of
 # notebook 05. Then summary, exercises (with self-checking `assert`s), references, and solutions at the very end.
 #
 # ### What you will learn
@@ -1060,7 +1060,7 @@ check("ellipsis: '...ij,...jk->...ik'", np.einsum("...ij,...jk->...ik", Ab, Bb),
 # * $(AB)\,v$: first a matrix-matrix product, cost $n^3$, then matrix-vector, $n^2$;
 # * $A\,(Bv)$: two matrix-vector products, cost $2n^2$.
 #
-# Same result (matrix multiplication is associative), but a factor $\sim n/2$ in work. Let us measure it. A note on honest timing: we repeat each measurement and
+# Same result (matrix multiplication is associative), but a factor $\sim n/2$ in work. Let us measure it. A note on timing: we repeat each measurement and
 # keep the *best* time (the one least disturbed by other processes), after one warm-up call.
 
 # %%
@@ -1646,7 +1646,7 @@ print("shape:", product_state("0+1").shape, "| dtype:", product_state("0+1").dty
 #
 # Each exercise comes with a **checker** that tests your answer with `assert`s on random data. Replace `None` by your answer and run the cell: it prints `PASSED` or
 # raises an `AssertionError` telling you what went wrong. As long as the answer is `None`, the cell only reports "not attempted", so the notebook still runs from top to bottom.
-# Solutions are collected in Section 20 at the very end -- try honestly before you look. Difficulty: ★ warm-up, ★★ requires thought, ★★★ a small project.
+# Solutions are collected in Section 20 at the very end -- try each exercise yourself before you look. Difficulty: ★ warm-up, ★★ requires thought, ★★★ a small project.
 
 # %%
 # ==============================================================================

@@ -77,7 +77,7 @@
 # * `vmap` over circuit realisations and over restarts; `lax.scan` over circuit layers; explicit PRNG keys;
 # * separating a statistical fluctuation from a systematic effect (the largest eigenvalue of a fluctuating
 #   $3\times3$ matrix is *biased upwards* — a trap we walk into deliberately and then measure);
-# * keeping ensemble averages honest with standard errors, and reporting what was measured rather than what was
+# * quoting ensemble averages with standard errors, and reporting what was measured rather than what was
 #   expected.
 #
 # ### Prerequisites
@@ -767,7 +767,7 @@ fig.tight_layout(); plt.show()
 # generator is a sum of single-qubit operators with spectrum $\pm\tfrac12$, which Eq. (5) satisfies. So $F_Q>N$
 # still witnesses entanglement, and $F_Q>kN$ still certifies entanglement depth $k+1$.
 #
-# Two things are worth noting before we optimise. The Haar average of Eq. (4) applies **unchanged** to every
+# Two remarks before we optimise. The Haar average of Eq. (4) applies **unchanged** to every
 # generator of the form (5): the derivation used only $\mathrm{Tr}\tilde G=0$ and $\mathrm{Tr}\tilde G^2=Nd$, and
 # for $\tilde G=\sum_q\mathbf n_q\cdot\vec\sigma_q$ both still hold (the cross terms are traceless, the diagonal
 # ones give $\mathbb 1$ each). So on average *no* local generator is better than any other for a random state, and

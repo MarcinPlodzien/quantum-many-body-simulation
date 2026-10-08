@@ -297,11 +297,10 @@ def main():
     ab = ["---", 'title: "About"', "toc: false", "code-tools: false", "---", "",
           "## The author", "",
           f"[![](assets/qusml_logo.svg){{width=320px fig-alt=\"QuSML: Quantum Systems and Machine Learning\"}}]({HOMEPAGE})", "",
-          f"### [Dr Marcin Płodzień]({HOMEPAGE})", "",
-          "I am an Assistant Professor at the Institute of Theoretical Physics, Jagiellonian University. I work at the "
-          "intersection of many-body quantum systems, quantum information theory, and quantum technologies, with a focus "
-          "on quantum metrology, quantum simulation, and quantum computation. My research interests also include using "
-          "deep learning to study many-body quantum systems and using quantum simulators for machine learning tasks.", "",
+          f"### [Marcin Płodzień]({HOMEPAGE})", "",
+          f"[Marcin Płodzień]({HOMEPAGE}) is an Assistant Professor at the Institute of Theoretical Physics, Jagiellonian "
+          "University, working at the intersection of many-body quantum systems, quantum simulation, quantum metrology, "
+          "quantum computing and machine learning.", "",
           f"[www]({HOMEPAGE}) · "
           "[Google Scholar](https://scholar.google.com/citations?user=eC9nCmgAAAAJ&hl=en) · "
           "[arXiv](https://arxiv.org/search/?searchtype=author&query=P%C5%82odzie%C5%84%2C+M) · "

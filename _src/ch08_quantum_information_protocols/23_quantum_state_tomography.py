@@ -1,6 +1,6 @@
 #@title: Quantum state tomography — linear inversion, least squares and maximum likelihood
 #@part: Chapter 8 — Quantum information protocols
-#@description: How to reconstruct an unknown density matrix from measured click statistics: the Pauli/Bloch linear model and its design matrix, ordinary and weighted least squares with error propagation, the unphysical-estimate problem and its projection fix, the RρR and gradient-based maximum-likelihood estimators, and an honest accuracy-versus-shots assessment up to four qubits.
+#@description: How to reconstruct an unknown density matrix from measured click statistics: the Pauli/Bloch linear model and its design matrix, ordinary and weighted least squares with error propagation, the unphysical-estimate problem and its projection fix, the RρR and gradient-based maximum-likelihood estimators, and an accuracy-versus-shots assessment up to four qubits.
 
 # %% [markdown]
 # ## 1. Introduction and motivation
@@ -863,7 +863,7 @@ for name, rho in cases:
 #
 # with $\mathrm{Cov}(f)$ the block-diagonal multinomial covariance. Its diagonal must reproduce Eq. (9) (it does; the cross-terms
 # $-p\,p^{\mathsf T}$ of the multinomial are exactly what removes the identity direction). We verify both formulas against a
-# Monte-Carlo experiment with many independent data sets — the only honest way to check an error bar.
+# Monte-Carlo experiment with many independent data sets — the only direct way to check an error bar.
 
 # %%
 # ==============================================================================
@@ -942,7 +942,7 @@ assert abs(fro_mc / fro_pred - 1) < 0.15 and abs(fro_mc / fro_wrong - 1) > 0.15
 # infinite weight, so we floor the *variance factor* $p(1-p)$ at `floor` $=10^{-3}$, i.e. the weight of any single residual is
 # capped at $10^3M$ instead of diverging. (A predicted $p=1/2$ carries weight $4M$, so the cap is a factor $250$ above it.)
 #
-# Three honest caveats, all of which we confirm numerically:
+# Three caveats, all of which we confirm numerically:
 #
 # * with **estimated** weights the estimator is no longer exactly unbiased, and the Gauss–Markov guarantee is only asymptotic;
 # * because every setting here has the *same* number of shots and the design is highly symmetric, the gain over OLS is modest —
@@ -1279,7 +1279,7 @@ assert worst_slack_wrong > 1e-6                    # ... and fails for the wrong
 # The projection is a *non-linear* map, so it destroys unbiasedness: it always moves the estimate *towards* the interior, which makes
 # the reconstructed state **less pure** at the eigenvalue level and therefore **lowers** the fidelity with a pure target. It is
 # nevertheless the better estimate: it is closer to the truth in both the Frobenius and the trace norm, and the fidelity it reports is
-# an honest number computed from an actual quantum state, whereas the raw value is not. Let us look at one concrete case, where we can
+# a number computed from an actual quantum state, whereas the raw value is not. Let us look at one concrete case, where we can
 # see all the eigenvalues at once.
 
 # %%
@@ -1791,7 +1791,7 @@ fig.tight_layout(); plt.show()
 # %% [markdown]
 # ## 15. Assessment I: accuracy versus the number of shots, with bootstrap error bars
 #
-# We now have three estimators and must compare them honestly:
+# We now have three estimators and compare them on the same data:
 #
 # | label | definition | physical? | unbiased? |
 # |---|---|---|---|
@@ -1818,7 +1818,7 @@ fig.tight_layout(); plt.show()
 # resulting estimates as the error bar. It is nothing but Monte-Carlo error propagation through a pipeline that is too complicated
 # (a projection, an iterative fit) to differentiate by hand — and in JAX it is one `vmap`.
 #
-# We first do the honest thing that only a simulation can do — many *independent* experiments — and then check that the bootstrap,
+# We first do what only a simulation can do — many *independent* experiments — and then check that the bootstrap,
 # which a laboratory can actually perform, reproduces the same error bar.
 
 # %%
@@ -2313,7 +2313,7 @@ fig.tight_layout(rect=[0, 0, 1, 0.94]); plt.show()
 # > the fourth decimal), but a *rank* is a discontinuous function of the spectrum and must never be read off an unconverged fit.
 #
 # > **Physics insight.** "We measured a fidelity of $0.97$" and "we measured a purity of $0.94$" are statements about an *estimator*
-# > applied to a finite data set as much as statements about the device. The honest way to report them is with a bootstrap error bar, a statement
+# > applied to a finite data set as much as statements about the device. They should be reported with a bootstrap error bar, a statement
 # > of which estimator was used, and — best of all — a simulation like this one that calibrates the bias at the shot budget actually used.
 
 # %% [markdown]

@@ -1,6 +1,6 @@
 #@title: JAX from scratch — NumPy that compiles, batches and differentiates
 #@part: Chapter 1 — Computational toolbox
-#@description: The JAX foundation of the course: from NumPy to JAX (jit, vmap, scan, grad, PRNG keys, precision and honest timing), ending with a Rabi-oscillation mini-project.
+#@description: The JAX foundation of the course: from NumPy to JAX (jit, vmap, scan, grad, PRNG keys, precision and timing of compiled code), ending with a Rabi-oscillation mini-project.
 
 # %% [markdown]
 # ## 1. Introduction and motivation
@@ -40,7 +40,7 @@
 # them on purpose**, read the message, and learn the idiom that avoids it.
 #
 # **Road map.** Section 2 explains the *Configuration* cell that opens every notebook of the course (device, precision).
-# Sections 3–4 compare `jnp` with `np` (immutability, dtypes, complex numbers) and teach honest timing. Sections 5–8
+# Sections 3–4 compare `jnp` with `np` (immutability, dtypes, complex numbers) and show how to time JAX code (compile time versus run time). Sections 5–8
 # introduce the transformations one by one: `jit`, `vmap`, `lax.scan`, `lax.cond`/`jnp.where`. Section 9 is automatic
 # differentiation, Section 10 random numbers, Sections 11–12 pytrees and the composition of transformations.
 # Section 13 is a **mini-project with real physics**: a two-level atom driven by a laser (Rabi oscillations),
@@ -62,7 +62,7 @@
 #
 # *Implementation practice*
 # * `jax.numpy`, immutability and `.at[].set()`, dtypes and the course-wide configuration cell;
-# * asynchronous dispatch and how to time code honestly (compile time vs run time);
+# * asynchronous dispatch and how to time compiled code (compile time vs run time);
 # * `jit`, `vmap`, `lax.scan`, `lax.cond`, `grad`/`value_and_grad`, explicit PRNG keys, pytrees, and their composition;
 # * reading the typical JAX error messages.
 #
@@ -336,7 +336,7 @@ print("checkpoint passed: |<psi|psi> - 1| and |<sigma_y> - 1| are below TOL =", 
 # complex vector space the inner product needs the complex conjugate.
 
 # %% [markdown]
-# ## 4. Asynchronous dispatch and honest timing
+# ## 4. Asynchronous dispatch and timing
 #
 # When you call a JAX operation, Python does **not** wait for the result. JAX puts the operation into a queue for
 # the device and returns immediately with a "promise" (an array whose numbers are still being computed). Python can
@@ -352,7 +352,7 @@ print("checkpoint passed: |<psi|psi> - 1| and |<sigma_y> - 1| are below TOL =", 
 
 # %%
 # ==============================================================================
-# Dishonest vs honest timing of a matrix product
+# Timing a matrix product: dispatch time vs time until the result is ready
 # ==============================================================================
 key = jax.random.PRNGKey(0)                                   # random numbers: explained in Section 10
 A = jax.random.normal(key, (1500, 1500), dtype=RDTYPE)
@@ -365,7 +365,7 @@ B.block_until_ready()                                         # ... the numbers 
 t_total = time.perf_counter() - t0
 
 print(f"time until Python got control back : {1e3 * t_dispatch:8.3f} ms   (dispatch only -- NOT the cost of A @ A)")
-print(f"time until the result was ready    : {1e3 * t_total:8.3f} ms   (the honest number)")
+print(f"time until the result was ready    : {1e3 * t_total:8.3f} ms   (the measured compute time)")
 
 # %% [markdown]
 # The first number is a small fraction of the second: a careless benchmark would have "shown" that the product of
@@ -382,7 +382,7 @@ print(f"time until the result was ready    : {1e3 * t_total:8.3f} ms   (the hone
 
 # %%
 # ==============================================================================
-# bench(): honest wall-clock timing
+# bench(): wall-clock timing after a warm-up call, with block_until_ready
 # ==============================================================================
 def bench(fn, *args, repeats=5):
     """Best-of-`repeats` wall time (seconds) of fn(*args).
@@ -402,7 +402,7 @@ def bench(fn, *args, repeats=5):
     return best
 
 
-print(f"A @ A, honest best-of-5: {1e3 * bench(lambda M: M @ M, A):.1f} ms")
+print(f"A @ A, best-of-5: {1e3 * bench(lambda M: M @ M, A):.1f} ms")
 
 # %% [markdown]
 # ## 5. `jax.jit` — compile a Python function into one fused program
@@ -1875,7 +1875,7 @@ assert abs(om_hat.mean() - OMEGA_TRUE) < 5 * om_hat.std() / np.sqrt(N_EXPERIMENT
 assert np.all(np.isfinite(om_hat))
 
 # %% [markdown]
-# The histogram of $\hat\Omega$ is centred on the true value, and its width is the honest error bar of a *single*
+# The histogram of $\hat\Omega$ is centred on the true value, and its width is the error bar of a *single*
 # experiment with $40\times200$ shots (the red line — our fit from 13.4 — is one draw from this distribution).
 # "Centred" is a statement with a resolution: $200$ repetitions locate the mean only to
 # $\sigma_{\hat\Omega}/\sqrt{200}\approx4\times10^{-4}$, and no bias shows up at that level. Least squares applied to
@@ -1950,7 +1950,7 @@ assert np.all(np.isfinite(om_hat))
 # * **`grad`** gives exact gradients at a cost independent of the number of parameters — even through an ODE solver.
 #   Finite differences are limited by the truncation/round-off trade-off and serve as an independent check.
 # * **Randomness is explicit**: a key in, numbers out; split, never reuse. Statistical errors fall as $1/\sqrt{M}$.
-# * **Honest benchmarking**: warm up (compile), `block_until_ready`, report best-of-several, quote ratios and scaling.
+# * **Benchmarking**: warm up (compile), `block_until_ready`, report best-of-several, quote ratios and scaling.
 # * **Physics**: the driven two-level atom, $P_e(t)=\frac{\Omega^2}{\Omega_R^2}\sin^2(\Omega_R t/2)$ with
 #   $\Omega_R=\sqrt{\Omega^2+\Delta^2}$; the chevron; $P_e(t)$ determines $\Omega_R$ precisely, $|\Delta|$ less so,
 #   and the sign of $\Delta$ not at all.
@@ -1966,7 +1966,7 @@ assert np.all(np.isfinite(om_hat))
 # 2. ★ **Recompilation detective.** Put a Python `print("tracing")` into a jitted function of `(x, n)` with `n`
 #    static. Call it with (a) the same shapes and `n`, (b) a new `n`, (c) a `float32` instead of a `float64` array,
 #    (d) a Python float instead of an array. Explain each (non-)appearance of the message.
-# 3. ★ **Honest timing.** Time `jnp.linalg.eigh` for random symmetric matrices of size 100…1600 with `bench`, plot
+# 3. ★ **Timing `eigh`.** Time `jnp.linalg.eigh` for random symmetric matrices of size 100…1600 with `bench`, plot
 #    the time versus size on a log–log scale and extract the exponent. Compare with the expected $O(n^3)$ and with NumPy.
 # 4. ★★ **Physics: $\pi$-pulse errors.** Using `rabi_trajectory` and `vmap`, compute the excitation probability after a
 #    nominal $\pi$ pulse as a function of a relative amplitude error $\epsilon$, $\Omega\to\Omega(1+\epsilon)$, at

@@ -56,7 +56,7 @@
 # * explicit PRNG keys, `jax.random.split`, reproducible randomness; `vmap` over keys to draw thousands of samples;
 # * "randomness is data, structure is static": circuits stored as arrays of gate matrices (or gate indices) so that one
 #   compiled program runs *every* random circuit; `lax.scan` over layers;
-# * honest timing of compile versus run; scaling $O(2^N)$ per gate up to $N=20$.
+# * timing of compile versus run; scaling $O(2^N)$ per gate up to $N=20$.
 #
 # ### Prerequisites
 #

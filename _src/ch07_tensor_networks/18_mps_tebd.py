@@ -599,7 +599,7 @@ for name in results_c:
 # discarded weight (crosses) tracks the true infidelity (circles) closely and the bound $1-F\le2\sum_b\varepsilon_b$ holds
 # (asserted in the code): we can monitor the error without knowing the exact state.
 #
-# > **Numerical practice.** An MPS calculation is *controlled* by one number, $\chi$. The honest workflow is:
+# > **Numerical practice.** An MPS calculation is *controlled* by one number, $\chi$. The standard workflow is:
 # > run at several $\chi$, monitor the discarded weight, and accept only results that no longer change with $\chi$.
 
 # %% [markdown]

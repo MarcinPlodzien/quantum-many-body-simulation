@@ -76,7 +76,7 @@
 # *Implementation practice*
 # * small pure functions with documented conventions, validated against analytic results at every step;
 # * index conventions (which spin is the most significant bit) — the classic source of silent bugs;
-# * honest timing of JAX code (`block_until_ready`, compile time versus run time), and `jax.jit` + `jax.vmap`
+# * timing of JAX code (`block_until_ready`, compile time versus run time), and `jax.jit` + `jax.vmap`
 #   to run a parameter sweep as a single compiled program.
 #
 # ### Prerequisites
@@ -1269,7 +1269,7 @@ for hv in (0.5, 1.0, 1.5):
 # chain for $N=2,\ldots,12$. For every $N$ we record the wall-clock time of building $H$ and of `eigh`, as well
 # as the memory taken by $H$ — the raw material for Section 8.
 #
-# > **JAX practice: honest timing.** (i) JAX dispatches work asynchronously, so we call `.block_until_ready()`
+# > **JAX practice: timing compiled code.** (i) JAX dispatches work asynchronously, so we call `.block_until_ready()`
 # > before reading the clock. (ii) The first call of a JAX function with a new array *shape* includes
 # > compilation. Every size $N$ has its own shapes, so *every* row of the table would otherwise pay that price:
 # > we therefore call `tfim_dense` once as a warm-up and time the second call, and for $N\le10$ we time `eigh`

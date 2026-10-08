@@ -25,7 +25,7 @@
 # (Sections 3–4), turn them into a function `measure_qubit` that contains **no Python branching on random values** and can therefore
 # be compiled with `jax.jit` and batched over thousands of shots with `jax.vmap` (Sections 5–8), add the active `reset_qubit`
 # (Section 7), study what a measurement does to the *other* spins (Section 9), sample complete bit strings
-# (`sample_bitstrings`, Section 10), do honest **shot-noise statistics with error bars** (Section 11), look at the correlations of a
+# (`sample_bitstrings`, Section 10), do **shot-noise statistics with error bars** (Section 11), look at the correlations of a
 # Bell pair measured along different axes (Section 12), and finally put measurements *inside* compiled loops: the quantum
 # Zeno effect and entanglement created by measurement (Section 13). Section 14 measures the cost.
 #
@@ -852,7 +852,7 @@ fig.tight_layout(); plt.show()
 
 # %% [markdown]
 # **(a)** Over three and a half decades of $M$ the measured rms error sits on the parameter-free line $\sigma/\sqrt M$ (ratios close to 1 in the table; they are themselves estimated from 400 repetitions and fluctuate by a few percent).
-# **(b)** The estimates are Gaussian distributed around the exact value with exactly that width. The coverage columns show that the *estimated* error bars are honest: about two thirds of the experiments land within one standard error, about 95 % within two.
+# **(b)** The estimates are Gaussian distributed around the exact value with exactly that width. The coverage columns show that the *estimated* error bars cover the exact value at the stated rate: about two thirds of the experiments land within one standard error, about 95 % within two.
 # The one-standard-error column sits a little below the Gaussian $68.3\,\%$, and that is not a defect of the code: for a $\pm1$ observable the coverage can be computed exactly from the binomial distribution, and with $\langle Z_3Z_4\rangle=0.5787$ it is
 # $0.52$ at $M=10$, $0.62$ at $M=30$ and then $0.67$–$0.69$, approaching $0.683$ only slowly. Two effects push it down: the estimate lives on a lattice of spacing $2/M$, and the estimated error bar $\sqrt{(1-\widehat{\langle O\rangle}^2)/M}$ *shrinks*
 # exactly when the estimate wanders towards $\pm1$. At $M=10$ the last effect is extreme: all ten shots agree in 9 % of the experiments, and those get an error bar of zero, which can never cover anything.

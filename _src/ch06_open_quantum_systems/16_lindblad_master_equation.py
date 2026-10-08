@@ -66,7 +66,7 @@
 # **Implementation practice**
 # * reuse of `apply_gate` on ket *and* bra axes; building einsum strings by hand for a small case before trusting the general code;
 # * `lax.scan` for time loops with recorded observables, `lax.fori_loop` with a *traced* trip count for parameter studies without recompilation, `vmap` over a drive strength;
-# * validation against analytic results and against a dense superoperator on small $N$; honest timing (compile versus run).
+# * validation against analytic results and against a dense superoperator on small $N$; timing with compilation separated from execution.
 #
 # ### Prerequisites
 # * [Notebook 05 (Chapter 3) — matrix-free operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb): `apply_gate`, Hamiltonians as lists of local terms;
@@ -164,7 +164,7 @@
 
 # ### 2.2 Where a master equation comes from (the physical picture)
 #
-# The honest derivation starts from the Schrödinger equation of system **plus** bath, $H_{\rm tot} = H + H_E + H_{\rm int}$,
+# A microscopic derivation starts from the Schrödinger equation of system **plus** bath, $H_{\rm tot} = H + H_E + H_{\rm int}$,
 # and traces out the bath. Three approximations make the result tractable (we quote them without proof; see
 # Breuer & Petruccione, chapter 3):
 #

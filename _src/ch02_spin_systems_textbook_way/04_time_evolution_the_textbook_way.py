@@ -35,7 +35,7 @@
 #    measured error scaling against $dt$ with reference slopes, and error growth in time.
 # 6. **Section 8** — physics: a quench in the transverse-field Ising chain. Magnetisation dynamics, the light cone of correlations,
 #    the Loschmidt echo.
-# 7. **Section 9** — an honest bill: what each method costs in memory and time, why *every* method of this notebook dies around $N\approx 12$–$14$ spins, and
+# 7. **Section 9** — the cost of each method in memory and time, why *every* method of this notebook dies around $N\approx 12$–$14$ spins, and
 #    which single observation will let us escape in the next notebook.
 #
 # ### What you will learn
@@ -53,7 +53,7 @@
 # *Implementation practice*
 # * Validating every solver against an independent one, and against conservation laws, with `assert`s.
 # * `jax.jit` for whole time steps, `jax.lax.scan` for time loops, `jax.vmap` over a time grid, `jax.scipy.linalg.expm`.
-# * Honest timing (`block_until_ready`, compile time versus run time).
+# * Timing JAX code (`block_until_ready`, compile time versus run time).
 #
 # ### Prerequisites
 #
@@ -563,7 +563,7 @@ plt.show()
 
 # %%
 # ==============================================================================
-# CHECKPOINT 4: expm versus eigendecomposition  (+ honest timing: compile time vs run time)
+# CHECKPOINT 4: expm versus eigendecomposition  (+ timing: compile time vs run time)
 # ==============================================================================
 t_test = 4.0                                                       # the time at which the Taylor series failed
 t0 = time.perf_counter()
@@ -583,7 +583,7 @@ assert err_expm < 100 * TOL and err_expm_unitary < 100 * TOL
 # Two completely different algorithms agree to round-off at the same $t=4$ where the naive series lost all digits. The first call is several times slower than the second, and the reason is not the mathematics:
 #
 # > **JAX practice.** JAX compiles a function the first time it meets a new combination of input shapes and dtypes; later calls reuse the compiled program. JAX also
-# > dispatches work *asynchronously* — Python gets the handle of a result before the computation has finished. Honest timing therefore (i) calls `.block_until_ready()`
+# > dispatches work *asynchronously* — Python gets the handle of a result before the computation has finished. Our timing code therefore (i) calls `.block_until_ready()`
 # > before stopping the clock and (ii) reports the first call separately from subsequent ones.
 
 # %% [markdown]
@@ -1309,7 +1309,7 @@ plt.tight_layout(); plt.show()
 #   but it *drifts* monotonically upwards, crosses the Trotter bands within the first couple of time units and ends up, at $t=30$, more than an order of magnitude above the first-order Trotter error (compare the printed maxima).
 # * *(c)* The norm is conserved to round-off by both Trotter schemes ($\sim10^{-13}$, slowly accumulating round-off), while RK4 loses norm steadily — a couple of per cent by $t=30$ at this $dt$, small but systematic.
 #
-# An honest remark on the comparison: RK4 is a *fourth*-order method and we are running it against first- and second-order ones, so one would expect it to win on accuracy. At $dt=0.05$ it does beat first-order Trotter, but it does
+# A remark on the comparison: RK4 is a *fourth*-order method and we are running it against first- and second-order ones, so one would expect it to win on accuracy. At $dt=0.05$ it does beat first-order Trotter, but it does
 # **not** beat the Strang splitting: the printed state errors put Trotter 2 below RK4 both at $t=3$ and at $t=30$. The reason is the prefactor — the RK4 error term involves the fifth power of $H$, and $\max_n|E_n|\approx10$ here.
 # Trotterization anyway does not have to win on the order of accuracy (fourth-order
 # splittings exist if needed). It wins on **structure** — exact unitarity, no stability limit, bounded energy error — and, decisively, on the fact that it only ever needs exponentials of *small* matrices. That property is what will scale.
@@ -1608,9 +1608,9 @@ for hq in H_FIELDS:
 # $N$ and extrapolate, never claim the singularity itself from one finite system.
 
 # %% [markdown]
-# ## 9. The bill: what all this cost
+# ## 9. Memory and time cost of the textbook methods
 #
-# Everything above ran in seconds — for $N\le10$. Let us be honest about the scaling with $N$, with $D=2^N$:
+# Everything above ran in seconds — for $N\le10$. The cost scales with $N$ as follows, with $D=2^N$:
 #
 # | object / operation | memory | time |
 # |---|---|---|

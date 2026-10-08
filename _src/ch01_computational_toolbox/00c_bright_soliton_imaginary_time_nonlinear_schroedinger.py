@@ -106,7 +106,7 @@
 #
 # The exact ground state of Eq. (2) is a function of $N$ variables. For $N = 10^4$ atoms that object cannot be
 # written down, stored, or computed: this is the many-body problem, and the rest of this course is about
-# attacking it honestly. The **Hartree approximation** cuts through it with one assumption — that every particle
+# attacking it with methods whose errors can be controlled. The **Hartree approximation** cuts through it with one assumption — that every particle
 # occupies the *same* single-particle orbital $\varphi(X)$:
 #
 # $$ \Psi_{\rm Hartree}(X_1,\ldots,X_N) \;=\; \prod_{j=1}^{N}\varphi(X_j), \qquad
@@ -1921,7 +1921,7 @@ for tag, Lg, Ng, gg, Vfun, start, mu_ex in [
 #
 # For the soliton the two estimates differ from each other and from $-0.5$ in the third decimal, and both errors
 # shrink by a factor of *four*, not sixteen, when $\Delta\tau$ is divided by four: a first-order bias, whose
-# origin and size Section 8.2 measures properly. That is the honest situation — for a nonlinear problem the
+# origin and size Section 8.2 measures properly. This is expected — for a nonlinear problem the
 # converged state is the fixed point of the *discretised* flow, not of Eq. (15), and the two agree only in the
 # limit $\Delta\tau\to0$.
 #
@@ -2785,7 +2785,7 @@ plt.show()
 #
 # The last two questions for any propagator: does it converge at the advertised rate, and does it conserve
 # what the equation conserves? The order is measured by comparing runs at several $\Delta t$ against a
-# reference run at a much smaller one, which is the honest procedure when no closed-form solution is
+# reference run at a much smaller one, which is the standard procedure when no closed-form solution is
 # available — although here one is, so both references are used.
 
 # %%

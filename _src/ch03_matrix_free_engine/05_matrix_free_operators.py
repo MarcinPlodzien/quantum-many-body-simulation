@@ -39,7 +39,7 @@
 #    and check every one against the Kronecker matrix of notebook 03.
 # 3. **Two-site operators** (§4): reshape $4\times4\to(2,2,2,2)$, which index is which, neighbours, distant sites, reversed order.
 # 4. **The general `apply_gate`** (§5): building the einsum string programmatically, line by line; the production version.
-# 5. **Alternative implementations and an honest benchmark** (§6): einsum vs reshape+matmul vs tensordot vs dense, time and memory vs $N$.
+# 5. **Alternative implementations and a benchmark** (§6): einsum vs reshape+matmul vs tensordot vs dense, time and memory vs $N$.
 # 6. **Matrix-free $H|\psi\rangle$** (§7): a Hamiltonian is a *list of local terms*; validation against the dense Hamiltonian.
 # 7. **The first matrix-free time evolution** (§8): Trotter gates $e^{-ih\,dt}$ applied by einsum (this *is* the TEBD algorithm on a
 #    state vector), `jit` + `lax.scan`, machine-precision agreement with the dense Trotter code, then a quench of **$N=20$ spins**.
@@ -59,17 +59,17 @@
 # *Implementation practice*
 # * constructing einsum strings by program; static (Python) versus traced (JAX) arguments;
 # * validating every new primitive against an independent brute-force reference on small $N$;
-# * honest benchmarking: compile time vs run time, `block_until_ready`, best-of-several, scaling rather than absolute numbers;
+# * benchmarking: compile time vs run time, `block_until_ready`, best-of-several, scaling rather than absolute numbers;
 # * `jax.jit`, `jax.vmap` and `jax.lax.scan` at work in a real simulation.
 #
 # ### Prerequisites
 #
-# * [01 — JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, `lax.scan`, honest timing.
+# * [01 — JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, `lax.scan`, timing compiled code.
 # * [02 — einsum from scratch](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb): the three rules of einsum, `reshape` and C-ordering, building strings by program.
 # * [03 — Quantum many-body spin systems](../ch02_spin_systems_textbook_way/03_quantum_many_body_spin_systems.ipynb): Kronecker products, `site_operator`, dense Hamiltonians, the transverse-field Ising model.
 # * [04 — Time evolution the textbook way](../ch02_spin_systems_textbook_way/04_time_evolution_the_textbook_way.ipynb): Trotterization with dense matrices, the TFIM quench.
 #
-# The notebook is self-contained: the few dense helpers we need from notebooks 03–04 are re-defined below.
+# The few dense helpers we need from notebooks 03–04 are re-defined below.
 
 # %% [markdown]
 # ## 2. A state vector is a rank-$N$ tensor
@@ -734,7 +734,7 @@ assert err < TOL
 # > **Numerical practice.** The string needs one letter per axis plus one fresh letter per target, i.e. $n+k\le52$. With 52 letters the routine therefore handles states of up to $N=52-k$ spins, far beyond what fits in memory
 # > ($N\approx30$ on a large workstation). For density *tensors*, which have $2N$ axes (notebook 07), the same counting gives $2N+k\le52$, i.e. $N\le26-k/2$ — also far beyond reach.
 #
-# ## 6. Alternative implementations and an honest benchmark
+# ## 6. Alternative implementations and a benchmark
 #
 # `einsum` is not the only way to implement Eq. (2)/(3). Two classical alternatives — you will meet them in other codes — are:
 #
@@ -803,7 +803,7 @@ print("CHECKPOINT passed: four implementations, one result.")
 # %% [markdown]
 # ### 6.1 Benchmark protocol
 #
-# Timing JAX code honestly requires some care (notebook 01):
+# Timing JAX code requires some care (notebook 01):
 #
 # * JAX dispatches work **asynchronously** — we must call `jax.block_until_ready` before stopping the clock;
 # * the **first call** of a jitted function includes tracing and XLA compilation; we report it separately ("first call") from the

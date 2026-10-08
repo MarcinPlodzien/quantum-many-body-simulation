@@ -68,7 +68,7 @@
 # * Hamiltonians as plain Python lists `[(sites, small_matrix), ...]`; graphs as bond lists.
 # * Validating a matrix-free operator against an independent dense construction on small $N$.
 # * Writing an iterative algorithm as `jax.lax.scan`, compiling it once with `jax.jit`, and sweeping a Hamiltonian parameter with `jax.vmap`.
-# * Honest timing: compile time vs run time, memory accounting for the Krylov basis.
+# * Timing: compile time vs run time, memory accounting for the Krylov basis.
 #
 # ### Prerequisites
 # * [Notebook 01 (Chapter 1) — JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb) (`jit`, `vmap`, `lax.scan`).
@@ -1322,7 +1322,7 @@ plt.tight_layout(); plt.show()
 # %% [markdown]
 # The critical gap follows a power law with an exponent close to $-1$ (the small deviation is a finite-size correction: for the open chain the exact gap is $4J\sin\frac{\pi}{2(2N+1)}\approx \pi J/(N+\tfrac12)$, which is $1/N$ only
 # asymptotically), and the entropy grows linearly in $\log N$ with a slope near $c/6=0.083$; the measured slope is slightly larger because subleading corrections are still visible at $N\le18$. Two lessons: (i) the numbers a
-# laptop can reach are large enough to *see* critical scaling; (ii) they are not large enough to extract exponents to three digits — honest finite-size analysis needs either bigger systems
+# laptop can reach are large enough to *see* critical scaling; (ii) they are not large enough to extract exponents to three digits — a quantitative finite-size analysis needs either bigger systems
 # ([matrix product states](../ch07_tensor_networks/18_mps_tebd.ipynb)) or knowledge of the corrections.
 
 # %% [markdown]

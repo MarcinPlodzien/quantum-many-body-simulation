@@ -1302,7 +1302,7 @@ print(f"\ndecoding error probability = {1 - np.mean(np.diag(conf_ideal)):.2e}   
 # earlier, at a time when Alice did not yet know her message — it carries no information about it, and indeed we just measured that
 # Alice's travelling qubit alone is $\mathbb 1/2$ for every message.
 #
-# The accounting is honest: dense coding uses one qubit of *communication at message time* plus one ebit of *entanglement
+# In the full resource count, dense coding uses one qubit of *communication at message time* plus one ebit of *entanglement
 # distributed earlier*, and the earlier distribution itself required sending a qubit. Two qubits were sent in total for two bits.
 # The practical gain is that only one of them has to be sent after the message is known, so the latency-critical transmission is
 # halved.

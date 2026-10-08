@@ -50,7 +50,7 @@
 # **Implementation practice**
 # * A time step as a list of `(qubits, 4x4 unitary)` gates applied by einsum; gate lists as data that can be reordered and fused.
 # * `jax.jit` + `lax.scan` for time loops with observables, `lax.fori_loop` for a traced number of steps; tracing `dt` so that one compilation serves all step sizes.
-# * Honest timing (compile vs run), counting gates as a hardware-independent cost measure.
+# * Timing (compile vs run), counting gates as a hardware-independent cost measure.
 #
 # ### Prerequisites
 # * [Notebook 04 (Chapter 2) — Time evolution the textbook way](../ch02_spin_systems_textbook_way/04_time_evolution_the_textbook_way.ipynb): exact propagators, a first look at Trotterisation with dense matrices, and the step-size rule of explicit RK4.
@@ -970,7 +970,7 @@ plt.tight_layout(); plt.show()
 #
 # ### 10.4 Work–precision: choosing the order
 #
-# The honest comparison of integrators is **error versus cost**. We use the number of applied two-site gates (after fusion) as the cost, which is proportional to the run time at fixed $N$, and re-use the global errors of Experiment 1 (fusion does not change them).
+# Integrators are compared at equal accuracy: **error versus cost**. We use the number of applied two-site gates (after fusion) as the cost, which is proportional to the run time at fixed $N$, and re-use the global errors of Experiment 1 (fusion does not change them).
 
 # %%
 # ==============================================================================

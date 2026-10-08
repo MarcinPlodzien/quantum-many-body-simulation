@@ -64,7 +64,7 @@
 # *Implementation practice*
 # * `lax.scan` inside `lax.scan` (many cheap steps per expensive measurement), observables returned as a *pytree* (a dict of arrays);
 # * `jax.vmap` over Hamiltonian parameters (a traced coupling inside the gate exponentials) and over initial states;
-# * `jax.vmap` over time to build an exact reference trajectory; honest timing with compile and run time separated.
+# * `jax.vmap` over time to build an exact reference trajectory; timing with compile and run time separated.
 #
 # ### Prerequisites
 # * [Matrix-free operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb) — states as rank-$N$ tensors, `apply_gate`;
@@ -1283,8 +1283,8 @@ for k, h in enumerate(np.asarray(H_FIELDS5)):
 #   real-analytic — it has no kinks, only rapid changes of slope. The exact relation between the total rate function and the two branches,
 #   $\lambda=\min(\lambda_\uparrow,\lambda_\downarrow)-\frac1N\ln(1+e^{-N\lvert\lambda_\uparrow-\lambda_\downarrow\rvert})$, shows exactly how the non-analyticity is built: the corner of the $\min$ is
 #   rounded over a width in $t$ of order $1/N$, and the rounding disappears only as $N\to\infty$. What the numerics *does*
-#   establish is that the crossing times converge quickly, so that a finite chain locates the critical times of the infinite one to a few per cent. The honest procedure is to extract them at several $N$ and
-#   extrapolate (Exercise 6), not to call the finite-$N$ curve non-analytic.
+#   establish is that the crossing times converge quickly, so that a finite chain locates the critical times of the infinite one to a few per cent. The critical times of the infinite chain are therefore obtained by extracting them at several $N$ and
+#   extrapolating (Exercise 6); the finite-$N$ curve itself remains analytic.
 # * **Order parameter.** The zeros of the magnetisation line up with the critical times (right panel, dotted lines for $h=2$): every DQPT is a moment at which the state is "equidistant" from the two symmetry-broken ground states. This correspondence is exact for
 #   the infinite chain in this quench and was the experimental signature used with trapped ions.
 #
