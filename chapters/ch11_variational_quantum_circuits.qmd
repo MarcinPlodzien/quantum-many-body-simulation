@@ -12,7 +12,9 @@ them in the variational quantum eigensolver to ground states of spin chains, che
 
 The remaining notebooks address what a real device adds: the number of measurements a cost evaluation needs,
 including classical shadows inside the optimisation loop; gate noise and its effect on landscapes, training and
-error mitigation; and the quantum autoencoder as a variational compression task.
+error mitigation; and the quantum autoencoder as a variational compression task. The quantum approximate optimisation
+algorithm turns the same machinery to classical problems: MaxCut and number partitioning become diagonal Ising
+Hamiltonians, and alternating cost and mixer layers are trained to sample their optimal bit strings.
 
 ## Notebooks in this chapter
 
@@ -60,5 +62,13 @@ The encoder–trash–decoder construction, the exact relation between trash fid
 [Unsupervised discovery of phase boundaries with a quantum autoencoder](../ch11_variational_quantum_circuits/45b_quantum_anomaly_detection_phase_boundaries.ipynb)
 
 A quantum autoencoder trained on the ground state at one point of the XXZ chain in a transverse field is applied, without retraining, to the ground states of the whole parameter plane. Its local trash cost maps the region of states the frozen encoder can still compress; the map is compared with exact observables, with untrained encoders and with other reference points.
+:::
+
+### Quantum approximate optimisation
+
+::: {.nb-item}
+[The quantum approximate optimisation algorithm — MaxCut and number partitioning on graphs of up to ten vertices](../ch11_variational_quantum_circuits/45c_quantum_approximate_optimisation.ipynb)
+
+Binary optimisation problems written as diagonal Ising Hamiltonians, the QAOA circuit simulated with the cost layer as one phase per bit string, the depth-one expectation value in closed form for any unweighted graph and checked against simulation, gradients by automatic differentiation and by a gate-level parameter-shift rule, the approximation ratio and the probability of the optimal cut up to depth six, interpolation-based initialisation, the Trotterised-annealing limit, parameter transfer between graphs, and sampling against classical baselines.
 :::
 

@@ -219,6 +219,10 @@ website:
             contents:
               - href: ch11_variational_quantum_circuits/45b_quantum_anomaly_detection_phase_boundaries.ipynb
                 text: "Unsupervised discovery of phase boundaries with a quantum autoencoder"
+          - section: "Quantum approximate optimisation"
+            contents:
+              - href: ch11_variational_quantum_circuits/45c_quantum_approximate_optimisation.ipynb
+                text: "The quantum approximate optimisation algorithm — MaxCut and number partitioning on graphs of up to ten vertices"
       - section: "12 · Quantum reservoir computing"
         href: chapters/ch12_quantum_reservoir_computing.qmd
         contents:

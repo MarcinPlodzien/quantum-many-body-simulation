@@ -7,4 +7,6 @@ them in the variational quantum eigensolver to ground states of spin chains, che
 
 The remaining notebooks address what a real device adds: the number of measurements a cost evaluation needs,
 including classical shadows inside the optimisation loop; gate noise and its effect on landscapes, training and
-error mitigation; and the quantum autoencoder as a variational compression task.
+error mitigation; and the quantum autoencoder as a variational compression task. The quantum approximate optimisation
+algorithm turns the same machinery to classical problems: MaxCut and number partitioning become diagonal Ising
+Hamiltonians, and alternating cost and mixer layers are trained to sample their optimal bit strings.
