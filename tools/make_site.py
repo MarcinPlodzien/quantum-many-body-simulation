@@ -32,7 +32,7 @@ ORCID = "https://orcid.org/0000-0002-0835-1644"
 GITHUB = "https://github.com/MarcinPlodzien"
 
 REPO = "https://github.com/MarcinPlodzien"
-HOMEPAGE = "http://chaos.if.uj.edu.pl/ZOA/marcinplodzien"
+HOMEPAGE = "https://chaos.if.uj.edu.pl/marcinplodzien/"
 SITE_URL = "https://marcinplodzien.github.io/quantum-many-body-simulation/"
 COURSE_REPO = "https://github.com/MarcinPlodzien/quantum-many-body-simulation"
 FOOTER_LINKS = ("[Homepage](" + HOMEPAGE + ") · "
@@ -162,7 +162,7 @@ def main():
           "    right: >-", f"      {FOOTER_LINKS}", "",
           "format:", "  html:", "    theme:", "      light: [cosmo, assets/qusml.scss]", "      dark: [darkly, assets/qusml-dark.scss]", "    toc: true", "    toc-depth: 3",
           "    number-sections: false", "    code-fold: show", "    code-tools: true", "    code-copy: true",
-          "    code-overflow: wrap", "    highlight-style: github", "    html-math-method: mathjax", "    grid:",
+          "    code-overflow: wrap", "    highlight-style: github", "    html-math-method: mathjax", "    include-after-body: assets/logo-link.html", "    grid:",
           "      sidebar-width: 340px", ""]
     (ROOT / "_quarto.yml").write_text("\n".join(y))
     # ---------------------------------------------------------------- index.qmd (landing page)

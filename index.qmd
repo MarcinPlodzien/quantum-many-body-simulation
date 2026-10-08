@@ -13,7 +13,7 @@ code-fold: false
 
 <p class="hero-sub">Starting from an empty Python file, the lectures develop a matrix-free simulation engine and use it to study spin-1/2 systems, quantum circuits, unitary and dissipative dynamics, and quantum machine learning.</p>
 
-<p class="hero-author"><a href="http://chaos.if.uj.edu.pl/ZOA/marcinplodzien"><b>Marcin Płodzień</b></a> · Institute of Theoretical Physics, Jagiellonian University</p>
+<p class="hero-author"><a href="https://chaos.if.uj.edu.pl/marcinplodzien/"><b>Marcin Płodzień</b></a> · Institute of Theoretical Physics, Jagiellonian University</p>
 
 [Start with notebook 00a](ch01_computational_toolbox/00a_free_particle_gaussian_wave_packet.ipynb){.btn .btn-primary} [Browse the chapters](#chapters){.btn .btn-outline-primary} [The engine](ch03_matrix_free_engine/08b_building_quantum_simulator_engine.ipynb){.btn .btn-outline-primary}
 :::

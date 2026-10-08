@@ -63,7 +63,7 @@ website:
         href: "https://github.com/MarcinPlodzien"
         aria-label: GitHub
       - icon: house
-        href: "http://chaos.if.uj.edu.pl/ZOA/marcinplodzien"
+        href: "https://chaos.if.uj.edu.pl/marcinplodzien/"
         aria-label: Homepage
   sidebar:
     logo: assets/qusml_logo.svg
@@ -226,7 +226,7 @@ website:
     border: true
     left: "© 2026 Marcin Płodzień · Institute of Theoretical Physics, Jagiellonian University"
     right: >-
-      [Homepage](http://chaos.if.uj.edu.pl/ZOA/marcinplodzien) · [Email](mailto:mplodzien@gmail.com) · [ORCID](https://orcid.org/0000-0002-0835-1644) · [Scholar](https://scholar.google.com/citations?user=eC9nCmgAAAAJ&hl=en) · [GitHub](https://github.com/MarcinPlodzien) · [Scopus](https://www.scopus.com/authid/detail.uri?authorId=55031869100) · [WoS](https://www.webofscience.com/wos/author/record/K-7326-2017)
+      [Homepage](https://chaos.if.uj.edu.pl/marcinplodzien/) · [Email](mailto:mplodzien@gmail.com) · [ORCID](https://orcid.org/0000-0002-0835-1644) · [Scholar](https://scholar.google.com/citations?user=eC9nCmgAAAAJ&hl=en) · [GitHub](https://github.com/MarcinPlodzien) · [Scopus](https://www.scopus.com/authid/detail.uri?authorId=55031869100) · [WoS](https://www.webofscience.com/wos/author/record/K-7326-2017)
 
 format:
   html:
@@ -242,5 +242,6 @@ format:
     code-overflow: wrap
     highlight-style: github
     html-math-method: mathjax
+    include-after-body: assets/logo-link.html
     grid:
       sidebar-width: 340px
