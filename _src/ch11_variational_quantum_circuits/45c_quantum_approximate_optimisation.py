@@ -27,7 +27,74 @@
 # expectation value of any unweighted MaxCut instance has a closed form, and the cost layer is a phase on every bit
 # string, which a state-vector simulation applies by one element-wise multiplication.
 #
-# **Road map.**
+# ### 1.1 Optimisation on a quantum computer
+#
+# **The problem.** MaxCut is the main example of this notebook. Its input is a graph, a set of vertices joined by edges,
+# and a solution is a split of the vertices into two groups; the size of the cut is the number of edges whose two ends
+# lie in different groups, and we want the split with the largest cut. Section 3.2 works through a graph of five
+# vertices by hand (Figure 1). Every vertex can go into either group, so a graph of $N$ vertices has $2^N$ splits,
+# about $10^3$ for $N=10$ and $10^{30}$ for $N=100$. Checking them all quickly becomes impossible, and no method is known
+# that finds the best cut of every graph in a time that grows only polynomially with $N$. In practice, large instances
+# are attacked with approximate methods, from simple heuristics such as the greedy search of Section 3.5 to more
+# elaborate classical approximation algorithms, which return good cuts without a proof that they are the best ones. A
+# quantum algorithm for MaxCut has to compete with them.
+#
+# **The approach with a quantum computer.** QAOA follows a chain of five steps, each of which has its own section below.
+#
+# 1. *Encode the bit strings in qubits.* Vertex $i$ becomes qubit $i$, and the computational basis state
+#    $\vert z_1\cdots z_N\rangle$ is one split of the graph.
+# 2. *Write the cost as a Hamiltonian.* The cut size is a sum of two-spin terms, so it defines an Ising Hamiltonian
+#    $H_C$ that is diagonal in the computational basis; its eigenvalue on a string decreases as the cut grows, so the
+#    best cut is the ground state of $H_C$, and the optimisation problem becomes the problem of preparing that ground
+#    state.
+# 3. *Prepare a state that favours low-cost strings.* The circuit starts from the uniform superposition of all $2^N$
+#    strings and applies $p$ layers, each an evolution under $H_C$ followed by an evolution under the mixer
+#    $B=\sum_qX_q$, with $2p$ angles $(\boldsymbol\gamma,\boldsymbol\beta)$.
+# 4. *Measure.* A measurement in the computational basis returns one string; repeating the circuit gives a sample of
+#    cuts, and we keep the best one.
+# 5. *Tune the angles.* A classical optimiser adjusts $(\boldsymbol\gamma,\boldsymbol\beta)$ to lower the average cost
+#    estimated from the measurements, and the loop returns to step 3. In the simulations of this notebook the average
+#    cost is computed exactly from the state vector.
+#
+# **Why this can work.** The uniform superposition contains every string, but measuring it returns a uniformly random
+# string, so an optimal one appears only with probability $n_{\rm opt}/2^N$, where
+# $n_{\rm opt}$ is the number of optimal strings. Before the measurement the amplitudes have to be reshaped so that good
+# strings carry most of the weight, and interference does the reshaping. The cost layer gives every string a phase
+# proportional to its cost and changes no probability. The mixer then rotates every qubit, so the new amplitude of a
+# string combines the old amplitudes of the strings obtained from it by flipping bits (for a small angle mostly a single
+# bit), and whether these contributions add up or cancel depends on the phases they carry. With well-chosen
+# angles the weight accumulates on low-cost strings.
+#
+# A second picture explains why the alternating structure is a natural choice. In adiabatic quantum computation (Farhi,
+# Goldstone, Gutmann and Sipser, 2000) the system starts in the ground state of $-B$, which is the uniform
+# superposition, and the Hamiltonian is changed slowly from $-B$ to $H_C$. If the change is slow enough compared with
+# the smallest energy gap along the way, the state stays in the instantaneous ground state and ends in the ground level
+# of $H_C$, where a measurement returns an optimal string. Quantum annealing (Kadowaki and Nishimori, 1998) is the same idea seen as a quantum
+# version of simulated annealing, with a transverse field that is lowered in time playing the part of the temperature.
+# On a gate-based quantum computer the slow evolution is cut into many short steps that alternate evolutions under $H_C$
+# and under $B$. QAOA keeps this alternating structure but uses only a few steps and lets the optimiser choose their
+# lengths; it is a short, trainable version of annealing, and Section 9 makes the connection precise.
+#
+# **What to expect.** Most complexity theorists believe, although it has not been proven, that a quantum computer
+# cannot solve every instance of an NP-hard problem in polynomial time. The realistic hope is that QAOA finds
+# better cuts than classical heuristics, or finds them faster, on some instances of useful size, and whether it does is
+# an open research question. The algorithm is designed for *noisy intermediate-scale quantum* (NISQ) devices, the name
+# Preskill (2018) gave to processors with about 50 to 100 qubits and no error correction, whose gate errors limit the
+# size of the circuits that can be run reliably. Shallow circuits come with a limitation of their own. At depth $p$ the
+# expectation value of an edge depends only on the vertices within distance $p$ of it (the light cone of Section 5.1), and Bravyi, Kliesch,
+# Koenig and Tang (2020) used this locality, together with the spin-flip symmetry of Section 4.3, to prove that on
+# certain MaxCut instances a classical algorithm outperforms QAOA at every fixed depth. Experiments have run the
+# algorithm on real hardware. Harrigan *et al.* (2021) applied QAOA on up to 23 superconducting qubits of the Sycamore
+# processor. For problems whose graph matched the connectivity of the chip, the approximation ratio (Section 3.2) did
+# not depend on the problem size and improved with depth. For MaxCut and the Sherrington–Kirkpatrick spin glass, whose
+# interactions had to be routed across the chip, the performance decreased with the problem size but stayed better
+# than random guessing.
+#
+# ### 1.2 Road map
+#
+# The chain of Section 1.1 maps onto the notebook as follows: the problem and steps 1–2 in Section 3, the circuit of
+# step 3 in Sections 4–6, the optimisation of step 5 in Sections 7–8, the annealing picture in Section 9, and the
+# measurement of step 4, compared with a random cut and with greedy search, in Section 11.
 #
 # * **Section 3** writes binary optimisation problems as Ising Hamiltonians: the substitution from bits to spins,
 #   MaxCut, number partitioning, and the four instances used throughout, solved by enumeration together with two
@@ -214,6 +281,14 @@ assert err_qubo < 1e-12
 #
 # ### 3.2 MaxCut
 #
+# MaxCut asks for the split of a graph into two groups that separates as many connected pairs as possible. Problems of
+# this shape appear in many places. When the edge weights measure how dissimilar two items are, a maximum cut puts the
+# most dissimilar pairs into different groups, a simple form of clustering. Barahona, Grötschel, Jünger and Reinelt
+# (1988) reduced two applied problems to MaxCut: finding the ground states of Ising spin glasses in an external field,
+# a question of statistical physics, and minimising the number of vias (contacts between layers) in the layout of
+# printed circuit boards and integrated circuits. The connection with spin glasses is direct, because the cut size is
+# a sum of Ising couplings, as Eq. (6) below shows.
+#
 # Let $G=(V,E)$ be a graph with $N$ vertices and edge set $E$. A *cut* is a split of $V$ into two groups, encoded by
 # $z_i=+1$ for one group and $z_i=-1$ for the other. The edge $(i,j)$ is cut when $z_i\neq z_j$, that is when
 # $(1-z_iz_j)/2=1$. The size of the cut is
@@ -228,6 +303,83 @@ assert err_qubo < 1e-12
 # with $J_{ij}=1$ on every edge and no fields. Each eigenvalue of $H_C$ is $\vert E\vert-2P$, an integer with the same
 # parity as $\vert E\vert$. A *bipartite* graph (one whose vertices split into two groups with all edges between the
 # groups) has $P_{\max}=\vert E\vert$; a graph with an odd cycle cannot cut all edges of that cycle.
+#
+# **A worked example.** The "house" graph has $N=5$ vertices: a square $0-1-2-3-0$ and a roof vertex $4$ joined to $0$
+# and $1$, so that $0,1,4$ form a triangle. Its $\vert E\vert=6$ edges are $(0,1),(1,2),(2,3),(0,3),(0,4),(1,4)$. We
+# call the vertices with $z_i=-1$ (bit $s_i=1$, Eq. (2)) the red group and the others the white group, and write a
+# split as the bit string $s_0s_1s_2s_3s_4$. Counting the edges with ends of different colours gives, for a few splits,
+#
+# | red group | bit string | cut edges | $P$ |
+# |---|---|---|---|
+# | none | 00000 | none | 0 |
+# | $\{4\}$ | 00001 | $(0,4),(1,4)$ | 2 |
+# | $\{0\}$ | 10000 | $(0,1),(0,3),(0,4)$ | 3 |
+# | $\{0,1\}$ | 11000 | $(1,2),(0,3),(0,4),(1,4)$ | 4 |
+# | $\{0,2\}$ | 10100 | $(0,1),(1,2),(2,3),(0,3),(0,4)$ | 5 |
+# | $\{0,2,4\}$ | 10101 | $(0,1),(1,2),(2,3),(0,3),(1,4)$ | 5 |
+#
+# Five is the largest possible value, and the triangle explains why. Going round any cycle of the graph we return to the
+# group we started from, so the group changes an even number of times: every cycle contains an even number of cut
+# edges. The triangle $0-1-4$ has three edges, so at most two of them are cut, at least one edge of the graph stays
+# uncut, and $P\leq5$. The splits $\{0,2\}$ and $\{0,2,4\}$ reach this bound, so $P_{\max}=5$. In both, the square is
+# cut completely (vertices $0,2$ in one group, $1,3$ in the other), and the roof vertex can join either group, because
+# it is attached to one vertex of each. Together with their mirror images, obtained by exchanging the colours, these
+# are four optimal strings. Figure 1 shows the split $\{0,1\}$ and the optimal split $\{0,2\}$.
+#
+# ![The house graph with five vertices, a square 0-1-2-3 and a roof vertex 4 joined to 0 and 1. Left: red group {0,1}, four of six edges cut. Right: red group {0,2}, five of six edges cut, the maximum; only the roof edge (1,4) stays uncut](figures/maxcut_example.svg)\
+# **Figure 1.** Two cuts of the house graph. Red vertices have $z_i=-1$ (bit $s_i=1$), white vertices $z_i=+1$; cut
+# edges are drawn dashed in orange, uncut edges solid in black. Left: $s=11000$, $P=4$. Right: $s=10100$, $P=5=P_{\max}$.
+# The triangle $0-1-4$ always keeps at least one uncut edge.
+#
+# **The approximation ratio.** An algorithm that returns the split $\mathbf z$ achieves the approximation ratio
+# $P(\mathbf z)/P_{\max}$, a number between 0 and 1. When the output is random, as for a measured quantum state, the
+# figure of merit is the expected ratio $\langle P\rangle/P_{\max}$; Section 3.5 writes it in terms of the eigenvalues
+# of $H_C$, Eq. (8), and extends it to number partitioning. The simplest benchmark is a random cut. Each edge is cut
+# with probability $1/2$, so $\langle P\rangle=\vert E\vert/2$, and since $P_{\max}\leq\vert E\vert$ a random cut has an
+# expected ratio of at least $1/2$ on every graph; on the house graph it is $3/5$. The cell enumerates all $2^5=32$
+# splits, reproduces the table, and counts how many strings have each cut size.
+
+# %%
+# ==============================================================================
+# STEP 1b: the house graph, every cut counted by hand
+# ==============================================================================
+HOUSE_EDGES = [(0, 1), (1, 2), (2, 3), (0, 3), (0, 4), (1, 4)]       # square 0-1-2-3 + roof vertex 4 on edge (0, 1)
+
+
+def cut_size(bits, edges):
+    """Cut size P of a split given as bits s_i (s_i = 1: red group, z_i = -1), Eq. (5).
+
+    MATH   P = sum_{(i,j) in E} (1 - z_i z_j) / 2,   z_i = 1 - 2 s_i   (= number of edges with s_i != s_j)
+    """
+    z = 1 - 2 * np.asarray(bits)
+    return int(sum((1 - z[i] * z[j]) // 2 for i, j in edges))
+
+
+all_bits = list(itertools.product([0, 1], repeat=5))
+P_house = {"".join(map(str, s)): cut_size(s, HOUSE_EDGES) for s in all_bits}
+print(f"bit string   {'cut edges':42s}  P")
+for s in ["00000", "00001", "10000", "11000", "10100", "10101"]:
+    cut = [e for e in HOUSE_EDGES if s[e[0]] != s[e[1]]]                # count the edges directly
+    print(f"  {s}      {str(cut):42s}  {P_house[s]}")
+    assert len(cut) == P_house[s]
+P_max_house = max(P_house.values())
+optimal_house = sorted(s for s, P in P_house.items() if P == P_max_house)
+hist = np.bincount(list(P_house.values()), minlength=len(HOUSE_EDGES) + 1)
+print(f"P_max = {P_max_house}, reached by {len(optimal_house)} strings: {optimal_house}")
+print("number of strings with cut size P = 0..6:", hist.tolist())
+print(f"random cut: <P> = {np.mean(list(P_house.values())):.3f}, expected ratio <P>/P_max = "
+      f"{np.mean(list(P_house.values())) / P_max_house:.3f}")
+assert P_max_house == 5 and optimal_house == ["01010", "01011", "10100", "10101"]
+assert [P_house[s] for s in ["00000", "00001", "10000", "11000", "10100", "10101"]] == [0, 2, 3, 4, 5, 5]
+assert abs(np.mean(list(P_house.values())) - len(HOUSE_EDGES) / 2) < 1e-12          # <P> = |E| / 2
+assert all(cut_size(s, [(0, 1), (1, 4), (0, 4)]) <= 2 for s in all_bits)   # the triangle never has 3 cut edges
+
+# %% [markdown]
+# Enumeration confirms the hand count: $P_{\max}=5$, reached by exactly the four strings found above. The 32 strings
+# are distributed over the cut sizes $0,\dots,6$ as $2,0,8,12,6,4,0$. No string cuts all six edges, as the triangle
+# argument requires, and no string has $P=1$, because a split that cuts any edge of a cycle cuts at least two edges of
+# it, and every edge of the house graph lies on a cycle. The mean cut of a random split is $3=\vert E\vert/2$, so random
+# guessing achieves the expected ratio $3/5$, and it hits an optimal string with probability $4/32$.
 #
 # ### 3.3 Number partitioning
 #
@@ -477,7 +629,14 @@ assert abs(INSTANCES["partition"]["E_min"] + float(np.sum(PARTITION_NUMBERS ** 2
 #
 # because the CNOT writes the parity $z_iz_j$ into qubit $j$, the $R_z$ attaches the phase $e^{-i\theta z_iz_j}$, and
 # the second CNOT restores qubit $j$. One layer therefore costs $N$ single-qubit rotations and one entangling gate per
-# coupling: 8, 12 and 15 entangling gates for the ring, the cube and the Petersen graph, 28 for the partition.
+# coupling: 8, 12 and 15 entangling gates for the ring, the cube and the Petersen graph, 28 for the partition. Figure 2
+# draws the whole circuit for the ring of four vertices.
+#
+# ![QAOA circuit for MaxCut on the four-vertex ring: Hadamard gates prepare the uniform superposition, each of p layers applies one R_ZZ(2 gamma_l) gate per edge and R_x(2 beta_l) on every qubit, the qubits are measured, and a classical optimiser updates the angles from the measured costs; an inset shows R_ZZ compiled as CNOT, R_z, CNOT](figures/qaoa_circuit.svg)\
+# **Figure 2.** The circuit of Eq. (9) for MaxCut on the ring with $N=4$ (edges $01,12,23,30$). Each layer applies the
+# cost layer as one $R_{ZZ}(2\gamma_l)$ gate per edge and the mixer as $R_x(2\beta_l)$ on every qubit; the measured
+# strings give the costs from which a classical optimiser chooses new angles. The inset is the compilation of
+# Eq. (14), and the graph on the right shows an optimal cut, bits $1010$, with all four edges cut.
 #
 # In simulation, Eq. (12) is one element-wise multiplication of the state tensor by `exp(-1j * gamma * diag)`,
 # whatever the number of couplings. The layers are applied with `lax.scan`, which compiles one layer and loops over the
@@ -746,10 +905,8 @@ for name, (N, edges) in GRAPHS_P1.items():
 # and three quarters of all edges are cut on average; for an even ring $P_{\max}=N=\vert E\vert$, so $r_1=3/4$. For
 # $D=3$ the fraction is $\tfrac12+\tfrac1{3\sqrt3}=0.6925$, and since $P_{\max}\le\vert E\vert$ the approximation ratio
 # is at least that on every triangle-free 3-regular graph. Farhi, Goldstone and Gutmann (2014) proved that at $p=1$ the
-# ratio is at least $0.6924$ on every 3-regular graph, with or without triangles. For comparison, the classical
-# semidefinite-programming algorithm of Goemans and Williamson (1995) runs in polynomial time and returns, on every
-# graph, a cut whose expected size (over its random rounding step) is at least $0.878$ times the maximum cut. Both
-# numbers are worst-case guarantees, and the depth-one guarantee of QAOA is the lower one. The cell compares Eq. (17) with a grid search on the simulated landscape.
+# ratio is at least $0.6924$ on every 3-regular graph, with or without triangles. This is a worst-case guarantee,
+# well above the value $1/2$ of a random cut. The cell compares Eq. (17) with a grid search on the simulated landscape.
 
 # %%
 # ==============================================================================
@@ -1550,8 +1707,8 @@ for p in (1, 4):
 # Both implementations give the same energy. The compile time of the phase implementation grows only mildly with $p$,
 # because `lax.scan` traces one layer, and a layer costs one multiplication plus $N$ rotations whatever the number of
 # couplings. The unrolled circuit traces every gate of every layer, and the compilation of its gradient grows with
-# $p\,\vert E\vert$ and reaches several seconds at $p=4$ in the table. Run times of both versions are of the order of
-# a millisecond per energy or gradient and fluctuate from run to run on a shared machine. The training of Section 8
+# $p\,\vert E\vert$ and reaches a few seconds at $p=4$ in the table. Run times of both versions lie between about a tenth
+# of a millisecond and a few milliseconds per energy or gradient, and they fluctuate from run to run on a shared machine. The training of Section 8
 # consists of about $5\times10^4$ gradient evaluations ($4\times6\times300$ for INTERP and $2\times6\times12\times300$
 # for the restarts), and its run time is printed with the table there. The memory needed is one state of $2^N$ complex
 # numbers plus the diagonal, 16 kB and 8 kB at $N=10$.
@@ -1628,7 +1785,20 @@ for p in (1, 4):
 # * E. Farhi, J. Goldstone and S. Gutmann, *A quantum approximate optimization algorithm*, arXiv:1411.4028 (2014) — the
 #   algorithm of Eq. (9), the $(2p+1)/(2p+2)$ values on the ring, and the bound $0.6924$ at $p=1$ on 3-regular graphs.
 # * E. Farhi, J. Goldstone, S. Gutmann and M. Sipser, *Quantum computation by adiabatic evolution*,
-#   arXiv:quant-ph/0001106 (2000) — the adiabatic algorithm of Section 9.
+#   arXiv:quant-ph/0001106 (2000) — the adiabatic algorithm of Sections 1.1 and 9.
+# * T. Kadowaki and H. Nishimori, *Quantum annealing in the transverse Ising model*, Phys. Rev. E **58**, 5355 (1998)
+#   — quantum annealing with a time-dependent transverse field in the role of the temperature (Section 1.1).
+# * J. Preskill, *Quantum computing in the NISQ era and beyond*, Quantum **2**, 79 (2018) — noisy intermediate-scale
+#   quantum devices (Section 1.1).
+# * S. Bravyi, A. Kliesch, R. Koenig and E. Tang, *Obstacles to variational quantum optimization from symmetry
+#   protection*, Phys. Rev. Lett. **125**, 260505 (2020) — locality and spin-flip symmetry limit QAOA at fixed depth on
+#   certain MaxCut instances (Section 1.1).
+# * M. P. Harrigan *et al.*, *Quantum approximate optimization of non-planar graph problems on a planar
+#   superconducting processor*, Nat. Phys. **17**, 332 (2021) — QAOA on up to 23 qubits of the Sycamore processor
+#   (Section 1.1).
+# * F. Barahona, M. Grötschel, M. Jünger and G. Reinelt, *An application of combinatorial optimization to statistical
+#   physics and circuit layout design*, Oper. Res. **36**, 493 (1988) — spin-glass ground states and via minimisation in
+#   circuit layout reduced to MaxCut (Section 3.2).
 # * A. Lucas, *Ising formulations of many NP problems*, Front. Phys. **2**, 5 (2014) — Ising forms of number partitioning
 #   and many other NP-hard problems.
 # * Z. Wang, S. Hadfield, Z. Jiang and E. G. Rieffel, *Quantum approximate optimization algorithm for MaxCut: A
@@ -1646,8 +1816,5 @@ for p in (1, 4):
 # * S. Hadfield, Z. Wang, B. O'Gorman, E. G. Rieffel, D. Venturelli and R. Biswas, *From the quantum approximate
 #   optimization algorithm to a quantum alternating operator ansatz*, Algorithms **12**, 34 (2019) — generalisations of
 #   the mixer, e.g. for constrained problems (Section 3.1).
-# * M. X. Goemans and D. P. Williamson, *Improved approximation algorithms for maximum cut and satisfiability problems
-#   using semidefinite programming*, J. ACM **42**, 1115 (1995) — the polynomial-time MaxCut algorithm whose randomly
-#   rounded cut has, on every graph, an expected size of at least $0.878$ times the maximum (Section 5.3).
 # * D. P. Kingma and J. Ba, *Adam: A method for stochastic optimization*, arXiv:1412.6980 (2014) — the optimiser of
 #   Section 8.

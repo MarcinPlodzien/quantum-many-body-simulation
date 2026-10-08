@@ -67,7 +67,7 @@
     \foreach \a/\b in {v0/v1, v1/v2, v2/v3, v3/v0} \draw[dashed] (\a) -- (\b);
     \foreach \v/\c in {v0/red!70, v2/red!70, v1/white, v3/white} \filldraw[fill=\c, draw=black] (\v) circle (0.17);
     \foreach \v/\n/\pos in {v0/0/above, v1/1/right, v2/2/below, v3/3/left} \node[font=\scriptsize, \pos=3pt] at (\v) {$\n$};
-    \node[font=\scriptsize, align=center] at (0,-2.0) {ring $N=4$: optimal cut\\ $\mathbf z=1010$ (red: $z_i=1$), all 4 edges cut};
+    \node[font=\scriptsize, align=center] at (0,-2.0) {ring $N=4$: optimal cut\\ bits $1010$ (red: $s_i=1$, $z_i=-1$), all 4 edges cut};
   \end{scope}
 \end{tikzpicture}
 \end{document}
