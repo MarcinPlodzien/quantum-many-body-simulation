@@ -48,11 +48,16 @@ FOOTER_LINKS = ("[Homepage](" + HOMEPAGE + ") · "
 # Subsections inside a website chapter: notebook number -> subsection title (notebooks not listed come first,
 # under the chapter's default subsection title, if the chapter has subsections at all).
 SITE_SECTION = {
-    "45b": "Unsupervised discovery of phase boundaries with a quantum autoencoder",
+    "42a": "Variational quantum eigensolver", "42": "Variational quantum eigensolver",
+    "43": "Variational quantum eigensolver",
+    "45": "Quantum autoencoder and unsupervised discovery of phase boundaries",
+    "45b": "Quantum autoencoder and unsupervised discovery of phase boundaries",
     "44b": "Variational quantum metrology",
     "45c": "Quantum approximate optimisation",
 }
-SITE_SECTION_DEFAULT = {"ch11_variational_quantum_circuits": "Variational circuits: gradients, optimisers, VQE and noise"}
+SITE_SECTION_DEFAULT = {"ch11_variational_quantum_circuits": "Foundations: parametrised circuits, gradients, optimisers and noise"}
+# reading order inside a subsection where it differs from the file order (the introductory VQE notebook first)
+SITE_ORDER = {"42a": 0, "42": 1, "43": 2}
 
 
 def nb_number(path):
@@ -64,6 +69,8 @@ def grouped(folder, items):
     groups = {}
     for it in items:
         groups.setdefault(SITE_SECTION.get(nb_number(it[0])), []).append(it)
+    for k in groups:
+        groups[k].sort(key=lambda it: SITE_ORDER.get(nb_number(it[0]), 99))   # stable: file order otherwise
     if list(groups) == [None]:
         return [(None, items)]
     order = [None] + list(dict.fromkeys(SITE_SECTION.values()))
