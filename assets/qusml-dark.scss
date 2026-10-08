@@ -11,3 +11,13 @@ $link-color: #7fb2e5;
 .chapter-card { background: #2b2f33; border-color: #444; }
 .nb-item { border-left-color: #7fb2e5; }
 .hero .hero-tagline { color: #ddd; }
+
+// ---------------------------------------------------------------- justified text (author's preference)
+main.content p, main.content li, main.content dd, main.content blockquote,
+main.content .cell-output-display p, main.content figcaption, main.content .figure-caption,
+main.content .callout p, main.content .callout li {
+  text-align: justify; hyphens: auto; -webkit-hyphens: auto;
+}
+main.content td p, main.content .hero-author, main.content .nbcount,
+main.content .feature p, main.content .chapter-card p, main.content .nb-item p:first-child,
+main.content .hero p { text-align: left; }

@@ -39,7 +39,9 @@ $navbar-bg: #005ca7;
 .nb-item p { margin-bottom: 0.25rem; }
 
 // ---------------------------------------------------------------- justified text (author's preference)
-main.content p, main.content li, main.content .cell-output-display p {
+main.content p, main.content li, main.content dd, main.content blockquote,
+main.content .cell-output-display p, main.content figcaption, main.content .figure-caption,
+main.content .callout p, main.content .callout li {
   text-align: justify; hyphens: auto; -webkit-hyphens: auto;
 }
 main.content td p, main.content .hero-author, main.content .nbcount,
