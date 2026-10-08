@@ -219,6 +219,10 @@ website:
             contents:
               - href: ch11_variational_quantum_circuits/45b_quantum_anomaly_detection_phase_boundaries.ipynb
                 text: "Unsupervised discovery of phase boundaries with a quantum autoencoder"
+          - section: "Variational quantum metrology"
+            contents:
+              - href: ch11_variational_quantum_circuits/44b_variational_quantum_metrology.ipynb
+                text: "Variational quantum metrology — optimising probe states and measurements under noise with automatic differentiation"
           - section: "Quantum approximate optimisation"
             contents:
               - href: ch11_variational_quantum_circuits/45c_quantum_approximate_optimisation.ipynb

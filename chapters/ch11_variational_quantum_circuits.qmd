@@ -64,6 +64,14 @@ The encoder–trash–decoder construction, the exact relation between trash fid
 A quantum autoencoder trained on the ground state at one point of the XXZ chain in a transverse field is applied, without retraining, to the ground states of the whole parameter plane. Its local trash cost maps the region of states the frozen encoder can still compress; the map is compared with exact observables, with untrained encoders and with other reference points.
 :::
 
+### Variational quantum metrology
+
+::: {.nb-item}
+[Variational quantum metrology — optimising probe states and measurements under noise with automatic differentiation](../ch11_variational_quantum_circuits/44b_variational_quantum_metrology.ipynb)
+
+A probe-preparation circuit trained by gradient ascent on the quantum Fisher information of its noisy output: an eigendecomposition-free gradient of the mixed-state QFI derived from a variational formula, the Heisenberg limit recovered without noise, optimised probes under local dephasing, amplitude damping and particle loss compared with fairly tuned GHZ, product and one-axis-twisted probes, the anatomy of the optimal states, and readout circuits trained on the classical Fisher information of the measured bit strings.
+:::
+
 ### Quantum approximate optimisation
 
 ::: {.nb-item}
