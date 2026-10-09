@@ -53,6 +53,8 @@ website:
             href: chapters/ch12_quantum_reservoir_computing.qmd
           - text: "13 · Quantum phase transitions"
             href: chapters/ch13_quantum_phase_transitions.qmd
+          - text: "14 · Quantum communication and cryptography"
+            href: chapters/ch14_quantum_communication_and_cryptography.qmd
       - text: "The engine"
         menu:
           - text: "Building the engine (notebook 08b)"
@@ -245,6 +247,11 @@ website:
         contents:
           - href: ch13_quantum_phase_transitions/47_quantum_phase_transitions.ipynb
             text: "Quantum phase transitions — mapping a phase diagram from finite chains"
+      - section: "14 · Quantum communication and cryptography"
+        href: chapters/ch14_quantum_communication_and_cryptography.qmd
+        contents:
+          - href: ch14_quantum_communication_and_cryptography/50_information_entropy_and_noisy_channels.ipynb
+            text: "Information and noisy channels — Shannon entropy, mutual information, channel capacity and error correction"
       - text: "Engine source code"
         href: engine.qmd
   page-footer:

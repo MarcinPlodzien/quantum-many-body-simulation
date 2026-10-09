@@ -146,7 +146,7 @@ print(f"energy = {cost(theta):.4f}, gradient has {g.size} components")
 
 ## Chapters {#chapters}
 
-13 chapters, each a short overview page followed by runnable notebooks (59 in total). The notebooks are numbered globally; each one carries the engine functions it uses in a folded *Engine recap* cell and ends with exercises, so any notebook also runs and can be studied on its own.
+14 chapters, each a short overview page followed by runnable notebooks (60 in total). The notebooks are numbered globally; each one carries the engine functions it uses in a folded *Engine recap* cell and ends with exercises, so any notebook also runs and can be studied on its own.
 
 ::: {.chapter-grid}
 ::: {.chapter-card}
@@ -263,6 +263,15 @@ Use driven many-body dynamics as a trainable machine for time-series prediction.
 [13 · Quantum phase transitions](chapters/ch13_quantum_phase_transitions.qmd)
 
 Locate a quantum phase transition numerically from finite chains and finite-size scaling.
+
+<span class="nbcount">1 notebook</span>
+:::
+::: {.chapter-card}
+[![](assets/thumbs/ch14.png){fig-alt="Quantum communication and cryptography"}](chapters/ch14_quantum_communication_and_cryptography.qmd)
+
+[14 · Quantum communication and cryptography](chapters/ch14_quantum_communication_and_cryptography.qmd)
+
+Simulate how information is sent reliably and kept secret, from Shannon's noisy channels to quantum key distribution with noisy entanglement.
 
 <span class="nbcount">1 notebook</span>
 :::

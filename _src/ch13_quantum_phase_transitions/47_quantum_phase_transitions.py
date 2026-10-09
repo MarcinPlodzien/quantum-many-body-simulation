@@ -115,7 +115,7 @@
 # values have the closed form $s_n=2J\sin\big[(2n-1)\pi/(2(2N+1))\big]$, $n=1,\dots,N$ (checked numerically in the
 # next cell), hence
 #
-# $$ \Delta(N,h_c)=4J\sin\frac{\pi}{4N+2}=\frac{\pi J}{N+1/2}\,\big[1+\order(N^{-2})\big] . \qquad (5b) $$
+# $$ \Delta(N,h_c)=4J\sin\frac{\pi}{4N+2}=\frac{\pi J}{N+1/2}\,\big[1+\mathcal O(N^{-2})\big] . \qquad (5b) $$
 #
 # The velocity of the low-energy quasi-particles follows from the dispersion of the infinite chain,
 # $\varepsilon_k=2\sqrt{J^2+h^2-2Jh\cos k}$, which at $h=J$ is $4J|\sin(k/2)|\approx2J|k|$: $v=2J$. Equation (5b)
@@ -585,7 +585,7 @@ plt.tight_layout(); plt.show()
 # transition. Second-order perturbation theory makes this quantitative. With $H(h+\delta)=H(h)+\delta\,\partial_hH$
 # and $\partial_hH=-\sum_iX_i$ here,
 #
-# $$ |\psi_0(h+\delta)\rangle=|\psi_0\rangle+\delta\sum_{n\neq0}\frac{\langle n|\partial_hH|\psi_0\rangle}{E_0-E_n}|n\rangle+\order(\delta^2)
+# $$ |\psi_0(h+\delta)\rangle=|\psi_0\rangle+\delta\sum_{n\neq0}\frac{\langle n|\partial_hH|\psi_0\rangle}{E_0-E_n}|n\rangle+\mathcal O(\delta^2)
 #    \quad\Longrightarrow\quad
 #    \chi_F=\sum_{n\neq0}\frac{\big|\langle n|\partial_hH|\psi_0\rangle\big|^2}{(E_n-E_0)^2} . \qquad (10) $$
 #
@@ -817,12 +817,12 @@ plt.tight_layout(); plt.show()
 #
 # ### 9.1 The order parameter at large $N$
 #
-# Summing $\langle Z_iZ_j\rangle$ over all pairs, as in Eq. (4), costs $\order(N^2)$ correlators. The standard
+# Summing $\langle Z_iZ_j\rangle$ over all pairs, as in Eq. (4), costs $\mathcal O(N^2)$ correlators. The standard
 # substitute uses the *long-distance* value of the correlation function from a reference site in the bulk,
 #
 # $$ m^2_{\rm bulk}(N)=\big\langle Z_{N/4}\,Z_{3N/4}\big\rangle , \qquad (12) $$
 #
-# which has the same scaling with $N$ and costs $\order(N)$ contractions. Below the transition it tends to
+# which has the same scaling with $N$ and costs $\mathcal O(N)$ contractions. Below the transition it tends to
 # $m_\infty^2$; above it, it decays exponentially; at $h_c$ it decays as a power, $\langle Z_0Z_r\rangle\sim r^{-1/4}$,
 # which is the exponent $\eta=1/4$ of the Ising universality class.
 
@@ -1110,15 +1110,15 @@ plt.tight_layout(); plt.show()
 # ## 11. Cost, and what limits the analysis
 #
 # * **Exact diagonalisation** gives *everything* - all four signatures, exact gaps, arbitrary observables - for
-#   $N\le18$ or so, at $\order(2^N)$ memory. The scan of Sec. 4 was 71 fields $\times$ 5 lengths $\times$ 2 sectors
+#   $N\le18$ or so, at $\mathcal O(2^N)$ memory. The scan of Sec. 4 was 71 fields $\times$ 5 lengths $\times$ 2 sectors
 #   $=710$ ground states, about two minutes on one core (printed above), most of it for $N=16$; continuation in $h$
 #   cuts that cost by more than half. Symmetry sectors are what make excited states cheap.
-# * **DMRG** reaches $N=100$ and more at $\order(N\chi^3)$ per sweep, but only for ground states, only for
+# * **DMRG** reaches $N=100$ and more at $\mathcal O(N\chi^3)$ per sweep, but only for ground states, only for
 #   quantities expressible through the MPS, and with a bond dimension that must be converged *at the critical
 #   point*, where the entropy grows logarithmically. It brought $c$ to within $3\,\%$, made the exponent $\eta=1/4$
 #   visible at short distances, and extended the order parameter to $N=128$.
 # * **Free fermions** serve here as a *grader* rather than a method: whenever the model happens to be quadratic,
-#   $\order(N^3)$ linear algebra gives the exact answer for any $N$ and checks everything else. Use them wherever
+#   $\mathcal O(N^3)$ linear algebra gives the exact answer for any $N$ and checks everything else. Use them wherever
 #   they exist; they do not generalise to interacting models.
 # * **What limits the result** is the *range of $N$*; the eigensolver contributes nothing, since the gaps agreed with
 #   the exact formula to $10^{-12}$. Exponents come from how quantities change with $N$, so the accuracy of $\nu$ is set by the
