@@ -940,7 +940,8 @@ fig.tight_layout(); plt.show()
 #
 # $$\mathcal N(\rho_W)=\max\Big(0,\ \frac{3W-1}{4}\Big),\qquad C(\rho_W)=\max\Big(0,\ \frac{3W-1}{2}\Big),$$
 #
-# and the state is **entangled if and only if $W>1/3$** (Werner, 1989; Peres, 1996; Horodecki, 1996). We check all of this
+# and the state is **entangled if and only if $W>1/3$**: the partial transpose of this family turns negative exactly there
+# (Peres, 1996), and for two qubits a positive partial transpose implies separability (Horodecki, 1996). We check all of this
 # numerically now, on the density tensor.
 
 # %%

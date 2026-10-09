@@ -18,7 +18,7 @@
 # beforehand, then Alice can perform a joint measurement on her unknown qubit *and* her half of the pair, send the two classical bits
 # she obtains, and Bob can recover the state exactly by applying one of four fixed single-qubit gates. The only thing sent from Alice
 # to Bob is two classical bits; the state itself is destroyed at Alice's end (as no-cloning demands) and reappears at Bob's. The protocol was
-# demonstrated with photons in 1997 and has since been run over 1400 km, from the ground to a satellite.
+# demonstrated with photons in 1997 and has since been run over distances up to 1400 km, from the ground to a satellite.
 #
 # Teleportation is the primitive behind **quantum repeaters** (long-distance entanglement distribution),
 # **measurement-based quantum computing** (where every gate is a teleportation), **fault-tolerant gate implementations** (magic-state
@@ -182,9 +182,9 @@ TEST_INPUTS = {"|0>": (0.0, 0.0), "|1>": (np.pi, 0.0), "|+>": (np.pi / 2, 0.0),
 # the code below computes that average from the curve.
 #
 # For comparison, the optimal *approximate* universal $1\to2$ cloner — the machine constructed by Bužek and Hillery (1996) and
-# proved optimal a few years later — delivers a single-copy fidelity of exactly $5/6\approx0.833$ for **every** input. It is worse
-# than CNOT near the poles and much better at the equator, and its average $5/6$ beats CNOT's $2/3$; it is still strictly below 1, as
-# it must be.
+# proved optimal shortly afterwards (Gisin and Massar 1997; Bruß et al. 1998) — delivers a single-copy fidelity of exactly
+# $5/6\approx0.833$ for **every** input. It is worse than CNOT near the poles and much better at the equator, and its average
+# $5/6$ beats CNOT's $2/3$; it is still strictly below 1, as it must be.
 
 # %%
 # ==============================================================================

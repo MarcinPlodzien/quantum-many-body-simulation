@@ -922,8 +922,9 @@ fig.tight_layout(); plt.show()
 #
 # > **Physics insight.** This is the simplest instance of *optimal-parameter resilience* (Sharma, Khatri, Cerezo and
 # > Coles, 2020), who proved for variational *compiling* that the optimal parameters are unaffected by a broad class of
-# > noise models (measurement noise, gate noise, Pauli channel noise) and speculated that the resilience extends to the
-# > variational eigensolver. Section 7 shows that for the eigensolver with local noise the minimum does move, and
+# > noise models (measurement noise, gate noise, Pauli channel noise), showed it in a warm-up eigensolver for
+# > non-interacting spins with measurement noise, and speculated that the resilience extends to the variational
+# > eigensolver in general. Section 7 shows that for the eigensolver with local noise the minimum does move, and
 # > Section 10 measures by how much.
 
 # %% [markdown]
@@ -1268,7 +1269,8 @@ fig.tight_layout(); plt.show()
 # other mitigation strategies can. Stilck França and García-Patrón (2021) attacked the same question from the side of
 # the output state: using entropic inequalities for how fast the state of a noisy circuit converges to the fixed point
 # of the noise, combined with classical sampling of Gibbs states, they concluded that substantial quantum advantages in
-# classical optimisation are unlikely unless noise rates decrease by orders of magnitude.
+# classical optimisation are unlikely unless noise rates decrease by orders of magnitude or the topology of the problem
+# matches that of the device.
 
 # %% [markdown]
 # ## 9. Training under noise
@@ -1280,7 +1282,7 @@ fig.tight_layout(); plt.show()
 #    a *simulator privilege*: no device can do it, because no device has $\rho$.
 # 2. **SPSA on a trajectory estimate.** The cost is estimated from $M$ trajectories, which is what a device with a
 #    finite measurement budget delivers, and the gradient comes from the two-evaluation SPSA rule of notebook 41 with
-#    Spall's probe schedule $c_k=c/k^{0.101}$.
+#    Spall's probe schedule $c_k=c/k^{0.101}$ (Spall 1998).
 #
 # The diagnostic recorded at every iteration is the **exact** density-tensor cost for both methods, and, separately, the
 # noiseless energy of the same parameters — the quantity Section 10 needs. Twelve random initialisations are run in one
@@ -1936,10 +1938,11 @@ fig.tight_layout(); plt.show()
 # * M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information*, Cambridge University Press (2000) —
 #   channels, the Kraus representation, the depolarising and amplitude-damping channels.
 # * M. A. Nielsen, *A simple formula for the average gate fidelity of a quantum dynamical operation*,
-#   Phys. Lett. A **303**, 249 (2002) — the relation between process fidelity and average gate fidelity used in Eq. (4).
+#   Phys. Lett. A **303**, 249 (2002) — the relation $F_{\rm avg}=(dF_e+1)/(d+1)$ between process and average gate
+#   fidelity (due to M., P. and R. Horodecki, with a simplified proof there), used after Eq. (4) for two-qubit gates.
 # * E. Magesan, J. M. Gambetta and J. Emerson, *Characterizing quantum gates via randomized benchmarking*,
-#   Phys. Rev. A **85**, 042311 (2012) — where the error per gate $r$ of Section 3.2 comes from, and why twirling makes
-#   the depolarising model the right one.
+#   Phys. Rev. A **85**, 042311 (2012) — where the error per gate $r$ of Section 3.2 comes from, and why twirling over
+#   the Clifford group turns the average error into a depolarising channel.
 # * J. Dalibard, Y. Castin and K. Mølmer, *Wave-function approach to dissipative processes in quantum optics*,
 #   Phys. Rev. Lett. **68**, 580 (1992) — the trajectory unravelling of Section 4.3.
 # * J. Preskill, *Quantum computing in the NISQ era and beyond*, Quantum **2**, 79 (2018) — the regime this notebook
@@ -1951,8 +1954,8 @@ fig.tight_layout(); plt.show()
 #   variational quantum algorithms*, Nat. Commun. **12**, 6961 (2021) — the gradient bound for local Pauli noise
 #   (Section 8) and the discussion of mitigation (Section 12).
 # * K. Sharma, S. Khatri, M. Cerezo and P. J. Coles, *Noise resilience of variational quantum compiling*,
-#   New J. Phys. **22**, 043006 (2020) — optimal-parameter resilience in variational compiling, tested for the
-#   eigensolver in Section 10.
+#   New J. Phys. **22**, 043006 (2020) — optimal-parameter resilience in variational compiling; Section 10 tests it for
+#   the eigensolver.
 # * D. Stilck França and R. García-Patrón, *Limitations of optimization algorithms on noisy quantum devices*,
 #   Nat. Phys. **17**, 1221 (2021) — entropic bounds on how fast a noisy circuit approaches the fixed point of the
 #   noise, and the comparison with classical Gibbs-state sampling.
@@ -1962,6 +1965,8 @@ fig.tight_layout(); plt.show()
 #   Phys. Rev. X **7**, 021050 (2017) — the independent proposal of extrapolation in the noise strength.
 # * S. Endo, Z. Cai, S. C. Benjamin and X. Yuan, *Hybrid quantum-classical algorithms and quantum error mitigation*,
 #   J. Phys. Soc. Jpn. **90**, 032001 (2021) — the review of mitigation techniques and their costs.
+# * J. C. Spall, *Implementation of the simultaneous perturbation algorithm for stochastic optimization*, IEEE Trans.
+#   Aerosp. Electron. Syst. **34**, 817 (1998) — the probe exponent $\gamma=0.101$ of the SPSA schedule in Section 9.
 # * W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes: The Art of Scientific
 #   Computing*, 3rd ed., Cambridge University Press (2007) — §3.2 (polynomial interpolation and extrapolation, the basis
 #   of Eq. (17)), §4.3 (Romberg integration, Richardson extrapolation in the step size) and §10.9 (quasi-Newton

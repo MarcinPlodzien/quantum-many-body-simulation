@@ -97,7 +97,7 @@ def bits_to_str(bits):
 # %% [markdown]
 # ## 3. Theory: the measurement postulate for one spin out of $N$
 #
-# **The postulate** (as in your quantum mechanics course). An observable is a Hermitian operator with spectral decomposition
+# **The postulate** (as in your quantum mechanics course; Nielsen & Chuang, Sec. 2.2; Sakurai and Napolitano, Ch. 1). An observable is a Hermitian operator with spectral decomposition
 # $O=\sum_m\lambda_m\Pi_m$, where $\Pi_m$ projects onto the eigenspace of the eigenvalue $\lambda_m$
 # ($\Pi_m\Pi_{m'}=\delta_{mm'}\Pi_m$, $\sum_m\Pi_m=\mathbb 1$). Measuring $O$ on the state $|\psi\rangle$
 #
@@ -185,7 +185,7 @@ for m, P in enumerate((P0, P1)):
 #
 # **Drawing the outcome.** A two-outcome random variable with $P(m{=}0)=p_0$ is obtained from one uniform random number $u\in[0,1)$: set $m=0$ if $u<p_0$ and $m=1$ otherwise.
 #
-# **Randomness in JAX** (recap of notebook 01). There is no hidden global random state. Every random function takes an explicit **key**; the same key always produces the same number.
+# **Randomness in JAX** (recap of notebook 01; JAX documentation, *Pseudorandom numbers*). There is no hidden global random state. Every random function takes an explicit **key**; the same key always produces the same number.
 # To get independent numbers we `split` a key into new ones and *never reuse a key*. This looks pedantic, but it is exactly what makes a stochastic simulation reproducible, parallelisable
 # (each shot gets its own key — no ordering issues) and compatible with `jit`.
 #
@@ -451,7 +451,7 @@ assert float(jnp.min(fid)) > 1 - 1e2 * TOL
 #
 # ### 9.1 GHZ versus W, $Z$ versus $X$
 #
-# Take $N=6$ spins, measure spin 0, and ask how much entanglement survives *among the remaining spins*. We quantify it by the entanglement entropy of the block $A=\{1,2\}$ (after the measurement spin 0 is in a
+# Take $N=6$ spins, measure spin 0, and ask how much entanglement survives *among the remaining spins* (for three qubits Dür, Vidal and Cirac (2000) showed that the W state, unlike GHZ, keeps maximal bipartite entanglement when one qubit is traced out). We quantify it by the entanglement entropy of the block $A=\{1,2\}$ (after the measurement spin 0 is in a
 # product state with the rest, so this is the entanglement between $\{1,2\}$ and $\{3,4,5\}$). Pencil-and-paper expectations:
 #
 # * **GHZ, $Z$ basis**: collapse to $|0\dots0\rangle$ or $|1\dots1\rangle$ — a product state, $S=0$. All entanglement is destroyed.
@@ -507,7 +507,7 @@ assert results[("GHZ", "Z")][4] < 1e3 * TOL and abs(results[("GHZ", "X")][4] - 1
 # $$\rho'=\sum_mp(m)|\psi_m\rangle\langle\psi_m|=\sum_m\Pi_m\,|\psi\rangle\langle\psi|\,\Pi_m .$$
 #
 # The derivation is one line ($p(m)|\psi_m\rangle\langle\psi_m|=\Pi_m|\psi\rangle\langle\psi|\Pi_m$ by the collapse rule). In the density matrix this *deletes all matrix elements between the sectors $s_q=0$ and $s_q=1$* and leaves the rest untouched: complete
-# **dephasing** of spin $q$, one of the noise channels of notebook 07. Measurement and decoherence are the same mathematics. We verify it by averaging projectors over shots; the exact channel is two `apply_gate` calls per term on the density *tensor*
+# **dephasing** of spin $q$, one of the noise channels of notebook 07. Measurement and decoherence are the same mathematics. The same fact underlies the principle of implicit measurement (Nielsen & Chuang, Sec. 4.4): an unread measurement of one qubit does not change the reduced state of the others. We verify it by averaging projectors over shots; the exact channel is two `apply_gate` calls per term on the density *tensor*
 # ($\Pi_m$ on the ket axis $q$, $\Pi_m^*$ on the bra axis $N+q$).
 
 # %%
@@ -568,7 +568,7 @@ print(f"\nlargest coherence between the sectors s_1=0 and s_1=1:  before {coh_be
 # $s_q=(i\gg(N-1-q))\,\&\,1$ (shift and mask; spin 0 is the most significant bit). No collapse bookkeeping — and no post-measurement state, which for a complete readout is just $|s\rangle$ anyway.
 # Other bases: rotate every spin first with its $U$ from Section 6 (a string like `"XZY"`).
 #
-# **How to draw from a discrete distribution in JAX.** `jax.random.categorical(key, logits, shape=(shots,))` takes *log*-probabilities and uses the Gumbel-max trick: it adds independent Gumbel noise $g_i$ to every
+# **How to draw from a discrete distribution in JAX.** `jax.random.categorical(key, logits, shape=(shots,))` takes *log*-probabilities and uses the Gumbel-max trick: it adds independent Gumbel noise (Gumbel 1958) $g_i$ to every
 # $\log p_i$ and returns $\arg\max_i(\log p_i+g_i)$, which is distributed exactly according to $p$. It is simple and parallel, but note its cost: **$2^N$ random numbers per shot**. We clip $p$ before the logarithm because $\log0=-\infty$.
 
 # %%
@@ -613,7 +613,7 @@ assert float(jnp.min(overlap)) > 1 - 1e2 * TOL
 
 # %% [markdown]
 # Both samplers return only `0000` and `1111`, roughly half and half, and the sequentially collapsed state is exactly the basis state named by the record. For a quantitative test we need a state with a non-trivial distribution and a
-# proper statistical criterion. For $M$ shots distributed over $K$ bins with expected counts $Mp_s$, Pearson's
+# proper statistical criterion (Press *et al.* 2007, §14.3). For $M$ shots distributed over $K$ bins with expected counts $Mp_s$, Pearson's
 #
 # $$\chi^2=\sum_s\frac{(n_s-Mp_s)^2}{Mp_s}$$
 #
@@ -669,7 +669,7 @@ fig.tight_layout(); plt.show()
 # ### 10.2 A cheaper sampler for many shots: the inverse CDF
 #
 # The Gumbel-max trick spends $2^N$ random numbers *per shot*: for $N=12$ and $10^4$ shots that is $4\times10^7$ numbers and as many logarithms, and the memory grows as shots $\times\,2^N$.
-# The classic alternative is **inverse-transform sampling**: compute the cumulative distribution $c_i=\sum_{j\le i}p_j$ once ($O(2^N)$), draw *one* uniform number $u$ per shot and find the first index with $c_i>u$
+# The classic alternative is **inverse-transform sampling** (Devroye 1986; Press *et al.* 2007, §7.3): compute the cumulative distribution $c_i=\sum_{j\le i}p_j$ once ($O(2^N)$), draw *one* uniform number $u$ per shot and find the first index with $c_i>u$
 # by binary search (`jnp.searchsorted`, $O(N)$ per shot). Picture the interval $[0,1)$ cut into $2^N$ segments of lengths $p_i$: a uniformly thrown dart lands in segment $i$ with probability $p_i$.
 # We add this function in engine style (it is a candidate for the engine) and use it whenever we need very many shots.
 
@@ -863,7 +863,7 @@ fig.tight_layout(); plt.show()
 # %% [markdown]
 # ## 12. A Bell pair measured along different axes
 #
-# The cleanest demonstration that measurement outcomes on entangled spins are correlated *in every basis* — the raw material of Bell inequalities and quantum key distribution. For two spins define the correlation of outcomes
+# The cleanest demonstration that measurement outcomes on entangled spins are correlated *in every basis* — the raw material of Bell inequalities (Bell 1964; Clauser, Horne, Shimony and Holt 1969; textbook treatment: Sakurai and Napolitano, Ch. 3) and quantum key distribution. For two spins define the correlation of outcomes
 #
 # $$E(a,b)=\langle\sigma_a\otimes\sigma_b\rangle=P(\text{same})-P(\text{different}),$$
 #
@@ -962,7 +962,7 @@ fig.tight_layout(); plt.show()
 #
 # $$P_{\rm survive}(n)=\exp\Big(-\frac{\pi^2}{4n}+O(n^{-3})\Big)=1-\frac{\pi^2}{4n}+O(n^{-2})\;\longrightarrow\;1 .$$
 #
-# A watched spin does not flip: frequent measurement freezes the dynamics, and the deficit closes like $1/n$. The reason is that for short times transition probabilities grow *quadratically*, $\sin^2(\epsilon/2)\approx\epsilon^2/4$,
+# A watched spin does not flip: frequent measurement freezes the dynamics, and the deficit closes like $1/n$. This is the quantum Zeno effect, named by Misra and Sudarshan (1977) and observed with trapped ions by Itano, Heinzen, Bollinger and Wineland (1990). The reason is that for short times transition probabilities grow *quadratically*, $\sin^2(\epsilon/2)\approx\epsilon^2/4$,
 # so $n$ interruptions cost only $n\cdot(\pi/2n)^2=\pi^2/4n\to0$ instead of the $O(1)$ they would cost if the probability grew linearly in time. Per unit of the swept angle the effective flip rate therefore vanishes as $1/n$.
 
 # %%
@@ -1012,7 +1012,7 @@ ax.set_title("Quantum Zeno effect"); ax.legend(fontsize=8); fig.tight_layout(); 
 #
 # ### 13.2 Entanglement *created* by measurement
 #
-# Section 9 showed measurements destroying entanglement. They can also **create** it between spins that never interacted directly. Take the 1D cluster state of notebook 06 ($|{+}\rangle^{\otimes N}$ followed by controlled-$Z$ on every bond). Its stabilisers
+# Section 9 showed measurements destroying entanglement. They can also **create** it between spins that never interacted directly. Take the 1D cluster state of notebook 06 ($|{+}\rangle^{\otimes N}$ followed by controlled-$Z$ on every bond; Briegel and Raussendorf 2001), the resource of the one-way quantum computer, in which single-spin measurements are the whole computation (Raussendorf and Briegel 2001). Its stabilisers
 # connect a site only to its neighbours, and in fact **no pair of its spins is entangled at all**: every two-spin reduced state is separable, either exactly $\mathbb 1/4$ in the bulk or, at the two ends of the open chain, the classically correlated
 # $\rho_{01}=(\mathbb 1+X_0Z_1)/4$ and $\rho_{N-2,N-1}=(\mathbb 1+Z_{N-2}X_{N-1})/4$ that the end stabilisers $X_0Z_1$ and $Z_{N-2}X_{N-1}$ produce. The entanglement of the cluster state is genuinely multipartite, which is exactly why measurements can
 # concentrate it into a pair. Its two end spins in particular are **not entangled with each other**: for $N\ge4$ their reduced state is $\mathbb 1/4$ (no correlations whatsoever), and for $N=3$ it is the classical mixture

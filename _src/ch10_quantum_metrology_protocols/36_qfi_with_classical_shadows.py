@@ -1841,3 +1841,5 @@ for N in (4, 6, 8, 10):
 #   and of the states measured in Section 8.
 # * M. Kitagawa and M. Ueda, *Squeezed spin states*, Phys. Rev. A **47**, 5138 (1993) — the one-axis-twisting
 #   Hamiltonian that produces the probes of Section 8.
+# * D. J. Wineland, J. J. Bollinger, W. M. Itano and D. J. Heinzen, *Squeezed atomic states and projection noise in
+#   spectroscopy*, Phys. Rev. A **50**, 67 (1994) — the spectroscopic squeezing parameter $\xi_R^2$ of Exercise 3.

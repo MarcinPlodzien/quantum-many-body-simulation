@@ -914,7 +914,8 @@ fig.tight_layout(); plt.show()
 # * **A hierarchy of probes or of interrogation times.** A first stage with unentangled atoms, or with a small GHZ state,
 #   localises the phase inside the window of the next stage, which uses a larger $N$ (or a longer $T$) and localises it inside
 #   the window of the stage after, and so on; each stage spends a fraction of the repetitions. Kessler and co-workers (2014)
-#   proposed exactly this for atomic clocks, interrogating the laser phase with a cascade of GHZ states of increasing size.
+#   proposed a clock version in which a cascade of GHZ states of increasing size interrogates the laser phase
+#   simultaneously.
 #   Exercise 5 implements the two-stage version.
 # * **Adaptive phase estimation.** The same ladder can be built from a single probe that passes through the phase shift
 #   $1,2,4,\dots$ times, with each measurement setting chosen from the previous outcomes; Higgins and co-workers (2007)
@@ -2293,7 +2294,8 @@ for N in (4, 6, 8):
 # * D. M. Greenberger, M. A. Horne and A. Zeilinger, *Going beyond Bell's theorem*, in *Bell's Theorem, Quantum Theory, and
 #   Conceptions of the Universe*, ed. M. Kafatos (Kluwer, Dordrecht, 1989), p. 69 — the state.
 # * L. Pezzè, A. Smerzi, M. K. Oberthaler, R. Schmied and P. Treutlein, *Quantum metrology with nonclassical states of atomic
-#   ensembles*, Rev. Mod. Phys. **90**, 035005 (2018) — the review; Sections IV and VI cover GHZ interferometry and noise.
+#   ensembles*, Rev. Mod. Phys. **90**, 035005 (2018) — the review; Sections II.C.7 and VI.B.2 cover GHZ (NOON)
+#   states and GHZ interferometry with trapped ions, Section VII.A noise and decoherence.
 # * H.-Y. Huang, R. Kueng and J. Preskill, *Predicting many properties of a quantum system from very few measurements*,
 #   Nature Physics **16**, 1050 (2020) — the classical-shadow estimator of Section 14.
 # * C. W. Helstrom, *Quantum Detection and Estimation Theory* (Academic Press, 1976) — the quantum Cramer-Rao bound.

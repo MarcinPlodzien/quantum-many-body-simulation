@@ -111,8 +111,9 @@
 #
 # For a **finite open** chain the same free-fermion solution gives the quasi-particle energies $2s_n$, where $s_n$
 # are the singular values of the $N\times N$ bidiagonal matrix $B$ with $h$ on the diagonal and $J$ on the first
-# superdiagonal (Lieb, Schultz and Mattis 1961); the smallest one is the gap. At $h=J$ these singular values have the
-# closed form $s_n=2J\sin\big[(2n-1)\pi/(2(2N+1))\big]$, $n=1,\dots,N$ (checked numerically in the next cell), hence
+# superdiagonal (the method of Lieb, Schultz and Mattis 1961); the smallest one is the gap. At $h=J$ these singular
+# values have the closed form $s_n=2J\sin\big[(2n-1)\pi/(2(2N+1))\big]$, $n=1,\dots,N$ (checked numerically in the
+# next cell), hence
 #
 # $$ \Delta(N,h_c)=4J\sin\frac{\pi}{4N+2}=\frac{\pi J}{N+1/2}\,\big[1+\order(N^{-2})\big] . \qquad (5b) $$
 #
@@ -1189,18 +1190,22 @@ plt.tight_layout(); plt.show()
 # * M. E. Fisher and M. N. Barber, *Scaling theory for finite-size effects in the critical region*,
 #   Phys. Rev. Lett. **28**, 1516 (1972). — finite-size scaling.
 # * P. Calabrese and J. Cardy, *Entanglement entropy and quantum field theory*, J. Stat. Mech. P06002 (2004). —
-#   Eq. (8) and the central charge from entanglement.
+#   the open-chain law of Eq. (8) (their Eqs. (2) and (23), with $L/\pi a$ in place of $2N/\pi$, which only shifts the
+#   constant) and the central charge from entanglement.
 # * E. Lieb, T. Schultz and D. Mattis, *Two soluble models of an antiferromagnetic chain*, Ann. Phys. **16**, 407
-#   (1961). — the free-fermion solution of the open chain (bidiagonal matrix $B$, Sec. 2.3).
+#   (1961). — the free-fermion method for quadratic fermion Hamiltonians, which for the open TFIM gives the
+#   bidiagonal matrix $B$ of Sec. 2.3.
 # * G. Vidal, J. I. Latorre, E. Rico and A. Kitaev, *Entanglement in quantum critical phenomena*,
 #   Phys. Rev. Lett. **90**, 227902 (2003). — the logarithmic growth of entanglement at criticality.
 # * P. Zanardi and N. Paunković, *Ground state overlap and quantum phase transitions*, Phys. Rev. E **74**, 031123
-#   (2006); W.-L. You, Y.-W. Li and S.-J. Gu, Phys. Rev. E **76**, 022101 (2007). — fidelity and fidelity
-#   susceptibility as universal detectors.
+#   (2006); W.-L. You, Y.-W. Li and S.-J. Gu, *Fidelity, dynamic structure factor, and susceptibility in critical
+#   phenomena*, Phys. Rev. E **76**, 022101 (2007). — the ground-state fidelity as a detector of quantum phase
+#   transitions, and the fidelity susceptibility.
 # * I. Peschel, *Calculation of reduced density matrices from correlation functions*, J. Phys. A **36**, L205
 #   (2003). — the free-fermion entropy used as a check.
 # * J. des Cloizeaux and M. Gaudin, *Anisotropic linear magnetic chain*, J. Math. Phys. **7**, 1384 (1966). — the
-#   exact gap behind Eq. (14).
+#   exact gap of the XXZ chain for $\Delta>1$, whose form close to $\Delta=1$ is Eq. (14).
 # * J. M. Kosterlitz and D. J. Thouless, *Ordering, metastability and phase transitions in two-dimensional systems*,
 #   J. Phys. C **6**, 1181 (1973); A. W. Sandvik, *Computational studies of quantum spin systems*, AIP Conf. Proc.
-#   **1297**, 135 (2010). — the KT transition and why it resists finite-size scaling.
+#   **1297**, 135 (2010). — the KT transition; Sandvik's Sec. 3.5.2 shows, for the 2D XY model, how the exponentially
+#   divergent correlation length slows the finite-size shift of a KT point to $1/\ln^2L$.

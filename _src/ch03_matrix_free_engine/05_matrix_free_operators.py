@@ -24,7 +24,7 @@
 # This is what *matrix-free* means: the operator exists only through its **action** on a state; the $2^N\times2^N$ matrix
 # is never formed. Memory drops from $O(4^N)$ to $O(2^N)$ and the work per operator from $O(4^N)$ to $O(2^k\,2^N)$ for an
 # operator on $k$ spins. On a laptop this moves the wall from $N\approx 13$ to $N\approx 25$–$30$, and it is how every
-# serious state-vector simulator — for spin chains, cold atoms or quantum computers — works. **Everything in the rest
+# serious state-vector simulator — for spin chains, cold atoms or quantum computers — works (a massively parallel example: De Raedt *et al.* 2007). **Everything in the rest
 # of this course is built on the single function `apply_gate` that we derive in this notebook.**
 #
 # **Why should you care?** Experiments with Rydberg-atom arrays, trapped ions and superconducting circuits today control
@@ -90,7 +90,8 @@
 # $$ |\psi\rangle=\sum_{s_0=0}^{1}\cdots\sum_{s_{N-1}=0}^{1}\psi[s_0,s_1,\dots,s_{N-1}]\;|s_0s_1\dots s_{N-1}\rangle . $$
 #
 # The amplitudes carry $N$ binary indices — they *are* an array with $N$ axes. In notebook 03 we nevertheless stored them in a
-# one-dimensional vector, numbering the basis states by reading the bit string as a binary number:
+# one-dimensional vector, numbering the basis states by reading the bit string as a binary number (the bit representation of
+# spin basis states standard in exact diagonalisation, see Sandvik 2010, Sec. 4.1.1, who stores spin $i$ in bit $i$, i.e. the reverse order):
 #
 # $$ i \;=\; s_0\,2^{N-1}+s_1\,2^{N-2}+\dots+s_{N-1}\,2^{0}\;=\;\sum_{q=0}^{N-1}s_q\,2^{\,N-1-q}. \tag{1} $$
 #
@@ -1133,14 +1134,14 @@ for n in [6, 8, 10, 12, 14, 16, 18, 20]:
 #
 # $$ e^{-iH\,dt}\;=\;e^{-iH_{\rm even}dt/2}\;e^{-iH_{\rm odd}dt}\;e^{-iH_{\rm even}dt/2}+O(dt^3), \tag{4} $$
 #
-#    which gives a global error $O(dt^2)$ at a fixed final time.
+#    which gives a global error $O(dt^2)$ at a fixed final time. Systematic higher-order product formulas of this kind go back to Suzuki (1976).
 #
 # In notebook 04 every layer was assembled as a $2^N\times2^N$ Kronecker product of $4\times4$ exponentials and identities, and the step matrix was their product. But we already
 # proved there that $e^{-i(\mathbb 1\otimes h\otimes\mathbb 1)\tau}=\mathbb 1\otimes e^{-ih\tau}\otimes\mathbb 1$ — every term of the exponential series has this form. In the language of this notebook:
 #
 # > **the exponential of a local term is a local gate** — a $4\times4$ unitary that `apply_gate` applies to axes $(j,j+1)$ in $O(4\cdot2^N)$ operations.
 #
-# A Trotter step is therefore a short list of small unitaries applied one after the other: a *quantum circuit* with a brick-wall pattern,
+# A Trotter step is therefore a short list of small unitaries applied one after the other: a *quantum circuit* (Nielsen and Chuang 2000, Ch. 4) with a brick-wall pattern,
 #
 # ```
 # spins        0     1     2     3     4     5     6     7
@@ -1149,7 +1150,7 @@ for n in [6, 8, 10, 12, 14, 16, 18, 20]:
 # even, dt/2   [=====]     [=====]     [=====]     [=====]
 # ```
 #
-# Applying Eq. (4) in this way is known as **TEBD** (time-evolving block decimation) on a state vector; the name comes from its matrix-product-state version, which we will meet in notebook 18 (Chapter 7).
+# Applying Eq. (4) in this way is known as **TEBD** (time-evolving block decimation) on a state vector; the name comes from its matrix-product-state version (Vidal 2004; review: Schollwöck 2011), which we will meet in notebook 18 (Chapter 7).
 # The Hamiltonian enters as a *list of terms* `[((j, j+1), h_j), ...]`, exactly as in §7 — only now with the fields absorbed into the bonds.
 #
 # The small exponentials are computed exactly by diagonalising the Hermitian matrix, $h=V\,\mathrm{diag}(w)\,V^\dagger\Rightarrow
@@ -1288,7 +1289,7 @@ assert abs(L0 - abs(v_test[0]) ** 2) < TOL
 #
 # ### 8.3 The time loop: `jit` + `lax.scan`
 #
-# One time step = apply the gate list, then measure. The time loop is written with `jax.lax.scan`, JAX's compiled `for` loop
+# One time step = apply the gate list, then measure. The time loop is written with `jax.lax.scan`, JAX's compiled `for` loop (Bradbury *et al.* 2018)
 # ([notebook 01](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)): `lax.scan(step, carry0, xs, length)` repeatedly calls `carry, y = step(carry, x)` and stacks the `y`'s.
 # The carry is the state, the outputs are the observables. The step function is traced and compiled **once**, however many steps we take; a Python
 # `for` loop under `jit` would instead be unrolled into `n_steps` copies of the circuit (long compilation), and a Python loop without `jit`

@@ -427,7 +427,8 @@ for subscripts, ops in tests:
 #
 # and in general $k=\sum_{m} i_m \prod_{l>m} d_l$. Read Eq. (2) as a number system: to step $i_0$ by one you must skip a
 # whole $(d_1\times d_2)$ block, to step $i_1$ by one you skip a row of length $d_2$. The "skips" $(d_1d_2,\;d_2,\;1)$ are called **strides**
-# (NumPy reports them in *bytes*, so the cell below divides by `itemsize` to get them in units of entries).
+# (NumPy reports them in *bytes*, so the cell below divides by `itemsize` to get them in units of entries; Harris *et al.* 2020
+# describe this strided memory model of NumPy arrays).
 #
 # For spins all $d_m=2$, and Eq. (2) becomes the **binary representation** of $k$:
 #
@@ -695,7 +696,7 @@ plt.show()
 # ## 8. The Kronecker product as einsum + reshape
 #
 # If $A$ acts on subsystem $A$ and $B$ on subsystem $B$, the operator "$A$ on the first **and** $B$ on the second" is the
-# **Kronecker (tensor) product** $A\otimes B$. Its definition in components is simply "multiply the two matrix elements":
+# **Kronecker (tensor) product** $A\otimes B$ (Nielsen and Chuang, Sec. 2.1.7). Its definition in components is simply "multiply the two matrix elements":
 #
 # $$ (A\otimes B)_{(a c),(b d)} = A_{ab}\,B_{cd}. \tag{6}$$
 #
@@ -817,7 +818,7 @@ check("(A(x)1)v: einsum 'ab,bd->ad'  vs dense kron", np.einsum("ab,bd->ad", A, V
 #
 # The result is an operator on the remaining subsystem ($d_A\times d_A$ or $d_B\times d_B$). In the block picture of Section 7,
 # $\mathrm{Tr}_B$ replaces each block by its trace. In quantum mechanics the partial trace is the operation of *ignoring* a subsystem;
-# it produces the reduced density matrix that you will meet in
+# it produces the reduced density matrix (Nielsen and Chuang, Sec. 2.4.3) that you will meet in
 # [06_states_observables_entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb). Here we treat it purely as an index operation.
 #
 # Independent references: (i) `np.trace(T, axis1=1, axis2=3)`, which sums the diagonal over a chosen pair of axes; (ii) the identities
@@ -977,7 +978,8 @@ plt.show()
 # **no bond** -- it is an outer product, and only the subsequent `reshape` bundles the legs $(a,c)$ and $(b,d)$ into the two thick legs of a big matrix.
 # In the partial-trace panel the upper legs of $T$ are the row indices $(a,b)$, the lower ones the column indices $(c,d)$; the legs of subsystem $B$ are joined.
 #
-# > **Physics insight.** Diagrams of this kind are the daily language of *tensor-network* methods, which you will meet in
+# > **Physics insight.** Diagrams of this kind are the daily language of *tensor-network* methods (introductions: Bridgeman and Chubb 2017;
+# > Orús 2014), which you will meet in
 # > [notebook 18 (Chapter 7)](../ch07_tensor_networks/18_mps_tebd.ipynb) (matrix product states). A diagram fixes *what* is
 # > contracted; it says nothing about the *order* in which a computer should do the sums. That is a separate question with large practical consequences (Section 12).
 
@@ -1146,7 +1148,8 @@ ratio_largest = t_left[-1] / t_right[-1]
 # `np.einsum("ij,jk,k->i", A, B, v)` by default (`optimize=False`) evaluates the formula *literally* as one triple loop: cost $n^3$, although no $n\times n$ intermediate is ever stored.
 # With `optimize=True` NumPy first searches for a good sequence of pairwise contractions -- `True` selects a *greedy* search, `optimize="optimal"` an
 # exhaustive one; `np.einsum_path` reports what it found.
-# **`jnp.einsum` always searches for a path**: its default is `optimize="auto"`, which runs the exhaustive *optimal* search for up to four operands and
+# This path search is the core of the `opt_einsum` package (Smith and Gray 2018), contributed to NumPy in version 1.12.
+# **`jnp.einsum` always searches for a path**, calling `opt_einsum` directly: its default is `optimize="auto"`, which runs the exhaustive *optimal* search for up to four operands and
 # cheaper heuristics beyond that. Under `jit` the search happens once, while the function is traced, because the string is ordinary Python data.
 
 # %%
@@ -1374,7 +1377,7 @@ check("keep nothing = full trace", partial_trace(M3, dims, ()), np.trace(M3).res
 # %% [markdown]
 # ## 15. einsum in JAX: `jit`, `vmap`, `grad`
 #
-# `jnp.einsum` has the same interface as `np.einsum`. Three differences matter in practice:
+# `jnp.einsum` (JAX: Bradbury *et al.* 2018) has the same interface as `np.einsum`. Three differences matter in practice:
 #
 # * JAX arrays are **immutable**, so the loop-and-accumulate style of step (b) (`y[i] += ...`) is not even available: whole-array
 #   operations like einsum are *the* way to express index formulas in JAX (see [01_jax_from_scratch](01_jax_from_scratch.ipynb)).

@@ -1892,7 +1892,7 @@ fig.tight_layout(); plt.show()
 #   indistinguishable particles.
 # * A. Niezgoda and J. Chwedenczuk, *Many-body nonlocality as a resource for quantum-enhanced metrology*,
 #   Phys. Rev. Lett. **126**, 210506 (2021), arXiv:2011.06612 — the same correlator, and the bound
-#   $F_Q\ge N^2/2^{m+1}$ linking it to the quantum Fisher information.
+#   $F_Q>N^2/2^{n+1}$ on the quantum Fisher information when at least $N-n$ qubits are Bell correlated.
 # * M. Plodzien, M. Lewenstein, E. Witkowska and J. Chwedenczuk, *One-axis twisting as a method of generating many-body Bell
 #   correlations*, Phys. Rev. Lett. **129**, 250402 (2022), arXiv:2206.10542 — the physics of Section 11, including the
 #   onset time $\chi t_{\rm crit}\approx1.77/N$ and the value $\mathcal E=1/4$ at the cat time.

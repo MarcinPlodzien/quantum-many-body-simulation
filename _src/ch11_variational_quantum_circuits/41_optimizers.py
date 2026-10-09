@@ -674,8 +674,8 @@ for lr in (0.01, 0.05, 0.4, 1.0, 3.0):
 #
 # and steps with $\boldsymbol\theta_{k+1}=\boldsymbol\theta_k-a_k\hat g_k$. Because $\hat g_k$ is random, a **constant**
 # step size cannot converge: the iterate would keep jittering with an amplitude set by $a\,\mathrm{std}(\hat g)$. Both
-# gains must therefore decay, and stochastic-approximation theory (Robbins and Monro for noisy gradients, extended by
-# Spall to the estimator of Eq. (12)) says how.
+# gains must therefore decay, and stochastic-approximation theory (Robbins and Monro for root finding from noisy
+# measurements, here of the gradient; extended by Spall to the estimator of Eq. (12)) says how.
 #
 # ### 7.1 The three conditions
 #
@@ -1808,13 +1808,13 @@ fig.tight_layout(); plt.show()
 # ## References
 #
 # * J. C. Spall, *Multivariate stochastic approximation using a simultaneous perturbation gradient approximation*,
-#   IEEE Trans. Autom. Control **37**, 332 (1992) — SPSA, the gain sequences of Eq. (14), the conditions of Eq. (13) and the
-#   asymptotic-normality conditions quoted in Section 7.2.
+#   IEEE Trans. Autom. Control **37**, 332 (1992) — SPSA, the conditions of Eq. (13), the power-law gains of Eq. (14)
+#   (without the stability constant $A$) and the asymptotic-normality conditions quoted in Section 7.2.
 # * J. C. Spall, *Implementation of the simultaneous perturbation algorithm for stochastic optimization*, IEEE Trans.
 #   Aerosp. Electron. Syst. **34**, 817 (1998) — the practical exponents $\alpha=0.602$, $\gamma=0.101$ as the lowest
 #   values allowed by the theory, the asymptotically optimal pair $(1,1/6)$, and the guideline for $A$ (Section 7.2).
-# * H. Robbins and S. Monro, *A stochastic approximation method*, Ann. Math. Statist. **22**, 400 (1951) — decreasing gains
-#   for noisy gradient iterations (Section 7).
+# * H. Robbins and S. Monro, *A stochastic approximation method*, Ann. Math. Statist. **22**, 400 (1951) — the iteration
+#   with decreasing gains that finds a root from noisy measurements (Section 7).
 # * B. T. Polyak, *Some methods of speeding up the convergence of iteration methods*, USSR Comput. Math. Math. Phys.
 #   **4**(5), 1 (1964) — the heavy-ball method of Eq. (7).
 # * D. P. Kingma and J. Ba, *Adam: a method for stochastic optimization*, 3rd International Conference on Learning
@@ -1823,7 +1823,8 @@ fig.tight_layout(); plt.show()
 #   Computing*, 3rd ed. (Cambridge University Press, 2007), Chapter 10 — minimisation; §10.8 conjugate gradients and
 #   §10.9 quasi-Newton (variable-metric, BFGS) methods (Exercise 4).
 # * J. Stokes, J. Izaac, N. Killoran and G. Carleo, *Quantum natural gradient*, Quantum **4**, 269 (2020) — the
-#   Fubini–Study metric of Eq. (17), the update of Eq. (18) and the block-diagonal approximation.
+#   Fubini–Study metric of Eq. (17), the update of Eq. (18) (with the pseudo-inverse of the metric in place of the ridge)
+#   and the block-diagonal approximation.
 # * J. Gacon, C. Zoufal, G. Carleo and S. Woerner, *Simultaneous perturbation stochastic approximation of the quantum
 #   Fisher information*, Quantum **5**, 567 (2021) — a constant-cost stochastic estimator of the metric, the alternative
 #   to the $O(n^2)$ overlap circuits of Section 9.
@@ -1838,9 +1839,10 @@ fig.tight_layout(); plt.show()
 #   benchmarks, and SPSA as the optimiser on hardware.
 # * M. Cerezo, A. Arrasmith, R. Babbush, S. C. Benjamin, S. Endo, K. Fujii, J. R. McClean, K. Mitarai, X. Yuan,
 #   L. Cincio and P. J. Coles, *Variational quantum algorithms*, Nat. Rev. Phys. **3**, 625 (2021) — the review, with a
-#   survey of optimisers, overparametrisation and trainability.
+#   survey of optimisers and of trainability.
 # * J. R. McClean, S. Boixo, V. N. Smelyanskiy, R. Babbush and H. Neven, *Barren plateaus in quantum neural network
-#   training landscapes*, Nat. Commun. **9**, 4812 (2018) — why no optimiser can rescue an exponentially flat landscape.
+#   training landscapes*, Nat. Commun. **9**, 4812 (2018) — why gradient-based training cannot leave an exponentially flat
+#   landscape with a polynomial number of measurements.
 # * M. Larocca, N. Ju, D. García-Martín, P. J. Coles and M. Cerezo, *Theory of overparametrization in quantum neural
 #   networks*, Nat. Comput. Sci. **3**, 542 (2023) — overparametrisation and the disappearance of spurious local minima
 #   (Section 14).

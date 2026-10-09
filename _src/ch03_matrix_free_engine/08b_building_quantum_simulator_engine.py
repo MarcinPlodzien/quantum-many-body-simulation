@@ -833,7 +833,7 @@ for name, st in [("product |0+r1-l+0>", product_state("0+r1-l+0")), ("GHZ_8", gh
 #
 # ### 7.3 Kraus channels on density tensors
 #
-# A quantum channel in Kraus form (notebook 07) maps
+# A quantum channel in Kraus form (notebook 07; Nielsen & Chuang, Ch. 8) maps
 #
 # $$ \hat\rho\;\to\;\sum_m\hat K_m\,\hat\rho\,\hat K_m^\dagger . \tag{31} $$
 #
@@ -1011,7 +1011,7 @@ print("Bloch vectors (rows: qubits 0..4; columns <X>, <Y>, <Z>):\n", np.round(np
 # ### 9.2 Schmidt decomposition and entanglement entropies
 #
 # Group the axes of $A$ into a row index and those of $B$ into a column index, $M_{a,b}=\psi[a,b]$, and compute the singular value decomposition
-# $M=U\,\mathrm{diag}(\lambda_1,\lambda_2,\dots)\,V^\dagger$. Writing it out in components gives the Schmidt decomposition, and inserting it into Eq. (32) gives the reduced matrix:
+# $M=U\,\mathrm{diag}(\lambda_1,\lambda_2,\dots)\,V^\dagger$ (Press *et al.* 2007, Sec. 2.6). Writing it out in components gives the Schmidt decomposition (Nielsen & Chuang, Sec. 2.5), and inserting it into Eq. (32) gives the reduced matrix:
 #
 # $$ \vert\psi\rangle=\sum_k\lambda_k\,\vert u_k\rangle_A\vert v_k^*\rangle_B, \qquad \hat\rho_A=MM^\dagger=U\,\mathrm{diag}(\lambda_k^2)\,U^\dagger . \tag{39} $$
 #
@@ -1022,7 +1022,7 @@ print("Bloch vectors (rows: qubits 0..4; columns <X>, <Y>, <Z>):\n", np.round(np
 #
 # ### 9.3 Fidelity and trace distance
 #
-# For pure states the fidelity is $F=\vert\langle\psi\vert\phi\rangle\vert^2$, and for mixed states the Uhlmann fidelity is
+# For pure states the fidelity is $F=\vert\langle\psi\vert\phi\rangle\vert^2$, and for mixed states the Uhlmann fidelity (Uhlmann 1976; Jozsa 1994) is
 #
 # $$ F(\hat\rho,\hat\sigma)=\Big(\mathrm{Tr}\sqrt{\sqrt{\hat\rho}\,\hat\sigma\sqrt{\hat\rho}}\Big)^2, \tag{41} $$
 #
@@ -1044,11 +1044,11 @@ print("Bloch vectors (rows: qubits 0..4; columns <X>, <Y>, <Z>):\n", np.round(np
 # $$ \rho^{T_A}[a,b;\,a',b']=\rho[a',b;\,a,b']. \tag{44} $$
 #
 # In the tensor form this is a permutation of axes (ket axis $q$ with bra axis $N+q$ for $q\in A$). The partial transpose has unit trace but may have
-# negative eigenvalues $\mu_i$, which certify entanglement (the Peres criterion). With $\sum_i\mu_i=1$ the negativity is
+# negative eigenvalues $\mu_i$, which certify entanglement (the Peres criterion, Peres 1996). With $\sum_i\mu_i=1$ the negativity (Vidal and Werner 2002) is
 #
 # $$ \mathcal{N}=\frac{\Vert\hat\rho^{T_A}\Vert_1-1}{2}=\frac{\sum_i\vert\mu_i\vert-\sum_i\mu_i}{2}=\sum_{\mu_i<0}\vert\mu_i\vert, \qquad E_{\mathcal N}=\log_2\Vert\hat\rho^{T_A}\Vert_1=\log_2(2\mathcal N+1). \tag{45} $$
 #
-# As an analytic test case we take the Werner state $\hat\rho_p=p\,\vert\Psi^-\rangle\langle\Psi^-\vert+(1-p)\,\mathbb{1}/4$. By Eq. (10) the singlet projector is
+# As an analytic test case we take the Werner state (Werner 1989) $\hat\rho_p=p\,\vert\Psi^-\rangle\langle\Psi^-\vert+(1-p)\,\mathbb{1}/4$. By Eq. (10) the singlet projector is
 # $\vert\Psi^-\rangle\langle\Psi^-\vert=\tfrac12(\mathbb{1}-\mathrm{SWAP})=\tfrac14(\mathbb{1}-\hat X\hat X-\hat Y\hat Y-\hat Z\hat Z)$. Transposing the first factor leaves $\hat X$ and $\hat Z$ unchanged
 # and flips the sign of $\hat Y$ ($\hat Y^T=-\hat Y$), so
 #
@@ -1283,7 +1283,7 @@ check("sample_bitstrings in bases 'XYZ' of |+>|r>|0>: always 000",
 #
 # $$ \sum_m\hat K_m\hat\rho\hat K_m^\dagger=\hat\rho+\gamma\,dt\Big(\hat L\hat\rho\hat L^\dagger-\tfrac12\big\{\hat L^\dagger\hat L,\hat\rho\big\}\Big)+O(dt^2), \tag{56} $$
 #
-# the Lindblad dissipator of Section 14 to first order. Finally, a channel can act on a pure state stochastically (notebook 17) by choosing the branch $m$
+# the Lindblad dissipator of Section 14 to first order. Finally, a channel can act on a pure state stochastically (notebook 17; the quantum-jump method of Dalibard, Castin and Mølmer 1992) by choosing the branch $m$
 # with probability $p_m=\Vert\hat K_m\vert\psi\rangle\Vert^2=\mathrm{Tr}(\hat K_m\hat\rho_A\hat K_m^\dagger)$ and continuing with $\hat K_m\vert\psi\rangle/\sqrt{p_m}$. The average over the random branch is
 #
 # $$ \mathbb{E}\big[\vert\psi'\rangle\langle\psi'\vert\big]=\sum_m p_m\,\frac{\hat K_m\vert\psi\rangle\langle\psi\vert\hat K_m^\dagger}{p_m}=\sum_m\hat K_m\vert\psi\rangle\langle\psi\vert\hat K_m^\dagger , \tag{57} $$
@@ -1467,7 +1467,7 @@ print(f"      {len(terms)} local terms represent a {2 ** N} x {2 ** N} Hamiltoni
 #
 # $$ e^{-i\hat A\,dt}\,e^{-i\hat B\,dt}=\exp\Big(-i(\hat A+\hat B)\,dt-\tfrac12[\hat A,\hat B]\,dt^2+O(dt^3)\Big), \tag{62} $$
 #
-# so the product of the factors makes an error $O(dt^2)$ per step, and $O(dt)$ after the $t/dt$ steps needed to reach a fixed time $t$. The engine offers three formulas
+# so the product of the factors makes an error $O(dt^2)$ per step, and $O(dt)$ after the $t/dt$ steps needed to reach a fixed time $t$ (the product formula converges as $dt\to0$, Trotter 1959). The engine offers three formulas
 # for one step $\hat S(dt)$:
 #
 # $$ \begin{aligned} \hat S_1(dt) &= \prod_k e^{-i\hat h_k dt}, \\ \hat S_2(dt) &= \prod_{k=1}^{K}e^{-i\hat h_k dt/2}\prod_{k=K}^{1}e^{-i\hat h_k dt/2}, \\ \hat S_4(dt) &= \hat S_2(s\,dt)^2\,\hat S_2\big((1-4s)\,dt\big)\,\hat S_2(s\,dt)^2, \qquad s=\frac{1}{4-4^{1/3}}. \end{aligned} \tag{63} $$
@@ -1476,6 +1476,8 @@ print(f"      {len(terms)} local terms represent a {2 ** N} x {2 ** N} Hamiltoni
 # $\hat S_2(dt)=\exp\big(\hat C_1dt+\hat C_2dt^2+\hat C_3dt^3+\dots\big)$, this identity requires the exponent to be odd in $dt$, so $\hat C_2=0$ and
 #
 # $$ \hat S_2(dt)=e^{-i\hat H\,dt+O(dt^3)}, \qquad \text{global errors: } O(dt)\ (\hat S_1),\quad O(dt^2)\ (\hat S_2),\quad O(dt^4)\ (\hat S_4). \tag{64} $$
+#
+# The fourth-order composition $\hat S_4$ is Suzuki's fractal decomposition (Suzuki 1990).
 #
 # `tebd_gates` returns the list of small gates of one step, `apply_gates` applies a list with `apply_gate`, and `tebd_evolve` repeats the step with
 # `lax.scan`, which compiles the step once and loops inside the compiled program, optionally recording an observable after each step. Every factor is unitary,
@@ -1548,7 +1550,7 @@ plt.show()
 #
 # ### 13.3 Lanczos: the Krylov space and the ground state
 #
-# The Lanczos iteration builds an orthonormal basis $\vert v_0\rangle,\dots,\vert v_{m-1}\rangle$ of the Krylov space $\mathrm{span}\{\vert v\rangle,\hat H\vert v\rangle,\dots,\hat H^{m-1}\vert v\rangle\}$ by the three-term recurrence
+# The Lanczos iteration (Lanczos 1950) builds an orthonormal basis $\vert v_0\rangle,\dots,\vert v_{m-1}\rangle$ of the Krylov space $\mathrm{span}\{\vert v\rangle,\hat H\vert v\rangle,\dots,\hat H^{m-1}\vert v\rangle\}$ by the three-term recurrence
 #
 # $$ \beta_j\vert v_{j+1}\rangle=\hat H\vert v_j\rangle-\alpha_j\vert v_j\rangle-\beta_{j-1}\vert v_{j-1}\rangle, \qquad \alpha_j=\langle v_j\vert\hat H\vert v_j\rangle,\quad \beta_j=\big\Vert\hat H\vert v_j\rangle-\alpha_j\vert v_j\rangle-\beta_{j-1}\vert v_{j-1}\rangle\big\Vert . \tag{65} $$
 #
@@ -1586,7 +1588,7 @@ check("spectral_bounds vs eigh (E_min, E_max)", max(abs(Emin - w6[0]), abs(Emax 
 # ### 13.4 Chebyshev propagation
 #
 # Rescale the Hamiltonian so that its spectrum lies in $[-1,1]$: $\hat H=a\hat x+b$ with $a=(E_{\max}-E_{\min})/2$ and $b=(E_{\max}+E_{\min})/2$ (the engine enlarges $a$ by 2 percent for
-# safety). The Jacobi–Anger expansion in Chebyshev polynomials $T_k(x)=\cos(k\arccos x)$ and Bessel functions $J_k$ gives
+# safety). The Jacobi–Anger expansion in Chebyshev polynomials (the propagator of Tal-Ezer and Kosloff 1984) $T_k(x)=\cos(k\arccos x)$ and Bessel functions $J_k$ gives
 #
 # $$ e^{-i\hat Ht}=e^{-ibt}\,e^{-iat\,\hat x}=e^{-ibt}\sum_{k=0}^{\infty}(2-\delta_{k0})\,(-i)^k\,J_k(at)\;T_k(\hat x), \tag{66} $$
 #
@@ -1599,7 +1601,7 @@ check("spectral_bounds vs eigh (E_min, E_max)", max(abs(Emin - w6[0]), abs(Emax 
 #
 # ### 13.5 Krylov propagation
 #
-# Project the evolution on the $m$-dimensional Krylov space of Eq. (65), started from $\vert v_0\rangle=\vert\psi\rangle/\Vert\psi\Vert$:
+# Project the evolution on the $m$-dimensional Krylov space of Eq. (65) (Park and Light 1986; error analysis: Hochbruck and Lubich 1997), started from $\vert v_0\rangle=\vert\psi\rangle/\Vert\psi\Vert$:
 #
 # $$ \vert\psi(t)\rangle\approx\Vert\psi\Vert\;V\,e^{-iTt}\,e_1=\Vert\psi\Vert\sum_{j}c_j\vert v_j\rangle, \qquad c=S\,e^{-iwt}\,S^T e_1, \tag{68} $$
 #
@@ -1634,7 +1636,7 @@ check("krylov_evolve (m = 32) vs expm (t = 2)", maxdiff(krylov_evolve(psi0, term
 #
 # ### 14.1 The right-hand side on a density tensor
 #
-# The Gorini–Kossakowski–Sudarshan–Lindblad (GKSL) master equation for a system coupled to a memoryless environment is
+# The Gorini–Kossakowski–Sudarshan–Lindblad (GKSL) master equation (Gorini, Kossakowski and Sudarshan 1976; Lindblad 1976) for a system coupled to a memoryless environment is
 #
 # $$ \frac{d\hat\rho}{dt}=\mathcal L(\hat\rho)=-i\big[\hat H,\hat\rho\big]+\sum_j\gamma_j\Big(\hat L_j\hat\rho\hat L_j^\dagger-\tfrac12\hat L_j^\dagger\hat L_j\hat\rho-\tfrac12\hat\rho\hat L_j^\dagger\hat L_j\Big). \tag{69} $$
 #
@@ -1658,7 +1660,7 @@ check("krylov_evolve (m = 32) vs expm (t = 2)", maxdiff(krylov_evolve(psi0, term
 #
 # ### 14.2 Integrators
 #
-# `lindblad_rk4_step` is the classical fourth-order Runge–Kutta step for $\dot\rho=\mathcal L(\rho)$:
+# `lindblad_rk4_step` is the classical fourth-order Runge–Kutta step (Press *et al.* 2007, Sec. 17.1) for $\dot\rho=\mathcal L(\rho)$:
 #
 # $$ \begin{aligned} k_1&=\mathcal L(\rho),\quad k_2=\mathcal L\big(\rho+\tfrac{dt}{2}k_1\big),\quad k_3=\mathcal L\big(\rho+\tfrac{dt}{2}k_2\big),\quad k_4=\mathcal L\big(\rho+dt\,k_3\big), \\ \rho(t+dt)&=\rho+\tfrac{dt}{6}\big(k_1+2k_2+2k_3+k_4\big)+O(dt^5). \end{aligned} \tag{73} $$
 #
@@ -1836,13 +1838,13 @@ check("MCWF trajectories vs density tensor, max |z|", np.max(np.abs(z_traj.mean(
 #
 # $$ C_{ab}=\tfrac12\big\langle\hat J_a\hat J_b+\hat J_b\hat J_a\big\rangle-\langle\hat J_a\rangle\langle\hat J_b\rangle, \qquad \tfrac12\big\langle\hat J_a\hat J_b+\hat J_b\hat J_a\big\rangle=\mathrm{Re}\,\langle\phi_a\vert\phi_b\rangle,\quad \vert\phi_a\rangle=\hat J_a\vert\psi\rangle . \tag{79} $$
 #
-# The second identity holds because $\langle\phi_a\vert\phi_b\rangle=\langle\psi\vert\hat J_a\hat J_b\vert\psi\rangle$ and $\langle\psi\vert\hat J_b\hat J_a\vert\psi\rangle$ is its complex conjugate. The Wineland squeezing parameter compares the
+# The second identity holds because $\langle\phi_a\vert\phi_b\rangle=\langle\psi\vert\hat J_a\hat J_b\vert\psi\rangle$ and $\langle\psi\vert\hat J_b\hat J_a\vert\psi\rangle$ is its complex conjugate. The Wineland squeezing parameter (Wineland *et al.* 1994) compares the
 # smallest variance perpendicular to the mean spin with that of a coherent spin state,
 #
 # $$ \xi^2=\frac{N\,\min_{\vec n\perp\langle\vec J\rangle}\mathrm{Var}(\vec n\cdot\hat{\vec J})}{\vert\langle\vec J\rangle\vert^2}, \tag{80} $$
 #
 # where the minimum runs over unit vectors in the plane perpendicular to the mean spin; the engine projects $C$ onto that plane and takes the smaller eigenvalue
-# of the $2\times2$ result. One-axis twisting $e^{-i\chi t\hat J_z^2}$ is diagonal in the computational basis: $\hat J_z\vert s\rangle=m(s)\vert s\rangle$ with $m(s)=\sum_q(\tfrac12-s_q)$, so
+# of the $2\times2$ result. One-axis twisting $e^{-i\chi t\hat J_z^2}$ (Kitagawa and Ueda 1993) is diagonal in the computational basis: $\hat J_z\vert s\rangle=m(s)\vert s\rangle$ with $m(s)=\sum_q(\tfrac12-s_q)$, so
 #
 # $$ \psi[s]\;\to\;e^{-i\chi t\,m(s)^2}\,\psi[s] , \tag{81} $$
 #
@@ -1923,7 +1925,7 @@ check("oat_evolve vs expm(-i chi t J_z^2)", maxdiff(oat_evolve(css, 0.2), sla.ex
 # ### 16.1 Haar-random unitaries and the QR phase fix
 #
 # Let $G$ be a $d\times d$ matrix of independent standard complex Gaussian entries (a Ginibre matrix). Its distribution is invariant under $G\to\hat VG$ for every unitary $\hat V$.
-# The QR decomposition $G=QR$ ($Q$ unitary, $R$ upper triangular) is unique only up to a diagonal unitary $\Lambda$, since $G=(Q\Lambda)(\Lambda^\dagger R)$ is another valid factorisation. The
+# The QR decomposition (Press *et al.* 2007, Sec. 2.10) $G=QR$ ($Q$ unitary, $R$ upper triangular) is unique only up to a diagonal unitary $\Lambda$, since $G=(Q\Lambda)(\Lambda^\dagger R)$ is another valid factorisation. The
 # library convention fixes this freedom in a way that depends on $G$, so the distribution of $Q$ is not invariant. Mezzadri's recipe removes the dependence by
 # making the diagonal of $R$ real and positive:
 #
@@ -2126,7 +2128,7 @@ check("M_2(cluster state, N=5) = 0", abs(stabilizer_renyi_entropy(cluster_state(
 #
 # ### 17.1 Hardware-efficient ansatz
 #
-# The hardware-efficient ansatz with $L$ entangling layers is
+# The hardware-efficient ansatz (in the spirit of Kandala *et al.* 2017: layers of single-qubit rotations alternating with fixed entangling gates) with $L$ entangling layers is
 #
 # $$ \vert\psi(\boldsymbol\theta)\rangle=\hat R(\boldsymbol\theta_L)\prod_{l=0}^{L-1}\Big[\hat E\,\hat R(\boldsymbol\theta_l)\Big]\vert 0\dots0\rangle, \qquad \hat R(\boldsymbol\theta_l)=\prod_q\hat R_z(\theta_{l,q,1})\,\hat R_y(\theta_{l,q,0}), \tag{90} $$
 #
@@ -2134,7 +2136,7 @@ check("M_2(cluster state, N=5) = 0", abs(stabilizer_renyi_entropy(cluster_state(
 #
 # ### 17.2 Parameter-shift rule
 #
-# Let one gate depend on $\theta$ as $\hat R(\theta)=e^{-i\theta\hat P/2}=\cos\tfrac\theta2\,\mathbb{1}-i\sin\tfrac\theta2\,\hat P$ (Eq. 12), with the rest of the circuit fixed. The cost $f(\theta)=\langle\hat O\rangle$ is a
+# The parameter-shift rule (Mitarai *et al.* 2018; Schuld *et al.* 2019) follows from the form of the gate. Let one gate depend on $\theta$ as $\hat R(\theta)=e^{-i\theta\hat P/2}=\cos\tfrac\theta2\,\mathbb{1}-i\sin\tfrac\theta2\,\hat P$ (Eq. 12), with the rest of the circuit fixed. The cost $f(\theta)=\langle\hat O\rangle$ is a
 # quadratic form in $\cos\tfrac\theta2$ and $\sin\tfrac\theta2$, so with constants $A$, $B$, $C$ that depend on the rest of the circuit
 #
 # $$ \begin{aligned} f(\theta) &= A\cos^2\tfrac\theta2+B\sin^2\tfrac\theta2+C\sin\tfrac\theta2\cos\tfrac\theta2=\frac{A+B}{2}+\frac{A-B}{2}\cos\theta+\frac C2\sin\theta, \\ f\big(\theta+\tfrac\pi2\big)-f\big(\theta-\tfrac\pi2\big) &= \frac{A-B}{2}\big(-2\sin\theta\big)+\frac C2\big(2\cos\theta\big)=2f'(\theta). \end{aligned} \tag{91} $$
@@ -2240,7 +2242,7 @@ check("adam_update: 30 steps vs NumPy Adam, Eq. (93)", maxdiff(th_e, adam_numpy(
 #
 # $$ \psi[s_0,s_1,\dots,s_{N-1}]=A_0^{s_0}A_1^{s_1}\cdots A_{N-1}^{s_{N-1}}, \qquad A_j^{s}\ \text{of size}\ \chi_j\times\chi_{j+1},\quad \chi_0=\chi_N=1 . \tag{94} $$
 #
-# Notebook 18 (Chapter 7) derives the construction, DMRG and TEBD in full; this section shows the ingredients and checks each against the state vector. The
+# Notebook 18 (Chapter 7) derives the construction, DMRG (White 1992) and TEBD (Vidal 2004) in full (review: Schollwöck 2011); this section shows the ingredients and checks each against the state vector. The
 # construction by successive singular value decompositions produces tensors with one of the two canonical properties
 #
 # $$ \sum_s A_j^{s\dagger}A_j^{s}=\mathbb{1}\quad\text{(left-canonical)}, \qquad \sum_s B_j^{s}B_j^{s\dagger}=\mathbb{1}\quad\text{(right-canonical)} . \tag{95} $$

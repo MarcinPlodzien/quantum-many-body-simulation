@@ -736,8 +736,9 @@ for l in range(1, N):
 #
 # ### References
 #
-# * N. W. Ashcroft and N. D. Mermin, *Solid State Physics*, Holt, Rinehart and Winston (1976) — Chapter 10, the
-#   tight-binding method: Bloch's theorem for a lattice, cosine bands and their group velocity.
+# * N. W. Ashcroft and N. D. Mermin, *Solid State Physics*, Holt, Rinehart and Winston (1976) — Chapter 8 (Bloch's
+#   theorem), Chapter 10 (the tight-binding method and its cosine bands) and Chapter 12 (the semiclassical model, in
+#   which a wave packet moves with the group velocity of its band).
 # * F. W. J. Olver et al. (eds.), *NIST Digital Library of Mathematical Functions*, https://dlmf.nist.gov/ —
 #   §10.12 (the generating function and Jacobi-Anger expansions), §10.19(iii) (Bessel functions in the transition region,
 #   in terms of Airy functions), Eq. 10.21.40 (the first maximum $j'_{\nu,1}$ for large order), and Chapter 9 (Airy

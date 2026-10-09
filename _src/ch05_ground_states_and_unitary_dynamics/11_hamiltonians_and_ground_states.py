@@ -519,7 +519,8 @@ for k in (60, 500, 1000):
 # diagonalise the m x m tridiagonal T  ->  Ritz values
 # ```
 #
-# **Cost.** $m$ products $H|v\rangle$ — the same as $m$ power iterations — plus a handful of vector operations per step and the diagonalisation of an $m\times m$ matrix with $m\sim100$ (microseconds).
+# **Cost.** $m$ products $H|v\rangle$ — the same as $m$ power iterations — plus a handful of vector operations per step and the diagonalisation of an $m\times m$ matrix with $m\sim100$ (microseconds; a symmetric
+# tridiagonal eigenproblem, Numerical Recipes, 3rd ed., §11.4).
 # If only eigen*values* are needed, three vectors of length $2^N$ suffice. If $\beta_j=0$ the Krylov space is *invariant* under $H$ and the Ritz values are exact eigenvalues ("lucky breakdown").
 #
 # ### 5.4 A first implementation
@@ -1038,7 +1039,8 @@ assert np.max(np.abs(np.asarray(E_batch[::7]) - E_dense)) < 1e4 * TOL
 #
 # Let $Q$ be a symmetry, $[H,Q]=0$, and let the start vector be an eigenvector of $Q$: $Q|v\rangle=q|v\rangle$. Then
 # $QH^k|v\rangle=H^kQ|v\rangle=q\,H^k|v\rangle$: **every Krylov vector stays in the same symmetry sector**. Lanczos started in a sector therefore converges to the lowest state *of that sector* and
-# never sees the others. This is useful in three ways:
+# never sees the others. (Symmetry-adapted bases for spin models, combined with Lanczos, are described in Sandvik 2010 and
+# Weiße & Fehske 2008.) This is useful in three ways:
 #
 # 1. **Excited states from ground-state runs.** The lowest states of different sectors are often the lowest states overall. For the TFIM the ground state has parity $P=+1$ and the first excited state has $P=-1$, so
 #    $\Delta=E_0^{(P=-1)}-E_0^{(P=+1)}$: two *ground-state* calculations, each with the fast convergence of an extremal eigenvalue.
@@ -1144,7 +1146,7 @@ for N in (8, 10, 12, 14):
 # ### 11.1 What to expect
 #
 # For $h\ll J$ the ground state is ferromagnetic; for $h\gg J$ all spins point along $x$. In the thermodynamic limit the two regimes are separated by a **quantum critical point at $h=J$** (Pfeuty 1970), where the gap closes as
-# $\Delta=2|h-J|$ and correlations decay as power laws. On a finite chain nothing is singular, but the transition leaves clear fingerprints, which we now compute for $N=8,12,16$:
+# $\Delta=2|h-J|$ and correlations decay as power laws (the general theory of quantum phase transitions: Sachdev 2011). On a finite chain nothing is singular, but the transition leaves clear fingerprints, which we now compute for $N=8,12,16$:
 #
 # * the **gap** $\Delta(h)$ between the $P=\pm1$ sector ground states;
 # * the **transverse magnetisation** $m_x=\frac1N\sum_i\langle X_i\rangle$;
@@ -1776,7 +1778,7 @@ if RUN_LARGE:
 # * Y. Saad, *Numerical Methods for Large Eigenvalue Problems*, revised ed., Classics in Applied Mathematics **66**, SIAM (2011).
 # * R. B. Lehoucq, D. C. Sorensen and C. Yang, *ARPACK Users' Guide: Solution of Large-Scale Eigenvalue Problems with Implicitly Restarted Arnoldi Methods*, SIAM (1998) — the restarting strategy behind `scipy.sparse.linalg.eigsh`.
 # * W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes: The Art of Scientific Computing*, 3rd ed., Cambridge University Press (2007), chapter 11 *Eigensystems* — §11.3 reduction to tridiagonal form,
-#   §11.4 eigenvalues and eigenvectors of a tridiagonal matrix (the algorithm inside `eigvalsh` for our $T_m$). The same material in *Numerical Recipes in Fortran 90*, 2nd ed., Cambridge University Press (1996).
+#   §11.4 eigenvalues and eigenvectors of a tridiagonal matrix (the eigenproblem of our $T_m$).
 #
 # **Exact diagonalisation in many-body physics**
 # * A. W. Sandvik, *Computational studies of quantum spin systems*, AIP Conf. Proc. **1297**, 135–338 (2010) — a student-friendly introduction to Lanczos and symmetries for spin chains.
@@ -1791,4 +1793,5 @@ if RUN_LARGE:
 # * S. Sachdev, *Quantum Phase Transitions*, 2nd ed., Cambridge University Press (2011).
 # * P. Calabrese and J. Cardy, *Entanglement entropy and quantum field theory*, J. Stat. Mech. **2004**, P06002 (2004).
 # * H. W. J. Blöte and Y. Deng, *Cluster Monte Carlo simulation of the transverse Ising model*, Phys. Rev. E **66**, 066110 (2002) — $h_c/J=3.04438$ for the square lattice.
+# * D. V. Dmitriev, V. Ya. Krivnov and A. A. Ovchinnikov, *Gap generation in the XXZ model in a transverse magnetic field*, Phys. Rev. B **65**, 172409 (2002) — the field-induced gap and Néel order along $y$.
 

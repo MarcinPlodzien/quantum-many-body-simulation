@@ -19,7 +19,8 @@
 # 1993, it is realised today in Bose–Einstein condensates, in optical cavities and in ion traps, and it produces
 # **spin-squeezed states**: states whose noise in one direction is smaller than the projection noise, at the price of
 # more noise in the perpendicular direction. Feed such a state into a Ramsey sequence and the phase uncertainty drops
-# below the SQL by a factor $\xi_R$, the Wineland squeezing parameter.
+# below the SQL by a factor $\xi_R$, the Wineland squeezing parameter. Ma *et al.* (2011) and Pezzè *et al.* (2018)
+# review the subject.
 #
 # This notebook develops the subject from the definitions and checks every claim against numbers produced by the
 # simulator.
@@ -280,8 +281,10 @@ assert abs(float(jnp.linalg.norm(mean_css)) - N_DEMO / 2) < 1e4 * TOL
 #   with scattering lengths $a_{aa},a_{bb},a_{ab}$. In the two-mode (single spatial orbital) approximation the interaction
 #   energy depends only on the populations $N_a,N_b$, and because $N_a-N_b=2J_z$ and $N_a+N_b=N$ is fixed, the
 #   population-dependent part is quadratic in $J_z$. The effective coupling
-#   $\chi\propto a_{aa}+a_{bb}-2a_{ab}$ can be tuned — even through zero — with a Feshbach resonance. This is the
-#   mechanism behind the squeezing measured by Gross *et al.* and by Riedel *et al.* in 2010.
+#   $\chi\propto a_{aa}+a_{bb}-2a_{ab}$ can be tuned — even through zero — with a Feshbach resonance. Collisional
+#   twisting is the mechanism behind the squeezing measured by Gross *et al.* and by Riedel *et al.* in 2010; Gross *et al.*
+#   tuned $\chi$ with a Feshbach resonance, Riedel *et al.* with a state-dependent microwave potential that controls the
+#   overlap of the two components.
 # * **Atoms in an optical cavity.** A cavity mode detuned from the atomic transition mediates an infinite-range
 #   interaction: each atom shifts the cavity resonance according to its internal state, and the cavity field acts back on
 #   all atoms. Eliminating the field adiabatically leaves $\propto J_z^2$. Leroux *et al.* (2010) used this
@@ -566,7 +569,7 @@ for mu in (0.0, 0.05, 0.10, 0.2005, 0.40, 0.80):
 # $$\Delta\phi=\frac{\sqrt{V_{\min}}}{\left\vert\langle\mathbf J\rangle\right\vert}.$$
 #
 # Divide by the SQL value $1/\sqrt N$ and square. The result is the definition of the **Wineland (metrological)
-# squeezing parameter**:
+# squeezing parameter** (Wineland *et al.* 1992, 1994):
 #
 # $$\boxed{\;\xi_R^2\;=\;\frac{\left(\Delta\phi\right)^2}{\left(\Delta\phi_{\text{SQL}}\right)^2}
 #   \;=\;\frac{N\,V_{\min}}{\left\vert\langle\mathbf J\rangle\right\vert^2}\;} \tag{12}$$
@@ -897,13 +900,15 @@ assert err_ana < 1e4 * TOL
 #   \qquad\Longrightarrow\qquad u_{\rm opt}^{3}=\frac{3}{N},$$
 #
 # and at that point $1/(Nu_{\rm opt})=u_{\rm opt}^2/3$, so the minimum value is $u_{\rm opt}^2/6+u_{\rm opt}^2/3
-# =u_{\rm opt}^2/2$. Undoing $u=N\mu^2$ gives the two standard asymptotic results of Kitagawa and Ueda,
+# =u_{\rm opt}^2/2$. Undoing $u=N\mu^2$ gives the leading-order asymptotics
 #
 # $$\mu_{\text{opt}}=\sqrt{\frac{u_{\rm opt}}{N}}\simeq 3^{1/6}N^{-2/3},\qquad
 #   \xi^2_{S,\min}\simeq\frac{u_{\rm opt}^2}{2}=\frac12\left(\frac{3}{N}\right)^{2/3}, \tag{24}$$
 #
-# i.e. **both** the optimal twisting angle and the best squeezing scale as $N^{-2/3}$. This exponent — not $1/N$ — is the
-# signature of one-axis twisting. We now measure it.
+# i.e. **both** the optimal twisting angle and the best squeezing scale as $N^{-2/3}$, the laws found by Kitagawa and
+# Ueda. (Their abstract quotes the minimal variance as $\tfrac12(S/3)^{1/3}$ with $S=N/2$, i.e.
+# $\xi^2_{S,\min}\simeq(4/3)^{1/3}N^{-2/3}$, a prefactor $6\%$ above Eq. (24); the exact moments of Section 9 approach
+# Eq. (24).) This exponent — not $1/N$ — is the signature of one-axis twisting. We now measure it.
 #
 # ### 10.2 The measurement
 #
@@ -1740,7 +1745,8 @@ make_husimi_gif(psi_q0, MU_FRAMES, jnp.asarray(THETA_M), jnp.asarray(PHI_M), phi
 # ## 13. The limit of squeezing as a measure of metrological gain
 #
 # The Wineland parameter was derived from the error-propagation formula, Eq. (11), which uses only the first two moments
-# of one measured observable. The quantum Fisher information uses the whole state. The general relation is
+# of one measured observable. The quantum Fisher information uses the whole state. The general relation
+# (Pezzè and Smerzi 2009) is
 #
 # $$F_Q\;\ge\;\frac{N}{\xi_R^2}, \tag{26}$$
 #
@@ -1992,6 +1998,8 @@ fig.tight_layout(); plt.show()
 # * K. Mølmer and A. Sørensen, *Multiparticle entanglement of hot trapped ions*, Physical Review Letters **82**, 1835 (1999).
 # * L. Pezzè and A. Smerzi, *Entanglement, nonlinear dynamics, and the Heisenberg limit*, Physical Review Letters **102**,
 #   100401 (2009).
+# * S. L. Braunstein and C. M. Caves, *Statistical distance and the geometry of quantum states*, Physical Review Letters
+#   **72**, 3439 (1994).
 # * J. Ma, X. Wang, C. P. Sun and F. Nori, *Quantum spin squeezing*, Physics Reports **509**, 89 (2011).
 # * L. Pezzè, A. Smerzi, M. K. Oberthaler, R. Schmied and P. Treutlein, *Quantum metrology with nonclassical states of
 #   atomic ensembles*, Reviews of Modern Physics **90**, 035005 (2018).
@@ -2005,4 +2013,4 @@ fig.tight_layout(); plt.show()
 #   **64**, 052106 (2001).
 # * E. Davis, G. Bentsen and M. Schleier-Smith, *Approaching the Heisenberg limit without single-particle detection*,
 #   Physical Review Letters **116**, 053601 (2016).
-# * T. Macrì, A. Smerzi and L. Pezzè, *Loschmidt echo for quantum metrology*, Physical Review A **94**, 010102 (2016).
+# * T. Macrì, A. Smerzi and L. Pezzè, *Loschmidt echo for quantum metrology*, Physical Review A **94**, 010102(R) (2016).

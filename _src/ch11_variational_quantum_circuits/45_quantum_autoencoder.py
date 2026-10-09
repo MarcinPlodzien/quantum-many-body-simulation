@@ -1813,10 +1813,11 @@ fig.tight_layout(); plt.show()
 # ## References
 #
 # * J. Romero, J. P. Olson and A. Aspuru-Guzik, *Quantum autoencoders for efficient compression of quantum data*,
-#   Quantum Sci. Technol. **2**, 045001 (2017) — the construction of Section 3, the trash-fidelity cost of Eq. (4) and
-#   the inequality $F_{\rm rec}\le F_{\rm trash}$.
+#   Quantum Sci. Technol. **2**, 045001 (2017) — the construction of Section 3, the trash-fidelity cost of Eq. (4), and
+#   the remark, without proof, that the ensemble-averaged reconstruction fidelity never exceeds the averaged trash fidelity.
 # * K. H. Wan, O. Dahlsten, H. Kristjánsson, R. Gardner and M. S. Kim, *Quantum generalisation of feedforward neural
-#   networks*, npj Quantum Inf. **3**, 36 (2017) — an independent variational autoencoder proposal.
+#   networks*, npj Quantum Inf. **3**, 36 (2017) — an independent proposal: a quantum neural network trained by gradient
+#   descent, demonstrated as a quantum autoencoder.
 # * A. Pepper, N. Tischler and G. J. Pryde, *Experimental realization of a quantum autoencoder: the compression of
 #   qutrits via machine learning*, Phys. Rev. Lett. **122**, 060501 (2019) — a photonic implementation.
 # * D. Bondarenko and P. Feldmann, *Quantum autoencoders to denoise quantum data*, Phys. Rev. Lett. **124**, 130502

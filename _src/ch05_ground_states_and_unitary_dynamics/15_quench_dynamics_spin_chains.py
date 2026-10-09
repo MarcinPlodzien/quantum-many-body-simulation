@@ -8,7 +8,7 @@
 # **The question.** Take a chain of interacting spins, prepare it in a simple state that you fully understand
 # (all spins up, say), and at time $t=0$ *suddenly* let it evolve under a Hamiltonian $H$ of which this state is **not** an
 # eigenstate. What happens next? This protocol is called a **quantum quench**, and it is the cleanest way
-# to study the dynamics of an isolated quantum many-body system:
+# to study the dynamics of an isolated quantum many-body system (reviews: Polkovnikov *et al.* 2011; Essler & Fagotti 2016):
 #
 # * How fast can information and correlations travel through the chain? (There is no relativity in the Schrödinger
 #   equation of a spin chain — and yet we will see a *light cone*.)
@@ -23,10 +23,10 @@
 #   momentum distribution through thousands of collisions (Kinoshita *et al.* 2006), the direct observation of light-cone spreading of
 #   correlations (Cheneau *et al.* 2012), and the measurement of the entanglement entropy of a many-body state by interfering two copies
 #   of it (Islam *et al.* 2015);
-# * **trapped ions** — chains of 10–50 ions realise Ising models with tunable range; a quench is a sudden switch-on of laser-mediated
+# * **trapped ions** — chains of ions (7 to 15 in the experiments cited here) realise Ising and XY models with tunable range; a quench is a sudden switch-on of laser-mediated
 #   couplings (Richerme *et al.* 2014, Jurcevic *et al.* 2014, 2017);
-# * **Rydberg-atom arrays** — tens to hundreds of atoms in optical tweezers, initialised in a product state and released into
-#   Ising-type dynamics (Bernien *et al.* 2017);
+# * **Rydberg-atom arrays** — tens of atoms in optical tweezers (51 in Bernien *et al.* 2017), initialised in a product state and released into
+#   Ising-type dynamics;
 # * **superconducting qubits** — the same dynamics run as a Trotter circuit, gate by gate.
 #
 # In all these platforms the experimental protocol is *literally* the numerical protocol of this notebook:
@@ -871,12 +871,14 @@ print("chain-averaged <Z> at t = 0, 1, 2, 3:", {float(h): np.round(mz2[k][[0, 25
 # This *inhomogeneous quench* is the standard probe of transport (Gobert *et al.* 2005; Ljubotina, Žnidarič, Prosen 2017), and the answer depends dramatically on $\Delta$:
 #
 # * $\lvert\Delta\rvert<1$: **ballistic** — the wall melts into a front that expands linearly in time, and the transferred magnetisation grows $\propto t$;
-# * $\Delta=1$ (the isotropic Heisenberg point): **superdiffusive** — slower than ballistic but faster than diffusion. The transferred magnetisation grows as $t^{1/z}$ with the dynamical exponent
-#   $z=3/2$, i.e. $\propto t^{2/3}$, and the spin structure factor collapses onto the scaling function of the Kardar–Parisi–Zhang universality class (Ljubotina, Žnidarič, Prosen 2017, 2019);
+# * $\Delta=1$ (the isotropic Heisenberg point): slower than ballistic. From *weakly polarised* inhomogeneous initial states (close to infinite temperature) transport is **superdiffusive**: the transferred magnetisation
+#   grows as $t^{1/z}$ with the dynamical exponent $z=3/2$, i.e. $\propto t^{2/3}$ (Ljubotina, Žnidarič, Prosen 2017), and the infinite-temperature magnetisation dynamics is described by the scaling function of the
+#   Kardar–Parisi–Zhang universality class (Ljubotina, Žnidarič, Prosen 2019). For the *fully polarised* wall used here the same study finds an exponent closer to $3/5$, and larger simulations up to $t=350$ are
+#   compatible with diffusive spreading with slowly decaying corrections (Misguich, Mallick, Krapivsky 2017): the long-time law of this particular initial state is not settled;
 # * $\Delta>1$: the wall is essentially **frozen** — the domain-wall state is close to an eigenstate of the Ising-dominated Hamiltonian, and the transferred magnetisation saturates at an $\mathcal O(1)$ value.
 #
 # The three regimes are statements about an *infinite* chain at *long* times. Our chain has 16 sites and the fastest front crosses it in $t=2$ (§2.5), so we can hope to see the ballistic case
-# quantitatively, the ordering of the three curves clearly, and nothing at all of the exponent $2/3$ — which the large-scale simulations above extract from chains of hundreds of sites and times $t\sim10^3$.
+# quantitatively, the ordering of the three curves clearly, and nothing at all of these exponents — which the large-scale simulations above extract from chains of hundreds of sites and times of order $10^2$.
 #
 # ### 7.2 An exact benchmark at any $N$: free fermions
 #
@@ -983,11 +985,11 @@ print(f"transferred magnetisation at t = {times3[i1]:.2f}: " + ", ".join(f"Delta
 #   A simulator that respects an exact solution *and* a symmetry it was never told about has earned some trust for the interacting cases, for which no such simple formula exists.
 # * **$\Delta<1$: ballistic melting.** The wall dissolves inside a cone bounded by the maximal velocity $4J$ (dashed), leaving behind a smooth profile; the transferred magnetisation grows linearly and follows $4Jt/\pi$ at $\Delta=0$.
 #   At $\Delta=0.5$ transport is still linear in time but slower. (Beyond $t=2$ the fastest front reaches the ends of our short chain.)
-# * **$\Delta=1$:** clearly slower than ballistic — the curve bends, and at $t=1.6$ it has transported $1.06$ spins against $2.03$ at $\Delta=0$. The asymptotic law $\propto t^{2/3}$ of Ljubotina *et al.* is
-#   *not* what we are seeing here: over one decade-free window of time, $t^{2/3}$ and, say, $t^{0.8}$ are indistinguishable, and the curve is still dominated by the initial rearrangement. All our data support
+# * **$\Delta=1$:** clearly slower than ballistic — the curve bends, and at $t=1.6$ it has transported $1.06$ spins against $2.03$ at $\Delta=0$. The asymptotic laws quoted in §7.1 are
+#   *not* what we are seeing here: over a time window of less than one decade, $t^{1/2}$, $t^{3/5}$, $t^{2/3}$ and, say, $t^{0.8}$ are indistinguishable, and the curve is still dominated by the initial rearrangement. All our data support
 #   is the ordering "slower than ballistic, faster than frozen".
 # * **$\Delta=2$: frozen.** After a quick rearrangement of the two spins next to the wall nothing moves: moving a spin across costs an energy $\sim J\Delta$ that the hopping $J$ cannot supply.
-# * **Entanglement.** At $\Delta=0$ the entropy across the wall shoots up to about one bit while the first particles cross and then barely moves (analytically it creeps up like $\tfrac16\ln t$ in nats,
+# * **Entanglement.** At $\Delta=0$ the entropy across the wall shoots up to about one bit while the first particles cross and then barely moves (analytically it creeps up like $\tfrac16\ln t$ in nats, Eisler, Iglói, Peschel 2009,
 #   i.e. some $0.24$ bits per $e$-folding of the time — far too slowly to be visible in our window, where it is masked by the oscillations of the free-fermion front) —
 #   a free-particle front is a very "classical" object — whereas the interacting cases ($\Delta=0.5,1$) keep entangling the two halves and end up around $1.6$–$1.75$ bits. Note the ordering: at $t=2.4$ the $\Delta=1$ chain has transported the *least*
 #   magnetisation of the three mobile cases but generated the *most* entanglement. **Transport and entanglement are different things.**
@@ -1180,7 +1182,7 @@ for N in SIZES4:
 #
 # ### 9.2 Dynamical quantum phase transitions
 #
-# Heyl, Polkovnikov and Kehrein (2013) showed that
+# Heyl, Polkovnikov and Kehrein (2013) showed (review: Heyl 2018) that
 # $\lambda(t)$ of the TFIM becomes **non-analytic (kinks) at critical times** whenever the quench crosses the ground-state critical point $h_c=J$ — a *dynamical quantum phase transition* (DQPT). For a quench from $h_0=0$ to $h>J$
 # their free-fermion result (quoted without proof) gives
 #
@@ -1188,7 +1190,7 @@ for N in SIZES4:
 #
 # Our initial state $|\!\uparrow\dots\uparrow\rangle$ is one of **two** degenerate ground states at $h=0$. The appropriate return probability is then the one to the ground-state manifold,
 # $P(t)=P_\uparrow(t)+P_\downarrow(t)$ with $P_{\uparrow/\downarrow}=|\langle\uparrow\!..\!\uparrow/\downarrow\!..\!\downarrow|\psi(t)\rangle|^2$ (Heyl 2014). Both pieces are exponentially small in $N$, so for large $N$ the larger one wins completely:
-# $\lambda(t)=\min(\lambda_\uparrow,\lambda_\downarrow)$, and a **kink appears whenever the two branches cross** — the state switches from being "closer to all-up" to "closer to all-down". This is what was measured with 6–10 trapped ions by Jurcevic *et al.* (2017).
+# $\lambda(t)=\min(\lambda_\uparrow,\lambda_\downarrow)$, and a **kink appears whenever the two branches cross** — the state switches from being "closer to all-up" to "closer to all-down". This is what was measured with strings of up to 10 trapped ions by Jurcevic *et al.* (2017).
 #
 # ### 9.3 Code
 #
@@ -1363,7 +1365,7 @@ plt.tight_layout(); plt.show()
 #   the number one measures. The measurable velocity is the quasiparticle one: correlations after a quench spread inside a light cone $r=2v_{\max}t$, with $v_{\max}=2\min(J,h)$ for the Ising chain and the
 #   factor 2 coming from the pair mechanism. Our data show the linear cone unambiguously, but the *numerical* front velocity depends on the threshold that defines "arrival" — high thresholds under-, low
 #   thresholds over-estimate it, and the prediction sits in between.
-# * **Transport depends on interactions**: a domain wall melts ballistically for $\lvert\Delta\rvert<1$, superdiffusively ($t^{2/3}$, KPZ) at the Heisenberg point, and is frozen for $\Delta>1$. At $\Delta=0$ an $N\times N$ free-fermion calculation provides an exact check at any size. Short chains show the ordering of the three regimes, not the exponent.
+# * **Transport depends on interactions**: a domain wall melts ballistically for $\lvert\Delta\rvert<1$, sub-ballistically at the Heisenberg point (superdiffusively, $t^{2/3}$ with KPZ scaling, for weakly polarised walls), and is frozen for $\Delta>1$. At $\Delta=0$ an $N\times N$ free-fermion calculation provides an exact check at any size. Short chains show the ordering of the three regimes, not the exponent.
 # * **Entanglement grows linearly in time** after a quench, at a rate set by the velocity-weighted entropy of the excited modes, and saturates after $t\simeq N/(2v_{\max})$ at a volume law whose height is set by the
 #   quench energy and by what the dynamics conserves: the Page value for a chaotic chain at the centre of the spectrum, *less* for a state at $e\neq0$, and less again for an integrable chain, which saturates at the
 #   entropy of its conserved mode occupations ($0.49$ against $\approx1$ bit per site here). Since a tensor network needs bond dimension $\chi\sim2^S$, classical simulation cost grows exponentially in time — the reason quench dynamics is a prime application of quantum simulators.
@@ -1412,8 +1414,10 @@ plt.tight_layout(); plt.show()
 # **Domain walls and transport**
 # * T. Antal, Z. Rácz, A. Rákos, G. M. Schütz, *Transport in the XX chain at zero temperature: Emergence of flat magnetization profiles*, Phys. Rev. E **59**, 4912 (1999).
 # * D. Gobert, C. Kollath, U. Schollwöck, G. Schütz, *Real-time dynamics in spin-1/2 chains with adaptive time-dependent density matrix renormalization group*, Phys. Rev. E **71**, 036102 (2005).
-# * M. Ljubotina, M. Žnidarič, T. Prosen, *Spin diffusion from an inhomogeneous quench in an integrable system*, Nat. Commun. **8**, 16117 (2017) — the domain-wall quench at $\Delta=1$ and the exponent $z=3/2$.
-# * M. Ljubotina, M. Žnidarič, T. Prosen, *Kardar–Parisi–Zhang physics in the quantum Heisenberg magnet*, Phys. Rev. Lett. **122**, 210602 (2019) — the KPZ scaling function.
+# * V. Eisler, F. Iglói, I. Peschel, *Entanglement in spin chains with gradients*, J. Stat. Mech. P02011 (2009) — the logarithmic entanglement growth after the XX domain-wall quench.
+# * M. Ljubotina, M. Žnidarič, T. Prosen, *Spin diffusion from an inhomogeneous quench in an integrable system*, Nat. Commun. **8**, 16117 (2017) — inhomogeneous quenches at $\Delta=1$: exponent $2/3$ for weakly polarised walls, closer to $3/5$ near the pure domain wall.
+# * G. Misguich, K. Mallick, P. L. Krapivsky, *Dynamics of the spin-1/2 Heisenberg chain initialized in a domain-wall state*, Phys. Rev. B **96**, 195151 (2017).
+# * M. Ljubotina, M. Žnidarič, T. Prosen, *Kardar–Parisi–Zhang physics in the quantum Heisenberg magnet*, Phys. Rev. Lett. **122**, 210602 (2019) — the KPZ scaling function of the magnetisation dynamics at infinite temperature.
 #
 # **Loschmidt echo and dynamical quantum phase transitions**
 # * M. Heyl, A. Polkovnikov, S. Kehrein, *Dynamical quantum phase transitions in the transverse-field Ising model*, Phys. Rev. Lett. **110**, 135704 (2013).

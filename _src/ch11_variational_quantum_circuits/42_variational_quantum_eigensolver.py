@@ -1039,7 +1039,7 @@ assert all(np.median(cont[0.1][i][:, -1, 0]) < 0.5 * np.median(cont[LR_BEST][i][
 #
 # ### 9.2 A problem-inspired ansatz that respects the symmetry by construction
 #
-# The **Hamiltonian-variational ansatz** of
+# The **Hamiltonian-variational ansatz** (Wecker, Hastings and Troyer, 2015) of
 # [40 — parametrized gates](../ch11_variational_quantum_circuits/40_parametrized_gates_and_gradients.ipynb) is built
 # from the Hamiltonian's own terms. For the transverse-field Ising model,
 #
@@ -1047,8 +1047,10 @@ assert all(np.median(cont[0.1][i][:, -1, 0]) < 0.5 * np.median(cont[LR_BEST][i][
 #   \Bigl[\prod_qR_x(2h\beta_l)\Bigr]\Bigl[\prod_{\langle qq'\rangle}R_{ZZ}(2J\gamma_l)\Bigr]\,
 #   \vert-\rangle^{\otimes N},\qquad n_{\text{params}}=2L , \tag{13}$$
 #
-# with $J=J_{zz}=-1$ and $h=h_x=+1$: a Trotterised adiabatic path with the angles left free. The path must start in the
-# ground state of the field term alone, and for $h_x=+1$ that is $\vert-\rangle^{\otimes N}$, $X\vert-\rangle=-\vert-\rangle$.
+# with $J=J_{zz}=-1$ and $h=h_x=+1$: a Trotterised adiabatic path with the angles left free. Ho and Hsieh (2019) found
+# numerically that on a periodic chain at the critical point $N/2$ such layers reach the ground state exactly. The
+# path must start in the ground state of the field term alone, and for $h_x=+1$ that is $\vert-\rangle^{\otimes N}$,
+# $X\vert-\rangle=-\vert-\rangle$.
 # (Notebook 40 writes the ansatz with $\vert+\rangle^{\otimes N}$, which is the ground state for $h<0$; for our sign it is
 # the *highest* state of the field term, and an ansatz started there needs many more layers before it competes.) It has $2L$ angles — independent of $N$ — against
 # $2N(L+1)$ for the hardware-efficient family.
@@ -2083,14 +2085,17 @@ fig.tight_layout(); plt.show()
 #   algorithms*, New J. Phys. **18**, 023023 (2016) — the general framework, and the variational principle in this
 #   setting.
 # * A. Kandala, A. Mezzacapo, K. Temme, M. Takita, M. Brink, J. M. Chow and J. M. Gambetta, *Hardware-efficient
-#   variational quantum eigensolver for small molecules and quantum magnets*, Nature **549**, 242 (2017) — the ansatz
-#   used here.
+#   variational quantum eigensolver for small molecules and quantum magnets*, Nature **549**, 242 (2017) — the
+#   hardware-efficient ansatz family (layers of single-qubit Euler rotations and a fixed entangler); the circuit used
+#   here is a variant with $R_yR_z$ rotations and $CZ$ entanglers.
 # * D. Wecker, M. B. Hastings and M. Troyer, *Progress towards practical quantum variational algorithms*, Phys. Rev. A
 #   **92**, 042303 (2015) — the Hamiltonian-variational ansatz.
 # * W. W. Ho and T. H. Hsieh, *Efficient variational simulation of non-trivial quantum states*, SciPost Phys. **6**, 029
-#   (2019) — problem-inspired ansätze for spin chains, including the transverse-field Ising model.
+#   (2019) — alternating Ising and field evolutions, the ansatz family of Eq. (13), prepare the GHZ state and the
+#   critical transverse-field Ising ground state of an $N$-site ring exactly with $N/2$ layers.
 # * O. Higgott, D. Wang and S. Brierley, *Variational quantum computation of excited states*, Quantum **3**, 156 (2019)
-#   — variational quantum deflation, Eq. (11) and the condition of Eq. (12).
+#   — variational quantum deflation: the penalised cost of our Eq. (11) (their Eq. (2)) and the sufficient condition
+#   $\beta_i>E_k-E_i$ on the penalty weights, our Eq. (12).
 # * J. Tilly, H. Chen, S. Cao, D. Picozzi, K. Setia, Y. Li, E. Grant, L. Wossnig, I. Rungger, G. H. Booth and
 #   J. Tennyson, *The variational quantum eigensolver: a review of methods and best practices*, Phys. Rep. **986**, 1
 #   (2022) — the comprehensive review.
@@ -2100,7 +2105,9 @@ fig.tight_layout(); plt.show()
 # * J. R. McClean, S. Boixo, V. N. Smelyanskiy, R. Babbush and H. Neven, *Barren plateaus in quantum neural network
 #   training landscapes*, Nat. Commun. **9**, 4812 (2018) — the exponential concentration of gradients.
 # * M. Larocca, N. Ju, D. García-Martín, P. J. Coles and M. Cerezo, *Theory of overparametrization in quantum neural
-#   networks*, Nat. Comput. Sci. **3**, 542 (2023) — the parameter-count threshold used in Section 10.2.
+#   networks*, Nat. Comput. Sci. **3**, 542 (2023) — overparametrisation sets in when the rank of the quantum Fisher
+#   information saturates, at most at the dimension of the dynamical Lie algebra and, for a pure state, at
+#   $2\cdot2^N-2$; the threshold used in Section 10.2.
 # * S. Sachdev, *Quantum Phase Transitions*, 2nd ed., Cambridge University Press (2011) — the transverse-field Ising
 #   chain, its critical point and the symmetry-broken doublet of Section 11.
 # * P. Calabrese and J. Cardy, *Entanglement entropy and quantum field theory*, J. Stat. Mech. (2004) P06002 — the

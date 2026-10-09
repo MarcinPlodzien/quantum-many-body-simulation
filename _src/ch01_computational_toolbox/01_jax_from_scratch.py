@@ -5,7 +5,8 @@
 # %% [markdown]
 # ## 1. Introduction and motivation
 #
-# **This notebook builds the main computational tool of the course.** The two starter notebooks
+# **This notebook builds the main computational tool of the course**, the JAX library (Bradbury *et al.*, 2018).
+# The two starter notebooks
 # [00a — a free Gaussian wave packet](00a_free_particle_gaussian_wave_packet.ipynb) and
 # [00b — the 1D harmonic oscillator](00b_first_quantum_simulation_harmonic_oscillator.ipynb) did real quantum
 # mechanics with JAX while asking you to read `jnp` as "NumPy" and to take `jit` and `lax.scan` on trust. Here we
@@ -166,6 +167,9 @@ with jax.enable_x64(False):
 # 2. *Catastrophic cancellation*: $g(x) = (1-\cos x)/x^2 \to 1/2$ for $x\to0$. The numerator subtracts two nearly
 #    equal numbers; the leading digits cancel and only round-off noise survives. At $x=10^{-4}$ we have
 #    $1-\cos x \approx 5\times10^{-9}$, below the resolution of `float32` — the result is $0$ instead of $0.5$.
+#
+# Both effects, and floating-point arithmetic in general, are explained in D. Goldberg, ACM Comput. Surv. **23**,
+# 5 (1991).
 #
 # We force the dtypes explicitly, and switch 64-bit support on locally with the same context manager, so that the
 # cell shows the same comparison whatever `PRECISION` you selected.
@@ -467,7 +471,8 @@ assert abs(f_numpy(x_np) - float(f_jit(x))) < (1e-6 if PRECISION == "double" els
 # (Section 6), `lax.scan` (Section 7), `grad` (Section 9) and the accelerator.
 #
 # ### 5.2 Looking at the trace
-# `jax.make_jaxpr` shows the recorded program. We use a shorter function to keep it readable.
+# `jax.make_jaxpr` shows the recorded program. We use a shorter function to keep it readable. (The design of this
+# trace-and-compile pipeline is described by Frostig, Johnson and Leary, SysML 2018.)
 
 # %%
 # ==============================================================================
@@ -1005,7 +1010,8 @@ print("static `if` on the shape is allowed:", normalise(jnp.array([3.0, 4.0], dt
 # * **Finite differences**: $f'(x)\approx[f(x+h)-f(x-h)]/2h$. Easy, but approximate (see 9.2) and expensive: a
 #   function of $n$ parameters needs $2n$ evaluations for one gradient.
 # * **Automatic differentiation (AD)**: every program is a composition of elementary operations whose derivatives
-#   are known; the chain rule is applied *mechanically, operation by operation, to the traced program*. The result is
+#   are known; the chain rule is applied *mechanically, operation by operation, to the traced program*
+#   (see the survey by Baydin *et al.*, J. Mach. Learn. Res. **18**(153), 1 (2018)). The result is
 #   exact to round-off. In *reverse mode* — the mode used by `jax.grad`, identical to "back-propagation" — the
 #   gradient of a scalar function with respect to **all** $n$ inputs costs only a small multiple (typically 2–4) of
 #   one function evaluation, *independently of $n$*. The price is memory: intermediate results of the forward pass
@@ -1390,7 +1396,7 @@ plt.show()
 # * the **detuning** $\Delta=\omega-\omega_0$ — how far the drive is from resonance.
 #
 # In the frame rotating with the drive, and after the *rotating-wave approximation* (dropping terms that oscillate at
-# the very high frequency $2\omega$; we quote this standard result, see Foot, *Atomic Physics*, §7.1.2), the
+# the very high frequency $2\omega$; we quote this standard result, see Foot, *Atomic Physics*, Chapter 7), the
 # Hamiltonian becomes **time independent**. With $\hbar=1$, the identification $|g\rangle=|0\rangle=(1,0)^T$,
 # $|e\rangle=|1\rangle=(0,1)^T$, and the constant energy offset removed, it reads
 #
@@ -1416,8 +1422,9 @@ plt.show()
 # On resonance ($\Delta=0$) the population swings completely between $|g\rangle$ and $|e\rangle$ with frequency
 # $\Omega$; a pulse of duration $t_\pi=\pi/\Omega$ (a "$\pi$ pulse") inverts the atom — the basic single-qubit gate
 # of every quantum computer. Off resonance the oscillation becomes *faster* ($\Omega_R>\Omega$) and *incomplete*
-# (amplitude $\Omega^2/\Omega_R^2<1$). This was first worked out by I. I. Rabi in 1937 for a spin in a rotating
-# magnetic field.
+# (amplitude $\Omega^2/\Omega_R^2<1$). Rabi computed these transition probabilities in 1937 for a magnetic moment in
+# a magnetic field rotating about an inclined axis (Phys. Rev. **51**, 652 (1937)); Griffiths and Schroeter treat spin 1/2
+# in Chapter 4 and driven two-level systems in Chapter 11.
 #
 # Eq. (3) is our **analytic reference**. We now pretend not to know it and solve the Schrödinger equation
 # numerically.
@@ -2011,9 +2018,8 @@ assert np.all(np.isfinite(om_hat))
 #
 # *Physics*
 # * I. I. Rabi, *Space quantization in a gyrating magnetic field*, Physical Review **51**, 652 (1937).
-# * C. J. Foot, *Atomic Physics*, Oxford University Press (2005), ch. 7 *The interaction of atoms with radiation*:
-#   §7.1.2 the rotating-wave approximation, §7.3 coherent excitation and Rabi oscillations, §7.3.1 $\pi$ pulses,
-#   §7.3.2 the Bloch sphere.
+# * C. J. Foot, *Atomic Physics*, Oxford University Press (2005), Chapter 7 *The interaction of atoms with
+#   radiation*: the rotating-wave approximation, Rabi oscillations, $\pi$ pulses and the Bloch sphere.
 # * D. J. Griffiths, D. F. Schroeter, *Introduction to Quantum Mechanics*, 3rd ed., Cambridge University Press (2018)
-#   — spin-1/2 and two-level systems.
+#   — Chapter 4 (spin 1/2) and Chapter 11 (*Quantum Dynamics*: two-level systems).
 

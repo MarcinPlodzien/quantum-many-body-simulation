@@ -91,7 +91,7 @@
 #
 # ### 2.1 States and Pauli matrices
 #
-# The state of a spin-1/2 is a normalised vector in the two-dimensional complex vector space
+# The state of a spin-1/2 (Sakurai and Napolitano, Ch. 1; Nielsen and Chuang, Ch. 1) is a normalised vector in the two-dimensional complex vector space
 # $\mathbb{C}^2$. We choose once and for all the basis of eigenstates of the $z$ component of the spin and
 # write
 #
@@ -197,7 +197,8 @@ checkpoint("X|0> = |1>   (X flips the spin)", jnp.abs(X @ up - down).max())
 # **From formula to code.** `bloch_state` is the formula above; `expval` computes $\psi^\dagger(O\psi)$ with
 # `jnp.vdot`, which complex-conjugates its first argument. To evaluate the Bloch vector for many angles at once
 # we do not write a loop: `jax.vmap` turns the function written for one $\theta$ into a function for a whole
-# array of $\theta$'s (see [notebook 01](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)).
+# array of $\theta$'s (see [notebook 01](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)). Writing numerical code as operations on whole
+# arrays rather than loops over components is also the style adopted in Press *et al.*, *Numerical Recipes in Fortran 90*.
 
 # %%
 # ==============================================================================
@@ -304,7 +305,7 @@ checkpoint("<n.sigma> = n . r   (Bloch vector)", jnp.abs(expval(psi, n_sigma) - 
 # Take two spins, labelled 0 and 1 (we count from zero, as Python does). If spin 0 is in state
 # $|a\rangle=(a_0,a_1)^T$ and spin 1 in state $|b\rangle=(b_0,b_1)^T$, the pair is in the **product state**
 # $|a\rangle\otimes|b\rangle$. Quantum mechanics postulates that the state space of the pair is the **tensor
-# product** $\mathbb C^2\otimes\mathbb C^2=\mathbb C^4$: the vector space spanned by the four products of basis
+# product** $\mathbb C^2\otimes\mathbb C^2=\mathbb C^4$ (Nielsen and Chuang, Ch. 2; Sakurai and Napolitano, Ch. 3): the vector space spanned by the four products of basis
 # states
 #
 # $$ |00\rangle,\; |01\rangle,\; |10\rangle,\; |11\rangle, \qquad |s_0s_1\rangle \equiv |s_0\rangle\otimes|s_1\rangle , $$
@@ -808,7 +809,7 @@ assert list(counts) == [comb(N, k) for k in range(N, -1, -1)] and counts.sum() =
 # of $Z_j$ turns this into an Ising model with transverse field $h=\Omega/2$, so the *transverse* field is half
 # the Rabi frequency — but the couplings are antiferromagnetic and fall off as $1/r^6$ instead of stopping at
 # nearest neighbours, and the detuning acts as an extra *longitudinal* field $h_z$, which the TFIM of Eq. (4)
-# does not have (Exercise 4 adds it). **Trapped-ion simulators** implement $\sum_{i<j}J_{ij}X_iX_j+B\sum_jZ_j$
+# does not have (Exercise 4 adds it). **Trapped-ion simulators** (e.g. Zhang *et al.* 2017) implement $\sum_{i<j}J_{ij}X_iX_j+B\sum_jZ_j$
 # with $J_{ij}\propto|i-j|^{-\alpha}$, $0<\alpha<3$: the same competition between one Ising and one transverse
 # term, again with long-range couplings.
 #
@@ -827,7 +828,7 @@ assert list(counts) == [comb(N, k) for k in range(N, -1, -1)] and counts.sum() =
 # *superexchange* Hamiltonian of Heisenberg (or, with unequal tunnelling amplitudes, XXZ) form. In
 # superconducting-qubit processors the same hopping term arises from the capacitive coupling between
 # neighbouring qubits. The anisotropy $\Delta$ interpolates
-# between the XY chain ($\Delta=0$, free particles), the isotropic Heisenberg point ($\Delta=1$) and the
+# between the XY chain ($\Delta=0$, free fermions after a Jordan–Wigner transformation; Lieb, Schultz and Mattis 1961), the isotropic Heisenberg point ($\Delta=1$) and the
 # Ising-like antiferromagnet ($\Delta\gg1$). The chain was solved by Bethe in 1931 with his famous ansatz; its
 # ground-state energy per site in the thermodynamic limit (Hulthén 1938) is, in our Pauli convention,
 # $E_0/N = J\,(1-4\ln2)\approx-1.7726\,J$.
@@ -918,8 +919,9 @@ checkpoint("TFIM at h=0 is diagonal with the classical Ising energies",
 # > A dense matrix product of two $2^N\times2^N$ matrices costs $(2^N)^3=8^N$ operations, while the Kronecker
 # > chain of `two_site_operator` costs $4^N$. At $N=10$ that is a factor of a thousand.
 #
-# A stronger test uses exact results. For the **periodic** TFIM the free-fermion solution (Pfeuty 1970; we
-# quote it without proof) gives the ground-state energy for $h>0$ and even $N$ as
+# A stronger test uses exact results. For the **periodic** TFIM the free-fermion solution (Pfeuty 1970), with the
+# boundary condition of the even-fermion-parity sector kept exactly at finite $N$ (quoted without proof), gives the
+# ground-state energy for $h>0$ and even $N$ as
 #
 # $$ E_0 = -\sum_{m=0}^{N-1}\sqrt{J^2+h^2-2Jh\cos k_m},\qquad k_m=\frac{(2m+1)\pi}{N}. \qquad\text{(5)} $$
 #
@@ -1038,7 +1040,8 @@ print(f"non-zero entries: {np.count_nonzero(H_sorted)} of {H_sorted.size}  ({100
 # the red diagonal blocks of sizes $\binom{6}{k}=1,6,15,20,15,6,1$; no matrix element connects different
 # sectors. Instead of one $64\times64$ problem we could solve seven small ones, the largest being
 # $20\times20$. For large $N$ the biggest sector still grows like $2^N/\sqrt N$, so symmetries *postpone* the
-# exponential wall by a few spins but do not remove it. In this notebook we keep the full matrix for simplicity
+# exponential wall by a few spins but do not remove it (exact diagonalisation within symmetry sectors is described by
+# Sandvik 2010 and by Weiße and Fehske 2008). In this notebook we keep the full matrix for simplicity
 # (exercise 6 asks you to diagonalise a single sector). The matrix is also almost empty: only about 5 % of
 # the entries are non-zero already at $N=6$.
 #
@@ -1047,8 +1050,8 @@ print(f"non-zero entries: {np.count_nonzero(H_sorted)} of {H_sorted.size}  ({100
 # ### 7.1 The eigenvalue problem and how to check it
 #
 # The stationary Schrödinger equation $H|\phi_n\rangle=E_n|\phi_n\rangle$ is a matrix eigenvalue problem. For a
-# Hermitian matrix the standard dense algorithm first reduces $H$ to tridiagonal form by a sequence of
-# Householder reflections, then diagonalises the tridiagonal matrix (by QR iteration or by a divide-and-conquer
+# Hermitian matrix the standard dense algorithm (Press *et al.*, *Numerical Recipes*, §11.3–11.4) first reduces $H$ to
+# tridiagonal form by a sequence of Householder reflections, then diagonalises the tridiagonal matrix (by QR iteration or by a divide-and-conquer
 # recursion; the latter is what LAPACK's `?syevd` — the routine behind `jnp.linalg.eigh` — uses). It returns
 # **all** $2^N$ eigenvalues and eigenvectors, at a cost of $O(d^3)$ operations and $O(d^2)$ memory for a
 # $d\times d$ matrix. With $d=2^N$ that is
@@ -1657,7 +1660,7 @@ assert all(nnz_measured[N] == (N + 1) * 2 ** N for N in nnz_measured if N % 2 ==
 #
 # ### 8.3 The traditional remedy: sparse matrices and iterative eigensolvers
 #
-# The classical answer to the wall has two ingredients. (i) Store $H$ in a **sparse format**. (ii) Do not ask
+# The classical answer to the wall has two ingredients. (i) Store $H$ in a **sparse format** (*Numerical Recipes*, §2.7). (ii) Do not ask
 # for all $2^N$ eigenpairs; ask for the ground state and a few excited states, which **iterative (Krylov)
 # methods** such as the Lanczos algorithm deliver using nothing but matrix–vector products $H|\psi\rangle$, each
 # costing $O(N2^N)$ instead of $O(8^N)$. (We derive Lanczos from scratch in
@@ -1822,18 +1825,19 @@ checkpoint(f"sparse Lanczos gap at N={N_SPARSE} == Eq. (7)", abs(gap_sp - gap_ex
 #   Lecture Notes in Physics **739**, 529–544 (Springer, 2008), DOI 10.1007/978-3-540-74686-7_18.
 # * W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes: The Art of
 #   Scientific Computing*, 3rd ed. (Cambridge University Press, 2007), ISBN 978-0-521-88068-8 — Ch. 11
-#   (*Eigensystems*): Householder reduction to tridiagonal form, the QL/QR and divide-and-conquer algorithms
-#   that run behind `eigh`, and the backward-error bounds quoted in Section 7.1; Ch. 2 for sparse storage.
+#   (*Eigensystems*): Householder reduction to tridiagonal form (§11.3) and the QL iteration for the tridiagonal
+#   matrix (§11.4), the classical algorithms behind `eigh`; §2.7 (*Sparse Linear Systems*) for sparse storage.
 # * W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes in Fortran 90: The
 #   Art of Parallel Scientific Computing*, Vol. 2 of *Fortran Numerical Recipes*, 2nd ed. (Cambridge
-#   University Press, 1996), ISBN 978-0-521-57439-6 — the whole-array style that `jnp`/`vmap` code inherits.
+#   University Press, 1996), ISBN 978-0-521-57439-6 — numerical routines written as whole-array operations, the
+#   style of `jnp`/`vmap` code.
 #
 # *Original papers*
 # * R. P. Feynman, *Simulating physics with computers*, Int. J. Theor. Phys. **21**, 467–488 (1982),
 #   DOI 10.1007/BF02650179 — the exponential cost of classical simulation and the proposal of Section 1.
 # * H. Bethe, *Zur Theorie der Metalle. I. Eigenwerte und Eigenfunktionen der linearen Atomkette*,
 #   Z. Phys. **71**, 205 (1931) — exact solution of the Heisenberg chain.
-# * L. Hulthén, *Über das Austauschproblem eines Kristalles*, Ark. Mat. Astron. Fys. **26A**, 1 (1938) —
+# * L. Hulthén, *Über das Austauschproblem eines Kristalles*, Ark. Mat. Astron. Fys. **26A**, 1–106 (1938) —
 #   ground-state energy of the antiferromagnetic chain.
 # * E. Lieb, T. Schultz and D. Mattis, *Two soluble models of an antiferromagnetic chain*, Ann. Phys. **16**,
 #   407 (1961) — free-fermion solution of XY-type chains.
@@ -1842,7 +1846,8 @@ checkpoint(f"sparse Lanczos gap at N={N_SPARSE} == Eq. (7)", abs(gap_sp - gap_ex
 # * P. Pfeuty, *The one-dimensional Ising model with a transverse field*, Ann. Phys. **57**, 79 (1970) — exact
 #   spectrum, magnetisation and correlations of the TFIM chain.
 # * C. K. Majumdar and D. K. Ghosh, *On next-nearest-neighbor interaction in linear chain. I*, J. Math. Phys.
-#   **10**, 1388 (1969) — the exactly solvable point of Exercise 7.
+#   **10**, 1388 (1969), and *On next-nearest-neighbor interaction in linear chain. II*, J. Math. Phys. **10**, 1399
+#   (1969) — the exactly solvable point of Exercise 7.
 #
 # *Experiments and quantum simulators*
 # * R. Coldea *et al.*, *Quantum criticality in an Ising chain: experimental evidence for emergent E8

@@ -16,7 +16,8 @@
 # forever without spreading, and after a sudden change of the trap frequency the width of the wave packet breathes
 # with a formula we can write down in closed form. Every single number the computer produces in this notebook can
 # therefore be compared with a number we already know. That comparison — *numerics against analytics* — is the
-# recurring refrain of this notebook, and the habit we want you to take away from it.
+# recurring refrain of this notebook, and the habit we want you to take away from it. Numerical wave-packet
+# propagation of this kind was put on film by Goldberg, Schey and Schwartz in 1967 (Am. J. Phys. **35**, 177 (1967)).
 #
 # The companion notebook [00a — free particle: a Gaussian wave packet](00a_free_particle_gaussian_wave_packet.ipynb)
 # treated a particle with **no** potential. There the only scale in the problem was the one you put in by hand
@@ -443,7 +444,9 @@ for name, m, f0 in SYSTEMS:
 # ### 5.5 Test the stencil before trusting it
 #
 # Never use a formula you have not tested. We know that $g(x) = e^{-x^2/2}$ has
-# $g''(x) = (x^2-1)\,e^{-x^2/2}$. Let us apply Eq. (7) to $g$ and watch the error fall as $\Delta x^2$.
+# $g''(x) = (x^2-1)\,e^{-x^2/2}$. Let us apply Eq. (7) to $g$ and watch the error fall as $\Delta x^2$. The stencil
+# is written as one expression on shifted arrays, with no loop over grid points, the style of Press *et al.*,
+# *Numerical Recipes in Fortran 90*.
 
 # %%
 # ==============================================================================
@@ -941,7 +944,8 @@ print(f"checkpoint passed: at L = 20 the n=5 error is {abs(E_vs_L[-1,5]-5.5):.3e
 #
 # ### 9.1 The analytic solution
 #
-# In our dimensionless units the normalised eigenfunctions of Eq. (5) are the **Hermite functions**
+# In our dimensionless units the normalised eigenfunctions of Eq. (5) are the **Hermite functions** (Griffiths and
+# Schroeter, §2.3, derive them both algebraically and analytically)
 #
 # $$ \phi_n(x) \;=\; \frac{1}{\pi^{1/4}}\,\frac{1}{\sqrt{2^n\,n!}}\; H_n(x)\; e^{-x^2/2}, \tag{11} $$
 #
@@ -1224,7 +1228,7 @@ print(f"                  at n = 30 they never differ by more than {kolmogorov[-
 #
 # ### 10.1 Ehrenfest's theorem: the centre moves classically
 #
-# Start from the TDSE. For an operator $\hat A$ that does not depend on time,
+# The derivation follows Sakurai and Napolitano, §§2.2.3–2.2.4. Start from the TDSE. For an operator $\hat A$ that does not depend on time,
 #
 # $$ \frac{d}{dt}\langle \hat A\rangle
 #   = \left\langle \frac{\partial\psi}{\partial t}\right\vert \hat A \left\vert \psi \right\rangle
@@ -2133,8 +2137,8 @@ print("checkpoint passed: (a) and (b) agree to machine precision -- both are exa
 #
 # $$ \frac{d\psi}{dt} \;=\; f(\psi) \;=\; -\,i\,H\psi . $$
 #
-# **The classical fourth-order Runge–Kutta scheme.** Given $\psi_k$ at time $t_k$, evaluate the derivative four
-# times:
+# **The classical fourth-order Runge–Kutta scheme** (Press *et al.*, *Numerical Recipes*, §17.1). Given $\psi_k$ at
+# time $t_k$, evaluate the derivative four times:
 #
 # $$ \begin{aligned}
 #    k_1 &= f(\psi_k), \\
@@ -2327,7 +2331,8 @@ print("checkpoint passed: the hand-written matrix-free integrator agrees with th
 # > of a fixed physical time goes as $N_x \times N_x^2 = N_x^3$ for a one-dimensional matrix-free run. Budget for
 # > that before you decide to "just use a finer grid". The escape route is a scheme with no stability limit at all:
 # > the propagator $e^{-iH\Delta t}$ of Section 12.5 and Crank–Nicolson (Section 12.11) are exactly unitary for every
-# > $\Delta t$, and so is the split-step Fourier method that the next starter notebook builds. For those, $\Delta t$
+# > $\Delta t$, and so is the split-step Fourier method of Feit, Fleck and Steiger (J. Comput. Phys. **47**, 412
+# > (1982)) that the next starter notebook builds. For those, $\Delta t$
 # > is set by *accuracy* alone — by how fast the physics moves — never by $\Delta x$. The unconditionally stable
 # > Chebyshev and Krylov propagators of Chapter 5 are the many-body version of the same idea.
 #
@@ -3193,21 +3198,27 @@ fig.tight_layout(); plt.show()
 #   analytic (Hermite) solution, i.e. everything Eqs. (11) and (12) above quote without proof.
 # * J. J. Sakurai and J. Napolitano, *Modern Quantum Mechanics*, 3rd ed., Cambridge University Press (2020),
 #   ISBN 978-1-108-47322-4 — Chapter 2 (*Quantum Dynamics*): §2.2.3 is the Heisenberg equation of motion and §2.2.4
-#   Ehrenfest's theorem, the content of Section 10.1 here; §2.3 treats the oscillator and its coherent states.
+#   Ehrenfest's theorem, the content of Section 10.1 here; §2.3 treats the simple harmonic oscillator.
 # * W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes: The Art of Scientific
 #   Computing*, 3rd ed., Cambridge University Press (2007), ISBN 978-0-521-88068-8 — Chapter 11 (*Eigensystems*;
-#   §11.4 is the QL algorithm for symmetric tridiagonal matrices, the method behind `eigh_tridiagonal`),
-#   Chapter 17 (*Integration of Ordinary Differential Equations*; §17.1 is exactly the fourth-order Runge-Kutta
+#   §11.4 treats the eigenvalues and eigenvectors of a symmetric tridiagonal matrix, the problem `eigh_tridiagonal`
+#   solves with LAPACK's bisection and inverse-iteration or MRRR routines, and §11.8 inverse iteration),
+#   Chapter 17 (*Integration of Ordinary Differential Equations*; §17.1 is the fourth-order Runge-Kutta
 #   scheme of Eq. (22), §17.2 its adaptive step-size control), and Chapter 20 (*Partial Differential Equations*;
-#   finite-difference stencils and the von Neumann stability analysis that Section 12.7 carries out by hand).
+#   finite-difference stencils and the stability of explicit schemes, the question Section 12.7 answers for RK4).
 # * W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes in Fortran 90: The Art of
 #   Parallel Scientific Computing*, Volume 2 of *Fortran Numerical Recipes*, 2nd ed., Cambridge University Press
 #   (1996), ISBN 978-0-521-57439-6 — the same algorithms (eigensystems, Runge-Kutta, PDE stencils) written as whole
-#   *array* operations rather than loops. Worth a look precisely because that is the style this notebook uses:
-#   `second_derivative` and `apply_H` are three shifted-array expressions, not a `for` loop over grid points.
+#   *array* operations rather than loops (the volume contains the routines; the methods are explained in the
+#   companion text). That is the style this notebook uses: `second_derivative` (Section 5.5) and `apply_H` (Section 12.6) are
+#   three shifted-array expressions, not a `for` loop over grid points.
 # * A. Goldberg, H. M. Schey and J. L. Schwartz, *Computer-generated motion pictures of one-dimensional
 #   quantum-mechanical transmission and reflection phenomena*, American Journal of Physics **35**, 177-186 (1967),
-#   DOI 10.1119/1.1973991 — the paper that invented this kind of notebook, fifty years before notebooks.
+#   DOI 10.1119/1.1973991 — computer-generated films of a wave packet transmitted and reflected by
+#   one-dimensional potentials, an early use of numerical wave-packet propagation to show quantum dynamics.
+# * J. Crank and P. Nicolson, *A practical method for numerical evaluation of solutions of partial differential
+#   equations of the heat-conduction type*, Mathematical Proceedings of the Cambridge Philosophical Society **43**,
+#   50-67 (1947), DOI 10.1017/S0305004100023197 — the implicit scheme of Section 12.11.
 # * M. D. Feit, J. A. Fleck Jr. and A. Steiger, *Solution of the Schrödinger equation by a spectral method*, Journal
 #   of Computational Physics **47**, 412-433 (1982), DOI 10.1016/0021-9991(82)90091-2 — the split-operator/FFT
 #   alternative to the grid Hamiltonian used here, and the method that escapes the step limit of Eq. (24).

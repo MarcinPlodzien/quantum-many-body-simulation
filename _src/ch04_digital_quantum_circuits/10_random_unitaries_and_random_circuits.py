@@ -322,9 +322,9 @@ plt.show()
 # > **Numerical practice.** It is tempting to code the Gram-Schmidt procedure by hand, since it delivers $R_{jj}>0$ with
 # > no phase fix at all. Resist it. Measuring the departure from orthogonality of the computed $Q$ by
 # > $\lVert \mathbb 1-Q^\dagger Q\rVert$, classical Gram-Schmidt gives $O(\varepsilon\,\kappa^2)$ and the modified variant
-# > $O(\varepsilon\,\kappa)$, where $\varepsilon$ is the machine epsilon and $\kappa$ the condition number, while the
-# > Householder algorithm used by the libraries gives $O(\varepsilon)$ whatever $\kappa$ (Numerical Recipes, 3rd ed.,
-# > Section 2.10). For a Ginibre matrix $\kappa$ is modest and all three would do, but the habit is the point: call the
+# > $O(\varepsilon\,\kappa)$, where $\varepsilon$ is the machine epsilon and $\kappa$ the condition number (Giraud *et al.*
+# > 2005, who also recall Björck's bound for the modified variant), while the Householder algorithm used by the libraries
+# > (Numerical Recipes, 3rd ed., Section 2.10) gives $O(\varepsilon)$ whatever $\kappa$ (Higham 2002, Chapter 19). For a Ginibre matrix $\kappa$ is modest and all three would do, but the habit is the point: call the
 # > library and repair the *convention* afterwards, rather than reimplementing the *algorithm*.
 #
 # ### 4.3 More checkpoints: unitarity and the moments of matrix elements
@@ -383,8 +383,9 @@ print("entanglement entropy of qubit 1 (untouched) with the rest:", f"{float(ent
 # $\rho_D(p)=(D-1)(1-p)^{D-2}$ on $p\in[0,1]$ - a Beta distribution with parameters $(1,D-1)$, whose moments
 # $\mathbb E[p]=1/D$ and $\mathbb E[p^2]=2/(D(D+1))$ are exactly the ones checked in Section 3. Substituting
 # $p=x/D$ gives $\frac{D-1}{D}(1-x/D)^{D-2}\to e^{-x}$: the exponential is the $D\to\infty$ limit.
-# The name comes from nuclear physics, where Porter and Thomas (1956) found this law for the fluctuations of
-# neutron resonance widths - an early signature of quantum chaos.
+# The name comes from nuclear physics: Porter and Thomas (1956) described the fluctuations of neutron resonance widths
+# by chi-squared distributions, an early signature of quantum chaos. The exponential law is the member with two degrees
+# of freedom (complex amplitudes); the neutron widths, with real amplitudes, follow the member with one degree of freedom.
 #
 # Consequences: the output distribution of a random state is far from uniform. A fraction $1-e^{-1}\approx63\%$ of the
 # bit strings is *less* likely than uniform ($x<1$), a few are much more likely. The second moment is
@@ -569,8 +570,9 @@ print(f"engine `brickwall`, N=8, depth 24: norm = {float(jnp.linalg.norm(psi_eng
 # on qubit $a\in A$ and qubit $b\in B$, and write $A=\{a\}\cup A'$. The gate does not touch $A'$, so $S_{A'}$ is the same
 # before and after, while both $S_A$ obey $\lvert S_{A'}-S_a\rvert\le S_A\le S_{A'}+S_a$ with $S_a\le1$ bit; the two
 # inequalities together give $\lvert\Delta S_A\rvert\le 2$ bits. In our geometry one gate crosses the
-# central cut every second layer - so the entropy can grow at most **linearly** in depth. (ii) It cannot exceed $N/2$ bits. For a Haar-random state Page (1993) computed
-# the average entropy of a subsystem of dimension $m$ in a bipartite system of dimensions $m\le n$ (quoted, in nats):
+# central cut every second layer - so the entropy can grow at most **linearly** in depth. (ii) It cannot exceed $N/2$ bits. For a Haar-random state Page (1993) gave
+# the average entropy of a subsystem of dimension $m$ in a bipartite system of dimensions $m\le n$ (quoted, in nats;
+# Page conjectured the exact sum and derived its asymptotic form):
 #
 # $$ \langle S\rangle = \sum_{k=n+1}^{mn}\frac1k-\frac{m-1}{2n}\;\approx\;\ln m-\frac{m}{2n}. $$
 #
@@ -827,9 +829,10 @@ for t, exact in zip((1, 2, 3, 4), (1, 2, 5, 14)):
 # qubit - the content of the depolarising channel in notebook 07). The Clifford group matches for $t=1,2,3$ and
 # deviates at $t=4$ ($15$ instead of $14$): **the Clifford group is a unitary 3-design, but not a 4-design** (Webb 2016; Zhu 2017).
 # Protocols whose analysis involves only second or third moments - randomised benchmarking, classical shadows - can
-# therefore replace Haar-random unitaries by random Clifford gates, which are easy to implement and to track classically.
+# therefore replace Haar-random unitaries by random Clifford gates, which are easy to implement and to track classically
+# (Dankert *et al.* 2009 use the Clifford 2-design property to estimate the fidelity of a quantum process).
 # But Clifford circuits are *not* generic in every respect: they generate no "magic", their output distributions are
-# flat on their support instead of Porter-Thomas (next section), and they can be simulated efficiently.
+# flat on their support instead of Porter-Thomas (next section), and they can be simulated efficiently (Gottesman 1998).
 
 # %% [markdown]
 # ## 8. Random circuit sampling with a discrete gate set
@@ -942,7 +945,7 @@ plt.show()
 # The cost of the simulation is $O(2^N)$ per gate in time and $16\times2^N$ bytes in memory (double precision). The cell
 # below measures it for $N=4\dots20$: compile time, run time of a circuit with 10 double layers and the time to draw 100
 # samples. For the sampling step we compare the engine's `sample_bitstrings` with a second sampler based on the inverse
-# cumulative distribution, defined (and validated) in the same cell.
+# cumulative distribution (Numerical Recipes, 3rd ed., Section 7.3), defined (and validated) in the same cell.
 
 # %%
 # ==============================================================================
@@ -1193,9 +1196,10 @@ plt.show()
 # the simple law $(1-p)^{n_{\rm loc}}$: in a scrambling circuit *a single Pauli error anywhere* makes the state almost
 # orthogonal to the ideal one, so the fidelity is just the probability of an error-free run. (Small systematic
 # differences are expected: errors in the last layers do not have time to spread, which affects XEB and fidelity
-# slightly differently.) This is how the fidelity $\sim0.2\%$ of the 53-qubit, 20-cycle experiment of Arute *et al.* was
-# certified - and why error rates have to fall well below $1/(\text{number of gates})$ before large circuits become
-# useful.
+# slightly differently.) The same error-free-run model predicted a fidelity of about $0.2\%$ for the 53-qubit, 20-cycle
+# experiment of Arute *et al.*, and the XEB measured on simplified (elided) versions of those circuits,
+# $(2.24\pm0.21)\times10^{-3}$, agreed with it. The model also shows why error rates have to fall well below
+# $1/(\text{number of gates})$ before large circuits become useful.
 
 # %% [markdown]
 # ### 9.4 How far the method reaches
@@ -1308,6 +1312,9 @@ print(f"D sum p^2 = {float(2 ** N_big * jnp.sum(jnp.abs(psi_big) ** 4)):.4f}")
 #   H. Zhu, *Multiqubit Clifford groups are unitary 3-designs*, Phys. Rev. A **96**, 062336 (2017).
 # * D. Gottesman, *The Heisenberg representation of quantum computers*, arXiv:quant-ph/9807006 (1998).
 # * W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes*, 3rd ed. (Cambridge
-#   University Press, 2007), Section 2.10 (*QR Decomposition*) and Section 7.3 (*Deviates from Other Distributions*);
-#   also *Numerical Recipes in Fortran 90*, 2nd ed. (Cambridge University Press, 1996).
+#   University Press, 2007), Section 2.10 (*QR Decomposition*) and Section 7.3 (*Deviates from Other Distributions*).
+# * L. Giraud, J. Langou, M. Rozložník and J. van den Eshof, *Rounding error analysis of the classical Gram-Schmidt
+#   orthogonalization process*, Numer. Math. **101**, 87-100 (2005).
+# * N. J. Higham, *Accuracy and Stability of Numerical Algorithms*, 2nd ed. (SIAM, 2002), Chapter 19
+#   (*QR Factorization*).
 

@@ -200,8 +200,9 @@ print(f"  M M^dag =\n{np.round(M@M.conj().T,6)}\n  |phi><phi| =\n{np.round(np.ou
 #
 # For pure bipartite states the theory is complete. Nielsen (1999) showed that $\vert\psi\rangle$ can be converted into
 # $\vert\phi\rangle$ by LOCC exactly when the Schmidt probabilities of $\vert\phi\rangle$ majorise those of
-# $\vert\psi\rangle$, so every pure-state measure is a function of the $p_k$, and every Schur-concave function of them is
-# an LOCC monotone (Vidal 2000). There are therefore many pure-state measures; the entropy $S_A$ is singled out by the
+# $\vert\psi\rangle$, so every pure-state measure is a function of the $p_k$, and on pure states the LOCC monotones are
+# exactly the concave, unitarily invariant functions of $\rho_A$, i.e. the concave symmetric functions of the $p_k$
+# (Vidal 2000). There are therefore many pure-state measures; the entropy $S_A$ is singled out by the
 # asymptotic limit. From $n$ copies of $\vert\psi\rangle$, LOCC can produce $m \approx nS_A$ Bell pairs with an error
 # that vanishes as $n\to\infty$, and $m$ Bell pairs can be converted back into $n \approx m/S_A$ copies; both rates are
 # optimal (Bennett, Bernstein, Popescu, Schumacher 1996). The distillable entanglement and the entanglement cost of a
@@ -425,12 +426,13 @@ for name, r in (("Bell (|00>+|11>)/sqrt2", rho_bell), ("coin toss: |00> or |11>"
 #
 # the **entanglement of formation**: a minimisation over all pure-state decompositions of $\rho$. It vanishes exactly on
 # separable states and is an LOCC monotone. It has a closed form for two qubits (Wootters 1998, through the concurrence)
-# and none in general. Deciding whether a given mixed state is entangled at all is NP-hard as the dimension grows
-# (Gurvits 2003). Other measures do not remove the difficulty: the distillable entanglement $E_D$ (Bell pairs per copy
-# obtainable by LOCC) is zero for the "bound entangled" states of Horodecki (1997), so $E_D$ is **not faithful**, and the
-# computable quantity of the next sections, the negativity, misses the same states. No efficiently computable measure
-# that is faithful for all mixed states is known. The rest of the notebook uses one computable *criterion*, the positive
-# partial transpose, which is complete for the two-qubit states we need.
+# and none in general. Deciding whether a given mixed state is entangled at all, even to within a small tolerance, is
+# NP-hard as the dimension grows (Gurvits 2003). Other measures do not remove the difficulty: the distillable
+# entanglement $E_D$ (Bell pairs per copy obtainable by LOCC) is zero for the entangled PPT states found by P. Horodecki
+# (1997), which are "bound entangled" because no Bell pairs can be distilled from them (Horodecki, Horodecki, Horodecki
+# 1998), so $E_D$ is **not faithful**, and the computable quantity of the next sections, the negativity, misses the same
+# states. No efficiently computable measure that is faithful for all mixed states is known. The rest of the notebook
+# uses one computable *criterion*, the positive partial transpose, which is complete for the two-qubit states we need.
 
 # %% [markdown]
 # ## 6. The partial transpose
@@ -1216,10 +1218,14 @@ plt.show()
 # * M. Horodecki, P. Horodecki, R. Horodecki, *Separability of mixed states: necessary and sufficient conditions*,
 #   Phys. Lett. A **223**, 1 (1996) — PPT is sufficient for $2\times2$ and $2\times3$.
 # * P. Horodecki, *Separability criterion and inseparable mixed states with positive partial transposition*,
-#   Phys. Lett. A **232**, 333 (1997) — entangled PPT states.
+#   Phys. Lett. A **232**, 333 (1997) — entangled PPT states ($3\times3$ and $2\times4$).
+# * M. Horodecki, P. Horodecki, R. Horodecki, *Mixed-state entanglement and distillation: is there a "bound" entanglement
+#   in nature?*, Phys. Rev. Lett. **80**, 5239 (1998) — distillable states violate the PPT criterion, so entangled PPT
+#   states are bound entangled.
 # * M. A. Nielsen, *Conditions for a class of entanglement transformations*, Phys. Rev. Lett. **83**, 436 (1999) —
 #   pure-state LOCC conversion and majorisation.
-# * G. Vidal, *Entanglement monotones*, J. Mod. Opt. **47**, 355 (2000) — LOCC monotones of pure states.
+# * G. Vidal, *Entanglement monotones*, J. Mod. Opt. **47**, 355 (2000) — characterisation of LOCC monotones; on pure
+#   states, the concave unitarily invariant functions of the reduced density matrix.
 # * C. H. Bennett, H. J. Bernstein, S. Popescu, B. Schumacher, *Concentrating partial entanglement by local operations*,
 #   Phys. Rev. A **53**, 2046 (1996) — the entropy as the asymptotic conversion rate.
 # * W. Dür, G. Vidal, J. I. Cirac, *Three qubits can be entangled in two inequivalent ways*, Phys. Rev. A **62**, 062314
@@ -1232,7 +1238,9 @@ plt.show()
 # * T. J. Osborne, F. Verstraete, *General monogamy inequality for bipartite qubit entanglement*, Phys. Rev. Lett.
 #   **96**, 220503 (2006).
 # * L. Gurvits, *Classical deterministic complexity of Edmonds' problem and quantum entanglement*, in Proceedings of the
-#   35th Annual ACM Symposium on Theory of Computing (STOC '03), 10–19 (2003) — NP-hardness of deciding separability.
+#   35th Annual ACM Symposium on Theory of Computing (STOC '03), 10–19 (2003) — NP-hardness of the weak membership
+#   problem for separable bipartite states.
 # * R. F. Werner, *Quantum states with Einstein-Podolsky-Rosen correlations admitting a hidden-variable model*,
 #   Phys. Rev. A **40**, 4277 (1989) — Werner states.
-# * L. Amico, R. Fazio, A. Osterloh, V. Vedral, *Entanglement in many-body systems*, Rev. Mod. Phys. **80**, 517 (2008).
+# * L. Amico, R. Fazio, A. Osterloh, V. Vedral, *Entanglement in many-body systems*, Rev. Mod. Phys. **80**, 517 (2008)
+#   — review of bipartite and multipartite entanglement in interacting spin, fermion and boson models.

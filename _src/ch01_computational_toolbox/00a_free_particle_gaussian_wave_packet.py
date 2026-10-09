@@ -315,7 +315,8 @@ for name, mass, x0 in cases:
 # ## 3. The exact solution of the free Schrödinger equation
 #
 # Before we compute anything we solve the problem on paper. This is our reference: every number the computer
-# produces will be compared with a formula from this section.
+# produces will be compared with a formula from this section. The calculation is the textbook one (Griffiths and
+# Schroeter, §2.4; Sakurai and Napolitano, §1.7; Tannor, Chapters 2–3).
 #
 # ### 3.1 The initial state
 #
@@ -540,8 +541,8 @@ for name, mass, x0 in cases:
 #    \;\to\; \Delta x \sum_j (x_j - \langle x\rangle)^{2}\,\vert\psi_j\vert^{2} . $$
 #
 # For a *periodic and smooth* function this approximation is spectacularly good — the error decreases faster than
-# any power of $\Delta x$ (this is the trapezoidal rule's superpower on periodic functions; see Trefethen's book
-# in the references). We will verify it numerically in a moment.
+# any power of $\Delta x$ (this is the trapezoidal rule's superpower on periodic functions; see Trefethen and
+# Weideman, SIAM Rev. **56**, 385 (2014)). We will verify it numerically in a moment.
 #
 # ### 4.3 Periodic boundary conditions: the particle lives on a ring
 #
@@ -1108,6 +1109,10 @@ plt.show()
 # * it costs $O(N_x\log N_x)$ per application, thanks to the Fast Fourier Transform, versus $O(N_x^2)$ for a dense
 #   matrix-vector product and $O(N_x^3)$ for building a matrix exponential.
 #
+# Fourier grid methods for wave-packet dynamics were developed by Feit, Fleck and Steiger (J. Comput. Phys. **47**,
+# 412 (1982)) and by Kosloff and Kosloff (J. Comput. Phys. **52**, 35 (1983)); Trefethen's *Spectral Methods in MATLAB*
+# (Chapters 3–4) explains the exponential accuracy, Press *et al.*, *Numerical Recipes*, Chapter 12, the FFT itself.
+#
 # Everything rests on periodicity: the FFT *assumes* the array is one period of a periodic function. That is
 # exactly the ring, so we pay nothing.
 #
@@ -1267,7 +1272,7 @@ print("\nCHECKPOINT passed: both methods move at exactly the speed their own dis
 #
 # ### 8.2 Ehrenfest's theorem for the free particle
 #
-# How does $\langle x\rangle$ change in time? Differentiate under the integral and use Eq. (2) in the form
+# How does $\langle x\rangle$ change in time? (Sakurai and Napolitano, §2.2.4, treat the general case.) Differentiate under the integral and use Eq. (2) in the form
 # $\partial_t\psi = \tfrac{i}{2}\partial_x^2\psi$ (and its complex conjugate
 # $\partial_t\psi^{*} = -\tfrac{i}{2}\partial_x^2\psi^{*}$):
 #
@@ -2356,7 +2361,7 @@ plt.show()
 # $\psi(x, T_{\rm rev}) = \psi(x, 0)$ **exactly, for any initial state whatsoever**. The wave function reassembles
 # itself out of what looked like structureless mush. This is a *quantum revival*; it is the reason a particle in a
 # box is periodic in time while a classical particle in a box is only quasi-periodic, and it has been observed
-# with Rydberg wave packets and with cold atoms.
+# with Rydberg wave packets and with cold atoms (see the review by Robinett, Phys. Rep. **392**, 1 (2004)).
 #
 # A bonus: at $T_{\rm rev}/2$ the phases are $e^{-i\pi n^2} = (-1)^{n^2} = (-1)^n$, which is precisely the Fourier
 # multiplier of a **translation by $L/2$**. So at half the revival time the packet reappears on the opposite side
@@ -2518,19 +2523,22 @@ plt.show()
 # ### References
 #
 # * D. J. Griffiths and D. F. Schroeter, *Introduction to Quantum Mechanics*, 3rd ed., Cambridge University Press
-#   (2018) — Chapter 2: the free particle and the Gaussian wave packet, worked out in detail.
+#   (2018) — Chapter 2, §2.4: the free particle and its wave packets.
 # * J. J. Sakurai and J. Napolitano, *Modern Quantum Mechanics*, 3rd ed., Cambridge University Press (2020) —
 #   §1.7.4 (Gaussian wave packets and minimum-uncertainty states) and §2.2.4 (free particles, Ehrenfest's theorem).
 # * D. J. Tannor, *Introduction to Quantum Mechanics: A Time-Dependent Perspective*, University Science Books
-#   (2007) — the standard reference for wave-packet dynamics and grid methods; Chapters 1–2 and 11.
+#   (2007) — wave-packet dynamics and grid methods: Chapters 2–3 (the free-particle and the Gaussian wave packet)
+#   and Chapter 11 (numerical methods).
 # * M. D. Feit, J. A. Fleck Jr. and A. Steiger, *Solution of the Schrödinger equation by a spectral method*,
 #   J. Comput. Phys. **47**, 412–433 (1982) — the split-operator Fourier method.
 # * D. Kosloff and R. Kosloff, *A Fourier method solution for the time dependent Schrödinger equation as a tool in
 #   molecular dynamics*, J. Comput. Phys. **52**, 35–53 (1983) — the Fourier grid method used in Section 7.
 # * W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes*, 3rd ed., Cambridge
 #   University Press (2007) — Chapter 12 for the FFT, Chapter 20 for partial differential equations.
-# * L. N. Trefethen, *Spectral Methods in MATLAB*, SIAM (2000) — why periodic trapezoidal sums and spectral
-#   differentiation converge exponentially.
+# * L. N. Trefethen, *Spectral Methods in MATLAB*, SIAM (2000) — Chapters 3–4: periodic grids, the DFT and FFT,
+#   and why spectral differentiation of smooth functions converges exponentially.
+# * L. N. Trefethen and J. A. C. Weideman, *The exponentially convergent trapezoidal rule*, SIAM Rev. **56**,
+#   385–458 (2014) — why trapezoidal sums of smooth periodic functions converge exponentially (Section 4.2).
 # * R. W. Robinett, *Quantum wave packet revivals*, Phys. Rep. **392**, 1 (2004) — revivals, fractional revivals
 #   and quantum carpets.
 #

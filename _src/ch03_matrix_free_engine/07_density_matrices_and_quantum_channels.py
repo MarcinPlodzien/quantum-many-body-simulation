@@ -16,12 +16,12 @@
 #
 # In both situations no single state vector describes the system, and quantum mechanics needs a more general
 # object: the **density operator** (density matrix) $\rho$. Noise then acts on $\rho$ through a **quantum channel**, a
-# class of maps that contains the unitaries as a special case. This is the language of every experimental paper on quantum hardware: gate fidelities, $T_1$/$T_2$
+# class of maps that contains the unitaries as a special case (textbook treatments: Nielsen & Chuang, Ch. 8; Preskill, Ch. 3;
+# Breuer and Petruccione 2002). This is the language of every experimental paper on quantum hardware: gate fidelities, $T_1$/$T_2$
 # times, "depolarising error per gate", error-correction thresholds. It is also the language needed for a
 # many-body question of great practical importance, the rate at which the entanglement of a large state decays. Trapped-ion
-# GHZ states of up to 14 qubits were found to lose their coherence *much* faster than a single qubit: in that experiment
-# the coherence of GHZ states of up to 8 ions decayed at a rate growing as $N^2$, because the magnetic-field noise was
-# spatially correlated (Monz *et al.*, 2011).
+# GHZ states of up to 14 qubits were prepared, and their coherence, measured for up to 8 ions, decayed *much* faster than that of a single
+# qubit, at a rate growing as $N^2$, in agreement with a model of correlated Gaussian phase noise acting on all ions (Monz *et al.*, 2011).
 # We shall simulate the simpler, *independent* version of the same mechanism, which already gives a decay $N$ times
 # faster than a single qubit's, and explain in §10.1 where the extra factor $N$ of "superdecoherence" comes from.
 #
@@ -663,10 +663,10 @@ assert dp < TOL and dS < 1e3 * TOL
 # $\sum_m(K_m\otimes\mathbb 1_R)\,\Omega\,(K_m\otimes\mathbb 1_R)^\dagger$ is a sum of positive operators for every joint
 # state $\Omega$. Maps that are completely positive and trace preserving are called **quantum channels** (CPTP maps).
 #
-# We quote without proof the converse (Kraus' theorem, see Nielsen & Chuang §8.2): *every* CPTP map on a $d$-dimensional
+# We quote without proof the converse (Kraus' theorem, Kraus 1983; see Nielsen & Chuang §8.2): *every* CPTP map on a $d$-dimensional
 # system can be written in the form (3) with operators obeying (4), and at most $d^2$ Kraus operators are ever needed —
 # equivalently, an environment of dimension $d^2$ always suffices in the construction above. That construction
-# ("unitary on system + environment, then discard the environment") is the **Stinespring dilation** of the channel;
+# ("unitary on system + environment, then discard the environment") is the **Stinespring dilation** of the channel (Stinespring 1955);
 # Eq. (3) is that dilation read in the other direction, from the joint unitary to the Kraus operators.
 #
 # The index $m$ has a physical meaning: it labels **what the environment could have recorded** (photon emitted / not
@@ -1416,7 +1416,7 @@ for name, rec in sweeps.items():
 #
 # where $\sigma_O^2$ is the variance of $\langle\psi|O|\psi\rangle$ over trajectories (at most 1 for a Pauli observable). This
 # is a Monte-Carlo method: the error decreases as $1/\sqrt M$ **independently of $N$**. It is known as the *Monte-Carlo
-# wave-function* (MCWF) or *quantum-jump* method (Dalibard, Castin & Mølmer 1992; Carmichael 1993); its continuous-time
+# wave-function* (MCWF) or *quantum-jump* method (Dalibard, Castin & Mølmer 1992; Carmichael 1993; review: Plenio & Knight 1998); its continuous-time
 # version is developed in [notebook 17](../ch06_open_quantum_systems/17_monte_carlo_wave_function.ipynb), Chapter 6.
 #
 # ### 11.2 From formula to code
@@ -1833,7 +1833,7 @@ print(f"after {n_layers} layers: exact F = {float(obs_exact[-1, 0]):.4f}, MCWF F
 #
 # * the error of **one** estimate from the first $M$ trajectories, with its error bar (what you have in practice);
 # * the **root-mean-square error over independent blocks** of size $M$ (we have $2^{13}/M$ of them), which averages out
-#   the luck of a single estimate and should follow $\sigma/\sqrt M$ closely.
+#   the luck of a single estimate and should follow $\sigma/\sqrt M$ closely (the error law of simple Monte-Carlo integration, Press *et al.* 2007, §7.7).
 
 # %%
 # ==============================================================================
@@ -2172,6 +2172,6 @@ assert err < TOL
 # * A. Peres, "Separability criterion for density matrices", Phys. Rev. Lett. **77**, 1413 (1996); G. Vidal and
 #   R. F. Werner, "Computable measure of entanglement", Phys. Rev. A **65**, 032314 (2002) (negativity).
 # * W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes: The Art of Scientific
-#   Computing*, 3rd ed. (Cambridge University Press, 2007), chapter 7 (random numbers and simple Monte-Carlo
+#   Computing*, 3rd ed. (Cambridge University Press, 2007), chapter 7 (random numbers; §7.7 simple Monte-Carlo
 #   integration, where the $1/\sqrt M$ error law measured in §11.6 is derived).
 

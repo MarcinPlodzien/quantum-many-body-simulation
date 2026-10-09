@@ -537,7 +537,8 @@ assert err_max < 1e3 * TOL
 #
 # The algebraic maximum of $S=E_1+E_2+E_3-E_4$ with each $\vert E_i\vert\le1$ is $4$. Local models are stuck at $2$. Quantum mechanics
 # reaches $2\sqrt2$ — strictly in between. Where does that number come from? From the fact that Alice's two observables *do not
-# commute*, but only by a bounded amount. The following argument is Tsirelson's (1980).
+# commute*, but only by a bounded amount. The bound is Tsirelson's (1980); the short proof below, which squares the CHSH operator,
+# is due to Landau (1987).
 #
 # Let $A,A',B,B'$ be Hermitian operators with $A^2=A'^2=B^2=B'^2=\mathbb 1$ (i.e. $\pm1$-valued observables), with Alice's acting on
 # the first factor and Bob's on the second, so that $[A\otimes\mathbb 1,\mathbb 1\otimes B]=0$ automatically. Define the **CHSH
@@ -1565,7 +1566,9 @@ print(f"  (sanity: mean S = {float(jnp.mean(r_v)):.4f} vmapped vs {float(jnp.mea
 # * J. F. Clauser, M. A. Horne, A. Shimony and R. A. Holt, *Proposed experiment to test local hidden-variable theories*,
 #   Phys. Rev. Lett. **23**, 880 (1969) — the CHSH inequality used throughout this notebook.
 # * B. S. Cirel'son (Tsirelson), *Quantum generalizations of Bell's inequality*, Lett. Math. Phys. **4**, 93 (1980) — the bound
-#   $2\sqrt2$ and the operator identity of Section 7.
+#   $2\sqrt2$ of Section 7.
+# * L. J. Landau, *On the violation of Bell's inequality in quantum theory*, Phys. Lett. A **120**, 54 (1987) — the operator
+#   identity $\mathcal S^2=4-[A,A']\otimes[B,B']$ and the proof of Tsirelson's bound in Section 7.
 # * A. Aspect, P. Grangier and G. Roger, *Experimental realization of Einstein-Podolsky-Rosen-Bohm Gedankenexperiment: a new violation
 #   of Bell's inequalities*, Phys. Rev. Lett. **49**, 91 (1982); A. Aspect, J. Dalibard and G. Roger, *Experimental test of Bell's
 #   inequalities using time-varying analyzers*, Phys. Rev. Lett. **49**, 1804 (1982).
@@ -1575,6 +1578,9 @@ print(f"  (sanity: mean S = {float(jnp.mean(r_v)):.4f} vmapped vs {float(jnp.mea
 #   Phys. Rev. A **47**, R747 (1993) — the detection loophole and the $2/3$ efficiency threshold.
 # * R. F. Werner, *Quantum states with Einstein-Podolsky-Rosen correlations admitting a hidden-variable model*,
 #   Phys. Rev. A **40**, 4277 (1989) — Werner states and the explicit local model.
+# * A. Peres, *Separability criterion for density matrices*, Phys. Rev. Lett. **77**, 1413 (1996); M. Horodecki, P. Horodecki and
+#   R. Horodecki, *Separability of mixed states: necessary and sufficient conditions*, Phys. Lett. A **223**, 1 (1996) — the PPT
+#   criterion of Section 11 and its sufficiency for two qubits.
 # * R. Horodecki, P. Horodecki and M. Horodecki, *Violating Bell inequality by mixed spin-1/2 states: necessary and sufficient
 #   condition*, Phys. Lett. A **200**, 340 (1995) — the criterion $S_{\max}=2\sqrt{t_1^2+t_2^2}$ of Eq. (6).
 # * B. Hensen et al., *Loophole-free Bell inequality violation using electron spins separated by 1.3 kilometres*,

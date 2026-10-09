@@ -1247,8 +1247,9 @@ fig.tight_layout(); plt.show()
 # *insensitive* to local operators, because a code whose codewords could be distinguished by a local measurement would
 # not protect against a local error in the first place. A related, proven statement in quantum metrology concerns
 # Markovian noise during the sensing: a signal Hamiltonian lying inside the span of the noise operators cannot be
-# measured better than at the standard quantum limit (Demkowicz-Dobrzański, Czajkowski and Sekatski 2017; Zhou, Zhang, Preskill and Jiang 2018, whose "Hamiltonian
-# not in Lindblad span" criterion is exactly the condition for the obstruction *not* to apply).
+# measured with better than standard-quantum-limit scaling (Demkowicz-Dobrzański, Czajkowski and Sekatski 2017;
+# Zhou, Zhang, Preskill and Jiang 2018, whose "Hamiltonian not in Lindblad span" criterion is exactly the condition
+# for the obstruction *not* to apply).
 #
 # Our setting (a static code, erasures after the sensing) is not the setting of those theorems, and we do not prove
 # a general statement here. We measure the trade-off for our encoders. In the table, $k^*$ is the largest $k$ for which
@@ -1629,8 +1630,8 @@ for N in (6, 8, 10, 12):
 # * R. Demkowicz-Dobrzański, J. Kołodyński and M. Guţă, *The elusive Heisenberg limit in quantum-enhanced metrology*,
 #   Nat. Commun. **3**, 1063 (2012) — uncorrelated noise restores standard-quantum-limit scaling.
 # * R. Demkowicz-Dobrzański, J. Czajkowski and P. Sekatski, *Adaptive quantum metrology under general Markovian noise*,
-#   Phys. Rev. X **7**, 041009 (2017) — the "Hamiltonian not in Lindblad span" criterion: if the signal generator lies
-#   in the span of the noise, no adaptive strategy beats the standard quantum limit.
+#   Phys. Rev. X **7**, 041009 (2017) — the algebraic criterion later named "Hamiltonian not in Lindblad span": if the
+#   signal generator lies in the span of the noise operators, no adaptive strategy beats standard-quantum-limit scaling.
 # * S. Zhou, M. Zhang, J. Preskill and L. Jiang, *Achieving the Heisenberg limit in quantum metrology using quantum
 #   error correction*, Nat. Commun. **9**, 78 (2018) — the same criterion as a necessary *and sufficient* condition, and
 #   the code construction that attains the Heisenberg limit when it holds.
@@ -1639,7 +1640,8 @@ for N in (6, 8, 10, 12):
 #   *Quantum error correction for metrology*, Phys. Rev. Lett. **112**, 150802 (2014) — fast interleaved correction as
 #   the way around the obstruction of Section 11.
 # * L. Leone, S. F. E. Oliviero and A. Hamma, *Stabilizer Rényi entropy*, Phys. Rev. Lett. **128**, 050402 (2022) —
-#   the definition of $M_\alpha$, Eq. (14), and its properties as a magic monotone.
+#   the definition of $M_\alpha$, Eq. (14), and its properties as a measure of magic (faithfulness, invariance under
+#   Clifford unitaries, additivity).
 # * D. Gottesman, *The Heisenberg representation of quantum computers*, in *Group22: Proceedings of the XXII
 #   International Colloquium on Group Theoretical Methods in Physics*, eds. S. P. Corney, R. Delbourgo and P. D. Jarvis
 #   (International Press, Cambridge MA, 1999), pp. 32–43; arXiv:quant-ph/9807006 — the stabilizer formalism and the

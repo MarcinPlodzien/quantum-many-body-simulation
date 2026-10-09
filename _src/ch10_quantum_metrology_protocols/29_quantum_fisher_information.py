@@ -2904,9 +2904,9 @@ for name, psi, n, gname in wit_states:
 # always: $\rho=\tfrac12(\vert00\rangle\langle00\vert+\vert11\rangle\langle11\vert)$ with $G=\tfrac12X_1$ has
 # $F_Q=4\mathrm{Var}(G)=1$, because the two components rotate in orthogonal subspaces and stay perfectly distinguishable.
 # So $4\,\mathrm{Var}(G)$ never *under*-estimates the quantum Fisher information: it is the right answer for pure states
-# and an upper bound for mixed ones. Notebook 30 shows the gap numerically (a proof of the inequality is in Tóth and
-# Apellaniz 2014), and notebook 36 measures how large it becomes for noisy states. Since the spectrum of $J_z$ has width
-# $N$, Eqs. (123) and (101) extend the Heisenberg bound $F_Q\le N^2$ to mixed states.
+# and an upper bound for mixed ones. Notebook 30 shows the gap numerically (the inequality is stated in Tóth and
+# Apellaniz 2014, Section 4.2), and notebook 36 measures how large it becomes for noisy states. Since the spectrum
+# of $J_z$ has width $N$, Eqs. (123) and (101) extend the Heisenberg bound $F_Q\le N^2$ to mixed states.
 #
 # Section 10.2 derived the quantum Fisher information of the dephased GHZ state exactly, Eq. (111), and checked it in
 # STEP 9. Here we compare the three standard single-qubit channels — depolarising, dephasing and amplitude damping —
@@ -3423,8 +3423,9 @@ fig.tight_layout(); plt.show()
 #
 # ## References
 #
-# * C. W. Helstrom, *Quantum Detection and Estimation Theory* (Academic Press, New York, 1976) — the book that founded
-#   quantum estimation theory; the symmetric logarithmic derivative and the quantum Cramér–Rao bound.
+# * C. W. Helstrom, *Quantum Detection and Estimation Theory* (Academic Press, New York, 1976) — the monograph that
+#   collects Helstrom's estimation theory, begun in C. W. Helstrom, *Minimum mean-squared error of estimates in quantum
+#   statistics*, Phys. Lett. A **25**, 101 (1967): the symmetric logarithmic derivative and the quantum Cramér–Rao bound.
 # * S. L. Braunstein and C. M. Caves, *Statistical distance and the geometry of quantum states*,
 #   Phys. Rev. Lett. **72**, 3439 (1994) — the inequality of Section 5.3: the classical Fisher information of every
 #   measurement is bounded by the quantum Fisher information, attained in the eigenbasis of the SLD; the geometric
@@ -3438,14 +3439,15 @@ fig.tight_layout(); plt.show()
 #   *Fisher information and multiparticle entanglement*, Phys. Rev. A **85**, 022321 (2012), and
 #   G. Tóth, *Multipartite entanglement and high-precision metrology*, Phys. Rev. A **85**, 022322 (2012) — Eq. (122),
 #   the entanglement-depth bound for $k$-producible states.
-# * M. G. A. Paris, *Quantum estimation for quantum technology*, Int. J. Quantum Inf. **7**, 125–137 (2009) — a compact and
-#   very readable review of everything in Sections 3–7.
+# * M. G. A. Paris, *Quantum estimation for quantum technology*, Int. J. Quantum Inf. **7**, 125–137 (2009) — a compact,
+#   readable review of local quantum estimation theory (Sections 4–6): the classical and quantum Cramér–Rao bounds, the SLD
+#   and its eigenbasis form, the optimal measurement, and the Bures-metric reading.
 # * L. Pezzè, A. Smerzi, M. K. Oberthaler, R. Schmied and P. Treutlein, *Quantum metrology with nonclassical states of
 #   atomic ensembles*, Rev. Mod. Phys. **90**, 035005 (2018) — the standard modern review; collective spins, Dicke states,
 #   squeezing, experiments.
 # * G. Tóth and I. Apellaniz, *Quantum metrology from a quantum information science perspective*,
-#   J. Phys. A **47**, 424006 (2014) — the entanglement-witness side of the QFI, with proofs of the convexity and of the
-#   $k$-producibility bounds.
+#   J. Phys. A **47**, 424006 (2014) — the entanglement-witness side of the QFI: convexity, $F_Q\le4\mathrm{Var}(G)$, the
+#   separable bound $F_Q\le N$ derived from convexity, and the $k$-producibility bounds of Hyllus et al. and Tóth.
 # * H. Cramér, *Mathematical Methods of Statistics* (Princeton University Press, 1946) — the classical Cramér–Rao bound and
 #   the asymptotic theory of maximum likelihood.
 # * E. L. Lehmann and G. Casella, *Theory of Point Estimation*, 2nd ed. (Springer, New York, 1998) — the information

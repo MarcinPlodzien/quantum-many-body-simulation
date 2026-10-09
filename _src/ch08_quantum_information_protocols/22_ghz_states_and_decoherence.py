@@ -18,9 +18,10 @@
 # The ion-trap experiments characterise the state through the quantities we compute here: the two extreme **populations**, the
 # **parity oscillation** that measures the coherence between them, and the **fidelity** built from the two.
 #
-# The state also has a place in the foundations of quantum mechanics. Greenberger, Horne and Zeilinger showed in 1989 that for
-# three or more qubits the conflict with local realism becomes an *all-or-nothing* contradiction: where CHSH is a statistical
-# inequality, here a single sign is predicted wrongly with certainty by every local-realistic model. We derive that contradiction
+# The state also has a place in the foundations of quantum mechanics. Greenberger, Horne and Zeilinger showed in 1989, for four
+# spin-$\tfrac12$ particles, that the conflict with local realism becomes an *all-or-nothing* contradiction, and Mermin (*Physics Today*, 1990)
+# reduced the argument to three: where CHSH is a statistical inequality, here a single sign is predicted wrongly with certainty
+# by every local-realistic model. We derive that contradiction
 # from the stabilisers in Section 5; it takes three lines once the algebra is set up.
 #
 # And it is the workhorse of quantum metrology: the phase accumulated by $\vert\mathrm{GHZ}_N\rangle$ is $N$ times faster than that
@@ -329,7 +330,8 @@ for N in (2, 3, 4, 5, 6, 8, 10, 12, 14):
 #
 # ### 5.2 The Greenberger–Horne–Zeilinger sign
 #
-# Here is a three-line consequence for $N=3$. Using $Y=iXZ$, i.e. $Y_1Y_2=-X_1X_2Z_1Z_2$,
+# Here is a three-line consequence for $N=3$, the three-particle form of the argument given by Mermin in *Physics Today* (1990).
+# Using $Y=iXZ$, i.e. $Y_1Y_2=-X_1X_2Z_1Z_2$,
 #
 # $$X_0Y_1Y_2=-\,X_0X_1X_2\,Z_1Z_2 .$$
 #
@@ -650,9 +652,9 @@ fig.tight_layout(); plt.show()
 # needs $\arg c=0$; in general $A=2\vert c\vert$ is the **amplitude of the parity fringe** of Eq. (3), so Eq. (4) with $A$ is an
 # *upper bound* on $F$, saturated when the fringe peaks at $\varphi=0$. Experiments arrange exactly that, or equivalently declare
 # the target to be $(\vert\bar0\rangle+e^{i\arg c}\vert\bar1\rangle)/\sqrt2$, which is GHZ up to one local $Z$ rotation.
-# That is the recipe of Sackett and co-workers (2000); Leibfried and co-workers (2005) write the same expression with
-# $\vert c\vert$ in place of $\mathrm{Re}\,c$. It needs two measurement settings and a fit, instead of the $3^N$ settings of
-# full tomography.
+# That is the recipe of Sackett and co-workers (2000) and of Leibfried and co-workers (2005); both write Eq. (4) with the
+# magnitude $\vert c\vert$ of the coherence, read off from the fringe amplitude. It needs two measurement settings and a fit,
+# instead of the $3^N$ settings of full tomography.
 #
 # ### 9.2 Proof that $F>1/2$ certifies genuine multipartite entanglement
 #
@@ -1830,10 +1832,13 @@ print(f"the two routes cross at N ~ {np.log(bench_rows[3][4] / bench_rows[3][2])
 #
 # ## References
 #
-# * D. M. Greenberger, M. A. Horne and A. Zeilinger, *Going beyond Bell's theorem*, in *Bell's Theorem, Quantum Theory, and
-#   Conceptions of the Universe*, ed. M. Kafatos (Kluwer, Dordrecht, 1989), pp. 69–72 — the state and the all-or-nothing argument.
+# * D. M. Greenberger, M. A. Horne and A. Zeilinger, *Going beyond Bell's theorem*, in *Bell's Theorem, Quantum Theory and
+#   Conceptions of the Universe*, ed. M. Kafatos (Kluwer, Dordrecht, 1989), pp. 69–72 — the state and the all-or-nothing argument, for four particles.
 # * N. D. Mermin, *Extreme quantum entanglement in a superposition of macroscopically distinct states*, Phys. Rev. Lett. **65**,
-#   1838 (1990) — the compact version of the GHZ contradiction used in Section 5.2.
+#   1838 (1990) — a Bell inequality for $N$ spins violated by an amount that grows exponentially with $N$; the many-body
+#   version pointed to at the end of Section 5.2.
+# * N. D. Mermin, *What's wrong with these elements of reality?*, Physics Today **43**(6), 9 (1990) — the three-particle form of
+#   the GHZ contradiction, with $x$ and $y$ spin measurements, used in Section 5.2.
 # * W. Dür, G. Vidal and J. I. Cirac, *Three qubits can be entangled in two inequivalent ways*, Phys. Rev. A **62**, 062314 (2000) —
 #   the GHZ/W classification of Section 16.
 # * C. A. Sackett, D. Kielpinski, B. E. King, C. Langer, V. Meyer, C. J. Myatt, M. Rowe, Q. A. Turchette, W. M. Itano,

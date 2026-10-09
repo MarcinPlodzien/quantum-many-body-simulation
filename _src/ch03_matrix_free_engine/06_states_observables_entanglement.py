@@ -20,14 +20,14 @@
 #    and that $\rho_A$ is *one einsum* away from the state tensor.
 # 2. **Entanglement measures** — numbers that quantify how strongly a part $A$ of the system is quantum-correlated with
 #    the rest $B$. The central object is the **Schmidt decomposition**, which is nothing but the singular value
-#    decomposition (SVD) of the state tensor reshaped into a matrix; from it we get the **entanglement entropy**.
+#    decomposition (SVD) of the state tensor reshaped into a matrix; from it we get the **entanglement entropy** (review: Horodecki *et al.* 2009).
 #
 # Entanglement entropy matters for three reasons.
 #
 # * It is *the* resource of quantum technologies: quantum-enhanced sensors, teleportation and quantum computers are
 #   useless without it (Chapters 8–11 of these notes).
 # * It decides **what can be simulated classically**. Ground states of local Hamiltonians carry very little entanglement
-#   (the *area law*) — this is the reason why matrix-product-state methods (DMRG, TEBD on MPS,
+#   (the *area law*, reviewed by Eisert, Cramer and Plenio 2010) — this is the reason why matrix-product-state methods (DMRG, TEBD on MPS, Schollwöck 2011;
 #   [notebook 18 (Chapter 7)](../ch07_tensor_networks/18_mps_tebd.ipynb)) handle hundreds of spins. A typical (random) state
 #   carries almost the maximum possible amount (the *volume law*, Page's value) — and no classical compression helps.
 # * It is a modern diagnostic of physics: quantum phase transitions, the dynamics of isolated many-body systems, even
@@ -152,9 +152,9 @@ assert err < TOL
 # | state | definition | what it is famous for |
 # |---|---|---|
 # | Bell $\Phi^\pm,\Psi^\pm$ | $(\vert 00\rangle\pm\vert 11\rangle)/\sqrt2$, $(\vert 01\rangle\pm\vert 10\rangle)/\sqrt2$ | maximally entangled pairs; teleportation, Bell inequalities |
-# | GHZ$_N$ | $(\vert 00\dots0\rangle+\vert 11\dots1\rangle)/\sqrt2$ | "Schrödinger cat"; Heisenberg-limited sensing; fragile |
-# | W$_N$ | $(\vert 10\dots0\rangle+\vert 01\dots0\rangle+\dots+\vert 0\dots01\rangle)/\sqrt N$ | one delocalised excitation (a spin wave); robust against particle loss |
-# | Dicke $D_N^k$ | equal superposition of all basis states with exactly $k$ ones | superradiance; eigenstates of the total spin; $W_N=D_N^1$ |
+# | GHZ$_N$ (Greenberger, Horne and Zeilinger 1989) | $(\vert 00\dots0\rangle+\vert 11\dots1\rangle)/\sqrt2$ | "Schrödinger cat"; Heisenberg-limited sensing; fragile |
+# | W$_N$ (Dür, Vidal and Cirac 2000) | $(\vert 10\dots0\rangle+\vert 01\dots0\rangle+\dots+\vert 0\dots01\rangle)/\sqrt N$ | one delocalised excitation (a spin wave); robust against particle loss |
+# | Dicke $D_N^k$ (Dicke 1954) | equal superposition of all basis states with exactly $k$ ones | superradiance; eigenstates of the total spin; $W_N=D_N^1$ |
 #
 # **JAX detail.** JAX arrays are immutable, so `psi[0,0,0] = x` does not exist; `psi.at[idx].set(x)` returns an updated
 # *copy* (notebook 01). For the Dicke state we need "the number of ones in the bit string" *as a tensor*
@@ -202,7 +202,7 @@ for name, psi, ref in (("GHZ_4", psi_ghz, ref_ghz), ("W_4", psi_w, ref_w), ("Dic
 # %% [markdown]
 # ### 2.3 The cluster state: a sign pattern
 #
-# The one-dimensional **cluster state** is the resource of measurement-based quantum computing and the simplest example of
+# The one-dimensional **cluster state** (Briegel and Raussendorf 2001) is the resource of measurement-based quantum computing and the simplest example of
 # a *graph state*. Its usual definition is operational: put every spin in $|+\rangle$, then apply the controlled-$Z$
 # operation $CZ=\mathrm{diag}(1,1,1,-1)$ on every bond $(q,q+1)$. $CZ$ is diagonal: it multiplies the amplitude by $-1$
 # when **both** spins are $1$ and does nothing otherwise, i.e. by $(-1)^{s_q s_{q+1}}$. Starting from the uniform
@@ -898,7 +898,7 @@ for string in ("XZYIII", "IZIIZI", "XXXXXX", "YIXZIY"):
 #
 # * For GHZ the operator $X^{\otimes N}$ flips all spins, $|0\dots0\rangle\leftrightarrow|1\dots1\rangle$, so $\langle X^{\otimes N}\rangle=+1$: a *genuine
 #   $N$-body* correlation. Replacing two $X$ by $Y$ gives $-1$ (since $Y|0\rangle=i|1\rangle$, $Y|1\rangle=-i|0\rangle$, two $Y$'s contribute $i^2=-1$) —
-#   the combination used in Mermin's version of Bell's theorem.
+#   the combination used in Mermin's $N$-spin Bell inequality (Mermin 1990).
 # * For the cluster state the operators $K_q=Z_{q-1}X_qZ_{q+1}$ (with the obvious truncation at the ends of the chain) all have $\langle K_q\rangle=+1$: the state is
 #   the common eigenstate of these $N$ commuting **stabilisers**, and it is completely defined by them. (*Why:* $|{+}\rangle^{\otimes N}$ is stabilised by $X_q$;
 #   conjugating $X_q$ with the $CZ$ gates on the two bonds touching $q$ gives $Z_{q-1}X_qZ_{q+1}$.)
@@ -1105,7 +1105,7 @@ assert max_abs(rebuilt - M) < TOL
 #
 # > **Numerical practice — why SVD and not `eigh(rho_A)`?** Not for the cost: both routes are $O(d_A^2d_B)$ for $d_A\le d_B$ (forming
 # > $MM^\dagger$ costs $d_A^2d_B$ and the subsequent `eigh` only $d_A^3$), so the two are of the same order and differ at most by a constant factor.
-# > The reason is **accuracy**. Both LAPACK routines are backward stable, which means an error of order $\varepsilon$ times the *largest* quantity
+# > The reason is **accuracy** (Golub and Van Loan 2013; Press *et al.* 2007, Sec. 2.6 and Ch. 11). Both LAPACK routines are backward stable, which means an error of order $\varepsilon$ times the *largest* quantity
 # > in the problem — but the two routes measure different quantities. `eigh(rho_A)` returns $p_k=\lambda_k^2$ with an absolute error
 # > $\sim\varepsilon\,p_1\approx10^{-16}$, so it resolves $\lambda_k$ only down to $\sqrt{10^{-16}}=10^{-8}$; everything below that is rounding
 # > noise. The SVD returns $\lambda_k$ itself with an absolute error $\sim\varepsilon\,\lambda_1\approx10^{-16}$, eight orders of magnitude deeper.
@@ -1260,7 +1260,7 @@ assert abs(float(entanglement_entropy(ghz_x, A_half)) - 1) < 1e3 * TOL
 # %% [markdown]
 # ## 8. Random states and the Page value
 #
-# The random state in the last figure almost saturated the bound. How entangled is a typical state *on average*? Page (1993) conjectured, and others soon proved, a closed formula for the mean entanglement entropy
+# The random state in the last figure almost saturated the bound. How entangled is a typical state *on average*? Page (1993) conjectured, and Foong and Kanno (1994) proved, a closed formula for the mean entanglement entropy
 # of Haar-random states in a Hilbert space of dimensions $d_A\le d_B$ (quoted without proof; in nats):
 #
 # $$\langle S_A\rangle=\sum_{k=d_B+1}^{d_Ad_B}\frac1k-\frac{d_A-1}{2d_B}\;\;\approx\;\;\ln d_A-\frac{d_A}{2d_B}\quad(d_A,d_B\gg1).$$
@@ -1320,14 +1320,14 @@ print(f"half-chain deficit  N/2 - <S> = {N / 2 - mean[N // 2 - 1]:.4f} bits    (
 # * The half-chain deficit is already within about $10^{-3}$ bit of the asymptotic constant $1/(2\ln2)$ at $N=10$.
 #
 # > **Physics insight.** A subsystem of a random pure state is, to exponential accuracy, *maximally mixed*: no measurement on the subsystem alone can tell it apart from $\mathbb 1/2^{\ell}$, although the global state is pure.
-# > All the information sits in the correlations between the subsystem and the rest. Page introduced this model to discuss the entropy of Hawking radiation.
+# > All the information sits in the correlations between the subsystem and the rest. In a companion paper Page used this result to follow the information carried by Hawking radiation (Page 1993, *Information in black hole radiation*).
 
 # %% [markdown]
 # ## 9. Area law versus volume law: ground states are special
 #
 # Random states are the overwhelming majority of the Hilbert space, but they are not the lowest-energy states of physical Hamiltonians. **Ground states of local Hamiltonians are extremely atypical.**
 # For a gapped one-dimensional Hamiltonian with short-range interactions, Hastings proved (2007) that the entanglement entropy of a block is bounded by a constant independent of its length —
-# the **area law** (in 1D the "area" of the boundary of a block is just a point or two). At a quantum critical point the gap closes and conformal field theory (Calabrese and Cardy, 2004) predicts a mild, logarithmic violation; for an open chain
+# the **area law** (in 1D the "area" of the boundary of a block is just a point or two). At a quantum critical point the gap closes and the entropy grows logarithmically, as found for critical spin chains by Vidal, Latorre, Rico and Kitaev (2003); conformal field theory (Calabrese and Cardy, 2004) gives the form of this mild violation; for an open chain
 #
 # $$S(\ell)=\frac c6\,\ln\!\Big[\frac{2N}{\pi}\sin\frac{\pi\ell}{N}\Big]+\text{const}\qquad\text{(nats)},$$
 #
@@ -1520,7 +1520,7 @@ for label, p in spectra.items():
 # $$ e^{ik_jN}=\prod_{l\neq j}\Big(-\frac{1+e^{i(k_j+k_l)}-2\Delta e^{ik_j}}{1+e^{i(k_j+k_l)}-2\Delta e^{ik_l}}\Big),\qquad j=1,\dots,M . \tag{11}$$
 #
 # Their solutions give the exact spectrum. Bethe solved $\Delta=1$; Yang and Yang (1966) proved the ansatz for the ground state and analysed all
-# $\Delta$. The ground-state phases in the thermodynamic limit are (quoted):
+# $\Delta$. The ground-state phases in the thermodynamic limit are (quoted; see Takahashi 1999 and Giamarchi 2003):
 #
 # | anisotropy | phase | ground state |
 # |---|---|---|
@@ -1566,8 +1566,9 @@ for Delta_ring in (0.5, -2.0):
 # same rotation turns the uniform field into a staggered one, so the phase diagram is not symmetric under $\Delta\to-\Delta$.
 #
 # **Symmetries and order.** The ferromagnet spontaneously breaks the spin flip $P$ (all up versus all down); the Néel state breaks $P$ and the
-# translation by one site. In the critical phase nothing is broken: a *continuous* symmetry like $U(1)$ cannot be broken spontaneously in a
-# one-dimensional quantum chain, and its place is taken by power-law correlations ("quasi-long-range order"). Once the field has removed the
+# translation by one site. In the critical phase nothing is broken: a *continuous* symmetry like $U(1)$ is not broken spontaneously in the
+# ground state of a one-dimensional quantum chain (the field-theory statement in 1+1 dimensions is Coleman's theorem, Coleman 1973; the ferromagnet,
+# whose order parameter commutes with $H$, is the exception), and its place is taken by power-law correlations ("quasi-long-range order"). Once the field has removed the
 # $U(1)$, only the $\mathbb Z_2$ symmetry $P$ remains, and it can be broken; the literature finds that the field opens a gap in the critical
 # phase and induces antiferromagnetic order along $y$, the direction perpendicular to both the anisotropy axis and the field
 # (Dmitriev, Krivnov and Ovchinnikov 2002). We test this below.
@@ -1601,7 +1602,7 @@ for Delta_ring in (0.5, -2.0):
 # criticality; the physical gap is the one to the next level in the same sector, and it stays finite. This is why we compute the gap within a sector.
 #
 # **An exact example of a closing gap.** At $\Delta=0$, $h_x=0$ the chain is the XX chain. With $\sigma^\pm=(X\pm iY)/2$ one has
-# $X_iX_{i+1}+Y_iY_{i+1}=2(\sigma^+_i\sigma^-_{i+1}+\sigma^-_i\sigma^+_{i+1})$, and the Jordan–Wigner transformation (quoted here) turns every
+# $X_iX_{i+1}+Y_iY_{i+1}=2(\sigma^+_i\sigma^-_{i+1}+\sigma^-_i\sigma^+_{i+1})$, and the Jordan–Wigner transformation (Jordan and Wigner 1928; applied to this chain by Lieb, Schultz and Mattis 1961; quoted here) turns every
 # $\sigma^+_i\sigma^-_{i+1}$ into a fermion hopping $c_i^\dagger c_{i+1}$. The Hamiltonian becomes a free-fermion hopping problem,
 #
 # $$ H=2\sum_{i=0}^{N-2}\big(c_i^\dagger c_{i+1}+c_{i+1}^\dagger c_i\big),\qquad
@@ -2056,9 +2057,9 @@ ax.legend(fontsize=8); fig.tight_layout(); plt.show()
 # * R. H. Dicke, *Coherence in spontaneous radiation processes*, Phys. Rev. **93**, 99 (1954).
 # * H. J. Briegel and R. Raussendorf, *Persistent entanglement in arrays of interacting particles*, Phys. Rev. Lett. **86**, 910 (2001) — cluster states.
 # * C. A. Fuchs and J. van de Graaf, *Cryptographic distinguishability measures for quantum-mechanical states*, IEEE Trans. Inf. Theory **45**, 1216 (1999).
-# * D. N. Page, *Average entropy of a subsystem*, Phys. Rev. Lett. **71**, 1291 (1993); proof: S. K. Foong and S. Kanno, *Proof of Page's conjecture on the average entropy of a subsystem*, Phys. Rev. Lett. **72**, 1148–1151 (1994).
-# * M. B. Hastings, *An area law for one-dimensional quantum systems*, J. Stat. Mech. **2007**, P08024 (2007); J. Eisert, M. Cramer, M. B. Plenio, *Area laws for the entanglement entropy*, Rev. Mod. Phys. **82**, 277 (2010).
-# * P. Calabrese and J. Cardy, *Entanglement entropy and quantum field theory*, J. Stat. Mech. **2004**, P06002 (2004) — the $\tfrac c6\ln[(2N/\pi)\sin(\pi\ell/N)]$ formula for an open chain and its $\tfrac c3$ counterpart for a ring.
+# * D. N. Page, *Average entropy of a subsystem*, Phys. Rev. Lett. **71**, 1291 (1993); D. N. Page, *Information in black hole radiation*, Phys. Rev. Lett. **71**, 3743 (1993); proof: S. K. Foong and S. Kanno, *Proof of Page's conjecture on the average entropy of a subsystem*, Phys. Rev. Lett. **72**, 1148–1151 (1994).
+# * M. B. Hastings, *An area law for one-dimensional quantum systems*, J. Stat. Mech. **2007**, P08024 (2007); J. Eisert, M. Cramer, M. B. Plenio, *Colloquium: Area laws for the entanglement entropy*, Rev. Mod. Phys. **82**, 277 (2010).
+# * P. Calabrese and J. Cardy, *Entanglement entropy and quantum field theory*, J. Stat. Mech. **2004**, P06002 (2004) — the $\tfrac c6\ln[(N/\pi)\sin(\pi\ell/N)]+\text{const}$ formula for an open chain (their Eq. 2; the form with $2N/\pi$ used in Section 9 differs only in the constant) and its $\tfrac c3$ counterpart for a ring.
 # * U. Schollwöck, *The density-matrix renormalization group in the age of matrix product states*, Ann. Phys. **326**, 96 (2011).
 # * G. H. Golub and C. F. Van Loan, *Matrix Computations*, 4th ed. (Johns Hopkins University Press, 2013) — SVD, its backward stability and the error bounds quoted in Section 6.3.
 # * W. H. Press, S. A. Teukolsky, W. T. Vetterling, B. P. Flannery, *Numerical Recipes: The Art of Scientific Computing*, 3rd ed. (Cambridge University Press, 2007) — Ch. 2.6 (singular value decomposition) and Ch. 11 (eigensystems); the parallel volume *Numerical Recipes in Fortran 90*, 2nd ed. (Cambridge University Press, 1996).
@@ -2068,5 +2069,5 @@ ax.legend(fontsize=8); fig.tight_layout(); plt.show()
 # * D. V. Dmitriev, V. Ya. Krivnov and A. A. Ovchinnikov, *Gap generation in the XXZ model in a transverse magnetic field*, Phys. Rev. B **65**, 172409 (2002).
 # * P. Jordan and E. Wigner, *Über das Paulische Äquivalenzverbot*, Z. Phys. **47**, 631–651 (1928); E. Lieb, T. Schultz and D. Mattis, *Two soluble models of an antiferromagnetic chain*, Ann. Phys. **16**, 407–466 (1961) — the XX chain as free fermions.
 # * T. Giamarchi, *Quantum Physics in One Dimension* (Oxford University Press, 2003) — Luttinger liquids and the critical phase of the XXZ chain.
-# * S. Coleman, *There are no Goldstone bosons in two dimensions*, Commun. Math. Phys. **31**, 259–264 (1973) — no spontaneous breaking of a continuous symmetry in a one-dimensional quantum chain.
+# * S. Coleman, *There are no Goldstone bosons in two dimensions*, Commun. Math. Phys. **31**, 259–264 (1973) — no spontaneous breaking of a continuous symmetry in a quantum field theory in two space-time dimensions.
 # * G. Vidal, J. I. Latorre, E. Rico and A. Kitaev, *Entanglement in quantum critical phenomena*, Phys. Rev. Lett. **90**, 227902 (2003).

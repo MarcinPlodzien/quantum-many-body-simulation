@@ -16,7 +16,8 @@
 # well and states of other phases badly. Kottmann, Huembeli, Lewenstein and Acín (2020) used deep neural networks
 # trained for anomaly detection to map the phase diagram of the extended Bose–Hubbard model without supervision. Kottmann, Metz,
 # Fraxanet and Baldelli (2021) proposed a quantum version, *variational quantum anomaly detection*, which processes the
-# ground states on the same quantum device that prepares them. Its circuit is modelled on the quantum autoencoder
+# ground states on the same quantum device that prepares them. Its circuit is modelled on the quantum autoencoder of
+# Romero, Olson and Aspuru-Guzik (2017)
 # ([notebook 45](../ch11_variational_quantum_circuits/45_quantum_autoencoder.ipynb)): an encoder is trained to drive a
 # few **trash qubits** of one input state into $\vert0\cdots0\rangle$, and for any other input the residual excitation of
 # the trash qubits is the anomaly score. They report that a single ground state was enough training data to infer
@@ -358,8 +359,8 @@ def grid_index(delta, hx):
 # chain), and the half-chain entanglement entropy $S_{N/2}$ in bits. Two further maps need no choice of operator. The
 # **neighbour infidelity** $1-\vert\langle\psi_0(\lambda)\vert\psi_0(\lambda')\rangle\vert^2$, with $\lambda'$ the next grid
 # point to the right or above (the larger of the two is shown), is the finite-difference form of the ground-state
-# fidelity of notebook 47, Section 7: small where the state changes smoothly, close to $1$ where it jumps. The parity
-# of the ground state marks the level crossings between the two sectors.
+# fidelity of notebook 47, Section 7 (Zanardi and Paunković, 2006): small where the state changes smoothly, close to
+# $1$ where it jumps. The parity of the ground state marks the level crossings between the two sectors.
 
 # %%
 # ==============================================================================

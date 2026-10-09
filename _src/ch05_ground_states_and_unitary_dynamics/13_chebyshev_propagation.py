@@ -31,9 +31,10 @@
 #
 # where $T_k$ are Chebyshev polynomials, $J_k$ are Bessel functions and $a,b$ rescale the spectrum of $H$ into $[-1,1]$.
 # Its error decays **faster than exponentially** once $K$ exceeds $at$: going from 4 to 13 digits costs 26 extra
-# applications of $H$ (103 → 129 in the example of §12). This propagator was introduced in quantum molecular dynamics by Tal-Ezer and Kosloff (1984) and
-# is today a standard tool for exact dynamics of spin chains, quantum chaos and entanglement growth, time-dependent
-# spectral functions, and everywhere a *numerically exact* reference is needed for $N \sim 20$–$30$ spins.
+# applications of $H$ (103 → 129 in the example of §12). This propagator was introduced in quantum molecular dynamics by Tal-Ezer and Kosloff (1984), was recommended for time-independent
+# Hamiltonians in the comparison of propagation schemes by Leforestier *et al.* (1991), and is today a standard tool for exact dynamics of spin chains, quantum chaos and entanglement growth, time-dependent
+# spectral functions, and everywhere a *numerically exact* reference is needed for $N \sim 20$–$30$ spins (Fehske *et al.* 2009 benchmark it
+# against other time-evolution schemes).
 #
 # **Road map.** We assume you have never met Chebyshev polynomials or Bessel functions.
 #
@@ -156,7 +157,7 @@ plt.show()
 #
 # ### 3.1 Definition and recurrence
 #
-# For $x\in[-1,1]$ write $x=\cos\theta$ with $\theta\in[0,\pi]$. The **Chebyshev polynomial (of the first kind) of degree $k$** is defined by
+# For $x\in[-1,1]$ write $x=\cos\theta$ with $\theta\in[0,\pi]$. The **Chebyshev polynomial (of the first kind) of degree $k$** is defined by (Mason and Handscomb 2003, Ch. 1; Press *et al.* 2007, §5.8)
 #
 # $$ T_k(\cos\theta) = \cos(k\theta) \qquad\Longleftrightarrow\qquad T_k(x) = \cos\!\big(k \arccos x\big). \qquad (2)$$
 #
@@ -272,7 +273,7 @@ print(f"orthogonality: max |Gram - diag(pi, pi/2, ...)| = {np.max(np.abs(gram - 
 assert np.max(np.abs(gram - expected)) < 1e3 * TOL
 
 # %% [markdown]
-# > **Numerical practice.** The midpoint (or trapezoidal) rule converges *exponentially* fast for smooth periodic integrands —
+# > **Numerical practice.** The midpoint (or trapezoidal) rule converges *exponentially* fast for smooth periodic integrands (Trefethen and Weideman 2014) —
 # > much better than its textbook $\mathcal{O}(h^2)$, which is the worst case for non-periodic functions. We will use it again
 # > in the next section to compute Bessel functions from their integral definition.
 
@@ -308,7 +309,7 @@ assert np.max(np.abs(gram - expected)) < 1e3 * TOL
 #
 # ### From formula to code
 # We compute $J_k(z)$ in two independent ways: (i) from the definition (6) with the midpoint rule of §3 (a few lines of NumPy,
-# vectorised over $k$), and (ii) with the library routine `scipy.special.jv`. In production we use (ii); (i) is our checkpoint
+# vectorised over $k$), and (ii) with the library routine `scipy.special.jv` (library routines of this kind are described in Press *et al.* 2007, §6.5). In production we use (ii); (i) is our checkpoint
 # that we understood the definition (and the library's conventions).
 
 # %%
@@ -1372,7 +1373,7 @@ plt.show()
 #
 # * H. Tal-Ezer and R. Kosloff, *An accurate and efficient scheme for propagating the time dependent Schrödinger equation*, J. Chem. Phys. **81**, 3967 (1984) — the original Chebyshev propagator.
 # * C. Leforestier *et al.*, *A comparison of different propagation schemes for the time dependent Schrödinger equation*, J. Comput. Phys. **94**, 59 (1991).
-# * A. Weiße, G. Wellein, A. Alvermann and H. Fehske, *The kernel polynomial method*, Rev. Mod. Phys. **78**, 275 (2006) — Chebyshev expansions for spectral functions and dynamics of many-body systems.
+# * A. Weiße, G. Wellein, A. Alvermann and H. Fehske, *The kernel polynomial method*, Rev. Mod. Phys. **78**, 275 (2006) — Chebyshev expansions for densities of states, spectral functions and dynamical correlation functions, with damping kernels (Jackson kernel).
 # * H. Fehske, J. Schleede, G. Schubert, G. Wellein, V. S. Filinov and A. R. Bishop, *Numerical approaches to time evolution of complex quantum systems*, Phys. Lett. A **373**, 2182 (2009).
 # * C. Moler and C. Van Loan, *Nineteen dubious ways to compute the exponential of a matrix, twenty-five years later*, SIAM Review **45**, 3 (2003).
 # * M. Abramowitz and I. A. Stegun (eds.), *Handbook of Mathematical Functions with Formulas, Graphs, and Mathematical Tables*, Dover, New York (1965;
@@ -1380,8 +1381,9 @@ plt.show()
 #   representations, 9.1.62 upper bound, 9.3 asymptotics for large order) and chapter 22 (orthogonal polynomials). Its modern successor is the NIST Digital
 #   Library of Mathematical Functions, https://dlmf.nist.gov (10.9.2 and 10.14.4 are the same two formulas).
 # * L. N. Trefethen, *Approximation Theory and Approximation Practice*, Other Titles in Applied Mathematics **128**, SIAM (2013) — why Chebyshev expansions are
-#   near-optimal polynomial approximations (Ch. 16); the trapezoidal rule for periodic functions.
+#   near-optimal polynomial approximations (Ch. 16, "Best and Near-Best").
 # * J. C. Mason and D. C. Handscomb, *Chebyshev Polynomials*, Chapman & Hall/CRC, Boca Raton (2003), ISBN 978-0-8493-0355-5.
+* L. N. Trefethen and J. A. C. Weideman, *The exponentially convergent trapezoidal rule*, SIAM Review **56**, 385–458 (2014).
 # * W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes: The Art of Scientific Computing*, 3rd ed., Cambridge University Press
 #   (2007) — §5.8 Chebyshev approximation, §6.5 Bessel functions of integer order; and *Numerical Recipes in Fortran 90: The Art of Parallel Scientific
 #   Computing*, 2nd ed., Cambridge University Press (1996).

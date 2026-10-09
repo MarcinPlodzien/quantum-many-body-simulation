@@ -88,16 +88,17 @@
 # construction. Havlíček *et al.* ran the method on two superconducting qubits and conjectured that kernels of circuits
 # of the type used here become hard to estimate classically when the circuits grow; no proof of this hardness is
 # known. Liu, Arunachalam and Temme (2021) constructed a classification problem, based on the discrete logarithm, that
-# a quantum-kernel SVM solves while no classical learner does better than random guessing, provided the discrete
-# logarithm is classically hard. This is a proof of principle with data built for the purpose and feature-map circuits
-# designed for a fault-tolerant quantum computer. Huang *et al.* (2021) showed that classical learners that are
-# given data can be competitive with quantum models even on problems derived from quantum circuits, and developed a
-# method, based on prediction-error bounds, for assessing whether a quantum kernel can have an advantage on a given data
-# set. Thanasilp *et al.* (2024) identified a general obstacle: for expressive encodings, entangled encoded states,
-# global measurements or noise, the kernel values of different inputs concentrate exponentially in $N$ around a fixed
-# value, and resolving them requires exponentially many shots. Section 8 measures this effect. No practically relevant
-# classical data set is known on which a quantum kernel has been shown to beat the best classical methods, and the
-# rings of this notebook are classified equally well by a classical Gaussian kernel (Section 6).
+# a quantum-kernel SVM solves with high accuracy while no classical learner classifies it inverse-polynomially better
+# than random guessing, provided the discrete logarithm is classically hard. This is a proof of principle with data
+# built for the purpose and feature-map circuits designed for a fault-tolerant quantum computer. Huang *et al.* (2021)
+# showed that classical learners that are given data can be competitive with quantum models even on problems derived
+# from quantum circuits, and developed a method, based on prediction-error bounds, for assessing whether a quantum
+# kernel can have an advantage on a given data set. Thanasilp *et al.* (2024) identified a general obstacle: for
+# expressive encodings, entangled encoded states, global measurements or noise, the kernel values of different inputs
+# concentrate exponentially in $N$ around a fixed value, and resolving them requires exponentially many shots.
+# Section 8 measures this effect. No practically relevant classical data set is known on which a quantum kernel has
+# been shown to beat the best classical methods, and the rings of this notebook are classified equally well by a
+# classical Gaussian kernel (Section 6).
 #
 # ### 1.5 Road map
 #
@@ -889,8 +890,8 @@ assert lam_fid[0] > -TOL * 1e3 and lam_abs[0] < -0.05
 # bandwidth $\gamma_{\rm eff}=Ns^2/d$. This identifies the role of the two encoding parameters: increasing $N$ at fixed
 # $s$ narrows the kernel as increasing $\gamma$ does, and keeping $Ns^2$ fixed keeps the kernel approximately
 # unchanged, exactly in the Gaussian limit. Shaydulin
-# and Wild (2022) introduced the data scale as the bandwidth of quantum kernels and showed, on several kernels and data
-# sets, that it moves the model from overfitting to underfitting and that optimising it counteracts the decay of
+# and Wild (2022) identified the data scale as the bandwidth of quantum kernels and showed, on several kernels and data
+# sets, that it moves the model between underfitting and overfitting and that optimising it counteracts the decay of
 # kernel values with the number of qubits.
 # The cell checks Eq. (18) and the first equality of Eq. (19) exactly, and the Gaussian approximation for a small scale.
 

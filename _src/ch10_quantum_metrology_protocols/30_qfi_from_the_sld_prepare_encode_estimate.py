@@ -473,8 +473,9 @@ assert tr_abs < 1e3 * TOL and max_abs(dm - dm.conj().T) < 1e3 * TOL
 # $\lambda_m\to0$ approach a finite limit from either side but are simply absent at $\theta_\ast$ itself. A one-qubit
 # example is $\rho_\theta=\mathrm{diag}(1-\theta^2,\theta^2)$, for which Eq. (11) gives
 # $F_Q=4+4\theta^2/(1-\theta^2)\to4$ as $\theta\to0$ but $F_Q=0$ at $\theta=0$, where $\partial_\theta\rho$ vanishes.
-# At such a point the Cramér–Rao bound built from $F_Q$ may be unattainable, and the right object is the limiting value
-# (Šafránek 2017; Seveso, Albarelli, Genoni and Paris 2020). The noise sweeps of Section 10 do **not** hit this: there the
+# At such a point the classical and quantum Cramér–Rao theorems do not hold and the bound built from $F_Q$ can be
+# violated (Seveso, Albarelli, Genoni and Paris 2020), while the Bures metric gives the continuous extension, i.e. the
+# limiting value (Šafránek 2017). The noise sweeps of Section 10 do **not** hit this: there the
 # rank changes as a function of the *noise strength*, not of $\theta$, and $F_Q$ is continuous there — as $p\to0$ the
 # dephased and depolarised GHZ states return smoothly to the pure-state value $N^2=16$.
 #
@@ -1814,8 +1815,8 @@ fig.tight_layout(); plt.show()
 # * C. W. Helstrom, *Quantum Detection and Estimation Theory*, Mathematics in Science and Engineering vol. 123
 #   (Academic Press, New York, 1976) — the symmetric logarithmic derivative, Eq. (6), and the quantum Cramér–Rao bound.
 # * A. S. Holevo, *Probabilistic and Statistical Aspects of Quantum Theory* (North-Holland, Amsterdam, 1982; 2nd ed.,
-#   Edizioni della Normale, Pisa, 2011) — the other founding monograph of quantum estimation theory, and the source of
-#   the general POVM formulation used in Section 8.
+#   Edizioni della Normale, Pisa, 2011) — the other classic monograph of quantum estimation theory, formulated
+#   throughout with general measurements (resolutions of the identity, the POVMs of Section 8).
 # * S. L. Braunstein and C. M. Caves, *Statistical distance and the geometry of quantum states*,
 #   Phys. Rev. Lett. **72**, 3439 (1994) — the theorem of Section 8: the classical Fisher information of any POVM is bounded
 #   by $\mathrm{Tr}(\rho L^2)$, with equality in the eigenbasis of $L$; also the Bures-metric interpretation, Eq. (13).

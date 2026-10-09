@@ -231,7 +231,7 @@
 # $$ y_{k+1} = 0.4\,y_k + 0.4\,y_k y_{k-1} + 0.6\,u_k^3 + 0.1, \tag{6}$$
 #
 # and the $n$-th order form that the reservoir-computing literature calls NARMA-$n$ (introduced for $n=10$ by Atiya and
-# Parlos; the general form with the coefficients $0.3,0.05,1.5,0.1$ for any $n$ is written down by Fujii and Nakajima),
+# Parlos; Fujii and Nakajima use the same coefficients $0.3,0.05,1.5,0.1$ for $n=5,10,15,20$),
 #
 # $$ y_{k+1} = 0.3\,y_k + 0.05\,y_k\sum_{i=0}^{n-1}y_{k-i} + 1.5\,u_{k-n+1}u_k + 0.1 . \tag{7}$$
 #
@@ -549,11 +549,11 @@ for n, f in [("NARMA-2 ", narma2(u_demo)), ("NARMA-5 ", narma_n(u_demo, 5)), ("N
 # $\langle X_iX_j\rangle$ for all pairs from the same shots; likewise for $Y$ and $Z$. Observables from different settings do
 # not commute and cannot be obtained from the same run — a fact that Section 9 has to pay for.
 #
-# **Temporal multiplexing.** Fujii and Nakajima's device for getting more features out of the same hardware: instead of
-# reading only at the end of the interval $\tau$, read $V$ times at $\tau/V,2\tau/V,\dots,\tau$. The $V$ snapshots are
-# different functions of the same history — the dynamics has run for different times — so the feature vector becomes
-# $p=V p_0$ long at no cost in qubits. The $V$ sub-states are not independent, and Section 6 measures how much the
-# extra columns buy.
+# **Temporal multiplexing.** The device Fujii and Nakajima use (their *virtual nodes*) for getting more features out of the
+# same hardware: instead of reading only at the end of the interval $\tau$, read $V$ times at $\tau/V,2\tau/V,\dots,\tau$.
+# The $V$ snapshots are different functions of the same history — the dynamics has run for different times — so the
+# feature vector becomes $p=V p_0$ long at no cost in qubits. The $V$ sub-states are not independent, and Section 6
+# measures how much the extra columns buy.
 #
 # ### 3.6 Where the nonlinearity comes from
 #
@@ -1727,11 +1727,11 @@ print(f"\nsingle configuration shown in the left panel: reservoir 0, V=4, h=1: N
 #    Eq. (13) needs three settings, so $M$ repetitions per feature means $3M$ runs.
 # 2. **The measurement destroys the state.** To read the reservoir at step $k$ and then continue to step $k+1$ with the
 #    *same* state is not possible. If the whole input sequence up to step $k$ is replayed for every readout time (the
-#    *restarting* protocol of earlier work), the experimental time grows quadratically with the length of the series. Mujal,
-#    Martínez-Peña, Giorgi, Soriano and Zambrini named and analysed this protocol and proposed two ways out: a *rewinding*
-#    protocol that replays only the last stretch of the input, using the fading memory established in Section 5 (linear
-#    instead of quadratic cost), and an *online* protocol with weak measurements that never repeats the dynamics but pays with
-#    measurement back-action.
+#    *restarting* protocol of earlier work), the experimental time grows quadratically with the length of the series.
+#    Chen, Nurdin and Yamamoto (2020) already noted this cost and its remedy: replay only the last stretch of the input,
+#    using the fading memory established in Section 5 (linear instead of quadratic cost). Mujal, Martínez-Peña, Giorgi,
+#    Soriano and Zambrini (2023) named and compared the protocols — *restarting*, this *rewinding* one, and an *online* protocol of their own
+#    with weak measurements that never repeats the dynamics but pays with measurement back-action.
 # 3. **The noise enters the regression**, in two places: in the training features, where it changes the fitted weights,
 #    and in the test features, where it adds to every prediction. Section 9.1 derives both.
 #
@@ -1929,8 +1929,8 @@ plt.tight_layout(); plt.show()
 # the sequence **for every readout time**, because the three settings are incompatible and a projective measurement destroys
 # the state: $M=10^3$ is $3000$ runs per time step, and with $1100$ usable time steps that is $3\cdot10^6$ runs of an
 # experiment whose length itself grows with the step index. This is the quadratic cost of the restarting protocol, and the
-# reason for the rewinding protocol of Mujal *et al.* (replay only the last few memory times of the input, about ten to
-# twenty steps at $\tau=0.5$ according to Section 5) and for their weak-measurement online protocol.
+# reason for the rewinding protocol (replay only the last few memory times of the input, about ten to twenty steps at
+# $\tau=0.5$ according to Section 5) and for the weak-measurement online protocol of Mujal *et al.*
 #
 # The second panel and the printed $\alpha$ values test the first prediction of Section 9.1. The validation curve is flat
 # from $\alpha=10^{-6}$ to $\alpha\approx10$ at every noise level, the $\alpha$ chosen on the validation block jumps between
@@ -2197,7 +2197,7 @@ print(f"\nN = {N_QUBITS}: {M_bench} trajectories over {len(u_bench)} steps: comp
 # 3. W. Maass, T. Natschläger and H. Markram, *Real-time computing without stable states: a new framework for neural
 #    computation based on perturbations*, Neural Computation **14**, 2531 (2002).
 # 4. H. Jaeger and H. Haas, *Harnessing nonlinearity: predicting chaotic systems and saving energy in wireless
-#    communication*, Science **304**, 78 (2004).
+#    communication*, Science **304**, 78 (2004). Echo-state networks applied to chaotic time-series prediction.
 # 5. M. Lukoševičius and H. Jaeger, *Reservoir computing approaches to recurrent neural network training*, Computer
 #    Science Review **3**, 127 (2009).
 # 6. I. B. Yildiz, H. Jaeger and S. J. Kiebel, *Re-visiting the echo state property*, Neural Networks **35**, 1 (2012).
@@ -2206,16 +2206,18 @@ print(f"\nN = {N_QUBITS}: {M_bench} trajectories over {len(u_bench)} steps: comp
 # 8. K. Fujii and K. Nakajima, *Harnessing disordered-ensemble quantum dynamics for machine learning*, Physical Review
 #    Applied **8**, 024030 (2017).
 # 9. K. Nakajima, K. Fujii, M. Negoro, K. Mitarai and M. Kitagawa, *Boosting computational power through spatial
-#    multiplexing in quantum reservoir computing*, Physical Review Applied **11**, 034021 (2019).
+#    multiplexing in quantum reservoir computing*, Physical Review Applied **11**, 034021 (2019). Several disjoint
+#    quantum reservoirs read out by one linear readout.
 # 10. J. Chen and H. I. Nurdin, *Learning nonlinear input-output maps with dissipative quantum systems*, Quantum
 #     Information Processing **18**, 198 (2019).
 # 11. J. Chen, H. I. Nurdin and N. Yamamoto, *Temporal information processing on noisy quantum computers*, Physical Review
-#     Applied **14**, 024065 (2020).
+#     Applied **14**, 024065 (2020). Quantum reservoirs on superconducting quantum computers; the quadratic cost of
+#     replaying the input and its reduction through fading memory.
 # 12. R. Martínez-Peña, G. L. Giorgi, J. Nokkala, M. C. Soriano and R. Zambrini, *Dynamical phase transitions in quantum
 #     reservoir computing*, Physical Review Letters **127**, 100502 (2021).
 # 13. P. Mujal, R. Martínez-Peña, J. Nokkala, J. García-Beni, G. L. Giorgi, M. C. Soriano and R. Zambrini,
 #     *Opportunities in quantum reservoir computing and extreme learning machines*, Advanced Quantum Technologies **4**,
-#     2100027 (2021).
+#     2100027 (2021). A review of quantum reservoir computing.
 # 14. P. Mujal, R. Martínez-Peña, G. L. Giorgi, M. C. Soriano and R. Zambrini, *Time-series quantum reservoir computing
 #     with weak and projective measurements*, npj Quantum Information **9**, 16 (2023).
 # 15. A. S. Weigend and N. A. Gershenfeld (editors), *Time Series Prediction: Forecasting the Future and Understanding the
@@ -2225,6 +2227,7 @@ print(f"\nN = {N_QUBITS}: {M_bench} trajectories over {len(u_bench)} steps: comp
 #     single-mode far-infrared NH3 laser*, Physical Review A **40**, 6354 (1989).
 # 16. A. F. Atiya and A. G. Parlos, *New results on recurrent network training: unifying the algorithms and accelerating
 #     convergence*, IEEE Transactions on Neural Networks **11**, 697 (2000). Source of the second-order system of Eq. (6)
-#     and of the tenth-order system that the reservoir-computing literature calls NARMA-10; the general NARMA-$n$ form of
-#     Eq. (7) is written down by Fujii and Nakajima (Ref. 8). NARMA-10 with inputs in $[0,0.5]$ is also the benchmark of
-#     A. Rodan and P. Tiňo, *Minimum complexity echo state network*, IEEE Transactions on Neural Networks **22**, 131 (2011).
+#     and of the tenth-order system that the reservoir-computing literature calls NARMA-10; Fujii and Nakajima (Ref. 8,
+#     their Eq. (18)) use the NARMA-$n$ form of Eq. (7) with these coefficients for $n=5,10,15,20$. NARMA-10 is also a
+#     benchmark of A. Rodan and P. Tiňo, *Minimum complexity echo state network*, IEEE Transactions on Neural Networks
+#     **22**, 131 (2011).

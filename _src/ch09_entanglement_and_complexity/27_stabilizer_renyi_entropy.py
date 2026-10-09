@@ -667,10 +667,10 @@ plt.show()
 # unitaries, computational-basis measurements, discarding qubits and adding fresh stabilizer states. Section 6.3 disposes of
 # the Clifford part for all $\alpha$; measurements are the hard case, and the literature settled it only recently.
 #
-# * Haug and Piroli (2023) construct explicit counterexamples showing that for Renyi index $0\le\alpha<2$ the stabilizer
-#   entropies are **not** monotones under stabilizer protocols that include computational-basis measurements — not even
-#   restricted to pure states — and that for **every** $\alpha$ they fail a *strong* monotonicity condition (monotonicity of
-#   the average over measurement outcomes).
+# * Haug and Piroli (Quantum 2023) construct explicit counterexamples showing that for Renyi index $0\le\alpha<2$ the
+#   stabilizer entropies are **not** monotones under stabilizer protocols that include computational-basis
+#   measurements — not even restricted to pure states — and that for **every** $\alpha$ they fail a *strong*
+#   monotonicity condition (monotonicity of the average over measurement outcomes).
 # * Leone and Bittel (2024) close the remaining case: for $\alpha\ge2$ the stabilizer entropies **are** monotones of the
 #   magic-state resource theory restricted to pure states; the linear stabilizer entropy is in addition a strong monotone;
 #   and a convex-roof construction extends them to mixed states as monotones.
@@ -695,9 +695,10 @@ plt.show()
 # number of $T$ gates needed to build the state. Leone, Oliviero and Hamma prove $M_\alpha\le\nu$, which is the cleanest
 # available statement of "magic costs $T$ gates": a state produced by $k$ $T$ gates has $M_\alpha\le k$ bits.
 # Other magic measures in use are the **relative entropy of magic** and the **mana** (Veitch, Mousavian, Gottesman and
-# Emerson 2014) and the **robustness of magic** (Howard and Campbell 2017); all of them require an optimisation over the
-# stabilizer polytope and are therefore restricted to very small $N$, which is precisely the practical advantage of
-# $M_\alpha$.
+# Emerson 2014) and the **robustness of magic** (Howard and Campbell 2017). The relative entropy and the robustness
+# require an optimisation over the stabilizer states and are therefore restricted to very small $N$; the mana is cheap
+# but is defined through a discrete Wigner function that exists only in odd prime dimensions (Section 11). Avoiding both
+# limitations is precisely the practical advantage of $M_\alpha$.
 
 # %% [markdown]
 # ## 7. Analytic examples
@@ -2085,7 +2086,7 @@ plt.show()
 # $2$, and the same linear fit $M_2=\alpha(\lambda)N+\beta(\lambda)$ whose slope is what $0.44$ refers to. Their
 # Hamiltonian is written $H=-\sum_i(X_iX_{i+1}+\lambda Z_i)$ rather than our $-\sum Z_iZ_j-h\sum X_i$, which is a global
 # Hadamard away — a Clifford, so every value of $M_2$ is identical. Two differences remain and neither is controlled
-# here: they fit over $N\in[5,12]$ where we use $N=6,8,10$, and their paper does not state its boundary conditions.
+# here: they fit over $N\in[5,12]$ where we use $N=6,8,10$, and their paper does not state its boundary conditions explicitly.
 # The latter matters, because our own open chain reaches $\alpha=0.4473$ at $h=0.90$ while the ring reaches $0.4417$ at
 # $h=1.00$ — both round to $0.44$, so the numerical agreement does not by itself confirm that we are comparing the same
 # geometry.
@@ -2102,13 +2103,14 @@ plt.show()
 # depends on the boundary conditions**, and the ring, which has no boundary, is the geometry from which a bulk property
 # can be read off at $N\le10$.
 #
-# **A caveat the literature insists on.** Haug and Piroli (2023), using matrix-product states at much larger $N$, find that
-# the stabilizer Renyi entropy is in general *not* maximal at the critical point and that where it peaks depends on the
-# choice of local computational basis. Our measurement is consistent with theirs in the sense that we, too, find a peak
-# whose position moves with a seemingly innocent change of setup (boundary conditions here, basis there). What $M_2$
-# certainly does at criticality is reach an $O(N)$ value with the largest density in the accessible window; what it does
-# *not* do is diverge or show any singular signature of the transition. Its behaviour in $h$ is smooth, as the figure
-# shows.
+# **A caveat the literature insists on.** Haug and Piroli (Phys. Rev. B 2023), using matrix-product states at much larger
+# $N$, find that the stabilizer Renyi entropy is in general *not* maximal at the critical point and that where it peaks
+# depends on the choice of local computational basis. Our measurement is consistent with theirs in the sense that we,
+# too, find a peak whose position moves with a seemingly innocent change of setup (boundary conditions here, basis there). What $M_2$
+# certainly does at criticality is reach an $O(N)$ value with the largest density in the accessible window; it does
+# *not* diverge, and at $N\le10$ its behaviour in $h$ is smooth, as the figure shows. Haug and Piroli locate the
+# signature of the transition elsewhere: writing $M_2=D_NN+c_N$, the subleading term $c_N$ appears to develop a
+# discontinuity at $h=1$ in every local basis they examine, a feature that sizes this small cannot resolve.
 #
 # A separate sanity check worth stating: the magic is a *global* quantity, invariant under all Clifford unitaries, but not
 # under general basis changes. Rewriting Eq. (21) with $X$ and $Z$ exchanged is a global Hadamard, which is Clifford, so
@@ -2254,8 +2256,8 @@ print(f"\nN = {N_m}: the maximally mixed state is reported as having M_2 = {N_m}
 # two stabilizer states in the last row is reported as carrying magic although it lies inside the convex hull of the
 # stabilizer states, where any magic measure must vanish by definition.
 #
-# **What to use instead.** The failure is one of *faithfulness*, and it is the reason Haug and Piroli (2023) restrict
-# their analysis of the stabilizer entropies to pure states: if mixed stabilizer states are defined as the convex hull of
+# **What to use instead.** The failure is one of *faithfulness*, and it is the reason Haug and Piroli (Quantum 2023)
+# restrict their analysis of the stabilizer entropies to pure states: if mixed stabilizer states are defined as the convex hull of
 # pure stabilizer states, the property "$M_\alpha=0$ if and only if the state is a stabilizer state" is lost. Three
 # routes out, all quoted:
 #
@@ -2272,8 +2274,8 @@ print(f"\nN = {N_m}: the maximally mixed state is reported as having M_2 = {N_m}
 #
 # For qubit systems and pure states — which is the setting of essentially all many-body applications — $M_\alpha$ with
 # $\alpha\ge2$ is the magic monotone of choice: it can be evaluated at $N\sim10$ exactly and, with tensor-network or
-# sampling methods (Haug and Piroli 2023; Haug, Lee and Kim 2024; Tarabunga, Tirrito, Chanda and Dalmonte 2023), at
-# $N\sim100$.
+# sampling methods (Haug and Piroli, Phys. Rev. B 2023; Tarabunga, Tirrito, Chanda and Dalmonte 2023), at $N\sim100$; on a quantum
+# computer it can be measured efficiently from Bell measurements on copies of the state (Haug, Lee and Kim 2024).
 
 # %% [markdown]
 # ## 12. Cost summary
@@ -2289,9 +2291,9 @@ print(f"\nN = {N_m}: the maximally mixed state is reported as having M_2 = {N_m}
 #
 # The Walsh-Hadamard algorithm is exact — it reorganises the same $4^N$-term sum without approximation — and it
 # buys a factor $2^N$ in arithmetic, which is $8192$ at $N=13$. Going substantially beyond $N\approx15$ on a single core needs a
-# different idea: either sampling the Pauli distribution by Monte Carlo (Tarabunga, Tirrito, Chanda and Dalmonte 2023;
-# Haug, Lee and Kim 2024) or representing the state as a matrix product state and contracting the replicated network
-# (Haug and Piroli 2023), both of which reach $N\sim100$ at the price of a statistical or a truncation error.
+# different idea: either sampling the Pauli distribution by Monte Carlo on a tensor-network state (Tarabunga, Tirrito,
+# Chanda and Dalmonte 2023) or representing the state as a matrix product state and contracting the replicated network
+# (Haug and Piroli, Phys. Rev. B 2023), both of which reach $N\sim100$ at the price of a statistical or a truncation error.
 #
 # ## 13. Key takeaways
 #
@@ -2305,7 +2307,7 @@ print(f"\nN = {N_m}: the maximally mixed state is reported as having M_2 = {N_m}
 #   invariant under every Clifford unitary (proved from the normaliser property), is additive on product states, and is
 #   bounded by $\log_2\frac{2^N+1}{2}$ — a bound saturated at $N=1$ by the $T$-type states $(\pm1,\pm1,\pm1)/\sqrt3$ with
 #   $\log_2\frac32=0.585$ bit. Monotonicity under stabilizer protocols holds for $\alpha\ge2$ (Leone and Bittel 2024) and
-#   fails for $\alpha<2$ (Haug and Piroli 2023).
+#   fails for $\alpha<2$ (Haug and Piroli, Quantum 2023).
 # * **The standard magic state is not the most magical one.** $T\vert+\rangle$ has $\log_2\frac43=0.415$ bit, below the
 #   single-qubit maximum $\log_2\frac32=0.585$ bit.
 # * **A typical state is almost maximally magical.** The Haar average of the linear stabilizer entropy is exactly
@@ -2439,7 +2441,8 @@ print(f"\nN = {N_m}: the maximally mixed state is reported as having M_2 = {N_m}
 #   Phys. Rev. A **110**, L040403 (2024) — monotonicity for $\alpha\ge2$ on pure states, strong monotonicity of the linear
 #   stabilizer entropy, and the convex-roof extension to mixed states (Sections 6.6 and 11).
 # * T. Haug, S. Lee and M. S. Kim, *Efficient quantum algorithms for stabilizer entropies*,
-#   Phys. Rev. Lett. **132**, 240602 (2024) — measurement-based estimation of $M_\alpha$, Section 12.
+#   Phys. Rev. Lett. **132**, 240602 (2024) — measurement of $M_\alpha$ on a quantum computer by Bell measurements,
+#   Section 11.
 # * P. S. Tarabunga, E. Tirrito, T. Chanda and M. Dalmonte, *Many-body magic via Pauli-Markov chains - from criticality to
 #   gauge theories*, PRX Quantum **4**, 040317 (2023) — Monte Carlo sampling of the Pauli distribution, Section 12.
 # * M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information*, 10th anniversary edition

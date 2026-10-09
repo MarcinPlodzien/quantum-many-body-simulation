@@ -1159,15 +1159,17 @@ fig.tight_layout(); plt.show()
 # of $UJ_zU^\dagger$ tracks Eq. (9) closely: the mean weight moves from $1.000$ to $4.529$, against the predicted
 # $(3N/4)\,4^N/(4^N-1)=4.501$, and the weight-one fraction collapses from $1$ to $0.006$. To use the surviving information one would have to measure a sum of thousands of Pauli strings acting
 # on typically three quarters of the register — either by implementing $U^\dagger$ on hardware (undoing the
-# scrambling, which is the information-retrieval protocol of Hayden and Preskill) or by estimating that many
-# observables from data. Notebook 36 measures exactly how expensive the second route is: the variance of a
+# scrambling with full knowledge of $U$, as the decoder in the information-retrieval scenario of Hayden and Preskill
+# must) or by estimating that many observables from data. Notebook 36 measures exactly how expensive the second route is: the variance of a
 # shadow estimator grows as $3^k$ with the weight $k$, so an observable of weight $3N/4$ costs $3^{3N/4}$
 # snapshots.
 #
-# > **Physics insight.** "Scrambling" has a precise meaning here: simple operators evolve into complicated ones.
-# > This is the operator-growth picture of quantum chaos (Sekino and Susskind; Hayden and Preskill; Nahum *et al.*),
-# > and metrology gives it an operational reading: the parameter is still encoded, and reading it requires a
-# > measurement of exponential complexity.
+# > **Physics insight.** "Scrambling" has a precise meaning here: simple operators evolve into complicated ones,
+# > the Heisenberg-picture view of scrambling. Its counterpart for states is entanglement: Sekino and Susskind call a system scrambled when its
+# > information can be recovered only from at least half of its degrees of freedom, Hayden and Preskill show how
+# > rapidly mixing dynamics hides information in this way, and Nahum *et al.* relate entanglement growth in random
+# > circuits to the spreading of operators. Metrology gives the picture an operational reading: the parameter is
+# > still encoded, and reading it requires a measurement of exponential complexity.
 
 # %% [markdown]
 # ## 9. Resolving the collapse in time: QFI versus circuit depth
@@ -1672,13 +1674,15 @@ for N in (4, 6, 8, 10):
 #   **72**, 1148 (1994), and J. Sánchez-Ruiz, *Simple proof of Page's conjecture on the average entropy of a
 #   subsystem*, Phys. Rev. E **52**, 5653 (1995) — the proofs of Eq. (1).
 # * P. Hayden and J. Preskill, *Black holes as mirrors: quantum information in random subsystems*,
-#   J. High Energy Phys. **2007** (09), 120 (2007) — information about a global property of a scrambled system
-#   becomes readable only once more than half of it is held; the threshold at $K=N/2$ of Section 10.
+#   J. High Energy Phys. **2007** (09), 120 (2007) — information deposited in a rapidly mixing system stays concealed
+#   in the emitted part until that part exceeds half of the system, and then emerges quickly; the threshold at
+#   $K=N/2$ of Section 10, and the decoder of Section 8.
 # * Y. Sekino and L. Susskind, *Fast scramblers*, J. High Energy Phys. **2008** (10), 065 (2008) — the definition
-#   of scrambling as the growth of simple operators into complicated ones.
+#   of a scrambled system as one in which every subsystem smaller than half is nearly maximally entangled, so that
+#   its information can be recovered only from at least half of the degrees of freedom; the scrambling time.
 # * A. Nahum, J. Ruhman, S. Vijay and J. Haah, *Quantum entanglement growth under random unitary dynamics*,
 #   Phys. Rev. X **7**, 031016 (2017) — entanglement growth in random circuits, the linear-in-depth law and the
-#   saturation at the Page value used in Section 5.
+#   saturation at a nearly maximal value seen in Sections 5 and 9, and the link to operator spreading of Section 8.
 # * F. Mezzadri, *How to generate random matrices from the classical compact groups*, Notices Amer. Math. Soc.
 #   **54**, 592 (2007) — the QR construction of Haar-random unitaries used by the engine.
 # * M. Oszmaniec, R. Augusiak, C. Gogolin, J. Kołodyński, A. Acín and M. Lewenstein, *Random bosonic states for
@@ -1694,3 +1698,5 @@ for N in (4, 6, 8, 10):
 #   of atomic ensembles*, Rev. Mod. Phys. **90**, 035005 (2018) — the standard review of collective-spin metrology.
 # * M. Kitagawa and M. Ueda, *Squeezed spin states*, Phys. Rev. A **47**, 5138 (1993) — the one-axis-twisting
 #   Hamiltonian that prepares the probes of Section 3.
+# * D. J. Wineland, J. J. Bollinger, W. M. Itano and D. J. Heinzen, *Squeezed atomic states and projection noise in
+#   spectroscopy*, Phys. Rev. A **50**, 67 (1994) — the spectroscopic squeezing parameter $\xi_R^2$ of Section 3.

@@ -462,8 +462,9 @@ assert np.max(np.abs(lam_A - lam_B)) < TOL
 #
 # So $\mathcal N$ is literally the total weight of the negative eigenvalues of the partial transpose. It is $0$ for every PPT
 # state — in particular for every separable state — and positive exactly when the Peres test fires. The name "negativity" is due
-# to Vidal and Werner (2002); the quantity itself first appeared in Zyczkowski, Horodecki, Sanpera and Lewenstein (1998), where
-# it was used to estimate the volume of the set of separable states.
+# to Vidal and Werner (2002); the quantity itself, as $\lVert\rho^{T_A}\rVert_1-1=2\mathcal N$, first appeared in Życzkowski,
+# Horodecki, Sanpera and Lewenstein (1998), who defined it as a "degree of entanglement" and averaged it over random density
+# matrices in their study of the volume of the set of separable states.
 #
 # ### 6.2 Properties, and where they come from
 #
@@ -476,9 +477,9 @@ assert np.max(np.abs(lam_A - lam_B)) < TOL
 #   $\mathcal N(\sum_kp_k\rho_k)\le\sum_kp_k\mathcal N(\rho_k)$, because $\lVert\cdot\rVert_1$ is a norm and the partial
 #   transpose is linear. $E_{\mathcal N}$ is **not** convex, since $\log_2$ is concave and destroys the inequality — Exercise 5
 #   constructs an explicit violation. That it is nevertheless a full entanglement monotone is a separate and later theorem:
-#   Plenio (2005) showed that $E_{\mathcal N}$ does not increase under PPT-preserving operations with subselection, a class that
-#   contains LOCC. The monotonicity of $E_{\mathcal N}$ is therefore Plenio's theorem, not a corollary of the 2002 paper, which
-#   establishes it for $\mathcal N$.
+#   Plenio (2005) showed that $E_{\mathcal N}$ does not increase *on average* under PPT operations, a class that contains LOCC.
+#   The 2002 paper proves monotonicity for $\mathcal N$ and, for $E_{\mathcal N}$, only that it does not increase under
+#   deterministic LOCC protocols; monotonicity on average is Plenio's theorem.
 # * **Additivity.** $E_{\mathcal N}(\rho_1\otimes\rho_2)=E_{\mathcal N}(\rho_1)+E_{\mathcal N}(\rho_2)$, immediately from
 #   $(\rho_1\otimes\rho_2)^{T_A}=\rho_1^{T_A}\otimes\rho_2^{T_A}$ and the multiplicativity of the trace norm on tensor
 #   products. This is the reason to take the logarithm at all: $E_{\mathcal N}$ is measured in ebits and simply adds up over
@@ -1662,7 +1663,8 @@ assert size_scan[18][2][0] - size_scan[10][2][0] > 2.0
 #
 # Under local noise the entanglement of a pair does not decay exponentially and vanish only asymptotically. It can reach
 # **exactly zero at a finite time** and stay there while the coherences that produced it are still non-zero. Yu and Eberly
-# (2004) discovered this for two atoms decaying by spontaneous emission and named it **entanglement sudden death**.
+# (2004) showed this for two atoms decaying by spontaneous emission; the name **entanglement sudden death**, under which their
+# 2009 review collects the subject, came into use afterwards.
 #
 # Take the initial pure state
 #
@@ -1962,8 +1964,8 @@ print(f"  the full density tensor of {N_big} spins would need {16*4**N_big/2**30
 # * The **partial transpose** transposes the indices of one subsystem only. On a density tensor it is a permutation of axes —
 #   one `jnp.transpose`, exact and free — and the spectra of $\rho^{T_A}$ and $\rho^{T_B}$ are identical.
 # * **PPT criterion**: separable $\Rightarrow\rho^{T_A}\ge0$, proved in one line from Eq. (1). The converse holds **only** for
-#   $2\times2$ and $2\times3$ systems (Horodecki 1996); elsewhere there are **bound entangled** PPT states, from which no Bell
-#   pair can ever be distilled.
+#   $2\times2$ and $2\times3$ systems (Horodecki, Horodecki and Horodecki 1996); elsewhere there are **bound entangled** PPT
+#   states, from which no Bell pair can ever be distilled.
 # * **Negativity** $\mathcal N=\sum_{\mu<0}\vert\mu\vert$ and **logarithmic negativity** $E_{\mathcal N}=\log_2(2\mathcal N+1)$
 #   are entanglement monotones; $E_{\mathcal N}$ is additive and upper-bounds the distillable entanglement; $\mathcal N$ is
 #   convex and $E_{\mathcal N}$ is not.
@@ -2046,7 +2048,7 @@ print(f"  the full density tensor of {N_big} spins would need {16*4**N_big/2**30
 #   nature?*, Phys. Rev. Lett. **80**, 5239 (1998) — PPT states are undistillable.
 # * G. Vidal and R. F. Werner, *Computable measure of entanglement*, Phys. Rev. A **65**, 032314 (2002) — negativity and
 #   logarithmic negativity, monotonicity, and $E_D\le E_{\mathcal N}$, Section 6.2.
-# * K. Zyczkowski, P. Horodecki, A. Sanpera and M. Lewenstein, *Volume of the set of separable states*,
+# * K. Życzkowski, P. Horodecki, A. Sanpera and M. Lewenstein, *Volume of the set of separable states*,
 #   Phys. Rev. A **58**, 883 (1998) — where the quantity later named negativity first appears.
 # * M. B. Plenio, *Logarithmic negativity: a full entanglement monotone that is not convex*,
 #   Phys. Rev. Lett. **95**, 090503 (2005) — Section 6.2.
@@ -2068,4 +2070,4 @@ print(f"  the full density tensor of {N_big} spins would need {16*4**N_big/2**30
 # * L. Gurvits, *Classical deterministic complexity of Edmonds' problem and quantum entanglement*, in Proceedings of the
 #   35th Annual ACM Symposium on Theory of Computing (STOC '03), 10–19 (2003) — NP-hardness of deciding separability.
 # * M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information* (Cambridge University Press, 2000) —
-#   chapters 2 and 12 for density matrices, entropy and entanglement measures.
+#   chapters 2, 11 and 12 for density matrices, entropy and entanglement measures.

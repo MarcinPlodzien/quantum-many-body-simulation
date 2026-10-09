@@ -2048,7 +2048,7 @@ for N, M, K in ((4, 50, 400), (7, 50, 400), (10, 50, 200)):
 # * A. D. Ludlow, M. M. Boyd, J. Ye, E. Peik and P. O. Schmidt, *Optical atomic clocks*, Rev. Mod. Phys. **87**, 637 (2015) —
 #   how all of this is done in a real laboratory.
 # * L. Pezzè, A. Smerzi, M. K. Oberthaler, R. Schmied and P. Treutlein, *Quantum metrology with nonclassical states of atomic
-#   ensembles*, Rev. Mod. Phys. **90**, 035005 (2018) — the comprehensive review; Sections II and III cover everything in this
-#   notebook.
+#   ensembles*, Rev. Mod. Phys. **90**, 035005 (2018) — the comprehensive review; Section II covers the estimation theory,
+#   coherent spin states, the standard quantum limit and atom counting of this notebook, Section VII.A the decoherence.
 # * C. W. Helstrom, *Quantum Detection and Estimation Theory*, Mathematics in Science and Engineering **123**
 #   (Academic Press, New York, 1976) — the quantum Cramer-Rao bound.

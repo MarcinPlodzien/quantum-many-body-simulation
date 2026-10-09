@@ -1218,9 +1218,10 @@ plt.tight_layout(); plt.show()
 #
 # This picture — one zero eigenvalue, everything else decaying — presupposes that the steady state is **unique**. It need
 # not be: a Lindbladian can have several zero eigenvalues (several steady states) or purely imaginary ones (persistent
-# oscillations). The classical sufficient condition is due to Spohn and Evans: *if the only operators that commute with
-# $H$ and with all the $L_j$ and $L_j^\dagger$ are multiples of $\mathbb 1$* (equivalently: $\{H, L_j, L_j^\dagger\}$
-# generates the full matrix algebra), then the semigroup is **irreducible**, the steady state is unique, and every
+# oscillations). Spohn gave an algebraic sufficient condition for a self-adjoint set of jump operators; the general
+# criterion is Evans's: the semigroup is **irreducible** exactly when *the only operators that commute with $H$ and with
+# all the $L_j$ and $L_j^\dagger$ are multiples of $\mathbb 1$* (equivalently: $\{H, L_j, L_j^\dagger\}$ generates the
+# full matrix algebra). An irreducible semigroup has a unique steady state, of full rank, and in finite dimension every
 # initial state converges to it. Any conserved quantity that survives the dissipation — a symmetry, a dark state, a
 # decoherence-free subspace — breaks the condition and splits the state space into non-communicating sectors. In practice
 # one checks the condition numerically the way the cell below does: by counting how many singular values of
@@ -1466,8 +1467,8 @@ plt.tight_layout(); plt.show()
 #   $L\rho L^\dagger$ = $L$ on kets and $L^*$ on bras. The Lindbladian costs $O(N4^N)$ time and $O(4^N)$ memory; no $2^N\times2^N$ product ever appears.
 # * **RK4**: fourth order, conserves trace and Hermiticity exactly, *not* positivity, and is unstable for $dt\gtrsim2\sqrt2/W$.
 #   **Trotter–Kraus**: first order (second order with Strang splitting and exact local channels), completely positive and unconditionally stable.
-# * Dephasing (unital noise) makes $\mathbb 1/2^N$ a fixed point; when it is the *only* one — which needs $H$ not to commute with
-#   the jump operators (Spohn–Evans irreducibility) — the chain approaches the maximally mixed state for any rate. Decay plus drive
+# * Dephasing (unital noise) makes $\mathbb 1/2^N$ a fixed point; when it is the *only* one — which needs the only operators commuting with $H$ and all
+#   jump operators to be multiples of $\mathbb 1$ (Evans irreducibility) — the chain approaches the maximally mixed state for any rate. Decay plus drive
 #   produces a structured steady state only when the decay can compete with the drive (here $\gamma\sim h_x$, not
 #   $\gamma=0.1$); relaxation at late times is governed by the Liouvillian gap.
 # * Always validate: analytic limits, the literal dense formula, the dense superoperator for $N\le4$, convergence orders,
@@ -1507,7 +1508,7 @@ plt.tight_layout(); plt.show()
 # * G. Lindblad, *On the generators of quantum dynamical semigroups*, Commun. Math. Phys. **48**, 119 (1976).
 # * V. Gorini, A. Kossakowski, E. C. G. Sudarshan, *Completely positive dynamical semigroups of N-level systems*, J. Math. Phys. **17**, 821 (1976).
 # * H. Spohn, *An algebraic condition for the approach to equilibrium of an open N-level system*, Lett. Math. Phys. **2**, 33–38 (1977);
-#   D. E. Evans, *Irreducible quantum dynamical semigroups*, Commun. Math. Phys. **54**, 293–297 (1977) — uniqueness of the steady state (Section 8.3).
+#   D. E. Evans, *Irreducible quantum dynamical semigroups*, Commun. Math. Phys. **54**, 293–297 (1977) — a sufficient condition for approach to equilibrium (Spohn) and the irreducibility criterion behind the uniqueness of the steady state (Evans), Section 8.3.
 # * H.-P. Breuer, F. Petruccione, *The Theory of Open Quantum Systems*, Oxford University Press (2002) — chapter 3 ("Quantum Master Equations"): the microscopic Born–Markov–secular derivation.
 # * D. Manzano, *A short introduction to the Lindblad master equation*, AIP Advances **10**, 025106 (2020) — a self-contained derivation at introductory level.
 # * M. A. Nielsen, I. L. Chuang, *Quantum Computation and Quantum Information*, Cambridge University Press (2000) — chapter 8 ("Quantum noise and quantum operations"): the operator-sum representation and, in §8.3, the amplitude-damping and phase-damping channels used here.

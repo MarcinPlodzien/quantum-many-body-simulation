@@ -1577,8 +1577,9 @@ plt.show()
 # number of levels ($16$) does not explain them; the approach to the Haar value is slower at $N=8$, and a run with $200$
 # realisations reaches it only near $k=64$.
 #
-# The crossing of the Poisson value happens at $kN\approx48$ here ($N=12$, $k=4$), which is where the scaling function
-# of Zhou et al. (2020) crosses it too. Their variable is the product $kN$, and the right-hand panel plots our data that
+# The crossing of the Poisson value happens at $kN\approx48$ here ($N=12$, $k=4$). In Zhou et al. (2020) there is no
+# such crossing: their undoped Clifford spectra are already Poisson, and their scaling function rises from the Poisson
+# value at $kN=0$ to the GUE value. Their variable is the product $kN$, and the right-hand panel plots our data that
 # way. At $N=8$-$12$ our three sizes cannot separate this scaling from a scaling with $k/N$: in a leave-one-size-out
 # collapse test the two variables fit equally well and the unscaled $k$ fits worse, and the size of the $\chi^2$
 # depends on the interpolation used while this ranking does not. We therefore do **not** claim a scaling variable from
@@ -1587,8 +1588,10 @@ plt.show()
 # A different threshold applies when the circuit starts from $\vert0\cdots0\rangle$. True and Hamma (2022) insert single
 # $T$ gates between long random Clifford blocks acting on $\vert0\cdots0\rangle$ and find that the distribution of gap
 # ratios approaches the GUE form only beyond $k_{\min}\approx N+2$ $T$ gates, a finite density of $T$ gates. They
-# attribute the difference to the seed: a random product state already carries $O(N)$ non-Clifford resources. Our
-# Section 9 starts from $\vert0\cdots0\rangle$ at $N=8$ (with the $T$ gates spread over a brick wall instead of being
+# attribute the difference to the seed: a random product state already carries $O(N)$ non-Clifford resources. The same
+# linear count appears for chaos diagnostics: a Clifford circuit doped with $k$ single-qubit non-Clifford gates reaches
+# the Haar values of the 8-point out-of-time-order correlator and of the subsystem-purity fluctuations if and only if
+# $k=\Theta(N)$ (Leone, Oliviero, Zhou and Hamma 2021). Our Section 9 starts from $\vert0\cdots0\rangle$ at $N=8$ (with the $T$ gates spread over a brick wall instead of being
 # separated by long Clifford blocks), and its doped column shows the same behaviour: $\langle\tilde r\rangle$ is
 # still $0.13$ at $k=8$ and reaches the GUE value only between $k=16$ and $k=32$.
 #
@@ -2059,7 +2062,8 @@ plt.show()
 # * **The level statistics of the entanglement spectrum respond to the $T$ gates while the entropy does not.** Doping a
 #   Clifford circuit seeded with a random product state with $k$ $T$ gates moves $\langle\tilde r\rangle$ from
 #   $\approx0.1$ to the GUE value $0.5996$ while the half-chain entropy changes by at most $0.1$ bit. It crosses the
-#   Poisson value at $kN\approx50$, as in Zhou et al. (2020), and reaches the GUE value at $k=16$ for $N=10$ and $12$;
+#   Poisson value at $kN\approx50$ (the undoped spectra of Zhou et al. (2020) are already Poisson, so their
+#   scaling function has no such crossing), and reaches the GUE value at $k=16$ for $N=10$ and $12$;
 #   at $N=8$-$12$ our data cannot say whether $k/N$ or $kN$ is the scaling variable. Seeded with
 #   $\vert0\cdots0\rangle$, the circuit needs more $T$ gates, as True and Hamma (2022) found ($k_{\min}\approx N+2$).
 # * **The undoped Clifford value, $0.09$-$0.16$, comes from exact degeneracies.** About half the levels sit in exactly

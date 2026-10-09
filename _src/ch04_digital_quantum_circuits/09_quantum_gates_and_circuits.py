@@ -542,7 +542,7 @@ print(f"Delta(Rz(2pi), 1) = {d_single:.1e} | Delta(C-Rz(2pi), 1) = {d_ctrl_id:.2
 #
 # $Z\otimes Z=\mathrm{diag}(1,-1,-1,1)$ is diagonal, so $R_{zz}(\theta) = \mathrm{diag}(e^{-i\theta/2},e^{i\theta/2},e^{i\theta/2},e^{-i\theta/2})$:
 # a phase that depends on whether the two spins are parallel or antiparallel - precisely what an Ising interaction does.
-# These gates are *native* on several platforms: $R_{xx}$ is the Mølmer-Sørensen gate of trapped ions, $R_{zz}$ arises
+# These gates are *native* on several platforms: $R_{xx}$ is the Mølmer-Sørensen gate of trapped ions (Sørensen and Mølmer 1999), $R_{zz}$ arises
 # from the dispersive/Ising couplings of superconducting and Rydberg qubits. Unlike CNOT they have a continuous
 # parameter: $\theta\to0$ is the identity and $\theta=\pi/2$ is maximally entangling.
 
@@ -1066,13 +1066,14 @@ assert max(err1, err2, d_swap) < 100 * TOL
 # 2. The *finite* set $\{H, T, \mathrm{CNOT}\}$ is universal in the approximate sense: its circuits form a dense subset
 #    of the unitary group, so any target can be reached to accuracy $\varepsilon$. The **Solovay-Kitaev theorem**
 #    bounds the price: $O(\log^c(1/\varepsilon))$ gates per single-qubit target. The algorithm of Dawson and Nielsen
-#    (2006) achieves $c\approx3.97$, and refinements of the same recursive construction push $c$ towards 3. The
+#    (2006) achieves $c\approx3.97$; the variant of Kitaev, Shen and Vyalyi discussed in the same paper reaches
+#    $c=3+\delta$ for any $\delta>0$. The
 #    counting bound of the next paragraph shows $c\ge1$ is unavoidable; $c=1$ is in fact *reached*, but not by
 #    Solovay-Kitaev - number-theoretic synthesis algorithms specific to the Clifford$+T$ gate set do it
 #    (Ross and Selinger 2016).
 # 3. $H$, $S$ and CNOT generate the **Clifford group**, which is *not* universal: circuits built from these gates
 #    alone, acting on a computational-basis input and read out in the computational basis, can be simulated efficiently
-#    on a classical computer (Gottesman-Knill theorem). The non-Clifford $T$ gate is the "magic"
+#    on a classical computer (Gottesman-Knill theorem, Gottesman 1998). The non-Clifford $T$ gate is the "magic"
 #    ingredient; we return to it in [notebook 10](10_random_unitaries_and_random_circuits.ipynb) and in Chapter 9.
 #
 # **A numerical experiment for statement 2.** Separately, $H$ and $T$ are rotations by *rational* multiples of $\pi$
@@ -1172,9 +1173,10 @@ for name, vals in best.items():
 # $3\log_2 10\approx10$ more $T$ gates. The heuristic assumes an even spread, which is why the measured curves scatter
 # around the line by a factor of a few rather than following it point by point.
 #
-# The rigorous statement is the same up to the constant: for $z$-rotations, Ross and Selinger (2016) give an algorithm
-# whose typical output has $T$-count $3\log_2(1/\varepsilon)+O(\log\log(1/\varepsilon))$ and prove it optimal, i.e.
-# again about ten $T$ gates per decimal digit. Our brute-force search costs $2^m$; such number-theoretic synthesis
+# The rigorous statement has the same scaling: for $z$-rotations, Ross and Selinger (2016) give an algorithm that finds
+# the shortest ancilla-free Clifford$+T$ circuit within $\varepsilon$ (given a factoring oracle; without one it is
+# near-optimal under a number-theoretic hypothesis), and in the typical case its $T$-count is
+# $3\log_2(1/\varepsilon)+O(\log\log(1/\varepsilon))$, i.e. again about ten $T$ gates per decimal digit. Our brute-force search costs $2^m$; such number-theoretic synthesis
 # algorithms find the sequences in $\mathrm{polylog}(1/\varepsilon)$ time.
 # In this course we will not compile to $\{H,T\}$: a simulator can apply any $R_{\mathbf n}(\theta)$
 # directly. But the experiment explains why fault-tolerant quantum computers, whose protected gate set is finite, count
@@ -1388,7 +1390,9 @@ for n in (4, 8, 16, 32, 64):
 # $$ \mathcal E_p(\rho) = (1-p)\rho+\frac p3\big(X\rho X+Y\rho Y+Z\rho Z\big), $$
 #
 # with error probability $p_1$ after single-qubit gates and $p_2>p_1$ after two-qubit gates (typical orders of
-# magnitude today: $p_1\sim10^{-4}$-$10^{-3}$, $p_2\sim10^{-3}$-$10^{-2}$). The state is now mixed, so we simulate the
+# magnitude today: $p_1\sim10^{-4}$-$10^{-3}$, $p_2\sim10^{-3}$-$10^{-2}$). Noise of this kind limits the size of the
+# circuits that such "noisy intermediate-scale quantum" (NISQ) devices can execute reliably (Preskill 2018).
+# The state is now mixed, so we simulate the
 # density tensor $\rho$ of rank $2N$ (notebook 07): a gate acts as $U$ on the ket axes and $U^*$ on the bra axes
 # (`apply_gate_dm`), a channel with Kraus operators $K_m$ acts as $\rho\to\sum_mK_m\rho K_m^\dagger$ in a single einsum
 # (`apply_kraus_dm`). A noisy circuit is again a loop over a list - the *same* list as before.
@@ -1668,6 +1672,6 @@ for p, (n_best, val) in best_steps.items():
 # * C. M. Dawson and M. A. Nielsen, *The Solovay-Kitaev algorithm*, Quantum Inf. Comput. **6**, 81 (2006)
 #   (the $O(\log^{3.97}(1/\varepsilon))$ gate count quoted in Section 8).
 # * N. J. Ross and P. Selinger, *Optimal ancilla-free Clifford+T approximation of z-rotations*,
-#   Quantum Inf. Comput. **16**, 901 (2016) (the optimal $T$-count $3\log_2(1/\varepsilon)$).
+#   Quantum Inf. Comput. **16**, 901 (2016) (the typical $T$-count $3\log_2(1/\varepsilon)$ quoted in Section 8).
 # * J. Preskill, *Quantum computing in the NISQ era and beyond*, Quantum **2**, 79 (2018).
 

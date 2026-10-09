@@ -1283,7 +1283,8 @@ assert abs(m1 - haar1) > 4 * s1
 #
 # Eqs. (5) and (6) used only the second moment $\mathbb{E}[\vert\psi\rangle\langle\psi\vert^{\otimes2}]$. Any ensemble of states that
 # reproduces this moment, a *state 2-design*, therefore has the same leading-order mean locking curve as Haar
-# states. Uniformly random stabilizer states form such a design (quoted here without proof), and a deep random
+# states. Uniformly random stabilizer states form such a design, because the Clifford group is a unitary 2-design
+# (Roberts and Yoshida 2017 give a proof; quoted here without one), and a deep random
 # Clifford circuit approaches that uniform distribution. The prediction is that the Clifford **mean** is the
 # Haar curve, while each realisation is integer-valued, so that for small blocks most realisations give exactly
 # zero and a few give a large value. Six realisations are not enough to see the rare non-zero ones, so we draw many
@@ -1705,21 +1706,21 @@ print(f"rough crossover (ignoring the factor N of the evolution and all prefacto
 #   J. High Energy Phys. **2007**(09), 120 (2007) — the half-system threshold for recovering information from a
 #   scrambled system (Section 4.3).
 # * D. A. Roberts and B. Yoshida, *Chaos and complexity by design*, J. High Energy Phys. **2017**(04), 121 (2017)
-#   — scrambling, Haar randomness and the role of the gate set.
+#   — chaos and unitary designs, Clifford against Haar averages, and the role of the gate set (Section 6.2).
 # * A. Nahum, J. Ruhman, S. Vijay and J. Haah, *Quantum entanglement growth under random unitary dynamics*,
 #   Phys. Rev. X **7**, 031016 (2017) — entanglement growth and saturation in brick-wall circuits.
 # * S. L. Braunstein and C. M. Caves, *Statistical distance and the geometry of quantum states*,
 #   Phys. Rev. Lett. **72**, 3439 (1994) — the quantum Fisher information and the symmetric logarithmic
 #   derivative.
-# * L. Pezze, A. Smerzi, M. K. Oberthaler, R. Schmied and P. Treutlein, *Quantum metrology with nonclassical
+# * L. Pezzè, A. Smerzi, M. K. Oberthaler, R. Schmied and P. Treutlein, *Quantum metrology with nonclassical
 #   states of atomic ensembles*, Rev. Mod. Phys. **90**, 035005 (2018) — the metrological context.
-# * G. Toth and I. Apellaniz, *Quantum metrology from a quantum information science perspective*,
+# * G. Tóth and I. Apellaniz, *Quantum metrology from a quantum information science perspective*,
 #   J. Phys. A: Math. Theor. **47**, 424006 (2014) — quantum Fisher information of mixed and reduced states.
 # * D. Gottesman, *The Heisenberg representation of quantum computers*, in *Group22: Proceedings of the XXII
 #   International Colloquium on Group Theoretical Methods in Physics*, eds. S. P. Corney, R. Delbourgo and P. D.
 #   Jarvis (International Press, Cambridge MA, 1999), pp. 32–43; arXiv:quant-ph/9807006 — the Gottesman-Knill
 #   theorem behind the Clifford scrambler.
-# * L. Leone, S. F. E. Oliviero and A. Hamma, *Stabilizer Renyi entropy*, Phys. Rev. Lett. **128**, 050402 (2022)
+# * L. Leone, S. F. E. Oliviero and A. Hamma, *Stabilizer Rényi entropy*, Phys. Rev. Lett. **128**, 050402 (2022)
 #   — the magic measure of Exercise 5.
 # * F. Mezzadri, *How to generate random matrices from the classical compact groups*, Notices Am. Math. Soc.
 #   **54**(5), 592–604 (2007) — the QR recipe behind `haar_unitary`.
@@ -1727,7 +1728,8 @@ print(f"rough crossover (ignoring the factor N of the evolution and all prefacto
 #   Mat. Sb. **72(114)**, 507–536 (1967); English translation Math. USSR-Sb. **1**, 457 (1967) — the eigenvalue law
 #   behind Eq. (7).
 # * M. Suzuki, *Fractal decomposition of exponential operators with applications to many-body theories and Monte
-#   Carlo simulations*, Phys. Lett. A **146**, 319 (1990) — the splitting used by the Trotter step.
+#   Carlo simulations*, Phys. Lett. A **146**, 319 (1990) — the recursive construction of higher-order product formulas
+#   from the symmetric second-order splitting, which is the one used by the Trotter step.
 # * W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes: The Art of Scientific
 #   Computing*, 3rd ed., Cambridge University Press (2007) — Chapter 11 for the symmetric eigenproblem and
 #   Chapter 2 for the QR factorisation used to compress the active subspace.

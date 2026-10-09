@@ -26,12 +26,13 @@
 # the last digit the grid can resolve. The only record of the encounter is that each soliton is displaced from
 # where free motion would have put it, and that its internal phase has jumped. This is the property that gave
 # the objects their name: Zabusky and Kruskal, integrating the Korteweg-de Vries equation numerically in 1965,
-# found solitary waves that survived collisions "like particles" and coined *soliton* on the spot
+# found solitary waves that survived collisions like particles and coined the word *soliton* for them
 # (Phys. Rev. Lett. **15**, 240 (1965)). Zakharov and Shabat proved in 1972 that Eq. (1) has the same structure:
 # it is integrable, solvable by inverse scattering, and its solitons scatter elastically for ever
 # (Sov. Phys. JETP **34**, 62 (1972)).
 #
-# The experiments are real. In an optical fibre the same equation governs a light pulse (Section 2.4 of 00c), and
+# The experiments are real. In an optical fibre the same equation governs a light pulse (Section 2.4 of 00c;
+# Agrawal, *Nonlinear Fiber Optics*, Chapter 5), and
 # soliton collisions in fibres are a design constraint for long-haul transmission: neighbouring pulses in a bit
 # stream attract or repel depending on their relative phase, which is precisely what Gordon computed in 1983
 # (Opt. Lett. **8**, 596 (1983)). With atoms, Nguyen, Dyke, Luo, Malomed and Hulet collided matter-wave solitons
@@ -202,7 +203,9 @@ print("extra imports OK")
 # The next cell is bookkeeping: the grid, the exact one-soliton solution, the energy functional, the
 # observables and the split-step propagator, all copied verbatim from
 # [00c](00c_bright_soliton_imaginary_time_nonlinear_schroedinger.ipynb), each with a one-line pointer to where
-# it was derived. Nothing in this notebook re-derives the split-step method, imaginary time or the
+# it was derived (the FFT and operator splitting are treated in Press *et al.*, *Numerical Recipes*, Chapters 12
+# and 20, with array-based Fortran 90 routines in the companion volume). Nothing in this notebook re-derives the
+# split-step method, imaginary time or the
 # $\mathrm{sech}$ profile; this notebook is about what two of those solitons do to each other.
 #
 # > **JAX practice.** `jax.jit` compiles a Python function once, for the shapes of its arguments, into a single
@@ -1346,8 +1349,10 @@ print("CHECKPOINT 7 passed: the force is exponential with rate kappa, and attrac
 # $\rho = \kappa r$, $\tau = \kappa^{2}t$ — the parameter-free statement
 # $d^{2}\rho/d\tau^{2} = -8e^{-\rho}\cos\Delta\phi$.
 #
-# The prefactor $8$ is not only measured; it follows from the two-soliton perturbation theory behind Gordon's
-# paper (Karpman and Solov'ev), once the conventions are converted as carefully as in Section 5.2. That theory
+# The prefactor $8$ is not only measured; it follows from the perturbation theory for two weakly overlapping
+# solitons of Karpman and Solov'ev (Physica D **3**, 487 (1981)), which gives the exponential, phase-dependent force
+# that Gordon obtained from the exact two-soliton solution, once the conventions are converted as carefully as in
+# Section 5.2. That theory
 # is quoted in the optical normalisation
 #
 # $$ i\,\frac{\partial u}{\partial z} \;+\; \frac{1}{2}\frac{\partial^{2}u}{\partial t^{2}} \;+\;
@@ -2276,8 +2281,10 @@ print(f"   central lump at the end (g5 = 4): peak density {np.max(np.abs(FR_Q[10
 # over the velocity sweep of Section 5.3.
 #
 # **7. (★★★) Solitons in a trap.** Add $V(x) = \tfrac12\omega^{2}x^{2}$ with $\omega = 0.03$ and release two
-# in-phase solitons at rest at $\pm 20$. They fall towards each other, collide, separate, and come back — the
-# configuration Strecker *et al.* (Nature **417**, 150 (2002)) observed in a soliton train. The trap breaks
+# in-phase solitons at rest at $\pm 20$. They fall towards each other, collide, separate, and come back. (In the
+# soliton trains of Strecker *et al.*, Nature **417**, 150 (2002), neighbouring solitons oscillating in a shallow
+# trap did *not* pass through each other, which the authors read as a repulsion from alternating phases; repeat
+# the run with $\Delta\phi = \pi$ to see that case.) The trap breaks
 # translation invariance, so the collisions are no longer exactly elastic. Measure the norm radiated per
 # collision over ten collisions and find how it scales with $\omega$. Compare the oscillation period with
 # $2\pi/\omega$ and explain the difference using the shift of Eq. (11), as Section 10.3 did for the ring.
@@ -2306,14 +2313,14 @@ print(f"   central lump at the end (g5 = 4): peak density {np.max(np.abs(FR_Q[10
 # * J. H. V. Nguyen, P. Dyke, D. Luo, B. A. Malomed and R. G. Hulet, *Collisions of matter-wave solitons*,
 #   Nature Physics **10**, 918 (2014) — collisions of lithium-7 solitons resolved by relative phase.
 # * K. E. Strecker, G. B. Partridge, A. G. Truscott and R. G. Hulet, *Formation and propagation of matter-wave
-#   soliton trains*, Nature **417**, 150 (2002) — the soliton train whose members collide repeatedly in a
-#   shallow trap (Exercise 7).
+#   soliton trains*, Nature **417**, 150 (2002) — a soliton train oscillating in a shallow trap, whose neighbours repel because
+#   of alternating relative phases (Exercise 7).
 # * N. G. Parker, A. M. Martin, S. L. Cornish and C. S. Adams, *Collisions of bright solitary matter waves*,
 #   J. Phys. B **41**, 045303 (2008) — the three-dimensional Gross-Pitaevskii calculation in which in-phase
 #   collisions trigger collapse and out-of-phase collisions do not.
 # * G. P. Agrawal, *Nonlinear Fiber Optics*, 5th ed., Academic Press (2013) — Chapter 5 (*Optical Solitons*)
-#   for the optical form of Eq. (1), its inverse-scattering solution and higher-order solitons, and the
-#   split-step Fourier method as photonics uses it.
+#   for the optical form of Eq. (1), its inverse-scattering solution and higher-order solitons; the appendix
+#   *Numerical Code for the NLS Equation* gives the split-step Fourier method as photonics uses it.
 # * W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes: The Art of Scientific
 #   Computing*, 3rd ed., Cambridge University Press (2007) — Chapter 12 (fast Fourier transform) and Chapter 20
 #   (partial differential equations, including operator splitting).

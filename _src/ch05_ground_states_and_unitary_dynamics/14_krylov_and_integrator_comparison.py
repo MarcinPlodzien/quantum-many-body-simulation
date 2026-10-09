@@ -9,8 +9,8 @@
 # its action $|\phi\rangle\mapsto H|\phi\rangle$ ([Matrix-free operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb)). So far we have met three ways to do it:
 #
 # * **exact diagonalisation** ([textbook way](../ch02_spin_systems_textbook_way/04_time_evolution_the_textbook_way.ipynb)): perfect, but $\mathcal O(4^N)$ memory and $\mathcal O(8^N)$ time — dead at $N\approx14$;
-# * **TEBD / Trotter–Suzuki** ([previous-but-one notebook](12_tebd_trotter_suzuki.ipynb)): split $e^{-iH\,dt}$ into local gates; exactly unitary, error $\mathcal O(dt^p)$ with $p=1,2,4$;
-# * **Chebyshev expansion** ([previous notebook](13_chebyshev_propagation.ipynb)): a fixed, near-optimal polynomial in $H$ with Bessel-function coefficients; machine precision for $\approx a t$ applications of $H$
+# * **TEBD / Trotter–Suzuki** ([previous-but-one notebook](12_tebd_trotter_suzuki.ipynb)): split $e^{-iH\,dt}$ into local gates; exactly unitary, error $\mathcal O(dt^p)$ with $p=1,2,4$ (fourth order: Suzuki 1990);
+# * **Chebyshev expansion** ([previous notebook](13_chebyshev_propagation.ipynb)): a fixed, near-optimal polynomial in $H$ with Bessel-function coefficients (Tal-Ezer and Kosloff 1984); machine precision for $\approx a t$ applications of $H$
 #   ($a$ = half the spectral width), but it needs bounds on the spectrum.
 #
 # **This notebook has two parts.**
@@ -18,7 +18,7 @@
 # *Part A — the Krylov (Lanczos) propagator.* Chebyshev uses the same polynomial for every initial state. The Krylov method asks a sharper question: *given this particular state $|\psi\rangle$ and a budget of $m$ applications of $H$, what is the best
 # approximation to $e^{-iHt}|\psi\rangle$ that can be built from the vectors $|\psi\rangle, H|\psi\rangle,\dots,H^{m-1}|\psi\rangle$?* The answer — project the Schrödinger equation onto the space spanned by these vectors and solve the tiny $m\times m$ problem exactly — is not literally the optimal
 # element of that space (§2.5 says in which sense it is nearly optimal, and measures how nearly). It needs no knowledge of the spectrum, conserves norm and energy exactly, and comes with a computable error bound that lets the algorithm choose its own time step. It was introduced for quantum dynamics by Park and Light (1986) and is the engine behind
-# general-purpose "matrix exponential times vector" software; it is also the standard time-evolution method of large-scale exact-diagonalisation studies of quantum chaos and many-body localisation.
+# general-purpose "matrix exponential times vector" software (Sidje 1998; "Method 20" in the survey of Moler and Van Loan 2003); it is also the standard time-evolution method of large-scale exact-diagonalisation studies of quantum chaos and many-body localisation.
 #
 # *Part B — the shoot-out.* With four integrator families in hand, we do what a practitioner must do before a production run: **measure** accuracy versus cost — against a dense exact reference, with compilation time separated from run time,
 # as a function of the accuracy target and of the system size $N$ — and condense the outcome into a guidance table, *which integrator when*.
@@ -119,7 +119,7 @@
 #
 # $$ \boxed{\;\big\|\psi_m(t)-\psi(t)\big\|\;\le\;2\,\|\psi\|\!\!\min_{\deg p\le m-1}\ \max_{E_{\min}\le E\le E_{\max}}\big|e^{-iEt}-p(E)\big|\;} \qquad (2a) $$
 #
-# The Krylov approximation is thus within a factor $2$ of the *best possible* polynomial of degree $m-1$ — it is **quasi-optimal**. (The inequality one line above (2a) is Lemma 4.1 of Saad (1992); we have only specialised it to Hermitian $H$.) Three consequences, all of them practical.
+# The Krylov approximation is thus within a factor $2$ of the *best possible* polynomial of degree $m-1$ — it is **quasi-optimal**. (The cancellation of the polynomial pieces rests on property (a), which is Lemma 3.1 of Saad (1992); a priori bounds of this type are the subject of Saad (1992) and Hochbruck and Lubich (1997).) Three consequences, all of them practical.
 #
 # **Only the spectral width matters, not $\|H\|$.** Replacing $H$ by $H+c\,\mathbb 1$ leaves every $v_j$ and every $\beta_j$ unchanged and shifts every $\alpha_j$ by $c$, so $T_m\to T_m+c\,\mathbb 1$ and $|\psi_m\rangle\to e^{-ict}|\psi_m\rangle$: the approximation error is untouched. The right-hand side of (2a) is shift invariant for the same reason.
 # The scale that controls everything is therefore the **spectral half-width** $a=(E_{\max}-E_{\min})/2$, and not $\|H\|$, which can be made arbitrarily large by adding a constant to $H$ without changing the physics or the difficulty of the problem.
@@ -153,7 +153,7 @@
 # * the basis is a **pre-allocated array** `V` of shape $(m,2^N)$, filled row by row with the functional update `V.at[j+1].set(v)` (JAX arrays are immutable; under `jit` XLA performs the update in place);
 # * **full re-orthogonalisation** in matrix form. In exact arithmetic the three-term recurrence suffices; in floating point orthogonality is gradually lost ([Hamiltonians and ground states](11_hamiltonians_and_ground_states.ipynb)).
 #   We therefore subtract from $w=Hv_j$ its projection onto *all* rows stored so far, $w\leftarrow w-V^{T}(V^{*}w)$ — two matrix–vector products. Rows not yet filled are zero and contribute nothing, so no masking is needed.
-#   This also removes the $\alpha_jv_j$ and $\beta_{j-1}v_{j-1}$ terms automatically. We do it twice ("twice is enough", a classical result for Gram–Schmidt re-orthogonalisation; Golub and Van Loan);
+#   This also removes the $\alpha_jv_j$ and $\beta_{j-1}v_{j-1}$ terms automatically. We do it twice ("twice is enough": two passes of classical Gram–Schmidt give orthogonality at the level of the unit round-off, Giraud *et al.* 2005; for re-orthogonalised Lanczos in general see Golub and Van Loan 2013, §10.3);
 # * **no early exit**: if $\beta_j\approx0$ (the Krylov space is *invariant* — the state lives in fewer than $m$ eigenvectors, and the projection is already exact) we must not divide by it. `jnp.where` replaces the next vector by zero; all later $\alpha,\beta$ are then zero, $T_m$ becomes block-diagonal and the result (2) is unaffected.
 #
 # **From formula to code.** With `V` of shape `(m, dim)` holding the basis vectors as *rows*: `V.conj() @ w` is the vector of overlaps $\langle v_i|w\rangle$, shape `(m,)`; `V.T @ overlaps` is $\sum_i\langle v_i|w\rangle\,v_i$, shape `(dim,)`.
@@ -258,7 +258,7 @@ assert abs(float(jnp.linalg.norm(R[:, -1])) - float(betas[-1])) < 100 * TOL
 #
 # ### 4.1 From formula to code
 #
-# Eq. (2) in four lines: build $(\alpha,\beta,V)$; diagonalise $T_m=S\,\mathrm{diag}(\theta)S^T$ with `jnp.linalg.eigh` (an $m\times m$ problem — negligible cost); form the coefficient vector $c=S\,(e^{-i\theta\,dt}\odot S_{0,:})$, where `S[0, :]` $=S^Te_1$ is the first *row* of $S$;
+# Eq. (2) in four lines: build $(\alpha,\beta,V)$; diagonalise $T_m=S\,\mathrm{diag}(\theta)S^T$ with `jnp.linalg.eigh` (an $m\times m$ tridiagonal problem — negligible cost; Press *et al.* 2007, §11.4); form the coefficient vector $c=S\,(e^{-i\theta\,dt}\odot S_{0,:})$, where `S[0, :]` $=S^Te_1$ is the first *row* of $S$;
 # return $\|\psi\|\sum_jc_jv_j$ = `c @ V`. Everything is traced, so `dt` can be changed without recompiling.
 
 # %%
@@ -1018,7 +1018,7 @@ print(f"{'exact: H, V, work (3 x 4^N)':28s} | {'--':>13s} | " + " | ".join(f"{3 
 # | beyond state vectors | no | **yes**: matrix-product states (truncation after each gate), noisy circuits, hardware | awkward (many MPS additions) | possible but costly (MPS Krylov) |
 # | sweet spot | $N\le10$–$12$; *every* validation | rough-to-moderate accuracy ($10^{-2}$–$10^{-6}$), dense output in time, time-dependent protocols, circuits, MPS | high accuracy, long times, largest $N$ that fits in memory, time-independent $H$ | high accuracy with guaranteed error, unknown spectrum, moderate $N$, time-dependent $H$ with short steps, non-unitary generalisations (Arnoldi) |
 #
-# The row *beyond state vectors* summarises the survey of Paeckel *et al.* (2019), where the same four families are compared in the matrix-product-state setting; every other entry is measured in this notebook or in the two preceding ones.
+# The row *beyond state vectors* draws on the review of Paeckel *et al.* (2019), which compares TEBD, global and local Krylov methods and the time-dependent variational principle for matrix-product states (Chebyshev methods for MPS are only referenced there); every other entry is measured in this notebook or in the two preceding ones. A comparison of the same kind for wave-packet dynamics on a grid is Leforestier *et al.* (1991).
 #
 # **Rules of thumb.**
 #
@@ -1060,8 +1060,8 @@ print(f"{'exact: H, V, work (3 x 4^N)':28s} | {'--':>13s} | " + " | ".join(f"{3 
 # ## 13. References
 #
 # * T. J. Park and J. C. Light, *Unitary quantum time evolution by iterative Lanczos reduction*, J. Chem. Phys. **85**, 5870 (1986) — the Krylov/Lanczos propagator.
-# * Y. Saad, *Analysis of some Krylov subspace approximations to the matrix exponential operator*, SIAM J. Numer. Anal. **29**, 209 (1992) — the quasi-optimality inequality behind Eq. (2a), the exact error series, and the cheap a-posteriori estimates.
-# * M. Hochbruck and C. Lubich, *On Krylov subspace approximations to the matrix exponential operator*, SIAM J. Numer. Anal. **34**, 1911 (1997) — sharp convergence bounds; their Theorem 4 (skew-Hermitian generator, spectral interval of length $4\rho$) is Eq. (2b') above, and they also show that no super-linear decay can be expected below $m\approx\rho t$.
+# * Y. Saad, *Analysis of some Krylov subspace approximations to the matrix exponential operator*, SIAM J. Numer. Anal. **29**, 209 (1992) — a priori and a posteriori error estimates for Krylov approximations of $e^{A}v$, and the error expansion series on which Expokit's estimates are built.
+# * M. Hochbruck and C. Lubich, *On Krylov subspace approximations to the matrix exponential operator*, SIAM J. Numer. Anal. **34**, 1911 (1997) — sharp convergence bounds; their Theorem 4 (skew-Hermitian generator, spectral interval of length $4\rho$) is Eq. (2b') above, and they note that for such generators super-linear decay cannot be shown below $m\approx\rho t$.
 # * R. B. Sidje, *Expokit: a software package for computing matrix exponentials*, ACM Trans. Math. Softw. **24**, 130 (1998) — adaptive Krylov time stepping in practice: the local error estimate of §5.1 and a step-size controller $\tau_{k}=0.9\,(\texttt{tol}/\varepsilon_k)^{1/(m-1)}\tau_{k-1}$.
 # * C. Moler and C. Van Loan, *Nineteen dubious ways to compute the exponential of a matrix, twenty-five years later*, SIAM Review **45**, 3 (2003) — the survey of all the alternatives; its “Method 20” is the Krylov approach of this notebook.
 # * W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes: The Art of Scientific Computing*, 3rd ed., Cambridge University Press (2007) — §11.3–11.4 for the tridiagonal eigenproblem solved at every Krylov step, §2.7 for sparse matrix–vector products; the same algorithms in *Numerical Recipes in Fortran 90*, 2nd ed., CUP (1996).
@@ -1070,5 +1070,6 @@ print(f"{'exact: H, V, work (3 x 4^N)':28s} | {'--':>13s} | " + " | ".join(f"{3 
 # * M. Suzuki, *Fractal decomposition of exponential operators with applications to many-body theories and Monte Carlo simulations*, Phys. Lett. A **146**, 319 (1990) — higher-order Trotter–Suzuki formulas.
 # * S. Paeckel, T. Köhler, A. Swoboda, S. R. Manmana, U. Schollwöck and C. Hubig, *Time-evolution methods for matrix-product states*, Ann. Phys. **411**, 167998 (2019) — the same family of integrators in the MPS world.
 # * M. Heyl, A. Polkovnikov and S. Kehrein, *Dynamical quantum phase transitions in the transverse-field Ising model*, Phys. Rev. Lett. **110**, 135704 (2013) — Loschmidt echo and its non-analyticities.
-# * G. H. Golub and C. F. Van Loan, *Matrix Computations*, 4th ed., Johns Hopkins University Press (2013) — Lanczos, Arnoldi, Gram–Schmidt and re-orthogonalisation.
+# * G. H. Golub and C. F. Van Loan, *Matrix Computations*, 4th ed., Johns Hopkins University Press (2013) — Lanczos, Arnoldi, Gram–Schmidt and re-orthogonalisation (Ch. 10).
+* L. Giraud, J. Langou, M. Rozložník and J. van den Eshof, *Rounding error analysis of the classical Gram–Schmidt orthogonalization process*, Numer. Math. **101**, 87 (2005) — two passes of classical Gram–Schmidt are enough.
 

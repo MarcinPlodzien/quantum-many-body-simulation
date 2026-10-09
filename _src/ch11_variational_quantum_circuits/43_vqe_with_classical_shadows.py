@@ -1435,8 +1435,8 @@ fig.tight_layout(); plt.show()
 # as to minimise a confidence bound on the estimation error, producing a *schedule* rather than a distribution. Its
 # guarantee is that this bound is never worse than the average bound of the randomised scheme. In the molecular
 # benchmarks of that paper (ground-state energies of $\mathrm{H_2}$ to $\mathrm{NH_3}$ under three fermion-to-qubit
-# encodings, $1000$ measurements) its energy error was several times smaller than that of randomised shadows and also
-# below that of locally biased shadows and of a greedy grouping heuristic (largest degree first). Both methods
+# encodings, $1000$ measurements) its energy error was $7$ to $30$ times smaller than that of randomised shadows and
+# also below that of locally biased shadows and of a greedy grouping heuristic (largest degree first). Both methods
 # occupy the space between the two extremes measured in Section 6: problem-adapted grouping, which suits a known
 # Hamiltonian and nothing else, and fully random shadows, which are agnostic and therefore pay the $3^k$ of Eq. (4).
 
@@ -1461,7 +1461,7 @@ fig.tight_layout(); plt.show()
 # and it occurs with probability $3^{-N}\lvert\langle s\vert U_b\vert\psi\rangle\rvert^2$. A second moment near $11$
 # gives $5\cdot10^{4}$ snapshots an error bar near $0.015$ — acceptable here. Since the moment grows exponentially
 # with $N$, at $N=20$ the same budget would not suffice, which is why fidelity estimation from local randomised
-# measurements does not scale and global (Clifford) shadows exist.
+# measurements does not scale and global (Clifford) shadows exist (Huang, Kueng and Preskill 2020).
 
 # %%
 # ==============================================================================
@@ -1701,8 +1701,8 @@ fig.tight_layout(); plt.show()
 # * C. Hadfield, S. Bravyi, R. Raymond and A. Mezzacapo, *Measurements of quantum Hamiltonians with locally-biased
 #   classical shadows*, Commun. Math. Phys. **391**, 951 (2022) — biased local ensembles.
 # * V. Verteletskyi, T.-C. Yen and A. F. Izmaylov, *Measurement optimization in the variational quantum eigensolver
-#   using a minimum clique cover*, J. Chem. Phys. **152**, 124114 (2020) — grouping commuting terms as a graph-colouring
-#   problem.
+#   using a minimum clique cover*, J. Chem. Phys. **152**, 124114 (2020) — qubit-wise-commuting grouping as a minimum
+#   clique cover of the commutativity graph, equivalently a colouring of its complement.
 # * A. Peruzzo, J. McClean, P. Shadbolt, M.-H. Yung, X.-Q. Zhou, P. J. Love, A. Aspuru-Guzik and J. L. O'Brien,
 #   *A variational eigenvalue solver on a photonic quantum processor*, Nat. Commun. **5**, 4213 (2014) — the first VQE
 #   experiment, and the term-by-term measurement scheme of Section 3.2.

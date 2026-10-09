@@ -185,7 +185,8 @@
 #   Formally, Kraus operators are defined only up to a unitary mixing, $K_m\to\sum_nu_{mn}K_n$, and every choice of $u$ is a
 #   legitimate measurement of the environment. Mixing the no-jump operator $K_0$ into the jump operators with a large amplitude
 #   (physically: interfering the emitted light with a strong local oscillator before the detector — *homodyne detection*) turns the
-#   rare large jumps into a continuous small-noise diffusion, the **quantum-state-diffusion** unravelling of Gisin and Percival.
+#   rare large jumps into a continuous small-noise diffusion — a **diffusive** unravelling, of which the quantum-state-diffusion
+#   equation of Gisin and Percival is the best-known example.
 #   Anything *linear* in $|\psi\rangle\langle\psi|$ (expectation values, and fidelities with a fixed pure state) is
 #   unravelling-independent, because it is a property of $\rho$ alone; nonlinear functionals of the state averaged over trajectories
 #   (the entanglement entropy of $|\psi\rangle$, the purity of a subsystem) are **not** properties of $\rho$ and change when the detection
@@ -242,8 +243,8 @@
 # > $\gamma_jdt\le1$, so that $K_0=\sqrt{\mathbb 1-\gamma_jdt\,L_j^\dagger L_j}$ exists. That is why Section 8.3 can run $N=16$ sites at
 # > $\delta p\approx0.16$ with the Trotter stepper, a value that would be too large for stepper A.
 #
-# **The waiting-time (delay-function) algorithm.** The scheme of Section 2.2 is the one of Dalibard, Castin and Mølmer; the older
-# delay-function idea, turned into a Monte-Carlo method for many-level atoms by Dum, Zoller and Ritsch, avoids the per-step Bernoulli
+# **The waiting-time (delay-function) algorithm.** The scheme of Section 2.2 is the one of Dalibard, Castin and Mølmer; the scheme of
+# Dum, Zoller and Ritsch, who draw each decay time from the photon-count distribution of the driven atom, avoids the per-step Bernoulli
 # draw altogether. Draw a single uniform random number $r\in(0,1)$, propagate the **unnormalised** state under $H_{\rm eff}$ without
 # renormalising, and wait until its squared norm has fallen to $r$:
 #
@@ -1170,7 +1171,7 @@ plt.tight_layout(); plt.show()
 #
 # This section uses everything above to ask a question that the master equation cannot answer at all.
 #
-# In [notebook 18 (Chapter 9)](../ch07_tensor_networks/18_mps_tebd.ipynb) a domain wall
+# In [notebook 18 (Chapter 7)](../ch07_tensor_networks/18_mps_tebd.ipynb) a domain wall
 # $|\!\uparrow\cdots\uparrow\downarrow\cdots\downarrow\rangle$ melted in the **XX chain** inside a sharp light cone: the
 # front moved at the maximal group velocity $4J$ and the melted region widened *linearly* in time. That is ballistic
 # transport, and it happens because the quasi-particles of the XX chain are free - nothing scatters them.
@@ -1179,7 +1180,7 @@ plt.tight_layout(); plt.show()
 # exchanges no energy with the chain and it conserves $\sum_i Z_i$ exactly, so the amount of magnetisation is
 # untouched; what it destroys is the phase coherence between neighbouring sites that ballistic propagation relies on.
 # The quasi-particles scatter, the light cone dissolves, and the wall spreads as $\sqrt t$ instead of $t$: the
-# transport becomes **diffusive** (Znidaric 2010).
+# transport becomes **diffusive** (Žnidarič 2010).
 #
 # Two numbers say why this section belongs here and not in notebook 16. To tell $\sqrt t$ from $t$ the chain must be
 # long enough that the front does not reach the ends: $N=16$ at least. A density tensor for 16 spins holds
@@ -1375,7 +1376,7 @@ plt.tight_layout(); plt.show()
 # * M. B. Plenio, P. L. Knight, *The quantum-jump approach to dissipative dynamics in quantum optics*, Rev. Mod. Phys. **70**, 101 (1998).
 # * A. J. Daley, *Quantum trajectories and open many-body quantum systems*, Adv. Phys. **63**, 77 (2014) — many-body applications, higher-order schemes.
 # * N. Gisin, I. C. Percival, *The quantum-state diffusion model applied to open systems*, J. Phys. A **25**, 5677 (1992) — the diffusive
-#   unravelling (homodyne detection), a different stochastic process with the same $\rho(t)$.
+#   unravelling (continuous noise instead of jumps), a different stochastic process with the same $\rho(t)$.
 # * H. Nha, H. J. Carmichael, *Entanglement within the quantum trajectory description of open quantum systems*, Phys. Rev. Lett. **93**, 120408 (2004)
 #   — trajectory entanglement depends on the unravelling.
 # * C. H. Bennett, D. P. DiVincenzo, J. A. Smolin, W. K. Wootters, *Mixed-state entanglement and quantum error correction*,
@@ -1384,6 +1385,8 @@ plt.tight_layout(); plt.show()
 #   B. Skinner, J. Ruhman, A. Nahum, *Measurement-induced phase transitions in the dynamics of entanglement*, Phys. Rev. X **9**, 031009 (2019).
 # * D. Gobert, C. Kollath, U. Schollwöck, G. Schütz, *Real-time dynamics in spin-1/2 chains with adaptive time-dependent density matrix
 #   renormalization group*, Phys. Rev. E **71**, 036102 (2005) — ballistic melting of a domain wall in the XXZ chain for $\Delta<1$.
+# * M. Žnidarič, *Dephasing-induced diffusive transport in the anisotropic Heisenberg model*, New J. Phys. **12**, 043001 (2010)
+#   — dephasing turns ballistic spin transport into diffusion (Section 9).
 # * W. H. Press, S. A. Teukolsky, W. T. Vetterling, B. P. Flannery, *Numerical Recipes: The Art of Scientific Computing*, 3rd ed.,
 #   Cambridge University Press (2007) — Chapter 7: random-number generation and the $1/\sqrt M$ error of Monte-Carlo estimators.
 # * W. Nagourney, J. Sandberg, H. Dehmelt, *Shelved optical electron amplifier: observation of quantum jumps*, Phys. Rev. Lett. **56**, 2797 (1986).

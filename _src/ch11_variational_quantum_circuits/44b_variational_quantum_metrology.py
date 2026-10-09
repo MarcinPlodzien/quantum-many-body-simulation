@@ -1698,7 +1698,8 @@ for name, psi in rows.items():
 #   **22**, 083038 (2020) — variational probe circuits under dephasing, amplitude damping and other noise; non-symmetric
 #   optimal states under damping.
 # * R. Kaubruegger, P. Silvi, C. Kokail, R. van Bijnen, A. M. Rey, J. Ye, A. M. Kaufman and P. Zoller, *Variational
-#   spin-squeezing algorithms on programmable quantum sensors*, Phys. Rev. Lett. **123**, 260505 (2019).
+#   spin-squeezing algorithms on programmable quantum sensors*, Phys. Rev. Lett. **123**, 260505 (2019) — variational
+#   circuits that prepare spin-squeezed states on atom-tweezer arrays used as programmable sensors.
 # * R. Kaubruegger, D. V. Vasilyev, M. Schulte, K. Hammerer and P. Zoller, *Quantum variational optimization of Ramsey
 #   interferometry and atomic clocks*, Phys. Rev. X **11**, 041045 (2021) — variational entangling and decoding circuits
 #   for a Bayesian cost.

@@ -15,7 +15,7 @@
 # for its wave function to evolve coherently. That has changed. Ultracold atoms in optical lattices, chains of trapped ions, arrays of
 # Rydberg atoms held in optical tweezers and superconducting circuits are *isolated, controllable spin chains*: one prepares a product state,
 # suddenly switches on a Hamiltonian (a **quantum quench**) and photographs the spins after a time $t$. Such experiments watch order
-# melt, correlations spread with a finite velocity (a "light cone"), and local observables of an isolated system relax to stationary values — or fail to. Interpreting them, and
+# melt, correlations spread with a finite velocity (a "light cone"), and local observables of an isolated system relax to stationary values — or fail to (reviews: Polkovnikov *et al.* 2011; Heyl 2018). Interpreting them, and
 # designing the next ones, requires solving the Schrödinger equation for many interacting particles on a computer. It is also the basic
 # task a future quantum computer is expected to do better than we can; to appreciate that claim one should first understand how hard the
 # task is classically, and why.
@@ -273,7 +273,7 @@ assert max_abs(mz_matrix - mz_table) < TOL
 #
 # *Proof.* Differentiate the series term by term: $\frac{d}{dt}U(t)=\sum_{k\ge1}\frac{(-iH)^k t^{k-1}}{(k-1)!}=-iH\,U(t)$, and $U(0)=\mathbb 1$. $\square$
 #
-# The matrix $U(t)$ is called the **propagator** (or time-evolution operator). Three properties follow directly from $H=H^\dagger$ and will serve
+# The matrix $U(t)$ is called the **propagator** (or time-evolution operator; Sakurai and Napolitano, §2.1). Three properties follow directly from $H=H^\dagger$ and will serve
 # as our test suite for every numerical method:
 #
 # 1. **Unitarity.** $U(t)^\dagger=e^{+iH^\dagger t}=e^{+iHt}=U(-t)=U(t)^{-1}$. Consequently the norm is conserved,
@@ -309,7 +309,7 @@ assert max_abs(mz_matrix - mz_table) < TOL
 #
 # ### 4.2 From formula to code
 #
-# * `diagonalize(H)` = `jnp.linalg.eigh` (for Hermitian matrices; returns real ascending eigenvalues `E` of shape `(D,)` and `V` of shape `(D, D)` whose
+# * `diagonalize(H)` = `jnp.linalg.eigh` (for Hermitian matrices, algorithms in *Numerical Recipes*, Ch. 11; returns real ascending eigenvalues `E` of shape `(D,)` and `V` of shape `(D, D)` whose
 #   *columns* are eigenvectors).
 # * `evolve_eigh` is Eq. (4) literally: `V @ (exp(-1j*E*t) * (V^dag @ psi0))`. The product `phase * c` is element-wise (a diagonal matrix times a vector).
 # * `propagator_eigh` builds the full matrix of Eq. (3). The idiom `(V * phase) @ V^dag` multiplies *column* $n$ of $V$ by `phase[n]` through broadcasting —
@@ -613,6 +613,7 @@ assert err_expm < 100 * TOL and err_expm_unitary < 100 * TOL
 # ### 6.2 From formula to code
 #
 # A one-step method is a function `step(H, psi, dt) -> psi_new`. The time loop is a `lax.scan` whose carry is the state and whose stacked output is the whole trajectory, shape `(n_steps+1, D)`.
+# The step itself is written as whole-array operations, as in Chapter B16 of *Numerical Recipes in Fortran 90*.
 # The step function and the number of steps are *static* arguments of `jit` (they determine the structure of the compiled program), `H`, `psi0` and `dt` are traced arrays.
 
 # %%
@@ -688,7 +689,7 @@ plt.show()
 #
 # ### 6.3 Runge–Kutta 4: much better, still not unitary
 #
-# The classical fourth-order Runge–Kutta method (RK4) evaluates $f$ four times per step and combines the results so that the Taylor expansion of the exact solution is reproduced up
+# The classical fourth-order Runge–Kutta method (RK4; Press *et al.*, *Numerical Recipes*, §17.1) evaluates $f$ four times per step and combines the results so that the Taylor expansion of the exact solution is reproduced up
 # to $dt^4$. For our *linear* equation one can substitute the stages into each other and finds that a step is multiplication with the degree-4 Taylor polynomial,
 #
 # $$ \psi_{n+1}=R(-iH\,dt)\,\psi_n,\qquad R(z)=1+z+\frac{z^2}{2}+\frac{z^3}{6}+\frac{z^4}{24}. $$
@@ -956,7 +957,7 @@ for name in res:
 #
 # $$ \big\|U_1(dt)^{n}-e^{-iHt}\big\|\;\lesssim\;\frac{t\,dt}{2}\,\big\|[H_A,H_B]\big\| . \tag{13}$$
 #
-# In the limit $n\to\infty$ the product formula becomes exact; this is the *Lie product formula* (for matrices) or *Trotter formula* (for operators).
+# In the limit $n\to\infty$ the product formula becomes exact; this is the *Lie product formula* (for matrices) or *Trotter formula* (for operators; Trotter 1959).
 #
 # Two features deserve emphasis. First, every factor is the exponential of a Hermitian matrix times $-i$, hence **exactly unitary, for any $dt$**: norm conservation is built in, the method cannot blow up.
 # Second, by BCH the Trotter step is the *exact* propagator of a slightly wrong, but Hermitian, Hamiltonian: inserting $\varepsilon A\to-iH_Bdt$ and $\varepsilon B\to-iH_Adt$ into Eq. (10) and factoring out $-i\,dt$,
@@ -969,6 +970,7 @@ for name in res:
 # expansion in $dt$; the BCH series it comes from converges only for small enough $dt$ and is asymptotic in practice, so what follows is a statement about small $dt$,
 # not an identity.
 #
+# (The rigorous form of this argument is the backward error analysis of Hairer, Lubich and Wanner, Chapter IX.)
 # Within that range the consequence is strong: the Trotterised dynamics conserves **$H_{\rm eff}$** exactly (it is the generator of its own evolution), at every
 # step. It does *not* conserve $H$; but since $\langle H\rangle=\langle H_{\rm eff}\rangle+O(dt)$ and $\langle H_{\rm eff}\rangle$ never moves, the measured energy can
 # only *oscillate* within a band of width $O(dt)$ — it cannot drift away. This is the difference between an error that is bounded for all times and one that accumulates.
@@ -988,7 +990,7 @@ for name in res:
 #
 # (The coefficients are quoted, and verified numerically in the next cell.) The local error is $O(dt^3)$; by Eq. (12) the **global error is $O(t\,dt^2)$: second order**. The price is almost nothing: in a sequence of steps
 # the last half-step of one step and the first half-step of the next merge, $e^{-iH_Adt/2}e^{-iH_Adt/2}=e^{-iH_Adt}$, so $U_2^{\,n}$ needs only one more exponential than $U_1^{\,n}$.
-# This splitting is known as *Strang splitting* in numerical analysis, as the *second-order Suzuki–Trotter decomposition* in physics, and — for $H=p^2/2m+V(x)$ — it is the *split-operator* or
+# This splitting is known as *Strang splitting* in numerical analysis (Strang 1968; Hairer, Lubich and Wanner, Chapter II), as the *second-order Suzuki–Trotter decomposition* in physics (Suzuki 1976), and — for $H=p^2/2m+V(x)$ — it is the *split-operator* or
 # *leapfrog/Verlet* method. Higher orders exist (Suzuki's fourth-order formula is covered in
 # [notebook 12, Chapter 5](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb)).
 #
@@ -1253,7 +1255,7 @@ assert abs(slopes_trot[1] - 1) < 0.15 and abs(slopes_trot[2] - 2) < 0.15
 #
 # * *(a)* The dashed lines are **not fits**: they are the leading BCH terms, commutator norms included. For small $dt$ the measured one-step errors fall on top of them — the printed
 #   ratio measured/predicted is $1.000$ at $dt=0.0125$ for both orders; at $dt=0.4$ it has dropped to about $0.93$, which is the neglected next order of the BCH series becoming visible.
-#   The size of the Trotter error is governed by commutators — nothing else.
+#   The size of the Trotter error is governed by commutators — nothing else (rigorous commutator bounds for product formulas of any order: Childs *et al.* 2021).
 # * *(b)* One power of $dt$ is lost on the way from one step to $n=T/dt$ steps, Eq. (12): the global error is first order for Lie–Trotter and second order for Strang, with measured slopes close to 1 and 2.
 #   At the same $dt$ the second-order scheme is more accurate by orders of magnitude, at essentially the same cost. **There is no reason ever to use the first-order formula in production.**
 
@@ -1477,6 +1479,8 @@ for hq in H_FIELDS:
 # whose maximal group velocity is $v_{\max}=\max_k|d\epsilon_k/dk|=2\min(J,h)$ lattice sites per unit time. So the prediction for the *front of the correlations* is the
 # parameter-free number $2v_{\max}=4\min(J,h)$ — a *physical* velocity. The Lieb–Robinson theorem only guarantees that some finite $v_{\rm LR}$ exists and bounds the
 # spreading of a single Heisenberg operator from above, $v_{\rm LR}\ge v_{\max}$; the factor 2 in the correlation cone is the pair mechanism, and it is what we test here.
+#
+# Such a light cone of correlations, carried by quasi-particle pairs, was observed with ultracold atoms in an optical lattice by Cheneau *et al.* (2012).
 #
 # We plot $|C_{0j}(t)|$ on a logarithmic colour scale and overlay the line $j=2v_{\max}t$. We choose spin 0 (the left end) as the reference to have the longest possible
 # distances in our short chain (the centre of the chain gives the same velocity to within a few per cent, but only half the range of distances).
@@ -1791,9 +1795,9 @@ for n in (8, 10):
 #
 # *ODE integration and numerical practice*
 # * W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes: The Art of Scientific Computing*, 3rd ed., Cambridge University Press (2007),
-#   ISBN 978-0-521-88068-8 — Chapter 17 (*Integration of Ordinary Differential Equations*, pp. 899–953): §17.1 is the classical fourth-order Runge–Kutta scheme
+#   ISBN 978-0-521-88068-8 — Chapter 17 (*Integration of Ordinary Differential Equations*, from p. 899): §17.1 is the classical fourth-order Runge–Kutta scheme
 #   implemented in `rk4_step`, §17.2 its adaptive step-size control, §17.5 stiff equations (the general setting of the stability limit, Eq. (7a));
-#   Chapter 11 (*Eigensystems*; §11.3–11.5 are the reduction to tridiagonal form and the QL/QR iteration that `eigh` performs).
+#   Chapter 11 (*Eigensystems*; §11.3 the reduction to tridiagonal form, §11.4 the QL iteration for the tridiagonal matrix, §11.5 the Hermitian case — the algorithms behind `eigh`).
 # * W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes in Fortran 90: The Art of Parallel Scientific Computing*, Volume 2 of
 #   *Fortran Numerical Recipes*, 2nd ed., Cambridge University Press (1996), ISBN 978-0-521-57439-6 — Chapter B16 is the same Runge–Kutta material written as whole-array
 #   operations instead of loops, the style used throughout this course (`integrate` is a `lax.scan` over array expressions, not a Python loop over components).

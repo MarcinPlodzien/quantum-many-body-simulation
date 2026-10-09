@@ -19,7 +19,7 @@
 #
 # $$ e^{-iH\,dt}\;\approx\;\prod_k e^{-ih_k\,dt}\qquad\text{(Trotter 1959, Suzuki 1976)}. $$
 #
-# **A word on the name.** In the literature **TEBD — time-evolving block decimation** (Vidal 2003, 2004) denotes one specific algorithm: this sequence of two-site gates applied to a *matrix product state*, each gate followed by a singular-value truncation that keeps the bond dimension bounded — the "decimation" of the name.
+# **A word on the name.** In the literature **TEBD — time-evolving block decimation** (Vidal 2003, 2004) denotes one specific algorithm: this sequence of two-site gates applied to a *matrix product state*, each gate followed by a singular-value truncation that keeps the bond dimension bounded — the "decimation" of the name (Schollwöck 2011, Section 7, compares it with the other MPS time-evolution schemes).
 # What we do here is the same gate sequence applied to the **full state vector**, stored as a rank-$N$ tensor: no matrix product state, no truncation. Strictly, that is Trotterised state-vector evolution; calling it TEBD, as is common, names the gate layout rather than the data structure.
 # The distinction matters because it decides what limits the simulation: here memory ($2^N$ amplitudes) and **the Trotter error as the only source of error**, there the bond dimension and the truncation error on top of the Trotter error. The MPS version is the subject of [notebook 18 (Chapter 7)](../ch07_tensor_networks/18_mps_tebd.ipynb);
 # everything derived below about Trotter errors carries over to it unchanged, which is why this is the place to understand them thoroughly.
@@ -358,7 +358,7 @@ assert abs(r - 1) < 0.05                                 # sign and direction, n
 #
 # $$ \sum_ic_i=1\quad(\text{consistency}),\qquad\sum_ic_i^3=0\quad(\text{kill the }dt^3\text{ error}). $$
 #
-# The second condition cannot be met with positive numbers — a sum of cubes of positive numbers is positive — so **some sub-steps must go backwards in time**. This is not an artefact of the ansatz: Suzuki (1991) proved that *no* product formula of order higher than two has only positive coefficients.
+# The second condition cannot be met with positive numbers — a sum of cubes of positive numbers is positive — so **some sub-steps must go backwards in time**. This is not an artefact of the ansatz: Suzuki (1991) proved that *no* product formula of order higher than two has only positive coefficients. The order conditions of such compositions are surveyed by McLachlan and Quispel (2002).
 #
 # * **Suzuki (1990)**, five stages: $S_4(dt)=S_2(s\,dt)^2\,S_2\big((1-4s)\,dt\big)\,S_2(s\,dt)^2$. The two conditions read $4s+(1-4s)=1$ (automatic) and $4s^3+(1-4s)^3=0$; the latter gives $4^{1/3}s=-(1-4s)$, i.e.
 #   $s=\dfrac{1}{4-4^{1/3}}\approx0.41449$ and a middle step $1-4s\approx-0.65796$. This is the engine's `order=4`.
@@ -701,14 +701,14 @@ plt.tight_layout(); plt.show()
 # Everything so far was measured at $N=10$. A simulator is used at $N=30$ or $N=100$, so the third variable — after $dt$ and $t$ — is the size of the system. The sharpest general statement available is the **commutator bound** of Childs, Su, Tran, Wiebe and Zhu (2021): for a
 # $p$-th order product formula built from $H=\sum_\gamma h_\gamma$,
 #
-# $$ \big\|S_p(dt)-e^{-iH\,dt}\big\|\;\le\;\alpha_{\rm comm}\,dt^{\,p+1},\qquad \alpha_{\rm comm}=\sum_{\gamma_1,\dots,\gamma_{p+1}}\big\|\big[h_{\gamma_{p+1}},\dots,\big[h_{\gamma_2},h_{\gamma_1}\big]\big]\big\| , $$
+# $$ \big\|S_p(dt)-e^{-iH\,dt}\big\|\;=\;O\big(\alpha_{\rm comm}\,dt^{\,p+1}\big),\qquad \alpha_{\rm comm}=\sum_{\gamma_1,\dots,\gamma_{p+1}}\big\|\big[h_{\gamma_{p+1}},\dots,\big[h_{\gamma_2},h_{\gamma_1}\big]\big]\big\| , $$
 #
-# the sum running over the terms in the order in which the formula applies them. Only *nested commutators* appear — the bound is zero when the terms commute, which no bound written in terms of $\|H\|$ alone can achieve. Two consequences for a chain of $N$ spins with
+# the sum running over all $(p+1)$-tuples of terms, and the constant hidden in $O(\cdot)$ depending only on the formula. Only *nested commutators* appear — the bound is zero when the terms commute, which no bound written in terms of $\|H\|$ alone can achieve. Two consequences for a chain of $N$ spins with
 # nearest-neighbour bonds of bounded strength:
 #
 # * A nested commutator vanishes unless the terms involved overlap on the lattice, so only $O(N)$ of the terms in $\alpha_{\rm comm}$ survive: $\alpha_{\rm comm}=O(N)$. The error of one step is **extensive**, and the global state error is $O(N\,t\,dt^{\,p})$. To hold the error of the
 #   *state* fixed while the chain grows, $dt$ must shrink like $(\varepsilon/Nt)^{1/p}$, so the total number of gates behaves as $N\,t/dt=O\big((Nt)^{1+1/p}\varepsilon^{-1/p}\big)$.
-# * For a **local observable** the situation is much better: the error of $\langle Z_j\rangle$ is controlled by commutators in a finite neighbourhood of site $j$ and does not grow with $N$ at all (Childs *et al.* 2021, Section on locality; Heyl, Hauke and Zoller 2019).
+# * For a **local observable** the situation is much better: the error of $\langle Z_j\rangle$ is controlled by commutators in a finite neighbourhood of site $j$ and does not grow with $N$ at all (Childs *et al.* 2021, section "Applications to simulating local observables"; Heyl, Hauke and Zoller 2019).
 #
 # The extensive bound is a worst case over all states. On a given state the error contributions of different bonds are vectors that need not add coherently, and for a product state they are nearly orthogonal, so their norms add in quadrature. The cell below measures both effects:
 # the prefactor $\|[B,A]\psi_0\|$ of Eq. (3') up to $N=18$ (matrix-free, no exact reference needed), and — where a dense reference is affordable — the state error against the error of the single local observable $\langle Z_{N/2}\rangle$.
@@ -756,11 +756,11 @@ for N_s in (6, 8, 10, 12, 14, 16, 18):
 # $$ \langle H\rangle_t-\langle H\rangle_0=-\big(\langle H_{\rm eff}-H\rangle_t-\langle H_{\rm eff}-H\rangle_0\big)=O(dt^p)\quad\text{at all measured times }t=n\,dt: $$
 #
 # the energy error **oscillates but does not drift**, with an amplitude $\propto dt^p$. This makes $\max_t|\langle H\rangle_t-\langle H\rangle_0|$ a cheap, reference-free indicator of whether $dt$ is small enough. (The same mechanism explains the excellent long-time energy behaviour of
-# symplectic integrators in classical mechanics — leapfrog/Verlet is nothing but Strang splitting of $H=T+V$.)
+# symplectic integrators in classical mechanics — leapfrog/Verlet is nothing but Strang splitting of $H=T+V$; Hairer, Lubich and Wanner (2006), Chapter IX, develop this backward error analysis.)
 #
 # Two caveats belong with this argument. First, $H_{\rm eff}$ is a *local* operator only as long as the expansion behaves: the series of nested commutators is asymptotic, not convergent, and for a many-body system its truncation is useful only while $dt$ times the local energy
-# scale is small. Second, "does not drift" is a statement about a long but finite time. Rigorous results for Floquet systems — and a Trotterised evolution is a periodically driven system, with period $dt$ — show that the energy stays within $O(dt^p)$ of its initial value for a time
-# that grows very fast (exponentially) as $dt\to0$, after which the system slowly absorbs energy from the "drive" and approaches a featureless state in which every local observable takes its value in the maximally mixed state. At larger $dt$ there is a threshold beyond which the Trotter error stops being perturbative altogether (Heyl, Hauke and
+# scale is small. Second, "does not drift" is a statement about a long but finite time. Rigorous results for Floquet systems — and a Trotterised evolution is a periodically driven system, with period $dt$ — show that the energy stays close to its initial value for a time
+# that grows exponentially in the driving frequency $2\pi/dt$ (Mori, Kuwahara and Saito 2016; Abanin, De Roeck, Ho and Huveneers 2017). After that time a generic interacting system is expected to absorb energy from the "drive" slowly and approach a featureless state in which every local observable takes its value in the maximally mixed state. At larger $dt$ there is a threshold beyond which the Trotter error stops being perturbative altogether (Heyl, Hauke and
 # Zoller 2019); the numbers below stay far on the safe side of it.
 
 # %%
@@ -1038,7 +1038,7 @@ for target in (1e-2, 1e-4, 1e-6, 1e-8):
 #
 # $$ \epsilon(dt)\approx\frac{\delta}{1-2^{-p}},\qquad\epsilon(dt/2)\approx\frac{\delta}{2^p-1}. \qquad (7)$$
 #
-# This *a-posteriori* estimate (the idea behind Richardson extrapolation and adaptive step-size control) requires no exact solution. We first validate it where we do know the answer.
+# This *a-posteriori* estimate (the idea behind Richardson extrapolation and adaptive step-size control; Press *et al.* 2007, §17.3) requires no exact solution. We first validate it where we do know the answer.
 
 # %%
 # ==============================================================================
@@ -1136,7 +1136,7 @@ plt.show()
 #   at a size where no dense reference exists. The magnetisation $M$ is conserved to round-off, as Section 8 taught us. (The energy deviation printed for $\Delta=0$ is *exactly* zero. This is not a sign of an unusually accurate run but a symmetry accident: for this real initial state the hopping energy
 #   $\langle\sigma^+_j\sigma^-_{j+1}+{\rm h.c.}\rangle$ vanishes identically at all times — only a current flows. A reminder that a diagnostic can be blind; for $\Delta=1$ the energy deviation has the expected small $O(dt^4)$ size.)
 # * **Physics:** in the XX chain the wall melts **ballistically**: a light-cone with the maximal velocity $v_{\max}=4J$ (dashed) opens, and the transferred magnetisation grows linearly in time until the fronts hit the ends of the chain ($t\approx N/(2v_{\max})\approx2.2$) and reflect.
-#   At the Heisenberg point the same light-cone limits the spreading, but the $ZZ$ interaction slows the transport of magnetisation down markedly — the curve bends (in the infinite chain, transport at $\Delta=1$ is *superdiffusive*, a topic of current research). More physics in
+#   At the Heisenberg point the same light-cone limits the spreading, but the $ZZ$ interaction slows the transport of magnetisation down markedly — the curve bends (in the infinite chain the melting of the fully polarised domain wall at $\Delta=1$ is compatible with diffusive spreading with slowly decaying corrections (Misguich, Mallick and Krapivsky 2017), while from weakly polarised, mixed initial states spin transport at $\Delta=1$ is superdiffusive with exponent close to $2/3$ (Ljubotina, Žnidarič and Prosen 2017); this is a topic of current research). More physics of quenches in closed systems in Polkovnikov *et al.* (2011) and in
 #   [notebook 15 (Chapter 5)](15_quench_dynamics_spin_chains.ipynb).
 #
 # For $\Delta=1$ there is no free-fermion solution, and the step-halving test of Section 11.1 is the only convergence measure left. We apply it to both runs: for $\Delta=0$ we can compare the *estimated* error of the magnetisation profile with the *true* one (from free fermions) —
@@ -1196,7 +1196,7 @@ for Delta_big in (0.0, 1.0):
 # 2. **(★) Closed-form gates.** Derive $e^{-i\theta(XX+YY)}$ in closed form (hint: $XX+YY$ acts only on $\{|01\rangle,|10\rangle\}$, where it equals $2X$) and use $[XX+YY,ZZ]=0$ to write the XXZ bond gate without any `eigh`. Verify against `expm_hermitian`.
 # 3. **(★★) Extend the code: second order across steps.** Write `tebd2_evolve_merged(psi, terms_A, terms_B, dt, n_steps)` implementing $e^{-iA\,dt/2}\big[e^{-iB\,dt}e^{-iA\,dt}\big]^{n-1}e^{-iB\,dt}e^{-iA\,dt/2}$ with `lax.scan`. Verify that it gives the same state as
 #    `tebd_evolve(..., order=2)` and measure the speed-up at $N=16$. What is the complication if you want observables at *every* step?
-# 4. **(★★) Order six.** Apply Suzuki's construction once more: $S_6(dt)=S_4(s_6dt)^2S_4((1-4s_6)dt)S_4(s_6dt)^2$ with $s_6=1/(4-4^{1/5})$ (why the fifth root?). Verify slope 6 before the round-off floor spoils it, add the scheme to the work–precision diagram, and decide whether it is ever worth it in double precision.
+# 4. **(★★) Order six.** Apply Suzuki's construction (Suzuki 1990; reviewed by Hatano and Suzuki 2005) once more: $S_6(dt)=S_4(s_6dt)^2S_4((1-4s_6)dt)S_4(s_6dt)^2$ with $s_6=1/(4-4^{1/5})$ (why the fifth root?). Verify slope 6 before the round-off floor spoils it, add the scheme to the work–precision diagram, and decide whether it is ever worth it in double precision.
 # 5. **(★★) Physics: shadow Hamiltonian.** For the second-order scheme, the conserved quantity is $H_{\rm eff}=H+dt^2H_2+O(dt^4)$. Using `strang_error_vector`, record $\langle H+dt^2H_2\rangle_t$ along a trajectory and show that its fluctuations are $O(dt^4)$, much smaller than those of $\langle H\rangle_t$.
 # 6. **(★★) Physics: light cone.** Start from $|\!\uparrow\cdots\uparrow\downarrow\uparrow\cdots\uparrow\rangle$ (one flipped spin in the middle of an $N=19$ XX chain). Plot $\langle Z_j(t)\rangle$, compare with the free-fermion formula, and extract the front velocity. How does the picture change for $\Delta=1$ and $\Delta=3$? (For large $\Delta$: think about why a single flipped spin still moves freely but a *pair* of neighbouring flipped spins is nearly stuck.)
 # 7. **(★★★) Two dimensions.** Build the bond list of a $4\times4$ square lattice, colour the bonds into four groups of mutually disjoint bonds (horizontal-even, horizontal-odd, vertical-even, vertical-odd), and run second-order TEBD for the 2D transverse-field Ising model from $|\!\uparrow\cdots\uparrow\rangle$.
@@ -1215,8 +1215,8 @@ for Delta_big in (0.0, 1.0):
 # * M. Suzuki, *Fractal decomposition of exponential operators with applications to many-body theories and Monte Carlo simulations*, Phys. Lett. A **146**, 319 (1990) — the five-stage fourth-order formula used here.
 # * M. Suzuki, *General theory of fractal path integrals with applications to many-body theories and statistical physics*, J. Math. Phys. **32**, 400 (1991) — the recursion to arbitrary order and the proof that no formula of order higher than two has only positive coefficients.
 # * E. Forest and R. D. Ruth, *Fourth-order symplectic integration*, Physica D **43**, 105 (1990); H. Yoshida, *Construction of higher order symplectic integrators*, Phys. Lett. A **150**, 262 (1990).
-# * N. Hatano and M. Suzuki, *Finding exponential product formulas of higher orders*, in *Quantum Annealing and Related Optimization Methods*, eds. A. Das and B. K. Chakrabarti, Lecture Notes in Physics **679**, pp. 37–68, Springer (2005).
-# * R. I. McLachlan and G. R. W. Quispel, *Splitting methods*, Acta Numerica **11**, 341–434 (2002) — the survey of order conditions, composition and negative coefficients.
+# * N. Hatano and M. Suzuki, *Finding exponential product formulas of higher orders*, in *Quantum Annealing and Other Optimization Methods*, eds. A. Das and B. K. Chakrabarti, Lecture Notes in Physics **679**, pp. 37–68, Springer (2005).
+# * R. I. McLachlan and G. R. W. Quispel, *Splitting methods*, Acta Numerica **11**, 341–434 (2002) — the survey of splitting and composition methods and their order conditions.
 # * A. M. Childs, Y. Su, M. C. Tran, N. Wiebe and S. Zhu, *Theory of Trotter error with commutator scaling*, Phys. Rev. X **11**, 011020 (2021).
 # * M. Heyl, P. Hauke and P. Zoller, *Quantum localization bounds Trotter errors in digital quantum simulation*, Sci. Adv. **5**, eaau8342 (2019) — the threshold in $dt$, and why local observables are robust.
 # * E. Hairer, C. Lubich and G. Wanner, *Geometric Numerical Integration: Structure-Preserving Algorithms for Ordinary Differential Equations*, 2nd ed., Springer Series in Computational Mathematics **31**, Springer (2006) — splitting methods, backward error analysis ("shadow" Hamiltonians).
@@ -1233,4 +1233,8 @@ for Delta_big in (0.0, 1.0):
 # * E. Lieb, T. Schultz and D. Mattis, *Two soluble models of an antiferromagnetic chain*, Ann. Phys. **16**, 407 (1961).
 # * T. Antal, Z. Rácz, A. Rákos and G. M. Schütz, *Transport in the XX chain at zero temperature: Emergence of flat magnetization profiles*, Phys. Rev. E **59**, 4912 (1999).
 # * A. Polkovnikov, K. Sengupta, A. Silva and M. Vengalattore, *Colloquium: Nonequilibrium dynamics of closed interacting quantum systems*, Rev. Mod. Phys. **83**, 863 (2011).
+* G. Misguich, K. Mallick and P. L. Krapivsky, *Dynamics of the spin-1/2 Heisenberg chain initialized in a domain-wall state*, Phys. Rev. B **96**, 195151 (2017).
+* M. Ljubotina, M. Žnidarič and T. Prosen, *Spin diffusion from an inhomogeneous quench in an integrable system*, Nat. Commun. **8**, 16117 (2017).
+* T. Mori, T. Kuwahara and K. Saito, *Rigorous bound on energy absorption and generic relaxation in periodically driven quantum systems*, Phys. Rev. Lett. **116**, 120401 (2016).
+* D. Abanin, W. De Roeck, W. W. Ho and F. Huveneers, *A rigorous theory of many-body prethermalization for periodically driven and closed quantum systems*, Commun. Math. Phys. **354**, 809 (2017).
 
