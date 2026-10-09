@@ -1,15 +1,15 @@
 #@title: Beyond the state vector — matrix product states, DMRG and TEBD
 #@part: Chapter 7 — Tensor networks
-#@description: Matrix product states from repeated SVDs, canonical forms and truncation, ground states by two-site DMRG built element by element (MPO, environments, effective Hamiltonian, Lanczos, sweeps), a jit-compiled TEBD two-site update with static (zero-padded) bond dimension, validation against state-vector TEBD, and quenches of 40-60 spins that no state vector can hold.
+#@description: Matrix product states from repeated SVDs, canonical forms and truncation, ground states by two-site DMRG (MPO, environments, effective Hamiltonian, Lanczos, sweeps), a jit-compiled TEBD two-site update with static (zero-padded) bond dimension, validation against state-vector TEBD, and quenches of 40-60 spins that no state vector can hold.
 
 # %% [markdown]
 # ## 1. Introduction and motivation
 #
 # Every method of this course so far stored the **full state vector**: $2^N$ complex amplitudes for $N$ spins.
 # The matrix-free engine made each operation as cheap as it can possibly be, $O(2^N)$ per gate, but it cannot
-# remove the $2^N$ itself. At $N=30$ the state alone needs 16 GB, at $N=50$ about 16 million GB.
-# Yet experiments with cold atoms, trapped ions and Rydberg arrays routinely study the dynamics of chains of
-# 50-100 spins, and theorists simulate them on laptops. How?
+# remove the $2^N$ itself. At $N=30$ the state alone needs 17 GB, at $N=50$ about 18 million GB.
+# Yet experiments with cold atoms, trapped ions and Rydberg arrays study the dynamics of chains far longer than
+# that, and theorists simulate such chains on laptops. How?
 #
 # The answer is that the states which actually occur in one-dimensional physics are *not* generic vectors of the
 # $2^N$-dimensional Hilbert space. They carry **little entanglement**, and a state with little entanglement
@@ -60,11 +60,12 @@
 # - Building a chain of trust: state vector ($N=12$) $\leftrightarrow$ free-fermion solution $\leftrightarrow$ MPS ($N=60$).
 #
 # ### Prerequisites
-# - einsum and tensor-leg diagrams: [../ch01_computational_toolbox/02_einsum_from_scratch.ipynb](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb)
-# - Schmidt decomposition and entanglement entropy: [../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb)
-# - State-vector TEBD and Trotter errors: [../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb)
-# - `jit`, `vmap`, `lax.scan`: [../ch01_computational_toolbox/01_jax_from_scratch.ipynb](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)
-# - helpful for the physics of Sec. 10: [../ch05_ground_states_and_unitary_dynamics/15_quench_dynamics_spin_chains.ipynb](../ch05_ground_states_and_unitary_dynamics/15_quench_dynamics_spin_chains.ipynb)
+# - einsum and tensor-leg diagrams: [notebook 02 (Chapter 1)](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb), Section 10
+# - Schmidt decomposition, entanglement entropy, area law: [notebook 06 (Chapter 3)](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb), Sections 6 and 9
+# - Lanczos and the Rayleigh–Ritz idea (used by DMRG, Sec. 6): [notebook 11 (Chapter 5)](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb)
+# - State-vector TEBD and Trotter errors: [notebook 12 (Chapter 5)](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb)
+# - `jit`, `vmap`, `lax.scan`: [notebook 01 (Chapter 1)](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)
+# - helpful for the physics of Sec. 10 (light cones, domain wall, free fermions): [notebook 15 (Chapter 5)](../ch05_ground_states_and_unitary_dynamics/15_quench_dynamics_spin_chains.ipynb)
 
 # %%
 #@engine: I2, X, Y, Z, XX, YY, ZZ, dense_hamiltonian, product_state, ghz_state, haar_state, apply_gate, heisenberg_terms, apply_hamiltonian, energy, lanczos_ground_state, tebd_evolve, expect_local, schmidt_values, entanglement_entropy, fidelity_pure
@@ -83,11 +84,11 @@
 # The exponential wall in numbers: state vector vs matrix product state
 # ==============================================================================
 def human_bytes(b):
-    """Format a number of bytes with a binary prefix."""
-    for unit in ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB"):
-        if b < 1024:
+    """Format a number of bytes with a decimal prefix (1 kB = 1000 B)."""
+    for unit in ("B", "kB", "MB", "GB", "TB", "PB", "EB", "ZB"):
+        if b < 1000:
             return f"{b:7.1f} {unit}"
-        b /= 1024
+        b /= 1000
     return f"{b:7.1f} YB"
 
 
@@ -98,9 +99,9 @@ for N_ in (10, 20, 30, 40, 50, 60):
     print(f"{N_:>4} | {human_bytes(16 * 2.0 ** N_):>20} | {human_bytes(16 * N_ * 2 * CHI_EXAMPLE ** 2):>26}")
 
 # %% [markdown]
-# The left column grows by a factor 1024 for every ten spins: 16 MB at $N=20$, 16 GB at $N=30$ (the practical limit
-# of a workstation; supercomputers reach $N\approx 45$-$50$), 16 EB at $N=60$ - more than all the storage of a
-# large data centre. The right column grows *linearly* with $N$: 7.5 MB for 60 spins. The price is hidden in $\chi$:
+# The left column grows by a factor $2^{10}=1024$ for every ten spins: 17 MB at $N=20$, 17 GB at $N=30$ (the practical
+# limit of a workstation), 18 EB at $N=60$ - more than all the storage of a
+# large data centre. The right column grows *linearly* with $N$: 7.9 MB for 60 spins. The price is hidden in $\chi$:
 # the MPS is exact only if $\chi$ is large enough, and "large enough" is decided by entanglement.
 #
 # ### 2.2 Compressibility = low Schmidt rank
@@ -180,7 +181,7 @@ plt.show()
 # > **Physics insight.** Ground states of gapped local Hamiltonians in one dimension obey an **area law**
 # > (Hastings 2007): $S_A$ is bounded by a constant independent of the size of $A$, because only the spins near the cut are
 # > correlated across it. At a critical point (the Heisenberg chain is critical) $S_A$ grows only logarithmically with
-# > the block size. Both are tiny compared with the volume law of a random state. The physically relevant states
+# > the block size, with a prefactor set by the central charge $c$ of the critical chain ([notebook 06](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb), Section 9). Both are tiny compared with the volume law of a random state. The physically relevant states
 # > live in a small, weakly entangled corner of Hilbert space - and MPS are a parametrisation of that corner.
 
 # %% [markdown]
@@ -230,7 +231,7 @@ plt.show()
 # ```
 # Two facts follow immediately.
 # * The singular values found at step $j$ are the singular values of the matrix "spins $0..j$ versus the rest"
-#   (the part already split off, $A^{[0]}\cdots A^{[j-1]}$, is an isometry, and an isometry does not change singular values) - they are the
+#   (the part already split off, $A^{[0]}\cdots A^{[j-1]}$, is an isometry, a matrix with orthonormal columns, and an isometry does not change singular values) - they are the
 #   **Schmidt values of the cut** between sites $j$ and $j+1$. So $\chi_{j+1}$ = Schmidt rank of that cut $\le \min(2^{j+1},2^{N-j-1})$.
 # * For a generic state the bond dimensions are therefore $2,4,8,\dots,2^{N/2},\dots,8,4,2$ and the MPS holds as many numbers
 #   as the state vector: **no free lunch, the representation is exact but not compressed**. For a weakly entangled state
@@ -665,10 +666,10 @@ err = float(jnp.max(jnp.abs(mps_to_state(B_) - product_state("01+-01"))))
 print(f"product_mps vs engine product_state (N=6): max difference {err:.1e}")
 assert err < TOL
 B_, lam_ = product_mps("01" * 30, 64)
-print(f"Neel state of N=60 spins at chi=64: B has shape {B_.shape} = {B_.nbytes / 2**20:.1f} MB")
+print(f"Neel state of N=60 spins at chi=64: B has shape {B_.shape} = {B_.nbytes / 1e6:.1f} MB")
 
 # %% [markdown]
-# Sixty spins, 7.5 MB - and an object of size `2**60` never appeared.
+# Sixty spins, 7.9 MB - and an object of size `2**60` never appeared.
 
 # %% [markdown]
 # ## 5. Observables and entanglement from the MPS
@@ -794,9 +795,9 @@ print(f"(for reference: <Z_2 Z_9> = {float(mps_correlator(B_g, lam_g, Z, 2, Z, 9
 #
 # The TEBD sections below evolve a *given* MPS in time. The first question one asks about a many-body Hamiltonian, however, is static: what is its ground state? For chains
 # the answer is the **density-matrix renormalisation group** (DMRG), invented by S. R. White in 1992 and soon recognised as a variational method in the space of matrix
-# product states (Östlund and Rommer 1995; reviewed by Schollwöck 2011). It is the most important algorithm of one-dimensional quantum many-body physics, and it is conceptually the most
-# demanding part of this course. We therefore build it one element at a time. Every element is derived, written as a small function, and checked against a dense calculation on a
-# chain short enough to be diagonalised exactly, before it is used.
+# product states (Östlund and Rommer 1995; reviewed by Schollwöck 2011). It is the most important algorithm of one-dimensional quantum many-body physics. Each of its
+# elements below is written as a small function and checked against a dense calculation on a chain short enough to be diagonalised exactly. The TEBD part, Sections 7-10, builds
+# only on Sections 2-5.
 #
 # **The idea of DMRG.** We look for the MPS with the lowest energy $\langle\psi|H|\psi\rangle/\langle\psi|\psi\rangle$. Varying all tensors at once is a hard non-linear problem. DMRG
 # varies **two neighbouring tensors at a time** and keeps all others fixed. With the other tensors in canonical form (Section 3.4), this local problem is exactly the
@@ -1522,7 +1523,7 @@ print(f"for comparison, a run converged at chi=2 (10 sweeps): E - E_exact = {h_c
 # Two tests of increasing difficulty. First, the Heisenberg chain of twelve spins against the Lanczos energy of Section 2, now with truncation ($\chi=32<64$). Second, sixty spins — a Hilbert space
 # of dimension $10^{18}$ — for two chains whose ground-state energies are known exactly from free fermions:
 #
-# * the **XX chain** $H=\sum_i(X_iX_{i+1}+Y_iY_{i+1})$: single-particle levels $4\cos\frac{k\pi}{N+1}$, $k=1,\dots,N$, and $E_0$ is the sum of the negative ones (notebook 06, Section 10.3;
+# * the **XX chain** $H=\sum_i(X_iX_{i+1}+Y_iY_{i+1})$: single-particle levels $4\cos\frac{k\pi}{N+1}$, $k=1,\dots,N$, and $E_0$ is the sum of the negative ones (notebook 06, Section 10.4, Eq. (13);
 #   the factor $4$ is the Pauli convention of this course, $X_iX_j=4S^x_iS^x_j$);
 # * the **critical transverse-field Ising chain** $H=-\sum_iZ_iZ_{i+1}-\sum_iX_i$: $E_0=-\sum_ks_k$, with $s_k$ the singular values of the bidiagonal matrix with $1$ on the diagonal and the first superdiagonal (notebook 11).
 
@@ -1555,8 +1556,9 @@ assert abs(val[64][1][-1][3] - E_tfim_exact) < 1e-8 and abs(val[64][0][-1][3] - 
 
 # %% [markdown]
 # Both chains are critical, yet they behave differently. The Ising chain is converged to rounding already at $\chi=32$, the XX chain needs $\chi=64$ for a relative error of $10^{-9}$, and its
-# error follows the discarded weight. The reason is entanglement: the critical Ising chain has central charge $c=\tfrac12$, the XX chain $c=1$, so the logarithm in the entropy of the XX
-# ground state has twice the coefficient (Section 2), and the XX chain needs more Schmidt values for the same accuracy. The non-universal constant does not double with it: the printed central
+# error follows the discarded weight. The reason is entanglement: the central charge $c$ fixes the coefficient of the logarithm, $S\approx\tfrac c6\log_2N+\text{const}$ bits at the
+# central cut of an open chain (notebook 06, Section 9). The critical Ising chain has $c=\tfrac12$, the XX chain $c=1$, so the logarithm in the entropy of the XX
+# ground state has twice the coefficient, and the XX chain needs more Schmidt values for the same accuracy. The non-universal constant does not double with it: the printed central
 # entropies at $N=60$ are $1.38$ bits for the XX chain against $0.78$ for the Ising chain, a ratio of $1.8$ rather than $2$. The discarded weight, which DMRG reports at every step, is the quantity that tells us this
 # without knowing the answer.
 
@@ -2145,12 +2147,12 @@ print(f"  SV |            |            |                  |            | {float(
 # $6+5+6=17$ times at $N=12$, so $M=17\times80=1360$ here.
 # **Errors of successive truncations add in the norm, not in the norm squared.** The summed discarded weight
 # $\sum\varepsilon$ can therefore underestimate $1-F$ by up to a factor $M$; in this table it underestimates it by a factor
-# $2.7$ to $15$. The column $(\sum\sqrt{\varepsilon})^2$ is the estimate (7) - computed for free from the same SVDs, since
+# $2.7$ to $15$. The column $(\sum\sqrt{\varepsilon})^2$ is the estimate (17) - computed for free from the same SVDs, since
 # `mps_tebd_evolve` accumulates $\sum_b\sqrt{\varepsilon_b}$ per step - and it sits above $1-F$ in every row, loosely at small
 # $\chi$ and within 10 % at $\chi=32$. Both are useful: $\sum\varepsilon$ is the sensitive *switch-on indicator*, $(\sum\sqrt\varepsilon)^2$
 # the pessimistic *envelope*, and the truth lies between them.
 #
-# Two caveats keep (7) an estimate rather than a theorem. The truncation at step $i$ is performed in a frame that
+# Two caveats keep (17) an estimate rather than a theorem. The truncation at step $i$ is performed in a frame that
 # earlier truncations have already made non-canonical (Sec. 7.2), so $\varepsilon_i$ is not exactly the discarded weight of
 # the exact state; and $\delta_n\simeq\sqrt{\varepsilon_n}$ drops a term of order $\varepsilon_n^{3/2}$. This is why the code asserts
 # $1-F<2(\sum\sqrt\varepsilon)^2$ and not $1-F<(\sum\sqrt\varepsilon)^2$.
@@ -2175,7 +2177,7 @@ print(f"  SV |            |            |                  |            | {float(
 #
 # Writing $X_jX_{j+1}+Y_jY_{j+1}=2(\sigma^+_j\sigma^-_{j+1}+\sigma^-_j\sigma^+_{j+1})$, with $\sigma^\pm=(X\pm iY)/2$ ($\sigma^-=|1\rangle\langle0|$ lowers spin up $|0\rangle$ to spin down $|1\rangle$), shows what $H$ does: it moves a down spin one site to the left or right with
 # amplitude $2J$, and it conserves the total magnetisation $\sum_jZ_j$. The Jordan-Wigner transformation (quoted without
-# proof; Lieb, Schultz and Mattis 1961) maps down spins to *non-interacting* fermions hopping on the chain. For free
+# proof; Lieb, Schultz and Mattis 1961; used in notebook 15, Section 7.2) maps down spins to *non-interacting* fermions hopping on the chain. For free
 # particles everything follows from the single-particle propagator $U(t)=e^{-i\,h_1t}$, where $h_1$ is the $N\times N$ hopping matrix
 # with $2J$ on its first off-diagonals:
 #
@@ -2235,7 +2237,7 @@ assert err_zf < 1e-3 and err_Sf < 1e-3
 # The free-fermion formulas reproduce the state-vector dynamics up to the small Trotter error of the latter. The
 # chain of trust is now: *state vector* (tested against dense linear algebra in Chapters 2-3) $\to$ *free-fermion reference* and
 # *MPS-TEBD* (both tested against the state vector at $N=12$) $\to$ compare the two at $N=60$, where the state vector would need
-# 16 exabytes.
+# 18 exabytes.
 #
 # ### 10.2 Domain-wall melting in a chain of 60 spins
 
@@ -2421,8 +2423,8 @@ plt.tight_layout(); plt.show()
 
 # %% [markdown]
 # **The growth rate.** The exact entropy rises linearly with the fitted slope 2.56 bits per unit time. The
-# quasi-particle picture of Calabrese and Cardy predicts this number, and the derivation is worth doing in full
-# because the counting of modes is where factors of two get lost. In fermion language the Néel state is a product
+# quasi-particle picture of Calabrese and Cardy predicts this number; the counting of modes below is where factors
+# of two are easily lost. In fermion language the Néel state is a product
 # state in *real* space, so in momentum space $\langle c^\dagger_kc_k\rangle=\tfrac12$ for every $k$ and, in addition,
 # $\langle c^\dagger_kc_{k+\pi}\rangle=\tfrac12$: the state breaks translation by one site and correlates the modes $k$ and $k+\pi$
 # **pairwise**. Each such pair is in the pure one-particle state $(c^\dagger_k+c^\dagger_{k+\pi})\vert0\rangle/\sqrt2$, whose two
@@ -2441,7 +2443,8 @@ plt.tight_layout(); plt.show()
 #
 # **Interpretation.** (Compare with the table printed above.)
 # - *Left*: every MPS run follows the exact line until it approaches its ceiling $\log_2\chi$ and then saturates
-#   *exactly* at the ceiling, because an MPS of bond dimension $\chi$ cannot carry more than $\log_2\chi$ bits.
+#   just below the ceiling (the $\chi=64$ run is still approaching it at $t=2.5$, 5.96 of 6 bits), because an MPS of bond
+#   dimension $\chi$ cannot carry more than $\log_2\chi$ bits.
 # - *Right*: at early times all runs sit on the same Trotter-error floor ($3\times10^{-4}$); then, one after the other, the
 #   cumulative discarded weight (dotted) climbs through that floor and the error of the observables (solid) takes off. The column
 #   `t_fail` of the table (first time the error exceeds $10^{-2}$) reads 0.93, 1.35, 1.78, 2.15: it grows by the same
@@ -2553,7 +2556,7 @@ for chi_ in CHIS_B:
     t_compile.append((t1 - t0) - (t2 - t1))
     t_step.append((t2 - t1) / STEPS_B)
     print(f"chi={chi_:3d}: compile {t_compile[-1]:5.2f} s | run {1e3 * t_step[-1]:8.1f} ms per step "
-          f"({1e3 * t_step[-1] / (1.5 * N_NE):6.2f} ms per two-site update) | MPS memory {B0.nbytes / 2**20:6.2f} MB")
+          f"({1e3 * t_step[-1] / (1.5 * N_NE):6.2f} ms per two-site update) | MPS memory {B0.nbytes / 1e6:6.2f} MB")
 
 # the same single update without jit (eager dispatch of each einsum/SVD) vs jitted, chi = 32
 B0, lam0 = product_mps(SPEC_NE, 32)
@@ -2584,7 +2587,7 @@ plt.show()
 # $N\times n_{\rm steps}$ of them); the run
 # time per step approaches the $\chi^3$ line at large $\chi$, where the SVD dominates, and is flatter at small $\chi$, where fixed
 # overheads dominate. The memory column is the whole point: a few megabytes where the state vector of 40 spins
-# would need 16 TB. The last printed line compares a single two-site update with and without `jit`: un-jitted, every
+# would need 18 TB. The last printed line compares a single two-site update with and without `jit`: un-jitted, every
 # einsum and the SVD are dispatched one by one from Python, and this overhead - not the arithmetic - dominates at
 # moderate $\chi$.
 #
@@ -2598,8 +2601,9 @@ plt.show()
 # ## 12. Limits of the method
 #
 # * **Entanglement growth in time.** After a global quench $S\propto t$ and the required $\chi$ grows exponentially
-#   (Sec. 10.3). Real-time MPS simulations are short-time methods unless the dynamics is special (domain walls, local
-#   quenches with $S\propto\log t$, many-body localised systems).
+#   (Sec. 10.3). Real-time MPS simulations are short-time methods unless the dynamics is special: domain walls
+#   (Sec. 10.2), local quenches with $S\propto\log t$ (Calabrese and Cardy 2007), and disordered, many-body localised
+#   chains, where $S$ grows roughly logarithmically (Bardarson, Pollmann and Moore 2012).
 # * **Volume-law states.** Random circuits, highly excited eigenstates of chaotic Hamiltonians and generic quenched
 #   states at late times cannot be compressed at all (Sec. 3.5, random state).
 # * **Two error sources, two knobs.** The Trotter error is controlled by $\delta t$ (and the order of the splitting), the
@@ -2607,8 +2611,8 @@ plt.show()
 #   time. Always vary *both* independently.
 # * **Geometry.** MPS are built for chains with short-range couplings. A two-dimensional $L\times L$ lattice snaked into a chain
 #   has cuts crossed by $L$ bonds, so area-law entropy $S\propto L$ demands $\chi\propto2^{L}$. Long-range couplings require
-#   swap gates or other algorithms (MPO-based methods, TDVP). Higher-dimensional tensor networks (PEPS) exist, at a much
-#   higher cost.
+#   swap gates or other algorithms (MPO-based methods, the time-dependent variational principle, TDVP; review: Paeckel et
+#   al. 2019). Higher-dimensional tensor networks (projected entangled pair states, PEPS) exist, at a much higher cost.
 # * **Loss of canonical form.** Truncation breaks the orthonormality on which the local formulas of Sec. 5 rely, and
 #   it breaks it by $O(\varepsilon/\lambda_{\min}^2)$ rather than $O(\varepsilon)$ (Sec. 7.2), which is why the discarded weight and not
 #   the look of the observables must decide whether a run is converged; we also monitored the norm through
@@ -2643,7 +2647,7 @@ plt.show()
 # ## 14. Exercises
 #
 # 1. ★ **Bond dimensions of simple states.** Predict the bond dimensions of the W state $(|10\dots0\rangle+|01\dots0\rangle+\dots)/\sqrt N$ and of the
-#    cluster state, then check with `state_to_mps_left` (build the states with the engine or by hand for $N=8$).
+#    cluster state ([notebook 06](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb), Section 2), then check with `state_to_mps_left` (build the states with the engine or by hand for $N=8$).
 # 2. ★ **Trotter versus truncation.** Repeat the domain-wall run of Sec. 10.2 with $\chi=8$ and $\chi=16$. At what time -
 #    if at all before $t=6$ - does the cumulative discarded weight rise above the Trotter floor $3\times10^{-3}$ of that
 #    section, and does the error against the exact solution follow it? Then go the other way: $\chi=32$ with
@@ -2675,8 +2679,9 @@ plt.show()
 #    Measure the entropy growth rate in each case and determine, with a convergence study in $\chi$, up to which time your
 #    laptop can be trusted.
 #
-# 9. ★★ **The MPO of the transverse-field Ising chain.** Write down $W$ for $H=-J\sum_iZ_iZ_{i+1}-h\sum_iX_i$. What is the smallest $D$? Check it with `mpo_to_dense`,
-#    and compare the DMRG energy at $N=60$, $h=J$ with the exact value of Section 6.8.
+# 9. ★★ **The MPO of the transverse-field Ising chain.** Build the $D=3$ tensor $W_{\rm TFIM}$ of Section 6.2 for $H=-J\sum_iZ_iZ_{i+1}-h\sum_iX_i$ as an array of shape $(N,3,3,2,2)$ with the
+#    boundary rows and columns of `xxz_mpo`, check it with `mpo_to_dense`, explain with the finite-state machine why it needs
+#    two states fewer than Eq. (11), and compare the DMRG energy at $N=60$, $h=J$ with the exact value of Section 6.8.
 # 10. ★★ **Convergence in $\chi$.** For the XX chain at $N=60$ plot the energy error against the largest discarded weight of the last sweep for $\chi=8,16,32,64$. Is the error
 #    proportional to the discarded weight?
 # 11. ★★★ **Next-nearest neighbours.** Extend the finite-state machine of Eq. (11) to include $J_2\sum_iZ_iZ_{i+2}$ (one more state, "a $Z$ was placed two sites ago", once the coupling $J_{zz}$ of the nearest-neighbour term is moved from the opening $Z$ to the closing one). Validate with
@@ -2711,4 +2716,6 @@ plt.show()
 # * T. Antal, Z. Rácz, A. Rákos and G. M. Schütz, *Transport in the XX chain at zero temperature: emergence of flat magnetization profiles*, Phys. Rev. E **59**, 4912 (1999). - the arcsine profile of Sec. 10.2.
 # * V. Eisler, F. Iglói and I. Peschel, *Entanglement in spin chains with gradients*, J. Stat. Mech. P02011 (2009). - logarithmic entropy growth after a domain-wall quench in the XX chain.
 # * M. Ljubotina, M. Žnidarič and T. Prosen, *Spin diffusion from an inhomogeneous quench in an integrable system*, Nat. Commun. **8**, 16117 (2017).
+# * P. Calabrese and J. Cardy, *Entanglement and correlation functions following a local quench: a conformal field theory approach*, J. Stat. Mech. P10004 (2007). - $S\propto\log t$ after a local quench (Sec. 12).
+# * J. H. Bardarson, F. Pollmann and J. E. Moore, *Unbounded growth of entanglement in models of many-body localization*, Phys. Rev. Lett. **109**, 017202 (2012). - slow, roughly logarithmic entanglement growth in many-body localised chains (Sec. 12).
 
