@@ -43,7 +43,8 @@
 #   vectors and in a simulated estimation; then the fragility of the GHZ advantage under particle loss, independent and
 #   collective dephasing, and imperfect readout.
 # * **Sections 11–13 — many-body states.** A zoo of standard states and Ising ground states, the $3\times3$ QFI matrix and
-#   the optimal generator direction, and the QFI as an entanglement witness.
+#   the optimal generator direction, and the QFI as an entanglement witness, compared with the squeezing, Bell-correlator
+#   and negativity criteria.
 # * **Sections 14–16 — noise, loss and cost.** QFI of mixed states under three noise channels, QFI of a subsystem after
 #   particle loss with a Schmidt-compression algorithm, and measured run times.
 #
@@ -106,11 +107,12 @@
 #
 # From the engine we reuse the state constructors, `apply_gate` / `apply_gate_dm` (the einsum that applies a small matrix to
 # chosen axes of a state or density tensor), the Kraus channels, `apply_collective` (the matrix-free
-# $\sum_q P_q$), `qfi_pure`, `qfi_mixed`, `collective_dense`, `spin_moments`, and the Lanczos ground-state solver.
+# $\sum_q P_q$), `qfi_pure`, `qfi_mixed`, `collective_dense`, `spin_moments`, `spin_squeezing` (the Wineland
+# parameter), and the Lanczos ground-state solver.
 # Everything specific to this notebook is built below from scratch.
 
 # %%
-#@engine: apply_gate, apply_gate_dm, apply_kraus_dm, rdm, dm_matrix, to_dm, product_state, ghz_state, w_state, dicke_state, cluster_state, haar_state, I2, X, Y, Z, H, apply_collective, qfi_pure, qfi_mixed, collective_dense, spin_moments, purity, entanglement_entropy, kraus_depolarizing, kraus_dephasing, kraus_amplitude_damping, heisenberg_terms, lanczos_ground_state, expect_pauli_string, oat_evolve
+#@engine: apply_gate, apply_gate_dm, apply_kraus_dm, rdm, dm_matrix, to_dm, product_state, ghz_state, w_state, dicke_state, cluster_state, haar_state, I2, X, Y, Z, H, apply_collective, qfi_pure, qfi_mixed, collective_dense, spin_moments, spin_squeezing, purity, entanglement_entropy, kraus_depolarizing, kraus_dephasing, kraus_amplitude_damping, heisenberg_terms, lanczos_ground_state, expect_pauli_string, oat_evolve
 
 # %%
 # ==============================================================================
@@ -1573,7 +1575,7 @@ assert abs(fid_u[-1][1] - 0.5) > 0.4 and abs(fid_c[-1][1] - 0.5) > 0.4
 # $$\mathrm{Var}(A)=\mathbb E\!\left[(A-c)^2\right]-\left(\mathbb E[A]-c\right)^2\le\mathbb E\!\left[(A-c)^2\right]
 #   \le\left(\frac{a_{\max}-a_{\min}}{2}\right)^2 , \tag{101}$$
 #
-# because $\vert A-c\vert\le(a_{\max}-a_{\min})/2$ for every value (Popoviciu's inequality). The eigenvalues of $J_z$ lie in
+# because $\vert A-c\vert\le(a_{\max}-a_{\min})/2$ for every value (Popoviciu's inequality, Popoviciu 1935). The eigenvalues of $J_z$ lie in
 # $[-N/2,N/2]$, so $\mathrm{Var}(J_z)\le N^2/4$ in every state, and
 #
 # $$F_Q\le N^2,\qquad \Delta\theta_{\text{HL}}=\frac{1}{N\sqrt M} , \tag{102}$$
@@ -2817,8 +2819,32 @@ fig.tight_layout(); plt.show()
 # (The second inequality holds because $kN=sk^2+kr$ and $r<k$.) Consequently $F_Q>s\,k^2+r^2$ certifies **entanglement
 # depth** at least $k+1$: some block of at least $k+1$ qubits is genuinely entangled. We always use the *sharp* middle
 # expression, never the weaker $kN$ — for $N=8$, $k=3$ the two differ by $2$, and that difference decides the verdict for
-# the W state below. Both criteria are quoted here; their proofs use the convexity of the QFI plus the single-block bound
-# $F_Q\le k^2$, which is the Heisenberg-limit argument of Section 7.4 applied to a block of $k$ qubits.
+# the W state below.
+#
+# Criterion 1 is the case $k=1$ of Criterion 2, and the proof of Criterion 2 (Hyllus *et al.* 2012; Tóth 2012) takes
+# four steps. Start from a pure $k$-producible state $\vert\psi\rangle=\bigotimes_b\vert\psi_b\rangle$, where block $b$
+# holds $N_b\le k$ qubits and $\sum_bN_b=N$. The generator splits into block generators, $G=\sum_bG_b$, and operators
+# acting on different factors of a product state are uncorrelated, so the variances add as in Eq. (93). The eigenvalues
+# of $G_b$ lie in $[-N_b/2,N_b/2]$, so Popoviciu's inequality (101) bounds every block:
+#
+# $$F_Q[\psi,G]=\sum_b4\,\mathrm{Var}_{\psi_b}(G_b)\le\sum_bN_b^2 .$$
+#
+# The largest value of $\sum_bN_b^2$ over block sizes $1\le N_b\le k$ with sum $N$ has at most one incomplete block. If
+# two blocks have sizes $1\le a\le b<k$, moving one qubit from the first to the second (and dropping the first if it
+# becomes empty) changes the sum by
+#
+# $$(b+1)^2+(a-1)^2-a^2-b^2=2(b-a)+2>0 ,$$
+#
+# so the maximum has $s$ blocks of $k$ qubits and one block of $r$, and equals $sk^2+r^2$. Finally, a mixed
+# $k$-producible state is a mixture of products of block density matrices, and each block density matrix is a mixture of
+# pure block states, so $\rho=\sum_ip_i\vert\psi_i\rangle\langle\psi_i\vert$ with every $\vert\psi_i\rangle$ pure and
+# $k$-producible, possibly with a different partition in every term. Convexity of the quantum Fisher information
+# (notebook 30, Section 5.5) completes the proof:
+#
+# $$F_Q[\rho,G]\le\sum_ip_i\,F_Q[\psi_i,G]\le sk^2+r^2 .$$
+#
+# The bound is reached by $\vert\mathrm{GHZ}_k\rangle^{\otimes s}\otimes\vert\mathrm{GHZ}_r\rangle$ with $G=J_z$, because each GHZ
+# block saturates Eq. (101).
 #
 # Let us apply the criteria to the zoo.
 
@@ -2879,6 +2905,99 @@ for name, psi, n, gname in wit_states:
 # > answers. Metrology rewards *collective, coherent* superpositions of configurations with very different values of the
 # > generator; the amount of entanglement across a cut is a different quantity. This is why the phrase "useful entanglement" appears so often in the
 # > metrology literature, and why $F_Q$ rather than an entropy is the figure of merit.
+
+# %% [markdown]
+# ### 13.1 The QFI compared with squeezing, Bell-correlator and negativity criteria
+#
+# Three other entanglement criteria are in common use besides the quantum Fisher information: Wineland squeezing, the
+# many-body Bell correlator and the negativity. All four are one-sided: a violated bound certifies entanglement, a
+# satisfied bound proves nothing about separability. They differ in what has to be measured and in which states they
+# see.
+#
+# * **Quantum Fisher information** (Section 13). $F_Q>N$ certifies entanglement, Eq. (121), and $F_Q>sk^2+r^2$ an
+#   entanglement depth of at least $k+1$, Eq. (122). $F_Q$ is not the mean of an observable, so an experiment certifies
+#   with a lower bound: by Eq. (89) the slope and the noise of any measured phase signal give
+#   $(\partial_\theta\langle O\rangle)^2/(\Delta O)^2\le F_Q$, and the classical Fisher information of any measured outcome
+#   distribution is a lower bound by Eq. (50). Notebook 36 estimates $F_Q$ from randomised single-qubit measurements and
+#   counts the snapshots a certification needs (its Section 9); notebook 39 (Sections 3.2 and 5) follows the certified
+#   depth after a quench. The criterion certifies a depth close to $N$ for GHZ and Dicke states, but only depth $2$ for
+#   the cluster and Haar-random states of Section 13.
+# * **Wineland squeezing** ([33](../ch10_quantum_metrology_protocols/33_spin_squeezing_one_axis_twisting.ipynb),
+#   Sections 8.2 and 8.4). $\xi_R^2=NV_{\min}/\vert\langle\mathbf J\rangle\vert^2<1$ certifies entanglement (Sørensen
+#   *et al.* 2001) and needs only the mean collective spin and one transverse variance, without single-particle
+#   resolution. Notebook 33, Eq. (26), shows $F_Q\ge N/\xi_R^2$, so every squeezed state is also detected by the QFI,
+#   and $N/\xi_R^2>sk^2+r^2$ certifies depth from the two moments alone. Sørensen and Mølmer (2001) turned the same two
+#   moments into a sharper depth criterion, by computing the smallest variance a spin $j=k/2$ can have at a given mean
+#   spin. The converse fails: GHZ and Dicke states have $\langle\mathbf J\rangle=0$, so $\xi_R^2$ is undefined (infinite),
+#   although their $F_Q$ is of order $N^2$.
+# * **Many-body Bell correlator** ([26](../ch09_entanglement_and_complexity/26_many_body_bell_correlators.ipynb),
+#   Sections 4.1–4.3). $\mathcal E=\max\vert\langle\bigotimes_kU_k\sigma^+U_k^\dagger\rangle\vert^2$ needs local
+#   measurements of every particle in two orthogonal settings. $\mathcal E>4^{-N}$ certifies entanglement,
+#   $\mathcal E>4^{-\lceil N/k\rceil}$ a depth above $k$, and $\mathcal E>2^{-N}$ correlations that no local
+#   hidden-variable model reproduces. It reaches its maximum $1/4$ on GHZ states and detects every W state as entangled
+#   ($Q_{\rm E}=\log_2N$, Section 6.3 there), but the W state violates the local-realism bound only at $N=3$, and the
+#   linear cluster state and typical Haar-random states lose the local-realism violation as $N$ grows (Section 8.1 there).
+# * **Negativity** ([25](../ch09_entanglement_and_complexity/25_entanglement_negativity.ipynb), Sections 5–6). A negative
+#   eigenvalue of the partial transpose certifies entanglement across one chosen bipartition. It needs the density matrix
+#   of the two parts together, in practice from tomography, and it says nothing about depth. It detects the GHZ state on
+#   every cut with $\mathcal N=1/2$ and the locally dephased GHZ state at every dephasing probability $p<1/2$ (Sections
+#   7.4 and 8.1 there), and it misses bound entanglement (Section 5.4 there).
+#
+# The cell below evaluates the QFI and squeezing criteria on five states at $N=6$. The quantum Fisher information is
+# taken in the optimal collective direction, $\lambda_{\max}$ of the matrix of Section 12, and the certified depth comes
+# from `entanglement_depth`. The squeezed state is the one-axis-twisted state $e^{-i\mu J_z^2}\vert+\rangle^{\otimes N}$
+# at the twisting angle that minimises the closed form of $\xi_R^2$ in notebook 33, Eq. (23). Every number is asserted
+# against a closed form: $N$, $N^2$, $3N-2$ and $N(N+2)/2$ for the QFI (Section 11), and for the W state
+# $\xi_R^2=N(3N-2)/(N-2)^2$, which follows from $\vert\langle\mathbf J\rangle\vert=N/2-1$ and
+# $V_{\min}=\mathrm{Var}(J_x)=(3N-2)/4$; for the squeezed state $F_Q=4V_+$ and $\xi_R^2$ are those of notebook 33,
+# Sections 9.5 and 13.
+
+# %%
+# ==============================================================================
+# STEP 14b: QFI depth and Wineland squeezing for five states at one N
+# ==============================================================================
+N_C = 6
+mu_grid = np.linspace(0.01, 0.8, 79_001)                           # closed form of notebook 33, Eqs. (22)-(23)
+A_mu = 1 - np.cos(2 * mu_grid) ** (N_C - 2)
+B_mu = 4 * np.sin(mu_grid) * np.cos(mu_grid) ** (N_C - 2)
+xiR_mu = (1 + (N_C - 1) / 4 * (A_mu - np.sqrt(A_mu ** 2 + B_mu ** 2))) / np.cos(mu_grid) ** (2 * (N_C - 1))
+i_opt = int(np.argmin(xiR_mu))
+mu_opt = float(mu_grid[i_opt])
+F_oat = N_C * (1 + (N_C - 1) / 4 * (A_mu[i_opt] + np.sqrt(A_mu[i_opt] ** 2 + B_mu[i_opt] ** 2)))   # 4 V_+
+cert_states = [   # name, state, closed-form F_Q^max, closed-form xi_R^2 (None: mean spin vanishes)
+    ("|+>^N", product_state("+" * N_C), N_C, 1.0),
+    ("GHZ", ghz_state(N_C), N_C ** 2, None),
+    ("W", w_state(N_C), 3 * N_C - 2, N_C * (3 * N_C - 2) / (N_C - 2) ** 2),
+    ("Dicke N/2", dicke_state(N_C, N_C // 2), N_C * (N_C + 2) / 2, None),
+    (f"OAT mu={mu_opt:.4f}", oat_evolve(product_state("+" * N_C), mu_opt), F_oat, float(xiR_mu[i_opt])),
+]
+print(f"N = {N_C}: k-producible bounds s k^2 + r^2 = "
+      + ", ".join(f"{N_C // k * k ** 2 + (N_C % k) ** 2}" for k in range(1, N_C + 1)) + "  (k = 1..N)\n")
+print(f"{'state':>16s} | {'F_Q^max':>8s} {'F_Q/N':>6s} {'depth':>5s} | {'xi_R^2':>9s} {'N/xi_R^2':>9s} {'depth':>5s}")
+for name, psi, F_ana, xi_ana in cert_states:
+    F_max = float(optimal_direction(psi)[0])
+    mean, _ = spin_moments(psi)
+    assert abs(F_max - F_ana) < 1e4 * TOL                                  # closed forms of Section 11 and nb 33
+    if xi_ana is None:
+        assert float(jnp.linalg.norm(mean)) < 1e3 * TOL                    # zero mean spin: xi_R^2 undefined
+        xi_txt, bnd_txt, d_sq = "undefined", "--", "--"
+    else:
+        xi = float(spin_squeezing(psi))
+        assert abs(xi - xi_ana) < 1e4 * TOL
+        assert N_C / xi <= F_max + 1e4 * TOL                               # F_Q >= N / xi_R^2, nb 33 Eq. (26)
+        xi_txt, bnd_txt, d_sq = f"{xi:9.4f}", f"{N_C / xi:9.4f}", f"{entanglement_depth(N_C / xi, N_C):5d}"
+    print(f"{name:>16s} | {F_max:8.4f} {F_max / N_C:6.3f} {entanglement_depth(F_max, N_C):5d} | "
+          f"{xi_txt:>9s} {bnd_txt:>9s} {d_sq:>5s}")
+
+# %% [markdown]
+# The five rows separate the two criteria. The GHZ state is certified as genuinely $6$-partite entangled by the QFI,
+# and the Dicke state reaches depth $5$ ($F_Q=24$ against the $k=5$ bound $26$ and the $k=4$ bound $20$), while neither
+# has a mean spin, so the squeezing criterion cannot be applied at all. The W state is detected by the QFI with depth
+# $3$ ($16$ against the bounds $12$ and $18$) but has $\xi_R^2=6$: a Ramsey readout of its mean spin would give a
+# phase variance six times the standard quantum limit. The twisted state is the case squeezing is designed for. With
+# $\xi_R^2=0.416$ it is entangled by the Wineland criterion, and $N/\xi_R^2=14.4$ already exceeds the $k=2$ bound $12$,
+# so the two collective moments certify depth $3$, the same depth as its full $F_Q=17.1$. The product state sits on
+# both bounds, $F_Q=N$ and $\xi_R^2=1$, and certifies nothing.
 # %% [markdown]
 # ## 14. Noise: QFI of mixed states for three channels
 #
@@ -3420,6 +3539,21 @@ fig.tight_layout(); plt.show()
 #    eigenvalues coincide. Starting from a random complex vector of amplitudes the gradient is finite, but a symmetric
 #    starting point such as GHZ sits exactly on a degeneracy and returns `nan`; start away from it, and check
 #    `jnp.isfinite` on the gradient before feeding it to the optimiser.
+# 9. ★★★ **Entanglement depth from two collective moments (extend the code).** Sørensen and Mølmer (2001) define, for a
+#    single spin $j$, the curve $F_j(x)$ as the smallest value of $\mathrm{Var}(j_z)/j$ compatible with $\langle j_x\rangle=jx$,
+#    and show that a state whose entangled blocks contain at most $k$ qubits obeys
+#    $V_{\min}/(N/2)\ge F_{k/2}\big(\vert\langle\mathbf J\rangle\vert/(N/2)\big)$, with $V_{\min}$ the smallest variance
+#    perpendicular to the mean spin. For integer $j$ the minimiser has $\langle j_y\rangle=\langle j_z\rangle=0$ and is the
+#    ground state of $j_z^2-\lambda j_x$ for some $\lambda\ge0$. Build $j_x$ and $j_z$ as $(2j+1)\times(2j+1)$ matrices,
+#    trace $F_j$ by bisection on $\lambda$, and check $F_1(x)=\tfrac12\left(1-\sqrt{1-x^2}\right)$. Then apply the
+#    criterion to the one-axis-twisted state at $N=8$ at the angle that minimises $\xi_R^2$ ($\mu=0.2278$,
+#    $\xi_R^2=0.3541$). Use integer $j$ only, i.e. even $k$: for half-integer $j$ the ground-state construction gives the
+#    minimum only above a bifurcation point between $x\approx0.83$ and $0.88$, below which the minimiser breaks the
+#    symmetry, and excluding $k$-producibility excludes every smaller $k$ anyway. Check values:
+#    $\vert\langle\mathbf J\rangle\vert/(N/2)=0.8326$, $V_{\min}/(N/2)=0.1227$, $F_3=0.1284$, $F_4=0.1069$. The state is
+#    therefore not $6$-producible and has entanglement depth at least $7$, while its $F_Q=27.35$ certifies only depth $4$
+#    through Eq. (122) (the $k=3$ and $k=4$ bounds are $22$ and $32$). Explain why two collective moments can certify
+#    more than the full quantum Fisher information.
 #
 # ## References
 #
@@ -3438,13 +3572,22 @@ fig.tight_layout(); plt.show()
 # * P. Hyllus, W. Laskowski, R. Krischek, C. Schwemmer, W. Wieczorek, H. Weinfurter, L. Pezzè and A. Smerzi,
 #   *Fisher information and multiparticle entanglement*, Phys. Rev. A **85**, 022321 (2012), and
 #   G. Tóth, *Multipartite entanglement and high-precision metrology*, Phys. Rev. A **85**, 022322 (2012) — Eq. (122),
-#   the entanglement-depth bound for $k$-producible states.
+#   the entanglement-depth bound for $k$-producible states and its proof from block-wise variance bounds and convexity.
+# * T. Popoviciu, *Sur les équations algébriques ayant toutes leurs racines réelles*, Mathematica (Cluj) **9**, 129–145
+#   (1935) — the smallest interval containing all the real roots of a polynomial with given first two coefficients, i.e.
+#   $\mathrm{Var}\le(a_{\max}-a_{\min})^2/4$ for $n$ equally weighted values; Eq. (101) states it for any distribution.
 # * M. G. A. Paris, *Quantum estimation for quantum technology*, Int. J. Quantum Inf. **7**, 125–137 (2009) — a compact,
 #   readable review of local quantum estimation theory (Sections 4–6): the classical and quantum Cramér–Rao bounds, the SLD
 #   and its eigenbasis form, the optimal measurement, and the Bures-metric reading.
 # * L. Pezzè, A. Smerzi, M. K. Oberthaler, R. Schmied and P. Treutlein, *Quantum metrology with nonclassical states of
 #   atomic ensembles*, Rev. Mod. Phys. **90**, 035005 (2018) — the standard modern review; collective spins, Dicke states,
 #   squeezing, experiments.
+# * A. Sørensen, L.-M. Duan, J. I. Cirac and P. Zoller, *Many-particle entanglement with Bose–Einstein condensates*,
+#   Nature **409**, 63 (2001) — spin-squeezed states from collisions in a condensate; $\xi_R^2<1$ implies entanglement
+#   (Section 13.1).
+# * A. Sørensen and K. Mølmer, *Entanglement and extreme spin squeezing*, Phys. Rev. Lett. **86**, 4431 (2001) — the
+#   smallest transverse variance of a spin $j$ at a given mean spin, and its use to certify entanglement depth from
+#   collective-spin measurements (Section 13.1).
 # * G. Tóth and I. Apellaniz, *Quantum metrology from a quantum information science perspective*,
 #   J. Phys. A **47**, 424006 (2014) — the entanglement-witness side of the QFI: convexity, $F_Q\le4\mathrm{Var}(G)$, the
 #   separable bound $F_Q\le N$ derived from convexity, and the $k$-producibility bounds of Hyllus et al. and Tóth.
