@@ -27,6 +27,13 @@
 # dimension $2^N$ and the space of density matrices has $4^N$ real dimensions, so a handful of qubits carries a very large
 # internal state; the question this notebook answers with numbers is how much of that is usable.
 #
+# For the four-qubit reservoir studied here the measured answer is modest. Its linear memory reaches back about four inputs,
+# and on every benchmark its test error is larger than that of a classical echo-state network with the same number of
+# readout features, trained on the same data splits and with its hyper-parameters chosen on the same validation block
+# (Sections 7, 8 and 10.1). What the notebook teaches does not depend on that outcome: how a reservoir computer works,
+# where its memory and its nonlinearity come from, how a ridge readout is trained and validated, and which physical
+# knobs (evolution time, size, disorder, readout times, dissipation, measurement budget) set its behaviour.
+#
 # **Road map.**
 #
 # * Section 2 builds classical reservoir computing from the ground up: why training recurrent networks is hard, the
@@ -44,9 +51,11 @@
 #   qubits, the disorder strength and the number of virtual nodes, with a null control for its finite-data bias.
 # * Sections 7 and 8 run the NARMA and Santa Fe laser tasks and compare the quantum reservoir with classical baselines of
 #   the same feature count, trained with the same protocol and with their hyper-parameters chosen on the validation block.
+#   The tuned echo-state network has the lower error on every task.
 # * Section 9 replaces exact expectation values by estimates from $M$ measurement repetitions, derives how the shot noise
 #   propagates through the regression, and checks the prediction.
-# * Section 10 lets the reservoir decohere during its evolution and measures how dissipation changes memory and task errors.
+# * Section 10 lets the reservoir decohere during its evolution and measures how dissipation changes memory and task errors;
+#   Section 10.1 collects the comparison with the classical baselines in one table.
 # * Section 11 collects the cost model and the timings.
 #
 # ### What you will learn
@@ -1572,9 +1581,9 @@ for name, *vals in rows:
 #    lag models are handed the recent inputs exactly. For NARMA-5 and NARMA-10 the required memory depth exceeds what a
 #    reservoir with $\mathrm{MC}\approx4$ holds, and the quadratic terms no longer help (they cost lags).
 #
-# The convention of "equal number of features" therefore favours the classical side here: $21$ exact input lags are $21$
+# At equal feature count the two sides carry different amounts of usable information: $21$ exact input lags are $21$
 # linearly independent numbers, while $21$ quantum expectation values have an effective rank of $14.5$ and encode a memory
-# of about four steps. Section 10 returns to NARMA-2 with a dissipative reservoir, which raises $C(1)$ and improves the
+# of about four steps. This redundancy is a property of the reservoir and part of the measured result. Section 10 returns to NARMA-2 with a dissipative reservoir, which raises $C(1)$ and improves the
 # score, though not to the level of the tuned classical baselines.
 #
 # ## 8. The Santa Fe laser series
@@ -1709,7 +1718,9 @@ print(f"\nsingle configuration shown in the left panel: reservoir 0, V=4, h=1: N
 #   larger reservoir, a fair accounting of resources, and baselines tuned on the same validation data.
 #
 # Beyond one step the task becomes much harder for every model: the NMSE at $h=2$ is between $1.5$ and $10$ times the
-# $h=1$ value, and the better a model is at $h=1$, the larger the jump. The autocorrelation has its period at $7$–$8$ samples, so a two-step horizon already requires extrapolating the
+# $h=1$ value, and the better a model is at $h=1$, the larger the jump. At $h=2$, $4$ and $8$ the $21$-feature reservoir and
+# the tuned $21$-unit network differ by less than $10\,\%$ ($0.268$ against $0.258$, $0.291$ against $0.303$, $0.254$
+# against $0.232$), with both errors near a quarter of the variance of the series. The autocorrelation has its period at $7$–$8$ samples, so a two-step horizon already requires extrapolating the
 # *phase* of the pulsation, not only its envelope. The curves then flatten, because at $h=4$ and $h=8$ all models have
 # fallen back on predicting the slowly varying envelope.
 #
@@ -2062,6 +2073,47 @@ print(f"\npurity of the driven state: gamma = 0: {float(purity(dm_matrix(rho_end
 # > analysed by Chen and Nurdin; how the performance depends on the dynamical regime of the reservoir is the subject of
 # > Martínez-Peña *et al.*
 #
+# ### 10.1 The comparison at equal feature count
+#
+# The table collects the test NMSE printed in Sections 7, 8 and 10 (medians over six random reservoirs or six ESN seeds;
+# $p=21$ features in every column).
+#
+# | task | QRC, $\tau=0.5$ | QRC, $\tau$ chosen on validation | QRC with dephasing, $\gamma$ chosen on validation | ESN, default scalings | ESN, tuned | AR | AR$^2$ |
+# |---|---|---|---|---|---|---|---|
+# | NARMA-2 | $0.320$ | $0.211$ ($\tau=1$) | $0.060$ ($\gamma=3$) | $0.147$ | $0.026$ | $0.152$ | $0.005$ |
+# | NARMA-5 | $0.618$ | $0.489$ ($\tau=2$) | — | $0.274$ | $0.126$ | $0.132$ | $0.135$ |
+# | NARMA-10 | $0.784$ | $0.747$ ($\tau=0.25$) | — | $0.690$ | $0.283$ | $0.187$ | $0.381$ |
+# | Santa Fe, $h=1$ | $0.093$ | — | $0.067$ ($\gamma=1$) | $0.097$ | $0.042$ | $0.260$ | $0.106$ |
+#
+# The conditions are the same for every column: the same input sequence, the same contiguous washout, training,
+# validation and test blocks, the same ridge readout with $\alpha$ chosen on the validation block, and $21$ features
+# ($3N+3B$ Pauli expectation values for $N=4$, $21$ network units, $21$ input lags, or $11$ lags and $10$ squares). Every
+# remaining hyper-parameter is chosen by the median validation NMSE before the test block is evaluated: the spectral radius
+# and input scale of the network from a $3\times4$ grid, the evolution time of the reservoir from five values, its dephasing
+# rate from six (at $\tau=0.5$). Dashes mark combinations that were not run.
+#
+# Read off the table, the four-qubit reservoir
+#
+# * has a larger error than the tuned echo-state network on all four tasks, by factors of $2.3$ (NARMA-2), $3.9$
+#   (NARMA-5), $2.6$ (NARMA-10) and $1.6$ (laser), and in every row the range of its best validated configuration over
+#   reservoirs does not overlap the range of the network over seeds;
+# * is also behind the linear autoregression on NARMA-5 and NARMA-10;
+# * beats the two lag models on the laser series ($0.093$ against $0.26$ and $0.11$), and with validated dephasing it beats
+#   the default-scaled network and the linear autoregression on NARMA-2.
+#
+# Two results lie outside the equal-feature comparison. Multiplexing to $84$ features lowers the laser error to $0.024$,
+# below the tuned $21$-unit network; a network with $84$ units was not run, and one with $200$ units reaches $0.012$. And
+# the reservoir knobs that were not tuned here (field-to-coupling ratio, encoding, size, readout times) leave room for
+# improvement; Exercise 4 maps one of them.
+#
+# The literature discusses two routes to a benefit, and this notebook tests neither. First, the number of observables
+# that can serve as features grows with the Hilbert-space dimension, and the review of Mujal *et al.* (Ref. 13) collects
+# work that quantifies how much of it a readout can use; Fujii and Nakajima (Ref. 8) found spin reservoirs of $5$–$7$
+# qubits, each qubit read out at $V$ instants per input step, comparable to echo-state networks of $100$–$500$ nodes; that
+# comparison counts qubits against network nodes, while the table above counts readout features. Second, the same review points
+# to tasks whose input is itself a quantum state, such as entanglement detection or state tomography, which a classical
+# reservoir can only receive after measuring it.
+#
 # ## 11. Cost
 #
 # The density-tensor driver keeps $4^N$ complex numbers and applies $O(V n_{\rm sub} G)$ gates per input step, each costing
@@ -2144,9 +2196,11 @@ print(f"\nN = {N_QUBITS}: {M_bench} trajectories over {len(u_bench)} steps: comp
 #   upward bias of $0.3$ (null control) and a downward bias of similar size from the finite training block; a slowly
 #   forgetting reservoir hides much of its capacity in a faint tail that a sum over twenty delays misses.
 # * At an *equal number of readout features*, with every baseline's hyper-parameters chosen on the validation block, the
-#   four-qubit reservoir loses to the classical echo-state network on all tasks studied here (NARMA-2: $0.21$ with $\tau$
-#   tuned against $0.026$; laser: $0.093$ against $0.042$) and beats only the lag models on the laser series. Comparisons
-#   against untuned baselines suggested a draw on the laser data; it disappeared when the baseline was tuned.
+#   four-qubit reservoir has a larger test error than the tuned classical echo-state network on all four tasks, also after
+#   its own evolution time or dephasing rate is chosen on the validation block (NARMA-2: $0.060$ against $0.026$; NARMA-5:
+#   $0.49$ against $0.13$; NARMA-10: $0.75$ against $0.28$; laser: $0.067$ against $0.042$; table of Section 10.1). It
+#   beats the lag models on the laser series only. Against untuned baselines the laser comparison looked like a draw; the
+#   draw disappeared when the baseline was tuned.
 # * Finite measurement statistics act on the readout in two ways that Eq. (16) and the implicit ridge penalty $D$ describe
 #   quantitatively: the shot noise regularises the fit by itself, and it multiplies the squared readout weights, so a task
 #   solved by large, cancelling weights (the laser) suffers far more than one solved by small weights (NARMA-2). What scales
