@@ -256,6 +256,10 @@ website:
             text: "Secrecy — the one-time pad, the key-distribution problem, authentication and privacy amplification"
           - href: ch14_quantum_communication_and_cryptography/52_quantum_rules_channels_and_capacities.ipynb
             text: "What quantum mechanics changes — distinguishability, no-cloning, information versus disturbance, monogamy, quantum channels and their capacities"
+          - href: ch14_quantum_communication_and_cryptography/53_quantum_key_distribution.ipynb
+            text: "Quantum key distribution — BB84 end to end, entanglement-based protocols and the secret-key rate"
+          - href: ch14_quantum_communication_and_cryptography/54_noisy_entanglement_distillation_repeaters_certification.ipynb
+            text: "Noisy entanglement as a resource — Werner pairs, twirling, distillation, repeaters and certification"
       - text: "Engine source code"
         href: engine.qmd
   page-footer:

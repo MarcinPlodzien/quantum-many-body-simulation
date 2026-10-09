@@ -265,6 +265,10 @@ def main():
          "from automatic differentiation, optimisers, the variational eigensolver, quantum autoencoders, training under "
          "shot noise and gate noise, and quantum reservoir computing, where many-body dynamics processes time series.",
          ["ch11", "ch12"]),
+        ("Quantum communication and cryptography", "From Shannon entropy, channel capacity and the one-time pad to "
+         "what quantum mechanics changes: no-cloning, information versus disturbance, quantum channels and their "
+         "capacities, quantum key distribution simulated end to end, and noisy entanglement made useful by "
+         "distillation, repeaters and certification.", ["ch14"]),
         ("Beyond the state vector", "Matrix product states with DMRG and TEBD for chains far longer than a state vector "
          "can hold, and diagnostics of entanglement, magic and metrological usefulness.", ["ch07", "ch09", "ch10"]),
     ]
@@ -296,6 +300,19 @@ def main():
         if nn in all_items:
             path, title = all_items[nn]
             ix.append(f"- [{what[0].upper() + what[1:]}]({path}) (notebook {nn})")
+    COMM = [("50", "information and noisy channels: entropy, capacity and error correction"),
+            ("51", "secrecy: the one-time pad, key distribution, authentication and privacy amplification"),
+            ("52", "what quantum mechanics changes: no-cloning, disturbance, quantum channels and capacities"),
+            ("53", "quantum key distribution: BB84 end to end and the secret-key rate"),
+            ("54", "noisy entanglement as a resource: distillation, repeaters and certification")]
+    if any(nn in all_items for nn, _ in COMM):
+        ix += ["", "## Quantum communication and cryptography", "",
+               "Chapter 14 builds the classical toolbox of communication and secrecy first and then shows, step by step "
+               "and in simulation, what quantum mechanics adds:", ""]
+        for nn, what in COMM:
+            if nn in all_items:
+                path, title = all_items[nn]
+                ix.append(f"- [{what[0].upper() + what[1:]}]({path}) (notebook {nn})")
     ix += ["",
            "## Start here", "",
            f"The engine fits in one file, [`quantum_engine.py`](engine.qmd); notebook 08b, [Building the quantum simulator "

@@ -43,7 +43,11 @@ simulates these rules, together with quantum channels and their capacities for c
 [Notebook 53](../ch14_quantum_communication_and_cryptography/53_quantum_key_distribution.ipynb) turns these rules
 into protocols: quantum key distribution, prepare-and-measure (BB84) and entanglement-based, in which the error rate
 that Alice and Bob measure bounds what Eve can know and fixes how long a secret key they can distil. Real
-entanglement is noisy, and the notebooks that follow treat noisy pairs as a resource: teleportation through them, their purification, and how to test them before use. Every protocol is run as a
+entanglement is noisy, and [notebook
+54](../ch14_quantum_communication_and_cryptography/54_noisy_entanglement_distillation_repeaters_certification.ipynb)
+treats noisy pairs as a resource: teleportation through them, twirling, the key rate when Eve holds the noise of the
+pairs, distillation, quantum repeaters that carry
+them over long distances, and how to certify them before use. Every protocol is run as a
 simulation, round by round, with the eavesdropper and the noise included.
 
 The quantum part builds on notebook 07 (density matrices and quantum channels) and on chapter 8, where the Bell states and the CHSH inequality (notebook 19), quantum
@@ -67,5 +71,17 @@ How a message is kept secret from an eavesdropper, with a simulation for every f
 [What quantum mechanics changes — distinguishability, no-cloning, information versus disturbance, monogamy, quantum channels and their capacities](../ch14_quantum_communication_and_cryptography/52_quantum_rules_channels_and_capacities.ipynb)
 
 The rules of quantum mechanics that matter for communication and secrecy, each derived and simulated with the engine: why nonorthogonal states cannot be told apart and the Helstrom bound, what no-cloning means for an eavesdropper, the theorem that information gain implies disturbance with a tunable probe attack on BB84 states, monogamy of entanglement checked on random extensions of a nearly perfect Bell pair, quantum channels (depolarising, dephasing, amplitude damping, erasure) on the Bloch ball, and the classical, quantum and entanglement-assisted capacities of these channels compared with Shannon's capacity.
+:::
+
+::: {.nb-item}
+[Quantum key distribution — BB84 end to end, entanglement-based protocols and the secret-key rate](../ch14_quantum_communication_and_cryptography/53_quantum_key_distribution.ipynb)
+
+The BB84 protocol simulated round by round with the engine, from random bases and measurements through sifting, error-rate estimation, parity-check error correction and random-hash privacy amplification to a final key that Alice and Bob share; the intercept-resend attack and its 25 % error rate; BBM92 with the source-replacement picture and Ekert's CHSH test; bit and phase errors, the Devetak-Winter rate and the uncertainty relation with quantum memory, which give the key rate 1 - 2h(Q) and its 11 % threshold, compared with the key extracted by the simulated protocol; device-independent key distribution and the practical attacks on real devices.
+:::
+
+::: {.nb-item}
+[Noisy entanglement as a resource — Werner pairs, twirling, distillation, repeaters and certification](../ch14_quantum_communication_and_cryptography/54_noisy_entanglement_distillation_repeaters_certification.ipynb)
+
+Noisy entangled pairs as the working resource of quantum communication, simulated with the engine: Werner pairs and the product rule for two noisy halves, teleportation through a Werner pair as a depolarising channel, twirling with the 24 Clifford gates, the purification held by Eve and her information about the key, the BBPSSW distillation step derived from the bilateral CNOT and run on density tensors and shot by shot, its iteration and cost, fibre loss and the repeaterless bound, a toy repeater chain of swapping and distillation, and the certification of delivered pairs from three local correlations with Hoeffding bounds, including an adversarial source and random sampling.
 :::
 

@@ -1804,7 +1804,8 @@ print("\n(The first call includes tracing and XLA compilation; it is paid once p
 #    Measure the success probability and the output state. It is Bell-diagonal but no longer isotropic, so define $W'$ from its
 #    fidelity, $W'=(4F'-1)/3$, or re-twirl it back to Werner form. Plot $W'$ versus $W$, identify the fixed point (you should find
 #    $F'=F$ at $F=1/2$, i.e. exactly at the entanglement threshold $W=1/3$), and use it to explain why purification $+$ swapping
-#    beats pure swapping over a long chain.
+#    beats pure swapping over a long chain. [Notebook 54](../ch14_quantum_communication_and_cryptography/54_noisy_entanglement_distillation_repeaters_certification.ipynb),
+#    Section 7, derives this protocol and runs it in a repeater chain.
 # 8. ★★★ **Swapping with imperfect measurement (physics).** Model a relay whose Bell measurement occasionally reports the wrong
 #    outcome (probability $\varepsilon$ of a random other label). Derive the resulting end-to-end state, show that it is again
 #    Werner-like, and find the combined condition on $(W,\varepsilon)$ for the chain of $n$ links to remain entangled.
