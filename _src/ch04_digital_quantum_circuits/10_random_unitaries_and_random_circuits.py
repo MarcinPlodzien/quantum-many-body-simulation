@@ -80,7 +80,8 @@
 # > The **Haar measure** is the (unique) probability distribution on $U(d)$ that is invariant under multiplication by any
 # > fixed unitary $V$: if $U$ is Haar distributed, so are $VU$ and $UV$.
 #
-# We quote existence and uniqueness without proof (it holds for every compact group). Intuition: a Haar-random $U$ has
+# We quote existence and uniqueness without proof (it holds for every compact group, i.e. a group of matrices that is a closed and bounded set, like
+# $U(d)$). Intuition: a Haar-random $U$ has
 # *no preferred basis* - whatever rotation $V$ you apply before or after, the statistics are unchanged. For $d=1$ the
 # group is the circle $\{e^{i\varphi}\}$ and the Haar measure is $d\varphi/2\pi$.
 #
@@ -572,7 +573,9 @@ print(f"engine `brickwall`, N=8, depth 24: norm = {float(jnp.linalg.norm(psi_eng
 # averaged over an ensemble of random circuits, for several system sizes.
 #
 # Two facts set the expectations. (i) A gate can change the entanglement across a cut only if it *acts across the cut*, and a
-# single two-qubit gate can change the entropy by at most 2 bits. The bound follows from subadditivity: let the gate act
+# single two-qubit gate can change the entropy by at most 2 bits. The bound follows from two inequalities of the von
+# Neumann entropy that we quote without proof, subadditivity $S_{XY}\le S_X+S_Y$ and the Araki-Lieb inequality
+# $S_{XY}\ge\lvert S_X-S_Y\rvert$ for disjoint subsystems $X,Y$. Let the gate act
 # on qubit $a\in A$ and qubit $b\in B$, and write $A=\{a\}\cup A'$. The gate does not touch $A'$, so $S_{A'}$ is the same
 # before and after, while both $S_A$ obey $\lvert S_{A'}-S_a\rvert\le S_A\le S_{A'}+S_a$ with $S_a\le1$ bit; the two
 # inequalities together give $\lvert\Delta S_A\rvert\le 2$ bits. In our geometry one gate crosses the
@@ -797,7 +800,8 @@ except ValueError:
 #
 # A finite set $\mathcal E=\{U_a\}$ is called a **unitary $t$-design** if averaging any polynomial of degree $\le t$ in
 # the matrix elements of $U$ (and $t$ in those of $U^*$) over $\mathcal E$ gives the same result as averaging over the
-# Haar measure. A convenient single-number test is the **frame potential**
+# Haar measure. The moments $\mathbb E\lvert U_{ij}\rvert^2=1/d$ and $\mathbb E\lvert U_{ij}\rvert^4=2/(d(d+1))$ of
+# Section 4.3 are examples with $t=1$ and $t=2$. A convenient single-number test is the **frame potential**
 #
 # $$ \mathcal F_t(\mathcal E)=\frac{1}{|\mathcal E|^2}\sum_{a,b}\big\lvert\mathrm{Tr}(U_a^\dagger U_b)\big\rvert^{2t}\;\ge\;\mathcal F_t^{\rm Haar}, $$
 #
@@ -944,7 +948,7 @@ plt.show()
 # (same skeleton, gates restricted to $H,X,Y,Z,S$, CNOT, CZ) is also strongly entangled - with an *integer* number of
 # bits - yet its output distribution is completely different: $D\,p_s$ takes a single non-zero value. The state is a
 # **stabilizer state**, a superposition with equal weights (and phases $\pm1,\pm i$) over an affine subspace of bit
-# strings containing $2^k$ elements; in this instance the subspace is the whole space ($k=N$), so the measured bit strings are
+# strings (the solutions of a set of linear equations modulo 2) containing $2^k$ elements; in this instance the subspace is the whole space ($k=N$), so the measured bit strings are
 # *perfectly uniform* coin flips that reveal nothing about the entanglement inside. Entanglement alone does not make a state "generic"; the missing resource is the non-Clifford
 # *magic* supplied by $T$ gates or generic rotations ([notebook 27](../ch09_entanglement_and_complexity/27_stabilizer_renyi_entropy.ipynb)).
 #
@@ -1060,7 +1064,9 @@ plt.show()
 #   probability, and $\mathcal F_{\rm XEB}=D\sum_sp_s^2-1\approx 2-1=1$ by Porter-Thomas.
 # * *Useless device* (uniformly random bit strings): $\mathbb E[p_{s_i}]=\sum_s\frac1Dp_s=\frac1D$, so $\mathcal F_{\rm XEB}=0$.
 # * *Noisy device*, modelled as $\rho=F\lvert\psi\rangle\langle\psi\rvert+(1-F)\,\mathbb 1/D$ (with probability $F$ nothing went wrong,
-#   otherwise the output is completely scrambled): by linearity $\mathcal F_{\rm XEB}=F\,(D\sum_sp_s^2-1)\approx F$.
+#   otherwise the output is completely scrambled): the device outputs $s$ with probability
+#   $\langle s\rvert\rho\lvert s\rangle=Fp_s+(1-F)/D$, so $\mathbb E[p_{s_i}]=F\sum_sp_s^2+(1-F)/D$ and
+#   $\mathcal F_{\rm XEB}=F\,(D\sum_sp_s^2-1)\approx F$.
 #
 # So the XEB estimates the **fidelity** of the device - from samples alone, without state tomography. For finite $D$ and
 # finite depth $D\sum p_s^2$ is not exactly 2; since we know the ideal $p_s$ we can normalise,

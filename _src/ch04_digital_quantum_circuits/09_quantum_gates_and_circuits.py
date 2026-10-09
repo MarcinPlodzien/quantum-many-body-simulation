@@ -422,10 +422,10 @@ assert float(jnp.max(errs)) < 100 * TOL
 # The first block confirms that $Z,S,T,X,Y$ are rotations by $\pi,\pi/2,\pi/4,\pi,\pi$ up to a global phase
 # ($\Delta\approx10^{-16}$), while $R_x(\pi)$ and $Z$ are genuinely different gates ($\Delta=1$: their overlap
 # vanishes). The second block reconstructs each gate from its Euler angles exactly, including the phase $\alpha$. The
-# reconstruction is exact for every $U$, not only for these five: the branch chosen for $\alpha$ by $\det U = e^{2i\alpha}$
-# (which fixes $\alpha$ only modulo $\pi$) is the same branch that the subsequent $\arg$ formulas are read from, so the
-# two sign ambiguities cancel - the round trip over 2000 random unitaries stays at the level of rounding, as the last
-# line of the output shows. For example the Hadamard gate is $e^{i\pi/2}R_z(0)R_y(\pi/2)R_z(\pi)$: a
+# reconstruction is exact for every $U$, not only for these five. $\det U = e^{2i\alpha}$ fixes $\alpha$ only modulo
+# $\pi$, but the other choice $\alpha+\pi$ flips the sign of $V$, shifts both $\arg$ values by $\pi$ and hence $\beta$
+# by $2\pi$; since $R_z(\beta+2\pi)=-R_z(\beta)$, this sign cancels $e^{i\pi}=-1$. The round trip over 2000 random
+# unitaries stays at the level of rounding, as the last line of the output shows. For example the Hadamard gate is $e^{i\pi/2}R_z(0)R_y(\pi/2)R_z(\pi)$: a
 # half turn about $z$ followed by a quarter turn about $y$.
 
 # %% [markdown]
@@ -1085,8 +1085,10 @@ assert max(err1, err2, d_swap) < 100 * TOL
 # ($H$ by $\pi$ about $(\hat x+\hat z)/\sqrt2$, $T$ by $\pi/4$ about $\hat z$), so each of them alone generates only a
 # finite set. Density comes from their *product*: $HT$ is a rotation by an angle $\theta$ that is an irrational
 # multiple of $\pi$. Indeed $(2\cos\frac\theta2)^2 = 1-1/\sqrt2$ (checked in the cell below, $\theta=0.8256\,\pi$),
-# which is not an algebraic integer (it solves $y^2-2y+\frac12=0$), whereas $2\cos(r\pi)=e^{ir\pi}+e^{-ir\pi}$, and
-# with it its square, is one for every rational $r$. The powers of $HT$ therefore come arbitrarily close to every
+# which is not an algebraic integer, i.e. not a root of a polynomial with integer coefficients and leading
+# coefficient 1 (its minimal polynomial is $y^2-2y+\frac12$), whereas $2\cos(r\pi)=e^{ir\pi}+e^{-ir\pi}$, and
+# with it its square, is one for every rational $r=p/q$ ($e^{\pm ir\pi}$ are roots of $x^{2q}-1$, and sums and
+# products of algebraic integers are again algebraic integers, a quoted fact). The powers of $HT$ therefore come arbitrarily close to every
 # rotation about the $HT$ axis, and combining that axis with a second one fills the whole group (Nielsen & Chuang,
 # Ch. 4). Enumerating all $2^\ell$
 # words of length $\ell$ is wasteful, because most words coincide ($H^2=1$, $T^8=1$, $T^2=S$ is a Clifford gate, ...).
@@ -1399,8 +1401,8 @@ for n in (4, 8, 16, 32, 64):
 #
 # $$ \mathcal E_p(\rho) = (1-p)\rho+\frac p3\big(X\rho X+Y\rho Y+Z\rho Z\big), $$
 #
-# with error probability $p_1$ after single-qubit gates and $p_2>p_1$ after two-qubit gates (typical orders of
-# magnitude today: $p_1\sim10^{-4}$-$10^{-3}$, $p_2\sim10^{-3}$-$10^{-2}$). Noise of this kind limits the size of the
+# with error probability $p_1$ after single-qubit gates and $p_2>p_1$ after two-qubit gates (measured gate errors on
+# current processors, with their sources, are quoted in [notebook 44](../ch11_variational_quantum_circuits/44_noisy_variational_circuits.ipynb), Section 3.2). Noise of this kind limits the size of the
 # circuits that such "noisy intermediate-scale quantum" (NISQ) devices can execute reliably (Preskill 2018).
 # The state is now mixed, so we simulate the
 # density tensor $\rho$ of rank $2N$ (notebook 07): a gate acts as $U$ on the ket axes and $U^*$ on the bra axes
