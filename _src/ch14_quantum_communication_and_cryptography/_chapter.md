@@ -32,11 +32,14 @@ knowledge of a shared key.
 
 **Part II, the quantum part.** The second half asks what quantum mechanics changes. An unknown quantum state cannot be
 copied, and gaining information about it disturbs it; entangled pairs give correlations that no classical mechanism
-reproduces, yet carry no signal. These rules turn into protocols: quantum key distribution, prepare-and-measure
-(BB84) and entanglement-based, in which the error rate that Alice and Bob measure bounds what Eve can know and fixes how
-long a secret key they can distil. Real entanglement is noisy, and the last part treats noisy pairs as a resource:
+reproduces, yet carry no signal. [Notebook
+52](../ch14_quantum_communication_and_cryptography/52_quantum_rules_channels_and_capacities.ipynb) derives and
+simulates these rules, together with quantum channels and their capacities for classical and quantum information.
+These rules turn into protocols: quantum key distribution, prepare-and-measure (BB84) and entanglement-based, in
+which the error rate that Alice and Bob measure bounds what Eve can know and fixes how long a secret key they can
+distil. Real entanglement is noisy, and the last part treats noisy pairs as a resource:
 teleportation through them, their purification, and how to test them before use. Every protocol is run as a
 simulation, round by round, with the eavesdropper and the noise included.
 
-The quantum part builds on chapter 8, where the Bell states and the CHSH inequality (notebook 19), quantum
+The quantum part builds on notebook 07 (density matrices and quantum channels) and on chapter 8, where the Bell states and the CHSH inequality (notebook 19), quantum
 teleportation (notebook 20) and entanglement swapping and superdense coding (notebook 21) are derived and simulated.
