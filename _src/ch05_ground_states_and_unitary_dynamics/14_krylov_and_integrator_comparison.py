@@ -1026,7 +1026,7 @@ print(f"{'exact: H, V, work (3 x 4^N)':28s} | {'--':>13s} | " + " | ".join(f"{3 
 #
 # 1. *Always* validate a new simulation against the dense solution at $N\le10$ — for all the methods above this costs seconds.
 # 2. Need only local observables of a generic chain at percent accuracy? Second-order TEBD with $dt\approx0.05$–$0.1$ (in units of the inverse coupling) is simple, robust and hard to beat; use fourth order if you need $10^{-4}$–$10^{-6}$ in the *state*.
-#    The distinction matters: at $dt=0.05$ the TEBD-2 state error at $T=5$ is $10^{-2}$ (§8), while the error of a local expectation value is two orders of magnitude smaller and does not grow with $N$ ([TEBD](12_tebd_trotter_suzuki.ipynb), §7.3).
+#    The distinction matters: at $dt=0.05$ the TEBD-2 state error at $T=5$ is $10^{-2}$ (§8), while the error of a local expectation value is about an order of magnitude smaller and does not grow with $N$ ([TEBD](12_tebd_trotter_suzuki.ipynb), §7.3).
 # 3. Need echoes, overlaps, long times, or a reference solution? Chebyshev (largest $N$, time-independent $H$) or adaptive Krylov (automatic error control, no spectral bounds).
 # 4. The Hamiltonian depends on time? TEBD, or Krylov with short steps; Chebyshev only if $H$ is piecewise constant. Freezing $H$ at the step midpoint is a Magnus/midpoint rule with a local error $\mathcal O(dt^3)$ and a global error $\mathcal O(dt^2)$, so $dt$ is again set by accuracy and the long steps of §5 are wasted (Exercise 7).
 # 5. $N>30$? None of the above in state-vector form — go to matrix-product states with TEBD ([MPS-TEBD](../ch07_tensor_networks/18_mps_tebd.ipynb)), which works as long as the entanglement stays moderate.

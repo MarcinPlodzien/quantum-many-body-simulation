@@ -807,7 +807,7 @@ print(f"\ndt = 1.0 (order 2), T = 10:  |norm - 1| = {abs(float(jnp.linalg.norm(p
       f"  but fidelity with the exact state = {float(jnp.abs(jnp.vdot(psi_good, psi_bad))**2):.3f}")
 
 # %% [markdown]
-# * **Norm and magnetisation** (left, middle) sit at the round-off level $10^{-15}$–$10^{-12}$ for *every* order and *every* $dt$, slowly creeping upwards as round-off accumulates (the more gates, the faster: the fourth-order curves are the highest). They confirm that the gates are unitary and respect the $U(1)$ symmetry — nothing more.
+# * **Norm and magnetisation** (left, middle) sit at the round-off level $10^{-15}$–$10^{-12}$ for *every* order and *every* $dt$, slowly creeping upwards as round-off accumulates (the more gates, the faster: the fourth-order curves are the highest). They confirm that the gates are unitary and respect the conservation of $M$ (the $U(1)$ symmetry of the rotations $e^{-i\phi M}$) — nothing more.
 #   The last printed line shows the limitation: with $dt=1$ norm and magnetisation are conserved to round-off while the fidelity with the exact state is $0.008$.
 # * **Energy** (right): the deviation is bounded — it fluctuates without secular growth — and its amplitude scales as $dt^p$: the printed ratios between $dt=0.1$ and $0.05$ are close to $2$, $4$, $16$. The energy is the diagnostic that actually *sees* the Trotter error.
 #
@@ -1068,7 +1068,7 @@ for scheme, dt_h in (("2", 0.1), ("2", 0.05), ("4", 0.2), ("4", 0.1)):
 # $$ n_j(t)=\sum_{l\,\in\,\text{initially occupied}}|u_{jl}(t)|^2,\qquad\langle Z_j(t)\rangle=1-2\,n_j(t). $$
 #
 # (Quoted without derivation; see Lieb, Schultz & Mattis 1961 for the mapping and Antal *et al.* 1999 for the domain-wall problem.) An $18\times18$ matrix exponential replaces a $262\,144$-dimensional one: an independent benchmark for the many-body code.
-# The front of the melting region moves with the maximal group velocity of the fermions, $v_{\max}=\max_k|\partial_k(4J\cos k)|=4J$.
+# The front of the melting region moves with the maximal group velocity of the fermions. Hopping with amplitude $2J$ between neighbours gives the band $\varepsilon_k=2\cdot2J\cos k$ (plane waves $e^{ikj}$ diagonalise $h_1$ in the infinite chain), so $v_{\max}=\max_k|\partial_k(4J\cos k)|=4J$.
 
 # %%
 # ==============================================================================

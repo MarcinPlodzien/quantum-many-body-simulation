@@ -91,7 +91,7 @@
 # ### 2.1 The only thing we can afford is $H|\phi\rangle$
 #
 # A state of $N$ spins is a tensor with $2^N$ complex amplitudes. The matrix of $H$ would have $4^N$ entries and
-# $e^{-iHt}$ (a full matrix even when $H$ is sparse) as well: at $N=20$ that is $10^{12}$ numbers, 16 TB. What we *can* do, at a
+# $e^{-iHt}$ (a full matrix even when $H$ is sparse) as well: at $N=20$ that is $10^{12}$ numbers, 18 TB. What we *can* do, at a
 # cost of $\mathcal{O}(N 2^N)$ operations and no extra memory, is to apply $H$ — a sum of $\sim 2N$ local terms — to a state.
 # Applying $H$ twice gives $H^2|\psi\rangle$, and so on, so that after $K$ applications we can assemble any
 #
@@ -1188,7 +1188,7 @@ plt.show()
 #   advantages at $\varepsilon=10^{-4}$ (20-fold over TEBD-2, 4-fold over TEBD-4) survive comfortably.
 #   *Error measure:* the norm of the state error used here is the most demanding one there is; local observables are usually far more forgiving (we measure an example in §13).
 # * The wall-time panel tells the same story as the operation count: per $H$-equivalent the two methods cost about the same (compare the columns of the table; Chebyshev adds up terms and carries three vectors, TEBD applies unitary gates one after another),
-#   so the crossover does not move much.
+#   so the crossover does not move much. The zig-zag of the Chebyshev points in that panel is timing noise: the run times differ by less than a factor of three while $K$ changes by only a third.
 #
 # > **Numerical practice.** Absolute timings depend on the machine and on what else is running on it (these notes were executed on a shared CPU); ratios and slopes are robust. Always compare algorithms **at equal accuracy** —
 # > "method A needs 0.1 s, method B 1 s" means nothing if A delivers 3 digits and B 13. And always *measure* the error against a trusted reference rather than assuming the nominal order.
@@ -1309,7 +1309,7 @@ print(f"  for reference: K * machine epsilon = {K_acc * np.finfo(float).eps:.2e}
 # %% [markdown]
 # ## 14. Performance and the reach in system size
 #
-# Memory: four state vectors (three in the carry plus one temporary) of $16\times2^N$ bytes each in double precision — 64 MB at $N=20$, 16 GB at $N=28$. Time: $K\approx1.02\,aT+\dots$ applications
+# Memory: four state vectors (three in the carry plus one temporary) of $16\times2^N$ bytes each in double precision — 67 MB at $N=20$, 17 GB at $N=28$. Time: $K\approx1.02\,aT+\dots$ applications
 # of $H$, each $\mathcal{O}(N2^N)$, with $a\approx1.8N$ for our model, so the total cost of reaching a fixed time $T$ scales as $\mathcal O(N^2\,2^N\,T)$. Let us measure one Chebyshev step of length $t=1$ for
 # growing $N$, separating compilation from execution. We use a cheap rigorous-ish estimate for the bounds here — a short Lanczos run with $m=20$ — to keep the set-up time small.
 

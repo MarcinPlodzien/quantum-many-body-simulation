@@ -23,7 +23,7 @@
 #   momentum distribution through thousands of collisions (Kinoshita *et al.* 2006), the direct observation of light-cone spreading of
 #   correlations (Cheneau *et al.* 2012), and the measurement of the entanglement entropy of a many-body state by interfering two copies
 #   of it (Islam *et al.* 2015);
-# * **trapped ions** — chains of ions (7 to 15 in the experiments cited here) realise Ising and XY models with tunable range; a quench is a sudden switch-on of laser-mediated
+# * **trapped ions** — chains of ions (7 to 11 in the experiments cited here) realise Ising and XY models with tunable range; a quench is a sudden switch-on of laser-mediated
 #   couplings (Richerme *et al.* 2014, Jurcevic *et al.* 2014, 2017);
 # * **Rydberg-atom arrays** — tens of atoms in optical tweezers (51 in Bernien *et al.* 2017), initialised in a product state and released into
 #   Ising-type dynamics;
@@ -243,7 +243,7 @@ def evolve_and_observe(psi0, gates, n_meas, n_sub, observe):
 #
 #   $$\mathcal N=\sum_{k<l}\lambda_k\lambda_l=\frac{(\sum_k\lambda_k)^2-\sum_k\lambda_k^2}{2}=\frac{(\sum_k\lambda_k)^2-1}{2},\qquad E_{\mathcal N}=\log_2(2\mathcal N+1)=2\log_2\sum_k\lambda_k .$$
 #
-#   No $4^N$-sized density matrix is needed. ($E_{\mathcal N}$ of a pure state is its Rényi-$\tfrac12$ entropy, hence $E_{\mathcal N}\ge S_A$.)
+#   No $4^N$-sized density matrix is needed. ($E_{\mathcal N}$ of a pure state is its Rényi-$\tfrac12$ entropy; the Rényi-$\alpha$ entropy $S_\alpha=\frac{1}{1-\alpha}\log_2\sum_k\lambda_k^{2\alpha}$ gives $S_A$ for $\alpha\to1$ and the Rényi-2 entropy of notebook 06 for $\alpha=2$, and it decreases with $\alpha$ (Exercise 8), hence $E_{\mathcal N}\ge S_A$.)
 #
 # We return the *Schmidt values themselves* from the time loop and post-process them; this also gives us the entanglement spectrum for §8.
 
@@ -524,7 +524,7 @@ assert abs(inf_cheb) < 1e3 * TOL and abs(inf_kry) < 1e3 * TOL
 # %% [markdown]
 # ## 5. Experiment 1 — relaxation after a quench of the XXZ chain in a transverse field
 #
-# Same model and protocol, now at $N=14$ ($16\,384$ amplitudes; the dense Hamiltonian would already need 4 GB of memory and of order $10^{13}$ floating-point operations to diagonalise, while TEBD needs a few seconds).
+# Same model and protocol, now at $N=14$ ($16\,384$ amplitudes; the dense Hamiltonian would already need 4.3 GB of memory and of order $10^{13}$ floating-point operations to diagonalise, while TEBD needs a few seconds).
 # We record the complete measurement set of §2.4. Since the exact reference is gone, the run is validated at the final time against Chebyshev propagation, and continuously by two
 # conservation laws: the norm (exactly conserved by every unitary gate) and the energy (conserved by the exact dynamics, but only approximately by a Trotter circuit — a built-in error monitor).
 
@@ -1041,8 +1041,8 @@ assert abs(alpha3[0] - 1.0) < 0.05 and alpha3[1] < 0.95      # control: exact ba
 # The two chains differ by one term. At $h_z=0$ the longitudinal field is absent, the Jordan–Wigner transformation of §7.2 turns $H$ into free fermions, and the model has an extensive set of conserved mode
 # occupations. A longitudinal field maps to a string operator and destroys that structure: nothing is conserved beyond the energy, and the model is believed to be non-integrable — the usual numerical evidence
 # being the level-spacing statistics of the energy spectrum, which is Poissonian for an integrable model and Wigner–Dyson for a chaotic one (Atas *et al.* 2013). We take the classification as given here and
-# test its *consequences*; the level statistics of exactly these two chains is a natural exercise for the dense-diagonalisation code of notebook
-# [Hamiltonians and ground states](11_hamiltonians_and_ground_states.ipynb). Both chains are evolved from the same state, with the same code, at the same energy: "integrable" and "non-integrable"
+# test its *consequences*; the level statistics of exactly these two chains is a natural exercise for the dense diagonalisation (`eigh`) of
+# [notebook 03 (Chapter 2)](../ch02_spin_systems_textbook_way/03_quantum_many_body_spin_systems.ipynb). Both chains are evolved from the same state, with the same code, at the same energy: "integrable" and "non-integrable"
 # are properties of $H$ alone.
 #
 # Initial state: all spins along $+y$. It has $\langle X\rangle=\langle Z\rangle=\langle Z_jZ_{j+1}\rangle=0$, hence $E=0={\rm Tr}H/2^N$: the centre of the spectrum, which is also the energy of the maximally mixed state $\mathbb 1/2^N$. If the local observables
@@ -1357,7 +1357,7 @@ plt.tight_layout(); plt.show()
 # * Compile time stays below a few seconds across the whole range, while the run time grows exponentially: compilation is set by the size of the **program** (the number of gates, $\propto N$) and is independent
 #   of the size of the **data** ($2^N$); it is paid once per chain length. The individual compile times are measured on a machine that is doing other things and do not form a clean trend, but the
 #   run time of the 20 benchmarked steps overtakes them near $N=16$ and leaves them far behind afterwards.
-# * Extrapolating with the cost model: $N=24$ ($\approx270$ MB state) costs roughly $100\times$ the $N=18$ step; $N\approx30$ is the practical end of the state-vector road on a workstation (16 GB per copy of the state). Beyond that, one needs
+# * Extrapolating with the cost model: $N=24$ ($\approx270$ MB state) costs roughly $100\times$ the $N=18$ step; $N\approx30$ is the practical end of the state-vector road on a workstation (17 GB per copy of the state). Beyond that, one needs
 #   either structure (low entanglement → [matrix product states](../ch07_tensor_networks/18_mps_tebd.ipynb)) or a quantum simulator.
 #
 # > **JAX practice.** Everything in this notebook was compiled with a handful of `jax.jit` calls at the *outermost* level (a whole quench, including its measurements, is one XLA program) and parallelised over parameters by `jax.vmap`

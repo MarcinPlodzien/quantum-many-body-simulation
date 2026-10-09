@@ -1054,7 +1054,7 @@ assert np.max(np.abs(np.asarray(E_batch[::7]) - E_dense)) < 1e4 * TOL
 #
 # For a symmetry with $Q^2=1$ (like the parity $P$), the projector on the sector $q=\pm1$ is $\Pi_\pm=(1\pm P)/2$: apply it to a random vector and normalise. For the magnetisation $M=\sum_iZ_i$, which is diagonal in the
 # computational basis, the projector on $M=M_0$ is a **mask**: keep the amplitudes $\psi[s_0..s_{N-1}]$ whose bit string has the right number of up-spins, zero the others. We build the array $M(s)=\sum_q(1-2s_q)$ with the
-# same broadcasting trick that the engine uses for one-axis twisting: site $q$ contributes an array of shape $(1,..,2,..,1)$ with entries $(+1,-1)$ along axis $q$, and NumPy broadcasting adds them up to a full $(2,)^N$ tensor.
+# same broadcasting construction that the engine uses for one-axis twisting ([notebook 08b (Chapter 3)](../ch03_matrix_free_engine/08b_building_quantum_simulator_engine.ipynb), §15.2): site $q$ contributes an array of shape $(1,..,2,..,1)$ with entries $(+1,-1)$ along axis $q$, and NumPy broadcasting adds them up to a full $(2,)^N$ tensor.
 #
 # In floating-point arithmetic round-off continuously re-injects tiny ($10^{-16}$) components of the other sectors, and Lanczos amplifies whichever of them belongs to a *lower* eigenvalue — for the odd sector, the true
 # ground state. Full reorthogonalisation does not help here: those components are orthogonal to nothing in particular, they simply ride along inside every $v_j$.
@@ -1273,8 +1273,8 @@ for N in sizes:
 #   $N^{-2\beta/\nu}=N^{-1/4}$ (two-dimensional Ising exponents $\beta=1/8$, $\nu=1$), and the printed products $N^{1/4}m_z^2(h{=}J)$ are indeed nearly constant. A quantity whose curves *cross* at the critical point — a
 #   dimensionless ratio such as $N^{1/4}m_z^2$ itself, or a Binder cumulant — is what finite-size scaling uses to locate $h_c$.
 # * **Entanglement (bottom right).** For $h\to0$ the entropy tends to **exactly 1 bit**: the symmetric ground state is the cat (GHZ) state, and cutting a GHZ state anywhere yields one bit
-#   ([notebook 06 (Chapter 3)](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb)). For $h\gg J$ the state is a product state and $S\to0$. In between, the curves for different $N$ coincide away from $h=J$ (the entropy obeys an *area law*:
-#   it does not grow with the size of the block) and fan out around the critical point, where $S$ **grows with $N$**.
+#   ([notebook 06 (Chapter 3)](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb)). For $h\gg J$ the state is a product state and $S\to0$. In between, the curves for different $N$ coincide for $h>J$ (the entropy obeys an *area law*:
+#   it does not grow with the size of the block), for $h<J$ they approach the 1 bit of the cat state from below as $N$ grows, and around the critical point $S$ **grows with $N$**.
 #
 # > **Physics insight.** An experiment (or a simulation with a tiny symmetry-breaking field $h_zZ_i$) would find one of the two ferromagnets, a product state with $S=0$. The cat state is the correct ground
 # > state of the symmetric finite-size Hamiltonian but is extremely fragile, and numerics in a symmetry sector always return it.
