@@ -82,7 +82,7 @@
 #   (Section 4), the classical benchmark $2/3$ (Section 8) and teleportation through a noisy pair (Section 10).
 # * [Notebook 21](../ch08_quantum_information_protocols/21_entanglement_swapping_and_superdense_coding.ipynb): the Bell
 #   measurement (Section 3), Werner states as random Pauli errors and the swapping rule (Section 10), and the decay of a
-#   chain without distillation (Section 11). Notebooks 21 and 25 write the visibility $v$ as $W$.
+#   chain without distillation (Section 11).
 # * [Notebook 52](../ch14_quantum_communication_and_cryptography/52_quantum_rules_channels_and_capacities.ipynb):
 #   monogamy and purification (Section 6.2), the Holevo quantity (Section 9.1), and the depolarising channel
 #   (Section 8.2).

@@ -41,7 +41,7 @@
 # the partial transpose as an axis swap and checks that transposing $A$ or $B$ gives the same spectrum. Section 5 proves in one
 # line that separable implies positive partial transpose, states precisely when the converse holds, and says what bound
 # entanglement is. Section 6 defines negativity and logarithmic negativity, lists their properties with references, and
-# verifies the Werner threshold $W>1/3$ and the two-qubit relation to Wootters' concurrence. Section 7 derives the closed-form
+# verifies the Werner threshold $v>1/3$ and the two-qubit relation to Wootters' concurrence. Section 7 derives the closed-form
 # negativity of a *pure* state from its Schmidt coefficients and identifies the logarithmic negativity with a Renyi entropy of
 # index $1/2$; the zoo (GHZ, W, Dicke, random) is checked against both the formula and the brute-force partial transpose.
 # Section 8 contrasts negativity with entropy on noisy Bell and GHZ states. Section 9 is the many-body application: the
@@ -55,7 +55,7 @@
 # * what separable means for a mixed state, and why $S(\rho_A)$ is the wrong question to ask about one;
 # * the Peres–Horodecki (PPT) criterion, its proof, its exact range of validity, and bound entanglement;
 # * negativity and logarithmic negativity: definitions, monotonicity, additivity, and the bound on distillable entanglement;
-# * the Werner threshold $W>1/3$, the noisy-GHZ thresholds, and the fact that a state's *global* entropy can keep growing long
+# * the Werner threshold $v>1/3$, the noisy-GHZ thresholds, and the fact that a state's *global* entropy can keep growing long
 #   after its entanglement has died;
 # * how entanglement between two blocks of a spin chain depends on their separation and on the transverse field, and what
 #   happens to it after a quench and under local decoherence (entanglement sudden death).
@@ -498,10 +498,10 @@ assert np.max(np.abs(lam_A - lam_B)) < TOL
 # STEP 4: additivity of E_N and the maximally-entangled normalisation
 # ==============================================================================
 # Two independent noisy Bell pairs on qubits (0,1) and (2,3); A = {0,2}, B = {1,3}.
-def werner_matrix(W):
-    """Werner / isotropic two-qubit state  rho_W = W |Phi+><Phi+| + (1-W) 1/4  as a 4x4 matrix."""
+def werner_matrix(v):
+    """Werner / isotropic two-qubit state  rho_W = v |Phi+><Phi+| + (1-v) 1/4  as a 4x4 matrix."""
     b = jnp.asarray(bell_state("phi+")).reshape(4)
-    return W * jnp.outer(b, jnp.conj(b)) + (1 - W) * jnp.eye(4, dtype=CDTYPE) / 4
+    return v * jnp.outer(b, jnp.conj(b)) + (1 - v) * jnp.eye(4, dtype=CDTYPE) / 4
 
 
 rho1, rho2 = werner_matrix(0.9), werner_matrix(0.6)
@@ -531,11 +531,12 @@ assert abs(nb - 0.5) < 1e3 * TOL and abs(eb - 1.0) < 1e3 * TOL
 # pairs has $\mathcal N=0.795=2\mathcal N_1\mathcal N_2+\mathcal N_1+\mathcal N_2$, which is exactly what
 # $2\mathcal N+1=\lVert\cdot\rVert_1$ and the multiplicativity of the trace norm predict. The Bell state sits at $\mathcal N=1/2$, $E_{\mathcal N}=1$ ebit.
 #
-# ### 6.3 Werner states and the threshold $W=1/3$
+# ### 6.3 Werner states and the threshold $v=1/3$
 #
-# The standard one-parameter family of noisy two-qubit states is the Werner (isotropic) state
+# The standard one-parameter family of noisy two-qubit states is the Werner (isotropic) state of visibility $v$, as in
+# [notebook 19](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb), Section 11:
 #
-# $$\rho_W=W\,\vert\Phi^+\rangle\langle\Phi^+\vert+(1-W)\,\frac{\mathbb 1_4}{4},\qquad W\in[0,1] . \tag{6}$$
+# $$\rho_W(v)=v\,\vert\Phi^+\rangle\langle\Phi^+\vert+(1-v)\,\frac{\mathbb 1_4}{4},\qquad v\in[0,1] . \tag{6}$$
 #
 # Werner's own family (Werner, 1989) mixes the *singlet* $\vert\Psi^-\rangle$ with $\mathbb 1/4$, and the family written above
 # is strictly the *isotropic* state. For two qubits the two are the same set: $\vert\Phi^+\rangle$ and $\vert\Psi^-\rangle$
@@ -545,13 +546,13 @@ assert abs(nb - 0.5) < 1e3 * TOL and abs(eb - 1.0) < 1e3 * TOL
 # Its partial transpose can be diagonalised by hand. Since $(\mathbb 1/4)^{T_A}=\mathbb 1/4$ and, as printed in Section 4,
 # $\vert\Phi^+\rangle\langle\Phi^+\vert^{T_A}$ has eigenvalues $(\tfrac12,\tfrac12,\tfrac12,-\tfrac12)$, linearity gives
 #
-# $$\mathrm{spec}\,\rho_W^{T_A}=\left\{\frac{1+W}{4}\ (\times3),\ \frac{1-3W}{4}\right\} ,$$
+# $$\mathrm{spec}\,\rho_W^{T_A}=\left\{\frac{1+v}{4}\ (\times3),\ \frac{1-3v}{4}\right\} ,$$
 #
-# so the single eigenvalue $\tfrac{1-3W}{4}$ is negative exactly when $W>1/3$, and
+# so the single eigenvalue $\tfrac{1-3v}{4}$ is negative exactly when $v>1/3$, and
 #
-# $$\mathcal N(\rho_W)=\max\left(0,\ \frac{3W-1}{4}\right) . \tag{7}$$
+# $$\mathcal N(\rho_W)=\max\left(0,\ \frac{3v-1}{4}\right) . \tag{7}$$
 #
-# Because two qubits are a $2\times2$ system, Section 5.3 applies: $\rho_W$ is **entangled if and only if $W>1/3$**. This is one
+# Because two qubits are a $2\times2$ system, Section 5.3 applies: $\rho_W$ is **entangled if and only if $v>1/3$**. This is one
 # of the few cases in all of entanglement theory where a sharp necessary-and-sufficient statement is available in closed form,
 # and it is why Werner states are used as the standard benchmark throughout these notes.
 
@@ -559,36 +560,36 @@ assert abs(nb - 0.5) < 1e3 * TOL and abs(eb - 1.0) < 1e3 * TOL
 # ==============================================================================
 # STEP 5: Werner states -- negativity, concurrence and the 1/3 threshold
 # ==============================================================================
-Ws = np.linspace(0.0, 1.0, 101)
-neg_W = np.array([neg_of_matrix(werner_matrix(float(W)), 1, 1)[0] for W in Ws])
-logneg_W = np.array([neg_of_matrix(werner_matrix(float(W)), 1, 1)[1] for W in Ws])
-conc_W = np.array([concurrence(werner_matrix(float(W))) for W in Ws])
-ana_W = np.maximum(0.0, (3 * Ws - 1) / 4)
+vs = np.linspace(0.0, 1.0, 101)
+neg_v = np.array([neg_of_matrix(werner_matrix(float(v)), 1, 1)[0] for v in vs])
+logneg_v = np.array([neg_of_matrix(werner_matrix(float(v)), 1, 1)[1] for v in vs])
+conc_v = np.array([concurrence(werner_matrix(float(v))) for v in vs])
+ana_v = np.maximum(0.0, (3 * vs - 1) / 4)
 
-print(f"max |N(numeric) - (3W-1)/4| = {np.max(np.abs(neg_W - ana_W)):.3e}")
-assert np.max(np.abs(neg_W - ana_W)) < 1e3 * TOL
-i_first = int(np.argmax(neg_W > 1e-12))
-print(f"first grid point with N > 0: W = {Ws[i_first]:.3f}  (exact threshold 1/3 = {1/3:.3f})")
-print(f"W = 1/3 exactly: N = {neg_of_matrix(werner_matrix(1/3), 1, 1)[0]:.3e}")
+print(f"max |N(numeric) - (3v-1)/4| = {np.max(np.abs(neg_v - ana_v)):.3e}")
+assert np.max(np.abs(neg_v - ana_v)) < 1e3 * TOL
+i_first = int(np.argmax(neg_v > 1e-12))
+print(f"first grid point with N > 0: v = {vs[i_first]:.3f}  (exact threshold 1/3 = {1/3:.3f})")
+print(f"v = 1/3 exactly: N = {neg_of_matrix(werner_matrix(1/3), 1, 1)[0]:.3e}")
 
 fig, axes = plt.subplots(1, 2, figsize=(11, 3.8))
-axes[0].plot(Ws, neg_W, lw=2, label=r"$\mathcal{N}(\rho_W)$")
-axes[0].plot(Ws, ana_W, "--", lw=1.2, color="k", label=r"$\max(0,(3W-1)/4)$")
-axes[0].plot(Ws, conc_W, lw=2, color=PALETTE[1], label=r"concurrence $C(\rho_W)$")
+axes[0].plot(vs, neg_v, lw=2, label=r"$\mathcal{N}(\rho_W)$")
+axes[0].plot(vs, ana_v, "--", lw=1.2, color="k", label=r"$\max(0,(3v-1)/4)$")
+axes[0].plot(vs, conc_v, lw=2, color=PALETTE[1], label=r"concurrence $C(\rho_W)$")
 axes[0].axvline(1 / 3, color="0.4", ls=":")
-axes[0].text(0.35, 0.72, r"$W=1/3$", fontsize=9, color="0.3")
-axes[0].set_xlabel(r"Werner parameter $W$"); axes[0].set_ylabel("entanglement measure")
+axes[0].text(0.35, 0.72, r"$v=1/3$", fontsize=9, color="0.3")
+axes[0].set_xlabel(r"Werner visibility $v$"); axes[0].set_ylabel("entanglement measure")
 axes[0].set_title("Werner state: two measures, one threshold"); axes[0].legend()
 
-axes[1].plot(Ws, logneg_W, lw=2, color=PALETTE[2])
+axes[1].plot(vs, logneg_v, lw=2, color=PALETTE[2])
 axes[1].axvline(1 / 3, color="0.4", ls=":"); axes[1].axhline(0, color="0.7", lw=0.8)
-axes[1].set_xlabel(r"Werner parameter $W$"); axes[1].set_ylabel(r"$E_{\mathcal{N}}$  [ebit]")
+axes[1].set_xlabel(r"Werner visibility $v$"); axes[1].set_ylabel(r"$E_{\mathcal{N}}$  [ebit]")
 axes[1].set_title("logarithmic negativity")
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# The numerical negativity follows Eq. (7) to $10^{-16}$, and at $W=1/3$ it is zero to machine precision: the analytic threshold
-# and the diagonalisation agree. The concurrence of the Werner state, $C=\max(0,(3W-1)/2)$, is exactly twice the negativity
+# The numerical negativity follows Eq. (7) to $10^{-16}$, and at $v=1/3$ it is zero to machine precision: the analytic threshold
+# and the diagonalisation agree. The concurrence of the Werner state, $C=\max(0,(3v-1)/2)$, is exactly twice the negativity
 # here, and it crosses zero at the same point — which is the next topic.
 #
 # ### 6.4 Negativity against concurrence for two qubits
@@ -947,7 +948,7 @@ fig.tight_layout(); plt.show()
 # [notebook 07](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb)); applying it to both halves of
 # $\vert\Phi^+\rangle$ produces exactly the Werner state of Eq. (6) with
 #
-# $$W=\eta^2=\Bigl(1-\tfrac43p\Bigr)^2 ,$$
+# $$v=\eta^2=\Bigl(1-\tfrac43p\Bigr)^2 ,$$
 #
 # because the two-qubit correlators $\langle XX\rangle,\langle YY\rangle,\langle ZZ\rangle$ each pick up one factor $\eta$ per
 # qubit. Eq. (7) then predicts $\mathcal N=\max(0,(3\eta^2-1)/4)$ and a death at $\eta^2=1/3$, that is
@@ -999,7 +1000,7 @@ ax.legend(fontsize=8.5)
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# The measured negativity follows Eq. (7) with $W=\eta^2$ to $10^{-16}$, and the first grid point at which it vanishes is
+# The measured negativity follows Eq. (7) with $v=\eta^2$ to $10^{-16}$, and the first grid point at which it vanishes is
 # $p=0.3200$, consistent with the exact $0.316987$ given the grid spacing of $0.005$. At that point the global entropy is
 # $1.7924$ bit out of a maximum of $2$ bit and still climbing, and the subsystem entropy has not moved at all: $S(\rho_A)=1$ bit
 # for every $p$, because a depolarising channel maps the already-maximally-mixed $\rho_A=\mathbb 1/2$ to itself. Three curves,
@@ -1969,7 +1970,7 @@ print(f"  the full density tensor of {N_big} spins would need {16*4**N_big/2**30
 # * **Negativity** $\mathcal N=\sum_{\mu<0}\vert\mu\vert$ and **logarithmic negativity** $E_{\mathcal N}=\log_2(2\mathcal N+1)$
 #   are entanglement monotones; $E_{\mathcal N}$ is additive and upper-bounds the distillable entanglement; $\mathcal N$ is
 #   convex and $E_{\mathcal N}$ is not.
-# * **Closed forms measured in this notebook**: Werner state $\mathcal N=\max(0,(3W-1)/4)$ with the sharp threshold $W=1/3$;
+# * **Closed forms measured in this notebook**: Werner state $\mathcal N=\max(0,(3v-1)/4)$ with the sharp threshold $v=1/3$;
 #   two qubits $2\mathcal N\le C$ with equality for pure states; pure states
 #   $\mathcal N=\tfrac12[(\sum_k\lambda_k)^2-1]$ and $E_{\mathcal N}=S_{1/2}(\rho_A)$; GHZ $\mathcal N=1/2$ at every cut, W
 #   $\sqrt{k(N-k)}/N$, Dicke from hypergeometric Schmidt weights; noisy GHZ $\max(0,\tfrac{1-p}2-\tfrac p{2^N})$ for white
@@ -2008,15 +2009,15 @@ print(f"  the full density tensor of {N_big} spins would need {16*4**N_big/2**30
 #    in one sentence using Eq. (1).
 # 2. ★ **Which side.** Verify on a random three-qubit mixed state that $\mathcal N$ for the cut $\{0\}\vert\{1,2\}$ is the same
 #    whether you pass `[0]` or `[1, 2]` to `negativity`, and that it differs from the cut $\{1\}\vert\{0,2\}$.
-# 3. ★★ **The Werner threshold is sharp.** Bisect on $W$ until the smallest eigenvalue of $\rho_W^{T_A}$ changes sign, and
-#    compare with $1/3$ to ten digits. Then repeat with the state $W\vert\Psi^-\rangle\langle\Psi^-\vert+(1-W)\mathbb 1/4$ and
+# 3. ★★ **The Werner threshold is sharp.** Bisect on $v$ until the smallest eigenvalue of $\rho_W^{T_A}$ changes sign, and
+#    compare with $1/3$ to ten digits. Then repeat with the state $v\vert\Psi^-\rangle\langle\Psi^-\vert+(1-v)\mathbb 1/4$ and
 #    explain why you get the same threshold.
 # 4. ★★ **Dicke states (extend the code).** Add $\vert D_N^m\rangle$ for $m=1,2,\dots,N/2$ to Step 8 and plot
 #    $\mathcal N$ at the half cut against $m$ at $N=12$. Where is the maximum, and how does the Schmidt rank explain it?
 #    Check your numbers against the hypergeometric formula of Section 7.4.
 # 5. ★★ **Negativity is convex, $E_{\mathcal N}$ is not.** Find two two-qubit states $\rho_1,\rho_2$ and a weight $p$ with
 #    $E_{\mathcal N}(p\rho_1+(1-p)\rho_2)>pE_{\mathcal N}(\rho_1)+(1-p)E_{\mathcal N}(\rho_2)$, and verify that the same pair
-#    does **not** violate convexity of $\mathcal N$. (Hint: two Werner states with very different $W$.)
+#    does **not** violate convexity of $\mathcal N$. (Hint: two Werner states with very different $v$.)
 # 6. ★★ **Sudden death with dephasing instead of damping.** Redo Section 10.2 with `kraus_dephasing` on both qubits. Derive the
 #    analogue of Eq. (18), predict whether sudden death occurs, and confirm numerically. Why does the answer differ from
 #    amplitude damping?

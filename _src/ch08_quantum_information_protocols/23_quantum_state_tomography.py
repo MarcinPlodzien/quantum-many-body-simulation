@@ -983,7 +983,11 @@ def physical_from_counts(counts, N, SIGN, COMPAT):
 # %% [markdown]
 # We compare OLS and WLS on two states with very different outcome statistics: the Bell state (many probabilities equal to $0$ or
 # $1/2$ — the regime where weighting should help) and a generic mixed state (all probabilities near $1/4$ — where it should not).
-# The figure of merit is the root-mean-square Frobenius error over $N_{\rm rep}$ independent data sets.
+# In between sits the Werner state of visibility $v$, written here with the singlet, $v\,\vert\Psi^-\rangle\langle\Psi^-\vert+(1-v)\,\mathbb 1/4$;
+# it differs from the $\vert\Phi^+\rangle$ form $\rho_W(v)$ of
+# [notebook 19](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb), Section 11, by the local unitary
+# $\mathbb 1\otimes(-iY)$ and has the same spectrum and purity. The figure of merit is the root-mean-square Frobenius error over
+# $N_{\rm rep}$ independent data sets.
 
 # %%
 # ==============================================================================
@@ -992,7 +996,7 @@ def physical_from_counts(counts, N, SIGN, COMPAT):
 N, M_W, N_REP_W = 2, 100, 200
 set2, SIGN2, COMPAT2 = all_settings(N), sign_table(N), compat_table(N)
 states_w = {"Bell |Phi+>": to_dm(bell_state("phi+")),
-            "Werner p=0.6": dm_tensor(mixed_with_identity(dm_matrix(to_dm(bell_state("psi-"))), 0.6), N),
+            "Werner v=0.6": dm_tensor(mixed_with_identity(dm_matrix(to_dm(bell_state("psi-"))), 0.6), N),
             "random mixed": dm_tensor(rdm(haar_state(jax.random.PRNGKey(6), 4), (0, 1)), N)}
 
 print(f"{'state':>16s} {'rms ||rho_hat-rho||_F  OLS':>28s} {'WLS':>10s} {'gain':>7s} {'max |Tr rho_WLS - 1|':>21s}")
@@ -1056,7 +1060,7 @@ N, N_REP_U = 2, 250
 set2, SIGN2, COMPAT2 = all_settings(N), sign_table(N), compat_table(N)
 SHOT_LIST_U = (50, 200, 1000, 5000)
 states_u = {"Bell (pure, on the boundary)": to_dm(bell_state("phi+")),
-            "Werner p=0.5": dm_tensor(mixed_with_identity(dm_matrix(to_dm(bell_state("psi-"))), 0.5), N),
+            "Werner v=0.5": dm_tensor(mixed_with_identity(dm_matrix(to_dm(bell_state("psi-"))), 0.5), N),
             "maximally mixed (deep inside)": dm_tensor(jnp.eye(4, dtype=CDTYPE) / 4, N)}
 
 
@@ -1110,7 +1114,7 @@ fig.tight_layout(); plt.show()
 # For the **Bell state** the linear-inversion estimate has a negative eigenvalue in essentially *every*
 # experiment, at every shot number: more shots shrink $\vert\lambda_{\min}\vert$ but do not reduce the probability of going negative,
 # because the true state sits exactly on the boundary and the fluctuations are symmetric around it. For the **maximally mixed state**
-# the estimate is physical as soon as the error bars are smaller than the distance $1/4$ to the boundary. The Werner state at $p=0.5$
+# the estimate is physical as soon as the error bars are smaller than the distance $1/4$ to the boundary. The Werner state at $v=0.5$
 # sits in between.
 #
 # > **Common pitfall.** A negative eigenvalue of this size is a statistical effect of order $1/\sqrt M$, far above rounding level,
@@ -1524,7 +1528,7 @@ def mle_rrhor(n_vec, PHI, n_iter=250, eps=None, rho0=None):
 # ==============================================================================
 print(f"{'state':>22s} {'N':>2s} {'|rho_MLE - rho_true|_F':>23s} {'|R rho - rho|_F':>17s}")
 for name, rho in [("Bell |Phi+>", to_dm(bell_state("phi+"))),
-                  ("Werner p=0.7", dm_tensor(mixed_with_identity(dm_matrix(to_dm(bell_state("psi-"))), 0.7), 2)),
+                  ("Werner v=0.7", dm_tensor(mixed_with_identity(dm_matrix(to_dm(bell_state("psi-"))), 0.7), 2)),
                   ("random mixed N=2", dm_tensor(rdm(haar_state(jax.random.PRNGKey(6), 4), (0, 1)), 2)),
                   ("GHZ_3", to_dm(ghz_state(3)))]:
     n = rho.ndim // 2
@@ -1556,7 +1560,7 @@ for name, rho in [("Bell |Phi+>", to_dm(bell_state("phi+"))),
 N, M_MLE, N_IT = 2, 500, 300
 set2, PHI2 = all_settings(N), povm_vectors(N)
 conv_states = {"Bell |Phi+> (pure)": to_dm(bell_state("phi+")),
-               "Werner p=0.7 (mixed)": dm_tensor(mixed_with_identity(dm_matrix(to_dm(bell_state("psi-"))), 0.7), N)}
+               "Werner v=0.7 (mixed)": dm_tensor(mixed_with_identity(dm_matrix(to_dm(bell_state("psi-"))), 0.7), N)}
 variants = [("plain $R\\rho R$", None), (r"diluted $\epsilon=1$", 1.0), (r"diluted $\epsilon=0.2$", 0.2)]
 conv = {}
 print(f"{'state':>22s} {'variant':>22s} {'log L / shot':>13s} {'|R rho - rho|':>14s} {'max decrease of log L':>22s}")
@@ -1730,7 +1734,7 @@ def mle_gradient(n_vec, PHI, n_steps=2000, lr=0.05, decay=0.998, theta0=None):
 N, M_CMP = 2, 500
 PHI2, set2 = povm_vectors(N), all_settings(N)
 cmp_states = {"Bell |Phi+>": to_dm(bell_state("phi+")),
-              "Werner p=0.7": dm_tensor(mixed_with_identity(dm_matrix(to_dm(bell_state("psi-"))), 0.7), N),
+              "Werner v=0.7": dm_tensor(mixed_with_identity(dm_matrix(to_dm(bell_state("psi-"))), 0.7), N),
               "random mixed": dm_tensor(rdm(haar_state(jax.random.PRNGKey(6), 4), (0, 1)), N)}
 grad_hist, L_scores = {}, {}
 print(f"{'state':>14s} {'logL/shot RrhoR':>16s} {'logL/shot Adam':>15s} {'difference':>12s} "
@@ -1762,7 +1766,7 @@ for sname, (La, Lt, Li) in L_scores.items():
 # FIGURE: the two maximum-likelihood optimisers side by side
 # ==============================================================================
 fig, axes = plt.subplots(1, 2, figsize=(11.5, 4.3))
-for i, sname in enumerate(["Bell |Phi+>", "Werner p=0.7"]):
+for i, sname in enumerate(["Bell |Phi+>", "Werner v=0.7"]):
     ha, hb = grad_hist[sname]
     best = max(ha[-1], hb[-1])
     axes[i].semilogy(np.arange(1, len(ha) + 1), np.clip(best - ha, 1e-14, None), color=PALETTE[0], lw=1.7,
@@ -2009,7 +2013,7 @@ assert abs(pooled - 0.25) > 3 * pooled_se           # ... and the wrong control 
 # EXPERIMENT: bootstrap error bars vs the true (across-experiment) error bars
 # ==============================================================================
 B_BOOT, M_BOOT, N_TRUE, B_WRONG = 250, 200, 150, 100
-boot_states = {"Werner p=0.6 (interior)": dm_tensor(mixed_with_identity(dm_matrix(to_dm(bell_state("psi-"))), 0.6), N),
+boot_states = {"Werner v=0.6 (interior)": dm_tensor(mixed_with_identity(dm_matrix(to_dm(bell_state("psi-"))), 0.6), N),
                "Bell |Phi+> (boundary)": to_dm(bell_state("phi+"))}
 QNAMES = ["trace distance", "fidelity", "purity"]
 EST2 = ["LIN+proj", "MLE"]
@@ -2116,7 +2120,7 @@ def build_zoo():
     noisy = to_dm(ghz_state(3))
     for q in range(3):
         noisy = apply_kraus_dm(noisy, kraus_depolarizing(0.10), [q])
-    return [("Bell |Phi+>", bell), ("Werner p=0.7", werner), ("random mixed", rand2),
+    return [("Bell |Phi+>", bell), ("Werner v=0.7", werner), ("random mixed", rand2),
             ("GHZ_3", ghz), ("W_3", w3), ("GHZ_3 + depol. 0.10", noisy)]
 
 

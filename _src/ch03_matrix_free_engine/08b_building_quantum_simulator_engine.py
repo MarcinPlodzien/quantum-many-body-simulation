@@ -1049,19 +1049,20 @@ print("Bloch vectors (rows: qubits 0..4; columns <X>, <Y>, <Z>):\n", np.round(np
 #
 # $$ \mathcal{N}=\frac{\Vert\hat\rho^{T_A}\Vert_1-1}{2}=\frac{\sum_i\vert\mu_i\vert-\sum_i\mu_i}{2}=\sum_{\mu_i<0}\vert\mu_i\vert, \qquad E_{\mathcal N}=\log_2\Vert\hat\rho^{T_A}\Vert_1=\log_2(2\mathcal N+1). \tag{45} $$
 #
-# As an analytic test case we take the Werner state (Werner 1989) $\hat\rho_p=p\,\vert\Psi^-\rangle\langle\Psi^-\vert+(1-p)\,\mathbb{1}/4$. By Eq. (10) the singlet projector is
+# As an analytic test case we take the Werner state (Werner 1989) of visibility $v$, $\hat\rho_v=v\,\vert\Psi^-\rangle\langle\Psi^-\vert+(1-v)\,\mathbb{1}/4$, written with the singlet;
+# it is related to the $\vert\Phi^+\rangle$ form $\rho_W(v)$ of notebook 19 (Section 11) by the local unitary $\mathbb 1\otimes(-iY)$, which leaves the spectrum of the partial transpose unchanged. By Eq. (10) the singlet projector is
 # $\vert\Psi^-\rangle\langle\Psi^-\vert=\tfrac12(\mathbb{1}-\mathrm{SWAP})=\tfrac14(\mathbb{1}-\hat X\hat X-\hat Y\hat Y-\hat Z\hat Z)$. Transposing the first factor leaves $\hat X$ and $\hat Z$ unchanged
 # and flips the sign of $\hat Y$ ($\hat Y^T=-\hat Y$), so
 #
 # $$ \big(\vert\Psi^-\rangle\langle\Psi^-\vert\big)^{T_A}=\tfrac14\big(\mathbb{1}-\hat X\hat X+\hat Y\hat Y-\hat Z\hat Z\big). \tag{46} $$
 #
 # The three commuting operators $\hat X\hat X,\hat Y\hat Y,\hat Z\hat Z$ have the eigenvalues $(1,-1,1)$ on $\vert\Phi^+\rangle$ and $(-1,1,1)$, $(1,1,-1)$, $(-1,-1,-1)$ on
-# $\vert\Phi^-\rangle,\vert\Psi^+\rangle,\vert\Psi^-\rangle$. Inserting them into Eq. (46) gives the eigenvalue $-\tfrac12$ on $\vert\Phi^+\rangle$ and $+\tfrac12$ on the other three. Adding $(1-p)/4$ for the
-# identity part yields the eigenvalues of $\hat\rho_p^{T_A}$ and the negativity:
+# $\vert\Phi^-\rangle,\vert\Psi^+\rangle,\vert\Psi^-\rangle$. Inserting them into Eq. (46) gives the eigenvalue $-\tfrac12$ on $\vert\Phi^+\rangle$ and $+\tfrac12$ on the other three. Adding $(1-v)/4$ for the
+# identity part yields the eigenvalues of $\hat\rho_v^{T_A}$ and the negativity:
 #
-# $$ \mu=\frac{1+p}{4}\ (\text{three times}),\qquad \mu=\frac{1-3p}{4}, \qquad \mathcal N(p)=\max\Big(0,\frac{3p-1}{4}\Big). \tag{47} $$
+# $$ \mu=\frac{1+v}{4}\ (\text{three times}),\qquad \mu=\frac{1-3v}{4}, \qquad \mathcal N(v)=\max\Big(0,\frac{3v-1}{4}\Big). \tag{47} $$
 #
-# The Werner state is entangled for $p>1/3$. `as_dm_tensor` accepts either form of a density matrix; its docstring records a defect it fixed:
+# The Werner state is entangled for $v>1/3$. `as_dm_tensor` accepts either form of a density matrix; its docstring records a defect it fixed:
 # transposing the whole $2^N\times2^N$ matrix leaves the spectrum unchanged and reports zero negativity for every state.
 
 # %%
@@ -1128,14 +1129,14 @@ print(f"      negativity of the random 3-qubit state across (2,0)|(1): {neg_ref:
 
 psi_m = np.array([0, 1, -1, 0]) / np.sqrt(2)
 err, err_mut = 0.0, 0.0
-for p in np.linspace(0, 1, 11):
-    Rw = p * np.outer(psi_m, psi_m) + (1 - p) * np.eye(4) / 4
+for v_w in np.linspace(0, 1, 11):                                   # Werner visibility
+    Rw = v_w * np.outer(psi_m, psi_m) + (1 - v_w) * np.eye(4) / 4
     neg, logneg = negativity(jnp.asarray(Rw, CDTYPE), [0])
-    exact = max(0.0, (3 * p - 1) / 4)
+    exact = max(0.0, (3 * v_w - 1) / 4)
     err = max(err, abs(neg - exact), abs(logneg - np.log2(2 * exact + 1)))
     lam_full = np.linalg.eigvalsh(Rw.T)                              # mutant: transpose of the whole matrix
     err_mut = max(err_mut, abs(np.sum(np.abs(lam_full) - lam_full) / 2 - exact))
-check("negativity of Werner states, Eq. (47), p = 0..1", err, 100 * TOL, mutant=err_mut)
+check("negativity of Werner states, Eq. (47), v = 0..1", err, 100 * TOL, mutant=err_mut)
 
 # %% [markdown]
 # The entropies agree with the eigenvalue formulas, and the mutant in natural units is off by the factor $\ln 2$. The Schmidt values of the subsystem $\{4,1\}$
@@ -1146,7 +1147,7 @@ check("negativity of Werner states, Eq. (47), p = 0..1", err, 100 * TOL, mutant=
 # matrix, $\sqrt{\rho^T}=(\sqrt\rho)^T$, does not. The pure-state relation $D=\sqrt{1-F}$ of Eq. (43) connects two separate engine functions and holds to round-off, and for two mixed
 # states the trace distance equals half the sum of the singular values of $\hat\rho-\hat\sigma$ (the nuclear norm), a route that does not use eigenvalues. The negativity of the random
 # complex three-qubit state across the cut $\{2,0\}\vert\{1\}$ is small but non-zero and agrees with the spectrum of the bit-string partial transpose. The Werner negativities follow
-# Eq. (47) for all eleven values of $p$. In both cases the full transpose, the bug that `as_dm_tensor` guards against, returns zero.
+# Eq. (47) for all eleven values of $v$. In both cases the full transpose, the bug that `as_dm_tensor` guards against, returns zero.
 
 # %% [markdown]
 # ## 10. Measurement

@@ -46,9 +46,9 @@
 #    classical message (Sections 7–8).
 # 5. Run the protocol as a real device would: a mid-circuit measurement with a `jnp.where` feed-forward, `jit`-compiled and
 #    `vmap`-ed over thousands of shots, with error bars on the outcome frequencies (Section 9).
-# 6. Replace the perfect links by **Werner states** of parameter $W$ (Bell pairs mixed with white noise) and prove — then verify on
-#    the density tensor — that swapping multiplies the parameters, $W_{\text{out}}=W_1W_2$. Iterate over a chain of $n$ links, watch
-#    $W$ collapse like $W^n$, and understand why entanglement *purification*, which distils fewer but better pairs from many noisy
+# 6. Replace the perfect links by **Werner states** of visibility $v$ (Bell pairs mixed with white noise) and prove — then verify on
+#    the density tensor — that swapping multiplies the visibilities, $v_{\text{out}}=v_1v_2$. Iterate over a chain of $n$ links, watch
+#    $v$ collapse like $v^n$, and understand why entanglement *purification*, which distils fewer but better pairs from many noisy
 #    ones, is not optional (Sections 10–11).
 # 7. Turn to superdense coding: protocol, algebra, decoding circuit, perfect statistics for all four messages, the Holevo bound, and
 #    the confusion matrix (sent against decoded message) and the transmission rate when the shared pair is depolarised or dephased
@@ -63,7 +63,7 @@
 #   the outer pair is maximally mixed until the classical message arrives;
 # * the resource arithmetic of quantum communication: $1$ ebit $+$ $2$ classical bits $\to$ $1$ qubit (teleportation),
 #   $1$ ebit $+$ $1$ qubit $\to$ $2$ classical bits (superdense coding);
-# * Werner/isotropic states, the entanglement threshold $W>1/3$, and the multiplicative degradation of a repeater chain;
+# * Werner/isotropic states, the entanglement threshold $v>1/3$, and the multiplicative degradation of a repeater chain;
 # * the Holevo bound and why superdense coding does not violate it.
 #
 # *Numerical methods*
@@ -863,15 +863,16 @@ fig.tight_layout(); plt.show()
 # Nothing here is specific to entanglement swapping: it is how *every* measured quantity in this course converges.
 
 # %% [markdown]
-# ## 10. Noisy links: Werner states and the product rule $W_{\text{out}}=W_1W_2$
+# ## 10. Noisy links: Werner states and the product rule $v_{\text{out}}=v_1v_2$
 #
 # Real links are not Bell pairs. A fibre, a memory or an imperfect source produces a mixed state, and the standard one-parameter
 # model is the **Werner (isotropic) state**
 #
-# $$\rho_W=W\,\vert\Phi^+\rangle\langle\Phi^+\vert+(1-W)\,\frac{\mathbb 1_4}{4},\qquad 0\le W\le1, \tag{7}$$
+# $$\rho_W(v)=v\,\vert\Phi^+\rangle\langle\Phi^+\vert+(1-v)\,\frac{\mathbb 1_4}{4},\qquad 0\le v\le1, \tag{7}$$
 #
-# i.e. "a Bell pair with probability $W$, white noise otherwise". Its fidelity with $\vert\Phi^+\rangle$ is
-# $F=W+\tfrac{1-W}{4}=\tfrac{1+3W}{4}$.
+# i.e. "a Bell pair with probability $v$, white noise otherwise"; $v$ is the visibility of
+# [notebook 19](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb), Section 11. Its fidelity with $\vert\Phi^+\rangle$ is
+# $F=v+\tfrac{1-v}{4}=\tfrac{1+3v}{4}$.
 #
 # ### 10.1 Werner states are random Pauli errors
 #
@@ -884,12 +885,12 @@ fig.tight_layout(); plt.show()
 # Substituting into Eq. (7):
 #
 # $$\rho_W=\sum_k q_k\,(\sigma_k\otimes\mathbb 1)\,\vert\Phi^+\rangle\langle\Phi^+\vert\,(\sigma_k\otimes\mathbb 1),\qquad
-#   q_{\mathbb 1}=\frac{1+3W}{4},\quad q_X=q_Y=q_Z=\frac{1-W}{4}. \tag{8}$$
+#   q_{\mathbb 1}=\frac{1+3v}{4},\quad q_X=q_Y=q_Z=\frac{1-v}{4}. \tag{8}$$
 #
 # In words: **a Werner state is a perfect Bell pair to which a random Pauli error $\sigma_k$ has been applied**, drawn from the
 # distribution $q$. Written compactly with the uniform distribution $u_k=1/4$ and the point mass $\delta_k$ at $k=\mathbb 1$,
 #
-# $$q=(1-W)\,u+W\,\delta . \tag{9}$$
+# $$q=(1-v)\,u+v\,\delta . \tag{9}$$
 #
 # ### 10.2 What the swap does to the errors
 #
@@ -920,34 +921,34 @@ fig.tight_layout(); plt.show()
 # the output is then Bell-diagonal with the convolved distribution, whatever the relay's outcome was. The Werner family is special
 # only in that the convolution closes on a single parameter. Convolution is easy
 # in the form (9), because the uniform distribution absorbs everything: $u*u=u$, $u*\delta=\delta*u=u$, $\delta*\delta=\delta$.
-# With $q^{(1)}=(1-W_1)u+W_1\delta$ and $q^{(2)}=(1-W_2)u+W_2\delta$,
+# With $q^{(1)}=(1-v_1)u+v_1\delta$ and $q^{(2)}=(1-v_2)u+v_2\delta$,
 #
 # $$\begin{aligned}
-# q^{(1)}*q^{(2)}&=(1-W_1)(1-W_2)\,u*u+(1-W_1)W_2\,u*\delta+W_1(1-W_2)\,\delta*u+W_1W_2\,\delta*\delta \\
-# &=\big[(1-W_1)(1-W_2)+(1-W_1)W_2+W_1(1-W_2)\big]u+W_1W_2\,\delta \\
-# &=(1-W_1W_2)\,u+W_1W_2\,\delta .
+# q^{(1)}*q^{(2)}&=(1-v_1)(1-v_2)\,u*u+(1-v_1)v_2\,u*\delta+v_1(1-v_2)\,\delta*u+v_1v_2\,\delta*\delta \\
+# &=\big[(1-v_1)(1-v_2)+(1-v_1)v_2+v_1(1-v_2)\big]u+v_1v_2\,\delta \\
+# &=(1-v_1v_2)\,u+v_1v_2\,\delta .
 # \end{aligned}$$
 #
 # Comparing with Eq. (9): the output is again a Werner state, with
 #
-# $$\boxed{\,W_{\text{out}}=W_1\,W_2\,} \tag{10}$$
+# $$\boxed{\,v_{\text{out}}=v_1\,v_2\,} \tag{10}$$
 #
-# — the Werner parameters **multiply**. In terms of the fidelities $F_i=\tfrac{1+3W_i}{4}$, i.e. $W_i=\tfrac{4F_i-1}{3}$,
+# — the visibilities **multiply**. In terms of the fidelities $F_i=\tfrac{1+3v_i}{4}$, i.e. $v_i=\tfrac{4F_i-1}{3}$,
 #
-# $$F_{\text{out}}=\frac{1+3W_1W_2}{4}=\frac{1+4F_1F_2-F_1-F_2}{3}=F_1F_2+\frac{(1-F_1)(1-F_2)}{3} . \tag{10a}$$
+# $$F_{\text{out}}=\frac{1+3v_1v_2}{4}=\frac{1+4F_1F_2-F_1-F_2}{3}=F_1F_2+\frac{(1-F_1)(1-F_2)}{3} . \tag{10a}$$
 #
 # The second form can be read off the error picture directly: the output is error-free if both links are error-free (probability
 # $F_1F_2$) or if both carry the *same* error, which cancels in the product $\sigma_a^{\mathsf T}\sigma_b$ (probability
 # $\tfrac{1-F_1}{3}\cdot\tfrac{1-F_2}{3}$ for each of the three errors). The fidelity composes by this bilinear law, which is less
-# convenient than a product; that is why $W$ is the natural variable of a repeater analysis.
+# convenient than a product; that is why $v$ is the natural variable of a repeater analysis.
 #
 # ### 10.4 When the output is still entangled
 #
-# The partial transpose of $\rho_W$ has eigenvalues $\tfrac{1+W}{4}$ (three times) and $\tfrac{1-3W}{4}$, so
+# The partial transpose of $\rho_W$ has eigenvalues $\tfrac{1+v}{4}$ (three times) and $\tfrac{1-3v}{4}$, so
 #
-# $$\mathcal N(\rho_W)=\max\Big(0,\ \frac{3W-1}{4}\Big),\qquad C(\rho_W)=\max\Big(0,\ \frac{3W-1}{2}\Big),$$
+# $$\mathcal N(\rho_W)=\max\Big(0,\ \frac{3v-1}{4}\Big),\qquad C(\rho_W)=\max\Big(0,\ \frac{3v-1}{2}\Big),$$
 #
-# and the state is **entangled if and only if $W>1/3$**: the partial transpose of this family turns negative exactly there
+# and the state is **entangled if and only if $v>1/3$**: the partial transpose of this family turns negative exactly there
 # (Peres, 1996), and for two qubits a positive partial transpose implies separability (Horodecki, 1996). We check all of this
 # numerically now, on the density tensor.
 
@@ -958,10 +959,10 @@ fig.tight_layout(); plt.show()
 BELL_KEYS = ["phi+", "phi-", "psi+", "psi-"]          # engine names, in BELL_LABELS / BELL_BITS order
 
 
-def werner_matrix(W):
-    """Werner / isotropic two-qubit state of Eq. (7) as a 4x4 matrix."""
-    v = bell_state("phi+").reshape(-1)
-    return W * jnp.outer(v, jnp.conj(v)) + (1 - W) * jnp.eye(4, dtype=CDTYPE) / 4
+def werner_matrix(v):
+    """Werner / isotropic two-qubit state of Eq. (7), visibility v, as a 4x4 matrix."""
+    phi = bell_state("phi+").reshape(-1)
+    return v * jnp.outer(phi, jnp.conj(phi)) + (1 - v) * jnp.eye(4, dtype=CDTYPE) / 4
 
 
 def bell_diag_matrix(lams):
@@ -996,7 +997,7 @@ def bit_convolve(q1, q2):
 
 def two_links_dm(link1, link2):
     """Density TENSOR (rank 8) of two independent links on qubits (0,1) and (2,3).
-    Each argument is either a Werner parameter (a scalar) or a 4x4 two-qubit density matrix.
+    Each argument is either a Werner visibility (a scalar) or a 4x4 two-qubit density matrix.
 
     IMPLEMENTATION  each link is a (2,2,2,2) tensor with axes (ket,ket,bra,bra); the tensor product of the
     two must be re-ordered so that ALL ket axes come first:  einsum("abAB,cdCD->abcdABCD", link01, link23).
@@ -1024,46 +1025,46 @@ def swap_dm(rho4, o1, o2):
 
 
 def werner_parameter(rho_mat):
-    """Extract W from a state of the form (7):  W = (4 F - 1)/3  with F = <Phi+|rho|Phi+>."""
-    v = bell_state("phi+").reshape(-1)
-    F = jnp.real(jnp.vdot(v, jnp.asarray(rho_mat, dtype=CDTYPE) @ v))
+    """Extract the visibility v from a state of the form (7):  v = (4 F - 1)/3  with F = <Phi+|rho|Phi+>."""
+    phi = bell_state("phi+").reshape(-1)
+    F = jnp.real(jnp.vdot(phi, jnp.asarray(rho_mat, dtype=CDTYPE) @ phi))
     return float((4 * F - 1) / 3)
 
 
 # --- CHECKPOINT: the product rule, Eq. (10), for a grid of input parameters --------------------------
-# The last column is the one with teeth.  W_out, the negativity and the concurrence of a Bell-diagonal
+# The last column is the one with teeth.  v_out, the negativity and the concurrence of a Bell-diagonal
 # state all depend ONLY on its largest Bell population, so none of them can detect a violation of
 # ISOTROPY: a state with weights (0.8575, 0.0998, 0.0285, 0.0143) returns exactly the same three numbers
-# as the Werner state with W = 0.81 while differing from it by 0.026 entry by entry.  We therefore also
-# compare the output with werner_matrix(W1 W2) element by element.
-print(f"{'W1':>6s} {'W2':>6s} {'outcome':>8s} {'p':>8s} {'W_out':>9s} {'W1*W2':>9s} {'err':>9s} "
-      f"{'N(out)':>8s} {'(3W-1)/4':>9s} {'C(out)':>8s} {'|rho-Werner|':>13s}")
+# as the Werner state with v = 0.81 while differing from it by 0.026 entry by entry.  We therefore also
+# compare the output with werner_matrix(v1 v2) element by element.
+print(f"{'v1':>6s} {'v2':>6s} {'outcome':>8s} {'p':>8s} {'v_out':>9s} {'v1*v2':>9s} {'err':>9s} "
+      f"{'N(out)':>8s} {'(3v-1)/4':>9s} {'C(out)':>8s} {'|rho-Werner|':>13s}")
 err_prod, err_neg, err_iso = 0.0, 0.0, 0.0
 err_F = 0.0
-for W1, W2 in [(1.0, 1.0), (0.9, 0.9), (0.8, 0.6), (0.5, 0.5), (0.4, 0.9), (0.3, 1.0)]:
-    rho4w = two_links_dm(W1, W2)
-    for (o1, o2) in (BELL_BITS if W1 == W2 == 0.9 else [(0, 0)]):
+for v1, v2 in [(1.0, 1.0), (0.9, 0.9), (0.8, 0.6), (0.5, 0.5), (0.4, 0.9), (0.3, 1.0)]:
+    rho4w = two_links_dm(v1, v2)
+    for (o1, o2) in (BELL_BITS if v1 == v2 == 0.9 else [(0, 0)]):
         p, rho_out = swap_dm(rho4w, o1, o2)
-        Wo, Nn, Cc = werner_parameter(rho_out), neg2(rho_out), concurrence(rho_out)
-        Npred = max(0.0, (3 * W1 * W2 - 1) / 4)
-        d_iso = max_abs(rho_out - werner_matrix(W1 * W2))
-        err_prod = max(err_prod, abs(Wo - W1 * W2))
+        v_o, Nn, Cc = werner_parameter(rho_out), neg2(rho_out), concurrence(rho_out)
+        Npred = max(0.0, (3 * v1 * v2 - 1) / 4)
+        d_iso = max_abs(rho_out - werner_matrix(v1 * v2))
+        err_prod = max(err_prod, abs(v_o - v1 * v2))
         err_neg = max(err_neg, abs(Nn - Npred))
         err_iso = max(err_iso, d_iso)
-        F1, F2, F_out = (1 + 3 * W1) / 4, (1 + 3 * W2) / 4, float(jnp.real(rho_out[0, 0] + rho_out[0, 3]
+        F1, F2, F_out = (1 + 3 * v1) / 4, (1 + 3 * v2) / 4, float(jnp.real(rho_out[0, 0] + rho_out[0, 3]
                                                                          + rho_out[3, 0] + rho_out[3, 3])) / 2
         err_F = max(err_F, abs(F_out - (F1 * F2 + (1 - F1) * (1 - F2) / 3)))   # Eq. (10a)
-        print(f"{W1:6.2f} {W2:6.2f} {str((o1, o2)):>8s} {float(p):8.4f} {Wo:9.6f} {W1 * W2:9.6f} "
-              f"{abs(Wo - W1 * W2):9.1e} {Nn:8.5f} {Npred:9.5f} {Cc:8.5f} {d_iso:13.1e}")
-print(f"\nmax |W_out - W1 W2| = {err_prod:.2e}     max |N - max(0,(3W-1)/4)| = {err_neg:.2e}"
-      f"     max |rho_out - rho_Werner(W1 W2)| = {err_iso:.2e}")
+        print(f"{v1:6.2f} {v2:6.2f} {str((o1, o2)):>8s} {float(p):8.4f} {v_o:9.6f} {v1 * v2:9.6f} "
+              f"{abs(v_o - v1 * v2):9.1e} {Nn:8.5f} {Npred:9.5f} {Cc:8.5f} {d_iso:13.1e}")
+print(f"\nmax |v_out - v1 v2| = {err_prod:.2e}     max |N - max(0,(3v-1)/4)| = {err_neg:.2e}"
+      f"     max |rho_out - rho_Werner(v1 v2)| = {err_iso:.2e}")
 print(f"max |F_out - [F1 F2 + (1-F1)(1-F2)/3]| = {err_F:.2e}   (Eq. (10a))")
 assert err_prod < 1e3 * TOL and err_neg < 1e3 * TOL and err_iso < 1e3 * TOL and err_F < 1e3 * TOL
 # the isotropy column really is an independent test: a skewed link with the same fidelity fools the others
 lam_skew = [(1 + 3 * 0.81) / 4, 0.1425 * 0.7, 0.1425 * 0.2, 0.1425 * 0.1]
 rho_skew = bell_diag_matrix(lam_skew)
-print(f"\nskewed Bell-diagonal state with the same fidelity as Werner(W=0.81):  "
-      f"W = {werner_parameter(rho_skew):.6f}, N = {neg2(rho_skew):.6f}, C = {concurrence(rho_skew):.6f}  "
+print(f"\nskewed Bell-diagonal state with the same fidelity as Werner(v=0.81):  "
+      f"v = {werner_parameter(rho_skew):.6f}, N = {neg2(rho_skew):.6f}, C = {concurrence(rho_skew):.6f}  "
       f"-> identical;   |rho - Werner| = {max_abs(rho_skew - werner_matrix(0.81)):.3f}  -> not identical")
 assert abs(werner_parameter(rho_skew) - 0.81) < 1e3 * TOL and max_abs(rho_skew - werner_matrix(0.81)) > 0.01
 
@@ -1084,12 +1085,12 @@ assert max_abs(rho_g - bell_diag_matrix(q_pred)) < 1e3 * TOL          # Bell-dia
 assert max_abs(rho_g - werner_matrix(werner_parameter(rho_g))) > 0.01  # but not isotropic
 
 # %% [markdown]
-# The measured $W_{\text{out}}$ equals $W_1W_2$ to machine precision for every pair we tried (for $W_1=W_2=0.9$ for all four Bell
-# outcomes), the fidelity obeys Eq. (10a), and the whole output density matrix coincides with $\rho_{W_1W_2}$ entry by entry, so the
+# The measured $v_{\text{out}}$ equals $v_1v_2$ to machine precision for every pair we tried (for $v_1=v_2=0.9$ for all four Bell
+# outcomes), the fidelity obeys Eq. (10a), and the whole output density matrix coincides with $\rho_W(v_1v_2)$ entry by entry, so the
 # output is a Werner state and agrees with the prediction in more than its fidelity. The outcome probability stays at $1/4$ regardless of how noisy the links are: each half of a Bell-diagonal
 # pair is maximally mixed, so the relay's own statistics are flat and it learns *nothing* about the quality of the links from them.
-# The negativity follows $\max(0,(3W-1)/4)$ exactly, and the last row of the grid is the interesting one: two links with $W_1=0.3$ and
-# $W_2=1.0$ give $W_{\text{out}}=0.3<1/3$, so the swapped pair is **separable** — the protocol ran perfectly and produced no
+# The negativity follows $\max(0,(3v-1)/4)$ exactly, and the last row of the grid is the interesting one: two links with $v_1=0.3$ and
+# $v_2=1.0$ give $v_{\text{out}}=0.3<1/3$, so the swapped pair is **separable** — the protocol ran perfectly and produced no
 # entanglement at all, because there was not enough to start with.
 #
 # The last block tests the *general* statement of Section 10.3 on two links that are Bell-diagonal but deliberately not isotropic.
@@ -1100,7 +1101,7 @@ assert max_abs(rho_g - werner_matrix(werner_parameter(rho_g))) > 0.01  # but not
 # > **Numerical practice.** We verified an analytic claim (Eq. (10)) that was derived by a *group-theoretic* argument — error
 # > distributions convolving — using a completely different numerical route: projectors and partial traces on a rank-8 density
 # > tensor. When two such different derivations agree to $10^{-16}$, the chance that both are wrong in the same way is negligible.
-# > But notice how carefully the comparison had to be chosen: $W$, the negativity and the concurrence of a Bell-diagonal state are
+# > But notice how carefully the comparison had to be chosen: $v$, the negativity and the concurrence of a Bell-diagonal state are
 # > all functions of its largest population alone, so all three agree with the Werner prediction even for states that are not
 # > Werner at all. A checkpoint is useful only if it can fail for the error it is supposed to catch.
 
@@ -1109,21 +1110,21 @@ assert max_abs(rho_g - werner_matrix(werner_parameter(rho_g))) > 0.01  # but not
 #
 # A quantum repeater divides a long channel into $n$ elementary links, distributes entanglement on each link separately (this can be
 # done in parallel, and retried until it succeeds, which is the whole point), and then performs $n-1$ swaps to connect them into one
-# end-to-end pair. Applying Eq. (10) repeatedly, $n$ links with the same parameter $W$ give
+# end-to-end pair. Applying Eq. (10) repeatedly, $n$ links with the same visibility $v$ give
 #
-# $$W_{\text{chain}}(n)=W^{\,n},\qquad F_{\text{chain}}(n)=\frac{1+3W^{\,n}}{4}\;\xrightarrow[n\to\infty]{}\;\frac14 .$$
+# $$v_{\text{chain}}(n)=v^{\,n},\qquad F_{\text{chain}}(n)=\frac{1+3v^{\,n}}{4}\;\xrightarrow[n\to\infty]{}\;\frac14 .$$
 #
 # The end-to-end state decays **exponentially in the number of links** towards the useless maximally mixed state, and it stops being
-# entangled at all as soon as $W^n\le1/3$, i.e. after
+# entangled at all as soon as $v^n\le1/3$, i.e. after
 #
-# $$n_{\max}=\frac{\ln(1/3)}{\ln W}$$
+# $$n_{\max}=\frac{\ln(1/3)}{\ln v}$$
 #
-# links. For $W=0.95$ that is about $21$ links; for $W=0.9$ about $10$. Every link and every Bell measurement was assumed to
+# links. For $v=0.95$ that is about $21$ links; for $v=0.9$ about $10$. Every link and every Bell measurement was assumed to
 # succeed, so photon loss plays no role here: the decay is caused by error accumulation alone.
 #
 # The remedy, proposed in 1998 by Briegel, Dür, Cirac and Zoller in the paper that introduced the quantum repeater, is
-# **entanglement purification**: take two noisy pairs of parameter $W$, perform local operations and classical communication, and
-# with some probability obtain *one* pair with a **higher** $W$. Interleaving purification with swapping keeps the working fidelity
+# **entanglement purification**: take two noisy pairs of visibility $v$, perform local operations and classical communication, and
+# with some probability obtain *one* pair with a **higher** $v$. Interleaving purification with swapping keeps the working fidelity
 # above threshold at every nesting level. In the scheme of Briegel, Dür, Cirac and Zoller the channel is cut into $N$ segments and
 # purification alternates with swapping over $\log_L N$ nesting levels; the total number of elementary pairs consumed then scales as
 # $N^{\log_LM+1}$ — **polynomially** in the distance rather than exponentially — and in their refined version each repeater station
@@ -1134,36 +1135,36 @@ assert max_abs(rho_g - werner_matrix(werner_parameter(rho_g))) > 0.01  # but not
 # asks for one round of it.
 #
 # Let us verify the chain formula by iterating the swap on density tensors. The chain carries the full $4\times4$ output state from
-# one swap to the next, so that the final comparison with $\rho_{W^n}$ also tests that the state stays isotropic along the chain.
+# one swap to the next, so that the final comparison with $\rho_W(v^n)$ also tests that the state stays isotropic along the chain.
 
 # %%
 # ==============================================================================
-# STEP 7: a repeater chain -- iterate the swap and compare with W^n
+# STEP 7: a repeater chain -- iterate the swap and compare with v^n
 # ==============================================================================
 N_LINKS_MAX = 8
-W_LIST = [1.0, 0.98, 0.95, 0.90, 0.80]
+V_LIST = [1.0, 0.98, 0.95, 0.90, 0.80]
 
 chain, chain_neg = {}, {}
-for W in W_LIST:
-    rho_chain = werner_matrix(W)                              # after 1 link: the link itself
-    Ws, negs_ = [werner_parameter(rho_chain)], [neg2(rho_chain)]
+for v in V_LIST:
+    rho_chain = werner_matrix(v)                              # after 1 link: the link itself
+    vs, negs_ = [werner_parameter(rho_chain)], [neg2(rho_chain)]
     for n in range(2, N_LINKS_MAX + 1):
-        p, rho_chain = swap_dm(two_links_dm(rho_chain, W), 0, 0)   # connect the chain so far (full state) with one more link
-        Ws.append(werner_parameter(rho_chain))
+        p, rho_chain = swap_dm(two_links_dm(rho_chain, v), 0, 0)   # connect the chain so far (full state) with one more link
+        vs.append(werner_parameter(rho_chain))
         negs_.append(neg2(rho_chain))                         # negativity measured on the actual output state
-    chain[W], chain_neg[W] = np.array(Ws), np.array(negs_)
-    pred = W ** np.arange(1, N_LINKS_MAX + 1)
-    d_state = max_abs(rho_chain - werner_matrix(W ** N_LINKS_MAX))
-    print(f"W = {W:.2f}:  measured W_chain = " + " ".join(f"{x:7.4f}" for x in chain[W]))
-    print(f"           W^n           = " + " ".join(f"{x:7.4f}" for x in pred) +
-          f"   max err = {np.max(np.abs(chain[W] - pred)):.1e}   |rho_8 - Werner(W^8)| = {d_state:.1e}")
-    assert np.max(np.abs(chain[W] - pred)) < 1e-9 and d_state < 1e-9
+    chain[v], chain_neg[v] = np.array(vs), np.array(negs_)
+    pred = v ** np.arange(1, N_LINKS_MAX + 1)
+    d_state = max_abs(rho_chain - werner_matrix(v ** N_LINKS_MAX))
+    print(f"v = {v:.2f}:  measured v_chain = " + " ".join(f"{x:7.4f}" for x in chain[v]))
+    print(f"           v^n           = " + " ".join(f"{x:7.4f}" for x in pred) +
+          f"   max err = {np.max(np.abs(chain[v] - pred)):.1e}   |rho_8 - Werner(v^8)| = {d_state:.1e}")
+    assert np.max(np.abs(chain[v] - pred)) < 1e-9 and d_state < 1e-9
 
-nmax = {W: (np.log(1 / 3) / np.log(W) if W < 1 else np.inf) for W in W_LIST}
-print("\nlast link at which the end-to-end pair is still entangled (W^n > 1/3):")
-for W in W_LIST:
-    n_meas = int(np.sum(chain[W] > 1 / 3))
-    print(f"  W = {W:.2f}:  n_max (formula) = {nmax[W]:6.2f}   last entangled n in our chain = {n_meas}"
+nmax = {v: (np.log(1 / 3) / np.log(v) if v < 1 else np.inf) for v in V_LIST}
+print("\nlast link at which the end-to-end pair is still entangled (v^n > 1/3):")
+for v in V_LIST:
+    n_meas = int(np.sum(chain[v] > 1 / 3))
+    print(f"  v = {v:.2f}:  n_max (formula) = {nmax[v]:6.2f}   last entangled n in our chain = {n_meas}"
           + ("  (chain not long enough to lose it)" if n_meas == N_LINKS_MAX else ""))
 
 # %%
@@ -1172,32 +1173,32 @@ for W in W_LIST:
 # ==============================================================================
 fig, axes = plt.subplots(1, 2, figsize=(11.0, 4.0))
 ns = np.arange(1, N_LINKS_MAX + 1)
-for k, W in enumerate(W_LIST):
-    axes[0].semilogy(ns, chain[W], MARKERS[k] + "-", color=PALETTE[k], ms=5, label=f"$W={W}$")
+for k, v in enumerate(V_LIST):
+    axes[0].semilogy(ns, chain[v], MARKERS[k] + "-", color=PALETTE[k], ms=5, label=f"$v={v}$")
 axes[0].axhline(1 / 3, color="0.35", ls="--", lw=1.4)
-axes[0].text(1.1, 0.36, r"separability threshold  $W=1/3$", fontsize=8, color="0.3")
-axes[0].set_xlabel("number of elementary links $n$"); axes[0].set_ylabel(r"end-to-end Werner parameter $W_{\rm chain}$")
-axes[0].set_title(r"Swapping multiplies: $W_{\rm chain}=W^{\,n}$"); axes[0].legend(fontsize=8)
+axes[0].text(1.1, 0.36, r"separability threshold  $v=1/3$", fontsize=8, color="0.3")
+axes[0].set_xlabel("number of elementary links $n$"); axes[0].set_ylabel(r"end-to-end visibility $v_{\rm chain}$")
+axes[0].set_title(r"Swapping multiplies: $v_{\rm chain}=v^{\,n}$"); axes[0].legend(fontsize=8)
 
-Wgrid = np.linspace(0.0, 1.0, 400)
+vgrid = np.linspace(0.0, 1.0, 400)
 N_SHOW = [1, 2, 4, 8]
 for k, n in enumerate(N_SHOW):
-    axes[1].plot(Wgrid, np.maximum(0.0, (3 * Wgrid ** n - 1) / 4), "-", color=PALETTE[k], lw=1.8,
+    axes[1].plot(vgrid, np.maximum(0.0, (3 * vgrid ** n - 1) / 4), "-", color=PALETTE[k], lw=1.8,
                  label=f"$n={n}$ links (theory)")
 for k, n in enumerate(N_SHOW):                                    # measured points from the chains above
-    axes[1].plot(W_LIST, [chain_neg[W][n - 1] for W in W_LIST], MARKERS[k], color=PALETTE[k], ms=6, mfc="none")
-axes[1].set_xlabel("Werner parameter $W$ of each link"); axes[1].set_ylabel(r"negativity of the end-to-end pair")
+    axes[1].plot(V_LIST, [chain_neg[v][n - 1] for v in V_LIST], MARKERS[k], color=PALETTE[k], ms=6, mfc="none")
+axes[1].set_xlabel("visibility $v$ of each link"); axes[1].set_ylabel(r"negativity of the end-to-end pair")
 axes[1].set_title("Entanglement survives only above threshold\n(lines: theory, markers: measured)")
 axes[1].legend(fontsize=8); axes[1].set_xlim(0.55, 1.02)
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# Left: the measured end-to-end parameter (markers, from actual density-tensor swaps) lies exactly on the straight lines of the
-# semi-log plot, i.e. on $W^n$, and crosses the separability threshold $1/3$ after a number of links that shrinks quickly as the link
-# quality drops. In the chains we ran, $W=0.80$ is the only one that dies inside eight links (it is separable from $n=5$ on,
-# $0.8^5=0.328<1/3$); $W=0.90$ survives to $n=10$, as $n_{\max}=10.43$ predicts. Right: the end-to-end negativity as a function of
-# link quality for chains of different length. The threshold moves to $W=(1/3)^{1/n}$, which is $0.87$ for $n=8$: at eight links
-# $W=0.90$ still gives a (barely) entangled pair, negativity $0.073$ out of the maximal $0.5$, while $W=0.80$ gives exactly zero.
+# Left: the measured end-to-end visibility (markers, from actual density-tensor swaps) lies exactly on the straight lines of the
+# semi-log plot, i.e. on $v^n$, and crosses the separability threshold $1/3$ after a number of links that shrinks quickly as the link
+# quality drops. In the chains we ran, $v=0.80$ is the only one that dies inside eight links (it is separable from $n=5$ on,
+# $0.8^5=0.328<1/3$); $v=0.90$ survives to $n=10$, as $n_{\max}=10.43$ predicts. Right: the end-to-end negativity as a function of
+# link quality for chains of different length. The threshold moves to $v=(1/3)^{1/n}$, which is $0.87$ for $n=8$: at eight links
+# $v=0.90$ still gives a (barely) entangled pair, negativity $0.073$ out of the maximal $0.5$, while $v=0.80$ gives exactly zero.
 # **Without purification, distance costs entanglement exponentially.**
 
 # %% [markdown]
@@ -1747,10 +1748,10 @@ print("\n(The first call includes tracing and XLA compilation; it is paid once p
 #   mid-circuit measurement plus a classical decision compiles into one XLA program and `vmap`s over shots. All 4000 simulated shots
 #   ended with fidelity $1$ to round-off, and the shot tests reject a permuted label map, a missing renormalisation and swapped
 #   correction bits.
-# * **Noise multiplies.** A Werner link of parameter $W$ is a Bell pair with a random Pauli error; swapping convolves the error
-#   distributions, and for isotropic noise this gives exactly $W_{\text{out}}=W_1W_2$, or
+# * **Noise multiplies.** A Werner link of visibility $v$ is a Bell pair with a random Pauli error; swapping convolves the error
+#   distributions, and for isotropic noise this gives exactly $v_{\text{out}}=v_1v_2$, or
 #   $F_{\text{out}}=F_1F_2+(1-F_1)(1-F_2)/3$ for the fidelities, verified to $10^{-16}$ on the density tensor.
-#   A chain of $n$ links has $W^n$, loses entanglement once $W^n\le1/3$, and therefore needs **purification** interleaved with
+#   A chain of $n$ links has $v^n$, loses entanglement once $v^n\le1/3$, and therefore needs **purification** interleaved with
 #   swapping — this is the content of the quantum-repeater proposal.
 # * **Superdense coding is the time-reverse of teleportation.** Encode with $X^{m_2}Z^{m_1}$, send one qubit, decode with a Bell
 #   measurement: two bits, error-free, measured as an exact identity confusion matrix. The travelling qubit alone is $\mathbb 1/2$
@@ -1782,13 +1783,13 @@ print("\n(The first call includes tracing and XLA compilation; it is paid once p
 #    $n-1$ Bell measurements on the inner pairs in a single `jit`-compiled function with feed-forward, and returns the fidelity of
 #    the end pair. Check for $n=3$ ($6$ qubits) that the fidelity is $1$ in the noiseless case, and compare the run time with the
 #    iterative density-tensor route of Section 11.
-# 4. ★★ **Asymmetric links (physics).** With $W_1$ fixed at $0.9$, how good must the second link be for the swapped pair to stay
-#    entangled? Solve $W_1W_2>1/3$ by hand and confirm with `swap_dm`. Then: given a *total* noise budget $W_1W_2=\text{const}$, does
+# 4. ★★ **Asymmetric links (physics).** With $v_1$ fixed at $0.9$, how good must the second link be for the swapped pair to stay
+#    entangled? Solve $v_1v_2>1/3$ by hand and confirm with `swap_dm`. Then: given a *total* noise budget $v_1v_2=\text{const}$, does
 #    it matter how it is distributed between the links?
 # 5. ★★ **Dense coding with a Werner pair (extend the code).** Replace the perfect $\vert\Phi^+\rangle$ in `dense_confusion` by
 #    $\rho_W$ of Eq. (7). Predict the confusion matrix from Eq. (8) and Eq. (11) before running it, then measure the rate
-#    $I(M{:}O)$ as a function of $W$ and find the $W$ at which it drops to $1$ bit. Compare with the entanglement
-#    threshold $W=1/3$: are they the same number? Should they be? (Check your answer against Eq. (13): the condition is
+#    $I(M{:}O)$ as a function of $v$ and find the $v$ at which it drops to $1$ bit. Compare with the entanglement
+#    threshold $v=1/3$: are they the same number? Should they be? (Check your answer against Eq. (13): the condition is
 #    $S(\rho_{AB})=S(\rho_B)=1$ bit.)
 # 6. ★★ **Amplitude damping (physics).** Repeat Section 14 with `kraus_amplitude_damping(\gamma)`. This channel is *not* a random
 #    Pauli — it is not even unital — so there is no reason to expect Eq. (11) to survive. Measure the confusion matrix and find out:
@@ -1799,16 +1800,16 @@ print("\n(The first call includes tracing and XLA compilation; it is paid once p
 #    $X$ turns it into amplitude *raising*, which has the same Bell populations.) Then compute $I$ for several non-uniform priors
 #    and decide whether any of them beats the uniform one — this is the question the Blahut–Arimoto algorithm answers in general.
 # 7. ★★★ **Purification (extend the code).** Implement one round of the recurrence purification protocol: take two copies of a
-#    Werner state with parameter $W$ (four qubits), apply a bilateral $\mathrm{CNOT}$ (each party from their half of the first pair
+#    Werner state with visibility $v$ (four qubits), apply a bilateral $\mathrm{CNOT}$ (each party from their half of the first pair
 #    to their half of the second), measure the target pair in the $Z$ basis, keep the source pair only if the two results agree.
-#    Measure the success probability and the output state. It is Bell-diagonal but no longer isotropic, so define $W'$ from its
-#    fidelity, $W'=(4F'-1)/3$, or re-twirl it back to Werner form. Plot $W'$ versus $W$, identify the fixed point (you should find
-#    $F'=F$ at $F=1/2$, i.e. exactly at the entanglement threshold $W=1/3$), and use it to explain why purification $+$ swapping
+#    Measure the success probability and the output state. It is Bell-diagonal but no longer isotropic, so define $v'$ from its
+#    fidelity, $v'=(4F'-1)/3$, or re-twirl it back to Werner form. Plot $v'$ versus $v$, identify the fixed point (you should find
+#    $F'=F$ at $F=1/2$, i.e. exactly at the entanglement threshold $v=1/3$), and use it to explain why purification $+$ swapping
 #    beats pure swapping over a long chain. [Notebook 54](../ch14_quantum_communication_and_cryptography/54_noisy_entanglement_distillation_repeaters_certification.ipynb),
 #    Section 7, derives this protocol and runs it in a repeater chain.
 # 8. ★★★ **Swapping with imperfect measurement (physics).** Model a relay whose Bell measurement occasionally reports the wrong
 #    outcome (probability $\varepsilon$ of a random other label). Derive the resulting end-to-end state, show that it is again
-#    Werner-like, and find the combined condition on $(W,\varepsilon)$ for the chain of $n$ links to remain entangled.
+#    Werner-like, and find the combined condition on $(v,\varepsilon)$ for the chain of $n$ links to remain entangled.
 # 9. ★★★ **General encodings (physics).** Eq. (14) minimises $S\big((\Lambda\otimes\mathbb 1)\rho_{AB}\big)$ over all channels
 #    $\Lambda$ on Alice's qubit. Parametrise $\Lambda$ by four $2\times2$ Kraus operators obtained from a random $8\times2$ isometry
 #    (QR decomposition of a complex Gaussian matrix), minimise the entropy with `scipy.optimize.minimize` from many random starts,

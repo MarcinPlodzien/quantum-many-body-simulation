@@ -570,41 +570,43 @@ print(f"  Bell pair: N = {n_b:.6f},  E_N = {en_b:.6f} bit")
 #
 # A new quantity has to be run where the answer is known. The **Werner state** is a Bell pair mixed with white noise,
 #
-# $$ \rho_W(w) = w\,\vert\Phi^+\rangle\langle\Phi^+\vert + (1-w)\,\frac{\mathbb 1}{4}, \qquad 0\le w\le1 . $$
+# $$ \rho_W(v) = v\,\vert\Phi^+\rangle\langle\Phi^+\vert + (1-v)\,\frac{\mathbb 1}{4}, \qquad 0\le v\le1 . $$
 #
+# The weight $v$ of the Bell pair is the visibility, as in
+# [notebook 19](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb), Section 11.
 # The partial transpose of $\vert\Phi^+\rangle\langle\Phi^+\vert$ is $\tfrac12\,\mathrm{SWAP}$ (check it on the four
 # basis products), whose eigenvalues are $+\tfrac12$ three times (symmetric states) and $-\tfrac12$ once (the singlet).
-# Hence $\rho_W^{T_A}$ has eigenvalues $(1+w)/4$ three times and
+# Hence $\rho_W^{T_A}$ has eigenvalues $(1+v)/4$ three times and
 #
-# $$ \mu_{\min} = \frac{1-w}{4} - \frac w2 = \frac{1-3w}{4}, $$
+# $$ \mu_{\min} = \frac{1-v}{4} - \frac v2 = \frac{1-3v}{4}, $$
 #
-# so the state is PPT, hence separable, for $w\le\tfrac13$ and entangled above, with $\mathcal N = (3w-1)/4$. The code
+# so the state is PPT, hence separable, for $v\le\tfrac13$ and entangled above, with $\mathcal N = (3v-1)/4$. The code
 # below does not use this formula.
 
 # %%
-print("Werner state: the PPT boundary should appear at w = 1/3")
-print(f"  {'w':>7s} {'min eig of PT':>14s} {'(1-3w)/4':>10s} {'negativity':>11s}")
-for w in (0.20, 0.30, 1/3, 0.34, 0.50, 1.00):
-    r = w * rho_bell + (1 - w) * np.eye(4) / 4
+print("Werner state: the PPT boundary should appear at v = 1/3")
+print(f"  {'v':>7s} {'min eig of PT':>14s} {'(1-3v)/4':>10s} {'negativity':>11s}")
+for v in (0.20, 0.30, 1/3, 0.34, 0.50, 1.00):
+    r = v * rho_bell + (1 - v) * np.eye(4) / 4
     mu = pt_min(r)
     verdict = "entangled" if neg(r) > 1e-12 else "separable (PPT)"
-    print(f"  {w:7.4f} {mu:+14.6f} {(1-3*w)/4:+10.6f} {neg(r):11.6f}   {verdict}")
-    assert abs(mu - (1 - 3 * w) / 4) < 1e-12
+    print(f"  {v:7.4f} {mu:+14.6f} {(1-3*v)/4:+10.6f} {neg(r):11.6f}   {verdict}")
+    assert abs(mu - (1 - 3 * v) / 4) < 1e-12
 
-ws = np.linspace(0, 1, 201)
-ns = [neg(w * rho_bell + (1 - w) * np.eye(4) / 4) for w in ws]
+vs = np.linspace(0, 1, 201)
+ns = [neg(v * rho_bell + (1 - v) * np.eye(4) / 4) for v in vs]
 fig, ax = plt.subplots(figsize=(5, 2.6))
-ax.plot(ws, ns, lw=1.4, label="computed")
-ax.plot(ws, np.maximum((3 * ws - 1) / 4, 0), "k:", lw=1.0, label=r"$\max(0,(3w-1)/4)$")
+ax.plot(vs, ns, lw=1.4, label="computed")
+ax.plot(vs, np.maximum((3 * vs - 1) / 4, 0), "k:", lw=1.0, label=r"$\max(0,(3v-1)/4)$")
 ax.axvline(1/3, ls="--", color="k", lw=0.9)
-ax.text(1/3 + 0.02, max(ns) * 0.8, "w = 1/3", fontsize=9)
-ax.set_xlabel("Werner weight w"); ax.set_ylabel(r"negativity $\mathcal{N}$"); ax.legend(fontsize=8)
-ax.set_title("Werner state: entanglement switches on at w = 1/3")
+ax.text(1/3 + 0.02, max(ns) * 0.8, "v = 1/3", fontsize=9)
+ax.set_xlabel("Werner visibility v"); ax.set_ylabel(r"negativity $\mathcal{N}$"); ax.legend(fontsize=8)
+ax.set_title("Werner state: entanglement switches on at v = 1/3")
 plt.tight_layout(); plt.show()
 
 # %% [markdown]
-# The smallest eigenvalue of the partial transpose follows $(1-3w)/4$ to rounding, and the negativity switches on at
-# $w=\tfrac13$ and grows linearly to $\tfrac12$ at the pure Bell pair.
+# The smallest eigenvalue of the partial transpose follows $(1-3v)/4$ to rounding, and the negativity switches on at
+# $v=\tfrac13$ and grows linearly to $\tfrac12$ at the pure Bell pair.
 #
 # ## 8. Entanglement death under noise
 #
@@ -615,8 +617,8 @@ plt.tight_layout(); plt.show()
 # The threshold can be derived. The channel shrinks the Bloch vector by $\eta = 1-\tfrac{4p}{3}$, i.e. it maps
 # $X\to\eta X$, $Y\to\eta Y$, $Z\to\eta Z$ and $\mathbb 1\to\mathbb 1$. Since
 # $\vert\Phi^+\rangle\langle\Phi^+\vert = \tfrac14(\mathbb 1 + XX - YY + ZZ)$, applying it to both spins gives
-# $\tfrac14(\mathbb 1 + \eta^2(XX-YY+ZZ)) = \rho_W(\eta^2)$, a Werner state with $w = (1-4p/3)^2$. It is separable for
-# $w\le\tfrac13$, i.e. for
+# $\tfrac14(\mathbb 1 + \eta^2(XX-YY+ZZ)) = \rho_W(\eta^2)$, a Werner state with $v = (1-4p/3)^2$. It is separable for
+# $v\le\tfrac13$, i.e. for
 #
 # $$ p \;\ge\; p^* = \tfrac34\big(1-1/\sqrt3\big) = 0.316987\ldots \text{ per spin}. $$
 #
@@ -1181,7 +1183,7 @@ plt.show()
 # * Quantifying mixed-state entanglement properly means minimising over ensembles, with a closed form only for two
 #   qubits; deciding separability is NP-hard in general, and $E_D$ and the negativity are not faithful. The PPT
 #   criterion is the computable substitute and is complete for two qubits. The negativity reproduces the Werner
-#   threshold $w=\tfrac13$, where the smallest partial-transpose eigenvalue $(1-3w)/4$ changes sign; under two-sided
+#   threshold $v=\tfrac13$, where the smallest partial-transpose eigenvalue $(1-3v)/4$ changes sign; under two-sided
 #   depolarising noise the same threshold appears as $p^* = \tfrac34(1-1/\sqrt3) = 0.316987$ per spin.
 # * In the XXZ ground states studied here, pairwise entanglement is nearest-neighbour at all four parameter points: the
 #   more distant pairs have a partial transpose that is positive with a margin of at least $0.03$, which for two qubits
