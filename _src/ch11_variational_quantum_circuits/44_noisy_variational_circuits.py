@@ -9,7 +9,7 @@
 # $U(\boldsymbol\theta)$ was a product of exact unitaries, the state stayed pure, and the cost
 # $C(\boldsymbol\theta)=\langle\psi(\boldsymbol\theta)\vert\hat H\vert\psi(\boldsymbol\theta)\rangle$ was the energy of
 # that pure state. Present-day hardware is not like that. A two-qubit gate on a superconducting processor fails a few
-# times in a thousand; qubits dephase while they wait; excited states decay. The circuit that runs is not
+# times in a thousand (Barends *et al.* 2014; Sung *et al.* 2021); qubits dephase while they wait; excited states decay. The circuit that runs is not
 # $U(\boldsymbol\theta)$ but a **quantum channel** $\mathcal E_{\boldsymbol\theta}$, and the state it produces is mixed.
 #
 # This changes the optimisation problem itself as well as the accuracy of its answer. Three questions must be answered
@@ -198,8 +198,10 @@ def compile_then_run(fn, *args):
 #
 # * **Gate errors** — miscalibrated pulses, crosstalk, leakage — are modelled by a **depolarising** channel, because a
 #   randomised gate error looks isotropic on the Bloch sphere once averaged over the randomising circuits used to
-#   measure it. Two-qubit gates are an order of magnitude worse than single-qubit gates, so the model carries two error
-#   probabilities, $p_1$ and $p_2>p_1$.
+#   measure it. Two-qubit gates have larger errors than single-qubit gates: the experiments quoted in Section 3.2 report
+#   single-qubit errors per gate $2.4$ to $7$ times below their two-qubit values. The model therefore carries two error
+#   probabilities, $p_1$ and $p_2>p_1$. It sets $p_1=0.1\,p_2$, which by Eqs. (4) and (4b) makes the two-qubit error per
+#   gate about $24$ times the single-qubit one, so single-qubit noise is a small correction throughout.
 # * **Idling** — the qubit waiting while other gates are executed — is modelled by **dephasing** (loss of the relative
 #   phase, time constant $T_2$) and **amplitude damping** (decay $\vert1\rangle\to\vert0\rangle$, time constant $T_1$).
 #
@@ -237,14 +239,27 @@ def compile_then_run(fn, *args):
 # $$F_{\rm avg}=1-\frac{2p}{3},\qquad r=1-F_{\rm avg}=\frac{2p}{3},\qquad \boxed{\;p=\tfrac32\,r\;}.\tag{4}$$
 #
 # A two-qubit gate needs one more step, because its error per gate is averaged over two-qubit inputs. The average
-# fidelity in dimension $d$ is fixed by the process fidelity $F_e=\sum_m\lvert\mathrm{Tr}K_m\rvert^2/d^2$ through
-# $F_{\rm avg}=(dF_e+1)/(d+1)$ (Nielsen 2002, in the references); for one qubit $F_e=1-p$ and this is Eq. (4) again. Our
-# model applies $\mathcal D_{p_2}$ to **both** qubits of the gate, so $F_e=(1-p_2)^2$ and, with $d=4$,
-# $r_2=\tfrac45\bigl[1-(1-p_2)^2\bigr]\simeq\tfrac85p_2$, i.e. $p_2\simeq\tfrac58r_2$ per qubit. Adding the two one-qubit
-# errors, $2\times\tfrac23p_2$, would undercount by a sixth. A two-qubit error per gate $r_2=5\cdot10^{-3}$ — a good
-# number on today's hardware — therefore corresponds to $p_2\approx3.1\cdot10^{-3}$ per qubit. We keep the simpler
-# convention $p_2=\tfrac32r_2$ per qubit and remember that the model's two-qubit gates are then pessimistic by a factor
-# $\tfrac85\cdot\tfrac32=2.4$.
+# fidelity in dimension $d$ is fixed by the process (entanglement) fidelity $F_e=\sum_m\lvert\mathrm{Tr}K_m\rvert^2/d^2$
+# through $F_{\rm avg}=(dF_e+1)/(d+1)$ (Horodecki, Horodecki and Horodecki 1999; Nielsen 2002), so that
+#
+# $$r=1-F_{\rm avg}=\frac{d}{d+1}\,\bigl(1-F_e\bigr).\tag{4a}$$
+#
+# For one qubit $F_e=1-p$ and this is Eq. (4) again. The two-qubit depolarising channel
+# $\rho\to(1-p)\rho+\tfrac{p}{15}\sum_{P\neq\mathbb 1}P\rho P$, with the sum over the fifteen non-identity two-qubit Pauli
+# strings, has process infidelity $1-F_e=p$ and $r=\tfrac45p$; written as $(1-\lambda)\rho+\lambda\,\mathbb 1/4$ with the
+# fully mixed fraction $\lambda=\tfrac{16}{15}p$, it has $r=\tfrac34\lambda=\lambda(d-1)/d$. Our model instead applies
+# $\mathcal D_{p_2}$ to **both** qubits of the gate, so $F_e=(1-p_2)^2$ and, with $d=4$,
+#
+# $$r_2=\tfrac45\bigl[1-(1-p_2)^2\bigr]\simeq\tfrac85p_2,\qquad p_2=1-\sqrt{1-\tfrac54r_2}\simeq\tfrac58r_2 .\tag{4b}$$
+#
+# Adding the two one-qubit errors, $2\times\tfrac23p_2$, would undercount $r_2$ by a sixth, and converting a measured $r_2$
+# with the one-qubit rule $p_2=\tfrac32r_2$ would give a model with $\tfrac85\cdot\tfrac32=2.4$ times the measured error.
+# Every two-qubit noise level in this notebook is the channel parameter $p_2$, and Eq. (4b) gives its error per gate: the
+# default $p_2=0.02$ has $r_2=3.2\cdot10^{-2}$. Randomised benchmarking of $CZ$ gates on superconducting qubits gave
+# $r_2=5.6\cdot10^{-3}$ for the best qubit pair of Barends *et al.* (2014) and $r_2=2.4\cdot10^{-3}$ in Sung *et al.* (2021),
+# with single-qubit errors per gate of $8\cdot10^{-4}$ and $0.6$–$1.0\cdot10^{-3}$ on the same devices. By Eq. (4b) the two
+# $CZ$ values are $p_2=3.5\cdot10^{-3}$ and $1.5\cdot10^{-3}$; the default of this notebook is six to thirteen times
+# larger, so that the effects of noise are large already at four qubits and two layers.
 #
 # ### 3.3 Dephasing and damping from $T_1$ and $T_2$
 #
@@ -308,6 +323,16 @@ r_formula = 0.8 * (1 - (1 - p_pair) ** 2)
 print(f"\ntwo-qubit gate, D_p on both qubits, p = {p_pair}: Haar average r = {r_mc:.5f} +- {r_se:.5f}")
 print(f"  (4/5)[1-(1-p)^2] = {r_formula:.5f}   first order 8p/5 = {1.6 * p_pair:.5f}   naive 2 x 2p/3 = {4 * p_pair / 3:.5f}")
 assert abs(r_mc - r_formula) < 5 * r_se
+F_e_pair = sum(abs(np.trace(k)) ** 2 for k in K_pair) / 16              # process fidelity of the Kraus set, d = 4
+print(f"  process fidelity sum|Tr K|^2/16 = {F_e_pair:.10f}   (1-p)^2 = {(1 - p_pair) ** 2:.10f}")
+assert abs(F_e_pair - (1 - p_pair) ** 2) < TOL
+# Eq. (4b) inverted: measured two-qubit errors per gate (Barends 2014, Sung 2021) -> channel parameter p2 of the model
+for r2_meas in (5.6e-3, 2.4e-3):
+    p2_meas = 1 - np.sqrt(1 - 1.25 * r2_meas)
+    r2_wrong = 0.8 * (1 - (1 - 1.5 * r2_meas) ** 2)                    # model error if p2 = 3 r2 / 2 were used
+    print(f"  r2 = {r2_meas:.1e}  ->  p2 = {p2_meas:.3e}  (5 r2/8 = {0.625 * r2_meas:.3e});  "
+          f"one-qubit rule p2 = 3 r2/2 would give r2 = {r2_wrong:.3e} = {r2_wrong / r2_meas:.2f} x measured")
+    assert abs(0.8 * (1 - (1 - p2_meas) ** 2) - r2_meas) < TOL
 
 # CHECK C: T1 and T2 laws, Eqs. (5) and (6)
 T1, T2phi, dt, n_steps_T = 20.0, 12.0, 0.5, 60
@@ -350,7 +375,8 @@ fig.tight_layout(); plt.show()
 # reproduces $e^{-t/T_1}$ for the population and $e^{-t/T_2}$ of Eq. (6a) for the coherence with a maximum deviation at
 # the level of round-off. The two-qubit formula $r_2=\tfrac45[1-(1-p_2)^2]$ is confirmed by a Haar average over
 # $20\,000$ random two-qubit states within its standard error, and the printout shows how far it lies from the naive
-# sum $\tfrac43p_2$ of two one-qubit errors.
+# sum $\tfrac43p_2$ of two one-qubit errors. The process fidelity of the Kraus set equals $(1-p_2)^2$ to round-off, and
+# the inversion of Eq. (4b) turns the two measured $CZ$ errors into $p_2=3.5\cdot10^{-3}$ and $1.5\cdot10^{-3}$.
 #
 # In the figure the coherence falls faster than the population. That is a property of the chosen times. In general the
 # coherence decays at the rate $1/T_2=1/T_\varphi+1/(2T_1)$ and the population at $1/T_1$, so the coherence is
@@ -420,7 +446,7 @@ fig.tight_layout(); plt.show()
 N_Q = 4                                     # qubits
 JXX, JYY, JZZ, HX = -1.0, -1.0, -0.5, -0.3  # H = Jxx sum XX + Jyy sum YY + Jzz sum ZZ + hx sum X
 P2_DEF = 0.02                               # depolarising probability after a two-qubit gate (per touched qubit)
-P1_RATIO = 0.1                              # single-qubit gates are 10x better:  p1 = P1_RATIO * p2
+P1_RATIO = 0.1                              # p1 = P1_RATIO * p2  (a modelling choice, Section 3.1)
 L_DEF = 2                                   # layers of the default ansatz
 
 TERMS = heisenberg_terms(N_Q, Jxx=JXX, Jyy=JYY, Jzz=JZZ, hx=HX)
@@ -1846,7 +1872,7 @@ fig.tight_layout(); plt.show()
 # Memory adds a second, harder limit. The density tensor is $1$ MB at $N=8$, $16$ MB at $N=10$ and $256$ MB at
 # $N=12$ — per intermediate array, in a graph that holds several of them and, under `jax.grad`, keeps many more. A
 # trajectory is $64$ kB at $N=12$, and two hundred of them run in about a second. The first calls in the table, which
-# include compilation, take between $0.2$ and $4$ s and grow slowly with $N$: the traced graph has one operation per
+# include compilation, take from a few tenths of a second to a few seconds and grow slowly with $N$: the traced graph has one operation per
 # gate and noise location, a number linear in $N$, while the arrays it acts on grow exponentially.
 #
 # The decision rule is not only about resources. The density tensor gives an exact number and an exact gradient; the
@@ -1860,7 +1886,8 @@ fig.tight_layout(); plt.show()
 #
 # * **The conversion from laboratory numbers to channel parameters is a short derivation.** The depolarising channel
 #   contracts the Bloch vector by $1-4p/3$ and has average gate fidelity $1-2p/3$, so a reported single-qubit error per
-#   gate $r$ becomes $p=\tfrac32r$; for the model's two-qubit gates $r_2=\tfrac45[1-(1-p_2)^2]\simeq\tfrac85p_2$;
+#   gate $r$ becomes $p=\tfrac32r$; for the model's two-qubit gates $r_2=\tfrac45[1-(1-p_2)^2]\simeq\tfrac85p_2$, from
+#   $r=\tfrac{d}{d+1}(1-F_e)$, so a measured $r_2$ becomes $p_2\simeq\tfrac58r_2$;
 #   damping and dephasing follow from $\gamma=1-e^{-t/T_1}$ and $p=\tfrac12(1-e^{-t/T_\varphi})$, with the coherence
 #   decaying at $1/T_2$. All were confirmed numerically.
 # * **Two independent simulators agree, and the test has power.** The density tensor and the trajectory unravelling
@@ -1939,7 +1966,16 @@ fig.tight_layout(); plt.show()
 #   channels, the Kraus representation, the depolarising and amplitude-damping channels.
 # * M. A. Nielsen, *A simple formula for the average gate fidelity of a quantum dynamical operation*,
 #   Phys. Lett. A **303**, 249 (2002) — the relation $F_{\rm avg}=(dF_e+1)/(d+1)$ between process and average gate
-#   fidelity (due to M., P. and R. Horodecki, with a simplified proof there), used after Eq. (4) for two-qubit gates.
+#   fidelity (due to M., P. and R. Horodecki, with a simplified proof there), Eq. (4a).
+# * M. Horodecki, P. Horodecki and R. Horodecki, *General teleportation channel, singlet fraction, and quasidistillation*,
+#   Phys. Rev. A **60**, 1888 (1999) — Proposition 1, $f(\Lambda)=(F(\Lambda)d+1)/(d+1)$ between the average fidelity
+#   and the entanglement (process) fidelity of a channel, Eq. (4a).
+# * R. Barends *et al.*, *Superconducting quantum circuits at the surface code threshold for fault tolerance*,
+#   Nature **508**, 500 (2014) — randomised-benchmarking fidelities $99.92\%$ (single-qubit gates, average) and up to
+#   $99.44\%$ ($CZ$), quoted in Section 3.2.
+# * Y. Sung, L. Ding, J. Braumüller, A. Vepsäläinen, B. Kannan, M. Kjaergaard *et al.*, *Realization of high-fidelity CZ
+#   and ZZ-free iSWAP gates with a tunable coupler*, Phys. Rev. X **11**, 021058 (2021) — interleaved-benchmarking $CZ$
+#   fidelity $99.76\%$ and single-qubit fidelities $99.90$–$99.94\%$, quoted in Section 3.2.
 # * E. Magesan, J. M. Gambetta and J. Emerson, *Characterizing quantum gates via randomized benchmarking*,
 #   Phys. Rev. A **85**, 042311 (2012) — where the error per gate $r$ of Section 3.2 comes from, and why twirling over
 #   the Clifford group turns the average error into a depolarising channel.

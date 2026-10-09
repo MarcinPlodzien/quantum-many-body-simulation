@@ -49,8 +49,8 @@
 #    channel as random Pauli bases (we prove it and check it to machine precision). Entangling **global** Clifford circuits, built from
 #    $H$, $S$ and CNOT, give a completely different channel, $\mathcal M^{-1}(A)=(2^N+1)A-\mathrm{Tr}(A)\mathbb 1$, which we derive from
 #    the 2-design property (the ensemble reproduces all second moments of Haar-random unitaries, notebook 10) and verify numerically for the
-#    ensemble we actually sample (a depth-$2N$ random Clifford circuit, which reproduces the second moments of the Clifford group but
-#    not its third). The two are complementary: local shadows are cheap for local observables and exponentially expensive for a
+#    ensemble we actually sample (a depth-$2N$ random Clifford circuit, used for every global-shadow number; it reproduces the second
+#    moments of the Clifford group, and a depth-$4N$ circuit is added in one check of the third moments). The two are complementary: local shadows are cheap for local observables and exponentially expensive for a
 #    fidelity; global shadows are the other way round (Sections 9–10).
 # 6. **Comparison and scaling.** Reconstruct $\rho$ for $N=3$ and compare with the linear-inversion and projected estimators of
 #    notebook 23 **at an equal total shot budget**; then push local observables to $N=14$ and watch the cost *not* grow (Sections 11–12).
@@ -680,7 +680,8 @@ fig.tight_layout(); plt.show()
 # Proposition 3 and the third is their Proposition 1; we quote both without proof. Proposition 1 also gives a matching **lower**
 # bound for the global ensemble, $\mathrm{Tr}(O_0^2)\le\lVert O_0\rVert_{\rm shadow}^2$, so for global shadows the third line is
 # tight up to the factor $3$. Section 10.3 compares the global line with values computed in closed form for the ideal Clifford
-# ensemble and with measurements on the random circuits we can sample, which reproduce only the second moments of the Clifford group.
+# ensemble and with measurements on the depth-$2N$ random circuits sampled throughout, which are guaranteed to reproduce only the
+# second moments of the Clifford group (a depth-$4N$ circuit serves as a check).
 #
 # The third line matters because $\mathrm{Tr}(O_0^2)$ does not grow with $N$ for an observable like a fidelity
 # $O=\vert\psi\rangle\langle\psi\vert$, where $\mathrm{Tr}(O_0^2)=1-2^{-N}<1$. Global shadows estimate a fidelity with $O(1/\varepsilon^2)$
@@ -1189,7 +1190,7 @@ assert err_ry > 6 / np.sqrt(20000)
 #
 # > $L$ layers; each layer applies an independent uniformly random element of the $24$-element single-qubit Clifford group to
 # > **every** qubit, followed by CNOTs on the even bonds $(0,1),(2,3),\dots$ in even layers and on the odd bonds $(1,2),(3,4),\dots$
-# > in odd layers. We use $L=2N$.
+# > in odd layers. We use $L=2N$ for every global-shadow result; the only exception is the depth-$4N$ comparison run of Section 10.3.
 #
 # This ensemble differs from the uniform Clifford measure. **Unbiasedness** needs only that its **second moments** match those of
 # the Clifford group, i.e. that its measurement channel equals Eq. (9). That is a testable statement, and we test it:
@@ -1351,8 +1352,8 @@ for label, depth_c, bonds_c in (("depth 1", 1, brickwall_bonds(3, 1)), ("depth 2
 #   \;=\;2.00,\ 2.40,\ 2.67,\ 2.82,\ 2.91\quad(N=2,\dots,6), \tag{10b}$$
 #
 # which tends to $3$ from below; the variance $\mathbb E[\hat o^{\,2}]-1$ tends to $2$. Both formulas use the third moment of
-# the ensemble, which the depth-$2N$ circuit of Section 10.2 is not guaranteed to have, so the experiment below also samples a
-# circuit of depth $4N$.
+# the ensemble, which the depth-$2N$ circuit of Section 10.2 is not guaranteed to have. The experiment below uses that circuit for both
+# observables and, for $\langle Z_0Z_1\rangle$, also samples a circuit of depth $4N$.
 #
 # To estimate a fidelity from *local* shadows without building any matrix we use the product form of Eq. (5) once more:
 # $\hat o=\langle\psi_{\rm t}\vert\big(\bigotimes_qA_q\big)\vert\psi_{\rm t}\rangle$ is $N$ `apply_gate` einsums on the target state
@@ -1507,16 +1508,16 @@ fig.tight_layout(); plt.show()
 #   the derived $(3/2)^N=2.25,\,3.38,\,5.06,\,7.59,\,11.39$ of Eq. (10); the GHZ target grows at a similar rate
 #   ($2.13\to8.63$, a factor $1.4$ per qubit). Certifying a state with local randomised measurements costs exponentially many runs. The wrong control
 #   (the $N$-independent law (10b) of the global ensemble) is rejected at every $N$, by $8$ to $11$ standard errors.
-# * **Global shadows, fidelity** (pink): $1.92,\,2.31,\,2.68,\,2.82,\,2.96$, against the ideal-Clifford values $2.00,\,2.40,\,2.67,\,2.82,\,2.91$ of
+# * **Global shadows, fidelity** (pink, depth $2N$): $1.92,\,2.31,\,2.68,\,2.82,\,2.96$, against the ideal-Clifford values $2.00,\,2.40,\,2.67,\,2.82,\,2.91$ of
 #   Eq. (10b), with which they agree within $1.3$ standard errors. A fidelity costs $O(1/\varepsilon^2)$ snapshots at any $N$.
-# * **Global shadows, local observable** (yellow): $4.90\to106.2$, a factor of about $2$ per qubit. Entangling the measurement
+# * **Global shadows, local observable** (yellow, depth $2N$): $4.90\to106.2$, a factor of about $2$ per qubit. Entangling the measurement
 #   destroys the locality that made Eq. (7) $N$-independent.
 #
 # The yellow curve is where the difference between the ideal global Clifford ensemble and the depth-$2N$ circuit we
 # actually sample becomes visible: this is the third-moment gap flagged in Section 10.2. The ideal values are
 # $2^N+1=5,9,17,33,65$ from Eq. (10a), one unit above the *lower* bound $\mathrm{Tr}(P^2)=2^N$ of Section 6.2 and far below the
 # upper one, $3\cdot2^N$. The depth-$2N$ circuit follows them at $N=2$ and then drifts above them, by $34\%$ at $N=4$ and $63\%$ at
-# $N=6$ (up to $6.1$ standard errors at $N=5$, the wrong control of the checkpoint). Doubling the depth to $4N$ (purple, open symbols)
+# $N=6$ ($3.3$ standard errors at $N=3$ and up to $6.1$ at $N=5$, the wrong control of the checkpoint). Doubling the depth to $4N$ (purple, open symbols)
 # brings the values back to $2^N+1$ within $1.5$ standard errors ($5.0,\,9.5,\,17.0,\,37.8,\,76.3$): the depth-$2N$ brick-wall circuit passes the second-moment test of
 # Section 10.2 but has not yet converged to the third moment of the Clifford group, and a *variance* is a third moment. The
 # measured depth-$2N$ values are therefore properties of that circuit and do not test the bound of Section 6.2, which concerns
@@ -1902,8 +1903,9 @@ assert np.abs(z_e2_wrong).min() > 5.0
 #   **entangling global Clifford circuits change the channel qualitatively**: $\mathcal M^{-1}(A)=(2^N+1)A-\mathrm{Tr}(A)\mathbb 1$.
 #   Global shadows estimate a fidelity with $O(1/\varepsilon^2)$ snapshots at any $N$ and local observables badly; Pauli shadows
 #   do the opposite. The ensemble is chosen according to what is to be learnt. Unbiasedness needs only the second moments of the
-#   ensemble, the variance needs the third: the depth-$2N$ random Clifford circuit sampled here has the former and, at $N\ge4$,
-#   not yet the latter, so its measured variances must not be read as those of the Clifford group.
+#   ensemble, the variance needs the third: the depth-$2N$ random Clifford circuit sampled here has the former and, from $N=3$ on,
+#   not yet the latter for $\langle Z_0Z_1\rangle$ (doubling the depth to $4N$ restores it), so its measured variances must not be read
+#   as those of the Clifford group. For the fidelity it already matches the ideal values.
 # * **Against full tomography at an equal number of runs**, the two variance formulas predict that shadows lose $6$–$7\%$ in
 #   rms (Frobenius) reconstruction error at $N=3$, on a stabiliser state and on a generic one alike; the measured curves confirm
 #   Eq. (11) to $4\%$ and the difference is not resolvable in the projected trace distance. At a fixed total budget the
