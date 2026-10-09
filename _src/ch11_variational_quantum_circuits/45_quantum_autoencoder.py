@@ -1,6 +1,6 @@
 #@title: The quantum autoencoder — compressing quantum data with a variational circuit
 #@part: Chapter 11 — Variational quantum circuits
-#@description: The encoder–trash–decoder construction, the exact relation between trash fidelity and reconstruction fidelity derived and verified, the eigenvalue criterion that says exactly how well an ensemble can be compressed (proved and checked against training), the Schmidt-rank folklore re-examined, two executions of the compression channel (exact partial trace and measure-and-reset trajectories) shown consistent, training with automatic differentiation and with SPSA on trajectory estimates, generalisation to unseen inputs, and the effect of gate noise.
+#@description: The encoder–trash–decoder construction, the exact relation between trash fidelity and reconstruction fidelity, the eigenvalue criterion that says exactly how well an ensemble can be compressed, compared with what training reaches, the Schmidt-rank picture of compressibility tested against it, two executions of the compression channel (exact partial trace and measure-and-reset trajectories) that give the same channel, training with automatic differentiation and with SPSA on trajectory estimates, generalisation to unseen inputs, and the effect of gate noise.
 
 # %% [markdown]
 # ## 1. Introduction and motivation
@@ -409,13 +409,14 @@ for k in range(1, K_MAX + 1):
 #   $t\neq0$, is orthogonal to $\vert\chi\rangle$.
 # * Both coincide, and $F_{\rm rec}=F_{\rm trash}$ holds as an equality, at $F=1$ (and trivially at $F=0$).
 #
-# For a Haar-random encoded state $\vert\varphi\rangle$ the failed branches point in directions uncorrelated with
+# For a Haar-random encoded state $\vert\varphi\rangle$ (a uniformly random unit vector,
+# [notebook 10](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb)) the failed branches point in directions uncorrelated with
 # $\vert\chi\rangle$, so $\langle\chi\vert\sigma\vert\chi\rangle$ is on average $\mathrm{Tr}\,\sigma/2^{N-k}$ and
 # $F_{\rm rec}-F^2\approx F(1-F)/2^{N-k}$: random encoders sit close to the lower bound. For an ensemble the bounds hold
 # member by member; averaging and Jensen's inequality give
 # $\overline F_{\rm trash}^{\,2}\le\overline{F_{\rm trash}^2}\le\overline F_{\rm rec}\le\overline F_{\rm trash}$.
 #
-# Equation (9) is the justification for training on the local cost. Near perfect compression it gives
+# Equation (9) is the justification for training on the trash fidelity. Near perfect compression it gives
 #
 # $$1-F_{\rm rec}\;\le\;1-F^2=(1-F)(1+F)\;\le\;2\,(1-F),\tag{10}$$
 #
@@ -1110,11 +1111,12 @@ fig.tight_layout(); plt.show()
 # eight runs that all end at or below $5/6$ are equally compatible with a ceiling at $5/6$ and with a rare success.
 #
 # **Diagnosis 2: success fractions against depth.** With $32$ starts per depth no run at $L\le6$ exceeds $5/6$; the
-# 68 % Wilson interval puts the success probability at these depths below $0.03$, which is a bound, not a proof that
+# 68 % Wilson interval (notebook 41, Section 12) puts the success probability at these depths below $0.03$, which is a bound, not a proof that
 # the ansatz cannot do it. At $L=9$ three starts in $32$ reach the bound ($0.09$, interval $[0.05,0.16]$) and at $L=12$
 # seven ($0.22$, interval $[0.16,0.30]$). The bound of Section 6 is therefore reachable by the hardware-efficient ansatz
 # from $L=9$ on, and every start that misses it ends at $5/6$ or $4/6$. Whether the success fraction keeps growing
-# with depth is not resolved by $32$ starts: the Fisher exact test of $3/32$ against $7/32$ gives $p=0.30$, comparable
+# with depth is not resolved by $32$ starts: the Fisher exact test (the probability, if both depths had the same success
+# rate, of a split at least as uneven as the observed one) of $3/32$ against $7/32$ gives $p=0.30$, comparable
 # to $p=0.39$ for the control comparison of the two halves of the same $L=12$ sample, where no difference exists. Below $L=9$ the evidence points to an
 # expressivity limit; from $L=9$ on the limit is trainability, and most random starts end on the $5/6$ plateau.
 #
@@ -1569,8 +1571,8 @@ fig.tight_layout(); plt.show()
 # ## 12. Gate noise in the encoder
 #
 # On hardware the encoder is the noisy channel of notebook 44 rather than a unitary: a depolarising channel of strength
-# $p_1$ after every rotation pair and of strength $p_2$ on both qubits of every $CZ$. Two expectations frame the
-# measurement.
+# $p_1$ after every rotation pair and of strength $p_2$ on both qubits of every $CZ$, with $p_1=0.1\,p_2$ throughout. Two
+# expectations frame the measurement.
 #
 # * Noise mixes population into trash states other than $\vert0\cdots0\rangle$, which lowers $F_{\rm trash}$ — even for
 #   a perfect encoder.
@@ -1702,7 +1704,7 @@ fig.tight_layout(); plt.show()
 # **unital**, $\mathcal E(\mathbb 1)=\mathbb 1$, as unitaries and depolarising and dephasing channels are. So for this noise
 # model the bound still holds and is out of reach; the gap is the price of the hardware. For non-unital noise
 # the bound can be exceeded: a channel that resets the trash qubits to $\vert0\rangle$ (amplitude damping with $\gamma=1$,
-# notebook 44, Section 7) gives $\overline F_{\rm trash}=1$ for any ensemble — and destroys the information that the
+# notebook 44, Section 3.3) gives $\overline F_{\rm trash}=1$ for any ensemble — and destroys the information that the
 # reconstruction needs, which is why the trash fidelity is a faithful cost only for unitary encoders.
 #
 # > **JAX practice.** The noise strength enters `noisy_encode_dm` as a traced number, so `vmap` over the noise axis and
@@ -1769,8 +1771,8 @@ fig.tight_layout(); plt.show()
 #   encoder scored $1.0000$ on it, $3/7$ on the unseen members and exactly $0.5$ on the family; trained on two, it scored
 #   $1.0000$ on every member.
 # * **Shot noise slows training down; in this test it did not set a floor.** SPSA with $128$ shots per cost evaluation
-#   reached $0.45$ in 200 iterations, but so did SPSA on the exact cost at its best step ($0.64$ median, overlapping
-#   spread), and with $2000$ iterations the shot-based runs reached $\overline F_{\rm trash}>0.95$ in two of six starts
+#   reached a median of $0.45$ in 200 iterations, against $0.64$ for SPSA on the exact cost at its best step, and with
+#   $2000$ iterations the shot-based runs reached $\overline F_{\rm trash}>0.95$ in two of six starts
 #   against three of six for the exact cost.
 # * **Gate noise lowers the achievable compression towards the maximally mixed value $2^{-k}$.** The bound of Eq. (13) stays valid for
 #   depolarising noise, which is unital, but is no longer reached; non-unital noise can exceed it while destroying the

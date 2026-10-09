@@ -5,7 +5,7 @@
 # %% [markdown]
 # ## 1. Introduction and motivation
 #
-# Everything so far in these notes has been a *simulation of a fixed physical process*: a Hamiltonian was given, a circuit
+# Everything so far in this course has been a *simulation of a fixed physical process*: a Hamiltonian was given, a circuit
 # was given, and we computed what the state does. This chapter inverts the question. We fix a **family** of circuits
 # $U(\boldsymbol\theta)$ controlled by a vector of angles $\boldsymbol\theta\in\mathbb R^{n}$, define a number
 #
@@ -23,8 +23,9 @@
 # notebook the quantum box is our simulator.
 #
 # **Why people study this.** A quantum computer running Shor's or the phase-estimation algorithm on a problem of practical
-# size needs quantum error correction and far more physical qubits than any existing device. The devices that exist now have tens to hundreds of noisy qubits and
-# circuits that decohere after a few tens of layers. A variational algorithm is designed for exactly that regime: the
+# size needs quantum error correction and far more physical qubits than any existing device. The devices that exist now
+# are noisy intermediate-scale quantum (NISQ) machines (Preskill, 2018): their qubits are not error-corrected, and their
+# circuits decohere after a limited depth. A variational algorithm is designed for exactly that regime: the
 # quantum part is a *short* circuit, everything expensive and iterative is pushed onto the classical optimiser, and the
 # free angles can absorb part of the hardware's systematic errors. The first experiment of this kind solved a two-qubit
 # chemistry problem on a photonic chip (Peruzzo *et al.*, 2014); the framework was formalised shortly afterwards (McClean
@@ -55,7 +56,7 @@
 #    $e^{-i\theta P/2}$ with $P^2=\mathbb 1$ — derived from the two eigenvalues $\pm\tfrac12$ of the generator, then
 #    measured by fitting a scan (Section 6).
 # 5. **Gradients four ways**: finite differences with the truncation/round-off trade-off and the optimal step (Section 7);
-#    the parameter-shift rule, derived, plus the four-term rule that controlled rotations need (Section 8); SPSA, with its
+#    the parameter-shift rule and the four-term rule that controlled rotations need (Section 8); SPSA, with its
 #    bias and variance derived and measured (Section 9); reverse-mode automatic differentiation, explained as forward
 #    storage plus backward adjoint gates, with a hand-written adjoint differentiator checked against `jax.grad`
 #    (Section 10).
@@ -113,8 +114,9 @@
 # **What comes next.** [41 — optimisers](../ch11_variational_quantum_circuits/41_optimizers.ipynb) takes the gradients
 # built here and feeds them to gradient descent, momentum, Adam, SPSA and the quantum natural gradient, with `lax.scan`
 # training loops and statistics over random initialisations;
-# [42 — the variational quantum eigensolver](../ch11_variational_quantum_circuits/42_variational_quantum_eigensolver.ipynb)
-# then runs the full algorithm on spin chains and compares the optimised state with the exact ground state.
+# [42a — the variational quantum eigensolver: Hamiltonians, ansätze, training](../ch11_variational_quantum_circuits/42a_variational_quantum_eigensolver_hamiltonians_ansatze_training.ipynb)
+# and [42 — the variational quantum eigensolver](../ch11_variational_quantum_circuits/42_variational_quantum_eigensolver.ipynb)
+# then run the full algorithm on spin chains and compare the optimised state with the exact ground state.
 #
 # **Conventions and sizes.** Qubit $q$ is tensor axis $q$; $\vert0\rangle$ is the $+1$ eigenstate of $Z$; Hamiltonians are
 # written in the Pauli convention $H=\sum J\,ZZ+\sum h\,X$. All states are pure state vectors; the largest registers
@@ -1711,7 +1713,8 @@ fig.tight_layout(); plt.show()
 # [\partial_kC]$ measures how large the gradient typically is, and this is what can vanish exponentially with $N$.
 #
 # McClean *et al.* (2018) computed it for random circuits in which the part before or after the differentiated gate (or
-# both) forms a unitary 2-design, i.e. reproduces the first two moments of Haar-random unitaries. For a circuit
+# both) forms a unitary 2-design, i.e. reproduces the first two moments of Haar-random unitaries
+# ([10 — random unitaries](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb)). For a circuit
 # $\cdots e^{-i\theta_kV}\cdots$ with both parts 2-designs, an observable $H$ and a pure input state, their result reads
 #
 # $$\mathrm{Var}[\partial_kC]=2\,\mathrm{Tr}(H^2)\Bigl(\frac{\mathrm{Tr}(V^2)}{2^{3N}}-\frac{(\mathrm{Tr}V)^2}{2^{4N}}\Bigr).$$
@@ -1854,7 +1857,7 @@ print(f"\nVar(local)/Var(global) at N = {N_LIST[-1]}:  L=2: {res['l2'][-1] / res
 #   $1.2$, rests on the $N=10$ point, whose standard error is $50\,\%$ because a few draws dominate the variance). A shallow
 #   circuit does not protect a global cost: this is the behaviour Cerezo *et al.* prove for their layered circuits, and
 #   our different ansatz shows it too.
-# * **Local cost, $L=2$.** This curve is not exponential. Its local slope falls from $1.1$ to $0.3$ per qubit, and
+# * **Local cost, $L=2$.** This curve is not exponential (the dotted $N^{-2}$ reference line lies on its points). Its local slope falls from $1.1$ to $0.3$ per qubit, and
 #   $N^2\,\mathrm{Var}$ is constant for $N\ge6$ (the checkpoint: $\chi^2=0.3$ for $2$ degrees of freedom, while the wrong
 #   scaling $N\,\mathrm{Var}$ gives $\chi^2=159$). That is the $1/N^2$ law derived from the light cone in Section 13.1: the
 #   gradient of a local cost at fixed depth sees only a fixed number of qubits, and the only $N$ dependence is the
@@ -1909,7 +1912,7 @@ print(f"\nVar(local)/Var(global) at N = {N_LIST[-1]}:  L=2: {res['l2'][-1] / res
 # * **The cost along one angle is $a+b\cos(\theta-c)$, exactly,** when the angle enters a single gate
 #   $e^{-i\theta P/2}$ with $P^2=\mathbb 1$. The derivation is two projectors and a Hermiticity argument, Eq. (12); the
 #   three-parameter fit left a residual of $10^{-15}$, while the same fit on a shared angle failed.
-# * **Four gradients, measured.** Finite differences: error bottoming out near $h_\star\approx10^{-5}$, where Eq. (16)
+# * **Four gradient methods.** Finite differences: error bottoming out near $h_\star\approx10^{-5}$, where Eq. (16)
 #   with $\lvert C'''\rvert=\lvert C'\rvert$ puts it, about five of sixteen digits lost, and nearly five orders of
 #   magnitude short of parameter shift at every parameter count. Parameter shift: exact, $10^{-15}$ at every parameter
 #   count, $2n$ circuit evaluations, and a four-term generalisation, Eq. (19), that is needed and verified for controlled
@@ -1955,7 +1958,7 @@ print(f"\nVar(local)/Var(global) at N = {N_LIST[-1]}:  L=2: {res['l2'][-1] / res
 #    as the number of samples grows, and explain why the finite-inverse-moment condition on the perturbation distribution
 #    in Spall's convergence theory excludes the Gaussian (Spall, 1998).
 # 6. ★★ **Cost of the adjoint method (extend the code).** Instrument `adjoint_gradient` to count gate applications, and
-#    verify the count $3n_g+n$ (plus one Hamiltonian application) of Section 10.1 for the circuit of Section 10. Then jit
+#    verify the count $3n_g+n$ (plus one Hamiltonian application) of Sections 10.1 and 10.2 for the circuit of Section 10. Then jit
 #    it, compare its run time and its compile time with `jax.grad` for $N=4,6,8,10,12$ at fixed $L$, and comment.
 # 7. ★★★ **Barren plateaus with a problem-inspired ansatz (physics).** Repeat the scan of Section 13 with the
 #    Hamiltonian-variational ansatz of Section 4.2 and the TFIM energy per site, $C/N$, as the cost (the energy is
@@ -1972,6 +1975,8 @@ print(f"\nVar(local)/Var(global) at N = {N_LIST[-1]}:  L=2: {res['l2'][-1] / res
 #
 # ## References
 #
+# * J. Preskill, *Quantum computing in the NISQ era and beyond*, Quantum **2**, 79 (2018) — the noisy
+#   intermediate-scale regime of Section 1.
 # * A. Peruzzo, J. McClean, P. Shadbolt, M.-H. Yung, X.-Q. Zhou, P. J. Love, A. Aspuru-Guzik and J. L. O'Brien,
 #   *A variational eigenvalue solver on a photonic quantum processor*, Nat. Commun. **5**, 4213 (2014) — the first
 #   variational quantum eigensolver experiment (two qubits, HeH$^+$).

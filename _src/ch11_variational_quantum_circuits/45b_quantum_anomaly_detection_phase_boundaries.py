@@ -152,7 +152,7 @@ def mean_and_se(x):
 # [notebook 06, Section 10](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb) and followed to $N=18$
 # in [notebook 11, Section 12.3](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb).
 # For the infinite chain in the transverse field, Dmitriev, Krivnov, Ovchinnikov and Langari (2002) showed that the
-# field opens a gap in the easy-plane regime and proposed a ground-state phase diagram with three ordered phases below
+# field opens a gap in the easy-plane regime ($\vert\Delta\vert<1$) and proposed a ground-state phase diagram with three ordered phases below
 # a critical field $h_c(\Delta)$ — Néel order along $z$ for $\Delta>1$, ferromagnetic order along $z$ for $\Delta<-1$,
 # and Néel order along $y$ for $\vert\Delta\vert<1$ — and a disordered phase above it. They argue that the
 # order–disorder line belongs to the universality class of the transverse-field Ising chain, as it does exactly in the
@@ -754,7 +754,8 @@ for k in (1, 2, 3, 4):
 #
 # Training minimises Eq. (4) (or Eq. (5)) for one input state with Adam (notebook 41, Section 6), as a `lax.scan`
 # over iterations. Both costs are recorded at every iteration, whichever one is being minimised, so that every run is
-# judged by the same criterion. We call a run **successful** if it ends with $1-p_0<10^{-2}$; by Eq. (7) the
+# judged by the same criterion. We call a run **successful** if it ends with $1-p_0<10^{-2}$, and report the success
+# fraction with its 68 % Wilson interval (notebook 41, Section 12); by Eq. (7) the
 # reconstruction fidelity of such an encoder is at least $0.98$. Each argument of the training function — start
 # angles, input state, trash mask, cost selector, step size — is an array with a batch dimension, so a whole study
 # is one `vmap`.
@@ -1012,7 +1013,7 @@ for data_of, lab, vmax, sup in [
 # * The **large-field** encoder compresses the large-field region on both sides of $\Delta=-1$ (mean $0.001$ for
 #   $\Delta\le-1.25$, $h_x\ge3.5$) and gives intermediate scores, $0.22$ on average, in the ferromagnetic region.
 # * The **Néel** encoder compresses the small-field antiferromagnetic region and gives small scores also in the lower
-#   part of the middle band, growing step by step towards larger field. Along $\Delta=2$ its score is at most $0.003$
+#   part of the middle band, growing in steps towards larger field. Along $\Delta=2$ its score is at most $0.003$
 #   below the first parity crossing, $0.02$–$0.05$ between the first and the second, $0.18$–$0.22$ between the second and
 #   the third, and above $0.44$ beyond. Every middle-band state with $P=-1$ is orthogonal to the reference state. This
 #   is the freedom identified after Eq. (9): the compressed subspace $Q$ has 64 dimensions and training fixes one of them.
@@ -1180,7 +1181,8 @@ for name in ref_names:
 # over three chain lengths, $N=6$, $8$ and $10$. For chains this short a dense diagonalisation inside each parity sector
 # (dimension $2^{N-1}\le512$) gives all levels at once.
 #
-# * The **fidelity susceptibility** of the ground state $\vert0\rangle$ with respect to the field
+# * The **fidelity susceptibility** of the ground state, written $\vert0\rangle$ here with excited levels $\vert m\rangle$
+#   (energy eigenstates, not qubit states), with respect to the field
 #   ([notebook 47, Section 7](../ch13_quantum_phase_transitions/47_quantum_phase_transitions.ipynb)),
 #
 #   $$\chi_F(h_x)=\Bigl\lVert\partial_{h_x}\psi_0\Bigr\rVert^2

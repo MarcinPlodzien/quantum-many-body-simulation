@@ -22,23 +22,23 @@
 #    random variable. Classical optimisers built on the assumption of exact function values — line searches, quasi-Newton
 #    curvature estimates — degrade badly.
 # 3. **The landscape is not convex.** Section 6 of the previous notebook showed that the cost is a bounded trigonometric
-#    polynomial of the angles, and its two-angle map already has several local minima. Section 14 below measures how
-#    often random starts end in one of them, and how that depends on the circuit depth.
+#    polynomial of the angles; nothing makes such a function convex, and in many angles it can have local minima that
+#    are not global. Section 14 below measures how often random starts end in one of them, and how that depends on the circuit depth.
 #
-# **Road map.** Every optimiser is introduced the same way: the update equation, a derivation or a motivation for it, a
-# from-scratch implementation in engine style, and a measurement.
+# **Road map.** Every optimiser is introduced the same way: the update equation, a derivation or a motivation for it, an
+# implementation in engine style, and a measurement.
 #
 # 1. **The quadratic model** and what "curvature" means for a circuit landscape (Section 3).
 # 2. **Gradient descent** with the stability condition $\eta<2/L$ derived on a quadratic and measured both on a quadratic
 #    and on a real circuit Hessian (Section 4).
 # 3. **Heavy-ball momentum**, its two-term recursion and the $\sqrt\kappa$ speed-up (Section 5).
-# 4. **Adam**, with the bias correction derived rather than quoted (Section 6).
+# 4. **Adam** and its bias correction (Section 6).
 # 5. **SPSA with Spall's gain sequences** $a_k=a/(k+A)^\alpha$, $c_k=c/k^\gamma$, and where the numbers $\alpha=0.602$,
 #    $\gamma=0.101$ come from (Section 7); the **SPSA–Adam hybrid** (Section 8).
 # 6. **The quantum natural gradient**: the Fubini–Study metric, derived from the fidelity between neighbouring states,
 #    validated against an analytic single-qubit case and against the fidelity expansion itself (Section 9).
 # 7. **Training loops** compiled with `lax.scan` and batched over random initialisations with `vmap` (Section 10), and a
-#    learning-rate sweep so that every hyper-parameter used later is one that was *measured* to be good (Section 11).
+#    learning-rate sweep so that every step size used later is one that was *measured* to be good (Section 11).
 # 8. **Benchmark 1**: preparing a GHZ state by fidelity maximisation — medians and quantile bands over 24 random starts,
 #    iterations and circuit evaluations to a target accuracy, success probability with a confidence interval (Section 12).
 # 9. **Benchmark 2**: the ground energy of a transverse-field Ising chain against the exact Lanczos value, with exact
@@ -83,8 +83,9 @@
 #   `jacfwd`, PRNG keys.
 #
 # **What comes next.**
-# [42 — the variational quantum eigensolver](../ch11_variational_quantum_circuits/42_variational_quantum_eigensolver.ipynb)
-# puts the circuit of notebook 40 and the optimisers of this notebook together into the full algorithm and studies the
+# [42a — the variational quantum eigensolver: Hamiltonians, ansätze, training](../ch11_variational_quantum_circuits/42a_variational_quantum_eigensolver_hamiltonians_ansatze_training.ipynb)
+# and [42 — the variational quantum eigensolver](../ch11_variational_quantum_circuits/42_variational_quantum_eigensolver.ipynb)
+# put the circuit of notebook 40 and the optimisers of this notebook together into the full algorithm and study the
 # physics of the optimised state — energy, fidelity and entanglement against the exact ground state, the effect of depth,
 # and statistics over random starts.
 #
@@ -97,7 +98,7 @@
 #
 # We need the ansatz and its parameter count, the cost ingredients (`fidelity_pure`, `energy`, `heisenberg_terms`),
 # `lanczos_ground_state` for the exact reference energy of Benchmark 2, `sample_bitstrings` for the shot-noisy costs,
-# and the engine's `adam_init`/`adam_update` as the reference implementation that our from-scratch Adam must reproduce.
+# and the engine's `adam_init`/`adam_update` as the reference implementation that our own Adam must reproduce.
 
 # %%
 #@engine: apply_gate, rx, ry, rz, X, Y, Z, CZ, zero_state, ghz_state, haar_state, fidelity_pure, expect_local, sample_bitstrings, heisenberg_terms, apply_hamiltonian, energy, dense_hamiltonian, lanczos_ground_state, hea_num_params, hardware_efficient_ansatz, adam_init, adam_update
@@ -594,7 +595,7 @@ fig.tight_layout(); plt.show()
 
 # %%
 # ==============================================================================
-# STEP 5: Adam from scratch, validated against the engine implementation
+# STEP 5: our Adam implementation, validated against the engine implementation
 # ==============================================================================
 def opt_adam(lr, b1=0.9, b2=0.999, eps=1e-8):
     """Adam, Eq. (10), written from the update equations.  State: (m, v); the counter k comes from the scan."""
@@ -1584,7 +1585,8 @@ for a, (label, ev_of) in zip(axes, (("parameter shift + Adam", lambda M: 2 * N_P
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# Each panel carries its own dashed reference: the *same optimiser* with the shot noise switched off. That isolates the
+# This study uses a smaller instance of the same chain, $N=4$ spins and $L=2$ layers ($n=24$ angles), with 6 random
+# starts and 100 iterations. Each panel carries its own dashed reference: the *same optimiser* with the shot noise switched off. That isolates the
 # effect of the shots from the convergence speed of the method.
 #
 # **Shot noise adds an excess error at a fixed iteration count, and the excess falls as $M$ grows.** None of these runs
@@ -1704,7 +1706,7 @@ fig.tight_layout(); plt.show()
 # $N$ and hurts it as $N$ grows with the depth; which effect dominates has to be measured for the problem at hand.
 
 # %% [markdown]
-# ## 15. Practical guidance, from this notebook's measurements only
+# ## 15. Practical guidance from the two benchmarks
 #
 # The table below summarises what was measured here, on these two benchmarks, at these sizes. It is not a general ranking
 # of optimisers, and every entry can be re-derived from a printed number above.
@@ -1713,7 +1715,7 @@ fig.tight_layout(); plt.show()
 # |---|---|---|---|
 # | gradient descent | $2n$ | stability threshold measured at twice the inverse largest curvature on both a quadratic and a circuit Hessian (Section 4) | slowest exact-gradient method in Section 12 (118 iterations against 56 for Adam); never reached the energy target, even in 3000 iterations (Section 13) |
 # | heavy-ball momentum | $2n$ | iteration count scales as the square root of the condition number (Section 5); admits a larger step than gradient descent, bound $2(1+\beta)/\lambda_{\max}$ (Section 11) | two hyper-parameters; on the energy landscape it needs more than 300 iterations to leave the saddle region (Section 13) |
-# | Adam | $2n$ | never diverges, step bounded by a few $\eta$ (Section 6.3); fewest circuits to target in Section 12; reached the energy target from 15 of 16 starts in 3000 iterations, with half the circuits of the natural gradient (Section 13) | 1 of 16 starts reached the energy target within 300 iterations; at most about 20% under fair tuning |
+# | Adam | $2n$ | never diverges, step bounded by a few $\eta$ (Section 6.3); fewest circuits to target in Section 12 among the methods that succeeded from every start; reached the energy target from 15 of 16 starts in 3000 iterations, with half the circuits of the natural gradient (Section 13) | 1 of 16 starts reached the energy target within 300 iterations; at most about 20% under fair tuning |
 # | SPSA with Spall gains | $2$ | cheapest possible iteration; the exponents derived from the convergence conditions (Section 7) | reached the target from 3 of 24 starts in Section 12 and from none in Section 13 |
 # | SPSA with Adam | $2$ | momentum averages the SPSA noise; its excess error from shot noise fell with the budget (Section 13) | did not reach the target in either benchmark within the iteration budget |
 # | quantum natural gradient | $2n+n(n+1)/2$ | fewest iterations in Section 12 (22); 15 of 16 starts reached the energy target within 300 iterations (Section 13); stable for $\eta<1$ on an infidelity cost, independently of the curvature (Section 11) | most circuits per iteration, 9 times Adam's at $n=32$ and 13 times at $n=48$; more circuits to target than Adam in both benchmarks; needs a ridge because the metric is singular |
@@ -1747,7 +1749,7 @@ fig.tight_layout(); plt.show()
 #   drift coming from the critically damped $(a+bk)\rho^k$ decay at the optimal heavy-ball parameters.
 # * **Adam's bias correction is a geometric sum**, Eq. (11). Without it the steps are *larger* than intended by a factor
 #   $(1-\beta_1^k)/\sqrt{1-\beta_2^k}$ that is $3.2$ at $k=1$, peaks at $6.6$ at $k=12$ and is still $3.2$ at $k=100$. Our
-#   from-scratch implementation reproduced the engine's bit for bit.
+#   implementation reproduced the engine's bit for bit.
 # * **Spall's exponents follow from the convergence conditions.** Convergence requires $\alpha-\gamma>\tfrac12$, Eq. (15),
 #   and the asymptotic-normality theorem adds $\gamma\ge\alpha/6$; $(0.602,0.101)$ is effectively the lowest admissible
 #   pair, chosen so that the gains decay as slowly as the theory allows.
@@ -1785,8 +1787,8 @@ fig.tight_layout(); plt.show()
 # 2. ★ **Momentum without the optimum.** Fix $\beta=0.9$ (the practical default) and sweep $\eta$ on the test quadratic
 #    with $\kappa=256$. How close does the best $\eta$ at fixed $\beta$ come to the $\sqrt\kappa$ rate of Eq. (9)?
 # 3. ★★ **Nesterov (extend the code).** Implement Nesterov's accelerated gradient — evaluate the gradient at
-#    $\boldsymbol\theta_k-\eta\beta\mathbf v_k$ instead of at $\boldsymbol\theta_k$ — as a third optimiser in the
-#    framework of Step 1, and add it to the benchmark of Section 12. On which of the two panels does it help?
+#    $\boldsymbol\theta_k-\eta\beta\mathbf v_k$ instead of at $\boldsymbol\theta_k$ — as another optimiser in the
+#    `(init, update)` framework of Section 3 (Step 1), and add it to the benchmark of Section 12. On which of the two panels does it help?
 # 4. ★★ **L-BFGS versus the rest (extend the code).** `scipy.optimize.minimize(method="L-BFGS-B", jac=...)` accepts the
 #    exact gradient. Run it from the same 24 initialisations as Section 12 (loop in Python; it cannot be vmapped) and
 #    add its iteration and function-evaluation counts to the table. Then repeat with a shot-noisy cost and explain what

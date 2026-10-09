@@ -285,8 +285,9 @@ def var_with_error(g):
 # because the settings are measured independently and the shots within a setting are independent draws from the Born
 # distribution. The function below implements Eq. (9) for one group: it rotates every qubit with $B_g$, computes the
 # Born distribution $p(s)$ of the rotated state, draws $M$ bit strings from it, and also returns the exact
-# $\sigma_g^2=\sum_sp(s)o_g(s)^2-\bigl(\sum_sp(s)o_g(s)\bigr)^2$. The checkpoint repeats the estimate many times and compares the observed scatter with the predicted
-# standard error.
+# $\sigma_g^2=\sum_sp(s)o_g(s)^2-\bigl(\sum_sp(s)o_g(s)\bigr)^2$. The checkpoint repeats the estimate many times on a test state, a one-layer hardware-efficient circuit
+# (Section 5.3) at random angles whose exact energy is the column `exact <H>`, and compares the observed scatter with
+# the predicted standard error.
 
 # %%
 # ==============================================================================
@@ -1381,8 +1382,8 @@ for t, col in (("TFIM, h=1", 0), ("XXZ, Delta=1", 1)):
 # but has not learned it: $+0.013$ on the Ising chain and $-0.060$ on the Heisenberg chain, against $+0.094$ and
 # $-0.057$ for the staircase and $+0.096$ and $-0.101$ for the Hamiltonian-variational states. The
 # staircase has no such restriction: its first sweep already connects the whole chain, which is why it does well on
-# the critical chain, whose correlations extend over the whole system. A third brick-wall layer closes the gap
-# (Exercise 3).
+# the critical chain, whose correlations extend over the whole system. A third brick-wall layer lifts this
+# restriction (Exercise 3).
 #
 # **Symmetry decides the ordered chain.** The three ansätze without a symmetry all found the symmetry-broken
 # ferromagnet, quickly and with energy errors below $7\cdot10^{-4}$. Only the parity-preserving circuit can represent

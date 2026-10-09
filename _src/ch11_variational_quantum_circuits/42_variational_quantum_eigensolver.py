@@ -84,7 +84,10 @@
 # * [11 — Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb):
 #   Hamiltonians as lists of local terms, and the Lanczos ground state that is our reference throughout;
 # * [06 — states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb):
-#   reduced density matrices, entanglement entropy, fidelity.
+#   reduced density matrices, entanglement entropy, fidelity;
+# * [42a — VQE: Hamiltonians, ansätze and training](../ch11_variational_quantum_circuits/42a_variational_quantum_eigensolver_hamiltonians_ansatze_training.ipynb):
+#   the first VQE notebook, read before this one. Its antiferromagnetic XXZ chain without a field and its Ising field
+#   $-h\sum_iX_i$ differ from the models of Section 4.1, which have ferromagnetic couplings and a field $+h_x\sum_iX_i$.
 #
 # **Conventions and sizes.** Qubit $q$ is tensor axis $q$; $\vert0\rangle$ is the $+1$ eigenstate of $Z$. Hamiltonians
 # are written in the Pauli convention (Section 4.1), never with spin-$1/2$ operators. The main studies use $N=6$ spins so
@@ -752,7 +755,7 @@ print(f"  median symmetry leakage 1 - |<P>| = {np.median(1 - np.abs(par_rand)):.
 # > **JAX practice.** The Hamiltonian coefficients, the reference energy and the reference state enter `vqe_metrics` as
 # > ordinary arguments. Mapping `vmap` over them therefore lets us train on all three models in **one**
 # > compilation instead of three: the circuit graph is identical, only the numbers differ. Compilation dominates the
-# > wall time of short variational runs (Section 8 times the two separately: about $5$ s of compilation against
+# > wall time of short variational runs (Section 8 times the two separately: about $4$ s of compilation against
 # > $2$ s of execution for $3\times12\times300$ iterations), so this is worth more than any micro-optimisation inside the
 # > loop.
 
@@ -1012,7 +1015,7 @@ assert all(np.median(cont[0.1][i][:, -1, 0]) < 0.5 * np.median(cont[LR_BEST][i][
 # %% [markdown]
 # The plateau belongs to the optimiser. Six hundred more iterations at $\eta=0.4$ leave the median errors at
 # $0.012$ to $0.016$, no better than after $300$; the same six hundred iterations at $\eta=0.1$ bring them down to
-# $0.003$ (XXZ), $0.0014$ (XY) and $0.004$ (TFIM), a factor of four to ten, with median fidelities of $0.9996$,
+# $0.003$ (XXZ), $0.0014$ (XY) and $0.004$ (TFIM), a factor of four to eight, with median fidelities of $0.9996$,
 # $0.9999$ and $0.9990$. The step size that was best for getting *down* the landscape in Section 7 is too large for the
 # bottom of it, which is why practical schedules decrease $\eta$ during training. The final half-chain entropies stay
 # below the exact values ($0.455$ against $0.473$ for the Ising chain), so the entanglement deficit of Section 8 shrinks
@@ -1407,7 +1410,7 @@ fig.tight_layout(); plt.show()
 # parameters, which on hardware is a large factor in parameter-shift circuits per iteration.
 #
 # **Both landscapes are benign at these sizes.** The best run is within a factor of three of the median for every
-# Hamiltonian-variational depth and within a factor of two for the hardware-efficient family at $L=4$ and $6$, so
+# Hamiltonian-variational depth and within a factor of two and a half for the hardware-efficient family at $L=4$ and $6$, so
 # neither family is dominated by bad local minima at $N=6$. The comparison does depend on the initial state of
 # Eq. (13): Exercise 4 repeats the scan from $\vert+\rangle^{\otimes N}$, the highest state of the field term, where
 # the problem-inspired circuit is far worse at every depth up to $L=6$. A problem-inspired ansatz is only as good as the physics put into it.
@@ -1969,9 +1972,10 @@ fig.tight_layout(); plt.show()
 # limits decide whether any of it scales.
 #
 # **Barren plateaus.** Notebook 40 measured that the variance of one gradient component of a hardware-efficient circuit
-# over random angles decays as $2^{-bN}$, with an exponent $b\approx1.8$ for a global cost and $b\approx0.6$ for a
-# local one. An energy is a sum of $O(N)$ local terms, so it is on the favourable side of that dichotomy, but the decay is
-# still exponential, and a gradient that is exponentially small must be resolved above shot noise that falls only as
+# over random angles falls by a factor of about $2^{1.6}$ to $2^{1.8}$ per added qubit for a global cost (notebook 40, Section 13.2), and only as $1/N^2$ for a
+# local cost at fixed depth. An energy is a sum of $O(N)$ local terms, so it is on the favourable side: notebook 42a,
+# Section 9, finds no decay at fixed depth, but a circuit whose depth grows with $N$ approaches the exponential
+# 2-design value, and a gradient that is exponentially small must be resolved above shot noise that falls only as
 # $M^{-1/2}$. The remedy has to change the ansatz or the cost; a better optimiser does not help (McClean *et al.*, 2018; Cerezo
 # *et al.*, 2021). The random-angle initialisation used throughout this notebook is precisely the distribution the
 # plateau theorems assume.
@@ -2024,7 +2028,7 @@ fig.tight_layout(); plt.show()
 #   whose residual error lies mostly inside the right sector. The Hamiltonian-variational ansatz has leakage
 #   $3\cdot10^{-15}$ at *any* angles, by construction.
 # * **The $10^{-2}$ plateau of the main runs is the optimiser's.** Continuing at the same Adam step left it in place;
-#   continuing at $\eta=0.1$ lowered the median errors four- to tenfold. Depth studies read against that floor: the
+#   continuing at $\eta=0.1$ lowered the median errors four- to eightfold. Depth studies read against that floor: the
 #   critical Ising error fell from $0.213$ ($L=1$) to $0.012$ ($L=4$), and beyond $L=3$ no difference was significant.
 # * **The entanglement bound $S_{\text{half}}\le\min(L,N/2)$ follows from the Schmidt rank and is only a necessary
 #   condition.** At $L=1$ the circuit may carry one bit and the target needs $0.47$, yet the optimised state carried
@@ -2038,8 +2042,8 @@ fig.tight_layout(); plt.show()
 #   entropy $0.0001$ bits identify a symmetry-broken state, and Eq. (10) predicts the energy error from the parity at
 #   $h=0.4$ and $0.6$. The hardest field of the sweep was $h=0.8$, in the crossover below the critical point.
 # * **Deflation turns a minimiser into an excited-state solver above $\beta=\Delta$, and converges reliably well above
-#   it.** At $\beta=0.25<\Delta=0.482$ the ground state came back; at $\beta=1$ five of twelve runs stalled with overlap
-#   about $0.5$ with the anchor (one at an energy below $E_1$, with $C_1$ far above it); at $\beta=3$ all runs reached the
+#   it.** At $\beta=0.25<\Delta=0.482$ the ground state came back; at $\beta=1$ five of twelve runs stalled with an
+#   overlap above $0.1$ with the anchor (one at an energy below $E_1$, with $C_1$ far above it); at $\beta=3$ all runs reached the
 #   odd-parity first excited state, median fidelity $0.993$.
 # * **At equal measurement budget and tuned step sizes, parameter shift and SPSA tied** ($0.329$ against $0.345$,
 #   $p=0.51$); an untuned common step would have reported a factor of four. Both remain two orders of magnitude above
@@ -2073,7 +2077,7 @@ fig.tight_layout(); plt.show()
 #    explain why it is the right diagnostic there.
 # 8. ★★★ **The shot budget of the whole calculation (physics).** From Section 13, extrapolate the number of shots needed
 #    to reach a chemical-accuracy energy error ($1.6\cdot10^{-3}$ Hartree, here read as $10^{-3}$ in units of $J$) for
-#    $N=6$ with $L=4$. Combine with the gradient-variance exponents $b$ of notebook 40 to estimate how that budget grows with
+#    $N=6$ with $L=4$. Combine with the gradient-variance measurements of notebook 40 and of notebook 42a, Section 9, to estimate how that budget grows with
 #    $N$, and say at which $N$ it exceeds a day of machine time.
 #
 # ## References

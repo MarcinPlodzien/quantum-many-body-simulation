@@ -370,7 +370,8 @@ fig.tight_layout(); plt.show()
 
 # %% [markdown]
 # The three identities of Section 3 hold to machine precision. The Bloch vector shrinks by exactly $1-4p/3$; the average
-# fidelity over the six-state 2-design equals $1-2p/3$ to twelve digits, so a reported error per gate $r$ is converted
+# fidelity over the six eigenstates of $X$, $Y$ and $Z$ (a 2-design: their average equals the average over all pure
+# states for any quantity quadratic in the state, such as this fidelity) equals $1-2p/3$ to twelve digits, so a reported error per gate $r$ is converted
 # to a channel parameter by $p=\tfrac32 r$ for a single-qubit gate; and repeating the two idle channels $n$ times
 # reproduces $e^{-t/T_1}$ for the population and $e^{-t/T_2}$ of Eq. (6a) for the coherence with a maximum deviation at
 # the level of round-off. The two-qubit formula $r_2=\tfrac45[1-(1-p_2)^2]$ is confirmed by a Haar average over
@@ -1152,7 +1153,7 @@ for name, _ in MODELS[1:]:
 # models cleanly. Under global depolarising noise the gradient at $\boldsymbol\theta^\star$ stays at the noiseless
 # residual, reduced by the factor $(1-q)^{L+1}$: the minimiser does not move. Under each of the three local channels
 # the gradient is three to four orders of magnitude larger and grows almost in proportion to $p$ (each doubling of $p$
-# multiplies it by $1.85$–$1.96$), as the first-order argument requires, so the minimiser moves by an amount of order
+# multiplies it by $1.82$–$1.98$), as the first-order argument requires, so the minimiser moves by an amount of order
 # $p$. Dephasing, which is unital, pushes hardest; damping, which is not, pushes least.
 #
 # The Hessian at $\boldsymbol\theta^\star$ has one eigenvalue that is zero to the precision of BFGS (a redundant
@@ -1174,10 +1175,10 @@ for name, _ in MODELS[1:]:
 # conceptually different mechanism caused by noise. For local Pauli noise acting on every qubit before and after each
 # of $L$ layers, with $q$ the largest factor by which the noise multiplies $X$, $Y$ or $Z$ ($q=\lambda$ for
 # depolarising noise), they proved an upper bound on **every** partial derivative of the noisy cost, at **every** point
-# of the landscape, proportional to $n^{1/2}q^{cL+1}$ with $c=1/(2\ln2)$ and a prefactor fixed by the Pauli
-# decompositions of the cost and the generators; the cost itself concentrates on its maximally mixed value
-# $\mathrm{Tr}\,\hat O/2^n$ with the same factor. When $L$ grows at least linearly with $n$ the gradient vanishes
-# exponentially in $n$, for any $q<1$. At fixed $N$ their bound decays exponentially with the **depth**. It covers
+# of the landscape, proportional to $N^{1/2}q^{cL+1}$ with $c=1/(2\ln2)$ and a prefactor fixed by the Pauli
+# decompositions of the cost and the generators ($N$ qubits; the paper writes $n$); the cost itself concentrates on its maximally mixed value
+# $\mathrm{Tr}\,\hat O/2^N$ with the same factor. When $L$ grows at least linearly with $N$ the gradient vanishes
+# exponentially in $N$, for any $q<1$. At fixed $N$ their bound decays exponentially with the **depth**. It covers
 # unital Pauli noise; amplitude damping is outside it.
 #
 # The bound does not predict the rate for a particular circuit. A heuristic estimate follows from Eq. (9). If each noisy
@@ -1950,9 +1951,9 @@ fig.tight_layout(); plt.show()
 #    (Hessian against metric) along the displacement?
 # 5. ★★ **Noise scaling by gate folding (extend the code).** Replace each $CZ$ by $CZ\,CZ^\dagger\,CZ$ in the gate list
 #    and add its noise channels; this triples the error of that gate without changing the ideal unitary, which is how
-#    $\lambda=3$ is realised on hardware. Compare the extrapolation obtained this way with the one of Section 12, where
-#    $\lambda$ multiplied the channel parameter directly.
-# 6. ★★ **The variance half of the trade (extend the code).** Estimate each $E(\lambda_i)$ from $M$ trajectories instead
+#    $s=3$ is realised on hardware. Compare the extrapolation obtained this way with the one of Section 12, where
+#    $s$ multiplied the channel parameter directly.
+# 6. ★★ **The variance half of the trade (extend the code).** Estimate each $E(s_i)$ from $M$ trajectories instead
 #    of exactly, and plot the total error (bias plus statistics) of the $m=1,2,3$ estimates against $M$ at fixed
 #    $p_2=0.01$. Below which shot budget does mitigation make the answer *worse*?
 # 7. ★★★ **Where the plateau bites (physics).** Repeat Section 8 for $N=3,4,5,6$ and extract the decay rate per layer
@@ -1992,7 +1993,8 @@ fig.tight_layout(); plt.show()
 #   including noise and trainability.
 # * S. Wang, E. Fontana, M. Cerezo, K. Sharma, A. Sone, L. Cincio and P. J. Coles, *Noise-induced barren plateaus in
 #   variational quantum algorithms*, Nat. Commun. **12**, 6961 (2021) — the gradient bound for local Pauli noise
-#   (Section 8) and the discussion of mitigation (Section 12).
+#   (Section 8) and the discussion of mitigation (Section 12); Section 8 quotes the bound in the form of the revised
+#   version arXiv:2007.14384v6 (2024).
 # * K. Sharma, S. Khatri, M. Cerezo and P. J. Coles, *Noise resilience of variational quantum compiling*,
 #   New J. Phys. **22**, 043006 (2020) — optimal-parameter resilience in variational compiling; Section 10 tests it for
 #   the eigensolver.

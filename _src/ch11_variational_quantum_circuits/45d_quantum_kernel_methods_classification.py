@@ -46,8 +46,8 @@
 #
 # The scalar product in $\mathcal F$ is computed without forming $\boldsymbol\phi$, which is the **kernel trick**. It
 # matters when $\mathcal F$ is large: the Gaussian kernel $k(\mathbf x,\mathbf x')=e^{-\gamma\vert\mathbf x-\mathbf x'\vert^2}$
-# corresponds to a feature space of infinite dimension and costs one exponential per pair. The SVM (Cortes and Vapnik,
-# 1995) chooses, among all separating planes in $\mathcal F$, the one with the largest distance to the nearest training
+# corresponds to a feature space of infinite dimension and costs one exponential per pair. The SVM (Cortes and
+# Vapnik, 1995) chooses, among all separating planes in $\mathcal F$, the one with the largest distance to the nearest training
 # points, and Section 3.3 shows that its training needs nothing but the $M\times M$ **kernel matrix**
 # $K_{ij}=k(\mathbf x_i,\mathbf x_j)$ and the labels. The parameter $\gamma$ of the Gaussian kernel sets the length scale
 # $1/\sqrt\gamma$ over which two points are considered similar; it is called the *bandwidth* and has to be tuned.
@@ -337,7 +337,10 @@ plt.show()
 #
 # $$\mathcal L=\frac12\vert\mathbf w\vert^2+C\sum_i\xi_i-\sum_i\alpha_i\big[y_i(\mathbf w\cdot\boldsymbol\phi_i+b)-1+\xi_i\big]-\sum_i\mu_i\xi_i . \tag{7}$$
 #
-# At the minimum over the primal variables the derivatives vanish:
+# For fixed multipliers, the minimum of $\mathcal L$ over $\mathbf w,b,\boldsymbol\xi$ is a lower bound on the optimum of
+# Eq. (6), because at any feasible point the subtracted terms are non-negative (*weak duality*). The dual problem
+# maximises this bound over the multipliers, and for a convex problem such as Eq. (6) the largest bound equals the
+# optimum (*strong duality*). At the minimum over the primal variables the derivatives vanish:
 #
 # $$\begin{aligned}
 # \frac{\partial\mathcal L}{\partial\mathbf w}&=\mathbf w-\sum_i\alpha_iy_i\boldsymbol\phi_i=0
@@ -389,8 +392,8 @@ plt.show()
 #
 # $$\boldsymbol\alpha\leftarrow\Pi\big(\boldsymbol\alpha+\eta\,(\mathbf 1-Q\boldsymbol\alpha)\big),\qquad \eta=1/\lambda_{\max}(Q), \tag{13}$$
 #
-# where the step $\eta$ is the inverse of the largest curvature of $D$. The accelerated version (FISTA, Beck and Teboulle,
-# 2009) applies the same step at an extrapolated point
+# where the step $\eta$ is the inverse of the largest curvature of $D$. The accelerated version (FISTA, Beck and
+# Teboulle, 2009) applies the same step at an extrapolated point
 # $\mathbf z_t=\boldsymbol\alpha_t+\frac{\tau_t-1}{\tau_{t+1}}(\boldsymbol\alpha_t-\boldsymbol\alpha_{t-1})$, with
 # $\tau_1=1$ and $\tau_{t+1}=\frac12\big(1+\sqrt{1+4\tau_t^2}\big)$, which reduces the error of $D$ after $n$ steps from
 # $O(1/n)$ to $O(1/n^2)$.
@@ -1526,7 +1529,8 @@ section_timer("9 finite shots")
 # as success probability, which Section 4.4 showed to be equivalent to sampling bit strings; the diagonal is set to its
 # known value $1$ and the training matrix is kept symmetric (each pair measured once). A matrix of estimates is not
 # PSD in general. We train the SVM on it as it is, and also after the common repair of setting its negative
-# eigenvalues to zero, $\hat K\to V\max(\Lambda,0)V^{\rm T}$, which gives the nearest PSD matrix in the Frobenius norm.
+# eigenvalues to zero, $\hat K\to V\max(\Lambda,0)V^{\rm T}$, which gives the nearest PSD matrix in the Frobenius norm
+# $\Vert A\Vert_F=\big(\sum_{ij}A_{ij}^2\big)^{1/2}$.
 # Two kernels are compared on the two-ring set: the entangling encoding with $N=6$, $s=1$, used so far, and with
 # $N=10$, $s=2$, a narrower kernel with much smaller off-diagonal values (Section 7). Every split and every number of
 # shots has its own random key. The total number of circuit runs for one training matrix is
@@ -1664,8 +1668,8 @@ print(f"   {'total (Sections 3-10)':36s} {sum(v for k, v in SECTION_TIMES.items(
 # %% [markdown]
 # The timings depend on the machine and its load; on a shared CPU they vary by a factor of a few between runs. In the
 # run shown, one inversion-test circuit costs about $10\,\mu$s at $N=6$ and $0.2$ ms at $N=10$, while the shortcut
-# computes the whole $200\times200$ matrix in a few milliseconds at $N=6$ and in about $0.1$ s at $N=10$. The forty
-# thousand overlap circuits of the full matrix at $N=10$ would take about eight seconds, some seventy times longer than
+# computes the whole $200\times200$ matrix in a few milliseconds at $N=6$ and in about $70$ ms at $N=10$. The forty
+# thousand overlap circuits of the full matrix at $N=10$ would take about eight seconds, about a hundred times longer than
 # the shortcut, which prepares each of the 200 states once and obtains all overlaps from one matrix product. Ten SVMs
 # of 120 points take a fraction of a second in one vmapped call. The cost of a state grows as
 # $2^N$ times the number of gates, and the cost of the kernel matrix as $M$ states plus $M^2\,2^N$ for the product; for
