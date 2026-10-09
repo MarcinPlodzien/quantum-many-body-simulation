@@ -582,8 +582,9 @@ for lab, (o1, o2) in zip(BELL_LABELS, BELL_BITS):
 # This is an instance of the **no-signalling theorem**, and it holds for every protocol of this kind. If the outer pair's state
 # depended on whether the relay measured, Alice and Bob could detect the relay's decision instantaneously, at any distance. Quantum
 # mechanics forbids that: any operation performed on qubits $1,2$ alone leaves the reduced state of $0,3$ untouched, because the
-# partial trace over $1,2$ of $(\mathbb 1_{03}\otimes M_{12})\,\rho\,(\mathbb 1_{03}\otimes M_{12})^\dagger$ summed over a complete
-# set of Kraus operators $M_k$ (one with $\sum_k M_k^\dagger M_k=\mathbb 1$) is the partial trace of $\rho$.
+# partial trace over $1,2$ of $\sum_k(\mathbb 1_{03}\otimes M_k)\,\rho\,(\mathbb 1_{03}\otimes M_k)^\dagger$, for any set of Kraus
+# operators $M_k$ on qubits $1,2$ with $\sum_k M_k^\dagger M_k=\mathbb 1$, equals the partial trace of $\rho$ (cyclicity of the trace
+# over qubits $1,2$).
 #
 # **The entanglement therefore resides in the correlation between the classical record and the quantum state.** The two classical
 # bits are what converts a maximally mixed pair, useless for any protocol, into a Bell pair.
@@ -1380,7 +1381,9 @@ assert abs(chi_bob - 2.0) < 1e-9 and abs(chi_eve) < 1e-9
 # ### 14.1 The rate of this protocol
 #
 # Equation (11) turns the quantum problem into a classical one, so we can use classical information theory. The quantity to compute
-# is the mutual information $I(M{:}O)$ between the message and Bob's read-out. For an additive channel on a group the channel matrix
+# is the mutual information $I(M{:}O)=H(O)-H(O\vert M)$ between the message and Bob's read-out, with $H$ the Shannon entropy in
+# bits; both, and the binary symmetric channel used below, are introduced in
+# [50 — information and noisy channels](../ch14_quantum_communication_and_cryptography/50_information_entropy_and_noisy_channels.ipynb). For an additive channel on a group the channel matrix
 # $P(o\vert m)=q_{o\ominus m}$ is doubly stochastic and every row is a permutation of every other, so a uniform prior maximises
 # $H(O)$ (it makes $O$ uniform) while leaving $H(O\vert M)=H(q)$ untouched; the maximum is therefore
 #
@@ -1612,7 +1615,8 @@ assert abs(I_dph[i_min] - 1.0) < 1e-9 and np.max(np.abs(I_dph - (2 - binary_entr
 # Under depolarising noise the simulated protocol crosses the one-bit line at the value printed above, and the exact confusion matrix
 # evaluated there returns $1.000000$ bits: the analytic break-even point of Eq. (12) and the simulated device agree. At that same $p$
 # the entropic formula Eq. (13) also returns $1$ bit, which says the same thing in the language of states: $S(\rho_{AB})=S(\rho_B)$,
-# the shared pair has exactly as much global entropy as Bob's half alone, and its coherent information has run out. Beyond that
+# the shared pair has exactly as much global entropy as Bob's half alone, and its coherent information $S(\rho_B)-S(\rho_{AB})$
+# ([52](../ch14_quantum_communication_and_cryptography/52_quantum_rules_channels_and_capacities.ipynb), Section 9.2) has run out. Beyond that
 # point using the pair costs information; Alice should discard it and send a fresh qubit, which is why the *capacity* stays at
 # $1$ bit or above while the rate of this fixed protocol keeps falling. The pair is still entangled at the break-even
 # point — depolarising noise leaves it entangled up to $p=1/2$ — so "entangled" and "useful for dense coding" are different

@@ -258,8 +258,10 @@ for N in (1, 2, 3):
 # The one-qubit factor is the projector onto the $\pm1$ eigenstate of $\sigma^{b_q}$: indeed $(\mathbb 1\pm\sigma)/2$ is Hermitian,
 # squares to itself, and $\sigma\,(\mathbb 1\pm\sigma)/2=\pm(\mathbb 1\pm\sigma)/2$. For a fixed setting the $2^N$ projectors are
 # orthogonal and sum to $\mathbb 1$, so $\sum_sp(s\vert b)=1$: **each setting is a complete measurement**, and its data follow a
-# multinomial distribution with $2^N$ categories. Collecting all settings we get a **POVM** with $6^N$ elements
-# $\{\Pi_{b,s}\}$ satisfying
+# multinomial distribution with $2^N$ categories. A **POVM** (positive operator-valued measure) is the most general description of
+# a measurement: a set of positive operators $E_j$ with $\sum_jE_j=\mathbb 1$, outcome $j$ occurring with probability
+# $\mathrm{Tr}(\rho E_j)$; the projectors of one setting are the special case of orthogonal projectors. Collecting all settings we
+# get $6^N$ elements $\{\Pi_{b,s}\}$ satisfying
 #
 # $$\sum_{b}\sum_{s}\Pi_{b,s}=3^N\,\mathbb 1 ,$$
 #
@@ -941,8 +943,8 @@ assert abs(fro_mc / fro_pred - 1) < 0.15 and abs(fro_mc / fro_wrong - 1) > 0.15
 # $$\hat r_{\rm WLS}=\big(A^{\mathsf T}WA\big)^{-1}A^{\mathsf T}Wf,\qquad W=\mathrm{diag}\!\left(\frac{M}{p(s\vert b)\big(1-p(s\vert b)\big)}\right).$$
 #
 # There is a chicken-and-egg problem: the weights need $p$, which is what we are estimating. The standard fix is **feasible
-# (two-step) generalised least squares**: run OLS first, project the result to a physical state (Section 11), compute the predicted
-# probabilities from it, and use those as weights. We also have to regularise: a predicted probability of exactly $0$ would give an
+# (two-step) generalised least squares**: run OLS first, clip every Pauli coordinate to $[-1,1]$ (a crude stand-in for a physical state; the projection
+# of Section 11 is the alternative), compute the predicted probabilities from it, and use those as weights. We also have to regularise: a predicted probability of exactly $0$ would give an
 # infinite weight, so we floor the *variance factor* $p(1-p)$ at `floor` $=10^{-3}$, i.e. the weight of any single residual is
 # capped at $10^3M$ instead of diverging. (A predicted $p=1/2$ carries weight $4M$, so the cap is a factor $250$ above it.)
 #
@@ -1149,8 +1151,9 @@ fig.tight_layout(); plt.show()
 # with equality when $\sigma$ has the same eigenvectors as $\hat\rho$. So we may keep $V$ and only fix the eigenvalues.
 #
 # **Step 2: the eigenvalue problem is a projection onto the simplex.** We must find $\mu$ with $\mu_i\ge0$, $\sum_i\mu_i=1$,
-# minimising $\sum_i(\lambda_i-\mu_i)^2$. Introducing a Lagrange multiplier $-\nu$ for the trace and the KKT conditions for
-# $\mu_i\ge0$ gives $\mu_i=\max(\lambda_i+\nu,\,0)$, with $\nu$ fixed by $\sum_i\max(\lambda_i+\nu,0)=1$. The left-hand side is
+# minimising $\sum_i(\lambda_i-\mu_i)^2$. Introducing a Lagrange multiplier $-\nu$ for the trace and the
+# Karush–Kuhn–Tucker (KKT) conditions (Lagrange multipliers for inequality constraints) for $\mu_i\ge0$ gives
+# $\mu_i=\max(\lambda_i+\nu,\,0)$, with $\nu$ fixed by $\sum_i\max(\lambda_i+\nu,0)=1$. The left-hand side is
 # continuous and strictly increasing in $\nu$ wherever it is non-zero, so $\nu$ is unique.
 #
 # **Step 3: the algorithm.** Sort $\lambda$ in *descending* order. The set of indices with $\mu_i>0$ is a prefix of that order, so we
@@ -2005,7 +2008,7 @@ assert abs(pooled - 0.25) > 3 * pooled_se           # ... and the wrong control 
 # Now the laboratory version: one data set, $B$ bootstrap resamples, and the claim that the spread over resamples estimates the spread
 # over experiments. We test the claim on two states — one **inside** the physical set (a Werner state) and one **on its boundary**
 # (the Bell state) — for three quantities a laboratory really reports: the trace distance to the target, the fidelity with the target,
-# and the purity of the reconstruction. The reference "true" spread comes from $200$ independent simulated experiments, which only a
+# and the purity of the reconstruction. The reference "true" spread comes from $150$ independent simulated experiments, which only a
 # simulation can produce.
 
 # %%
@@ -2337,7 +2340,7 @@ fig.tight_layout(rect=[0, 0, 1, 0.94]); plt.show()
 # | POVM elements / rows | $6^N$ | 1296 | $6.0\cdot10^7$ |
 # | parameters of $\rho$ | $4^N-1$ | 255 | $1.05\cdot10^6$ |
 # | shots at $M$ per setting | $M\,3^N$ | $81M$ | $59049M$ |
-# | memory for $\rho$ (complex128) | $16\cdot4^N$ bytes | 4 kB | 17 MB |
+# | memory for $\rho$ (complex128) | $16\cdot4^N$ bytes | 4.1 kB | 17 MB |
 # | one $R\rho R$ iteration | $O(6^N4^N)$ | $3\cdot10^5$ | $6\cdot10^{13}$ |
 #
 # Three separate walls close in at once: the number of experimental configurations, the size of the object being estimated, and the

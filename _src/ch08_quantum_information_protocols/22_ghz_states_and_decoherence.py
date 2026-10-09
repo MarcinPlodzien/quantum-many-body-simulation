@@ -29,7 +29,8 @@
 # operators that leave the state unchanged; it takes three lines once the algebra is set up.
 #
 # And it is the workhorse of quantum metrology: the phase accumulated by $\vert\mathrm{GHZ}_N\rangle$ is $N$ times faster than that
-# of a single qubit, which is the origin of the Heisenberg limit, the best precision scaling quantum mechanics allows (Chapter 10).
+# of a single qubit, which is the origin of the Heisenberg limit, the best precision scaling quantum mechanics allows
+# ([32 — GHZ interferometry](../ch10_quantum_metrology_protocols/32_ghz_interferometry_heisenberg_limit.ipynb), Chapter 10).
 # The very same $N$-fold enhancement makes it decay $N$ times faster under dephasing, the random phase noise of each qubit. The
 # tension between those two statements — *the best sensor is the most fragile state* — is the subject of the second half of this
 # notebook.
@@ -987,11 +988,11 @@ fig.tight_layout(); plt.show()
 # %% [markdown]
 # ## 12. The cost of the exact route and the trajectory unravelling
 #
-# The density tensor stores $4^N$ complex numbers, $16$ bytes each: $4$ kB for $N=4$, $1$ MB for $N=8$, $256$ MB for $N=12$ and
-# $4$ GB for $N=14$ — and an out-of-place channel application needs a second copy. Every Kraus channel costs $O(4^N)$ operations
+# The density tensor stores $4^N$ complex numbers, $16$ bytes each: $4.1$ kB for $N=4$, $1.0$ MB for $N=8$, $268$ MB for $N=12$ and
+# $4.3$ GB for $N=14$ — and an out-of-place channel application needs a second copy. Every Kraus channel costs $O(4^N)$ operations
 # per qubit. This is the hard wall of exact open-system simulation: every further qubit costs a factor of four in both time and
-# memory. At $N=14$ the $4$ GB still fit into a workstation, but the benchmark of Section 17 extrapolates to the order of an hour per
-# noisy evaluation; at $N=16$ one copy alone needs $64$ GB.
+# memory. At $N=14$ the $4.3$ GB still fit into a workstation, but the benchmark of Section 17 extrapolates to the order of an hour per
+# noisy evaluation; at $N=16$ one copy alone needs $69$ GB.
 #
 # The **Monte-Carlo wave function** (MCWF, or "quantum trajectory") method trades it for statistics. The identity it rests on is
 #
@@ -1213,8 +1214,8 @@ fig.tight_layout(); plt.show()
 # ## 14. Reaching $N=12$
 #
 # Now we use the method for what it is good at. A density tensor at $N=12$ would need $4^{12}=1.7\times10^7$ complex numbers
-# ($256$ MB) and each channel application would touch all of them; a single trajectory needs $2^{12}=4096$ numbers, i.e. $64$ kB,
-# which fits in a CPU cache, and a batch of a thousand still occupies only $64$ MB. We sweep the noise strength for
+# ($268$ MB) and each channel application would touch all of them; a single trajectory needs $2^{12}=4096$ numbers, i.e. $66$ kB,
+# which fits in a CPU cache, and a batch of a thousand still occupies only $66$ MB. We sweep the noise strength for
 # $N=4,6,8,10,12$ and compare with the analytic formulas of Section 11. For $N=4$ and $6$ the exact density tensor has already
 # confirmed those formulas in Section 11; from $N=8$ on the trajectories are the only check we run here. The control at the end
 # of the cell compares the same trajectories with the other common parametrisation of the depolarising channel,
@@ -1705,10 +1706,10 @@ print(f"{'N':>3s} {'DM memory':>11s} {'DM time [ms]':>13s} {'traj memory':>12s} 
 bench_rows = []
 for N in (4, 6, 8, 10, 12):
     kr = kraus_depolarizing(0.1)
-    mem_dm = 16 * 4 ** N / 1024 ** 2
-    mem_tr = 16 * M_BENCH * 2 ** N / 1024 ** 2
+    mem_dm = 16 * 4 ** N / 1e6                    # decimal megabytes
+    mem_tr = 16 * M_BENCH * 2 ** N / 1e6
     t_dm = None
-    if N <= 10:                                     # 4^12 x 16 B = 256 MB of intermediates: skip it here
+    if N <= 10:                                     # 4^12 x 16 B = 268 MB of intermediates: skip it here
         t_dm = timed(jax.jit(partial(noisy_ghz_dm, N)), kr)[1]
     t_tr = timed(jax.jit(partial(traj_batch, N=N)), jax.random.split(jax.random.PRNGKey(0), M_BENCH), kr)[1]
     bench_rows.append((N, mem_dm, t_dm, mem_tr, t_tr))
@@ -1720,11 +1721,11 @@ g_dm = (bench_rows[3][2] / bench_rows[2][2]) ** 0.5        # measured growth of 
 g_tr = (bench_rows[4][4] / bench_rows[3][4]) ** 0.5        # ... and of the MCWF batch time
 print(f"\nmeasured growth per added qubit:  density tensor x{g_dm:.1f}   "
       f"MCWF batch x{g_tr:.1f}   (asymptotic expectation: x4 and x2)")
-print(f"extrapolating the density tensor from N=10: at N=14 it would need {16 * 4 ** 14 / 1024 ** 3:.1f} GB and "
+print(f"extrapolating the density tensor from N=10: at N=14 it would need {16 * 4 ** 14 / 1e9:.1f} GB and "
       f"roughly {bench_rows[3][2] * g_dm ** 8 / 3600:.1f} h per evaluation with the measured factor "
       f"({bench_rows[3][2] * 4 ** 8 / 3600:.1f} h with the asymptotic factor 4).")
 print(f"extrapolating the trajectories from N=12: a batch of {M_BENCH} at N=14 would take roughly "
-      f"{bench_rows[4][4] * g_tr ** 2:.1f} s and {16 * M_BENCH * 2 ** 14 / 1024 ** 2:.0f} MB.")
+      f"{bench_rows[4][4] * g_tr ** 2:.1f} s and {16 * M_BENCH * 2 ** 14 / 1e6:.0f} MB.")
 print(f"the two routes cross at N ~ {np.log(bench_rows[3][4] / bench_rows[3][2]) / np.log(g_dm / g_tr) + 10:.1f} "
       f"for M = {M_BENCH} trajectories, on the basis of the two measured growth factors.")
 
@@ -1738,11 +1739,11 @@ print(f"the two routes cross at N ~ {np.log(bench_rows[3][4] / bench_rows[3][2])
 # added qubit is at least the asymptotic $4$ (above it in our builds, from cache effects and machine load). The trajectory batch costs
 # $O(M\,2^N)$ and grows by about $2$ per qubit at fixed $M$. From $N=8$ on the ratio column climbs steeply, and the crossover
 # extrapolated from the two measured growth factors is printed above, between $N=10$ and $N=12$ in our builds. At $N=14$ the
-# exact route needs $4$ GB per copy of the density tensor and, extrapolated with the asymptotic factor $4$, between half an hour
-# and an hour per evaluation in our builds, while a batch of $512$ trajectories extrapolates to a few seconds and $128$ MB. The absolute timings depend on what
+# exact route needs $4.3$ GB per copy of the density tensor and, extrapolated with the asymptotic factor $4$, between half an hour
+# and an hour per evaluation in our builds, while a batch of $512$ trajectories extrapolates to a few seconds and $134$ MB. The absolute timings depend on what
 # else the machine is doing (several builds may run concurrently here, and a single slow $N=10$ timing inflates the measured
 # growth factor and with it the first extrapolation), so the *ratios* and the asymptotic growth are the reproducible part of
-# the table. At $N=16$ the density tensor would need $64$ GB per copy, while $512$ trajectories need $512$ MB, or $1$ MB each if
+# the table. At $N=16$ the density tensor would need $69$ GB per copy, while $512$ trajectories need $537$ MB, or $1$ MB each if
 # they are run one at a time.
 #
 # > **Numerical practice.** The crossover also depends on the accuracy you need. A statistical error $\varepsilon$ costs

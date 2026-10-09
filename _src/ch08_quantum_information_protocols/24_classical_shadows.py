@@ -166,7 +166,7 @@ def pauli_vector(rho_mat, N):
 #
 # Repeat $M$ times with independent randomness. For random Pauli bases the stored data are two integer arrays of shape $(M,N)$:
 # the basis codes and the outcome bits. That is $2NM$ small integers — for $N=14$ and $M=10^5$ about $3$ MB at one byte per integer, whereas a single
-# density matrix of $14$ qubits would need $4^{14}\approx2.7\cdot10^8$ complex numbers, i.e. $4$ GB.
+# density matrix of $14$ qubits would need $4^{14}\approx2.7\cdot10^8$ complex numbers, i.e. $4.3$ GB.
 #
 # ### 3.2 The classical snapshot
 #

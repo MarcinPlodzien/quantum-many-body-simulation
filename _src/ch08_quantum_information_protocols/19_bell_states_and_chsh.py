@@ -33,7 +33,8 @@
 # and co-workers in the early 1980s, and the loophole-free experiments of 2015 — measure a violation. The 2022 Nobel Prize in
 # Physics went to Aspect, Clauser and Zeilinger for this line of work. Today the same inequality is a *tool*: a CHSH violation
 # certifies that a device really produces entanglement, and it is the security foundation of device-independent quantum key
-# distribution, in which two parties establish a secret key without trusting the inner workings of their devices.
+# distribution, in which two parties establish a secret key without trusting the inner workings of their devices
+# ([53 — quantum key distribution](../ch14_quantum_communication_and_cryptography/53_quantum_key_distribution.ipynb)).
 #
 # **What we will do.** Everything, from the state to the measured number and its error bar.
 #
@@ -573,8 +574,11 @@ assert err_max < 1e3 * TOL
 # $$\mathcal S^2=4\,\mathbb 1\otimes\mathbb 1-[A,A']\otimes[B,B'] . \tag{4}$$
 #
 # (The sign in front of the commutator product depends on where the minus sign sits in $\mathcal S$; only the norm of the term enters
-# the bound below.) Take operator norms. A Hermitian operator with $A^2=\mathbb 1$ is unitary, so $\lVert A\rVert=1$, hence
-# $\lVert[A,A']\rVert\le\lVert AA'\rVert+\lVert A'A\rVert\le2$, and the same for $B$. Therefore
+# the bound below.) Take operator norms; the operator norm $\lVert O\rVert$ is the largest length $\lVert O\phi\rVert$ over unit vectors $\phi$,
+# i.e. the largest absolute eigenvalue for a Hermitian $O$, and it obeys $\lVert OO'\rVert\le\lVert O\rVert\lVert O'\rVert$.
+# A Hermitian operator with $A^2=\mathbb 1$ is unitary, so $\lVert A\rVert=1$, hence
+# $\lVert[A,A']\rVert\le\lVert AA'\rVert+\lVert A'A\rVert\le2$, and the same for $B$. Because $\mathcal S$ is Hermitian,
+# $\lVert\mathcal S^2\rVert=\lVert\mathcal S\rVert^2$. Therefore
 #
 # $$\lVert\mathcal S^2\rVert\le4+2\cdot2=8\quad\Longrightarrow\quad\lVert\mathcal S\rVert\le2\sqrt2
 #   \quad\Longrightarrow\quad\vert S\vert=\vert\langle\mathcal S\rangle\vert\le2\sqrt2 . \tag{5}$$
