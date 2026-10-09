@@ -324,7 +324,7 @@ assert err_id < 1e4 * TOL
 #   \qquad
 #   H_{\rm TFIM}=\sum_i\sigma^z_i\sigma^z_{i+1}+h\sum_i\sigma^x_i . \tag{8}$$
 #
-# At $\Delta=0$ the XXZ chain is the **XX chain**, which the Jordan–Wigner transformation maps to free fermions; it is
+# At $\Delta=0$ the XXZ chain is the **XX chain**, which the Jordan–Wigner transformation (notebook 15, Section 7.2) maps to free fermions; it is
 # our exactly solvable reference. The transverse-field Ising chain is free as well, and critical at $h=1$.
 #
 # The evolution is second- or fourth-order Trotter–Suzuki (notebook 12): one step is a fixed list of two-site gates,
@@ -472,6 +472,11 @@ QUENCHES = [
 ]
 
 
+def plain(label):
+    """Label without LaTeX markup, for printed tables (the figures keep the LaTeX)."""
+    return label.replace("$", "").replace("\\", "")
+
+
 def quench_observables(psi, _phi):
     """(F_Q[J_x], F_Q[J_y], F_Q[J_z], F_Q[staggered J_z], S_half) of a pure state."""
     return jnp.stack([qfi_pure(psi, X), qfi_pure(psi, Y), qfi_pure(psi, Z),
@@ -496,7 +501,7 @@ for label, (ts, rec) in results_g.items():
         if "TFIM" in label and gname != "J_z":
             continue
         if "XXZ" in label and gname == "J_z" and float(np.max(rec[:, 2])) < 1e-9:
-            print(f"{label:>24s} {gname:>10s} | " + " ".join(f"{0.0:7.3f}" for _ in range(6))
+            print(f"{plain(label):>24s} {gname:>10s} | " + " ".join(f"{0.0:7.3f}" for _ in range(6))
                   + "   (conserved: exactly zero)")
             continue
         vals = rec[:, col] / N_G
@@ -504,7 +509,7 @@ for label, (ts, rec) in results_g.items():
         win = ts <= T_WIN + 1e-9
         dep_w = entanglement_depth(float(np.max(rec[win, col])), N_G)
         dep = entanglement_depth(float(np.max(rec[:, col])), N_G)
-        print(f"{label:>24s} {gname:>10s} | " + " ".join(f"{vals[i]:7.3f}" for i in idx)
+        print(f"{plain(label):>24s} {gname:>10s} | " + " ".join(f"{vals[i]:7.3f}" for i in idx)
               + f" | {vals[win].max():9.3f} {dep_w:5d} | {vals.max():8.3f} {dep:5d}")
 
 # %%
@@ -682,7 +687,7 @@ fig.tight_layout(); plt.show()
 # %% [markdown]
 # ## 6. Reading the growth: correlations, and where it stops
 #
-# Equation (1) says the curves of Figure 1 are nothing but $\sum_{ij}C_{ij}$, so the correlation matrix itself should
+# Equation (1) says the curves of the figure in Section 5 are nothing but $\sum_{ij}C_{ij}$, so the correlation matrix itself should
 # show the mechanism. We take one quench and plot $C^{zz}_{ij}$ at several times.
 
 # %%
@@ -741,8 +746,8 @@ plt.show()
 # matrix is empty; at $t=0.5$ a thin band of nearest-neighbour correlations has appeared along the diagonal; at $t=1.5$
 # the band has widened to three or four sites on either side. Between $t=1.5$ and $t=3$ the band hardly widens any
 # further, although the quasiparticle cone of this quench (correlation front $2v_{\max}t=4t$ sites, notebook 15) has
-# by then crossed the whole chain. The correlations do not fill the cone: they decay with distance, and the plateau of
-# Figure 1 is reached when the cone becomes wider than that decay length, not when it reaches the ends of the chain.
+# by then crossed the whole chain. The correlations do not fill the cone: they decay with distance, and the plateau seen in
+# Section 5 is reached when the cone becomes wider than that decay length, not when it reaches the ends of the chain.
 # Section 6.1 makes this quantitative.
 #
 # > **Numerical practice.** The diagonal of $C_{ij}$ is bounded by $1$ and the off-diagonal entries are an order of
@@ -828,7 +833,7 @@ assert abs(ratios.mean() - 0.5) < 0.05
 # At short times the density is intensive to three digits: $f_Q=0.677,0.676,0.676,0.675$ at $t=0.5$ for
 # $N=8,\dots,14$, while the ring gives $0.673$. Then the sizes separate: at $t=2$ we measure $2.155$, $2.227$, $2.321$
 # and $2.399$, and the periodic chain gives $2.872$. The open chains are far below the bulk, and they approach it as
-# Eq. (8b) says: the two-size extrapolation from $N=12$ and $14$ agrees with the ring to within $0.02$ at $t=1$, $1.5$
+# Eq. (8b) says: the two-size extrapolation from $N=12$ and $14$ agrees with the ring to within $0.005$ at $t=1$, $1.5$
 # and $2$, while the raw $N=14$ value misses it by $0.10$, $0.30$ and $0.47$. The size dependence is therefore the edge
 # correction of an intensive quantity, not a sign that the density fails to converge. At $t\ge2.5$ the extrapolation
 # stops working: the correlation front, moving at $2v_{\max}=4$ sites per unit time, has by then crossed chains of
@@ -838,7 +843,7 @@ assert abs(ratios.mean() - 0.5) < 0.05
 # $\xi^{-1}=\ln2$ predicted for the stationary state, and the bulk density $2.96$ is close to the value $3$ that a
 # pure $2^{-\vert r\vert}$ profile would give. This is why $f_Q$ plateaus: the light cone keeps expanding, but beyond a
 # few sites there is almost nothing left to add to the sum of Eq. (1). Only the decay rate is predicted; the prefactor
-# ($C(1)=0.50$) and with it the value $3$ are measured here, not derived. The height of the plateau in Figure 1
+# ($C(1)=0.50$) and with it the value $3$ are measured here, not derived. The height of the plateau in Section 5
 # ($\approx2.3$ at $N=12$) is the bulk value minus the edge correction.
 
 # ### 6.2 A short summary before the second half
@@ -1268,7 +1273,7 @@ for background in ("packet", "vacuum"):
         ts_p, rec_p = evolve_pair(psi0_p, phi0_p, xxz_terms(N_L, delta), DT_L, NOBS_L, NSUB_L, ORDER_L,
                                   observe=pair_observables)
         (pair_maps if background == "packet" else vac_maps)[lbl] = np.array(rec_p)
-        print(f"{background:>7s}, {lbl}  ({time.time() - t0:.1f} s)")
+        print(f"{background:>7s}, {plain(lbl)}  ({time.time() - t0:.1f} s)")
 
 
 def centre(M):
@@ -1628,7 +1633,7 @@ for l in (1, 2, 4, 7, 10, 13):
 # grows by about a factor of four for every two qubits added, i.e. linearly in the Hilbert-space dimension $2^N$, with
 # no hidden $4^N$ anywhere, as a matrix-free engine should behave. (Single timings fluctuate on a shared machine; the
 # trend over four sizes is the measurement.) Compilation costs a fraction of a second
-# (0.25–0.5 s in this run) and is paid once per Hamiltonian, not once per step, because the time loop is a `lax.scan`.
+# (a few tenths of a second) and is paid once per Hamiltonian, not once per step, because the time loop is a `lax.scan`.
 #
 # The block QFI takes a fraction of a millisecond for small blocks, peaks at a few milliseconds at the balanced cut $l=N/2=7$,
 # and falls again for large blocks — exactly the $O\!\left(8^{\min(l,N-l)}\right)$ of the QR-compressed algorithm. Without
@@ -1664,8 +1669,8 @@ for l in (1, 2, 4, 7, 10, 13):
 # * **The QFI density of a quench is intensive, and open ends hide it.** After the critical Ising quench the measured
 #   bulk density approaches $3$ ($2.96$ on a $16$-site ring): the stationary correlations halve from one site to the
 #   next (correlation length $1/\ln2$), so the cone stops adding to Eq. (1) after a few sites. Open chains of
-#   $8$–$14$ spins show $2.2$–$2.4$ instead; the difference is a $1/N$ edge correction, and two sizes recover the
-#   periodic-chain value to $0.02$.
+#   $8$–$14$ spins show $2.1$–$2.4$ instead; the difference is a $1/N$ edge correction, and two sizes recover the
+#   periodic-chain value to $0.005$.
 # * **Interactions decide where the resource goes.** With $\Delta=2$ a magnon encoded at an open end is trapped in an
 #   end-bound state ($84\%$ of its weight, Eq. 12a), and an encoded pair in the bulk binds into a carrier that spreads
 #   at $\sqrt2/\Delta$ and moves at most at $2/\Delta$ (Eq. 12b, measured to about $1\%$); in the XX chain the same pair

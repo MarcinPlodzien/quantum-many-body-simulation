@@ -112,7 +112,7 @@
 #
 # We use the GHZ preparation circuit, single-qubit rotations, Pauli-string expectation values on state vectors and on density
 # tensors, the three Kraus channels, `qfi_pure` and `qfi_mixed`, the Haar-random unitary and the classical-shadow sampler.
-# Everything specific to the protocol is written from scratch below.
+# Everything specific to the protocol is written in this notebook.
 
 # %%
 #@engine: apply_gate, apply_gate_dm, apply_kraus_dm, rdm, rdm_dm, dm_matrix, to_dm, zero_state, ghz_state, ghz_circuit, product_state, expect_local, expect_pauli_string, expect_pauli_string_dm, sample_bitstrings, qfi_pure, qfi_mixed, collective_dense, apply_collective, kraus_dephasing, kraus_depolarizing, kraus_amplitude_damping, collect_pauli_shadows, shadow_estimate_pauli, haar_unitary, I2, X, Y, Z, H, CNOT, ry, rz
@@ -1061,7 +1061,7 @@ fig.tight_layout(); plt.show()
 # from that limit, so the simulation below tests two narrower statements: whether the global estimate reaches
 # $1/\sqrt{F_{\mathrm{tot}}}$, and what that buys against the standard quantum limit at equal $R$. Every point is $2000$
 # independent experiments with their own true phase drawn uniformly from $[0,2\pi)$, and the estimate is the maximum of the
-# posterior on a grid of $2048$ phases.
+# posterior on a grid of $2048$ phases (the maximum a posteriori, or MAP, estimate).
 
 # %%
 # ==============================================================================
@@ -2027,7 +2027,8 @@ fig.tight_layout(); plt.show()
 # $$P'=\sum_{s\in\{I,X,Y,Z\}^N}\alpha_s\,P_s,\qquad
 # \alpha_s=\frac{\mathrm{Tr}(P_sP')}{2^N}, \tag{22}$$
 #
-# with $4^N$ real coefficients obeying $\sum_s\alpha_s^2=\mathrm{Tr}(P'^2)/2^N=1$. For a Haar-random $U$ the weight is spread
+# with $4^N$ real coefficients obeying $\sum_s\alpha_s^2=\mathrm{Tr}(P'^2)/2^N=1$. For a Haar-random $U$ (drawn uniformly from all unitaries,
+# [notebook 10](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb)) the weight is spread
 # over essentially all of them, including the ones of full Pauli weight $N$.
 #
 # The randomised-measurement (classical-shadow) protocol of
@@ -2513,7 +2514,8 @@ for N in (4, 6, 8):
 #    the interrogation, and let the experimenter know which atoms survived. Compute the average $F_Q$ over loss patterns for
 #    $N=4,5,6$ and compare with $(1-\eta)^NN^2$. Is discarding lossy runs better than using them?
 # 7. ★★★ **Scrambling with a shallow circuit.** Replace the Haar-random $U$ of Section 14 by a brick-wall circuit of depth
-#    $d$ (the engine's `brickwall`; build $U$ column by column by applying it to the basis states). Measure how the Pauli
+#    $d$ (the engine's `brickwall`, introduced in
+#    [notebook 10](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb); build $U$ column by column by applying it to the basis states). Measure how the Pauli
 #    weight distribution of $P'$, and hence the single-snapshot cost $\sum_s\alpha_s^23^{w(s)}$, changes with $d$ for
 #    $N=5$. At $d=0$, $P'=X^{\otimes N}$ is a single string of weight $N$ and the cost is the worst case $3^N$; explain why
 #    scrambling *lowers* it, and find the depth at which it reaches the Haar value of Eq. (24) within the

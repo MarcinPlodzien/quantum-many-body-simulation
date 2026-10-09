@@ -22,5 +22,16 @@ measurements (classical shadows) and counts the measurements an entanglement cer
 **Many-body dynamics.** Notebook 39 follows how metrologically useful entanglement grows and spreads in quenched spin
 chains.
 
-**Variational optimisation.** Notebook 44b in Chapter 11 optimises probe states and measurements under noise with
-automatic differentiation.
+**Variational optimisation.** Notebook 44b in [Chapter 11](ch11_variational_quantum_circuits.qmd) optimises probe
+states and measurements under noise with automatic differentiation.
+
+Read notebooks 29 to 34 in order; they form the main thread, and every later notebook uses notebooks 29 and 30.
+Notebooks 35 to 39 are closer to current research and can be read selectively: notebook 35 builds on the probes of
+notebooks 33 and 34, and notebook 38 builds on notebook 35; notebooks 36, 37 and 39 rest on notebooks 29 and 30 and
+take the states of notebooks 33 to 35 only as examples. Prerequisites are notebooks 01 and 02 of
+[Chapter 1](ch01_computational_toolbox.qmd); the state tensors, reduced density matrices, channels and measurements of
+notebooks 05 to 08 in [Chapter 3](ch03_matrix_free_engine.qmd); the gates and Haar-random unitaries of notebooks 09
+and 10 in [Chapter 4](ch04_digital_quantum_circuits.qmd); TEBD and quench dynamics, notebooks 12 and 15 in
+[Chapter 5](ch05_ground_states_and_unitary_dynamics.qmd), for notebooks 38 and 39; GHZ states and classical shadows,
+notebooks 22 and 24 in [Chapter 8](ch08_quantum_information_protocols.qmd), for notebooks 32 and 36; and the
+stabilizer Rényi entropy of notebook 27 in [Chapter 9](ch09_entanglement_and_complexity.qmd), for notebook 37.

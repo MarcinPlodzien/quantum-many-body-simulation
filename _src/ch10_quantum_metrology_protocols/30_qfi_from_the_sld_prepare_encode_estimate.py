@@ -141,7 +141,8 @@ def maximally_mixed(N):
 # **Measure.** A POVM $\{E_x\}$ turns the state into outcome probabilities by the Born rule,
 # $p(x\vert\theta)=\mathrm{Tr}(\rho_\theta E_x)$.
 #
-# **Estimate.** From $M$ outcomes we compute $\hat\theta$, and the Cramér–Rao chain of notebook 29 bounds its error:
+# **Estimate.** From $M$ outcomes we compute $\hat\theta$, and the Cramér–Rao chain of notebook 29 bounds its error, with
+# $I(\theta;\{E_x\})$ the classical Fisher information of the measurement (written $F_C$ in notebook 29):
 #
 # $$\Delta\theta\;\ge\;\frac{1}{\sqrt{M\,I(\theta;\{E_x\})}}\;\ge\;\frac{1}{\sqrt{M\,F_Q[\rho_\theta]}}. \tag{2}$$
 #
@@ -841,7 +842,8 @@ fig.tight_layout(); plt.show()
 
 # %% [markdown]
 # The solid curves stay on or below the dashed straight lines, as convexity demands, and the assert makes that a test rather
-# than a picture. Each of the three families shows a different mechanism.
+# than a picture. (The three dashed lines coincide, since every pair runs from $F_Q=0$ to $16$, and lie under the GHZ + W
+# curve.) Each of the three families shows a different mechanism.
 #
 # * **GHZ mixed with white noise** is strictly convex: at $q=1/2$ the mixture retains $7.11$ out of the
 #   $8.00$ that linear interpolation would suggest, and the curve bends further down at small $q$.
@@ -1326,7 +1328,8 @@ fig.tight_layout(); plt.show()
 # visible and changes sign with the offset, $-0.00048\pm0.00008$ and $+0.00042\pm0.00008$ at $\theta_0\mp0.15$ against
 # the predicted $\mp0.00040$; $b_1$ vanishes at the design point only. And the variance grows as the *classical* bound of the fixed measurement demands: at $\theta_0\pm0.15$ the
 # measurement retains $I/F_Q=0.923$, so $\mathrm{Var}$ should rise by $1/0.923-1=8.3\%$; measured $7.7\%$ and $9.2\%$
-# (each $\pm0.9\%$), while $M\,I\,\mathrm{Var}$ stays within two error bars of $1$ in every row. The Cramér–Rao bound that a
+# (each $\pm0.9\%$), while $M\,I\,\mathrm{Var}$ stays within about two error bars of $1$ in every row (largest
+# deviation $2.1$). The Cramér–Rao bound that a
 # real experiment meets is the one belonging to the measurement it actually performed; the quantum bound is reached only
 # where the two coincide.
 #
@@ -1653,7 +1656,7 @@ fig.tight_layout(); plt.show()
 # is not yet in its asymptotic regime, and sub-millisecond timings move with machine load from one build to the next.
 # The dashed $8^N$ reference is therefore anchored at $N=5$ and is meant as an upper guide for the slope, not a fit; an
 # anchor at $N=2$ would compare a dispatch-bound call with an arithmetic-bound eigensolver. Compilation (the extra
-# column, in seconds) costs $0.1$–$0.2$ s per size, thousands of calls' worth at small $N$, and is excluded from the
+# column, in seconds) costs $0.06$–$0.2$ s per size, thousands of calls' worth at small $N$, and is excluded from the
 # timings. The pure-state shortcut of notebook 29 stays essentially flat over this range: it never leaves the
 # state-vector representation.
 #
@@ -1739,7 +1742,7 @@ fig.tight_layout(); plt.show()
 #    two extremes of Step 12 does the answer resemble?
 # 7. ★★★ **The symmetric subspace (extend the code).** For a permutation-invariant state, generator and noise model, the
 #    whole problem lives in the $(N+1)$-dimensional Dicke subspace. Build the $(N+1)\times(N+1)$ matrices of $\rho$ and
-#    $J_z$ for the dephased GHZ state (careful: the collective dephasing channel $\bigotimes_q\mathcal{E}_q$ is
+#    $J_z$ for the dephased GHZ state (careful: the local dephasing channel $\bigotimes_q\mathcal{E}_q$ is
 #    permutation-covariant but does *not* map the symmetric subspace into itself, since a single $Z_q$ takes a Dicke state
 #    out of it — explain why the GHZ case still works), and compare the cost with Step 14 at $N=6$.
 # 8. ★★★ **A better probe by optimisation (extend the code).** Fix $N=4$, the amplitude-damping channel with $g=0.2$ and

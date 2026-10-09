@@ -1759,7 +1759,7 @@ make_husimi_gif(psi_q0, MU_FRAMES, jnp.asarray(THETA_M), jnp.asarray(PHI_M), phi
 # For the twisted states the gap in Eq. (26) has an exact expression. The state is invariant under $e^{-i\pi J_x}$
 # (Section 11.2), which flips $J_y$ and $J_z$ and leaves $J_x$ alone, so $C_{xy}=C_{xz}=0$ and the covariance matrix is
 # block diagonal. Whenever its largest eigenvalue lies in the transverse block (that is, $V_{\max}\ge C_{xx}$), the
-# pure-state QFI is $F_Q^{\max}=4V_{\max}$, and with Eq. (12)
+# pure-state QFI maximised over the generator direction is $F_Q^{\max}=4V_{\max}$, and with Eq. (12)
 #
 # $$\frac{F_Q^{\max}}{N/\xi_R^2}\;=\;\frac{4V_{\max}V_{\min}}{\vert\langle\mathbf J\rangle\vert^2}
 #   \;=\;\frac{V_{\min}V_{\max}}{\vert\langle\mathbf J\rangle\vert^2/4}. \tag{26a}$$

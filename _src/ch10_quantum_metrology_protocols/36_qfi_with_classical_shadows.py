@@ -536,7 +536,7 @@ print(f"\n(N = {N_DEMO}: standard quantum limit {N_DEMO}, Heisenberg limit {N_DE
 #
 # Every term in Eq. (10) is an average of single-snapshot quantities — hence unbiased — except the last. The
 # quantity we need is the *product of two means*, $m_am_b$, and the obvious estimator is the *product of two
-# estimated means*, $\bar v^a\bar v^b/1$. Products do not commute with expectation values:
+# estimated means*, $\bar v^a\bar v^b$. Products do not commute with expectation values:
 #
 # $$\mathbb E\left[\bar v^a\,\bar v^b\right]=m_a\,m_b+\mathrm{Cov}\!\left(\bar v^a,\bar v^b\right)
 #   =m_am_b+\frac{\mathrm{Cov}\!\left(v^a,v^b\right)}{M},$$
@@ -784,7 +784,8 @@ print(f"{'lambda_max':>16s} {lam_exact:10.4f} {lam_est:10.4f} {float(lam_boot_de
 #   \left(\mathbf n\cdot\mathbf v_m\right),\qquad
 #   \mathrm{sd}\left(\lambda_{\max}\right)\approx\frac{\sigma_1}{\sqrt M},\quad\sigma_1:=\mathrm{sd}(\psi_m),$$
 #
-# with $\mathbf v_m=(v^x_m,v^y_m,v^z_m)$. The constant $N$ of Eq. (10) does not fluctuate and drops out.
+# with $\mathbf v_m=(v^x_m,v^y_m,v^z_m)$, $n_a$ the components of the unit vector $\mathbf n$ and $n^a_m$ the counts of
+# Eq. (9). The constant $N$ of Eq. (10) does not fluctuate and drops out.
 #
 # **The cat state.** Along the cat axis $a$ (it is $\hat x$ for even $N$ and $\hat y$ for odd $N$) the state is a
 # superposition of the two product states with all spins up or all spins down along $a$, so every qubit measured
@@ -1001,8 +1002,8 @@ fig.tight_layout(); plt.show()
 # * one-axis-twisting states at three twisting angles — squeezed, over-squeezed, and the cat at $\mu=\pi/2$;
 # * the textbook GHZ state, $F_Q=N^2$;
 # * a Haar-scrambled cat, the state of notebook 35, whose collective quantum Fisher information has collapsed to
-#   about $N$ (its average over Haar unitaries is $Nd/(d+1)$ with $d=2^N$, notebook 35; a single realisation
-#   scatters around that value).
+#   about $N$ (its average over Haar unitaries is $Nd/(d+1)$ with $d=2^N$ for a fixed generator, notebook 35; the
+#   largest eigenvalue over directions, reported below, lies above that average).
 #
 # For each we report the estimate of $\lambda_{\max}(\mathcal{F})$ with its bootstrap error bar, the entanglement
 # certified by $F_Q>N$, and the entanglement depth certified by the Hyllus–Tóth bound
@@ -1107,7 +1108,8 @@ fig.tight_layout(); plt.show()
 # without the factor $3$ per qubit, one-body values shrink by $1/3$ and two-body values by $1/9$, so Eq. (5)
 # returns $N+(\mathcal{F}_{aa}-N)/9$, which coincides with the truth whenever $\mathcal{F}_{aa}=N$. A checkpoint on
 # a coherent state alone could never detect this error. The right panel makes the point that one data set gives the *whole function*
-# $F_Q(\mathbf n)$, not one number: the estimated quadratic form tracks the exact one around a full great circle,
+# $F_Q(\mathbf n)$, not one number: the estimated quadratic form tracks the exact one around a full great circle
+# in the $x$–$z$ plane (the squeezed states reach their maximum off this circle, with a component along $y$),
 # so the experimentalist can afterwards ask about any collective generator without measuring again.
 #
 # Read the certification columns from left to right. The coherent state is correctly *not* certified as entangled.

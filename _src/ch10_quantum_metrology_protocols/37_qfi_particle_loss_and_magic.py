@@ -380,7 +380,8 @@ assert err_all < 1e4 * TOL
 # What if the experimenter, knowing a qubit was lost, re-optimises the generator direction? Take $G=J_x$. Now
 # $J_x\vert0\rangle^{\otimes K}=\tfrac{\sqrt K}{2}\vert D_K^1\rangle$ and
 # $J_x\vert1\rangle^{\otimes K}=\tfrac{\sqrt K}{2}\vert D_K^{K-1}\rangle$, where $\vert D_K^m\rangle$ is the Dicke state
-# with $m$ excitations; for $K\ge2$ both targets are orthogonal to the support of $\rho_A$. Equation (2) has one contributing pair
+# with $m$ excitations; for $K\ge2$ both targets are orthogonal to the support of $\rho_A$. By Eq. (3) the matrix elements are
+# $\langle m\vert\partial_\theta\rho_A\vert n\rangle=-i(\lambda_n-\lambda_m)\langle m\vert G_A\vert n\rangle$. Equation (2) has one contributing pair
 # for each branch, $\lambda_m=\tfrac12$ against $\lambda_n=0$, and each pair is counted twice:
 #
 # $$F_Q=2\cdot2\cdot\left[\frac{K}{4}\cdot\frac{(1/2)^2}{1/2}\right]\cdot2=K. \tag{7}$$
@@ -936,7 +937,8 @@ assert err_nl < 1e4 * TOL
 # %% [markdown]
 # ## 9. The Clifford encoder: an all-or-nothing erasure threshold
 #
-# Take the Clifford encoder first. Both codewords $\vert\bar0\rangle=V\vert0\rangle^{\otimes N}$ and
+# Take the Clifford encoder first. One layer applies CNOTs on the even bonds, a Hadamard gate $H$ followed by the phase
+# gate $S$ on every qubit, CNOTs on the odd bonds, and $H$, $S$ again, so every gate is a Clifford gate. Both codewords $\vert\bar0\rangle=V\vert0\rangle^{\otimes N}$ and
 # $\vert\bar1\rangle=V\vert1\rangle^{\otimes N}$ are then **stabilizer states**: the code is a stabilizer code with one
 # logical qubit. Section 9.1 derives that the QFI of the survivors can then take only the values $0$ and $N^2$. We first
 # measure it, together with the norm of the coherence $C$ of Eq. (17), for the loss of the last $k$ qubits.
@@ -1166,7 +1168,8 @@ print(f"                                    F_Q(theta={THETA_1}) = " + " ".join(
 # has $M_2=\log_2(4/3)$, the same as $T\vert+\rangle$). The circuit topology, the gate count and the entangling gates are
 # identical along the whole family; only the single-qubit angle changes. This is the most controlled comparison
 # available, but the angle changes the magic, the entanglement and the spreading of the generator at the same time.
-# (The $a=0$ member is a pure CNOT circuit, a different Clifford encoder from the one of Section 9.)
+# (The $a=0$ member is a pure CNOT circuit, a different Clifford encoder from the one of Section 9.) In the table,
+# $k_{1/2}$ is the largest $k$ for which the survivors keep more than half of $F_Q(0)$.
 
 # %%
 # ==============================================================================
@@ -1411,6 +1414,11 @@ def spectrum_stats(sample_list):
     return np.concatenate(xs), rank, ent
 
 
+def plain(label):
+    """Label without LaTeX markup, for printed tables (the figures keep the LaTeX)."""
+    return label.replace("$", "").replace("\\", "")
+
+
 samples = {}
 for a in SP_ANGLES:
     samples[f"encoder $a={a / np.pi:.3g}\\pi$"] = [encode_pipeline(N_SP, partial(magic_layer, angle=a), L_SP)[0]]
@@ -1425,7 +1433,7 @@ spectra = {}
 for name, states in samples.items():
     x, rank, ent = spectrum_stats(states)
     spectra[name] = x
-    print(f"{name:>26s} {len(states):8d} {rank:7.1f} {x.mean():8.4f} {x.std():8.4f} {x.max():8.3f} {ent:13.4f}")
+    print(f"{plain(name):>26s} {len(states):8d} {rank:7.1f} {x.mean():8.4f} {x.std():8.4f} {x.max():8.3f} {ent:13.4f}")
 print(f"\nMarchenko-Pastur (gamma = 1): support [0, 4], mean 1, standard deviation 1")
 
 # %%

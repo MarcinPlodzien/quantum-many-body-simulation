@@ -1385,7 +1385,7 @@ fig.tight_layout(); plt.show()
 # > is first order in $\delta\mu$, and the printed convergence shows it (the ratio of successive differences is
 # > $1.96$, close to $2$): at $\gamma=0.2$ the depolarising value of
 # > $F_Q(\pi/2)$ moves from $4.474$ ($32$ steps) to $4.616$ ($64$) to $4.688$ ($128$), with the Richardson
-# > extrapolation at $4.761$ — so the $32$-step value used in the sweeps is about $6\%$ low. That is large enough to
+# > extrapolation $2F_{128}-F_{64}=4.761$, which removes an error linear in $\delta\mu$ — so the $32$-step value used in the sweeps is about $6\%$ low. That is large enough to
 # > report and too small to change any conclusion here, because every curve in the figure is computed with the same
 # > $\delta\mu$ and the comparison is between them. (For the dephasing channel the split is exact, because $Z$ errors
 # > commute with $e^{-i\delta\mu J_z^2}$; the error there comes only from compounding $n_{\rm step}$ discrete channels.)

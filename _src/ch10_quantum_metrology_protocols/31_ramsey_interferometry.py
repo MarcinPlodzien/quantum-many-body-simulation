@@ -94,7 +94,7 @@
 #   density tensors, Kraus operators;
 # * [08 — measurements](../ch03_matrix_free_engine/08_measurements.ipynb): the Born rule and sampling bit strings;
 # * [29 — quantum Fisher information](./29_quantum_fisher_information.ipynb): estimators, classical Fisher information, the
-#   Cramer-Rao bound, $F_Q=4\,\mathrm{Var}(G)$ for pure states;
+#   Cramér–Rao bound, $F_Q=4\,\mathrm{Var}(G)$ for pure states;
 # * [30 — QFI from the SLD: prepare, encode, estimate](./30_qfi_from_the_sld_prepare_encode_estimate.ipynb): the
 #   symmetric-logarithmic-derivative formula for mixed states, which we use in Section 15.
 #
@@ -112,7 +112,7 @@
 # sampling of full measurement records; `spin_moments` for $\langle J_a\rangle$ and the covariance matrix; `qfi_pure` and
 # `qfi_mixed` for the two Fisher-information benchmarks; the density-tensor machinery and the dephasing / amplitude-damping
 # Kraus channels for the noisy sections. `apply_kraus_mcwf` (quantum trajectories) and `oat_evolve` (one-axis twisting) are
-# recapped for Exercises 5 and 8. Everything specific to Ramsey interferometry is written from scratch below.
+# recapped for Exercises 5 and 8. Everything specific to Ramsey interferometry is written below.
 
 # %%
 #@engine: apply_gate, apply_gate_dm, apply_kraus_dm, apply_kraus_mcwf, rdm_dm, dm_matrix, to_dm, zero_state, expect_local, sample_bitstrings, spin_moments, qfi_pure, qfi_mixed, collective_dense, apply_collective, oat_evolve, kraus_dephasing, kraus_amplitude_damping, I2, X, Y, Z, ry, rz
@@ -173,7 +173,7 @@ def std_of_std(sigma, n):
 #
 # It is **additive** over independent repetitions: $M$ repetitions of the same experiment carry $MF_C$.
 #
-# **(iii) Cramer-Rao bound.** Every unbiased estimator obeys
+# **(iii) Cramér–Rao bound.** Every unbiased estimator obeys
 #
 # $$\Delta\varphi\ \ge\ \frac{1}{\sqrt{M\,F_C(\varphi)}}. \tag{2}$$
 #
@@ -185,7 +185,7 @@ def std_of_std(sigma, n):
 # $M$ is measured in Section 11.1.
 #
 # **(iv) Quantum Fisher information.** Maximising $F_C$ over all possible measurements of the state $\rho_\varphi$ gives the
-# quantum Fisher information $F_Q[\rho_\varphi]$, and hence $\Delta\varphi\ge1/\sqrt{MF_Q}$ (the *quantum* Cramer-Rao bound).
+# quantum Fisher information $F_Q[\rho_\varphi]$, and hence $\Delta\varphi\ge1/\sqrt{MF_Q}$ (the *quantum* Cramér–Rao bound).
 # For a **pure** state $\vert\psi\rangle$ whose phase is imprinted by $e^{-i\varphi G}$,
 #
 # $$F_Q=4\,\mathrm{Var}(G)=4\big(\langle G^2\rangle-\langle G\rangle^2\big). \tag{3}$$
@@ -195,7 +195,7 @@ def std_of_std(sigma, n):
 # $$F_Q=2\sum_{m,n:\ \lambda_m+\lambda_n>0}\frac{(\lambda_m-\lambda_n)^2}{\lambda_m+\lambda_n}\,\vert\langle m\vert G\vert n\rangle\vert^2. \tag{4}$$
 #
 # Equations (3) and (4) are implemented in the engine as `qfi_pure` and `qfi_mixed`; we use them as *benchmarks* for the
-# measured sensitivities. The quantum Cramer-Rao bound inherits the conditions of (iii), and measuring the $M$ copies
+# measured sensitivities. The quantum Cramér–Rao bound inherits the conditions of (iii), and measuring the $M$ copies
 # *jointly* does not beat it, because the quantum Fisher information is additive over independent copies,
 # $F_Q[\rho_\varphi^{\otimes M}]=MF_Q[\rho_\varphi]$.
 #
@@ -208,7 +208,7 @@ def std_of_std(sigma, n):
 # > **Numerical practice.** A bound is a claim about *every* estimator, so a simulation can confirm it only by exhibiting
 # > an estimator that comes close; it cannot prove it. Throughout this notebook the logic is: derive the bound, build an
 # > estimator, measure its spread over many independent experiments, and check that the measured spread sits on the bound
-# > and never below it. A measured point *below* a Cramer-Rao bound means that the estimator is biased there, and the bias
+# > and never below it. A measured point *below* a Cramér–Rao bound means that the estimator is biased there, and the bias
 # > is the first thing to check.
 
 # %% [markdown]
@@ -546,7 +546,7 @@ fig.tight_layout(); plt.show()
 # to propagate errors through, the estimator cannot tell $+\varphi$ from $-\varphi$, and — as Section 13 will show by measuring
 # it — the estimator becomes strongly biased and its distribution strongly non-Gaussian. Exactly at $\varphi=0$ the limit and
 # the value disagree: $\lim_{\varphi\to0^+}\Delta\varphi=1/\sqrt{NM}$, but the outcome distribution at $\varphi=0$ is
-# deterministic, its Fisher information is $F_C=0$, and the regularity condition of the Cramer-Rao theorem fails, so the
+# deterministic, its Fisher information is $F_C=0$, and the regularity condition of the Cramér–Rao theorem fails, so the
 # theorem makes no statement at that point (Section 7.1). A bound can be correct and still describe no estimator that is
 # used in practice.
 
@@ -593,14 +593,14 @@ assert err_var < 1e3 * TOL
 # \qquad\Longrightarrow\qquad F_C(\varphi)=N\ \ \text{for }0<\varphi<\pi. \tag{12}$$
 #
 # A Ramsey measurement of $N$ uncorrelated atoms therefore carries exactly **one unit of Fisher information per atom, at every
-# operating point strictly inside the fringe**. The Cramer-Rao bound (2) with $M$ repetitions is then
+# operating point strictly inside the fringe**. The Cramér–Rao bound (2) with $M$ repetitions is then
 # $\Delta\varphi\ge1/\sqrt{NM}$ — the same Eq. (10) as before, now as a statement about *all* (locally unbiased)
 # estimators, of which inverting the mean is one.
 #
 # > **Common pitfall (the endpoints are not in the "every").** The cancellation in (12) is a $0/0$ limit: both $\partial_\varphi p$
 # > and $p(1-p)$ vanish at $\varphi=0$ and $\varphi=\pi$. At $\varphi=0$ *exactly*, $p=0$: only the outcome "no atom excited"
 # > has non-zero probability, and its derivative is zero, so the sum in Eq. (1) gives $F_1(0)=0$, not $1$. The same happens at
-# > $\varphi=\pi$. The function is therefore **discontinuous** at the two endpoints, and the Cramer-Rao theorem does not apply
+# > $\varphi=\pi$. The function is therefore **discontinuous** at the two endpoints, and the Cramér–Rao theorem does not apply
 # > there at all: its regularity conditions require the set of outcomes with $p>0$ to be independent of the parameter, and that
 # > set collapses from two elements to one exactly at the extrema. In code, `cfi_binomial(0.0, N, 1.0)` evaluates $0/0$ and
 # > returns `nan`, which correctly signals that the formula does not apply; every scan below therefore starts at
@@ -923,7 +923,7 @@ assert np.max(np.abs(mom - mle)) < grid_step
 #
 # The experimental question is how much the answers scatter when the experiment is repeated. We run $K$ independent
 # experiments at mid-fringe, histogram $\hat\varphi$, and compare with the Gaussian of width
-# $1/\sqrt{NM}$ predicted by the Cramer-Rao bound. We also measure the **bias** $\mathbb E[\hat\varphi]-\varphi_{\mathrm{true}}$
+# $1/\sqrt{NM}$ predicted by the Cramér–Rao bound. We also measure the **bias** $\mathbb E[\hat\varphi]-\varphi_{\mathrm{true}}$
 # and quote its own error bar $\Delta\varphi/\sqrt K$ — a bias is only meaningful if it is larger than the uncertainty with
 # which it was measured.
 
@@ -992,7 +992,7 @@ fig.tight_layout(); plt.show()
 # The competition between the two is exactly the cancellation of Eq. (9).
 #
 # **Right.** Twelve thousand simulated experiments at $N=8$, $M=100$. The histogram is a clean Gaussian centred on
-# $\varphi_{\mathrm{true}}=\pi/2$; compare the measured standard deviation printed above with the Cramer-Rao value
+# $\varphi_{\mathrm{true}}=\pi/2$; compare the measured standard deviation printed above with the Cramér–Rao value
 # $1/\sqrt{800}=0.035355$, and the measured bias with its own statistical error. The bias vanishes *exactly* at mid-fringe,
 # and the argument is one line: at $\varphi=\pi/2$ the count $k$ is $\mathrm{Binomial}(NM,\tfrac12)$, so $u=1-2k/(NM)$ is
 # symmetrically distributed about $0$; and $\arccos$ satisfies $\arccos(u)+\arccos(-u)=\pi$ identically, so pairing $u$ with
@@ -1085,7 +1085,8 @@ print(f"exact bias at mid-fringe, same N and M = 100: {float(m_mid) - np.pi / 2:
 assert abs(float(m_mid) - np.pi / 2) < 1e-10
 
 # %% [markdown]
-# The sampled bias agrees with the exact binomial sum in every row, within the printed standard errors, and the hypothesis
+# The sampled bias agrees with the exact binomial sum in every row, within about two standard errors (largest
+# deviation $2.2$, at $M=25$), and the hypothesis
 # of an unbiased estimator is rejected by many standard errors at $M=10$ and $M=25$. The exact $NM\cdot\mathrm{bias}$ is
 # $-0.563$, $-0.518$ and $-0.504$ for $NM=40$, $100$, $400$, approaching the $-\tfrac12$ of Eq. (14a) with a correction
 # of order $1/(NM)$. At $M=100$ the bias, $-1.3\cdot10^{-3}$ rad, is $2.5\%$ of the spread $0.050$: it is real, and it
@@ -1191,7 +1192,7 @@ axes[1].set_title(r"Sensitivity vs repetitions (log-log)"); axes[1].legend(fonts
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# Both sweeps sit on the Cramer-Rao line over the whole scanned range: the measured-to-bound ratios in the tables stay within
+# Both sweeps sit on the Cramér–Rao line over the whole scanned range: the measured-to-bound ratios in the tables stay within
 # $1.6\%$ of unity, and the fitted exponents printed above are $1.9\sigma$ ($N$ sweep) and $0.7\sigma$ ($M$ sweep) from the
 # predicted $-1/2$. The estimator attains the bound within the error bars.
 #
@@ -1223,12 +1224,12 @@ fig.tight_layout(); plt.show()
 # We therefore scan the whole fringe twice, at $C=1$ and at $C=0.8$, and record for each $\varphi$ the mean of $\hat\varphi$
 # (the *response curve*) and its spread.
 #
-# ### 13.1 The Cramer-Rao bound for a *biased* estimator
+# ### 13.1 The Cramér–Rao bound for a *biased* estimator
 #
 # The spread we are about to measure will fall **below** $1/\sqrt{NM}$ near the extrema at $C=1$. This does not violate
 # Eq. (2), which holds for unbiased estimators only. The general statement, which we will need, carries the
-# derivative of the bias. Write $b(\varphi)=\mathbb E[\hat\varphi]-\varphi$. Repeating the standard Cauchy-Schwarz derivation
-# of the Cramer-Rao inequality with $\mathbb E[\hat\varphi]=\varphi+b(\varphi)$ in place of $\varphi$ replaces the numerator
+# derivative of the bias. Write $b(\varphi)=\mathbb E[\hat\varphi]-\varphi$. Repeating the standard Cauchy–Schwarz derivation
+# of the Cramér–Rao inequality with $\mathbb E[\hat\varphi]=\varphi+b(\varphi)$ in place of $\varphi$ replaces the numerator
 # $1$ by $\partial_\varphi\mathbb E[\hat\varphi]=1+b'(\varphi)$:
 #
 # $$\mathrm{Var}(\hat\varphi)\ \ge\ \frac{\big(1+b'(\varphi)\big)^2}{M\,F_C(\varphi)}. \tag{16}$$
@@ -1389,7 +1390,7 @@ fig.tight_layout(); plt.show()
 # %% [markdown]
 # The tables and the figure confirm both warnings, and the two failure modes look quite different.
 #
-# * **Central region.** For $\varphi$ between about $0.4$ and $2.7$ the measured spread lies on the Cramer-Rao curve for both
+# * **Central region.** For $\varphi$ between about $0.4$ and $2.7$ the measured spread lies on the Cramér–Rao curve for both
 #   contrasts (ratios between $0.97$ and $1.06$ in the tables). The bias there is small but not zero: it is the
 #   delta-method bias of Eq. (14a), at most $6\cdot10^{-3}$ rad in the printed rows (at $C=0.8$, $\varphi=2.60$:
 #   $+0.0059\pm0.0012$), and panel (b) shows the sampled points on the exact curve everywhere (largest deviation
@@ -1415,7 +1416,7 @@ fig.tight_layout(); plt.show()
 #   Eq. (16) is $1.0000$ (attained at mid-fringe, where $b'\approx1/(2NM)$ is negligible); the smallest ratio to the
 #   unbiased bound is $0.476$. The sub-bound spread is a consequence of the bias, and the correct bound holds everywhere.
 # * The single figure of merit that does not depend on the bias is the **root-mean-square error**
-#   $\sqrt{\mathrm{bias}^2+\Delta\hat\varphi^2}$ (dashed in panel (a)). It exceeds the Cramer-Rao curve wherever the bias
+#   $\sqrt{\mathrm{bias}^2+\Delta\hat\varphi^2}$ (dashed in panel (a)). It exceeds the Cramér–Rao curve wherever the bias
 #   matters — by $24\%$ at $\varphi=0.123$ for $C=1$ — and falls below it only in the dead zone, where the estimator has
 #   stopped responding to the phase.
 #
@@ -1424,7 +1425,7 @@ fig.tight_layout(); plt.show()
 # > first, plot the *response curve*, and report the RMS error.
 #
 # The practical consequence is the operating rule of clocks: **operate at mid-fringe**. There the estimator is unbiased, the
-# response is linear, the sensitivity is best for any contrast, and the Cramer-Rao bound is attained up to the
+# response is linear, the sensitivity is best for any contrast, and the Cramér–Rao bound is attained up to the
 # $1+1/(2NM)$ correction of Section 11.
 
 # %% [markdown]
@@ -1541,11 +1542,11 @@ fig.tight_layout(); plt.show()
 # $\lambda_\pm=(1\pm\vert\mathbf r\vert)/2$, so $\lambda_++\lambda_-=1$ and $(\lambda_+-\lambda_-)^2=\vert\mathbf r\vert^2$, and
 # with $G=Z/2$,
 #
-# $$F_Q^{(1)}=2\cdot2\cdot\frac{\vert\mathbf r\vert^2}{1}\,\big\vert\langle+\vert\tfrac Z2\vert-\rangle\big\vert^2
+# $$F_Q^{(1)}=2\cdot2\cdot\frac{\vert\mathbf r\vert^2}{1}\,\big\vert\langle\lambda_+\vert\tfrac Z2\vert\lambda_-\rangle\big\vert^2
 # =4\vert\mathbf r\vert^2\cdot\frac14\Big(1-\frac{r_z^2}{\vert\mathbf r\vert^2}\Big)=r_x^2+r_y^2=C^2 .$$
 #
-# (We used the standard Bloch identity $\vert\langle+\vert Z\vert-\rangle\vert^2=1-(r_z/\vert\mathbf r\vert)^2$ for the
-# eigenvectors of a qubit density matrix.) Hence
+# (We used the standard Bloch identity $\vert\langle\lambda_+\vert Z\vert\lambda_-\rangle\vert^2=1-(r_z/\vert\mathbf r\vert)^2$ for the
+# eigenvectors $\vert\lambda_\pm\rangle$ of a qubit density matrix.) Hence
 #
 # $$F_Q=NC^2=N e^{-2\gamma T}. \tag{20}$$
 #
@@ -1948,20 +1949,20 @@ for N, M, K in ((4, 50, 400), (7, 50, 400), (10, 50, 200)):
 #   randomness of projecting $N$ independent superpositions.
 # * **The standard quantum limit, three times over.** Error propagation, the classical Fisher information of the binomial
 #   record ($F_C=N$ at every phase strictly inside the fringe; at the two extrema $F_C=0$ while its limit is $N$, and the
-#   Cramer-Rao regularity condition fails, Section 7.1), and the quantum Fisher information of the probe
+#   Cramér–Rao regularity condition fails, Section 7.1), and the quantum Fisher information of the probe
 #   ($F_Q=4\mathrm{Var}(J_z)=N$) all give $\Delta\varphi=1/\sqrt{NM}$, with $\nu=NM$ phase imprints as the resource.
 #   Because $F_C=F_Q$, atom counting is an **optimal** measurement: no better readout exists for this probe.
 # * **The scaling, measured.** Sweeping $N=2\dots16$ and $M=10\dots1000$ with $8000$ independent experiments per point, the
 #   measured $\Delta\varphi$ followed power laws with fitted exponents $-0.508\pm0.004$ and $-0.499\pm0.002$ ($1.9\sigma$ and
-#   $0.7\sigma$ from $-1/2$), and stayed within $1.6\%$ of the Cramer-Rao bound at every point.
+#   $0.7\sigma$ from $-1/2$), and stayed within $1.6\%$ of the Cramér–Rao bound at every point.
 # * **The estimator is only good where the fringe is steep.** Method of moments and maximum likelihood coincide exactly here
 #   (the atom count is a sufficient statistic; agreement measured to better than one grid step). At finite $NM$ it is
 #   biased everywhere except at mid-fringe, by $\approx-\cot\varphi/(2NM)$, Eq. (14a), measured at $\varphi=\pi/4$ with
 #   error bars against the exact binomial sum, while "bias $=0$" is rejected by $18$ and $12$ standard errors at $M=10$
-#   and $25$. Near the fringe extrema two different things go wrong: at imperfect contrast the Cramer-Rao bound itself
+#   and $25$. Near the fringe extrema two different things go wrong: at imperfect contrast the Cramér–Rao bound itself
 #   diverges, Eq. (11); at perfect contrast the bound stays flat but the estimator enters a **dead zone** (response slope
 #   below $\tfrac12$ for $\varphi<0.021$ at $NM=600$) where it is strongly biased and its standard deviation drops *below*
-#   the flat bound, by a factor $0.476$. The biased Cramer-Rao bound, Eq. (16), accounts for this: the exact standard
+#   the flat bound, by a factor $0.476$. The biased Cramér–Rao bound, Eq. (16), accounts for this: the exact standard
 #   deviation is $1.005$ times $(1+b')/\sqrt{NM}$ there. Operate at mid-fringe.
 # * **The phase is known only modulo aliases.** $p(\varphi)=p(-\varphi)=p(\varphi+2\pi)$, so the likelihood has infinitely many
 #   equal maxima and the unambiguous window has width $\pi$.
@@ -2056,4 +2057,4 @@ for N, M, K in ((4, 50, 400), (7, 50, 400), (10, 50, 200)):
 #   ensembles*, Rev. Mod. Phys. **90**, 035005 (2018) — the comprehensive review; Section II covers the estimation theory,
 #   coherent spin states, the standard quantum limit and atom counting of this notebook, Section VII.A the decoherence.
 # * C. W. Helstrom, *Quantum Detection and Estimation Theory*, Mathematics in Science and Engineering **123**
-#   (Academic Press, New York, 1976) — the quantum Cramer-Rao bound.
+#   (Academic Press, New York, 1976) — the quantum Cramér–Rao bound.

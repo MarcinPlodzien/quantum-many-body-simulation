@@ -36,8 +36,8 @@
 #   of maximum likelihood. The running examples are two classical meters, a thermometer read with Gaussian noise and a
 #   biased coin.
 # * **Sections 5–6 — the quantum meter.** The Born rule turns $\rho_\theta$ into a distribution of readings; the symmetric
-#   logarithmic derivative and the quantum Fisher information; the Braunstein–Caves inequality $F_C\le F_Q$ proved step by
-#   step; for pure states the analytic reduction $F_Q=4\,\mathrm{Var}(G)$ and its meaning as the speed of the state.
+#   logarithmic derivative and the quantum Fisher information; the Braunstein–Caves inequality $F_C\le F_Q$ and its
+#   proof; for pure states the analytic reduction $F_Q=4\,\mathrm{Var}(G)$ and its meaning as the speed of the state.
 # * **Sections 7–10 — the protocol and the two limits.** Prepare, encode, measure, estimate; error propagation; the
 #   product state and the standard quantum limit $F_Q=N$, the GHZ state and the Heisenberg limit $F_Q=N^2$, checked on state
 #   vectors and in a simulated estimation; then the fragility of the GHZ advantage under particle loss, independent and
@@ -84,7 +84,9 @@
 # * [07 — density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb):
 #   density tensors, Kraus channels;
 # * [08 — measurements](../ch03_matrix_free_engine/08_measurements.ipynb): Born rule, sampling, shot noise;
-# * helpful: [22 — GHZ states and decoherence](../ch08_quantum_information_protocols/22_ghz_states_and_decoherence.ipynb).
+# * helpful: [10 — random unitaries and random circuits](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb)
+#   (Haar-random states, the Page value), [11 — Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb)
+#   (Lanczos), and [22 — GHZ states and decoherence](../ch08_quantum_information_protocols/22_ghz_states_and_decoherence.ipynb).
 #
 # **What comes next.** The notebook that follows,
 # [30 — QFI from the SLD: prepare, encode, estimate](../ch10_quantum_metrology_protocols/30_qfi_from_the_sld_prepare_encode_estimate.ipynb),
@@ -109,7 +111,7 @@
 # chosen axes of a state or density tensor), the Kraus channels, `apply_collective` (the matrix-free
 # $\sum_q P_q$), `qfi_pure`, `qfi_mixed`, `collective_dense`, `spin_moments`, `spin_squeezing` (the Wineland
 # parameter), and the Lanczos ground-state solver.
-# Everything specific to this notebook is built below from scratch.
+# Everything specific to this notebook is defined below.
 
 # %%
 #@engine: apply_gate, apply_gate_dm, apply_kraus_dm, rdm, dm_matrix, to_dm, product_state, ghz_state, w_state, dicke_state, cluster_state, haar_state, I2, X, Y, Z, H, apply_collective, qfi_pure, qfi_mixed, collective_dense, spin_moments, spin_squeezing, purity, entanglement_entropy, kraus_depolarizing, kraus_dephasing, kraus_amplitude_damping, heisenberg_terms, lanczos_ground_state, expect_pauli_string, oat_evolve
@@ -823,9 +825,11 @@ fig.tight_layout(); plt.show()
 #   =-i\left[G,\rho_\theta\right] . \tag{39}$$
 #
 # A measurement is described by a **POVM** (positive operator-valued measure): one operator $E_x$ for every outcome $x$,
-# with $E_x$ positive semidefinite and $\sum_xE_x=\mathbb 1$ (see
-# [08 — measurements](../ch03_matrix_free_engine/08_measurements.ipynb)). A projective measurement in an orthonormal basis
-# $\{\vert x\rangle\}$ is the special case $E_x=\vert x\rangle\langle x\vert$. The Born rule gives the distribution of the
+# with $E_x$ positive semidefinite and $\sum_xE_x=\mathbb 1$ (first used in
+# [20 — quantum teleportation](../ch08_quantum_information_protocols/20_quantum_teleportation.ipynb), Section 8). A
+# projective measurement in an orthonormal basis $\{\vert x\rangle\}$, the measurement of
+# [08 — measurements](../ch03_matrix_free_engine/08_measurements.ipynb), is the special case
+# $E_x=\vert x\rangle\langle x\vert$. The Born rule gives the distribution of the
 # readings,
 #
 # $$p(x\vert\theta)=\mathrm{Tr}\!\left(E_x\,\rho_\theta\right) , \tag{40}$$
@@ -2463,7 +2467,8 @@ fig.tight_layout(); plt.show()
 #
 #   $$\mathbb{E}\left[F_Q\right]=4\left(\frac N4-\frac{N}{4(d+1)}\right)=N\,\frac{d}{d+1}\;\xrightarrow[N\to\infty]{}\;N .$$
 #
-#   A typical state of the Hilbert space is nearly maximally entangled (its half-chain entropy is close to the Page value)
+#   A typical state of the Hilbert space is nearly maximally entangled (its half-chain entropy is close to the Page value, the Haar average of
+#   [10 — random unitaries](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb), Section 6.3)
 #   and yet, on average, worth slightly *less* than a product state.
 
 # %%
