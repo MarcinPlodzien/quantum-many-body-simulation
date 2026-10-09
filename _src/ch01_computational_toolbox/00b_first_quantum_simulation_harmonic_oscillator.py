@@ -5,9 +5,8 @@
 # %% [markdown]
 # ## 1. Introduction and motivation
 #
-# Together with notebook 00a, which treats a free particle, this is the first *quantum* simulation of the course, and
-# for many readers the first time a computer is asked a question about a quantum system. The system we pick is the one every physicist meets in the first weeks of a
-# quantum-mechanics course: a particle of mass $m$ in a harmonic potential of angular frequency $\omega_0$,
+# Together with notebook 00a, which treats a free particle, this notebook is the first *quantum* simulation of the
+# course. The system is the one every physicist meets in the first weeks of a quantum-mechanics course: a particle of mass $m$ in a harmonic potential of angular frequency $\omega_0$,
 #
 # $$ V(x) = \tfrac{1}{2} m \omega_0^2 x^2 . $$
 #
@@ -16,7 +15,7 @@
 # forever without spreading, and after a sudden change of the trap frequency the width of the wave packet breathes
 # with a formula we can write down in closed form. Every single number the computer produces in this notebook can
 # therefore be compared with a number we already know. That comparison — *numerics against analytics* — is the
-# recurring refrain of this notebook, and the habit we want you to take away from it. Numerical wave-packet
+# recurring refrain of this notebook. Numerical wave-packet
 # propagation of this kind was put on film by Goldberg, Schey and Schwartz in 1967 (Am. J. Phys. **35**, 177 (1967)).
 #
 # The companion notebook [00a — free particle: a Gaussian wave packet](00a_free_particle_gaussian_wave_packet.ipynb)
@@ -46,7 +45,7 @@
 # ### Road map
 #
 # Section 2 reads the *Configuration* cell. Section 3 writes the problem in SI units. Section 4 removes the units
-# (non-dimensionalisation) step by step. Section 5 replaces the continuous $x$ by a grid and the second derivative by
+# (non-dimensionalisation). Section 5 replaces the continuous $x$ by a grid and the second derivative by
 # a three-point formula, with the error term derived from Taylor's theorem. Section 6 assembles the Hamiltonian as a
 # **tridiagonal matrix** and looks at it. Section 7 diagonalises it and compares $E_n$ with $n+\tfrac12$;
 # Section 8 is a full convergence study (how many grid points? how big a box?). Section 9 compares the numerical
@@ -94,8 +93,8 @@
 # One semester of quantum mechanics (the Schrödinger equation, eigenvalues, expectation values) and basic
 # NumPy/matplotlib. Notebook [00a](00a_free_particle_gaussian_wave_packet.ipynb) introduced grids, discretisation
 # error, log-log convergence plots and Riemann sums; we recall each of those in one sentence when it is needed, so
-# this notebook can also be read first. No JAX knowledge is assumed: the two JAX features we use are explained in two
-# sentences each, and [01 — JAX from scratch](01_jax_from_scratch.ipynb) tells the full story. The same ideas
+# this notebook can also be read first. No JAX knowledge is assumed: the two JAX features we use are explained where
+# they appear, and [01 — JAX](01_jax_from_scratch.ipynb) tells the full story. The same ideas
 # reappear for many-body spin chains in
 # [04 — time evolution the textbook way](../ch02_spin_systems_textbook_way/04_time_evolution_the_textbook_way.ipynb).
 
@@ -117,7 +116,7 @@
 # the integrator study of Section 12 measures a norm drift down to $4\times10^{-13}$ and differences between
 # integrators of $10^{-12}$, which single precision (about $10^{-7}$ relative) cannot resolve at all. For the same
 # reason the checks below do not use the blanket `TOL`: every `assert` carries its own threshold, chosen to match
-# the error the surrounding text has just *derived* — that is the whole point of the exercise.
+# the error the surrounding text has just *derived*.
 #
 # Beyond the configuration cell we import a handful of well-known tools. `scipy.linalg.eigh_tridiagonal` is a
 # specialised eigenvalue solver for real symmetric **tridiagonal** matrices — exactly the shape our Hamiltonian will
@@ -223,13 +222,12 @@ for name, m, f0 in SYSTEMS:
 # ### 4.1 Why we remove the units
 #
 # Equation (1) contains three constants, $\hbar$, $m$, $\omega_0$, whose numerical values are around $10^{-34}$,
-# $10^{-26}$ and $10^{6}$. If we typed them into a computer as they are, we would ask a machine that stores numbers
-# with about 16 significant digits to multiply $10^{-68}$ by $10^{26}$ — it *can*, but we would be throwing away
-# precision for nothing, and one misplaced exponent would be invisible. There are three good reasons to remove the
-# units first:
+# $10^{-26}$ and $10^{6}$. Typed into a computer as they are, they would make every intermediate number tiny or huge:
+# $\hbar^2 \approx 10^{-68}$ already underflows to zero in single precision (whose smallest normal number is about
+# $10^{-38}$), and one misplaced exponent would be invisible. There are three good reasons to remove the units first:
 #
-# 1. **Numbers of order one.** All arrays hold values between roughly $10^{-3}$ and $10^{3}$, where floating-point
-#    arithmetic is most accurate and where a wrong result *looks* wrong.
+# 1. **Numbers of order one.** All arrays hold values between roughly $10^{-3}$ and $10^{3}$, where an absolute
+#    tolerance such as `TOL` means something and where a wrong result *looks* wrong.
 # 2. **Fewer parameters.** The three constants collapse into *none*: the dimensionless equation has no free
 #    parameter at all. We will therefore never have to "choose $m$".
 # 3. **Universality.** One simulation describes the ion, the molecule and the atom at once. Converting back is a
@@ -314,8 +312,8 @@ for name, m, f0 in SYSTEMS:
 #
 # $$ -\tfrac12\,\phi_n''(x) + \tfrac12 x^2 \phi_n(x) = E_n\,\phi_n(x), \qquad E_n = n + \tfrac12 . \tag{5} $$
 #
-# Not a single constant is left. This is the equation we will solve. It is the same as setting
-# $\hbar = m = \omega_0 = 1$, but now you know exactly *which* combinations of units that choice corresponds to.
+# Not a single constant is left. This is the equation we will solve, and it is what the phrase "set
+# $\hbar = m = \omega_0 = 1$" means, with the units listed below.
 #
 # ### 4.6 Converting back to SI
 #
@@ -493,8 +491,7 @@ print("\ncheckpoint passed: the error falls by a factor ~4 whenever dx is halved
 # %% [markdown]
 # The ratio column climbs to $4.000$ (it is $3.987$ on the coarsest pair, where the neglected $O(h^4)$ term is
 # still visible): the stencil is exactly second-order, as derived. This is the first
-# instance of our refrain — *we derived an error law on paper and the computer confirmed it*. Get used to demanding
-# this from every piece of numerics you write.
+# instance of our refrain — *we derived an error law on paper and the computer confirmed it*.
 
 # %% [markdown]
 # ## 6. The Hamiltonian as a tridiagonal matrix
@@ -737,7 +734,7 @@ print(f"they should all equal 1 (i.e. hbar*omega_0); max deviation = {np.max(np.
 print(f"(Section 8.2 will derive this deviation: -(dx^2/32)(4n+4), i.e. "
       f"{-dx_stat**2 / 32 * (4 * (n_show - 2) + 4):.3e} for the last pair shown)")
 
-# CHECKPOINT: the lowest ten levels agree with n + 1/2 to better than 3e-3
+# CHECKPOINT: the lowest ten levels agree with n + 1/2 to better than 4e-3 (Eq. (10) predicts 2.3e-3 for n = 9)
 assert np.max(np.abs(E_stat[:n_show] - E_exact)) < 4e-3
 print("checkpoint passed: the spectrum of a tridiagonal matrix reproduces E_n = n + 1/2")
 
@@ -753,7 +750,7 @@ print("checkpoint passed: the spectrum of a tridiagonal matrix reproduces E_n = 
 # %% [markdown]
 # ## 8. Convergence: the grid spacing and the box size
 #
-# A simulation without a convergence study is an opinion. There are exactly two knobs, and they must be turned one at
+# There are exactly two knobs, and they must be turned one at
 # a time.
 #
 # ### 8.1 Refining the grid at fixed box size
@@ -915,7 +912,7 @@ print(f"checkpoint passed: at L = 20 the n=5 error is {abs(E_vs_L[-1,5]-5.5):.3e
       f"the dx-limited floor of Eq. (10) is {floor_n5:.3e}")
 
 # %% [markdown]
-# The picture is very clear. For each level there is a threshold: the error falls off a cliff as soon as the box
+# For each level there is a threshold: the error falls off a cliff as soon as the box
 # comfortably contains the state, and then **stops falling** — it hits the floor set by $\Delta x$ through Eq. (10),
 # because at that point the box is no longer the limiting approximation.
 #
@@ -1159,14 +1156,14 @@ print(f"                  at n = 30 they never differ by more than {kolmogorov[-
 
 # %% [markdown]
 # The left panel is the standard textbook figure, drawn here from the eigenvalues and eigenvectors of the
-# tridiagonal matrix. The small ticks mark the classical turning points $\pm\sqrt{2E_n}$: note how the wave function leaks
-# beyond them (tunnelling into the classically forbidden region) and how the leak becomes relatively smaller as $n$
+# tridiagonal matrix. The small ticks mark the classical turning points $\pm\sqrt{2E_n}$; the wave function leaks
+# beyond them (tunnelling into the classically forbidden region), and the leak becomes relatively smaller as $n$
 # grows.
 #
 # The middle panel is the **correspondence principle**. A classical particle oscillating with energy $E$ spends most
 # of its time near the turning points, where it moves slowly; the time it spends in $[x, x+dx]$ is
 # $dx/\vert v(x)\vert$ with $v = \sqrt{2E-x^2}$, and normalising gives
-# $P_{\rm cl}(x) = 1/(\pi\sqrt{2E-x^2})$, the red curve. The quantum density at $n=30$ oscillates rapidly around it.
+# $P_{\rm cl}(x) = 1/(\pi\sqrt{2E-x^2})$, the orange curve. The quantum density at $n=30$ oscillates rapidly around it.
 #
 # How do we turn "oscillates around it" into a number? Not by comparing the densities pointwise — $\vert\phi_n\vert^2$
 # hits zero $n+1$ times, so the pointwise difference never goes away however large $n$ is. What converges is the
@@ -1194,8 +1191,8 @@ print(f"                  at n = 30 they never differ by more than {kolmogorov[-
 # an $O(1)$ fraction, so it sets the size of the largest gap — hence $n^{-1/3}$. The fit over $n=2\ldots30$ gives
 # an exponent near $-0.31$; it approaches $-1/3$ only slowly, and on this $L=20$ grid the $n=20$ and $n=30$ entries
 # are themselves a few per cent too large because the box is starting to bite (Section 9.1). Exercise 7 asks you to
-# do the job properly. Classical mechanics is what quantum mechanics looks like when you cannot resolve the
-# wiggles — and now that statement has an error bar.
+# do the job properly. The table attaches a number, and a rate, to the statement that classical mechanics is quantum
+# mechanics with the wiggles unresolved.
 
 # %% [markdown]
 # ## 10. What we will watch: position, momentum and their spreads
@@ -1252,7 +1249,7 @@ print(f"                  at n = 30 they never differ by more than {kolmogorov[-
 # $$ \frac{d\langle \hat x\rangle}{dt} = \langle \hat p\rangle, \qquad
 #    \frac{d\langle \hat p\rangle}{dt} = -\,r^2\,\langle \hat x\rangle . \tag{13} $$
 #
-# These are **Newton's equations** for $\langle x\rangle$, with no approximation whatsoever. (In a general potential
+# These are **Newton's equations** for $\langle x\rangle$, with no approximation. (In a general potential
 # Ehrenfest gives $d\langle p\rangle/dt = -\langle V'(x)\rangle$, which is *not* $-V'(\langle x\rangle)$ unless
 # $V'$ is linear — the harmonic oscillator is precisely the case where the two coincide.) Differentiating the first
 # and substituting the second gives $\ddot{\langle x\rangle} = -r^2\langle x\rangle$, so for **any** initial state
@@ -1453,8 +1450,8 @@ print("       sits in <x^2>; then E_num - E_n = (1/2)d<x^2> while <T>-<V> = -(1/
 # %% [markdown]
 # Every entry behaves: $\langle x\rangle$ and $\langle p\rangle$ vanish by symmetry, $\langle x^2\rangle$ and
 # $\langle p^2\rangle$ are both $n+\tfrac12$, kinetic and potential energies are equal (virial), and the uncertainty
-# product climbs as $(n+\tfrac12)^2$, saturating the Heisenberg bound $\tfrac14$ only in the ground state. Note the
-# last printed lines: the grid violates the virial theorem by *precisely* the discretisation error of Eq. (10),
+# product climbs as $(n+\tfrac12)^2$, saturating the Heisenberg bound $\tfrac14$ only in the ground state. The
+# last printed lines show that the grid violates the virial theorem by *precisely* the discretisation error of Eq. (10),
 # with the opposite sign. Look at the $\langle x^2\rangle$ and $\langle p^2\rangle$ columns to see why: on the grid
 # $\langle p^2\rangle$ comes out equal to $n+\tfrac12$ to all the digits shown, and the entire error sits in
 # $\langle x^2\rangle$, which is low by $2\vert\Delta E_n\vert$. Since $E = \tfrac12(\langle p^2\rangle +
@@ -1790,8 +1787,10 @@ axes[1].legend(fontsize=8); axes[1].grid(which="both", alpha=.3)
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# Measured and predicted agree within a factor of order one and both fall with slope $2$. We have now *explained* an
-# error rather than merely observed it.
+# Measured and predicted both fall with slope $2$, and their ratio is $0.88$ on every grid. The deviation is
+# $\tfrac{1}{\sqrt2}\,\delta\omega\,t\,\vert\sin t\vert$, and the maximum of $t\,\vert\sin t\vert$ on $[0, 4\pi]$ is
+# $11.04$ (at $t \approx 11.1$) rather than the $4\pi$ used in the prediction: $11.04/4\pi = 0.88$. The error is now
+# *explained*.
 #
 # ### 11.4 A coherent state: the most classical quantum state
 #
@@ -1813,9 +1812,9 @@ fig.tight_layout(); plt.show()
 #   traces the classical circle of radius $x_d$;
 # * its shape does **not** change: $\sigma(t) = \sqrt{V_x} = 1/\sqrt2$ for all $t$. Equation (16) explains why in one
 #   line: with $r=1$ it reduces to $V_x(t) = V_x(0)\cos^2 t + V_p(0)\sin^2 t$, which is constant precisely when
-#   $V_x(0) = V_p(0)$. The Gaussian is the unique shape for which the spreading caused by the kinetic term is exactly
-#   balanced by the focusing of the trap. (A free Gaussian packet, as in notebook 00a, spreads without limit — the
-#   trap is what stops it.)
+#   $V_x(0) = V_p(0)$: the spreading caused by the kinetic term is exactly balanced by the focusing of the trap. Every
+#   eigenstate, displaced or not, has the same property; the displaced Gaussian is the one among them that also
+#   saturates the Heisenberg bound. (A free Gaussian packet, as in notebook 00a, spreads without limit.)
 # * $\mathrm{Var}(x)\,\mathrm{Var}(p) = \tfrac14$ at **all** times: the coherent state is a *minimum-uncertainty*
 #   state, the closest a quantum state comes to being a classical point in phase space.
 #
@@ -1902,8 +1901,8 @@ print("checkpoints passed: classical circle in phase space, constant variances, 
 # of light) has Poissonian photon statistics.
 #
 # The phase-space panel is worth a second look. A classical oscillator is a *point* going round a circle of radius
-# $x_d$; the coherent state is that same point surrounded by an irreducible fuzz of area
-# $\sqrt{V_x V_p} = \tfrac12$ that never grows and never changes shape. That picture — a rigid disc sliding around
+# $x_d$; the coherent state is that same point surrounded by an irreducible fuzz,
+# $\sigma_x = \sigma_p = 1/\sqrt2$, that never grows and never changes shape. That picture — a rigid disc sliding around
 # the classical orbit — is the standard mental image of a coherent state, and it came out of a tridiagonal
 # matrix.
 
@@ -1969,13 +1968,14 @@ print("checkpoints passed: classical circle in phase space, constant variances, 
 #    = \frac{1}{4}\left[1 + \frac{\sin^2(2rt)}{4}\left(r - \frac{1}{r}\right)^{2}\right] . \tag{21} $$
 #
 # This is $\ge \tfrac14$, as Heisenberg requires, and it **touches $\tfrac14$ exactly at the turning points of the
-# breathing**, $\sin(2rt) = 0$. At those instants the state is again a minimum-uncertainty Gaussian — but with
-# $\mathrm{Var}(x) = 1/(2r^2)$, which for $r>1$ is *narrower in position than the ground state of the new trap*
-# (whose variance is $1/(2r)$) at the price of being correspondingly broader in momentum. A minimum-uncertainty
-# state with unequal, rescaled variances is exactly what is called a **squeezed state**. The same trick — quench a
-# harmonic potential and wait a quarter of a breathing period — is how squeezed light is made in an optical
-# parametric oscillator and how squeezed motional states of trapped ions are prepared; squeezing is what lets
-# LIGO measure a mirror displacement below the standard quantum limit.
+# breathing**, $\sin(2rt) = 0$. At those instants the state is a minimum-uncertainty Gaussian. At $rt = \pi/2,
+# 3\pi/2, \dots$ its $\mathrm{Var}(x) = 1/(2r^2)$ is, for $r>1$, *narrower in position than the ground state of the
+# new trap* (whose variance is $1/(2r)$), at the price of being correspondingly broader in momentum; at
+# $rt = \pi, 2\pi, \dots$ it is the initial Gaussian, too narrow in momentum for the new trap. A minimum-uncertainty
+# state with unequal, rescaled variances is exactly what is called a **squeezed state**. Modulating a trap frequency
+# (the sudden quench, followed by a quarter of the new trap period, is its simplest form) is how squeezed motional
+# states of trapped ions are prepared, and its optical analogue, parametric amplification, produces the squeezed
+# light that lowers the quantum noise of LIGO below the shot-noise level.
 #
 # ### 12.3 The plan
 #
@@ -1990,7 +1990,7 @@ print("checkpoints passed: classical circle in phase space, constant variances, 
 # | (d) Crank–Nicolson | implicit trapezoidal rule, one tridiagonal solve per step (Section 12.11) | $O(N_x)$ per step | $O(\Delta t^2)$, but no stability limit |
 #
 # Methods (a) and (b) are *exact in time* but need a dense linear-algebra operation whose cost explodes with $N_x$;
-# (c) is approximate in time but never builds a matrix. In one dimension (a) and (b) win easily. In the many-body
+# (c) is approximate in time but never builds a matrix. In one dimension all three are affordable, and (a) is the fastest. In the many-body
 # problems of later chapters $N_x$ is replaced by $2^N$, and building a matrix becomes impossible — then (c), the
 # **matrix-free** route, is the only one left. That is why we practise it here, where we can check it against an
 # exact answer.
@@ -2069,8 +2069,8 @@ print(f"full diagonalisation of a {NX_DYN}x{NX_DYN} tridiagonal matrix: {time_di
 print(f"{N_SNAP + 1} snapshots by Eq. (17):                 {time_spectral:.2f} s")
 print(f"E_n of the new trap, n = 0..4: {np.array2string(E_dyn[:5], precision=5)}   "
       f"(exact r(n+1/2) = {np.array2string(R_QUENCH*(np.arange(5)+0.5), precision=5)})")
-print(f"largest eigenvalue E_max = {E_dyn[-1]:.1f}  (roughly 2/dx^2 = {2/dx_dyn**2:.1f}) "
-      f"-- remember this number, Section 12.7 needs it")
+print(f"largest eigenvalue E_max = {E_dyn[-1]:.1f}  (between 2/dx^2 = {2/dx_dyn**2:.1f} and 2/dx^2 + V_max = "
+      f"{2/dx_dyn**2 + np.max(V_dyn):.1f}; Section 12.7 uses it)")
 print(f"sum_n |c_n|^2 = {np.sum(np.abs(c_dyn)**2):.14f}   (completeness of the eigenbasis)")
 
 sigma2_spectral = grid_expect(psi_spectral, x_dyn**2, dx_dyn) - grid_expect(psi_spectral, x_dyn, dx_dyn)**2
@@ -2163,7 +2163,7 @@ print("checkpoint passed: (a) and (b) agree to machine precision -- both are exa
 # important idea of the whole course; here it saves a factor of $600$, and in Chapter 3 it will be the difference
 # between possible and impossible.
 #
-# **Two JAX features, in two sentences each.**
+# **Two JAX features.**
 #
 # * `jax.jit` takes a Python function, traces it once into a single compiled program, and from then on runs that
 #   program instead of the Python code. For a time loop this removes the Python interpreter from the inner loop
@@ -2172,7 +2172,7 @@ print("checkpoint passed: (a) and (b) agree to machine precision -- both are exa
 #   state forward, and (unlike a Python loop inside `jit`) compiles to a *loop* rather than to $n$ copies of the body,
 #   so compilation stays fast however many steps you take.
 #
-# Both are explained properly in [01 — JAX from scratch](01_jax_from_scratch.ipynb); today, treat them as "a `for`
+# Both are explained properly in [01 — JAX](01_jax_from_scratch.ipynb); today, treat them as "a `for`
 # loop that the compiler sees".
 
 # %%
@@ -2307,7 +2307,8 @@ print("checkpoint passed: the hand-written matrix-free integrator agrees with th
 # $$ \frac{2}{\Delta x^2} \;\lesssim\; E_{\max} \;\le\; \frac{2}{\Delta x^2} + \max_j V(x_j) , $$
 #
 # and on a fine grid the kinetic part dominates completely. Watch the factor: it is $4/\Delta x^2$ for $-D_2$ and
-# $2/\Delta x^2$ after the $-\tfrac12$ of the kinetic energy. Both bounds are tight in practice: the cell below
+# $2/\Delta x^2$ after the $-\tfrac12$ of the kinetic energy. The bracket is wide on a coarse grid and narrow on a
+# fine one: the cell below
 # prints $E_{\max}=312.8$ for $\Delta x = 0.1$, between $2/\Delta x^2 = 200$ and $2/\Delta x^2 + V_{\max} = 328$,
 # and Section 12.4 printed $3310.4$ for $\Delta x = 0.025$, between $3200$ and $3328$.
 #
@@ -2442,8 +2443,7 @@ print("checkpoints passed: Euler's growth rate matches the derivation; RK4 is st
 # catastrophe out of round-off. RK4 at the very same $\Delta t$ keeps the norm at $1.000000000000$.
 #
 # The right panel shows the threshold of Eq. (23): at $0.95\,\Delta t_{\rm crit}$ the norm is $1$ to six digits; at
-# $1.10\,\Delta t_{\rm crit}$ it has already exploded after 400 steps. Numerical stability is not a gradual
-# degradation — it is a cliff. The printed lines above compare the exact threshold $2\sqrt2/E_{\max}$ with the
+# $1.10\,\Delta t_{\rm crit}$ it has already exploded after 400 steps: the loss of stability is abrupt. The printed lines above compare the exact threshold $2\sqrt2/E_{\max}$ with the
 # grid-only rule $\sqrt2\,\Delta x^2$ of Eq. (24). The rule is always *optimistic*, because it drops
 # $\max_j V(x_j)$ from $E_{\max}$, and the error shrinks as $\Delta x^2 \max_j V$: on this deliberately coarse
 # test grid ($\Delta x = 0.1$ in a box where $V$ reaches $128$) it overestimates the limit by $56\,\%$, on the
@@ -2569,7 +2569,7 @@ print(f"uncertainty product: min {prod_q.min():.5f} (Heisenberg bound 0.25)   "
 print(f"energy: {res_q['energy'].min():.6f} .. {res_q['energy'].max():.6f}   "
       f"(exact {(1+R_QUENCH**2)/4:.6f})")
 
-# the squeezed instant: a quarter of a breathing period after the quench
+# the squeezed instant: half a breathing period (a quarter of the new trap period) after the quench
 k_sq = int(np.argmin(res_q["vx"]))
 print(f"\nat t = {t_snap[k_sq]:.4f} (= pi/(2r) = {np.pi/(2*R_QUENCH):.4f}):")
 print(f"   Var(x) = {res_q['vx'][k_sq]:.5f}  vs the NEW ground state 1/(2r) = {1/(2*R_QUENCH):.5f}"
@@ -2592,16 +2592,16 @@ print("checkpoints passed: Eqs. (19), (20), (21), squeezing, and agreement of th
 # %% [markdown]
 # Everything in the derivation is visible at once. The means stay at zero to $10^{-15}$ (parity). The two variances
 # oscillate at $2\omega_1$ in exact antiphase between the predicted extremes. The uncertainty product rises to
-# $0.39$ in between and comes back down to **exactly $1/4$** at every turning point of the breathing: at those
-# instants the state is a minimum-uncertainty Gaussian whose position variance, $1/(2r^2) = 0.125$, is a factor
-# $r=2$ *below* that of the new trap's own ground state — a **squeezed state**, produced here by nothing more
-# exotic than suddenly stiffening a trap and waiting a quarter of a breathing period.
+# $0.39$ in between and comes back down to **exactly $1/4$** at every turning point of the breathing. At
+# $t = \pi/(2r)$ and every breathing period after it the minimum-uncertainty Gaussian has the position variance
+# $1/(2r^2) = 0.125$, a factor $r=2$ *below* that of the new trap's own ground state — a **squeezed state**,
+# produced by suddenly stiffening a trap and waiting a quarter of its period.
 #
 # One caveat about the uncertainty panel. The printed minimum is $0.24992$, a hair *below* the Heisenberg
 # bound $\tfrac14$. Heisenberg is not in danger: what we compute on the grid is not $\mathrm{Var}(p)$ but its
 # three-point approximation, which by Eq. (10) undershoots by $O(\Delta x^2)$ — and $8\times10^{-5}$ is exactly
-# that size. A discretised operator obeys the discrete algebra, not the continuum one; if a bound must hold
-# *exactly* in your calculation, you have to build a scheme that respects it, not hope for it.
+# that size. A discretised operator obeys the discrete algebra; a bound that must hold *exactly* has to be built
+# into the scheme.
 #
 # The open circles from the propagator and from RK4 sit exactly on the spectral curve: the integrators (a)–(c) agree
 # on the moments to better than $10^{-11}$, which is some **eight orders of magnitude** better than their common distance from
@@ -2659,9 +2659,7 @@ print(f"\nmethods (a)-(c) agree with the analytic law of Eq. (19) to "
 # the difference between the *exact solution of the discretised problem* and the *exact solution of the continuum
 # problem*: it is the $\Delta x^2$ grid error, around $10^{-3}$, and no integrator can do anything about it. The
 # green and black curves are the differences between the integrators (a)–(c), $10^{-13}$ or below: the time
-# integration is some **ten orders of magnitude** more accurate than the space discretisation. (Ten, not two or
-# three — that is the whole message of the panel, and it is why the next paragraph tells you where to spend your
-# effort.)
+# integration is some **ten orders of magnitude** more accurate than the space discretisation.
 #
 # > **Numerical practice.** Spend your effort where the error is. Tightening $\Delta t$ here would be a complete
 # > waste of CPU time; the only way to improve this simulation is a finer grid or a better stencil (Exercise 3).
@@ -2671,7 +2669,7 @@ print(f"\nmethods (a)-(c) agree with the analytic law of Eq. (19) to "
 # ### 12.11 Method (d): the Crank–Nicolson scheme
 #
 # RK4 was stable only for $\Delta t\le2\sqrt2/E_{\max}$, and on our grid $E_{\max}=3310$ forces $\Delta t<8.5\times10^{-4}$, although the state itself only contains energies of
-# order one. The step is set by the *fastest mode the grid can hold*, not by the physics. We now build an integrator without this limit, step by step.
+# order one. The step is set by the *fastest mode the grid can hold*, not by the physics. We now build an integrator without this limit.
 #
 # **Derivation 1: the trapezoidal rule.** Integrate $\dot\psi=-iH\psi$ exactly from $t_k$ to $t_{k+1}=t_k+\Delta t$:
 #
@@ -2842,17 +2840,17 @@ fig.tight_layout(); plt.show()
 # **Reading the figure.**
 #
 # * **Crank–Nicolson follows Eq. (30).** Along the trajectory the infidelity grows as $t^2$ (a factor $9$ between $T/3$ and $T$), at the final time it falls as $\Delta t^4$, and for
-#   $\Delta t\le5\times10^{-3}$ the parameter-free prediction agrees with the measurement to better than one per cent. Only at the largest steps, $\Delta t\gtrsim0.04$, does the next term of
+#   $\Delta t\le5\times10^{-3}$ the parameter-free prediction agrees with the measurement to better than one per cent. Only at the largest steps, $\Delta t\gtrsim0.02$, does the next term of
 #   Eq. (29) become visible. The norm is conserved to $10^{-14}$ for *every* step, including $\Delta t=0.079$, which is ninety times beyond the RK4 limit.
 # * **RK4 is limited by stability, not by accuracy.** On this grid its limit $\Delta t<8.5\times10^{-4}$ forces steps so small that its fourth-order error is already below round-off:
 #   all stable RK4 runs sit at $1-F\sim10^{-16}$. Just beyond the limit ($1.08\,\Delta t_{\rm crit}$) the norm explodes within the first snapshot. No step in between gives a moderate
 #   error — the cliff of Section 12.7 again.
-# * **Which one to use?** If moderate accuracy is enough — an infidelity of $10^{-8}$, say — Crank–Nicolson reaches it with $\Delta t\approx2.5\times10^{-3}$, three times the RK4 limit, at a
+# * **Which one to use?** If moderate accuracy is enough — an infidelity of $10^{-7}$, say — Crank–Nicolson reaches it with $\Delta t\approx2.5\times10^{-3}$, three times the RK4 limit, at a
 #   cost per step of one `apply_H` and one tridiagonal solve instead of four `apply_H`. The advantage grows with refinement: halving $\Delta x$ quarters the RK4 limit (Eq. (24)) but leaves
 #   Crank–Nicolson untouched, because its accuracy depends on the energies in the state, not on $E_{\max}$. If the highest accuracy is needed, RK4 (or the exact propagator) wins,
 #   because Crank–Nicolson is only second order.
 #
-# > **Numerical practice.** Unconditional stability is not accuracy. A Crank–Nicolson run with a huge $\Delta t$ stays normalised and looks smooth, and it is wrong: the phases of all
+# > **Numerical practice.** Unconditional stability does not imply accuracy. A Crank–Nicolson run with a huge $\Delta t$ stays normalised and looks smooth, and it is wrong: the phases of all
 # > components with $E\Delta t\gtrsim1$ are garbled. The norm cannot detect this, because it is conserved exactly; only a comparison at two step sizes (or Eq. (30)) can.
 #
 # > **Why this matters later.** For a many-body state the matrix $1+\tfrac{i\Delta t}{2}H$ is $2^N\times2^N$ and no longer tridiagonal, so the linear solve at every step becomes the
@@ -3098,7 +3096,7 @@ fig.tight_layout(); plt.show()
 #
 # ### 14.2 Key takeaways
 #
-# * **Non-dimensionalisation is not cosmetic.** $E_0=\hbar\omega_0$, $t_0=1/\omega_0$, $x_0=\sqrt{\hbar/(m\omega_0)}$
+# * **Non-dimensionalisation removes every parameter.** $E_0=\hbar\omega_0$, $t_0=1/\omega_0$, $x_0=\sqrt{\hbar/(m\omega_0)}$
 #   turned a three-parameter problem into a parameter-free one that describes an ion, a molecule and an atom at once.
 # * **A differential operator becomes a matrix.** Taylor's theorem plus a grid turns the stationary Schrödinger
 #   equation into a real symmetric **tridiagonal** eigenvalue problem — and a library routine then hands you
@@ -3109,8 +3107,8 @@ fig.tight_layout(); plt.show()
 #   superposition, the rigid coherent state, the breathing squeezed state — is one formula, Eq. (16), with different
 #   initial conditions.
 # * **Squeezing is a quench away.** $\mathrm{Var}(x)\mathrm{Var}(p)$ returns to the Heisenberg minimum $1/4$ at
-#   every turning point of the breathing, with $\mathrm{Var}(x)$ a factor $r$ below the new trap's ground state.
-#   That is how squeezed light and squeezed motional states are made.
+#   every turning point of the breathing; a quarter of the new trap period after the quench $\mathrm{Var}(x)$ is a
+#   factor $r$ below the new trap's ground state.
 # * **Two discretisation knobs, two different failures.** $\Delta x$ controls resolution (error $\propto \Delta x^2$,
 #   quantitatively $-\frac{\Delta x^2}{32}(2n^2+2n+1)$); $L$ controls confinement (too small and you are simulating a
 #   box, not an oscillator). Converge in both.
@@ -3123,10 +3121,10 @@ fig.tight_layout(); plt.show()
 #   grid therefore costs $O(N_x^3)$, and within the stable range RK4 is fourth-order accurate with a $\Delta t^5$
 #   norm drift. All of it was derived *and* measured here. Unitary schemes ($e^{-iH\Delta t}$, Crank-Nicolson,
 #   split-step Fourier, and the Chebyshev and Krylov propagators of Chapter 5) have no such limit.
-# * **Matrix-free is a state of mind.** $H\psi$ as three array shifts costs $O(N_x)$ instead of $O(N_x^2)$. The same
+# * **Matrix-free.** $H\psi$ as three array shifts costs $O(N_x)$ instead of $O(N_x^2)$. The same
 #   move, applied to spin chains, is what makes the rest of this course possible.
-# * **Measure where the error lives.** In Section 12.9 the space discretisation was a thousand times less accurate
-#   than the time integration. Optimising the wrong one is the most common waste of effort in computational physics.
+# * **Measure where the error lives.** In Sections 12.9–12.10 the space discretisation was eight to ten orders of
+#   magnitude less accurate than the time integration. Optimising the wrong one is the most common waste of effort in computational physics.
 #
 # ### 14.3 Exercises
 #
@@ -3225,7 +3223,7 @@ fig.tight_layout(); plt.show()
 #
 # ### 14.5 Where to go next
 #
-# * [01 — JAX from scratch](01_jax_from_scratch.ipynb): the full story of `jit`, `vmap`, `lax.scan` and `grad`,
+# * [01 — JAX](01_jax_from_scratch.ipynb): the full story of `jit`, `vmap`, `lax.scan` and `grad`,
 #   which we used today on trust.
 # * [49 — a single excitation on a lattice](../lecture_notes_notebooks/49_single_excitation_on_a_lattice.ipynb): the
 #   tridiagonal matrix of Section 6, with the potential removed, read as the exact Hamiltonian of a particle hopping on

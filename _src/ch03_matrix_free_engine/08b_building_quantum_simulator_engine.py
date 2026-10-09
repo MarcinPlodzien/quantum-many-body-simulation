@@ -74,7 +74,7 @@
 #
 # ### Prerequisites
 #
-# * [01 — JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb) and [02 — Index notation and einsum](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb);
+# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb) and [02 — Index notation and einsum](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb);
 # * [05 — Matrix-free operators](05_matrix_free_operators.ipynb), [06 — States, observables and entanglement](06_states_observables_entanglement.ipynb),
 #   [07 — Density matrices and quantum channels](07_density_matrices_and_quantum_channels.ipynb), [08 — Measurements](08_measurements.ipynb).
 #

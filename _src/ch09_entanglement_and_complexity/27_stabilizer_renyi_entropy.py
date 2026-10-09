@@ -85,7 +85,7 @@
 # * reporting what was measured, including where the measurement disagrees with the textbook expectation.
 #
 # ### Prerequisites
-# * [01 — JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb) and
+# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb) and
 #   [02 — einsum from scratch](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb);
 # * [05 — matrix-free operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb): `apply_gate`, the one einsum
 #   that applies a small matrix to one tensor axis — the Walsh-Hadamard transform of Section 9 is exactly this;

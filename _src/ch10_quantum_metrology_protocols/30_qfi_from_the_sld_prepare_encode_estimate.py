@@ -72,7 +72,7 @@
 # * [07 — density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb):
 #   density tensors, `apply_gate_dm`, Kraus channels, fidelity;
 # * [08 — measurements](../ch03_matrix_free_engine/08_measurements.ipynb): Born rule, sampling bit strings;
-# * [01 — JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, `jacfwd`, PRNG keys.
+# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, `jacfwd`, PRNG keys.
 #
 # **What comes next.** With this machinery in hand the chapter turns to protocols:
 # [31 — Ramsey interferometry](../ch10_quantum_metrology_protocols/31_ramsey_interferometry.ipynb) (the baseline, end to

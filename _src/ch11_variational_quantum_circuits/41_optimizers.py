@@ -79,7 +79,7 @@
 #   Hamiltonians as term lists and the exact ground state from Lanczos;
 # * [06 — states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb):
 #   fidelity between pure states;
-# * [01 — JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, `lax.scan`, `grad`,
+# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, `lax.scan`, `grad`,
 #   `jacfwd`, PRNG keys.
 #
 # **What comes next.**

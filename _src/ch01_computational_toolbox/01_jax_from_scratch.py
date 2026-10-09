@@ -5,16 +5,13 @@
 # %% [markdown]
 # ## 1. Introduction and motivation
 #
-# **This notebook builds the main computational tool of the course**, the JAX library (Bradbury *et al.*, 2018).
-# The two starter notebooks
+# **The main computational tool of the course is the JAX library** (Bradbury *et al.*, 2018). The two starter notebooks
 # [00a — a free Gaussian wave packet](00a_free_particle_gaussian_wave_packet.ipynb) and
-# [00b — the 1D harmonic oscillator](00b_first_quantum_simulation_harmonic_oscillator.ipynb) did real quantum
-# mechanics with JAX while asking you to read `jnp` as "NumPy" and to take `jit` and `lax.scan` on trust. Here we
-# pay that debt — and nothing below assumes that you have read them. In the notebooks that follow we will simulate chains of
+# [00b — the 1D harmonic oscillator](00b_first_quantum_simulation_harmonic_oscillator.ipynb) used `jnp`, `jit` and
+# `lax.scan` without explaining them; this notebook explains them. Later notebooks simulate chains of
 # interacting quantum spins, noisy quantum circuits, quantum sensors and variational algorithms. The state of $N$
-# spins is a list of $2^N$ complex numbers, so every such simulation is, at the end of the day, *a very large amount
-# of simple arithmetic on arrays*. Whether a computation takes a second or an hour is decided by **how** that
-# arithmetic is organised — and this is what the present notebook is about.
+# spins is a list of $2^N$ complex numbers, so every such simulation is *a very large amount of simple arithmetic on
+# arrays*, and whether it takes a second or an hour is decided by **how** that arithmetic is organised.
 #
 # You already know **NumPy**: arrays, slicing, `np.sin`, `np.linalg.eigh`, and the golden rule "avoid Python loops,
 # use whole-array operations". **JAX** is a Python library that keeps this programming model — its module `jax.numpy`
@@ -73,9 +70,8 @@
 # [00a](00a_free_particle_gaussian_wave_packet.ipynb) and
 # [00b](00b_first_quantum_simulation_harmonic_oscillator.ipynb) are *not* a prerequisite: they are physics warm-ups
 # that used JAX without explaining it, and every idiom they borrowed (`jnp`, `.at[].set()`, `jit`, `lax.scan`,
-# `vmap`) is derived below. If you have read them you will recognise the idioms and see where they come from;
-# if you have not, start here. The natural continuation is
-# [02 — einsum from scratch](02_einsum_from_scratch.ipynb).
+# `vmap`) is derived below. The natural continuation is
+# [02 — index notation and einsum](02_einsum_from_scratch.ipynb).
 
 # %% [markdown]
 # ## 2. The Configuration cell
@@ -87,7 +83,6 @@
 # sets the environment variable `JAX_PLATFORMS=cpu`. The comment *"must be set BEFORE jax is imported"* is essential:
 # JAX decides which hardware back-end to initialise when it starts up, so changing the variable later has no
 # effect (after changing `DEVICE`, restart the kernel). `"gpu"` only adds a warning if no GPU was found.
-# Everything in this course runs fine on a laptop CPU.
 #
 # **`PRECISION = "double"`** — the floating-point format. A `float64` ("double precision") number has about 16
 # significant decimal digits, a `float32` ("single") only about 7. *JAX, unlike NumPy, uses 32-bit numbers by default*
@@ -116,7 +111,8 @@
 #
 # **The imports.** `numpy as np` (we keep using NumPy for small set-up work and as a reference), `jax`,
 # `jax.numpy as jnp` (the convention used by everybody), `lax` (the low-level module containing `scan`, `cond`, …),
-# `partial` from `functools` (to pre-fill arguments of a function), `time` and matplotlib.
+# `partial` from `functools` (to pre-fill arguments of a function), the standard modules `os`, `string`, `math` and
+# `time`, and matplotlib.
 #
 # **The two `print` lines** document the run: JAX version, back-end, devices, precision. When you report a timing or a
 # bug, this line is the first thing people will ask for.
@@ -186,7 +182,7 @@ with jax.enable_x64(True):                                    # make float64 ava
               f"(1 - cos x)/x^2 at x=1e-4 = {float(g):.6f}")
 
 # %% [markdown]
-# `float32` loses both games; `float64` returns $10^{-8}$ (up to its own 16-digit round-off) and $0.500000$.
+# `float32` returns $0$ in both cases; `float64` returns $10^{-8}$ (up to its own 16-digit round-off) and $0.500000$.
 # The errors of single precision are not always this dramatic, and in return it needs half the memory — a serious
 # argument when a state vector of 30 spins occupies 16 GB in `complex128`. That is why the switch exists. Our default
 # is `"double"`.
@@ -351,7 +347,7 @@ print("checkpoint passed: |<psi|psi> - 1| and |<sigma_y> - 1| are below TOL =", 
 # > the work — microseconds — and not the computation.
 #
 # The cure is to wait explicitly: `result.block_until_ready()`, or `jax.block_until_ready(anything)` for nested
-# containers of arrays. (Printing a value or converting it with `float()`/`np.asarray` also waits, of course — the
+# containers of arrays. (Printing a value or converting it with `float()`/`np.asarray` also waits — the
 # number must exist to be printed.) Let us measure a $1500\times1500$ matrix product both ways.
 
 # %%
@@ -459,14 +455,13 @@ assert abs(f_numpy(x_np) - float(f_jit(x))) < (1e-6 if PRECISION == "double" els
 # %% [markdown]
 # Three lessons. (i) NumPy and JAX agree on the value. (ii) The first call of the compiled function is *much slower*
 # than the later ones, because it contains the compilation: **always separate compile time from run time** when you
-# benchmark. (iii) After compilation the fused program beats NumPy — by a factor between two and four in the CPU runs
-# that produced these notes (the exact ratio depends on the machine and its load) — without any change to the
-# mathematics.
+# benchmark. (iii) After compilation the fused program beats NumPy, by the factor printed in the last line, without
+# any change to the mathematics. The factor depends on the machine and on its load.
 #
 # For *small* arrays the comparison changes character. Nothing is memory-bound any more; what dominates is the fixed
 # cost of dispatching each operation to the device (microseconds). Eager JAX is then the clear loser, because it pays
 # that cost once *per operation*, whereas `jit` pays it once for the whole function — so `jit` buys you *more* there,
-# often an order of magnitude. Against NumPy, however, jitted JAX is on small arrays merely *comparable*, not faster:
+# often an order of magnitude. Against NumPy, however, jitted JAX is on small arrays only *comparable*:
 # NumPy has almost no dispatch overhead. On small problems JAX earns its keep elsewhere — through `vmap`
 # (Section 6), `lax.scan` (Section 7), `grad` (Section 9) and the accelerator.
 #
@@ -557,7 +552,7 @@ print("scale = 100 ->", times_scale(1.0), "  <- still the old value: the cached 
 
 # %%
 # ==============================================================================
-# The most famous JAX error: Python `if` on a traced value
+# A common JAX error: Python `if` on a traced value
 # ==============================================================================
 @jax.jit
 def relu_with_if(x):
@@ -623,13 +618,13 @@ assert abs(float(val) - exact) < TOL
 # time evolution it produces a gigantic program that takes forever to compile. The remedy is `lax.scan` (Section 7).
 
 # %% [markdown]
-# ## 6. `jax.vmap` — write the function for one sample, get the batch for free
+# ## 6. `jax.vmap` — from a single-sample function to a batched one
 #
 # NumPy's golden rule ("no Python loops, vectorise") forces you to write every function twice in your head: once
 # for the mathematics, and once more with an extra leading "batch" axis threaded through every operation.
 # `jax.vmap(f)` does the second step automatically: given `f` for **one** input it returns a function that accepts a
-# **stack** of inputs and computes all results at once — not by looping, but by rewriting each operation into its
-# batched version (a matrix–vector product becomes a matrix–matrix product, and so on).
+# **stack** of inputs and computes all results at once, by rewriting each operation into its batched version
+# rather than by looping (a matrix–vector product becomes a matrix–matrix product, and so on).
 #
 # ### 6.1 One spin, many states
 # The expectation value of an observable $O$ in a state $|\psi\rangle$ is $\langle O\rangle =
@@ -681,7 +676,7 @@ t_vmap = bench(expectation_batch, states, sigma_z)
 t_jv = bench(jax.jit(expectation_batch), states, sigma_z)
 print(f"Python loop over {M} states (extrapolated from 1000): {1e3 * t_loop:9.1f} ms")
 print(f"vmap                                               : {1e3 * t_vmap:9.2f} ms")
-print(f"jit(vmap)                                          : {1e3 * t_jv:9.3f} ms   -> {t_loop / t_jv:,.0f}x faster than the loop")
+print(f"jit(vmap)                                          : {1e3 * t_jv:9.3f} ms   -> {t_loop / t_jv:,.0f}x faster than the (extrapolated) loop")
 
 # %% [markdown]
 # `vmap` reproduces the loop and the hand-written `einsum` to round-off, and is faster than the Python loop by
@@ -705,7 +700,7 @@ show_error(jax.vmap(expectation, in_axes=(0, 0)), states[:3], jnp.stack([sigma_z
 # and a short calculation gives $\langle\sigma_x\rangle = 2\,\mathrm{Re}\big(\cos\tfrac\theta2\, e^{i\varphi}
 # \sin\tfrac\theta2\big) = \sin\theta\cos\varphi$ — the $x$ coordinate of the point. We write the function for one
 # pair $(\theta,\varphi)$ and apply `vmap` twice: the inner one runs over $\varphi$ (argument 1), the outer one over
-# $\theta$ (argument 0). The result is a 2D table — no `meshgrid`, no broadcasting gymnastics.
+# $\theta$ (argument 0). The result is a 2D table, obtained without `meshgrid` or explicit broadcasting.
 
 # %%
 # ==============================================================================
@@ -813,8 +808,8 @@ plt.show()
 # %% [markdown]
 # The familiar bifurcation diagram: a fixed point for $r<3$, period doubling at $r=3$ and $r\approx3.45$, the onset of
 # chaos at $r\approx3.57$, and periodic windows inside the chaotic region (the large period-3 window near
-# $r\approx3.83$). The point for us: $1.2$ million sequential map iterations, organised as *scan inside vmap inside
-# jit*, in a fraction of a second.
+# $r\approx3.83$). The $1.2$ million sequential map iterations run as one compiled program, *scan inside vmap inside
+# jit*; the printed time includes the compilation.
 #
 # ### 7.2 A simple ODE integrator
 # An ordinary differential equation $\dot y = f(y,t)$ is solved numerically by stepping in time. Two classic
@@ -896,13 +891,13 @@ for n_steps in (200, 400, 800):
 # $$ q_{n+1}^2+p_{n+1}^2 = (1+\Delta t^2)\,\big(q_n^2+p_n^2\big) $$
 #
 # *exactly*. After $n=T/\Delta t$ steps the amplitude is multiplied by $(1+\Delta t^2)^{n/2}\approx e^{T\Delta t/2}$,
-# so the error at the final time is $\approx e^{T\Delta t/2}-1$, i.e. $1.72$, $0.649$ and $0.284$ for the three rows
-# of the table — the printed numbers to three digits. Only once $T\Delta t\ll1$ does this behave like the
-# $O(\Delta t)$ the theory promises. We come back to such structural failures of generic
+# so the error at the final time is about $(1+\Delta t^2)^{n/2}-1=1.705$, $0.648$ and $0.284$ for the three rows of
+# the table. The printed errors are larger by at most $0.003$, the contribution of Euler's phase error. Only once
+# $T\Delta t\ll1$ does $e^{T\Delta t/2}-1\approx T\Delta t/2$ behave like the $O(\Delta t)$ the theory promises. We come back to such structural failures of generic
 # integrators — and to the unitary methods that avoid them — in
 # [04 — time evolution the textbook way](../ch02_spin_systems_textbook_way/04_time_evolution_the_textbook_way.ipynb).
 #
-# ### 7.3 Why not a Python loop under `jit`? Measure the compile time
+# ### 7.3 Compile time of an unrolled Python loop and of `scan`
 # Both versions below compute the same number. The Python loop is unrolled into `n` copies of the body; `scan`
 # compiles the body once.
 
@@ -929,13 +924,15 @@ for n in (10, 100, 1000):
         t0 = time.perf_counter()
         out = compiled(x0, n).block_until_ready()
         timings.append((time.perf_counter() - t0, float(out)))
-    same = abs(timings[0][1] - timings[1][1]) < 1e-3          # (chaotic map: round-off differences get amplified)
+    same = timings[0][1] == timings[1][1]                     # same operations in the same order -> identical bits
     print(f"{n:6d}   {timings[0][0]:18.3f} s   {timings[1][0]:16.3f} s     {same}")
 
 # %% [markdown]
-# The first-call time of the unrolled loop grows in proportion to the number of iterations (the compiler must digest
-# a program with thousands of operations), while `scan` stays flat. With the $10^4$–$10^5$ steps of a realistic time
-# evolution the unrolled version becomes unusable.
+# The first-call time of `scan` does not depend on $n$. The unrolled program has $n$ copies of the body, and at
+# $n=1000$ its compilation takes many times longer than that of `scan` (at small $n$ the fixed cost of any
+# compilation dominates both columns). With the $10^4$–$10^5$ steps of a realistic time evolution the unrolled version
+# becomes unusable. Both versions return the same bits, because they perform the same operations in the same order;
+# for this chaotic map a single round-off difference would grow to order one within about a hundred steps.
 #
 # > **JAX practice.** Short loops over *structure* (over the ten spins of a chain, over the gates of a circuit layer)
 # > may stay Python loops — unrolling them lets the compiler fuse everything. Long loops over *time* or *iterations*
@@ -1044,7 +1041,7 @@ print(f"f''(0.7)  AD     = {float(d2f(x0)):+.14f}   (= derivative of the exact f
 assert abs(df(x0) - df_exact(x0)) < TOL
 
 # %% [markdown]
-# ### 9.2 Checkpoint: finite differences, and why they cannot replace AD
+# ### 9.2 Finite differences: truncation error and round-off error
 # Taylor expansion gives the *truncation* errors
 #
 # $$\frac{f(x+h)-f(x)}{h} = f'(x) + \tfrac{h}{2}f''(x)+\dots,\qquad
@@ -1053,7 +1050,8 @@ assert abs(df(x0) - df_exact(x0)) < TOL
 # so one is tempted to take $h$ tiny. But $f$ is only known to relative precision $\epsilon$ (machine epsilon), and
 # the subtraction $f(x+h)-f(x-h)$ cancels the leading digits: the *round-off* error of the quotient is
 # $\sim\epsilon|f|/h$ and **grows** as $h\to0$. The total error is minimal at $h\sim\epsilon^{1/2}$ (forward) or
-# $h\sim\epsilon^{1/3}$ (central) and never reaches machine precision. We measure this with `vmap` over $h$.
+# $h\sim\epsilon^{1/3}$ (central), up to prefactors that depend on $f$ and its derivatives, and never reaches machine
+# precision. We measure this with `vmap` over $h$.
 
 # %%
 # ==============================================================================
@@ -1091,8 +1089,10 @@ print(f"jax.grad                : error {err_ad:.1e}")
 # The V-shaped curves show the two regimes: to the right the truncation error with the predicted slopes 1 and 2, to
 # the left the round-off error $\propto\epsilon/h$. The best finite-difference results sit at the bottom of the V —
 # several orders of magnitude above the AD result, which is exact to machine precision (the red line is drawn at
-# $\epsilon/10$ if the AD error is exactly zero). Finite differences remain useful as an **independent check of a
-# gradient code**, with $h$ chosen near the bottom of the V.
+# $\epsilon/10$ if the AD error is exactly zero). The measured optimal steps lie a factor $3$–$10$ below
+# $\epsilon^{1/2}=1.5\times10^{-8}$ and $\epsilon^{1/3}=6\times10^{-6}$: the round-off branch is noisy, and the grid
+# has only four points per decade. Finite differences remain useful as an **independent check of a gradient code**,
+# with $h$ chosen near the bottom of the V.
 #
 # ### 9.3 The rules of `grad`
 # `grad` differentiates with respect to the **first** argument by default (`argnums` changes that), the function must
@@ -1128,7 +1128,7 @@ print("gradient at x=0, double where:", jax.grad(safe)(zero))
 
 # %% [markdown]
 # ### 9.4 Minimising a function: the ground state of one spin by gradient descent
-# Here is a first taste of a *variational* calculation (the subject of Chapter 11, variational quantum circuits).
+# This is a *variational* calculation in its simplest form (the subject of Chapter 11, variational quantum circuits).
 # Take one spin with the Hamiltonian
 #
 # $$H = \tfrac{\Delta}{2}\sigma_z + \tfrac{\Omega}{2}\sigma_x .$$
@@ -1208,7 +1208,7 @@ plt.show()
 # $\varphi=\pi$ and $\cos\theta=-\Delta/\Omega_R$, which for $\Delta>0$ (our case) reads
 # $\theta=\pi-\arctan(\Omega/\Delta)$ — the printed Bloch vector confirms it. (The angles themselves
 # are not unique: $(-\theta,\varphi+\pi)$ describes the same state, and another starting point may converge to that
-# representation. Compare physical quantities, not parameters.)
+# representation. The Bloch vector, a physical quantity, is the meaningful comparison.)
 #
 # > **Physics insight.** This is a *variational quantum eigensolver* in miniature: a parametrised state, an energy
 # > expectation value as cost function, a gradient-based optimiser. In Chapter 11 the state will be an $N$-qubit circuit
@@ -1297,15 +1297,19 @@ ax.legend()
 ax.grid(alpha=0.3, which="both")
 plt.show()
 
-# CHECKPOINT: the measured scatter agrees with the binomial prediction within 15 %  (200 repetitions -> ~5 % noise)
+# CHECKPOINT: the measured scatter agrees with the binomial prediction within 15 %  (200 repetitions -> ~5 % noise).
+# Wrong control: sqrt(p(1-p)/n) is the scatter of the FRACTION n_in/n; forgetting the factor 4 must fail the same test.
 ratio = np.array(stds) / np.sqrt(np.pi * (4 - np.pi) / np.array(ns))
-assert np.all(np.abs(ratio - 1) < 0.15), ratio
+ratio_wrong = np.array(stds) / np.sqrt(np.pi / 4 * (1 - np.pi / 4) / np.array(ns))
+print("measured / predicted scatter:", np.round(ratio, 3), "| against the misread sqrt(p(1-p)/n):", np.round(ratio_wrong, 2))
+assert np.all(np.abs(ratio - 1) < 0.15) and np.all(np.abs(ratio_wrong - 1) > 0.15), ratio
 
 # %% [markdown]
 # The measured scatter follows the prediction $1.64/\sqrt n$ over three decades: **one more digit costs a hundred
 # times more samples**. (The standard deviation estimated from 200 repetitions itself fluctuates by about
-# $1/\sqrt{2\cdot200}=5\,\%$, which is the size of the deviations from the dashed line.) Because the keys are fixed,
-# re-running the notebook reproduces every digit.
+# $1/\sqrt{2\cdot200}=5\,\%$; the printed ratios deviate from $1$ by at most $4\,\%$.) The same test rejects the
+# scatter $\sqrt{p(1-p)/n}$ of the fraction $n_{\rm in}/n$, which lacks the factor $4$ of $\hat\pi=4n_{\rm in}/n$.
+# Because the keys are fixed, re-running the notebook reproduces every digit.
 
 # %% [markdown]
 # ## 11. Pytrees
@@ -1404,7 +1408,7 @@ plt.show()
 #      = \frac12\begin{pmatrix}\Delta & \Omega\\ \Omega & -\Delta\end{pmatrix}. \qquad\text{(1)}$$
 #
 # (Check: $|e\rangle$ has the energy $-\Delta/2$ and $|g\rangle$ has $+\Delta/2$; in the rotating frame the excited
-# state lies $\omega_0-\omega=-\Delta$ above the ground state. ✓.) This is the same Hamiltonian as in Section 9.4.
+# state lies $\omega_0-\omega=-\Delta$ above the ground state.) This is the same Hamiltonian as in Section 9.4.
 #
 # **The Rabi formula.** Write $H=\tfrac{\Omega_R}{2}\,\vec n\cdot\vec\sigma$ with the *generalised Rabi frequency*
 # $\Omega_R=\sqrt{\Omega^2+\Delta^2}$ and the unit vector $\vec n=(\Omega,0,\Delta)/\Omega_R$. Because
@@ -1492,8 +1496,8 @@ assert err_p < (1e-6 if PRECISION == "double" else 1e-4)
 # %% [markdown]
 # The numerical solution reproduces the Rabi formula to a few $10^{-8}$ with $\Delta t=0.05$. The norm
 # is conserved only approximately: RK4 is not a unitary method, its norm error is a truncation error like any
-# other and shrinks with $\Delta t$. Let us look at the dynamics and *measure* the order of convergence — the
-# step-size sweep is, of course, a loop over a static argument (`n_steps` changes the length of the scan).
+# other and shrinks with $\Delta t$. Next we plot the dynamics and *measure* the order of convergence. The
+# step-size sweep is a Python loop over a static argument, because `n_steps` changes the length of the scan.
 
 # %%
 # ==============================================================================
@@ -1606,7 +1610,7 @@ plt.show()
 # detunings as one compiled program.
 #
 # ### 13.4 Fitting the Rabi frequency with `grad` — differentiating through the ODE solver
-# Now the inverse problem, the daily bread of a laboratory: from measured populations, **infer** $\Omega$ and $\Delta$.
+# Now the inverse problem, a routine task in a laboratory: from measured populations, **infer** $\Omega$ and $\Delta$.
 #
 # *Synthetic experiment.* At each of $K=40$ pulse durations $t_k$ the experiment is repeated $N_{\rm shots}=200$
 # times; every repetition ends with a projective measurement that yields "excited" with probability $P_e(t_k)$.
@@ -1710,7 +1714,7 @@ for name in guess:
 # $10^{-9}$ (the accuracy of the finite differences, not of AD), and with the gradient of the closed-formula loss up
 # to the small discretisation error of the solver.
 #
-# **The loss landscape — look before you descend.** Gradient descent only finds the *nearest* minimum. A loss built
+# **The loss landscape.** Gradient descent only finds the *nearest* minimum. A loss built
 # from oscillating signals is notoriously non-convex: if the trial frequency is far off, model and data drift in and
 # out of phase. One more `vmap` shows the landscape along $\Omega$.
 
@@ -1805,9 +1809,9 @@ plt.show()
 # *Left*: the landscape (colour = $\log_{10}\mathcal L$, dark = small) has a deep, narrow, banana-shaped valley
 # around the true parameters and shallow local minima elsewhere; the thin lines are the paths taken by gradient
 # descent. It is exactly symmetric under $\Delta\to-\Delta$ — Eq. (3) contains only $\Delta^2$, so **the sign of the detuning cannot be
-# learned from $P_e(t)$**; the open star marks the mirror solution. (An identifiability statement like this is worth
-# more than any fitted number. An experimentalist would resolve the sign by scanning the drive frequency, as in the
-# chevron.) *Middle*: started close enough, gradient descent brings the loss down to the shot-noise level, slightly
+# learned from $P_e(t)$**; the open star marks the mirror solution. An experimentalist fixes the sign with a
+# frequency scan as in the chevron: the centre of the symmetric pattern locates $\omega_0$, and the known drive
+# frequency $\omega$ then gives the sign of $\Delta=\omega-\omega_0$. *Middle*: started close enough, gradient descent brings the loss down to the shot-noise level, slightly
 # *below* the loss of the true parameters, as it should be for a least-squares fit, which also fits a bit of the noise.
 # Started at $\Omega=2.4$ it never finds that valley: it creeps along a shallow side valley towards a local minimum
 # whose loss is more than a hundred times larger. *Right*: the good fit follows the data; the trapped one oscillates
@@ -1818,13 +1822,14 @@ plt.show()
 # $(1-\eta\lambda)$. The iteration is stable only if $|1-\eta\lambda_{\max}|<1$, i.e. $\eta<2/\lambda_{\max}$, while the
 # *slowest* direction converges at the rate $(1-\eta\lambda_{\min})$ per step. The ratio
 # $\lambda_{\max}/\lambda_{\min}$ (the condition number, here $\approx 14$) therefore dictates how many iterations plain
-# gradient descent needs — the reason why Chapter 11 introduces smarter optimisers.
+# gradient descent needs, and it is the reason for the better optimisers of
+# [41 — optimisers](../ch11_variational_quantum_circuits/41_optimizers.ipynb).
 #
 # > **Numerical practice.** A robust fitting workflow is *global, then local*: a coarse scan of the landscape (cheap
 # > with `vmap`) to find the right basin, then gradient-based refinement. Always compare the final loss with the noise
 # > level you expect — a loss far above it signals a local minimum or a wrong model.
 #
-# ### 13.5 How accurate is the fit? Repeat the whole experiment 200 times — with `vmap`
+# ### 13.5 Statistics of the fit from 200 repeated experiments
 # A single fit gives numbers without error bars. The cleanest way to obtain the statistical uncertainty is to repeat
 # the *entire* procedure — generate data, fit — for many independent noise realisations and look at the scatter of the
 # results. `fit` is a pure function of `(data, init)`, so this is one more `vmap`: a batch of 200 gradient
@@ -1848,7 +1853,8 @@ om_hat, de_hat = np.asarray(all_fits["omega"]), np.asarray(all_fits["delta"])
 om_r_hat = np.sqrt(om_hat**2 + de_hat**2)
 print(f"{N_EXPERIMENTS} complete fits ({N_FIT_STEPS} gradient steps each) in {t_fits:.1f} s including compilation")
 print(f"Omega   : mean {om_hat.mean():.4f}  std {om_hat.std():.4f}   (true {OMEGA_TRUE})")
-print(f"|Delta| : mean {np.abs(de_hat).mean():.4f}  std {de_hat.std():.4f}   (true {DELTA_TRUE})")
+print(f"Delta   : mean {de_hat.mean():.4f}  std {de_hat.std():.4f}   (true {DELTA_TRUE}; "
+      f"{np.sum(de_hat > 0)} of {N_EXPERIMENTS} fits have Delta > 0)")
 print(f"Omega_R : mean {om_r_hat.mean():.4f}  std {om_r_hat.std():.4f}   (true {np.hypot(OMEGA_TRUE, DELTA_TRUE):.4f})")
 print(f"relative scatter: Omega {100 * om_hat.std() / OMEGA_TRUE:.2f} %,  Delta {100 * de_hat.std() / DELTA_TRUE:.2f} %,  "
       f"Omega_R {100 * om_r_hat.std() / np.hypot(OMEGA_TRUE, DELTA_TRUE):.2f} %")
@@ -1879,24 +1885,22 @@ plt.show()
 # CHECKPOINT: no bias visible at the resolution of 200 repetitions.  The threshold is 5 standard errors of the
 # mean (5 * std / sqrt(200) = 2e-3 here) plus 1e-3 of slack, so that the check also survives PRECISION="single".
 assert abs(om_hat.mean() - OMEGA_TRUE) < 5 * om_hat.std() / np.sqrt(N_EXPERIMENTS) + 1e-3
-assert np.all(np.isfinite(om_hat))
+assert np.all(np.isfinite(om_hat)) and np.all(de_hat > 0)     # every fit stayed in the basin of +DELTA_TRUE
 
 # %% [markdown]
 # The histogram of $\hat\Omega$ is centred on the true value, and its width is the error bar of a *single*
 # experiment with $40\times200$ shots (the red line — our fit from 13.4 — is one draw from this distribution).
 # "Centred" is a statement with a resolution: $200$ repetitions locate the mean only to
 # $\sigma_{\hat\Omega}/\sqrt{200}\approx4\times10^{-4}$, and no bias shows up at that level. Least squares applied to
-# a *non-linear* model is in general only asymptotically unbiased — its bias is of order $1/N_{\rm shots}$, far below
-# what we could see here.
+# a *non-linear* model is in general only asymptotically unbiased: its bias is of the order of the variance of the
+# estimate, $\sigma_{\hat\Omega}^2\approx3\times10^{-5}$, far below what we could see here.
 # The scatter plot reveals structure that a single fit hides: $\hat\Omega$ and $\hat\Delta$ are **anti-correlated**
 # along the circle $\Omega^2+\Delta^2=\Omega_R^2$. The data pin down the oscillation *frequency* $\Omega_R$ very
 # precisely (relative scatter $\approx0.2\,\%$, against $\approx0.6\,\%$ for $\Omega$ and $\approx2\,\%$ for $\Delta$) whereas
 # the *contrast* $\Omega^2/\Omega_R^2$, which distributes $\Omega_R$ between $\Omega$ and $\Delta$, is blurred by shot
-# noise. Frequencies are the best-measured quantities in physics — this is why.
-#
-# A dozen lines of code carried out 200 experiments $\times$ 150 gradient steps $\times$ (forward + backward pass
-# through 40 RK4 steps), organised by four nested transformations, none of which required rewriting the physics code
-# `rabi_trajectory`, written for one atom and one parameter set.
+# noise. A frequency is fixed by the positions of many oscillation periods, which is why frequencies are among the
+# most precisely measured quantities in physics. None of the transformations used here required a change to
+# `rabi_trajectory`, which was written for one atom and one parameter set.
 
 # %% [markdown]
 # ## 14. Cheat sheets
@@ -1962,7 +1966,7 @@ assert np.all(np.isfinite(om_hat))
 #   $\Omega_R=\sqrt{\Omega^2+\Delta^2}$; the chevron; $P_e(t)$ determines $\Omega_R$ precisely, $|\Delta|$ less so,
 #   and the sign of $\Delta$ not at all.
 # * **Working habit**: every numerical result above was compared with an independent reference (analytic formula,
-#   NumPy, finite differences, a second algorithm). We will keep this habit in every notebook.
+#   NumPy, finite differences, a second algorithm).
 #
 # ## 16. Exercises
 #
@@ -1991,11 +1995,11 @@ assert np.all(np.isfinite(om_hat))
 #    `(params, velocity)`, both pytrees). How many iterations do you save? Try also to fit with the initial guess
 #    $(2.4, 0.2)$ after *first* running the coarse grid search of Step 5 to initialise.
 # 8. ★★★ **Cramér–Rao check.** For Gaussian noise of variance $\sigma_k^2=P_k(1-P_k)/N_{\rm shots}$ the covariance of
-#    the best unbiased estimator is the inverse of the Fisher matrix $F_{ab}=\sum_k \sigma_k^{-2}\,\partial_a P_k\,
+#    any unbiased estimator is bounded below by the inverse of the Fisher matrix $F_{ab}=\sum_k \sigma_k^{-2}\,\partial_a P_k\,
 #    \partial_b P_k$. Obtain the derivatives $\partial P_k/\partial(\Omega,\Delta)$ with `jax.jacobian(model)`, compute
 #    $F^{-1}$, and compare its diagonal and its correlation coefficient with the scatter measured in Section 13.5.
-#    (Our loss is *unweighted*, so our estimator is not the maximum-likelihood one and $F^{-1}$ is only a
-#    lower bound — the interesting question is by how much it is missed.)
+#    (Our loss is *unweighted*, so our estimator is not the maximum-likelihood one; find by how much it misses the
+#    bound.)
 #
 # ## 17. References
 #

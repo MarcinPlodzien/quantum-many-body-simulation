@@ -17,9 +17,8 @@
 # Formulas of this kind are called **index notation** (Einstein used them in 1916 to tame the equations of general
 # relativity; today they are equally the working language of quantum many-body physics, tensor networks and machine learning).
 # The function `einsum` ("Einstein summation") turns such a formula into running code **literally**: the formula above is
-# `einsum("ab,xbz->xaz", M, psi)`. Once you can read and write these little strings fluently, the simulator that we build in
-# this course becomes almost trivial to understand: its core routine is *one* `einsum` call whose string is assembled
-# by a few lines of Python.
+# `einsum("ab,xbz->xaz", M, psi)`. The core routine of the simulator built in this course is *one* `einsum` call whose
+# string is assembled by a few lines of Python.
 #
 # **Why it matters.** The textbook way of acting on spin $q$ is to build the $2^N\times2^N$ matrix
 # $\mathbb 1\otimes\dots\otimes M\otimes\dots\otimes\mathbb 1$ and multiply. For $N=20$ this matrix has $2^{40}\approx10^{12}$
@@ -40,7 +39,7 @@
 # `reshape` and `transpose` really do. Sections 7-9: composite indices (a $4\times4$ matrix *is* a $(2,2,2,2)$ tensor),
 # the Kronecker product and partial traces. Sections 10-13: tensor-network diagrams, batched contractions, the cost of a
 # contraction and why the order matters, `einsum` vs `tensordot` vs `matmul`. Section 14: building einsum strings
-# *programmatically*. Section 15: einsum in JAX (`jit`, `vmap`, `grad`) with timings of the compiled functions. Section 16: a light preview of
+# *programmatically*. Section 15: einsum in JAX (`jit`, `vmap`, `grad`) with timings of the compiled functions. Section 16: a preview of
 # notebook 05. Then summary, exercises (with self-checking `assert`s), references, and solutions at the very end.
 #
 # ### What you will learn
@@ -157,7 +156,7 @@ check("matvec: einsum vs  A @ x", y_einsum, y_numpy)
 #
 # $$ \text{out}_{\text{free}} = \sum_{\text{summed}} \;\prod_{\text{inputs } T} T_{\text{labels of } T}. $$
 #
-# That is all there is. Everything below is an application of these three rules.
+# Everything below is an application of these three rules.
 #
 # > **Common pitfall.** Letters are case sensitive (`a` and `A` are different indices), and only letters are allowed (52 labels).
 # > NumPy also accepts strings without `->` ("implicit mode": the output consists of all letters that appear exactly once, *sorted
@@ -197,7 +196,7 @@ print("without conj we would get", np.einsum("i,i->", ac, bc), " instead of", np
 # > $\langle a|$ has components $a_i^*$, so you must pass `a.conj()` yourself (`np.vdot` does it for you, `np.dot` does not).
 # > The last printed line shows that forgetting the conjugate gives a different, wrong number -- with no error message.
 #
-# ### 3.2 Matrix times matrix: $C_{ik}=\sum_j A_{ij}B_{jk}$ -- the famous triple loop
+# ### 3.2 Matrix times matrix: $C_{ik}=\sum_j A_{ij}B_{jk}$ -- the triple loop
 
 # %%
 # ==============================================================================
@@ -390,12 +389,12 @@ for subscripts, ops in tests:
     check(f"naive_einsum('{subscripts}')", naive_einsum(subscripts, *ops), np.einsum(subscripts, *ops))
 
 # %% [markdown]
-# Our 25 lines reproduce `np.einsum` on all thirteen strings. **`einsum` is a notation for nested loops**, nothing more.
-# What the library adds is *speed*: it maps the loops onto optimized compiled kernels (and, in JAX, onto whatever the
+# Our 25 lines reproduce `np.einsum` on all thirteen strings: **`einsum` is a notation for nested loops**, and what the
+# library adds is *speed*: it maps the loops onto optimized compiled kernels (and, in JAX, onto whatever the
 # XLA compiler finds best for your CPU or GPU).
 #
 # > **Numerical practice.** `naive_einsum` doubles as a *reference implementation*: whenever you are unsure about a clever
-# > string, test it on small random arrays against the dumb loops. Random inputs with **all dimensions different**
+# > string, test it on small random arrays against the plain loops. Random inputs with **all dimensions different**
 # > (e.g. shapes like `(2,3,4)`) catch index mix-ups that square or symmetric test data would hide.
 
 # %% [markdown]
@@ -469,7 +468,7 @@ for k in range(8):
     print(f"   {k}    | {tuple(int(s) for s in np.unravel_index(k, (2, 2, 2)))}  | {k:03b}")
 
 # %% [markdown]
-# The table is worth memorizing in spirit: flat index 5 = binary `101` = $(s_0,s_1,s_2)=(1,0,1)$. When later notebooks
+# Example: flat index 5 = binary `101` = $(s_0,s_1,s_2)=(1,0,1)$. When later notebooks
 # label basis states of $N$ spins by bit strings like $|101\rangle$, the position of that state in the state vector is exactly this number.
 #
 # ### 5.3 `reshape`: same memory line, new index grouping
@@ -1132,16 +1131,16 @@ for n, tl, tr in zip(sizes, t_left, t_right):
 ratio_largest = t_left[-1] / t_right[-1]
 
 # %% [markdown]
-# The two curves follow the predicted slopes $n^3$ and $n^2$, with deviations of up to a factor of a few between neighbouring points: the printed
-# floating-point rates show that neither kernel is equally efficient at all sizes (fixed call overheads at small $n$, cache blocking and memory
-# traffic at large $n$). The ratio of the two times grows from a few at $n=100$ to one or two orders of magnitude at the largest sizes (the exact
-# numbers, printed above, depend on the machine and on what else it is doing).
+# Over the whole range the two curves roughly follow the predicted slopes $n^3$ and $n^2$. Between neighbouring points the deviations can be large: the
+# printed floating-point rates show that neither kernel is equally efficient at all sizes (fixed call overheads at small $n$, cache blocking and
+# memory traffic at large $n$, competition with other programs). The ratio of the two times grows from a few at $n=100$ to one or two orders of
+# magnitude at the largest sizes; the exact numbers depend on the machine and on what else it is doing.
 #
-# The measured time ratio stays well *below* the work ratio $n/2$, and the two printed floating-point rates say why. A matrix-matrix product reads
-# each matrix entry once and then uses it $n$ times, so the processor can be kept busy and the kernel reaches a large fraction of the peak rate; a
-# matrix-vector product uses each entry exactly *once*, so it is limited by how fast the matrix can be streamed from memory and runs at a much lower
-# rate. The time ratio is the work ratio $n/2$ divided by the ratio of the two rates. Nothing about the *result* tells you that you wasted this
-# factor -- you have to count.
+# The time ratio is the work ratio $n/2$ divided by the ratio of the two printed floating-point rates. A matrix-matrix product reads each matrix
+# entry once and then uses it $n$ times, so on an otherwise idle processor it reaches a large fraction of the peak rate; a matrix-vector product uses
+# each entry exactly *once* and is limited by how fast the matrix can be streamed from memory. On a quiet machine the first rate is therefore several
+# times the second and the time ratio stays well below $n/2$; when other programs compete for the processor and its caches, both rates drop and
+# their ratio shifts. The result itself does not reveal the wasted factor; counting the operations does.
 #
 # ### 12.3 einsum with three operands
 #
@@ -1233,8 +1232,8 @@ with single_thread():
         print(f"{name:<24s} {best_time(fn, repeat=3) * 1e3:8.2f} ms   (one thread)")
 
 # %% [markdown]
-# All routes give the same numbers to round-off. Their speed differs -- plain `np.einsum` is the slowest here by a wide margin, and the route that ends in a plain matrix product is the fastest --
-# because under the hood they use different kernels: plain `np.einsum` runs its own
+# All routes give the same numbers to round-off. Plain `np.einsum` is the slowest by a wide margin, because the routes use different kernels:
+# plain `np.einsum` runs its own
 # generic loops, whereas `tensordot`, `matmul` and `einsum(..., optimize=True)` hand the work to the optimized matrix-multiplication library (BLAS) after
 # suitable transposes and reshapes. (In JAX these differences largely disappear, because all of them are lowered to the same XLA operation and compiled.)
 #
@@ -1438,13 +1437,13 @@ print(f"  JAX    jit, first call (compile): {t_compile * 1e3:9.2f} ms")
 print(f"  JAX    jit, later calls         : {t_jit * 1e3:9.2f} ms     speed-up vs NumPy: {t_np / t_jit:.1f}x")
 
 # %% [markdown]
-# The results agree, and the orthogonal matrix conserves the norm, as it must. The timings depend strongly on the machine and on how busy it is -- in
-# our runs the compiled sweep came out between about 3 and 20 times faster than `np.einsum` -- but the mechanism behind the ordering is fixed:
-# plain `np.einsum` is slow for this kind of contraction, because its generic loops cope badly with many axes of length 2 (`optimize=True`, or the
-# `tensordot` route of Section 13, narrows the gap but does not close it); JAX lowers each einsum to a
-# compiled tensor-contraction kernel, and that is where most of the difference comes from. `jit` additionally removes the per-call Python and dispatch
-# overhead and lets XLA plan all 18 steps together; on a CPU, where the 18 kernels already dominate the run time, that last gain is small, and the
-# eager and the compiled number can come out equal.
+# The results agree, and the orthogonal matrix conserves the norm, as it must. The timings depend strongly on the machine and on how busy it is.
+# Plain `np.einsum` runs its generic loops on one core and copes badly with many axes of length 2 (`optimize=True`, or the `tensordot` route of
+# Section 13, narrows the gap); JAX lowers each einsum to a compiled tensor-contraction kernel, which XLA may spread over several cores. On an
+# otherwise idle laptop the compiled sweep is typically several times to twenty times faster than `np.einsum`; on a machine whose cores are busy with other work the
+# advantage shrinks and can vanish, so compare the printed numbers. `jit` additionally removes the per-call Python and dispatch overhead and lets
+# XLA plan all 18 steps together; on a CPU, where the 18 kernels dominate the run time, that last gain is small, and the eager and the compiled
+# numbers can come out equal.
 # (Eager JAX compiles too, only piecewise: each of the 18 distinct einsum strings is compiled the first time it is met -- the warm-up call inside `best_time` absorbs
 # that cost, which on a GPU can amount to several seconds.)
 # The price is the **compile time** of the first call, which is paid once per combination of input shapes and dtypes. For a time evolution with
@@ -1524,7 +1523,7 @@ check("grad of 'i,ij,j->' w.r.t. A  =  outer product 'i,j->ij'", jax.grad(biline
 # %% [markdown]
 # ## 16. Preview: three spins and "acting on the middle index"
 #
-# Everything is now in place for a first glimpse of where the course is heading (the systematic treatment is notebook
+# The tools above are enough to act on a three-spin state (the systematic treatment is notebook
 # [05_matrix_free_operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb), after the physics of spin chains in notebooks 03-04).
 #
 # **States.** From your quantum-mechanics course: a spin-1/2 has the basis states $|{\uparrow}\rangle\equiv|0\rangle=(1,0)^T$ and $|{\downarrow}\rangle\equiv|1\rangle=(0,1)^T$. A state of three spins is
@@ -1721,7 +1720,7 @@ run_exercise(3, ex3_answer, check_ex3)
 # **Exercise 4 (★★) -- partial transpose.** For a matrix $M$ on a composite space $(d_A,d_B)$ the *partial transpose* with respect to $B$ swaps the row and column index of subsystem $B$ only:
 # $\big(M^{T_B}\big)_{(ab),(cd)}=M_{(ad),(cb)}$. Implement `partial_transpose_B(M, dA, dB)` with one reshape, one einsum and one reshape. For product operators it must give
 # $(A\otimes B)^{T_B}=A\otimes B^T$. (The partial transpose is the key to detecting entanglement in mixed states; it returns in
-# notebook 25 of Chapter 9, on the entanglement negativity.)
+# [25 — entanglement negativity](../ch09_entanglement_and_complexity/25_entanglement_negativity.ipynb).)
 
 # %%
 def check_ex4(partial_transpose_B):

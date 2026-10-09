@@ -61,7 +61,7 @@
 # * Statistical validation: comparing a Monte-Carlo estimate with an exact number *in units of its standard error*.
 #
 # ### Prerequisites
-# * [01 — JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, `lax.scan`, PRNG keys.
+# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, `lax.scan`, PRNG keys.
 # * [02 — einsum from scratch](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb): index notation, traces as repeated letters.
 # * [05 — Matrix-free operators](05_matrix_free_operators.ipynb): the state tensor and `apply_gate` (we reuse it on every page here).
 # * [06 — States, observables, entanglement](06_states_observables_entanglement.ipynb): GHZ states, reduced density

@@ -75,7 +75,7 @@
 # * keeping the density tensor out of the calculation whenever a small reduced density matrix suffices.
 #
 # ### Prerequisites
-# * [01 — JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb) and
+# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb) and
 #   [02 — einsum from scratch](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb);
 # * [06 — states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb):
 #   reduced density matrices, Schmidt decomposition, entanglement entropy;

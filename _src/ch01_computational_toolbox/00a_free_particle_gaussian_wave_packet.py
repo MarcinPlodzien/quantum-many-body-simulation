@@ -3,11 +3,10 @@
 #@description: The very first notebook of the course: we non-dimensionalise the free Schrödinger equation, solve it exactly on paper, then solve it on a computer with finite differences and with the Fourier method, and watch the packet spread, move and interfere with itself on a ring — with animations and a full numerics-versus-analytics error analysis.
 
 # %% [markdown]
-# ## 1. Introduction: the case for simulation, and for starting here
+# ## 1. Introduction
 #
-# Welcome. This is the **first notebook of the course**, and quite possibly the first time you will use a computer
-# not as a calculator but as a *laboratory* — a place where a quantum system is set up, evolved in time, measured,
-# and compared with what pencil and paper predict.
+# This notebook uses a computer as a *laboratory*: a quantum system is set up, evolved in time, measured, and
+# compared with what pencil and paper predict.
 #
 # ### 1.1 Theory, numerics, experiment
 #
@@ -34,22 +33,22 @@
 #
 # ### 1.2 Why our first system has a known exact solution
 #
-# There is an iron rule in computational physics:
+# One rule of computational physics comes before all others:
 #
 # > **Numerical practice.** Never trust a simulation you have not tested against something you know independently.
 # > The first run of any new code is on a problem whose answer you already have — an exact solution, a
 # > conservation law, a known limit, or a second, completely different algorithm.
 #
-# The reason is brutal: a program with a wrong sign, a factor of $2$, or an index off by one will happily run and
+# A program with a wrong sign, a factor of $2$, or an index off by one will happily run and
 # produce smooth, plausible, beautifully coloured, *wrong* pictures. Nothing in the output says "I am wrong".
 # The only defence is a reference.
 #
-# The **free particle** — no forces, no potential — is the perfect first patient. Its Schrödinger equation can be
+# The **free particle** — no forces, no potential — is a natural first test case. Its Schrödinger equation can be
 # solved in closed form for a Gaussian initial state, giving formulas for the position, the width, and the full
 # wave function at any time. So we can put the exact curve and the computed curve on the same plot and *measure*
 # the distance between them.
 #
-# And "agreement" has a precise meaning. It does **not** mean "the curves look the same". It means:
+# "Agreement" has a precise meaning, stronger than "the curves look the same":
 # *the difference shrinks, when we refine the grid, in the way the theory of the method predicts* — for the
 # finite-difference method we will derive, the error must fall like $(\Delta x)^2$; halve the grid spacing and the
 # error must drop by a factor of four. If it does, the code is almost certainly right. If it does not, something
@@ -65,9 +64,10 @@
 # * the lump **moves** with the group velocity $\hbar k_0/m$, exactly as a classical particle would;
 # * the lump **spreads**, because a localised state necessarily contains a range of momenta
 #   ($\sigma_x \sigma_k \ge 1/2$ — the uncertainty relation), and different momentum components travel at
-#   different speeds. The spreading has no classical analogue whatsoever.
+#   different speeds. A classical swarm of particles with the same spread of velocities spreads in exactly the
+#   same way (Section 8.3); the quantum part is that a localised state cannot avoid having that spread.
 #
-# This is not an academic exercise. It is what happens
+# The same spreading happens
 #
 # * to an **electron** emitted from a tip or a photocathode, and in every simulation of electron transport;
 # * to a cloud of **ultracold atoms** the instant the trap holding it is switched off — the standard
@@ -76,7 +76,7 @@
 # * in **matter-wave interferometry**, where a single atom or molecule is split into two packets that
 #   spread, travel, and are recombined to interfere.
 #
-# The numbers differ wildly. We will compute them in Section 2, but here is the punchline: a $1\,\mathrm{nm}$
+# The time scales differ enormously (Section 2 computes them): a $1\,\mathrm{nm}$
 # electron packet doubles its width in a few tens of femtoseconds, while a $1\,\mu\mathrm{m}$ cloud of rubidium
 # atoms takes a few milliseconds — eleven orders of magnitude apart, and yet, as we will see, *the same
 # simulation* describes both.
@@ -85,7 +85,7 @@
 #
 # * **Section 2** — the free Schrödinger equation in SI units, and **non-dimensionalisation**: how we strip
 #   $\hbar$ and $m$ out of the equation by measuring lengths, times and energies in units built from the problem
-#   itself. This is done once, very slowly, because we will do it in every notebook of this course.
+#   itself.
 # * **Section 3** — the exact solution of the free Schrödinger equation: Fourier transform, Gaussian integral, free propagation,
 #   transform back. Results: $\langle x \rangle(t)$, $\sigma(t)$, the chirp, the uncertainty product.
 # * **Section 4** — the **grid**: what an array holds, what periodic boundary conditions mean, which wave numbers
@@ -125,7 +125,7 @@
 #
 # *Implementation practice*
 # * turning integrals into array sums, and formulas into vectorised code;
-# * `jax.jit`, `jax.vmap` and `lax.scan` in their simplest possible setting (each explained in two sentences);
+# * `jax.jit`, `jax.vmap` and `lax.scan` in their simplest possible setting;
 # * validating every step with `assert` against the analytic result;
 # * producing animated GIFs from matplotlib and embedding them in a notebook without leaving files behind.
 #
@@ -143,7 +143,7 @@
 # energies, quenches the trap frequency, and compares matrix-exponential propagation with a Runge–Kutta
 # integrator. Everything about potentials, eigenstates and ODE integrators is left to that notebook; here the
 # particle is free. After it comes
-# [01 — JAX from scratch](01_jax_from_scratch.ipynb), which explains properly the library we use for the heavy
+# [01 — JAX](01_jax_from_scratch.ipynb), which explains properly the library we use for the heavy
 # lifting. Today we use only three of its features and explain each one where it appears.
 
 # %% [markdown]
@@ -172,7 +172,7 @@
 # **non-dimensionalisation**: measure every quantity in units built out of the problem itself, so that the equation
 # contains only pure numbers.
 #
-# Here comes the subtlety that makes the free particle special. Equation (1) contains two constants,
+# The free particle has one peculiarity. Equation (1) contains two constants,
 # $\hbar$ and $m$. From them alone you *cannot* build a length: $\hbar$ has units
 # $\mathrm{J\,s} = \mathrm{kg\,m^2\,s^{-1}}$ and $m$ has units $\mathrm{kg}$, so $\hbar/m$ has units
 # $\mathrm{m^2\,s^{-1}}$ — a diffusion constant, not a length. **The free particle has no intrinsic length scale.**
@@ -221,9 +221,8 @@
 #
 # $$ i\,\frac{\partial \psi(x,t)}{\partial t} \;=\; -\frac{1}{2}\,\frac{\partial^2 \psi(x,t)}{\partial x^2} . \tag{2} $$
 #
-# No $\hbar$, no $m$. **This is the equation we will solve for the rest of the notebook.** In these units
-# $\hbar = 1$ and $m = 1$ — a phrase you will meet constantly in the literature, and now you know precisely what it
-# is short for.
+# No $\hbar$, no $m$. **This is the equation we will solve for the rest of the notebook.** It is what the common
+# phrase "units with $\hbar = m = 1$" stands for.
 #
 # ### 2.4 The full set of units
 #
@@ -289,9 +288,9 @@ for name, mass, x0 in cases:
 # ### 2.5 Reading the table
 #
 # For an electron localised to $1\,\mathrm{nm}$ the natural time unit is about $8.6\,\mathrm{fs}$ and the natural
-# energy about $76\,\mathrm{meV}$ — femtosecond physics, as anyone doing ultrafast spectroscopy will confirm. The
+# energy about $76\,\mathrm{meV}$ — the time scale of ultrafast spectroscopy. The
 # packet needs $T_s = 2 m\sigma_0^2/\hbar \approx 17\,\mathrm{fs}$ to grow from $1\,\mathrm{nm}$ to
-# $\sqrt{2}\,\mathrm{nm}$. An electron simply cannot be kept localised.
+# $\sqrt{2}\,\mathrm{nm}$. A free electron does not stay localised for long.
 #
 # For a rubidium-87 atom localised to $1\,\mu\mathrm{m}$ — a typical cold-atom cloud — the time unit is about
 # $1.4\,\mathrm{ms}$ and the energy unit corresponds to about $116\,\mathrm{Hz}$, which is why cold-atom
@@ -307,9 +306,9 @@ for name, mass, x0 in cases:
 # end.
 #
 # > **Numerical practice.** Non-dimensionalise *before* you write code. Besides the physics argument above, there
-# > is an arithmetic one: computers represent numbers of order $1$ with the smallest relative error, and a code
-# > whose variables are all of order $1$ is one where a printed value of $10^{-12}$ unambiguously means "zero to
-# > round-off" and $10^{3}$ means "something is wrong".
+# > is an arithmetic one: floating-point numbers carry the same relative precision at every magnitude, but only in a
+# > code whose variables are all of order $1$ does a printed value of $10^{-12}$ unambiguously mean "zero to
+# > round-off" and $10^{3}$ mean "something is wrong".
 
 # %% [markdown]
 # ## 3. The exact solution of the free Schrödinger equation
@@ -325,7 +324,7 @@ for name, mass, x0 in cases:
 # $$ \psi(x,0) \;=\; \left(2\pi\sigma_0^{2}\right)^{-1/4}\,
 #    \exp\!\left[-\frac{(x-x_c)^{2}}{4\sigma_0^{2}}\right]\, e^{\, i k_0 x} . \tag{3} $$
 #
-# Three parameters: the centre $x_c$, the width $\sigma_0$, the central wave number $k_0$. Note the **4** in the
+# Three parameters: the centre $x_c$, the width $\sigma_0$, the central wave number $k_0$. The **4** in the
 # denominator of the exponent: the *amplitude* has width $2\sigma_0$ so that the *density* has width $\sigma_0$,
 #
 # $$ \vert\psi(x,0)\vert^{2} \;=\; \frac{1}{\sqrt{2\pi\sigma_0^{2}}}\,
@@ -383,8 +382,8 @@ for name, mass, x0 in cases:
 #
 # $$ \sigma_k \;=\; \frac{1}{2\sigma_0} , \qquad\text{so}\qquad \sigma_x \sigma_k = \tfrac12 \;\; \text{at } t=0 : $$
 #
-# the Gaussian packet is a **minimum-uncertainty state**. Narrow in $x$ means wide in $k$ — remember this, it is
-# the cause of everything that follows.
+# the Gaussian packet is a **minimum-uncertainty state**. Narrow in $x$ means wide in $k$, and this width in $k$
+# drives the spreading derived below.
 #
 # ### 3.3 Step 2 — evolve, which in momentum space is trivial
 #
@@ -400,8 +399,8 @@ for name, mass, x0 in cases:
 # * $\vert\phi(k,t)\vert = \vert\phi(k,0)\vert$: **the momentum distribution never changes.** A free particle
 #   cannot change its momentum — there is no force. Every measurable property of the momentum ($\langle p\rangle$,
 #   $\sigma_p$, the whole distribution) is a constant of the motion. This will be one of our numerical checks.
-# * Different $k$ evolve with different phase velocities $\omega(k)/k = k/2$. A superposition of many $k$ therefore
-#   gets out of step with itself — and *that* is why the packet spreads.
+# * Different $k$ travel with different group velocities $d\omega/dk = k$, because $\omega(k)$ is curved. A
+#   superposition of many $k$ therefore pulls apart, and that is why the packet spreads.
 #
 # ### 3.4 Step 3 — transform back
 #
@@ -465,7 +464,7 @@ for name, mass, x0 in cases:
 #
 # $$ t_s = 2\sigma_0^{2} \qquad\Longleftrightarrow\qquad T_s = \frac{2m\sigma_0^{2}}{\hbar}\ \text{in SI units} , $$
 #
-# the number we tabulated in Section 2. Note the counter-intuitive scaling: **narrower packets spread faster**
+# the number we tabulated in Section 2. The scaling is counter-intuitive: **narrower packets spread faster**
 # ($t_s \propto \sigma_0^2$), because they contain a wider range of momenta.
 #
 # **(b) The chirp.** The imaginary part of the exponent gives a phase that is *quadratic in $X$*:
@@ -495,8 +494,8 @@ for name, mass, x0 in cases:
 #
 # The **envelope** travels at $k_0$; the **ripples inside it** travel at only $k_0/2$, so in an animation of
 # $\mathrm{Re}\,\psi$ the individual crests continuously fall behind the lump and disappear at its rear edge.
-# For light in vacuum the two velocities coincide; for matter waves they differ by a factor of two. The famous
-# "velocity of a matter wave" of de Broglie is the group velocity — the one that carries the probability.
+# For light in vacuum the two velocities coincide; for matter waves they differ by a factor of two. The particle
+# velocity of a de Broglie matter wave is the group velocity, the one that carries the probability.
 #
 # > **Physics insight.** Everything above came from one fact: $\omega(k)$ is *not* linear in $k$. A linear
 # > dispersion (light in vacuum, sound in air) transports any pulse shape rigidly and forever. A curved
@@ -550,11 +549,11 @@ for name, mass, x0 in cases:
 #
 # $$ \psi(x + L, t) = \psi(x, t) \qquad \Longleftrightarrow \qquad \psi_{N_x} \equiv \psi_0 . $$
 #
-# Physically this is not a trick but a system: a particle confined to a **ring** of circumference $L$, free to
+# Physically, periodic boundary conditions describe a particle confined to a **ring** of circumference $L$, free to
 # slide around it. Cold atoms are routinely trapped in exactly such ring geometries.
 #
 # Numerically it is also the most convenient choice: there are no walls, so nothing reflects, and the
-# translational symmetry survives — which, as Section 7 will show, makes plane waves exact eigenstates of the
+# translational symmetry survives — which, as Section 6.2 will show, makes plane waves exact eigenstates of the
 # discretised Hamiltonian and hands us a very fast and very accurate algorithm. Its price is that a packet which
 # runs off the right edge comes back in on the left. As long as the packet is narrow and stays far from the seam,
 # the ring is indistinguishable from the infinite line; when it is not, the physics genuinely changes
@@ -573,7 +572,7 @@ for name, mass, x0 in cases:
 # $$ k_{\max} = \frac{\pi}{\Delta x} \qquad \text{(the Nyquist wave number)} , $$
 #
 # which is the **sampling theorem**: you need at least two grid points per wavelength. Two practical rules follow,
-# and violating either of them is the most common beginner's mistake in this business:
+# and violating either of them is a common mistake:
 #
 # 1. **Choose $k_0$ commensurate with the ring**, $k_0 = 2\pi m/L$ with integer $m$. Otherwise $e^{ik_0x}$ is not
 #    periodic, and the initial state has a discontinuity at the seam $x = L \equiv 0$.
@@ -581,7 +580,7 @@ for name, mass, x0 in cases:
 #    high-$k$ components are **aliased** — the grid silently reads a mode index $m$ as $m - N_x$, and as soon as
 #    $m > N_x/2$ that is *negative*, so the component travels backwards.
 #
-# We will demonstrate both failures deliberately, because a failure you have seen once you will recognise forever.
+# Section 5.1 demonstrates both failures deliberately.
 #
 # ### 4.5 `fftfreq`: the order the wave numbers come in
 #
@@ -637,7 +636,7 @@ print(f"Nyquist wave number pi/dx = {np.pi / dx_demo:.4f}  = largest |k| on the 
 
 # %%
 # ==============================================================================
-# PARAMETERS of the main experiment  (change them and re-run the notebook!)
+# PARAMETERS of the main experiment  (change them and re-run the notebook)
 # ==============================================================================
 L      = 60.0      # circumference of the ring          [units of sigma_0]
 N_X    = 512       # number of grid points              [-]
@@ -671,9 +670,9 @@ print(f"packet at t_max         : <x> = {X_C + K0 * T_MAX:.2f},  sigma = "
 #
 # * They are written for a **ring**, so the mean position needs care: the naive $\sum_j x_j\vert\psi_j\vert^2$ is
 #   meaningless for a packet sitting on top of the seam (half of it at $x\approx 0$, half at $x\approx L$, mean
-#   $\approx L/2$ — the opposite side of the ring!). The standard fix is the **circular mean**: map each point to
-#   the unit circle, $x_j \mapsto e^{2\pi i x_j/L}$, average, and read off the angle. For a Gaussian much narrower
-#   than $L$ this returns exactly the ordinary mean, and it keeps working when the packet crosses the seam.
+#   $\approx L/2$ — the opposite side of the ring). The standard fix is the **circular mean**: map each point to
+#   the unit circle, $x_j \mapsto e^{2\pi i x_j/L}$, average, and read off the angle. For a packet symmetric about
+#   its centre (our Gaussian) this returns the ordinary mean, and it keeps working when the packet crosses the seam.
 # * The width is then measured with the **wrapped distance** to that mean, $d_j = \big((x_j - \bar x + L/2)
 #   \bmod L\big) - L/2$, which is the shortest way around the ring.
 
@@ -721,8 +720,8 @@ def mean_position(psi, x, dx, L):
     MATH
         z = dx sum_j |psi_j|^2 exp(2 pi i x_j / L);   <x> = (L / 2 pi) * arg(z)  (mod L)
     IMPLEMENTATION
-        For a packet much narrower than L this equals dx sum_j x_j |psi_j|^2 exactly (up to round-off),
-        but it also survives a packet sitting on the seam x = 0 == L.
+        For a packet symmetric about its centre and far from the seam this equals dx sum_j x_j |psi_j|^2
+        (up to round-off), and it also survives a packet sitting on the seam x = 0 == L.
     """
     p = np.abs(psi) ** 2 * dx
     z = np.sum(p * np.exp(2j * np.pi * x / L))
@@ -759,11 +758,10 @@ assert abs(packet_width(psi0, x, dx, L) - SIGMA0) < 1e3 * TOL
 print("\nCHECKPOINT passed: sums reproduce integrals to ~1e-15.")
 
 # %% [markdown]
-# Stop and appreciate this printout, because it contains a lesson. We replaced three integrals over the whole real
-# line by three sums of $512$ terms, and got the right answers to **fifteen decimal places**. That is the
-# periodic trapezoidal rule at work: for a smooth function on a ring, the Riemann sum is not a crude approximation
-# but an extremely accurate one. (Try it with a *non*-periodic function and you get the familiar $O(\Delta x^2)$
-# of the trapezoidal rule instead.)
+# We replaced three integrals over the whole real line by three sums of $512$ terms, and got the right answers to
+# **fifteen decimal places**. That is the periodic trapezoidal rule at work: for a smooth function on a ring, the
+# Riemann sum is extremely accurate. (For a *non*-periodic function the same left-endpoint sum is only
+# $O(\Delta x)$ accurate, and $O(\Delta x^2)$ once the two end points get half weight.)
 #
 # The one tiny discrepancy you do see, in the last digit of $\langle x\rangle$, is **round-off error**: a `float64` number
 # carries about $16$ significant decimal digits, so the smallest relative error any computation can have is
@@ -850,7 +848,7 @@ psi_bad = gaussian_packet(x_w, 0.5 * L_w, 2.5, 2.0 * np.pi * 6.5 / L_w)   # m = 
 
 fig, axes = plt.subplots(1, 2, figsize=(11.5, 3.4))
 for psi_c, lab, col, ls in ((psi_good, r"$k_0 L/2\pi = 6$ (commensurate)", C_NUM, "-"),
-                            (psi_bad, r"$k_0 L/2\pi = 6.5$ (not!)", C_ANA, "-")):
+                            (psi_bad, r"$k_0 L/2\pi = 6.5$ (not commensurate)", C_ANA, "-")):
     # roll the array so that the seam x = 0 == L sits in the middle of the picture
     axes[0].plot(np.concatenate([x_w - L_w, x_w])[N_w - 16:N_w + 16],
                  np.concatenate([psi_c.real, psi_c.real])[N_w - 16:N_w + 16], ls + "o", color=col, lw=1.6,
@@ -889,7 +887,7 @@ print(f"\nwe ask for m = {m_right} -> k0 = {2 * np.pi * m_right / L:+8.4f}  (abo
 print(f"the grid stores m = {m_seen} -> k0 = {2 * np.pi * m_seen / L:+8.4f}  <- NEGATIVE: the packet will move LEFT")
 print(f"   max |psi(m={m_right}) - psi(m={m_seen})| = {np.max(np.abs(psi_r - psi_l)):.3e}   (the same array)")
 print(f"   <k> read back from the array           = {np.sum(w_r * k) / np.sum(w_r):+8.4f}"
-      f"   (not {2 * np.pi * m_right / L:+.4f}!)")
+      f"   (requested: {2 * np.pi * m_right / L:+.4f})")
 assert np.sum(w_r * k) / np.sum(w_r) < 0.0, "an over-Nyquist kick is read back as a negative momentum"
 
 # %% [markdown]
@@ -1005,7 +1003,7 @@ assert np.sum(w_r * k) / np.sum(w_r) < 0.0, "an over-Nyquist kick is read back a
 
 # %%
 # ==============================================================================
-# STEP 3: the finite-difference Hamiltonian as an explicit matrix (small N_x only!)
+# STEP 3: the finite-difference Hamiltonian as an explicit matrix (small N_x only)
 #   We build it once, for N_x = 8, to SEE the circulant structure and to CHECK
 #   the eigenvalue formula (10).  For production we never build this matrix.
 # ==============================================================================
@@ -1042,7 +1040,7 @@ assert err_eig < 1e4 * TOL
 print("CHECKPOINT passed: plane waves really are the eigenvectors of the finite-difference Hamiltonian.")
 
 # %% [markdown]
-# The matrix is exactly as advertised: $2$ on the diagonal, $-1$ next to it, and — crucially — a $-1$ in the two
+# The matrix is exactly as advertised: $2$ on the diagonal, $-1$ next to it, and a $-1$ in the two
 # far corners, `H[0, 7]` and `H[7, 0]`, which is where the ring closes. Its eigenvalues agree with the closed-form
 # expression (10) to machine precision, which confirms the whole algebra of Section 6.2.
 #
@@ -1082,18 +1080,18 @@ plt.show()
 # hug them more closely for the finer grid: this is the $O(\Delta x^2)$ of Eq. (9), visible to the eye. Towards
 # the edge of the band the discretisation is simply a different physical theory: $\omega_{\rm FD}$ saturates at
 # $2/\Delta x^2$ instead of growing like $k^2$, and the group velocity, after peaking at $1/\Delta x$, comes
-# back down to zero. Note that each curve stops at its own Nyquist wave number $\pi/\Delta x$ — there is nothing
+# back down to zero. Each curve stops at its own Nyquist wave number $\pi/\Delta x$ — there is nothing
 # to plot beyond it, because the grid holds no such mode.
 #
 # > **Common pitfall.** A "converged-looking" finite-difference simulation can still be wrong if the state
 # > develops structure on the scale of $\Delta x$ (sharp fronts, high-momentum components after hitting a
-# > barrier). The way to find out is never to look at one grid — it is to **run two grids and compare**.
+# > barrier). The way to find out is to **run two grids and compare**.
 
 # %% [markdown]
 # ## 7. Method B — the Fourier (spectral) method
 #
 # Look again at Section 6.3: to apply $e^{-iH_{\rm FD}t}$ we went to Fourier space, multiplied by a phase, and
-# came back. But the *exact* Hamiltonian is diagonal in Fourier space too — that was Eq. (6)! So the very same
+# came back. The *exact* Hamiltonian is diagonal in Fourier space too, Eq. (6). So the very same
 # three steps, with $\omega_{\rm FD}$ replaced by the exact $\omega = k^2/2$, solve the *original* equation:
 #
 # $$ \boxed{\;\psi(x,t) \;=\; \mathrm{IFFT}\Big[\,e^{-i k^{2}t/2}\;\mathrm{FFT}\big[\psi(x,0)\big]\Big] \;} \tag{11} $$
@@ -1126,7 +1124,7 @@ plt.show()
 # > optimised machine program, so the FFT, the multiplication and the inverse FFT run without Python overhead.
 # > `jax.vmap(f)` turns a function written for **one** input into one that handles a whole batch — here, all the
 # > snapshot times at once, without a Python loop. Both are explained properly in
-# > [01 — JAX from scratch](01_jax_from_scratch.ipynb); for now, read `jnp` as "NumPy".
+# > [01 — JAX](01_jax_from_scratch.ipynb); for now, read `jnp` as "NumPy".
 
 # %%
 # ==============================================================================
@@ -1173,23 +1171,22 @@ print(f"  max | |psi_spec|^2 - |psi_ana|^2 | = {np.max(np.abs(np.abs(psi_spec) *
 print(f"  max | |psi_fd|^2   - |psi_ana|^2 | = {np.max(np.abs(np.abs(psi_fd) ** 2 - np.abs(psi_ana) ** 2)):.3e}")
 
 # %% [markdown]
-# There it is: three lines of code, and the packet has moved by $k_0 t = 9.42$ and spread from $1$ to $1.80$,
-# both in agreement with Eq. (8). The spectral result matches the analytic density to $\sim 10^{-14}$ — machine
-# precision. The finite-difference result is visibly worse ($\sim 2\times10^{-2}$ in the density, and its
+# Three lines of code have moved the packet by $k_0 t = 9.42$ and spread it from $1$ to $1.80$, both in agreement
+# with Eq. (8). The spectral result matches the analytic density to $3\times10^{-13}$, the level at which the
+# ring differs from the infinite line (Section 9.1). The finite-difference result is visibly worse ($\sim 2\times10^{-2}$ in the density, and its
 # centre is already $0.23\,\sigma_0$ behind), and the reason is written in Eq. (10): its packet travels at the
 # wrong speed.
 #
 # ### 7.2 Checkpoint: the numerical group velocity of the finite-difference method
 #
-# This is worth making quantitative, because it is a beautiful example of "the code is right, the *model* is
-# different". Since the momentum weights $\vert\phi(k)\vert^2$ never change, the mean position of the
+# This is an example of "the code is right, the *model* is different", and it can be made quantitative. Since the momentum weights $\vert\phi(k)\vert^2$ never change, the mean position of the
 # finite-difference packet moves at the *weighted average* of the discrete group velocity:
 #
 # $$ \langle x\rangle_{\rm FD}(t) = x_c + t \int \vert\phi(k)\vert^{2}\,\frac{\sin(k\Delta x)}{\Delta x}\, dk
 #    = x_c + t\,\frac{\sin(k_0\Delta x)}{\Delta x}\, e^{-\sigma_k^{2}\Delta x^{2}/2} , $$
 #
 # where the last step is the standard Gaussian average
-# $\langle \sin(k\Delta x)\rangle = \sin(k_0\Delta x)\,e^{-\sigma_k^2\Delta x^2/2}$. Note that this says the
+# $\langle \sin(k\Delta x)\rangle = \sin(k_0\Delta x)\,e^{-\sigma_k^2\Delta x^2/2}$. This says that the
 # finite-difference packet moves *exactly linearly in time*, just at the wrong speed. We can measure that speed
 # and compare with the formula — a test of both the code and our understanding.
 
@@ -1231,9 +1228,8 @@ assert abs(v_fd - v_fd_theory) < 1e-9, "the FD velocity must match the discrete 
 print("\nCHECKPOINT passed: both methods move at exactly the speed their own dispersion relation prescribes.")
 
 # %% [markdown]
-# Read this carefully, because it is the most important lesson of the notebook. The finite-difference code is
-# **not buggy**. It solves *its own* equation — the one with dispersion $\omega_{\rm FD}$ — perfectly, to eight
-# decimal places. It is simply that its equation is not the Schrödinger equation; it is a $O(\Delta x^2)$
+# The finite-difference code has **no bug**. It solves *its own* equation — the one with dispersion $\omega_{\rm FD}$ — perfectly, to eight
+# decimal places. It is simply that its equation is not the Schrödinger equation; it is an $O(\Delta x^2)$
 # approximation to it, and on this coarse grid ($k_0\Delta x = 1.47$ radians per grid point, i.e. only
 # $2\pi/1.47 \approx 4.3$ points per wavelength) that approximation costs a third of the velocity.
 #
@@ -1368,7 +1364,7 @@ print("\nCHECKPOINT passed: both methods move at exactly the speed their own dis
 #
 # **A warning about the ring.** These formulas use the *coordinate* $x_j\in[0,L)$, which jumps from $L$ back to
 # $0$ at the seam. They are therefore only meaningful while the packet is far from the seam. Once it wraps
-# around, $\langle x\rangle$ in this naive sense is not merely inaccurate, it is *ill-defined*: on a circle there
+# around, $\langle x\rangle$ in this naive sense is *ill-defined*: on a circle there
 # is no such thing as "the average angle". The proper observable is the complex number
 # $\langle e^{2\pi ix/L}\rangle$, whose modulus measures how localised the state is on the ring and whose phase
 # gives the circular mean — exactly the quantity our `mean_position` function returns. In this section we stay
@@ -1531,9 +1527,10 @@ print(f"   predicted by the stencil <p> = {p_fd_pred:.10f}   <p^2> = {p2_fd_pred
 print(f"   relative error of the finite-difference <p>: {abs(obs['p_fd'][0] - K0) / K0:.3e}"
       f"   (leading term k0^2 dx^2/6 = {K0 ** 2 * dx ** 2 / 6:.3e})")
 print(f"   ... and the VARIANCE: exact {obs['var_p'][0]:.6f}  vs  finite differences {obs['var_p_fd'][0]:.6f}"
-      f"   -> {100 * abs(obs['var_p_fd'][0] / obs['var_p'][0] - 1):.0f} % error!")
-print(f"       (because Var(p) = {float(np.sum(w0 * k ** 2)):.4f} - {obs['p'][0] ** 2:.4f} is a small difference "
-      "of two big numbers: a 1 % error in each is a 100 % error in the result)")
+      f"   -> {100 * abs(obs['var_p_fd'][0] / obs['var_p'][0] - 1):.0f} % error")
+print(f"       (Var(p) = {float(np.sum(w0 * k ** 2)):.4f} - {obs['p'][0] ** 2:.4f} is a small difference of two big "
+      f"numbers; the stencils are off by {obs['p2_fd'][0] / float(np.sum(w0 * k ** 2)) - 1:+.1%} in <p^2> and "
+      f"{obs['p_fd'][0] ** 2 / obs['p'][0] ** 2 - 1:+.1%} in <p>^2, and these errors do not cancel)")
 assert abs(obs["p_fd"][0] - p_fd_pred) < 1e-10 and abs(obs["p2_fd"][0] - p2_fd_pred) < 1e-10
 
 # ------------------------------------------------------------------------------
@@ -1609,14 +1606,16 @@ plt.show()
 # * **width and chirp** — $\mathrm{Var}(x)$ is the *parabola* of Eq. (16), not a straight line: the packet spreads
 #   ballistically, with the classical variance-addition law. The grey covariance $C(t)$ grows linearly, right on
 #   top of $t/(4\sigma_0^2)$: the chirp builds up at a constant rate;
-# * **momentum** — a flat line to thirteen digits. No force, no change. The green triangles are the *same
+# * **momentum** — a flat line to $10^{-15}$. No force, no change. The green triangles are the *same
 #   physical state* measured with the central-difference operator: they sit visibly below, by
 #   $k_0^2\Delta x^2/6 \approx 2\times10^{-2}$ relative — a $2\%$ error on a grid that reproduces the density
 #   to $10^{-14}$;
 # * **momentum spread** — and here the finite-difference estimate is not $2\%$ wrong but $137\%$ wrong: the
 #   green triangles sit at $0.59$ where the answer is $0.25$, more than twice too large. Nothing new broke:
 #   $\mathrm{Var}(p) = \langle p^2\rangle - \langle p\rangle^2 = 10.12 - 9.87 = 0.25$ is a *small difference of
-#   two large numbers*, so a $1\%$ error in each of them is a $100\%$ error in the result. This is
+#   two large numbers*. The stencils make $\langle p^2\rangle$ $1.3\%$ too small ($-0.13$) and
+#   $\langle p\rangle^2$ $4.8\%$ too small ($-0.47$); the errors do not cancel, and their difference, $0.34$,
+#   is larger than the answer itself. This is
 #   **catastrophic cancellation**, and it is the single most common way for a perfectly reasonable-looking
 #   program to produce nonsense;
 # * **uncertainty product** — starts exactly at the Heisenberg minimum $1/4$ and grows as $t^2$; the Gaussian is
@@ -1652,8 +1651,8 @@ plt.show()
 # the rest are astronomically small.
 #
 # If instead we compared with the infinite-line formula alone, we would see an error **floor** at the level of the
-# tail of the packet at the seam — not a defect of the method, but of the reference. We will plot both, because
-# seeing that floor once teaches you to ask "what am I comparing against?" for the rest of your life.
+# tail of the packet at the seam, a defect of the reference rather than of the method. We plot both, because that
+# floor shows why every error must be read together with the question "what am I comparing against?".
 #
 # ### 9.2 How to read a convergence plot
 #
@@ -1675,7 +1674,7 @@ plt.show()
 
 # %%
 # ==============================================================================
-# STEP 6: the convergence test -- the single most important cell of this notebook
+# STEP 6: the convergence test
 # ==============================================================================
 def psi_exact_ring(x, t, x_c, sigma0, k0, L, n_images=6):
     """Exact solution on the RING, by the method of images -- Eq. (19).
@@ -1764,8 +1763,6 @@ fig.tight_layout()
 plt.show()
 
 # %% [markdown]
-# **This plot is the whole scientific method in one picture.**
-#
 # * The green finite-difference points fall on a straight line of slope $2$ (the dotted guide). Fitted over the
 #   well-resolved grids ($N_x \ge 256$) the slope is $p = 1.99$ — precisely what the Taylor expansion (9)
 #   predicted, and the small deficit is the next term of the expansion, $O(\Delta x^4)$. The method works, and we
@@ -1776,14 +1773,14 @@ plt.show()
 #   answer is exact to double precision. That is **spectral accuracy**, and it is the reason the Fourier method
 #   dominates this field.
 # * The orange curve is the same Fourier calculation compared with the *infinite-line* formula. It flattens out
-#   at $\sim 10^{-8}$ — not because the method fails, but because at $t=6$ the tail of the packet has reached the
-#   seam at the $10^{-8}$ level and the ring is genuinely a different system. **The error you measure is only as
+#   at $4$–$7\times10^{-9}$ because at $t=6$ the tail of the packet has reached the seam at that level, and the
+#   ring is a different system. **The error you measure is only as
 #   good as the reference you measure it against.**
 # * Right panel: at $N_x = 128$ the Fourier method is already **fourteen** orders of magnitude better than
 #   finite differences ($2.8\times10^{-15}$ against $2.9\times10^{-1}$), for the same memory and essentially the
 #   same run time. To match that with the three-point stencil you would have to shrink $\Delta x$ by
-#   $\sqrt{2.9\times10^{-1}/2.8\times10^{-15}} \approx 10^{7}$ — that is $\sim 10^{9}$ grid points, which no
-#   computer will hold, and long before you got there the round-off floor would stop you anyway.
+#   $\sqrt{2.9\times10^{-1}/2.8\times10^{-15}} \approx 10^{7}$ — that is $\sim 10^{9}$ grid points ($20\,$GB for
+#   one complex array), and long before that the round-off in $1-\cos(k\Delta x)$ would stop you anyway.
 #
 # ### 9.3 Conservation laws: the checks you can run without an exact solution
 #
@@ -1843,7 +1840,7 @@ print("\nCHECKPOINT passed: norm, <k> and <E> conserved; <x>(t) and sigma(t) mat
 #   dispersion relation, and $\omega''_{\rm FD}(k_0) = \cos(k_0\Delta x) = 0.933 < 1 = \omega''(k_0)$. Replacing
 #   $\tau = t/(2\sigma_0^2)$ by $0.933\,\tau$ in Eq. (8) gives $\sigma_{\rm FD}(8) = 3.864$ against the exact
 #   $4.123$, a deficit of $0.259$ — compare the $0.2652$ in the table; the same estimate reproduces the whole
-#   column ($0.015, 0.047, 0.119, 0.259$ at $t=1,2,4,8$) to a few per cent. Note that this deficit is *not*
+#   column ($0.015, 0.047, 0.119, 0.259$ at $t=1,2,4,8$) to a few per cent. This deficit is *not*
 #   linear in $t$; it only becomes so once $\tau\gg1$.
 #
 # Two remarks about these checks:
@@ -1851,8 +1848,8 @@ print("\nCHECKPOINT passed: norm, <k> and <E> conserved; <x>(t) and sigma(t) mat
 # * The norm, $\langle k\rangle$ and $\langle E\rangle$ are conserved **by construction** here: our propagator
 #   multiplies each Fourier coefficient by a pure phase, which cannot change $\vert\phi(k)\vert$. So these checks
 #   cannot detect a wrong dispersion relation — but they *do* catch the most common implementation bugs (a wrong
-#   `fftfreq` scaling, a missing $2\pi$, an `fft`/`ifft` normalisation mix-up), and they are the *only* checks you
-#   will have in notebook 00b once a potential makes the Hamiltonian non-diagonal in $k$. Run them always.
+#   `fftfreq` scaling, a missing $2\pi$, an `fft`/`ifft` normalisation mix-up), and they remain available when a
+#   potential makes the Hamiltonian non-diagonal in $k$ and an exact solution is usually missing. Run them always.
 # * The agreement of $\langle x\rangle$ and $\sigma$ with Eq. (8) is a genuinely independent test: nothing in the
 #   code knows about Eq. (8).
 #
@@ -1897,16 +1894,16 @@ for N in (128, 256, 512):
           f"{N ** 3:10d} {N * np.log2(N):13.0f}")
 
 # %% [markdown]
-# Diagonalising the $N_x\times N_x$ matrix costs **three to four and a half orders of magnitude** more than one
-# propagation step (read the `ratio` column of your own run; the exact value depends on the machine),
-# and the gap widens with $N_x$: the operation count is $N_x^3 = 1.3\times10^{8}$ at $N_x=512$ against
+# Diagonalising the $N_x\times N_x$ matrix costs **tens to thousands of times** more than one propagation step
+# (read the `ratio` column of your own run; the value depends on the machine and its load), and the gap widens
+# with $N_x$: the operation count is $N_x^3 = 1.3\times10^{8}$ at $N_x=512$ against
 # $N_x\log_2 N_x = 4.6\times10^{3}$ for the two FFTs — a factor of $30\,000$, right there in the last two columns
 # of the table. Applying an already-built dense propagator is cheaper, $O(N_x^2)$ per state, but still far above
 # $O(N_x\log N_x)$, and it needs $N_x^2$ numbers of memory instead of $N_x$.
 #
-# (Absolute timings on a laptop that is doing other things fluctuate by tens of percent, and the sub-millisecond
-# FFT timings are partly Python call overhead. Read the *scaling*, not the individual numbers — and when you
-# report a benchmark, say on what machine and under what load you measured it.)
+# (Absolute timings on a machine that is doing other things fluctuate by factors of several, and the
+# sub-millisecond FFT timings are mostly Python call overhead, which is why the measured ratio stays far below the
+# operation count. Read the growth with $N_x$, and report every benchmark with the machine and the load.)
 #
 # The same argument, with far more violent numbers, is why the rest of this course never builds a Hamiltonian
 # matrix for a many-body system: there the vector length is $2^{20}$ and up, and $N^2$ is simply not storable.
@@ -1921,7 +1918,7 @@ for N in (128, 256, 512):
 # Static snapshots do not do justice to quantum dynamics. We now write **one reusable function** that takes a
 # stack of curves (one per time) and produces an animated GIF embedded directly in the notebook.
 #
-# How it works, step by step:
+# The function works in five steps:
 #
 # 1. `matplotlib.animation.FuncAnimation` calls an `update(i)` function once per frame; `update` changes the data
 #    of the existing artists instead of redrawing the whole figure.
@@ -2058,9 +2055,9 @@ make_density_gif(x, dens_rest, t_frames, overlay=dens_rest_ana, mean_x=xbar_rest
 # indistinguishable, and the assert above says they agree to $3\times10^{-16}$ — round-off.
 #
 # **This is what "a quantum particle at rest" looks like.** A classical particle at rest stays a point forever; a
-# quantum particle cannot even be at rest, because being localised means having a spread of momenta.
+# localised quantum particle has $\langle p\rangle = 0$ but a spread of momenta, and therefore melts.
 #
-# ### 10.2 Animation 2 — kick it
+# ### 10.2 Animation 2 — a kicked packet
 #
 # Now $k_0 = \pi$. The lump moves to the right at velocity $k_0$ *and* spreads at the same time. The black
 # triangle marks the computed $\langle x\rangle(t)$ and slides at constant speed; the black bar it sits on is
@@ -2099,8 +2096,9 @@ make_density_gif(x, dens_move, t_frames, overlay=dens_move_ana, mean_x=xbar_move
 #
 # The dashed orange curve is again the exact solution on the ring. In the last frames the wavelength at the
 # front of the packet is only a handful of pixels wide, so the two curves can *look* as if they had drifted
-# apart; the assert printed just below the animation shows that they agree to round-off everywhere. When an
-# animation is too coarse to prove a claim, prove it with a number — that is what the next figure does.
+# apart; the number printed above the animation shows that they agree to $5\times10^{-12}$ everywhere. That
+# residue is the seam: the sampled Gaussian of Eq. (3) is cut at $x=0$, where it is still $\approx e^{-25}$,
+# while the image sum is exactly periodic. When an animation is too coarse to prove a claim, a number proves it.
 
 # %%
 # ==============================================================================
@@ -2172,8 +2170,8 @@ plt.show()
 # back and compressed at the front, and $k_{\rm loc}(x)$ is a *straight line* rising through $k_0$ at the centre
 # of the packet — the slow components at the rear, the fast ones in front. The dashed orange line is the analytic
 # prediction of Section 3.5(b), and the assert says the two agree to $8\times10^{-11}$ wherever the packet has
-# any weight. (Why not $10^{-15}$? Because $k_{\rm loc} = \mathrm{Im}[\psi'/\psi]$ *divides* by $\psi$, and at
-# the $\vert\psi\vert^2 = 10^{-3}$ edge of the mask that amplifies the round-off of $\psi$ by $\sim 10^{2}$.)
+# any weight. (The residue is the same few-$10^{-12}$ seam mismatch, divided by $\vert\psi\vert \approx 0.03$ at
+# the $\vert\psi\vert^2 = 10^{-3}$ edge of the mask, since $k_{\rm loc} = \mathrm{Im}[\psi'/\psi]$ divides by $\psi$.)
 #
 # This linear-in-$x$ local momentum is precisely the "runners sorted by speed" picture, and it is the reason the
 # covariance $C(t)$ of Section 8 is non-zero.
@@ -2225,14 +2223,13 @@ plt.show()
 
 # %% [markdown]
 # The white dashed line $\langle x\rangle = x_c + k_0 t$ goes straight through the bright ridge — the group
-# velocity, read off a picture. The ridge fans out symmetrically: that is the spreading, and the opening angle of
-# the cone is $\pm\sigma_k = \pm 1/(2\sigma_0)$, the velocity spread of the packet.
+# velocity, read off a picture. The ridge fans out symmetrically: that is the spreading, and at late times its
+# edges approach the cone $\langle x\rangle \pm \sigma_k t$, set by the velocity spread $\sigma_k = 1/(2\sigma_0)$.
 
 # %% [markdown]
 # ## 11. Long times on the ring: wrap-around, self-interference, revivals
 #
-# So far we were careful to keep the packet away from the seam. Now let us stop being careful and run for a long
-# time. Three things will happen, in this order:
+# So far we kept the packet away from the seam. Now we run for a long time. Three things will happen, in this order:
 #
 # 1. **Wrap-around.** The packet leaves at $x=L$ and re-enters at $x=0$. Nothing dramatic: on a ring that is just
 #    "it went around".
@@ -2248,8 +2245,8 @@ plt.show()
 #
 # > **JAX practice.** `lax.scan(step, init, xs)` is a compiled `for` loop: it applies `step` repeatedly, carrying
 # > a state forward and collecting one output per iteration — here the wave function after each step. A Python
-# > loop of $60$ iterations would be compiled $60$ times; `scan` compiles the body **once**. See
-# > [01 — JAX from scratch](01_jax_from_scratch.ipynb).
+# > loop inside a jitted function would be unrolled into $60$ copies of the body; `scan` compiles it **once**. See
+# > [01 — JAX](01_jax_from_scratch.ipynb).
 
 # %%
 # ==============================================================================
@@ -2287,7 +2284,7 @@ dens_wrap_ana = np.abs(np.stack([psi_exact_ring(x, t, X_C, SIGMA0, K0, L, n_imag
 err_wrap = float(np.max(np.abs(dens_wrap - dens_wrap_ana)))
 print(f"laps completed by t = {T_WRAP}: {K0 * T_WRAP / L:.2f}")
 print(f"width at t = {T_WRAP}: sigma = {SIGMA0 * np.sqrt(1 + (T_WRAP / (2 * SIGMA0 ** 2)) ** 2):.1f}"
-      f"   (the ring is only L = {L:.0f} long!)")
+      f"   (the ring is only L = {L:.0f} long)")
 print(f"max |numerics - IMAGE SUM Eq.(19)| over all frames = {err_wrap:.3e}")
 print(f"max |numerics - infinite-line Eq.(7)| at the last frame = "
       f"{np.max(np.abs(dens_wrap[-1] - np.abs(psi_exact_line(x, t_wrap[-1], X_C, SIGMA0, K0)) ** 2)):.3e}")
@@ -2335,11 +2332,10 @@ plt.show()
 # %% [markdown]
 # Watch the whole story unfold: the packet crosses the seam (disappearing at the right, reappearing at the left),
 # spreads until it fills a good fraction of the ring, and then develops **interference fringes** — the packet
-# overlapping its own tail. Those fringes are not noise, not an instability and not a bug: they are real quantum
-# interference, and the dashed image-sum curve of Eq. (19) reproduces them to $10^{-13}$, as the assert confirms.
+# overlapping its own tail. These fringes are quantum interference, and the dashed image-sum curve of Eq. (19) reproduces them to $10^{-13}$, as the assert confirms.
 #
-# Meanwhile the infinite-line formula (7) is off by $3\times10^{-2}$ in the density — of the same order as the
-# density itself. It is simply not the solution of this problem any more.
+# Meanwhile the infinite-line formula (7) is off by $3\times10^{-2}$ in the density, of the same order as the
+# density itself.
 #
 # > **Physics insight.** The fringe spacing tells you which images interfere. Two copies of the packet separated
 # > by $\Delta = nL$ produce fringes of period $2\pi/(\Delta/t) = 2\pi t/(nL)$, exactly like a double slit whose
@@ -2359,15 +2355,15 @@ plt.show()
 #
 # every phase factor satisfies $e^{-i\omega_n T_{\rm rev}} = e^{-2\pi i n^{2}} = 1$, so
 # $\psi(x, T_{\rm rev}) = \psi(x, 0)$ **exactly, for any initial state whatsoever**. The wave function reassembles
-# itself out of what looked like structureless mush. This is a *quantum revival*; it is the reason a particle in a
-# box is periodic in time while a classical particle in a box is only quasi-periodic, and it has been observed
-# with Rydberg wave packets and with cold atoms (see the review by Robinett, Phys. Rep. **392**, 1 (2004)).
+# itself out of what looked like structureless mush. This is a *quantum revival*. A classical swarm with the same
+# spread of velocities never re-forms: each particle is periodic, but with its own period $L/v$, and the swarm
+# spreads uniformly over the ring. Revivals have been observed with Rydberg wave packets and with cold atoms (see
+# the review by Robinett, Phys. Rep. **392**, 1 (2004)).
 #
 # A bonus: at $T_{\rm rev}/2$ the phases are $e^{-i\pi n^2} = (-1)^{n^2} = (-1)^n$, which is precisely the Fourier
 # multiplier of a **translation by $L/2$**. So at half the revival time the packet reappears on the opposite side
 # of the ring. At other rational fractions of $T_{\rm rev}$ one finds several smaller copies — "fractional
-# revivals" — and plotting $\vert\psi(x,t)\vert^2$ over a full revival period produces the famous **quantum
-# carpet**.
+# revivals" — and plotting $\vert\psi(x,t)\vert^2$ over a full revival period produces a **quantum carpet**.
 
 # %%
 # ==============================================================================
@@ -2414,7 +2410,7 @@ fig.tight_layout()
 plt.show()
 
 # %% [markdown]
-# The carpet is one of the prettiest pictures in quantum mechanics: a lattice of dark "canals" (where the
+# The carpet is a lattice of dark "canals" (where the
 # probability density nearly vanishes along a straight line in the $x$-$t$ plane) crossed by bright "ridges",
 # woven by the interference of the ring's commensurate energy levels. Read it from the bottom up: the
 # packet spreads, fills the ring, produces ever finer fringes, and then — at $t = T_{\rm rev}$, the top edge —
@@ -2423,7 +2419,7 @@ plt.show()
 # $t = T_{\rm rev}/2$ (green) the packet sits at the antipode, $x = L/2$ away.
 #
 # The asserts put a number on "exactly": the state at $t=T_{\rm rev}$ differs from the initial one by
-# $1.4\times10^{-14}$ in the $L^2$ norm — round-off, nothing else. That is a little impressive in itself: the
+# $1.4\times10^{-14}$ in the $L^2$ norm — round-off, nothing else. The
 # phases $\omega_n T_{\rm rev} = 2\pi n^2$ reach $\approx 4\times10^{3}$ radians for the highest modes that
 # still carry any weight ($\vert n\vert \approx 26$ here), and $10^{5}$ radians at the edge of the band, and an
 # error of one part in $10^{16}$ in such an argument is still only $10^{-12}$ radians of phase.
@@ -2458,7 +2454,7 @@ plt.show()
 #   fourteen orders of magnitude more accurate than the stencil, which would have needed $\sim 10^9$ points to
 #   catch up.
 # * **Always ask what you compare against.** The ring is not the line; the exact ring solution is the image sum
-#   (19). Comparing with the wrong reference produced a spurious error floor at $10^{-8}$.
+#   (19). Comparing with the wrong reference produced a spurious error floor near $6\times10^{-9}$.
 # * **The ring has its own physics**: wrap-around, self-interference fringes, and exact revivals at
 #   $T_{\rm rev}=L^2/\pi$ (with a translated half-revival at $T_{\rm rev}/2$) — because the energies
 #   $2\pi^2n^2/L^2$ are all commensurate.
@@ -2466,7 +2462,7 @@ plt.show()
 #   mode index above $N_x/2$ and it silently stores the negative index $m-N_x$ instead, sending your packet the
 #   other way.
 #
-# ### The workflow checklist — reuse this for every simulation you ever write
+# ### The workflow checklist
 #
 # 1. **Non-dimensionalise.** Choose the units from the problem; make every variable of order $1$.
 # 2. **Discretise, and write down the error.** Which approximation, which order, which grid parameters control it.
@@ -2488,7 +2484,7 @@ plt.show()
 #    Check that the time at which the width has grown by $\sqrt2$ is $t_s = 2\sigma_0^2$. Which packet is the
 #    widest at $t=10$? Explain the crossing of the curves.
 # 2. (★) **Two packets collide.** Take $\psi(x,0) \propto \psi_{\rm G}(x; x_1, \sigma_0, +k_0) +
-#    \psi_{\rm G}(x; x_2, \sigma_0, -k_0)$ with $x_1 = L/4$, $x_2 = 3L/4$ (normalise it!). Animate the collision.
+#    \psi_{\rm G}(x; x_2, \sigma_0, -k_0)$ with $x_1 = L/4$, $x_2 = 3L/4$ (normalise it). Animate the collision.
 #    Measure the fringe spacing in the overlap region and compare with $\pi/k_0$ (the two-plane-wave result).
 #    Do the packets "bounce"? Why not?
 # 3. (★★) **Measure the numerical group velocity.** Repeat the checkpoint of Section 7.2 for
@@ -2547,7 +2543,7 @@ plt.show()
 # [00b — a first quantum simulation: the harmonic oscillator](00b_first_quantum_simulation_harmonic_oscillator.ipynb)
 # puts the particle in a trap: a potential, a tridiagonal Hamiltonian matrix, diagonalisation into stationary
 # states, a frequency quench, and two more ways to propagate (the matrix exponential and Runge–Kutta).
-# Then [01 — JAX from scratch](01_jax_from_scratch.ipynb) explains the three JAX tools we used today —
+# Then [01 — JAX](01_jax_from_scratch.ipynb) explains the three JAX tools we used today —
 # `jit`, `vmap` and `scan` — together with automatic differentiation, and the course proper begins.
 # [49 — a single excitation on a lattice](../lecture_notes_notebooks/49_single_excitation_on_a_lattice.ipynb) needs
 # nothing beyond this notebook and can be read at any point after it: it takes the three-point Laplacian of Section 6

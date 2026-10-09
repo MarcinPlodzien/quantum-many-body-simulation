@@ -5,8 +5,8 @@
 # %% [markdown]
 # ## 1. Introduction and motivation
 #
-# Two water waves crossing a harbour pass through each other and come out unchanged. That is not a property
-# of water; it is a property of *linear* equations. If $\psi_1$ and $\psi_2$ both solve a linear wave equation,
+# Two small ripples crossing a harbour pass through each other and come out unchanged, because at small
+# amplitude the equation for water waves is *linear*. If $\psi_1$ and $\psi_2$ both solve a linear wave equation,
 # so does $\psi_1+\psi_2$, so the two waves never notice each other at all: the superposition is a solution from
 # the start, and "the collision" is a picture we draw on top of a sum that was always there.
 #
@@ -22,8 +22,8 @@
 # nonlinear medium they do.
 #
 # Equation (1) is not generic. Two bright solitons launched at each other pass through, and afterwards each one
-# has exactly the shape, the norm and the velocity it had before. Nothing is radiated away — nothing at all, to
-# the last digit the grid can resolve. The only record of the encounter is that each soliton is displaced from
+# has exactly the shape, the norm and the velocity it had before. Nothing is radiated away, to the $10^{-5}$
+# resolution of the measurements below. The only record of the encounter is that each soliton is displaced from
 # where free motion would have put it, and that its internal phase has jumped. This is the property that gave
 # the objects their name: Zabusky and Kruskal, integrating the Korteweg-de Vries equation numerically in 1965,
 # found solitary waves that survived collisions like particles and coined the word *soliton* for them
@@ -96,7 +96,7 @@
 # [00b — the harmonic oscillator](00b_first_quantum_simulation_harmonic_oscillator.ipynb) the habit of checking
 # an integrator before believing it. One semester of quantum mechanics. The three JAX features used here
 # (`jit`, `lax.scan`, `vmap`) are each explained in two sentences where they appear and properly in
-# [01 — JAX from scratch](01_jax_from_scratch.ipynb).
+# [01 — JAX](01_jax_from_scratch.ipynb).
 
 # %% [markdown]
 # ## 2. Two solitons on one ring
@@ -122,9 +122,8 @@
 # Because the whole notebook keeps the *total* norm equal to one, a pair of solitons must share it:
 # $N_1+N_2 = 1$. Two equal solitons therefore have $N_1 = N_2 = \tfrac12$, hence $\kappa = g/4 = 0.5$ at $g=2$,
 # a width $1/\kappa = 2$ and a peak density $0.125$ — each of them *twice* as wide as the single unit-norm
-# soliton of 00c ($\kappa=1$, width $1$, peak density $0.5$), and each four times less dense. Nothing is
-# wrong with that: $\kappa_N \propto N$
-# is the statement that a soliton made of fewer atoms is wider and flatter, and the physical soliton that a
+# soliton of 00c ($\kappa=1$, width $1$, peak density $0.5$), and each four times less dense. The relation
+# $\kappa_N \propto N$ is the statement that a soliton made of fewer atoms is wider and flatter, and the physical soliton that a
 # laboratory makes is set by $N_jg$, not by $g$ alone.
 #
 # The Galilean boost of 00c (its Eq. (26)) turns a stationary profile into a moving one:
@@ -140,8 +139,7 @@
 #
 # $$ \psi(x,0) \;=\; \phi_{N_1}(x+x_0)\,e^{ik_1x} \;+\; e^{i\Delta\phi}\,\phi_{N_2}(x-x_0)\,e^{ik_2x} . \tag{4} $$
 #
-# Equation (1) is not linear, so Eq. (4) is **not** a solution — not even at $t=0$ is it a stationary or a known
-# state. Substituting a sum $\psi_1+\psi_2$ into Eq. (1) leaves a residual which is a sum of cross terms, every
+# Equation (1) is not linear, so Eq. (4) is **not** an exact solution. Substituting a sum $\psi_1+\psi_2$ into Eq. (1) leaves a residual which is a sum of cross terms, every
 # one of which contains a product of the two profiles:
 #
 # $$ i\partial_t(\psi_1+\psi_2) + \tfrac12\partial_x^2(\psi_1+\psi_2) + g\vert\psi_1+\psi_2\vert^{2}(\psi_1+\psi_2)
@@ -179,8 +177,8 @@
 #
 # which for $\Delta\phi = 0$ equals $+\psi(x,0)$ and for $\Delta\phi = \pi$ equals $-\psi(x,0)$. Equation (1) is
 # invariant under $x\to-x$, so parity is conserved exactly, and an odd state satisfies $\psi(0,t)=0$ **for all
-# $t$**. The node that Section 6 finds between out-of-phase solitons is therefore not an approximate
-# interference effect: it is exact, and it holds during the whole collision.
+# $t$**. The node that Section 6 finds between out-of-phase solitons is therefore exact, and it holds during
+# the whole collision.
 
 # %%
 # ==============================================================================
@@ -204,14 +202,12 @@ print("extra imports OK")
 # observables and the split-step propagator, all copied verbatim from
 # [00c](00c_bright_soliton_imaginary_time_nonlinear_schroedinger.ipynb), each with a one-line pointer to where
 # it was derived (the FFT and operator splitting are treated in Press *et al.*, *Numerical Recipes*, Chapters 12
-# and 20, with array-based Fortran 90 routines in the companion volume). Nothing in this notebook re-derives the
-# split-step method, imaginary time or the
-# $\mathrm{sech}$ profile; this notebook is about what two of those solitons do to each other.
+# and 20, with array-based Fortran 90 routines in the companion volume).
 #
 # > **JAX practice.** `jax.jit` compiles a Python function once, for the shapes of its arguments, into a single
 # > fused program, and `lax.scan(body, init, xs, length=n)` is a compiled `for` loop that carries a state
 # > forward. Both are used exactly as in 00c and are explained properly in
-# > [01 — JAX from scratch](01_jax_from_scratch.ipynb).
+# > [01 — JAX](01_jax_from_scratch.ipynb).
 
 # %%
 # ==============================================================================
@@ -503,11 +499,12 @@ print("\nCHECKPOINT 1 passed: the deviations fall like exp(-kappa d), Eq. (6).")
 # to $8\times10^{-10}$. The momentum is exact to round-off at every separation, because the cross term in $p$
 # cancels identically for the symmetric configuration $N_1=N_2$, $k_1=-k_2$.
 #
-# Those numbers are the error floor of everything that follows. No comparison with an infinite-line formula in
-# this notebook can be better than $10^{-9}$, and Section 5 will find exactly that.
+# Those numbers are the error floor of everything that follows: no comparison with an infinite-line formula in
+# this notebook can be better than $10^{-9}$. The measurements of Section 5 stay well above that floor, because
+# the trajectory fits and the time step limit them first (Section 10.2).
 
 # %% [markdown]
-# ## 3. The conserved quantities, and what they are worth
+# ## 3. The conserved quantities
 #
 # Section 4 of 00c derived three conservation laws for Eq. (1): the norm, the momentum
 # $p = \int\mathrm{Im}(\psi^{*}\psi')dx$ and the energy
@@ -518,12 +515,16 @@ print("\nCHECKPOINT 1 passed: the deviations fall like exp(-kappa d), Eq. (6).")
 # solution was known, so the conservation laws were a bonus. Here there is no closed form on the ring for what
 # the field does during the overlap, the initial state is not exactly a solution, and the whole question is
 # whether an elaborate nonlinear rearrangement leaves the two objects intact. The conserved quantities are then
-# the only *independent* referee available, and two of the three are genuinely independent of the integrator:
+# the only *independent* referee available, and only one of the three is independent of the integrator:
 #
-# * the **norm** is conserved by construction — each of the three factors of the Strang step has modulus one —
-#   so its constancy proves nothing except that the code has no bug;
-# * the **momentum** and the **energy** are not built into the method. They are computed from the field with
-#   spectral derivatives, they have no reason to come out constant, and if they drift the run is wrong.
+# * the **norm** is conserved by construction, because each of the three factors of the Strang step has
+#   modulus one;
+# * the **momentum** is conserved by construction as well: the kinetic factors leave every
+#   $\vert\hat\psi_k\vert$ unchanged, and the nonlinear phase changes $p$ by
+#   $g\Delta t\int\vert\psi\vert^{2}\partial_x\vert\psi\vert^{2}dx = 0$. Their constancy proves only that
+#   the code has no bug;
+# * the **energy** is not built into the method. Strang splitting nearly conserves a modified energy that differs
+#   from Eq. (8) at $O(\Delta t^{2})$, so $E$ drifts at that order, and a larger drift means the run is wrong.
 #
 # A fourth quantity is worth watching for a two-body problem: the centre of mass. Ehrenfest's relation survives
 # the nonlinearity (00c, Eq. (14)), $d\langle x\rangle/dt = p$, so with $p$ conserved the centre of mass moves
@@ -560,8 +561,8 @@ assert np.max(np.abs(p_t - p_t[0])) < 1e-9
 print("CHECKPOINT 2 passed: norm, energy and momentum survive the collision.")
 
 # %% [markdown]
-# The norm holds to $2\times10^{-12}$, which was guaranteed. The energy holds to $3\times10^{-7}$ and the
-# momentum to $8\times10^{-13}$, and neither was guaranteed by anything. The initial energy also agrees with
+# The norm holds to $2\times10^{-12}$ and the momentum to $8\times10^{-13}$, both guaranteed by the method. The
+# energy, which is not, holds to $3\times10^{-7}$. The initial energy also agrees with
 # the infinitely-separated value of Eq. (7) to $9\times10^{-10}$, the floor of Section 2.6. Section 10 shows
 # that the energy drift falls as $\Delta t^{2}$, i.e. it is the Strang splitting error of 00c and not a
 # physical leak.
@@ -624,8 +625,8 @@ plt.show()
 # follows the density through the crossing: at $t=47.7$ the two lumps have merged into one peak of $0.33$,
 # two and a half times either of them, and by $t=66.8$ they are two again. The right panel takes soliton 1
 # before the collision (at $x=-20$) and after it (at $x=+21.8$), recentres each on its own peak, and plots both
-# on a logarithmic scale together with the analytic $\mathrm{sech}^{2}$ of Eq. (2): three curves, one shape,
-# over seven decades of density.
+# on a logarithmic scale together with the analytic $\mathrm{sech}^{2}$ of Eq. (2); the three curves
+# coincide over seven decades of density.
 #
 # ### 4.2 Measuring the two solitons separately
 #
@@ -639,8 +640,8 @@ plt.show()
 #
 # > **Common pitfall.** A fixed window around an *expected* trajectory is a trap: it biases exactly the quantity
 # > one wants to measure, the deviation from that trajectory, and biases it towards zero. With $w=5$ and no
-# > re-centring the shift measured below comes out $10\%$ too small; with three iterations of re-centring the
-# > same data give it to $4$ digits.
+# > re-centring the shift measured below comes out $9\%$ too small; four re-centrings bring the error down to
+# > $2\times10^{-3}$, and the wider window $w = 12$ used below to $2\times10^{-5}$.
 
 # %%
 # ==============================================================================
@@ -693,7 +694,7 @@ print(f"tracking window: w = {HALF_WIDTH:g} = {HALF_WIDTH * KAP_1:g} soliton wid
       f"truncated norm per soliton = {N_1 * (1 - np.tanh(KAP_1 * HALF_WIDTH)):.3e}")
 
 # %% [markdown]
-# ### 4.3 Is the collision elastic? Four measurements
+# ### 4.3 Elasticity of the collision: four measurements
 #
 # "Elastic" is a claim with four parts, and each needs its own number.
 #
@@ -754,14 +755,13 @@ print("\nCHECKPOINT 3 passed: nothing about either soliton changed except where 
 # * The norm in each window changes by $5\times10^{-9}$ over the collision.
 # * The norm that is in neither window is $1.214\times10^{-5}$, and the analytic $\mathrm{sech}^{2}$ tails of
 #   two solitons truncated at $w=12$ account for $1.229\times10^{-5}$ of that on their own. The radiated norm
-#   is therefore not merely small, it is **below what this measurement can see**, which is one part in
-#   $10^{5}$.
+#   is therefore **below what this measurement can see**, one part in $10^{5}$.
 # * The outgoing profile agrees with the analytic $\mathrm{sech}$ — not a fit, the formula of Eq. (2) with the
 #   same $\kappa = 0.5$ — to $1\times10^{-6}$ of the peak amplitude.
 # * The outgoing velocity equals the incoming one to $1.4\times10^{-6}$ in relative terms, and the sampled peak
 #   density is $0.12498$ against $\kappa^{2}/g = 0.125$.
 #
-# Each of the four has a blind spot, and they are worth naming. Tests 1 and 2 cannot see anything that stays
+# Each of the four has a blind spot. Tests 1 and 2 cannot see anything that stays
 # inside a window; test 3 compares $\vert\psi\vert$, so a component in *quadrature* with the soliton affects it
 # only at second order; test 4 measures a slope, not a shape. Together they are much stronger than any one of
 # them. A component in phase with the soliton is bounded by test 3 at $10^{-6}$ of the peak amplitude
@@ -771,13 +771,12 @@ print("\nCHECKPOINT 3 passed: nothing about either soliton changed except where 
 # half-width divided by the time left after the collision, about $12/50 = 0.24$. Radiation is produced over a
 # band much wider than that, and none of it shows up in test 2.
 #
-# That is what "the solitons re-emerge unchanged" means as a measurement rather than as a slogan. The remaining
-# question is what *did* change.
+# The remaining question is what *did* change.
 
 # %% [markdown]
 # ## 5. The position shift and the phase shift
 #
-# ### 5.1 What to measure
+# ### 5.1 The asymptotic data of a collision
 #
 # Long before and long after the collision each soliton moves freely, so its centre is a straight line of slope
 # $k_j$. The collision cannot change the slope — that is measurement 4 above — but it can change the intercept:
@@ -862,10 +861,9 @@ print("\nCHECKPOINT 3 passed: nothing about either soliton changed except where 
 #   and for unequal ones
 #   $\Delta\theta_1 = 2\left[\arctan\frac{\kappa_1+\kappa_2}{\Delta k}-\arctan\frac{\kappa_1-\kappa_2}{\Delta k}\right]$.
 #
-# Equations (11)-(13) are quoted, not derived: deriving them means constructing the two-soliton solution by
-# inverse scattering and taking its asymptotics, which is a chapter of a different book. What *is* done here is
-# the conversion of conventions, step by step above, and then a test. If the conversion contains an algebraic
-# slip, the numbers below will say so.
+# Equations (11)-(13) are quoted from inverse-scattering theory; deriving them means constructing the
+# two-soliton solution and taking its asymptotics. What is done here is the conversion of conventions above,
+# followed by a numerical test that would expose any algebraic slip in it.
 
 # %% [markdown]
 # ### 5.3 A sweep over the relative velocity with `vmap`
@@ -878,7 +876,7 @@ print("\nCHECKPOINT 3 passed: nothing about either soliton changed except where 
 # > **JAX practice.** `jax.vmap(f)` turns a function written for one input into a function that applies it to a
 # > whole stacked batch, generating vectorised code rather than a Python loop — but every array shape and every
 # > loop length inside must be the same across the batch, which is why the *step size* is batched here and the
-# > *step count* is not. See [01 — JAX from scratch](01_jax_from_scratch.ipynb).
+# > *step count* is not. See [01 — JAX](01_jax_from_scratch.ipynb).
 
 # %%
 # ==============================================================================
@@ -991,7 +989,7 @@ plt.show()
 # The left panel shows the two centres tracking free motion, bending towards each other as they approach, and
 # leaving on lines parallel to the dotted ones but displaced outwards. Inside the grey band the two tracking
 # windows contain the same object and the "centre of soliton 1" is not a defined quantity — the curves there
-# are an artefact of the estimator, not physics, and only the two plateaus on either side mean anything. The
+# are an artefact of the estimator, and only the two plateaus on either side mean anything. The
 # middle panel subtracts free motion: a curve flat at zero, a meaningless excursion through the overlap, and a
 # new plateau equal to the dotted prediction of Eq. (11). The two solitons move in opposite directions and
 # their deviations are exact mirror images, which is the centre-of-mass sum rule of Section 8 in the symmetric
@@ -999,8 +997,10 @@ plt.show()
 #
 # The right panel is the test over a factor of eight in velocity. Measured points lie on the curve of Eq. (12)
 # over more than a decade in $\Delta x$, and the table prints the relative deviations: they run from
-# $3\times10^{-6}$ to $2\times10^{-4}$, which is the $e^{-\kappa d}$ floor established in Section 2.6 and not a
-# failure of the formula. The green dashed line is the fast-collision asymptote $\kappa/k^{2}$, which the data
+# $3\times10^{-6}$ to $2\times10^{-4}$, i.e. at most $4\times10^{-5}$ in absolute terms. That is far above the
+# $e^{-\kappa d} = 2\times10^{-9}$ floor of Section 2.6, and it is the level at which the measured shift also
+# moves when $N_x$, $\Delta t$ or $x_0$ is changed (Section 10.2): the resolution of the tracking and of the
+# asymptote fits. The green dashed line is the fast-collision asymptote $\kappa/k^{2}$, which the data
 # join from above.
 #
 # The radiation column of the table stays at $1.2\times10^{-5}$ for every velocity, equal to the analytic tail
@@ -1078,14 +1078,15 @@ print("CHECKPOINT 5 passed: the phase jump is 2 arctan(kappa/k), modulo 2 pi.")
 #    \;=\; \frac{1}{2}\ln\!\left(1+\frac{\kappa^{2}}{k^{2}}\right) + i\arctan\frac{\kappa}{k}
 #    \;=\; \ln\!\left(1 + \frac{i\kappa}{k}\right) , \tag{14} $$
 #
-# one complex logarithm whose modulus is the displacement and whose argument is the phase jump — the same
+# one complex logarithm: the displacement is $2/\kappa$ times the logarithm of the modulus of $1+i\kappa/k$,
+# and the phase jump is twice its argument — the same
 # structure as Eq. (10), where the shift is the logarithm of a *ratio of complex numbers* built from the two
 # scattering eigenvalues.
 
 # %% [markdown]
 # ## 6. The relative phase
 #
-# ### 6.1 What it can and cannot change
+# ### 6.1 The overlap and the outcome
 #
 # Section 2.3 showed that for a symmetric pair the relative phase at the collision is the $\Delta\phi$ put into
 # the initial state. It decides what the field looks like while the two solitons overlap, and the two extreme
@@ -1218,14 +1219,14 @@ plt.show()
 # The right panel makes the crossover quantitative. The peak density reached during the collision falls
 # monotonically from $0.4978$ at $\Delta\phi=0$ to $0.2414$ at $\Delta\phi=\pi$, and the in-phase value is
 # $0.9956$ of the naive constructive-interference estimate $4\kappa^{2}/g = 0.5$. The density *at the origin*
-# at the moment of collision falls from $0.332$ to $4.7\times10^{-20}$ — round-off, not a small number. (The
+# at the moment of collision falls from $0.332$ to $4.7\times10^{-20}$, which is zero to round-off. (The
 # curves drawn in the right panel are the frame nearest the *free* collision time $t_c = x_0/k = 47.7$, where
 # the in-phase peak is already down to $0.33$; the maximum $0.4978$ is reached at $t=45.8$, about two time
 # units earlier, because the solitons attract each other on approach and meet before free motion says they
 # should — the same $45.8$ that Section 10.3 measures. That is why the table quotes a maximum over frames and
 # the time at which it occurs.)
 #
-# The two columns on the right of the table are the point of the section. The final norms of the two solitons
+# The two columns on the right of the table describe the outcome. The final norms of the two solitons
 # differ by at most $1.8\times10^{-5}$ at any relative phase, and the position shift varies by
 # $4.0\times10^{-4}$ out of $1.77$, i.e. by $2.3\times10^{-4}$ in relative terms, over the whole range of
 # $\Delta\phi$. Both residuals peak at the same intermediate phase, $\Delta\phi = 3\pi/8$, which is a hint
@@ -1273,10 +1274,13 @@ plt.show()
 # Prepare the pair at rest at separation $r_0$, track the separation $r(t)$, and fit a parabola
 # $r(t) = r_0 + \dot r_0 t + \tfrac12 a t^{2}$ over an early window. Since for $\Delta\phi\in\{0,\pi\}$ the
 # state has definite parity and the density stays symmetric, the two centres can be read off directly as the
-# density-weighted means over $x>0$ and $x<0$, with no window to choose. The same estimator is used for the
-# scan over intermediate $\Delta\phi$ below, where parity does not hold; there it measures the relative
-# coordinate of a pair that is itself drifting slowly, and the resulting bias is part of the residual quoted
-# at the end of the section.
+# density-weighted means over $x>0$ and $x<0$, with no window to choose. The overlapping tails bias that
+# estimate of the separation itself (constructive interference at the origin pulls it inwards in phase, the
+# node pushes it outwards out of phase), but the bias changes little over the fit window, so the fitted
+# acceleration is unaffected. The force law is therefore evaluated at the *prepared* separation $r_0$, at which
+# Eq. (4) places the two centres exactly. The same estimator is used for the scan over intermediate
+# $\Delta\phi$ below, where parity does not hold; there it measures the relative coordinate of a pair that is
+# itself drifting slowly, and the resulting bias is part of the residual quoted at the end of the section.
 
 # %%
 # ==============================================================================
@@ -1298,7 +1302,12 @@ print(f"{len(combo)} pairs at rest x {NIN_F * NFR_F} steps, vmapped: {time.time(
 
 
 def separation(frames, x, L):
-    """r(t) = <x>_{x>0} - <x>_{x<0}. Exact for a pair of definite parity centred on the origin."""
+    """r(t) = <x>_{x>0} - <x>_{x<0} for a pair centred on the origin.
+
+    CAVEAT
+        The overlapping tails bias r (inwards in phase, outwards out of phase); the bias varies slowly,
+        so the curvature of r(t), i.e. the acceleration, is unaffected.
+    """
     out = []
     for p in frames:
         w = np.abs(p) ** 2
@@ -1314,34 +1323,37 @@ for idx, (d_, p_) in enumerate(combo):
     r_t = separation(FR_FORCE[idx], x, L)
     n_fit = NFR_F // 3
     a_meas = 2.0 * np.polyfit(t_force[:n_fit], r_t[:n_fit], 2)[0]
-    a_pred = -8.0 * KAP_1 ** 3 * np.exp(-KAP_1 * r_t[0]) * np.cos(p_)
+    a_pred = -8.0 * KAP_1 ** 3 * np.exp(-KAP_1 * d_) * np.cos(p_)    # at the PREPARED separation d_
     acc[(d_, p_)] = (a_meas, r_t[0], a_meas / a_pred)
     print(f"{d_:10.1f} {p_:7.3f} {r_t[0]:11.5f} {a_meas:16.4e} {a_pred:28.4e} {a_meas / a_pred:8.4f}")
 
-r0_in = np.array([acc[(d_, 0.0)][1] for d_ in D_LIST])
-r0_out = np.array([acc[(d_, np.pi)][1] for d_ in D_LIST])
 a_in = np.array([abs(acc[(d_, 0.0)][0]) for d_ in D_LIST])
 a_out = np.array([abs(acc[(d_, np.pi)][0]) for d_ in D_LIST])
-fit_in = np.polyfit(r0_in[2:], np.log(a_in[2:]), 1)
-fit_out = np.polyfit(r0_out[2:], np.log(a_out[2:]), 1)
-print(f"\nfit of ln|a| against the measured r over the four largest separations:")
+fit_in = np.polyfit(D_LIST[2:], np.log(a_in[2:]), 1)
+fit_out = np.polyfit(D_LIST[2:], np.log(a_out[2:]), 1)
+ratios_far = np.array([acc[(d_, p_)][2] for d_ in D_LIST[2:] for p_ in PHI_TWO])
+print(f"\nfit of ln|a| against the prepared r over the four largest separations:")
 print(f"   in phase : slope {fit_in[0]:+.4f}   out of phase: slope {fit_out[0]:+.4f}   "
       f"(predicted -kappa = {-KAP_1:+.4f})")
 print(f"ratio of the measured acceleration to -8 kappa^3 exp(-kappa r) cos(dphi), "
       f"largest separation: {acc[(D_LIST[-1], 0.0)][2]:.4f} (in phase), "
       f"{acc[(D_LIST[-1], np.pi)][2]:.4f} (out of phase)")
+print(f"largest |ratio - 1| for r >= {D_LIST[2]:g}: {np.max(np.abs(ratios_far - 1)):.4f};  "
+      f"at r = {D_LIST[0]:g}: {acc[(D_LIST[0], 0.0)][2]:.3f} (in phase), {acc[(D_LIST[0], np.pi)][2]:.3f} (out of phase)")
 assert abs(fit_in[0] + KAP_1) < 0.02 and abs(fit_out[0] + KAP_1) < 0.02
-assert abs(acc[(D_LIST[-1], 0.0)][2] - 1) < 0.03 and abs(acc[(D_LIST[-1], np.pi)][2] - 1) < 0.03
-assert abs(acc[(D_LIST[2], 0.0)][2] - 1) > abs(acc[(D_LIST[-1], 0.0)][2] - 1), \
-    "the agreement must improve with separation"
+assert np.max(np.abs(ratios_far - 1)) < 0.02, "prefactor 8 kappa^3 (a prefactor 4 would give ratios near 2)"
+assert abs(acc[(D_LIST[0], 0.0)][2] - 1) > 0.1, "at r = 8 the solitons overlap and the asymptotic law must fail"
 print("CHECKPOINT 7 passed: the force is exponential with rate kappa, and attractive in phase.")
 
 # %% [markdown]
-# The exponential rate comes out as $-0.491$ in phase and $-0.513$ out of phase against the predicted
-# $-\kappa = -0.5$, and the prefactor, which Eq. (15) left open, is $8\kappa^{3}$: the ratio of the measured
-# acceleration to $-8\kappa^{3}e^{-\kappa r}\cos\Delta\phi$ runs $0.938, 0.960, 0.978, 0.989$ in phase and
-# $1.091, 1.053, 1.027, 1.013$ out of phase as the separation grows from $12$ to $18$ — converging on $1$ from
-# either side, as a law valid only for well-separated solitons should. The measured law is therefore
+# The exponential rate comes out as $-0.501$ in phase and $-0.499$ out of phase against the predicted
+# $-\kappa = -0.5$, and the prefactor, which Eq. (15) left open, is $8\kappa^{3}$: from $r_0 = 12$ to $18$ the
+# ratio of the measured acceleration to $-8\kappa^{3}e^{-\kappa r_0}\cos\Delta\phi$ stays within $0.8\%$ of
+# one at both phases. At $r_0 = 8$ the solitons overlap strongly and the ratio is $1.20$ in phase and $0.81$ out
+# of phase, as for a law valid only for well-separated solitons. (The column `r(0) meas` shows the bias of the
+# half-space estimator, $11.86$ and $12.18$ for a pair prepared at $12$; inserting those values into the law
+# instead of $r_0$ would turn the $0.6\%$ agreement at $r_0=12$ into an apparent $6$–$9\%$ discrepancy.) The
+# measured law is therefore
 #
 # $$ \frac{d^{2}r}{dt^{2}} \;=\; -\,8\,\kappa^{3}\,e^{-\kappa r}\,\cos\Delta\phi , \tag{16} $$
 #
@@ -1369,10 +1381,8 @@ print("CHECKPOINT 7 passed: the force is exponential with rate kappa, and attrac
 # separation used here is the full one, $r = 2s$, so
 # $d^{2}r/dt^{2} = 2\,d^{2}s/dz^{2} = -8\kappa^{3}e^{-\kappa r}\cos\Delta\phi$, which is Eq. (16). The factor
 # of two between the half separation of the quoted form and the full separation of Eq. (16) is the whole
-# difference between the $4$ that is usually printed and the $8$ measured above; the measurement is what
-# decides, and it chooses $8$ to one part in a hundred. The two rates fitted above bracket
-# $-\kappa$ by $2\%$, which is the size of the subleading $e^{-2\kappa r}$ correction that Eq. (16) omits, and
-# they are fitted over separations at which the pointwise ratios above are still drifting.
+# difference between the $4$ that is usually printed and the $8$ measured above; the measurement chooses $8$ to
+# better than one part in a hundred.
 #
 # Equation (16) also says where it stops being true. It has no equilibrium: for $\Delta\phi=0$ the attraction
 # grows without bound as $r\to0$. That is a signal that the two-body picture breaks down once the solitons
@@ -1387,14 +1397,13 @@ D_FIX = 12.0
 psi0_scan = np.stack([two_solitons(x, D_FIX / 2, G, N_1, N_2, 0.0, 0.0, p_) for p_ in PHI_SCAN])
 FR_SCAN = np.asarray(force_run(jnp.asarray(psi0_scan)))
 
-a_scan, r0_scan = [], []
+a_scan = []
 for idx in range(len(PHI_SCAN)):
     r_t = separation(FR_SCAN[idx], x, L)
     n_fit = NFR_F // 3
     a_scan.append(2.0 * np.polyfit(t_force[:n_fit], r_t[:n_fit], 2)[0])
-    r0_scan.append(r_t[0])
-a_scan, r0_scan = np.array(a_scan), np.array(r0_scan)
-a_unit = 8.0 * KAP_1 ** 3 * np.exp(-KAP_1 * np.mean(r0_scan))
+a_scan = np.array(a_scan)
+a_unit = 8.0 * KAP_1 ** 3 * np.exp(-KAP_1 * D_FIX)               # at the prepared separation
 
 # two long runs at d = 8: bound oscillation vs escape
 T_LONG, NFR_L = 200.0, 200
@@ -1409,11 +1418,11 @@ r_bound = separation(FR_LONG[0], x, L)
 r_escape = separation(FR_LONG[1], x, L)
 
 fig, axes = plt.subplots(1, 3, figsize=(13.0, 3.8))
-axes[0].semilogy(r0_in, a_in, "o-", ms=6, color=C_NUM, lw=1.5, label=r"$\Delta\phi=0$ (attraction)")
-axes[0].semilogy(r0_in, a_out, "s--", ms=6, color=C_ANA, lw=1.5, label=r"$\Delta\phi=\pi$ (repulsion)")
-r_fine = np.linspace(r0_in.min() - 0.5, r0_in.max() + 0.5, 100)
+axes[0].semilogy(D_LIST, a_in, "o-", ms=6, color=C_NUM, lw=1.5, label=r"$\Delta\phi=0$ (attraction)")
+axes[0].semilogy(D_LIST, a_out, "s--", ms=6, color=C_ANA, lw=1.5, label=r"$\Delta\phi=\pi$ (repulsion)")
+r_fine = np.linspace(D_LIST.min() - 0.5, D_LIST.max() + 0.5, 100)
 axes[0].semilogy(r_fine, 8 * KAP_1 ** 3 * np.exp(-KAP_1 * r_fine), "k:", lw=1.4, label=r"Eq. (16)")
-axes[0].set_xlabel(r"separation $r$   [$x_0$]"), axes[0].set_ylabel(r"$|d^2r/dt^2|$   [$x_0/t_0^2$]")
+axes[0].set_xlabel(r"prepared separation $r_0$   [$x_0$]"), axes[0].set_ylabel(r"$|d^2r/dt^2|$   [$x_0/t_0^2$]")
 axes[0].set_title("force against separation", fontsize=10)
 axes[0].grid(alpha=0.25, which="both"), axes[0].legend(fontsize=8)
 
@@ -1428,13 +1437,13 @@ axes[1].grid(alpha=0.25), axes[1].legend(fontsize=8)
 
 axes[2].plot(t_long, r_bound, color=C_NUM, lw=1.8, label=r"$\Delta\phi=0$: bound")
 axes[2].plot(t_long, r_escape, color=C_ANA, lw=1.8, label=r"$\Delta\phi=\pi$: escaping")
-axes[2].set_xlabel(r"$t$   [$t_0$]"), axes[2].set_ylabel(r"separation $r$   [$x_0$]")
-axes[2].set_title(r"two solitons released at rest, $r_0\approx8$", fontsize=10)
+axes[2].set_xlabel(r"$t$   [$t_0$]"), axes[2].set_ylabel(r"estimated separation $r$   [$x_0$]")
+axes[2].set_title(r"two solitons released at rest at $r_0=8$", fontsize=10)
 axes[2].grid(alpha=0.25), axes[2].legend(fontsize=8)
 fig.tight_layout()
 plt.show()
 
-print(f"phase scan at r = {np.mean(r0_scan):.3f}: max |a/(8 kappa^3 e^-kr) + cos(dphi)| = "
+print(f"phase scan at r = {D_FIX:g}: max |a/(8 kappa^3 e^-kr) + cos(dphi)| = "
       f"{np.max(np.abs(a_scan / a_unit + np.cos(PHI_SCAN))):.3f}")
 
 # The period of the bound pair. All four maxima of r(t) agree to three digits, so np.argmax would return
@@ -1448,18 +1457,21 @@ T_pair_meas = float(np.mean(np.diff(t_long[np.array(loc_max)])))
 #     (dr/dt)^2 = 16 kappa^2 [ exp(-kappa r) - exp(-kappa r_0) ]   for a pair released at rest at r_0,
 # and the quadrature of dt = dr / |dr/dt| from r_0 down to r = 0 is elementary, so with w_0 = exp(-kappa r_0)
 #     period = 2 * t_half = arctan( sqrt((1-w_0)/w_0) ) / (kappa^2 sqrt(w_0)).
-w_0 = np.exp(-KAP_1 * r_bound[0])
+R0_LONG = 8.0                                        # prepared separation of the two long runs
+w_0 = np.exp(-KAP_1 * R0_LONG)
 T_pair_pred = float(np.arctan(np.sqrt((1 - w_0) / w_0)) / (KAP_1 ** 2 * np.sqrt(w_0)))
+T_pair_pred_4 = np.sqrt(2.0) * T_pair_pred           # the same quadrature with the prefactor 4 instead of 8
 
-print(f"in-phase pair : r falls from {r_bound[0]:.3f} to {r_bound[loc_min[0]]:.3f} at "
+print(f"in-phase pair : estimated r falls from {r_bound[0]:.3f} to {r_bound[loc_min[0]]:.3f} at "
       f"t = {t_long[loc_min[0]]:.1f} and is back at {r_bound[loc_max[0]]:.3f} at t = {t_long[loc_max[0]]:.1f}")
 print(f"                maxima of r(t) at t = {np.round(t_long[np.array(loc_max)], 1)}"
       f"  ->  period {T_pair_meas:.1f}")
-print(f"                Eq. (16) released at rest at r_0 = {r_bound[0]:.3f} predicts {T_pair_pred:.1f} "
-      f"(ratio {T_pair_meas / T_pair_pred:.3f})")
+print(f"                Eq. (16) released at rest at r_0 = {R0_LONG:g} predicts {T_pair_pred:.1f} "
+      f"(ratio {T_pair_meas / T_pair_pred:.3f}); with the prefactor 4 it would be {T_pair_pred_4:.1f}")
 print(f"out-of-phase  : r grows monotonically from {r_escape[0]:.3f} to {r_escape[-1]:.3f} at t = {T_LONG:g}")
 assert r_bound.max() < 1.05 * r_bound[0] and r_escape[-1] > 5 * r_escape[0]
-assert abs(T_pair_meas / T_pair_pred - 1) < 0.2, "the bound-pair period must follow Eq. (16)"
+assert abs(T_pair_meas / T_pair_pred - 1) < 0.05, "the bound-pair period must follow Eq. (16)"
+assert abs(T_pair_meas / T_pair_pred_4 - 1) > 0.2, "a prefactor 4 must be excluded"
 print("CHECKPOINT 8 passed: in phase the pair is bound, with the period Eq. (16) predicts; "
       "out of phase it flies apart.")
 
@@ -1467,15 +1479,16 @@ print("CHECKPOINT 8 passed: in phase the pair is bound, with the period Eq. (16)
 # The left panel is Eq. (16) drawn against the measurement over a factor $e^{5} = 148$ in the force: attraction
 # in phase, repulsion out of phase, the same exponential in both. The middle panel is the $\cos\Delta\phi$,
 # with the measured accelerations normalised by $8\kappa^{3}e^{-\kappa r}$ and no fitted parameter at all; the
-# largest deviation from $-\cos\Delta\phi$ anywhere in the scan is $0.014$.
+# largest deviation from $-\cos\Delta\phi$ anywhere in the scan is $0.007$.
 #
-# The right panel follows the consequence for $200$ time units. The in-phase pair falls together from $7.682$
-# to a closest approach of $2.603$ at $t=21$, separates again to $7.685$ at $t=43$ — its initial separation to
-# three digits — and starts over: a bound two-soliton state, whose successive maxima at $t=43, 86, 128, 171$
-# give a period of $42.7$. Nothing damps it, because nothing in Eq. (1) can radiate away from a two-soliton
+# The right panel follows the consequence for $200$ time units, for two pairs prepared at $r_0 = 8$ (the
+# half-space estimator reads $7.68$ and $8.63$). The in-phase pair falls together until the two lumps merge
+# (estimated separation $2.6$ at $t=21$), separates again to $7.685$ at $t=43$ — its initial estimate to three
+# digits — and starts over: a bound two-soliton state, whose successive maxima at $t=43, 86, 128, 171$ give a
+# period of $42.7$. Nothing damps it, because nothing in Eq. (1) can radiate away from a two-soliton
 # bound state: the state is (up to the $e^{-\kappa r}$ of Section 2.2) an exact solution of the integrable
-# equation, the "breather" of the two-soliton family. The out-of-phase pair simply flies apart, from $8.634$
-# to $61.7$ over the same $200$ time units, its separation growing linearly once the exponential force has
+# equation, the "breather" of the two-soliton family. The out-of-phase pair flies apart, to an estimated
+# $61.7$ after the same $200$ time units, its separation growing linearly once the exponential force has
 # died.
 #
 # That period is not an extra fact: Eq. (16) contains it. For $\Delta\phi=0$ the equation is one-dimensional
@@ -1486,12 +1499,11 @@ print("CHECKPOINT 8 passed: in phase the pair is bound, with the period Eq. (16)
 # $$ T_{\rm pair} \;=\; \frac{e^{\kappa r_0/2}}{\kappa^{2}}\,\arctan\sqrt{e^{\kappa r_0}-1}
 #    \;\xrightarrow[\ \kappa r_0\gg1\ ]{}\; \frac{\pi}{2\kappa^{2}}\,e^{\kappa r_0/2} . $$
 #
-# For $r_0 = 7.682$ that is $38.9$ against the measured $42.7$: agreement to $10\%$, which is as much as one
-# may ask of a law that was fitted for $r\gtrsim12$ and is being used down to $r\approx2.6$, where the two
-# solitons are on top of each other and Eq. (16) has no business being right. Had the prefactor been $4$
-# instead of $8$, the same formula would have predicted $55.0$ — so even this crude comparison separates the
-# two.
-# A prefactor $4$ read off a source that uses the *half* separation is the standard way to get this wrong.
+# For $r_0 = 8$ that is $42.4$ against the measured $42.7$, although the law is used down to complete overlap,
+# where it fails: the pair spends most of each period near the turning point $r_0$, where Eq. (16) holds. Had
+# the prefactor been $4$ instead of $8$, the same formula would have predicted $60.0$, and the cell asserts that
+# this is excluded. A prefactor $4$ read off a source that uses the *half* separation is the standard way to get
+# this wrong.
 #
 # > **Physics insight.** At $\Delta\phi = \pi/2$ the force vanishes, and the interaction does something else
 # > instead: the two solitons exchange *amplitude* rather than momentum. That is the second half of the
@@ -1518,7 +1530,7 @@ print("CHECKPOINT 8 passed: in phase the pair is bound, with the period Eq. (16)
 #
 # Equation (11) satisfies Eq. (17) identically, since $N_j \propto \kappa_j$ and $\Delta x_2 =
 # -(\kappa_1/\kappa_2)\Delta x_1$: the lighter soliton is displaced further, in inverse proportion to its norm,
-# exactly like two billiard balls of different mass. This is a prediction about the two measured numbers that
+# as the centre of mass of any two bodies requires. This is a prediction about the two measured numbers that
 # does not go through Eq. (11) at all, so it is an independent test.
 #
 # ### 8.2 The measurement
@@ -1572,9 +1584,11 @@ print("CHECKPOINT 9 passed: unequal solitons obey Eq. (11) and the sum rule (17)
 # For a mass ratio of $7:3$ the light soliton is pushed forward by $2.2685$ and the heavy one backward by
 # $0.9720$: the ratio $2.2685/0.9720 = 2.334$ is the inverse mass ratio $0.7/0.3 = 2.333$, as Eq. (17) demands.
 # Both shifts agree with Eq. (11) to at worst $1.0\times10^{-3}$ and the sum rule holds to $5\times10^{-4}$,
-# with no systematic trend in the mass ratio; those residuals are the size of the time-step and
-# finite-separation errors quantified in Section 10 for this step size, and the symmetric row $N_1=N_2$, where
-# both shifts are forced to be mirror images by parity, satisfies the sum rule to $10^{-12}$.
+# with no systematic trend in the mass ratio. Those residuals are larger than the few $10^{-5}$ of the equal
+# solitons in Section 10.2; they change by comparable amounts when $\Delta t$ is divided by four or the
+# tracking window is widened, so they measure how well the lighter, wider soliton is tracked at this step size.
+# The symmetric row $N_1=N_2$, where both shifts are forced to be mirror images by parity, satisfies the sum
+# rule to $10^{-12}$.
 #
 # Nothing else changes. The collision is still elastic; the light soliton comes out light and the heavy one
 # heavy. That is the content of "the eigenvalues $\zeta_j$ are conserved" — in the integrable equation a big
@@ -1583,7 +1597,7 @@ print("CHECKPOINT 9 passed: unequal solitons obey Eq. (11) and the sum rule (17)
 # %% [markdown]
 # ## 9. Breaking integrability
 #
-# ### 9.1 What to add, and why
+# ### 9.1 A quintic term and a barrier
 #
 # Everything above rests on Eq. (1) being *exactly* the cubic nonlinear Schrödinger equation. Integrability is
 # not robust: it is a property of that one equation, and almost any extra term destroys it. Two physically
@@ -1757,7 +1771,7 @@ plt.show()
 #   $\Delta\phi=\pi$ for a reason that has nothing to do with integrability — the state has definite parity,
 #   so the two halves are mirror images at every time — and is largest in between.
 # * **Radiation.** The integrable curve sits flat on the analytic tail floor, $1.2\times10^{-5}$. The perturbed
-#   ones rise by three to four orders of magnitude and are strongly phase-dependent: in phase the collision
+#   ones rise by $2.4$ to $4.1$ orders of magnitude and are strongly phase-dependent: in phase the collision
 #   radiates $4.0\%$ ($g_5=2$) and $16.1\%$ ($g_5=4$), out of phase only $0.29\%$ and $0.66\%$.
 #
 # > **Physics insight.** This is the one-dimensional caricature of what Parker, Martin, Cornish and Adams
@@ -1825,10 +1839,10 @@ for V0 in V0_LIST:
 # for $k_{\max}\gtrsim 8.8$ against $5.04$ at $k_0=0.42$, i.e. a grid $1.75$ times finer, not ten times.
 #
 # > **Numerical practice.** On a periodic grid the usable band is $\vert q\vert \le \pi/\Delta x$, and a
-# > *boosted* object occupies the band around its own $k_0$, not around zero. Before choosing $N_x$, add the
+# > *boosted* object occupies the band around its own $k_0$. Before choosing $N_x$, add the
 # > carrier $\vert k_0\vert$ to the intrinsic bandwidth of the envelope — here $(2\kappa/\pi)\ln(2/\varepsilon)$
 # > from the $\mathrm{sech}$ spectrum — and demand $\pi/\Delta x$ above the sum, Eq. (19). Whatever crosses
-# > $\pi/\Delta x$ is not lost, it is aliased back to the opposite edge of the band and reappears as a
+# > $\pi/\Delta x$ is aliased back to the opposite edge of the band and reappears as a
 # > counter-propagating wave: the $N_x=128$ row of the table below is wrong by $7.6\%$ and shows no sign of
 # > being wrong other than disagreeing with the finer grids.
 #
@@ -1893,8 +1907,8 @@ for x0_try in (12.0, 16.0, 20.0, 24.0):
 # Panel (a). At $N_x=128$ the Nyquist wave number is $3.35$, below the $5.04$ that Eq. (19) asks for, and the
 # measured shift is wrong by $0.135$ — $7.6\%$. At $N_x=192$, whose $k_{\max}=5.03$ sits right on the
 # threshold, the error drops to $3.4\times10^{-4}$, and from $N_x=256$ on it sits between $1$ and
-# $2.5\times10^{-5}$ and stops improving. Spectral convergence is not gradual: it is a cliff at the point where
-# the grid starts to represent the state, and a plateau afterwards, and Eq. (19) locates the cliff to within
+# $2.5\times10^{-5}$ and stops improving. Spectral convergence is a cliff at the point where the grid starts
+# to represent the state, followed by a plateau, and Eq. (19) locates the cliff to within
 # one doubling of $N_x$.
 #
 # Panel (b). Halving the time step divides the energy drift by four each time (ratios $3.93$, $3.99$, $4.00$):
@@ -1966,7 +1980,7 @@ plt.show()
 # frame spacing of $1.0$, on their mean ($45.63$). The second crossing arrives earlier than free motion
 # predicts ($189.0$) by $2\Delta x/(2k) = 4.2$ time units, because each soliton had already been pushed forward
 # by $\Delta x$ in the first collision; the shift-corrected prediction is $184.8$ against the measured $185.0$.
-# The shift is not only measurable in the trajectory, it changes the clock.
+# The shift also changes the clock.
 #
 # > **Numerical practice.** Choose $L$ and $T$ together. The useful window is
 # > $T < (L-2x_0)/\Delta k$ after the first collision; beyond it the "isolated pair" the measurement assumes no
@@ -2152,7 +2166,7 @@ print(f"   shift: slow {rows_v[j_slow, 1]:.4f}, fast {rows_v[j_fast, 1]:.4f} "
 # $\Delta k = 0.42$, spends long enough in contact to merge into one broad lump of half the peak density. And
 # the slow pair comes out displaced by $3.804$ against $0.294$ for the fast one, a factor of $12.9$.
 #
-# ### 11.3 The collision that does not end well
+# ### 11.3 A non-integrable collision: merging and radiation
 #
 # The in-phase collision with the quintic term of Eq. (18), against the integrable run as a reference. On a
 # logarithmic density scale, so that the radiation is visible.
@@ -2179,7 +2193,7 @@ print(f"   central lump at the end (g5 = 4): peak density {np.max(np.abs(FR_Q[10
       f"x = {x[int(np.argmax(np.abs(FR_Q[10][-1]) ** 2))]:+.2f}")
 
 # %% [markdown]
-# The orange reference does what the whole notebook has been about: two lumps in, two lumps out, eight decades
+# The orange reference is the integrable collision: two lumps in, two lumps out, eight decades
 # of clean $\mathrm{sech}^{2}$ tail on each. The blue curve does not. At the crossing the density climbs past
 # the integrable one, the two solitons stick, and what is left afterwards is a single lump at the origin, of
 # peak density about $0.75$ — six times a soliton's — sitting in a background of radiation that fills the whole
@@ -2205,20 +2219,18 @@ print(f"   central lump at the end (g5 = 4): peak density {np.max(np.abs(FR_Q[10
 # * **The shift is forwards.** The focusing nonlinearity makes solitons attract, so each one leaves the
 #   collision ahead of where free motion would have put it — by $3.804$ length units, nearly two widths, at the
 #   slowest velocity tried, and by $0.171$ at the fastest.
-# * **The relative phase controls the picture, not the outcome.** In phase, the density at the crossing reaches
+# * **The relative phase controls the picture; the outcome does not depend on it.** In phase, the density at the crossing reaches
 #   $0.4978$, which is $0.9956$ of the constructive-interference value $4\kappa^{2}/g$; out of phase, parity
 #   forces an exact node at the origin for all time. Yet the outgoing norms differ by at most
 #   $1.8\times10^{-5}$ and the position shift varies by $2.3\times10^{-4}$ in relative terms across the whole
-#   range of $\Delta\phi$ — and both residuals shrink like $\Delta t^{2}$, so they are the integrator, not the
-#   physics.
+#   range of $\Delta\phi$, and both residuals shrink with $\Delta t$, so they come from the integrator.
 # * **Neighbouring solitons exert an exponential force.** Measured:
 #   $d^{2}r/dt^{2} = -8\kappa^{3}e^{-\kappa r}\cos\Delta\phi$, with the rate $\kappa$ predicted by the
-#   tail-overlap argument and fitted to $-0.491$ and $-0.513$ from the two phases, the prefactor $8\kappa^{3}$
-#   approached from either side as the separation grows ($0.989$ and $1.013$ at $r=18$), and the
-#   $\cos\Delta\phi$ confirmed to $0.014$ with no free parameter, and the prefactor $8$ recovered from the
-#   half-separation form of the standard perturbation theory. In phase a pair released at rest at $r_0=7.68$
-#   oscillates with a period of $42.7$ against the $38.9$ that one quadrature of Eq. (16) predicts; out of
-#   phase it flies apart.
+#   tail-overlap argument and fitted to $-0.501$ and $-0.499$ from the two phases, the prefactor $8\kappa^{3}$
+#   confirmed to $0.8\%$ for $r \ge 12$ (and recovered from the half-separation form of the standard
+#   perturbation theory), and the $\cos\Delta\phi$ confirmed to $0.007$ with no free parameter. In phase
+#   a pair released at rest at $r_0=8$ oscillates with a period of $42.7$ against the $42.4$ that one
+#   quadrature of Eq. (16) predicts; out of phase it flies apart.
 # * **Unequal solitons obey a sum rule.** $N_1\Delta x_1 + N_2\Delta x_2 = 0$, which follows from momentum
 #   conservation alone and holds to $5\times10^{-4}$; the light soliton is displaced further, in inverse
 #   proportion to its norm ($2.2685$ against $0.9720$ for a $3{:}7$ mass ratio).
@@ -2230,7 +2242,8 @@ print(f"   central lump at the end (g5 = 4): peak density {np.max(np.abs(FR_Q[10
 # * **Three convergence parameters, and the dangerous one is not numerical.** The grid converges spectrally
 #   once $k_{\max}$ clears the bound of Eq. (19) and the time step converges as $\Delta t^{2}$; but a *sum* of
 #   two solitons is a solution of Eq. (1) only to $O(e^{-\kappa d})$, and at $x_0=12$ that alone costs $30\%$
-#   in the measured shift with a perfectly converged grid and step. At $x_0=20$ it costs $3\times10^{-5}$.
+#   in the measured shift with a perfectly converged grid and step. At $x_0=20$ the shift is within
+#   $3\times10^{-5}$ of Eq. (11), and the other two parameters set that residual.
 #
 # ### 12.2 Exercises
 #
@@ -2275,7 +2288,7 @@ print(f"   central lump at the end (g5 = 4): peak density {np.max(np.abs(FR_Q[10
 # for an integrable system, in which nothing can be transferred except position. Then add a small $g_5$ and
 # repeat.
 #
-# **6. (★★) The collision time.** Section 10.3 asserted that the density peak sits between the crossing of the
+# **6. (★★) The collision time.** Section 10.3 measured that the density peak sits between the crossing of the
 # incoming and the outgoing asymptotes. Derive the exact relation from the two-soliton solution in the limit
 # $\Delta k \gg \kappa$, where the two solitons barely deform, and test it against the measured collision times
 # over the velocity sweep of Section 5.3.
@@ -2333,7 +2346,7 @@ print(f"   central lump at the end (g5 = 4): peak density {np.max(np.abs(FR_Q[10
 #
 # This is the last notebook of the wave-function-on-a-grid part of the course. Everything so far has been one
 # complex field on one grid, propagated with two FFTs per step, and the physics has been the physics of a single
-# orbital occupied by many particles. [01 — JAX from scratch](01_jax_from_scratch.ipynb) explains the tools
+# orbital occupied by many particles. [01 — JAX](01_jax_from_scratch.ipynb) explains the tools
 # used on trust here — `jit`, `lax.scan`, `vmap`, and the rest — and
 # [02 — einsum from scratch](02_einsum_from_scratch.ipynb) the contraction notation the rest of the course
 # runs on. After them the course leaves the mean field

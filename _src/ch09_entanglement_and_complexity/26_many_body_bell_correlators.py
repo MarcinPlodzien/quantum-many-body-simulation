@@ -88,7 +88,7 @@
 # * separating "what the optimiser found" from "what the state can give" by always comparing against an analytic optimum.
 #
 # ### Prerequisites
-# * [01 — JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb) and
+# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb) and
 #   [02 — einsum from scratch](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb);
 # * [19 — Bell states and CHSH](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb): local hidden variables,
 #   the CHSH bound $2$, the Tsirelson bound $2\sqrt2$ — we build directly on it;

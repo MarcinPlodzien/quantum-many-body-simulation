@@ -80,7 +80,7 @@
 # * [Chapter 5 / 12 — TEBD](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb): Trotter–Suzuki gate sequences;
 # * [Chapter 6 / 16 — Lindblad master equation](../ch06_open_quantum_systems/16_lindblad_master_equation.ipynb) and
 #   [Chapter 6 / 17 — quantum trajectories](../ch06_open_quantum_systems/17_monte_carlo_wave_function.ipynb): dissipative dynamics, density tensor versus trajectories;
-# * [Chapter 1 / 01 — JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, `lax.scan`, PRNG keys.
+# * [Chapter 1 / 01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, `lax.scan`, PRNG keys.
 #
 # Units and conventions as before: $\hbar=1$, $\vert 0\rangle$ is the $+1$ eigenstate of $Z$, Hamiltonians are written with
 # Pauli matrices (not spin-$1/2$ operators), qubit $q$ is tensor axis $q$.

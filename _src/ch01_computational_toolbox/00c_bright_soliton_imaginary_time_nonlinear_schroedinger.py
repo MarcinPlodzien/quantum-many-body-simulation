@@ -5,7 +5,7 @@
 # %% [markdown]
 # ## 1. Introduction and motivation
 #
-# Quantum mechanics is linear. The superposition principle is not a convenience, it is the axiom: if
+# Quantum mechanics is linear. The superposition principle is one of its axioms: if
 # $\psi_1$ and $\psi_2$ solve the Schrödinger equation, so does $\alpha\psi_1 + \beta\psi_2$. Notebook
 # [00a](00a_free_particle_gaussian_wave_packet.ipynb) used that linearity to solve the free particle exactly, and
 # notebook [00b](00b_first_quantum_simulation_harmonic_oscillator.ipynb) used it again to expand any state in
@@ -16,11 +16,11 @@
 # $$ i\,\frac{\partial\psi}{\partial t} \;=\; -\frac{1}{2}\frac{\partial^{2}\psi}{\partial x^{2}}
 #    \;-\; g\,\vert\psi\vert^{2}\psi . \tag{1} $$
 #
-# The last term is cubic in the unknown function. Multiply $\psi$ by two and it grows by eight, not by two:
-# superposition is gone, and with it the whole machinery of eigenstates and spectral decomposition. Section 2
-# explains where such an equation comes from in a theory that is linear by construction — the short answer is
-# that Eq. (1) is not an equation for *the* wave function of a quantum system but for **one orbital occupied by
-# $N$ particles at once**, with the other $N-1$ particles acting on it as an average field. It is the
+# The last term is cubic in the unknown function: multiplying $\psi$ by two multiplies it by eight.
+# Superposition is gone, and with it the whole machinery of eigenstates and spectral decomposition. Section 2
+# explains where such an equation comes from in a theory that is linear by construction. In short, Eq. (1)
+# describes **one orbital occupied by $N$ particles at once**, with the other $N-1$ particles acting on it as an
+# average field, and $\psi$ is that orbital rather than the wave function of the whole system. It is the
 # **Gross-Pitaevskii equation** of a Bose-Einstein condensate, and it is also, with different symbols, the
 # equation for the envelope of a light pulse in a glass fibre.
 #
@@ -55,7 +55,8 @@
 #   and the limits of the description.
 # * **Sections 7 and 8** — imaginary time: the idea in four layers with a numerical demonstration for each, then
 #   the split-step algorithm, its convergence in $\Delta\tau$, $N_x$ and $L$, and its failure modes.
-# * **Section 9** — real time: why split-step and not Runge-Kutta, the stationary soliton, the moving soliton
+# * **Section 9** — real time: the stability limit of Runge-Kutta against the unitary split-step method, the
+#   stationary soliton, the moving soliton
 #   against the spreading linear packet, a non-soliton initial state, convergence and conservation.
 # * **Section 10** — animations and space-time maps.
 # * **Section 11** — summary, an extended workflow checklist, exercises, references.
@@ -92,7 +93,7 @@
 # [00b — the harmonic oscillator](00b_first_quantum_simulation_harmonic_oscillator.ipynb) for potentials,
 # eigenstates, and the stability of explicit time integrators. One semester of quantum mechanics. No JAX
 # knowledge: the three features used here (`jit`, `lax.scan`, `grad`) are each explained in two sentences where
-# they appear, and properly in [01 — JAX from scratch](01_jax_from_scratch.ipynb).
+# they appear, and properly in [01 — JAX](01_jax_from_scratch.ipynb).
 
 # %% [markdown]
 # ## 2. Where a nonlinear Schrödinger equation comes from
@@ -158,7 +159,7 @@
 #    \left[-\frac{\hbar^{2}}{2m}\frac{\partial^{2}}{\partial X^{2}} + V_{\rm ext}(X)
 #    \;+\; g_{\rm 1D}\vert\Psi\vert^{2}\right]\Psi . \tag{6} $$
 #
-# The factor $\tfrac12$ in Eq. (4) and its absence in Eq. (6) is not a typo: differentiating
+# The factor $\tfrac12$ in Eq. (4) and its absence in Eq. (6) are consistent: differentiating
 # $\tfrac12 g\vert\Psi\vert^4 = \tfrac12 g(\Psi^*\Psi)^2$ with respect to $\Psi^*$ gives $g\vert\Psi\vert^2\Psi$.
 # Section 4 turns that factor of two into the statement $\mu \ne E/N$.
 #
@@ -319,7 +320,7 @@
 #
 # $$ \frac{2}{g} = 1 \qquad\Longrightarrow\qquad g = 2 . $$
 #
-# Every bright soliton in the universe is the same solution of Eq. (8) with $g = 2$; the only thing that changes
+# Every bright soliton described by Eq. (6) is the same solution of Eq. (8) with $g = 2$; the only thing that changes
 # from one experiment to another is what one metre and one second mean. We will use $g = 2$ throughout, and vary
 # $g$ only where the point is the dependence on $g$ itself.
 #
@@ -422,8 +423,7 @@ print("\ncheckpoint: x_0 = ell gives g = 2 for both experiments (to round-off)")
 # Khaykovich et al. is $1.1\,\mathrm{mm}/2.15\,\mu\mathrm{m} = 512$ length units, which at one unit of
 # velocity would take $512$ time units, i.e. $0.26\,\mathrm{s}$. The last column is the one to watch:
 # $\kappa = a_\perp/\ell$ is $0.663$ and $0.596$, so the soliton is only $1.5$ to $1.7$ times wider than the
-# transverse ground state. These experiments are *quasi*-1D by a factor of order two, not by orders of
-# magnitude, and Section 6.8 explains why they cannot simply increase $N$ to do better. Because
+# transverse ground state. These experiments are *quasi*-1D by a factor of order two, and Section 6.8 explains why they cannot simply increase $N$ to do better. Because
 # $\kappa\propto N$, the last column is also the least certain number in the table: Section 6.8 and the cell
 # there make that explicit.
 #
@@ -505,7 +505,7 @@ print("\ncheckpoint: x_0 = ell gives g = 2 for both experiments (to round-off)")
 # momentum from one place to another, never create it — which is what "invariant under translations" means.
 # Section 6.4 makes this the statement that a soliton moves like a free particle.
 #
-# ### 4.5 The chemical potential is not the energy per particle
+# ### 4.5 Chemical potential and energy per particle
 #
 # A stationary state of Eq. (8) is $\psi(x,t) = \phi(x)e^{-i\mu t}$ with $\phi$ time-independent. Substituting,
 # $i\partial_t\psi = \mu\phi e^{-i\mu t}$, so
@@ -524,7 +524,7 @@ print("\ncheckpoint: x_0 = ell gives g = 2 for both experiments (to round-off)")
 #
 # > **Common pitfall.** In a *linear* problem $\mu$ and $E$ coincide and nobody distinguishes them. Reporting a
 # > Gross-Pitaevskii "energy" without saying which of the two it is, is one of the standard ways of being
-# > wrong by tens of per cent.
+# > wrong; for the soliton of Section 5 the two differ by a factor of three.
 
 # %% [markdown]
 # ## 5. The exact bright soliton
@@ -625,8 +625,8 @@ print("\ncheckpoint: x_0 = ell gives g = 2 for both experiments (to round-off)")
 # $$ E \;=\; E_{\rm kin} + E_{\rm int} \;=\; -\frac{g^{2}}{24} , \qquad
 #    \mu \;=\; E_{\rm kin} + 2E_{\rm int} \;=\; \frac{g^{2}}{24} - \frac{g^{2}}{6} = -\frac{g^{2}}{8} , \tag{23} $$
 #
-# the second line reproducing Eq. (22) and confirming Eq. (16). Note $E_{\rm int} = -2E_{\rm kin}$ exactly: this
-# is the one-dimensional virial theorem for a cubic nonlinearity, and Exercise 5 asks for its derivation.
+# the second line reproducing Eq. (22) and confirming Eq. (16). The relation $E_{\rm int} = -2E_{\rm kin}$ is exact:
+# it is the one-dimensional virial theorem for a cubic nonlinearity, and Exercise 3 asks for its derivation.
 #
 # Two more numbers we will measure. The **width** of the density $\vert\phi\vert^2$, defined as its standard
 # deviation, uses $\int u^{2}\mathrm{sech}^{2}(\kappa u)du = \pi^{2}/(6\kappa^{3})$:
@@ -662,8 +662,7 @@ print("\ncheckpoint: x_0 = ell gives g = 2 for both experiments (to round-off)")
 # the ring). For $g=2$ and $L=60$ that is $e^{-30} \approx 10^{-13}$, which sets the floor of every check below.
 #
 # Below: `make_grid`, the exact solution `soliton_exact` including the Galilean boost of Section 5.6,
-# `gp_hamiltonian` for $\hat H_{\rm GP}\psi$, and the three energies. The same names will be reused by the
-# follow-up notebook on soliton collisions.
+# `gp_hamiltonian` for $\hat H_{\rm GP}\psi$, and the three energies.
 
 # %%
 # ==============================================================================
@@ -817,7 +816,7 @@ def mean_momentum(psi, k):
 print("STEP 2 observables defined: mean_position, position_variance, mean_momentum")
 
 # %% [markdown]
-# ### 5.7 Checking the exact solution against the equation it is supposed to solve
+# ### 5.7 Numerical check of the exact solution
 #
 # Everything derived in Sections 5.1-5.3 is now checked numerically: the norm, the residual
 # $\Vert \hat H_{\rm GP}\phi - \mu\phi\Vert$ with the *predicted* $\mu = -g^2/8$, the energies
@@ -876,14 +875,12 @@ print("CHECKPOINT 1 passed: Eqs. (22)-(24) verified on the grid.")
 # %% [markdown]
 # Every entry agrees to $10^{-12}$ or better, and the residual sits at $5.6\times10^{-13}$ — the periodic-image
 # floor estimated above, $e^{-gL/4}\approx 9\times10^{-14}$, amplified by the two derivatives in
-# $\hat H_{\rm GP}$. Sections 5.1-5.3 are therefore not just plausible, they are correct to the last digit the
-# ring allows.
+# $\hat H_{\rm GP}$. Sections 5.1-5.3 therefore hold to the last digit the ring allows.
 
 # %% [markdown]
 # ### 5.8 The Galilean boost
 #
-# A soliton at rest is not very interesting. Claim: if $\phi$ solves the stationary equation (15) with chemical
-# potential $\mu$, then
+# If $\phi$ solves the stationary equation (15) with chemical potential $\mu$, then
 #
 # $$ \psi(x,t) \;=\; \phi(x - k_0 t)\;\exp\!\left[\,i k_0 x - i\left(\frac{k_0^{2}}{2}+\mu\right)t\right] \tag{26} $$
 #
@@ -928,7 +925,8 @@ print("CHECKPOINT 1 passed: Eqs. (22)-(24) verified on the grid.")
 # CHECKPOINT 2: the boosted soliton satisfies the time-dependent equation
 #   Substitute psi(x,t) of Eq. (26) into  i psi_t + (1/2) psi_xx + g |psi|^2 psi = 0
 #   and measure the residual.  psi_t is evaluated by a centred difference in t, so the
-#   check is independent of any propagator we might later write.
+#   check is independent of any propagator we might later write.  At h = 1e-6 the floor of
+#   that difference is round-off, eps |psi| / h ~ 1e-10; its truncation error ~ h^2 is far below.
 # ==============================================================================
 K0_CHECK = 2.0 * np.pi * 10 / L                 # commensurate with the ring (rule 1 of notebook 00a)
 t_check, h_t = 1.3, 1e-6
@@ -940,8 +938,8 @@ psi_0 = soliton_exact(x, t_check, G, x_c=0.0, k_0=K0_CHECK)
 lhs = 1j * (psi_p - psi_m) / (2 * h_t)          # i d(psi)/dt   by a centred difference
 rhs = gp_hamiltonian(psi_0, k, G)               # H_GP[psi] psi
 err_pde = float(np.max(np.abs(lhs - rhs)))
-print(f"max | i dpsi/dt - H_GP psi |  = {err_pde:.3e}   "
-      f"(centred difference in t, h = {h_t:g}, so the floor is ~h^2 = {h_t ** 2:.0e})")
+print(f"max | i dpsi/dt - H_GP psi |  = {err_pde:.3e}   (centred difference in t, h = {h_t:g}: "
+      f"round-off floor eps max|psi| / h = {np.finfo(float).eps * np.max(np.abs(psi_0)) / h_t:.1e})")
 assert err_pde < 1e-9, "the boosted soliton must solve the time-dependent GP equation"
 
 print(f"\n<x> at t = {t_check}: numerical {mean_position(psi_0, x, dx, L):.10f}, "
@@ -959,10 +957,11 @@ for num, ana in [(mean_position(psi_0, x, dx, L), K0_CHECK * t_check),
 print("CHECKPOINT 2 passed: Eqs. (26)-(28) verified.")
 
 # %% [markdown]
-# The residual of the partial differential equation is $10^{-11}$, limited by the $h^2 = 10^{-12}$ of the
-# centred difference in $t$ used to build $\partial_t\psi$ — nothing about the soliton. The four observables
-# reproduce Eqs. (27) and (28) to $10^{-11}$ or better. At $t = 1.3$ the soliton has moved by
-# $k_0 t = 1.36$ length units while its variance has not changed in the eleventh decimal.
+# The residual of the partial differential equation is $9\times10^{-11}$, set by round-off in the centred
+# difference that builds $\partial_t\psi$: dividing a difference of numbers of size $0.7$ by $2h = 2\times10^{-6}$
+# amplifies their $10^{-16}$ rounding to $\sim10^{-10}$, while the truncation error $O(h^{2})$ is below
+# $10^{-12}$. The four observables reproduce Eqs. (27) and (28) to the ten digits printed: at $t = 1.3$ the
+# soliton has moved by $k_0 t = 1.36$ length units with its variance unchanged.
 
 # %% [markdown]
 # ## 6. The physics of the bright soliton
@@ -972,7 +971,7 @@ print("CHECKPOINT 2 passed: Eqs. (26)-(28) verified.")
 #
 # ### 6.1 Dispersion against attraction: a variational argument
 #
-# Why does a soliton exist at all? Take any normalised trial profile of width $w$ and see how the two terms of
+# The existence of the soliton follows from a scaling argument. Take any normalised trial profile of width $w$ and see how the two terms of
 # the energy functional (10) scale. A profile of width $w$ carrying unit norm has $\vert\psi\vert^{2}\sim 1/w$,
 # so $\vert\psi\vert^{4}\sim1/w^{2}$ over a region of size $w$, and its derivative is $\sim 1/w$ times its
 # amplitude:
@@ -1019,8 +1018,8 @@ print("CHECKPOINT 2 passed: Eqs. (26)-(28) verified.")
 #    \frac{\sigma_{*}}{\sigma_{\rm sech}} = \frac{\sqrt\pi/g}{\pi/(\sqrt3 g)} = \sqrt{\frac{3}{\pi}}
 #    \approx 0.9772 . $$
 #
-# A Gaussian captures $95.5\%$ of the binding energy and is $2.3\%$ too narrow. Good enough for an estimate,
-# useless as a starting point for the precision work of Sections 8 and 9.
+# A Gaussian captures $95.5\%$ of the binding energy and is $2.3\%$ too narrow. That is adequate for an
+# estimate; the precision work of Sections 8 and 9 needs the exact profile.
 
 # %%
 # ==============================================================================
@@ -1112,7 +1111,7 @@ print(f"overlap | <Gaussian(sigma*) | soliton> |  = {ovl:.6f}")
 # Gaussian overlaps the true soliton by $0.9972$ — close, but Section 9.4 will show that the missing
 # $0.28\%$ is enough to make it breathe and radiate.
 #
-# ### 6.2 Why one dimension is safe and three dimensions are not
+# ### 6.2 Collapse in one, two and three dimensions
 #
 # Repeat the scaling argument in $d$ dimensions. A normalised profile of width $w$ has
 # $\vert\psi\vert^{2}\sim w^{-d}$, and the interaction integral $\int\vert\psi\vert^{4}d^{d}x$ picks up
@@ -1175,7 +1174,7 @@ print(f"overlap | <Gaussian(sigma*) | soliton> |  = {ovl:.6f}")
 # > **JAX practice.** `jax.grad(f)` returns a new function that computes the exact derivative of `f` by
 # > differentiating the operations `f` performs, not by taking finite differences — no step size, no truncation
 # > error. It is the tool that makes variational optimisation practical later in this course; see
-# > [01 — JAX from scratch](01_jax_from_scratch.ipynb).
+# > [01 — JAX](01_jax_from_scratch.ipynb).
 
 # %%
 # ==============================================================================
@@ -1216,7 +1215,6 @@ print("CHECKPOINT 3 passed: Eq. (32) holds.")
 print("\n  n g      width 2/(ng)   peak ampl.   mu = -(ng)^2/8    measured mu     measured width")
 for n_frac in (0.5, 1.0, 2.0):
     psi_n = soliton_exact(x, g=G, n=n_frac)
-    psi_n_normalised = psi_n / np.sqrt(grid_norm(psi_n, dx))
     mu_meas = gp_chemical_potential(psi_n, k, dx, G) / grid_norm(psi_n, dx)
     w_predicted = 2.0 / (n_frac * G)
     # width read off the profile: sech(kappa d) = sech(1) at the distance d = 1/kappa = 2/(n g)
@@ -1233,8 +1231,8 @@ for n_frac in (0.5, 1.0, 2.0):
 # energy, and the expectation value $\langle \hat H_{\rm GP}\rangle$ all return $-0.5 = -g^{2}/8$ for $g=2$.
 # The table underneath shows the family: doubling $ng$ halves the width, doubles the amplitude and quadruples
 # $\vert\mu\vert$, and the measured width column — the distance from the peak at which the profile has fallen
-# to $\mathrm{sech}(1) = 0.6481$ of its maximum, obtained by interpolating between grid points — reproduces
-# $2/(ng)$ to four digits.
+# to $\mathrm{sech}(1) = 0.6481$ of its maximum, obtained by linear interpolation between grid points —
+# reproduces $2/(ng)$ to a relative $1.4\times10^{-3}$ or better, the interpolation error on a grid of spacing $0.117$.
 #
 # ### 6.4 A soliton is a particle
 #
@@ -1245,8 +1243,8 @@ for n_frac in (0.5, 1.0, 2.0):
 #
 # which is the energy of a particle of unit mass moving at velocity $k_0$, plus a constant internal energy. In
 # physical units the mass is $Nm$: the whole cloud moves as one object. Combined with Ehrenfest's relation (14)
-# and $d\langle p\rangle/dt = 0$, the centre of mass obeys Newton's first law exactly — not approximately, and
-# not only on average, since the shape never changes.
+# and $d\langle p\rangle/dt = 0$, the centre of mass obeys Newton's first law exactly, and because the shape
+# never changes, so does every point of the profile.
 #
 # The reason is Galilean invariance, and the reason *that* holds is that the nonlinearity depends only on
 # $\vert\psi\vert^{2}$, which no phase factor can touch. Adding an external potential breaks the invariance and
@@ -1269,9 +1267,13 @@ for n_frac in (0.5, 1.0, 2.0):
 # and produces a density profile that the exact ground state does not have. Lai and Haus constructed the
 # corresponding exact quantum states, by Bethe ansatz, for the quantum nonlinear Schrödinger model of solitons in
 # optical fibres, which is the attractive one-dimensional Bose gas (Phys. Rev. A **40**, 844 and 854 (1989)): superposing their momentum eigenstates with a wave packet in the total momentum recovers a
-# localised density, which then slowly spreads — a dispersive spreading of the centre of mass, as for a free
-# particle of mass $Nm$, that the Gross-Pitaevskii equation does not contain. For $N\sim10^{3}$ atoms over a few hundred milliseconds that spreading is negligible, which
-# is why Eq. (8) describes the experiments; it is not negligible in principle.
+# localised density, which then spreads — a dispersive spreading of the centre of mass, as for a free
+# particle of mass $Nm$, that the Gross-Pitaevskii equation does not contain. Its size depends on the initial
+# centre-of-mass uncertainty $\Delta$, about which the mean field says nothing: the spread after a time $t$ is
+# $\hbar t/(2Nm\Delta)$, which for $N = 4.5\times10^{3}$ lithium atoms and $t = 300\,$ms is $0.14\,\mu$m if
+# $\Delta$ equals the soliton width $\ell$ and $10\,\mu$m for the Hartree value $\Delta = \sigma/\sqrt N$.
+# A single absorption image does not show it either way: it records one localised soliton at a random
+# position, and the spreading appears only as shot-to-shot scatter of that position.
 #
 # ### 6.6 Robustness, and integrability
 #
@@ -1316,8 +1318,8 @@ for n_frac in (0.5, 1.0, 2.0):
 #
 # 1. **Quasi-one-dimensionality.** Reducing three dimensions to one requires every atom to stay in the
 #    transverse ground state, which needs the soliton to be longer than it is wide: $\ell \gg a_\perp$, i.e.
-#    $\kappa = N\vert a_s\vert/a_\perp = a_\perp/\ell \ll 1$. The cell in Section 3.5 measured $\kappa = 0.66$
-#    and $0.60$ for the two experiments — order one, not small.
+#    $\kappa = N\vert a_s\vert/a_\perp = a_\perp/\ell \ll 1$. The cell in Section 3.5 gives $\kappa = 0.66$
+#    and $0.60$ for the two experiments, which is of order one.
 # 2. **No collapse.** The three-dimensional character reasserts itself when the soliton becomes narrow enough
 #    to feel the transverse degree of freedom, and then Section 6.2 applies: the cloud collapses. Numerical
 #    solutions of the full three-dimensional Gross-Pitaevskii equation in a waveguide put the threshold at
@@ -1325,14 +1327,13 @@ for n_frac in (0.5, 1.0, 2.0):
 #    agreement with the analytic value $2/3$ that Salasnich, Parola and Reatto obtained (Phys. Rev. A **66**,
 #    043603 (2002)) from their non-polynomial Schrödinger equation (Phys. Rev. A **65**, 043614 (2002)). Both 2002 experiments therefore ran
 #    close to a genuine instability, which is why they could not simply increase $N$ to make the soliton more
-#    one-dimensional: that is the direction in which it explodes. How close is a question the experiments
+#    one-dimensional: that is the direction in which it collapses. How close is a question the experiments
 #    themselves cannot answer sharply, because $\kappa$ is linear in the atom number and $N$ is the least
 #    precisely known quantity in the table. Khaykovich et al. measure $N = 6(2)\times10^{3}$, whose central
 #    value gives $\kappa = 0.88$ — *above* $\kappa_c$ — while their own stability estimate,
 #    $4.2$–$5.2\times10^{3}$, gives $\kappa = 0.62$–$0.77$. The parameters used here, $N = 4.5\times10^{3}$,
-#    sit inside that window. The lesson is not that the experiment was unstable but that it operated at
-#    $\kappa$ of order $\kappa_c$, and that the number which decides stability is the one with the largest
-#    error bar.
+#    sit inside that window. The experiment therefore operated at $\kappa$ of order $\kappa_c$, and the
+#    number that decides stability is the one with the largest error bar.
 # 3. **Mean field.** Sections 2.3 and 6.5 listed what the Hartree product omits: quantum depletion, atoms
 #    outside the condensate mode, and the delocalisation of the centre of mass.
 #
@@ -1364,7 +1365,7 @@ for N_try in (4200, 4500, 5200, 6000, 8000):
 # %% [markdown]
 # ## 7. Imaginary-time evolution
 #
-# ### 7.1 The question
+# ### 7.1 Ground states without diagonalisation
 #
 # Notebook 00b found the ground state of a harmonic trap by building the Hamiltonian as a tridiagonal matrix and
 # handing it to an eigensolver. That route is closed here for two independent reasons.
@@ -1517,7 +1518,7 @@ print("STEP 3: imaginary_time_ground_state and imaginary_time_frames compiled on
 # > fused program; `lax.scan(body, init, xs, length=n)` is a compiled `for` loop that carries a state forward
 # > and collects one output per iteration. Marking `n_steps` as a *static* argument tells the compiler that this
 # > number is known at compile time, which it must be for `scan` to fix the loop length; changing it triggers a
-# > recompilation. Both are explained in [01 — JAX from scratch](01_jax_from_scratch.ipynb).
+# > recompilation. Both are explained in [01 — JAX](01_jax_from_scratch.ipynb).
 #
 # ### 7.4 Demonstration 1: the convergence rate is the gap
 #
@@ -1625,17 +1626,19 @@ print("\nCHECKPOINT 5 passed: the imaginary-time convergence rate is the spectra
 # the plateau — so the measured $E(\tau)$ is guaranteed to fall only until it reaches that level. Above the
 # bias the descent is monotonic; at the bias the curve is free to wander inside it.
 #
-# ### 7.5 Demonstration 2: you get the lowest state *with non-zero overlap*
+# ### 7.5 Demonstration 2: convergence to the lowest state *with non-zero overlap*
 #
 # Start instead from an **odd** function, $\psi(x,0)\propto x\,e^{-x^{2}/4s^{2}}$. Parity is a symmetry of the
 # Hamiltonian, and every operation in Eq. (37) preserves it — the FFT of an odd array is odd, multiplication by
 # the even $V$ keeps it odd — so $c_0 = c_2 = \ldots = 0$ for ever, in exact arithmetic. Equation (33) then
 # converges to $\phi_1$, the *first excited state*, and the method returns $E = 3/2$.
 #
-# In floating-point arithmetic "for ever" means "until round-off". Each FFT introduces an even component of
-# relative size $\sim10^{-16}$, and that component then *grows* relative to the odd one by $e^{(E_1-E_0)\tau} =
-# e^{\tau}$. Starting from $10^{-16}$, it reaches order one at $\tau\approx 16/(E_1-E_0)\approx 37$. The
-# calculation below runs well past that point.
+# In floating-point arithmetic "for ever" means "until round-off". Every step introduces an even component of
+# relative size $\varepsilon\sim10^{-16}$, and each such component then *grows* relative to the odd one by
+# $e^{(E_1-E_0)\tau} = e^{\tau}$. Summed over the $\tau/\Delta\tau$ steps, the contamination at time $\tau$
+# is about $\varepsilon e^{\tau}/\Delta\tau$, which reaches order one at
+# $\tau\approx\ln(\Delta\tau/\varepsilon)\approx31$ for $\Delta\tau = 0.005$. The calculation below runs
+# well past that point.
 
 # %%
 # ==============================================================================
@@ -1665,9 +1668,10 @@ print("\nCHECKPOINT 6 passed: symmetry protects the excited state, round-off eve
 # From $\tau = 5$ to $\tau = 20$ the state is $\phi_1$ and the energy is $3/2$ to nine digits: the algorithm
 # has converged to an *excited* state, because the ground state was not in the initial expansion. The even
 # contamination is $1.2\times10^{-12}$ at $\tau=5$, $1.8\times10^{-10}$ at $\tau=10$ and
-# $4.1\times10^{-6}$ at $\tau=20$ — growth by $e^{\tau}$ to within a factor of two over fifteen units of
-# $\tau$, as predicted. By $\tau = 30$ it is $8.9\%$, at $\tau = 35$ the state has already flipped, and from
-# $\tau = 40$ on the energy is $1/2$ and the overlap with $\phi_0$ is one.
+# $4.1\times10^{-6}$ at $\tau=20$, growth by $e^{\tau}$ to within $1\%$ over fifteen units of $\tau$; the
+# value at $\tau = 5$ is within a factor of three of the estimate $\varepsilon e^{5}/\Delta\tau = 3\times10^{-12}$.
+# By $\tau = 30$ it is $8.9\%$, at $\tau = 35$ the state has flipped, and from $\tau = 40$ on the energy is
+# $1/2$ and the overlap with $\phi_0$ is one.
 #
 # > **Common pitfall.** "Imaginary time converges to the ground state" is false as stated. It converges to the
 # > lowest state that the initial guess overlaps, and in a symmetric problem a symmetric guess can miss the
@@ -1735,8 +1739,8 @@ print("\nCHECKPOINT 7 passed: imaginary time + Gram-Schmidt reproduces E_n = n +
 # corresponding Hermite functions to an overlap of $1$. The initial guess was a noisy Gaussian with no symmetry
 # at all, so nothing here relies on parity: the projection does the work.
 #
-# This is the practical answer to "how do I get excited states without diagonalising?". Its cost per state is
-# one extra inner product per step; its weakness is that errors in $\phi_0$ propagate into $\phi_1$, so the
+# This is how excited states are obtained without diagonalisation. Its cost per state is one extra inner
+# product per step; its weakness is that errors in $\phi_0$ propagate into $\phi_1$, so the
 # accuracy degrades as one climbs.
 
 # %% [markdown]
@@ -1944,12 +1948,13 @@ for tag, Lg, Ng, gg, Vfun, start, mu_ex in [
 #   features disappear first — high spatial frequencies, because they diffuse fastest.
 
 # %% [markdown]
-# ## 8. The soliton ground state, found numerically
+# ## 8. Imaginary-time relaxation to the soliton
 #
 # ### 8.1 Relaxing a Gaussian into a $\mathrm{sech}$
 #
 # The initial guess is deliberately poor: a Gaussian of width $\sigma = 3$, more than three times wider than the
-# soliton, with $95.5\%$ of its weight in the wrong shape. Nothing about the answer is fed in. The monitors are
+# soliton, whose overlap with the soliton is $0.76$ and whose energy is less than half the soliton's. Nothing
+# about the answer is fed in. The monitors are
 # the three of Section 7: the energy $E(\tau)$, the chemical potential from $\langle \hat H_{\rm GP}\rangle$,
 # and the residual $\Vert(\hat H_{\rm GP}-\mu)\psi\Vert$; to those we add the only monitor available because we
 # happen to know the answer, the distance to the exact profile of Eq. (22).
@@ -1969,7 +1974,8 @@ V_ZERO = jnp.zeros(N_X, dtype=RDTYPE)          # no trap: the soliton makes its 
 
 psi_guess = jnp.asarray(normalise(gaussian_packet(x, SIGMA_GUESS), dx))
 print(f"initial guess: Gaussian of width {SIGMA_GUESS} (soliton width {np.pi / (np.sqrt(3) * G):.3f}), "
-      f"E = {gp_energy(np.asarray(psi_guess), k, dx, G):+.6f} vs E_soliton = {-G ** 2 / 24:+.6f}")
+      f"E = {gp_energy(np.asarray(psi_guess), k, dx, G):+.6f} vs E_soliton = {-G ** 2 / 24:+.6f}, "
+      f"overlap |<guess|soliton>| = {abs(dx * np.sum(np.conj(np.asarray(psi_guess)) * soliton_exact(x, g=G))):.4f}")
 print(f"run: dtau = {DTAU}, tau_max = {TAU_MAX}, {int(TAU_MAX / DTAU)} steps, "
       f"{N_FRAMES_IT} snapshots every {TAU_MAX / N_FRAMES_IT:g}")
 
@@ -2043,9 +2049,9 @@ ax.set_title(rf"what is left at $\tau={TAU_MAX:g}$", fontsize=10), ax.grid(alpha
 plt.show()
 
 # %% [markdown]
-# The wide Gaussian contracts, overshoots nothing (gradient flow cannot overshoot: Eq. (40) forbids the energy
-# from rising), and by $\tau = 20$ is indistinguishable from the dashed analytic curve on the scale of the
-# plot. At $\tau = 10$ its peak is still $10\%$ low, which is why the eye is not a convergence criterion. The
+# The wide Gaussian contracts, its peak density rising towards $g/4$ without overshooting it, and by
+# $\tau = 20$ is indistinguishable from the dashed analytic curve on the scale of the plot. At $\tau = 10$ its
+# peak is still $12\%$ low, which is why the eye is not a convergence criterion. The
 # quantitative statement is in the other four panels.
 #
 # * $E$ converges to $-0.166665$ against the exact $-0.1666667$: an error of $1.4\times10^{-6}$.
@@ -2053,8 +2059,8 @@ plt.show()
 # * The residual stops falling at $1.0\times10^{-3}$, and the distance to the exact profile at
 #   $1.6\times10^{-3}$.
 #
-# All four have *stopped improving* by $\tau\approx25$: the flow has converged, and what remains is not a
-# failure to converge but a property of the discrete map being iterated. The residual is not even monotonic —
+# All four have *stopped improving* by $\tau\approx25$: the flow has converged, and what remains is a
+# property of the discrete map being iterated. The residual is not even monotonic —
 # it rises from $0.05$ to $0.07$ over the first five units of $\tau$ before falling, which the energy, by
 # Eq. (40), is not allowed to do. The last panel shows the shape of the residue: a dip of $-1.5\times10^{-3}$
 # at the centre and two symmetric bumps of $+5\times10^{-4}$ near $x=\pm1.3$, i.e. a converged soliton that is
@@ -2066,7 +2072,7 @@ plt.show()
 # The converged state is the fixed point of the *discrete* map (37), not of the continuous flow (39). By
 # Eq. (36) the map is the exact flow of a modified generator $\hat T+\hat W+\Delta\tau^{2}\hat C_2$, so one
 # expects the fixed point to be displaced by $O(\Delta\tau^{2})$. For the linear problem that is exactly what
-# happens. For the nonlinear problem it is not, and the reason is worth understanding.
+# happens. For the nonlinear problem the displacement is $O(\Delta\tau)$.
 #
 # The culprit is the renormalisation, which sits *outside* the symmetric product. What the three factors of
 # Eq. (37) integrate is the **unnormalised** flow
@@ -2096,7 +2102,7 @@ plt.show()
 # ($g=0$) is clean. The same displacement is what separates the discrete-normalisation flow that is implemented
 # from the continuous normalised flow (39) that is analysed, the distinction Bao and Du make.
 #
-# Two things that do *not* repair it, both worth knowing because both look like the obvious fix. The middle
+# Two changes that look like the obvious fix do *not* repair it. The middle
 # factor of Eq. (37) evaluates $\vert\psi\vert^{2}$ after the first kinetic half-step, where the norm is
 # $1 - E_{\rm kin}\Delta\tau/2 + O(\Delta\tau^{2})$ rather than one; normalising that intermediate state, so
 # that the interaction really is $g\vert\psi\vert^{2}$ for a unit-norm $\psi$, reduces the error of the
@@ -2173,10 +2179,11 @@ for ax, (tag, rows) in zip(axes, [("nonlinear, $g=2$", rows_nl), ("linear, $g=0$
                                   (r"$\Vert\,|\psi|-\phi\Vert$", "k", "v")]):
         ax.loglog(rows[:, 0], rows[:, j], mk + "-", ms=5, color=col, lw=1.4, label=lab)
     ref = rows[-1, 0]
-    ax.loglog(rows[:, 0], rows[-1, 3] * (rows[:, 0] / ref) ** 1, ":", color="0.5", lw=1.2,
-              label=r"slope $1$")
-    ax.loglog(rows[:, 0], rows[-1, 1] * (rows[:, 0] / ref) ** 2, "--", color="0.5", lw=1.2,
-              label=r"slope $2$")
+    p_state, p_energy = (1, 2) if rows is rows_nl else (2, 4)   # the orders derived in Section 8.2
+    ax.loglog(rows[:, 0], rows[-1, 3] * (rows[:, 0] / ref) ** p_state, ":", color="0.5", lw=1.2,
+              label=rf"slope ${p_state}$")
+    ax.loglog(rows[:, 0], rows[-1, 1] * (rows[:, 0] / ref) ** p_energy, "--", color="0.5", lw=1.2,
+              label=rf"slope ${p_energy}$")
     ax.set_xlabel(r"$\Delta\tau$"), ax.set_ylabel("error of the converged state")
     ax.set_title(tag, fontsize=10), ax.grid(alpha=0.25, which="both"), ax.legend(fontsize=7, ncol=2)
 fig.tight_layout()
@@ -2295,7 +2302,7 @@ n_steps_it = int(round(TAU_MAX / DTAU))
 fig, axes = plt.subplots(1, 2, figsize=(12.0, 3.8))
 print(f"{'initial guess':22s} {'x_c(0)':>8s} {'sigma(0)':>9s} {'<x> final':>12s} {'E final':>14s} "
       f"{'|| |psi|-sech ||':>18s}")
-for (tag, xc0, sg0), col in zip(guess_list, [C_NUM, C_ANA, C_THIRD, "k"]):
+for (tag, xc0, sg0), col, lw_r in zip(guess_list, [C_NUM, C_ANA, C_THIRD, "#CC79A7"], [5.0, 3.5, 2.0, 0.9]):
     g0 = jnp.asarray(normalise(gaussian_packet(x, sg0, x_c=xc0), dx))
     pf, _ = imaginary_time_ground_state(g0, jnp.asarray(k), dx, G, V_ZERO, DTAU, n_steps_it)
     pf = np.asarray(pf)
@@ -2304,9 +2311,9 @@ for (tag, xc0, sg0), col in zip(guess_list, [C_NUM, C_ANA, C_THIRD, "k"]):
     print(f"{tag:22s} {xc0:8.2f} {sg0:9.2f} {xbar:12.6f} {gp_energy(pf, k, dx, G):14.9f} {err_shape:18.3e}")
     axes[0].plot(x, np.abs(np.asarray(g0)) ** 2, lw=1.4, color=col, ls=":")
     axes[0].plot(x, np.abs(pf) ** 2, lw=1.8, color=col, label=tag)
-    axes[1].plot(x - xbar, np.abs(pf) ** 2, lw=1.8, color=col, label=tag)
+    axes[1].plot(x - xbar, np.abs(pf) ** 2, lw=lw_r, color=col, label=tag)   # decreasing widths: all four visible
     assert abs(xbar - xc0) < 1e-4, "the soliton stays where the guess put it"
-axes[1].plot(x, phi_ref ** 2, "k--", lw=1.2, label=r"exact $\mathrm{sech}^2$")
+axes[1].plot(x, phi_ref ** 2, "k--", lw=1.0, label=r"exact $\mathrm{sech}^2$")
 axes[0].set_xlim(-16, 16), axes[0].set_xlabel(r"$x$   [$x_0$]"), axes[0].set_ylabel(r"$|\psi|^2$")
 axes[0].set_title("dotted: the guess; solid: the converged state", fontsize=10)
 axes[0].grid(alpha=0.25), axes[0].legend(fontsize=8)
@@ -2318,14 +2325,14 @@ plt.show()
 
 # %% [markdown]
 # Four guesses differing by a factor of ten in width and by $14$ length units in position converge to the same
-# energy, $-0.16666530$, to nine digits, and to profiles that coincide with the exact $\mathrm{sech}$ after
+# energy, $-0.16666530$, to within $10^{-9}$, and to profiles that coincide with the exact $\mathrm{sech}$ after
 # recentring. What does *not* converge to a common value is the position: each run keeps the centre of its own
 # guess to better than $10^{-4}$. The physics is degenerate and the algorithm inherits the degeneracy.
 #
-# > **Physics insight.** A zero mode is not a numerical nuisance; it is a Goldstone mode. The soliton breaks
-# > the continuous translational symmetry of Eq. (8), so there is a family of solutions costing no energy, and
-# > exciting it at wavenumber $q\to0$ costs energy $\to 0$. In an experiment that mode is the free motion of
-# > the centre of mass, which is exactly the $k_0^{2}/2$ of Eq. (28).
+# > **Physics insight.** The zero mode is the Goldstone mode of a broken symmetry. The soliton breaks the
+# > continuous translational symmetry of Eq. (8), so moving it along $\partial_x\phi$ costs no energy. In an
+# > experiment that mode is the free motion of the centre of mass, whose kinetic energy is the $k_0^{2}/2$ of
+# > Eq. (28).
 #
 # ### 8.5 Repulsive interactions: no soliton at all
 #
@@ -2371,7 +2378,7 @@ plt.show()
 # %% [markdown]
 # The same six lines of code, with the sign of one parameter changed, produce the opposite physics: the cloud
 # flattens onto $1/L$ to $2\times10^{-14}$, and the energy and chemical potential match $-g/(2L)$ and $-g/L$ to
-# eight digits, with $\mu = 2E$ because $E_{\rm kin}$ vanishes identically for a constant profile. On an
+# all twelve digits printed, with $\mu = 2E$ because $E_{\rm kin}$ vanishes identically for a constant profile. On an
 # infinite line the uniform state has zero density and $E\to0$: there is no bound state, and a repulsive gas
 # released from a trap simply expands. Dark solitons — density *notches* on a uniform background — are the
 # localised objects of the repulsive case, and Exercise 4 constructs one.
@@ -2379,7 +2386,7 @@ plt.show()
 # %% [markdown]
 # ## 9. Real-time evolution
 #
-# ### 9.1 Why not Runge-Kutta
+# ### 9.1 The stability limit of Runge-Kutta
 #
 # Notebook 00b integrated the Schrödinger equation with fourth-order Runge-Kutta and found a hard stability
 # limit (Press *et al.*, *Numerical Recipes*, Chapters 17 and 20, treat the stability of explicit schemes; the
@@ -2404,7 +2411,8 @@ plt.show()
 #
 # This has nothing to do with accuracy: above the limit the highest-$k$ modes are amplified every step, and the
 # calculation explodes no matter how smooth the physics is. Refining the grid by two makes the affordable time
-# step four times smaller, which is the reason explicit integrators are rarely used for wave equations.
+# step four times smaller, which is the reason explicit integrators are rarely used for Schrödinger-type
+# equations.
 #
 # The nonlinearity does not move the limit. The largest value the interaction term can take is
 # $g\vert\psi\vert^{2}_{\max} = g\cdot g/4 = 1$ for our soliton, against $E_{\max} = 359$ from the grid: a
@@ -2514,15 +2522,15 @@ print("\nCHECKPOINT 11 passed: the RK4 cliff sits where Eq. (43) puts it; split-
 # is `nan`. Split-step conserves the norm to twelve digits at $\Delta t = 0.1$, thirteen times past the RK4
 # limit, and would do so at any $\Delta t$ whatsoever.
 #
-# > **Numerical practice.** Unconditional stability is not the same as accuracy. Split-step at $\Delta t = 0.1$
-# > conserves the norm exactly and gets the *physics* wrong; the norm is conserved by construction and
-# > therefore proves nothing about the solution. Convergence must still be demonstrated, which is what
-# > Section 9.5 does.
+# > **Numerical practice.** Unconditional stability is not the same as accuracy. Split-step conserves the norm
+# > exactly at every $\Delta t$, whatever its error, so the norm proves nothing about the solution; at
+# > $\Delta t = 0.08$ the state is already off by $9\times10^{-4}$ after two time units. Convergence must
+# > still be demonstrated, which is what Section 9.5 does.
 #
-# ### 9.2 Test 1: the ground state does nothing
+# ### 9.2 Test 1: the stationary soliton
 #
 # The first thing to do with a new propagator is to give it a state whose evolution is known exactly. The
-# imaginary-time ground state of Section 8 should, by Eq. (15), only acquire a phase:
+# exact soliton of Eq. (22) should, by Eq. (15), only acquire a phase:
 #
 # $$ \psi(x,t) = \phi(x)\,e^{-i\mu t} \qquad\Longrightarrow\qquad
 #    \vert\psi(x,t)\vert^{2} = \vert\phi(x)\vert^{2}\ \text{for all } t , \qquad
@@ -2567,8 +2575,8 @@ print("                      and the measured phase rate equals -mu = g^2/8.")
 # against the predicted $-\mu = g^{2}/8 = 0.5$, an error of $2.2\times10^{-8}$ that also falls as
 # $\Delta t^{2}$, and the norm is conserved to $6\times10^{-12}$.
 #
-# The soliton is therefore a genuine stationary state of the *time-dependent* equation, found by a completely
-# different algorithm from the one that produced it.
+# The propagator therefore keeps the soliton stationary up to its own $O(\Delta t^{2})$ error, and returns
+# $\mu$ from the phase alone.
 #
 # ### 9.3 Test 2: a soliton that moves, and a linear packet that does not survive
 #
@@ -2590,7 +2598,7 @@ print("                      and the measured phase rate equals -mu = g^2/8.")
 # ==============================================================================
 # PARAMETERS of the real-time runs
 # ==============================================================================
-DT      = 0.001      # real-time step (3300 times the RK4 limit is available, accuracy decides)
+DT      = 0.001      # real-time step, 0.13 of the RK4 limit; split-step has no limit, accuracy decides
 T_MAX   = 24.0       # final time
 N_MOVIE = 48         # snapshots
 
@@ -2682,7 +2690,7 @@ ax.plot(t_fr, var_sol, color=C_NUM, lw=2.2, label=r"$g=2$: constant")
 ax.plot(t_fr, var_lin, color=C_THIRD, lw=1.8, ls="-.", label=r"$g=0$: spreads")
 ax.plot(t_fr, var0 + var_p * t_fr ** 2, "k--", lw=1.2, label=r"$\mathrm{Var}(0)+\mathrm{Var}(p)t^2$")
 ax.set_yscale("log"), ax.set_xlabel(r"$t$   [$t_0$]"), ax.set_ylabel(r"$\mathrm{Var}(x)$   [$x_0^2$]")
-ax.set_title("the whole point of the notebook", fontsize=10)
+ax.set_title("the soliton keeps its width, the free packet spreads", fontsize=10)
 ax.grid(alpha=0.25), ax.legend(fontsize=8)
 
 ax = fig.add_subplot(gs[1, 1])
@@ -2690,7 +2698,7 @@ ax.plot(t_fr, np.abs(var_sol - var0), color=C_NUM, lw=1.8, label=r"$|\mathrm{Var
 ax.plot(t_fr, np.abs(p_sol - K0) + 1e-18, color=C_ANA, lw=1.8, label=r"$|\langle p\rangle-k_0|$")
 ax.plot(t_fr, np.abs(nrm_sol - 1) + 1e-18, color=C_THIRD, lw=1.8, label=r"$|\,\Vert\psi\Vert^2-1|$")
 ax.set_yscale("log"), ax.set_xlabel(r"$t$   [$t_0$]"), ax.set_ylabel("deviation")
-ax.set_title("how constant is constant", fontsize=10), ax.grid(alpha=0.25), ax.legend(fontsize=8)
+ax.set_title("deviations from the conserved values", fontsize=10), ax.grid(alpha=0.25), ax.legend(fontsize=8)
 
 ax = fig.add_subplot(gs[1, 2])
 ax.plot(x, np.abs(fr_sol[-1]) ** 2, color=C_NUM, lw=2.0, label=rf"numerics, $t={T_MAX:g}$")
@@ -2713,7 +2721,7 @@ assert err_final < 1e-6, "the propagated soliton must match the closed-form solu
 # %% [markdown]
 # ### 9.4 A state that is not a soliton
 #
-# Section 6.6 claimed that the soliton is an attractor. The test: start from the best *Gaussian*, the
+# Section 6.6 claimed that the soliton is an attractor. The test starts from the best *Gaussian*, the
 # variational winner of Section 6.1 with $\sigma_{*} = \sqrt\pi/g$, which overlaps the true soliton by
 # $0.9972$ and has an energy $4.5\%$ above it. Inverse-scattering theory says the initial condition decomposes
 # into a soliton plus radiation; the radiation is not bound, so it leaves the core and — on an infinite line —
@@ -2770,7 +2778,7 @@ plt.show()
 # between $0.450$ and $0.537$, within $10\%$ of the soliton value; the $1.6\sigma_{*}$ Gaussian swings from
 # $0.281$ to $0.567$. The middle panel shows where the mismatch goes. The best Gaussian loses $0.39\%$ of its
 # norm out of $\vert x\vert<6$ within the first five time units and then stays between $0.42\%$ and
-# $0.45\%$: one burst, and it is over. The $1.6\sigma_{*}$ Gaussian is further from equilibrium and takes longer — $0.5\%$ by $t=5$,
+# $0.45\%$: a single burst. The $1.6\sigma_{*}$ Gaussian is further from equilibrium and takes longer — $0.5\%$ by $t=5$,
 # $3.5\%$ by $t=20$, $4.1\%$ by $t=60$ — because each breathing cycle sheds a little more. That radiation
 # appears in the right panel as a rippled background four orders of magnitude below the peak for the best
 # Gaussian and three for the $1.6\sigma_{*}$ one, while
@@ -2787,8 +2795,8 @@ plt.show()
 #
 # ### 9.5 Convergence in $\Delta t$, and what is conserved
 #
-# The last two questions for any propagator: does it converge at the advertised rate, and does it conserve
-# what the equation conserves? The order is measured by comparing runs at several $\Delta t$ against a
+# Two properties of the propagator remain to be checked: its order of convergence and what it conserves.
+# The order is measured by comparing runs at several $\Delta t$ against a
 # reference run at a much smaller one, which is the standard procedure when no closed-form solution is
 # available — although here one is, so both references are used.
 
@@ -2842,14 +2850,18 @@ print(f"   width      : max |Var(t) - Var(0)| = {np.max(np.abs(var_sol - var_sol
 # and starts measuring the spatial discretisation and the periodic images — the point made in 00a about always
 # knowing which reference you are measuring against.
 #
-# The conservation laws of Section 4 hold to round-off for the norm (which the method conserves by
-# construction, factor by factor) and to $10^{-12}$ for the energy and the momentum, which it does *not*
-# conserve by construction: their constancy is a genuine test that passed.
+# The norm and the momentum hold to round-off, and both are conserved by the method itself: every factor has
+# modulus one, the kinetic factors leave each $\vert\hat\psi_k\vert$ unchanged, and the nonlinear phase
+# changes $\langle p\rangle$ by $g\Delta t\int\vert\psi\vert^{2}\partial_x\vert\psi\vert^{2}dx = 0$. Their
+# constancy therefore tests nothing. The energy is the one quantity the splitting does not conserve; for a
+# breathing state it drifts at $O(\Delta t^{2})$. Here it holds to $5\times10^{-13}$, far below the
+# $O(\Delta t^{2})$ error of the state, because the soliton is a stationary point of $E$ at fixed norm and
+# momentum and the state error enters $E$ only squared.
 
 # %% [markdown]
 # ## 10. Animations and space-time maps
 #
-# The function below is the one written in notebook 00a, reused unchanged in spirit: `FuncAnimation` updates
+# The function below is the one written in notebook 00a: `FuncAnimation` updates
 # the data of artists created once, `PillowWriter` encodes the frames, the GIF is written to a temporary
 # directory that deletes itself, and the bytes are displayed as **one output carrying two representations** —
 # a plain `image/gif` for Jupyter and the GitHub notebook viewer, and a base64 `<img>` tag for static website
@@ -2973,8 +2985,7 @@ assert n_bytes < 1_500_000
 #
 # ### 10.2 Animation 2: soliton against free packet
 #
-# The same initial profile, propagated with $g=2$ (solid blue) and with $g=0$ (dashed orange). This is the
-# figure that the whole notebook exists to produce.
+# The same initial profile, propagated with $g=2$ (solid blue) and with $g=0$ (dashed orange).
 
 # %%
 # ==============================================================================
@@ -3084,7 +3095,7 @@ plt.show()
 #
 # ### 11.1 Key takeaways
 #
-# * **A nonlinear Schrödinger equation is a mean-field statement, not a modification of quantum mechanics.**
+# * **A nonlinear Schrödinger equation is a mean-field statement within linear quantum mechanics.**
 #   Putting $N$ bosons into one orbital and replacing the pair interaction by a contact pseudopotential turns
 #   the linear $N$-body problem into the cubic Eq. (8). What is lost is every correlation between particles,
 #   including — Section 6.5 — the delocalisation of the centre of mass that the exact ground state must have.
@@ -3107,7 +3118,7 @@ plt.show()
 #   confirmed to $2.8\times10^{-4}$ in Section 7.7.
 # * **The method converges to the lowest state it overlaps.** An odd initial guess in a symmetric trap returns
 #   the *first excited* state and a perfectly convincing $E=3/2$ — until round-off breaks the symmetry at
-#   $\tau\approx35$ and the answer changes. Projection (Gram-Schmidt) turns this failure mode into a way of
+#   $\tau\approx30$–$35$ and the answer changes. Projection (Gram-Schmidt) turns this failure mode into a way of
 #   computing excited states.
 # * **The discretisation bias has a measurable order, and it is not always the obvious one.** Strang splitting
 #   is $O(\Delta\tau^{2})$, but the discrete renormalisation makes the *converged state* of the nonlinear flow
@@ -3123,7 +3134,7 @@ plt.show()
 #   $13.8$; and a Gaussian that is not a soliton breathes and sheds $0.4\%$ of its norm as radiation in the
 #   first five time units, leaving a core that still lies on a $\mathrm{sech}^{2}$.
 #
-# ### 11.2 The workflow checklist, extended
+# ### 11.2 The workflow checklist
 #
 # The list from 00a and 00b, with the two steps this notebook adds.
 #
@@ -3140,8 +3151,9 @@ plt.show()
 # 5. **Monitor the residual, not the picture.** $\Vert(\hat H-\mu)\psi\Vert$ and the energy decrement are
 #    quantitative; "it stopped changing on the plot" is not. Check the *state*, not only the energy: symmetry
 #    can hand you a converged excited state.
-# 6. **Identify the conserved quantities and watch them.** Norm, energy and momentum here; the first is
-#    conserved by construction and therefore proves nothing, the other two are real tests.
+# 6. **Identify the conserved quantities and watch them, and know which ones the method conserves by
+#    construction.** Here the split-step method conserves the norm and the momentum exactly, so they prove
+#    nothing; the energy is the real test.
 # 7. **Run a convergence test in every parameter separately**, and compare the measured slope with the derived
 #    order. Extrapolate when the law is known.
 # 8. **Only then explore.** And when the new physics looks surprising, repeat steps 3-7.
@@ -3169,7 +3181,8 @@ plt.show()
 # **4. (★★) A dark soliton.** For $g<0$ the localised object is a density *notch* on a uniform background,
 # $\psi \propto \tanh(x/\xi)$, which carries a phase jump of $\pi$. Build it by imprinting the phase
 # $\pi\,\Theta(x)$ on the uniform state of Section 8.5 (smooth the step over a few grid points), propagate it,
-# and measure the depth and width of the notch. Verify that $\xi = 1/\sqrt{\vert g\vert n}$ with
+# and measure the depth and width of the notch (on the ring the step also jumps at the seam, so two notches
+# form). Verify that $\xi = 1/\sqrt{\vert g\vert n}$ with
 # $n = 1/L$ the background density. Why can a dark soliton not be obtained by imaginary time from an arbitrary
 # guess?
 #
@@ -3260,13 +3273,10 @@ plt.show()
 #
 # ### 11.5 What comes next
 #
-# The propagator written here is reused, unchanged, in
-# [00d — two-soliton collisions](00d_two_soliton_collisions.ipynb): two solitons launched at each other pass
-# straight through, emerge with their shapes intact and only a shift in position and phase to show for it —
-# the experimental signature of integrability, and something no linear wave packet and no classical particle
-# does. What happens during the overlap depends on the relative phase, which Nguyen, Dyke, Luo, Malomed and
+# In [00d — two-soliton collisions](00d_two_soliton_collisions.ipynb) the same propagator launches two
+# solitons at each other. They pass straight through and emerge with their shapes intact and only a shift in
+# position and phase, the signature of integrability. What happens during the overlap depends on the relative phase, which Nguyen, Dyke, Luo, Malomed and
 # Hulet measured directly (Nature Physics **10**, 918 (2014)).
 #
-# Then [01 — JAX from scratch](01_jax_from_scratch.ipynb) explains the three tools used here on trust —
-# `jit`, `lax.scan` and `grad` — together with `vmap` and the rest of the library, and the many-body part of
-# the course begins.
+# Then [01 — JAX](01_jax_from_scratch.ipynb) explains the three tools used here on trust —
+# `jit`, `lax.scan` and `grad` — together with `vmap` and the rest of the library.

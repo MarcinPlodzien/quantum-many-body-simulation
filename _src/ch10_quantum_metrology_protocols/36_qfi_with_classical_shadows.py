@@ -78,7 +78,7 @@
 # * reusing one data set for every quantity in a section instead of re-simulating the experiment.
 #
 # ### Prerequisites
-# * [01 — JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, PRNG keys;
+# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, PRNG keys;
 # * [08 — measurements](../ch03_matrix_free_engine/08_measurements.ipynb): Born rule, basis rotations, shot noise;
 # * [24 — classical shadows](../ch08_quantum_information_protocols/24_classical_shadows.ipynb): the randomised
 #   measurement channel, the single-snapshot estimator, the $3^k$ variance law, median of means. Section 3 recalls
