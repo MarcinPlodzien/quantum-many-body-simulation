@@ -313,12 +313,13 @@ PALETTE = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4"]   # fixed cate
 # The engine writes Hamiltonians in the Pauli convention, $\hat H=\sum J\,\hat X\hat X+\dots$, and collective spins with the factor $\tfrac12$ of Eq. (8)
 # (Section 15). The engine's ladder operators are
 #
-# $$ \mathtt{SM}=\hat\sigma^-=\vert 0\rangle\langle 1\vert=\begin{pmatrix}0&1\\0&0\end{pmatrix}=\tfrac12\big(\hat X+i\hat Y\big), \qquad \mathtt{SP}=\hat\sigma^+=\vert 1\rangle\langle 0\vert=\tfrac12\big(\hat X-i\hat Y\big). \tag{8a} $$
+# $$ \mathtt{SM}=\hat\sigma^-=\vert 1\rangle\langle 0\vert=\begin{pmatrix}0&0\\1&0\end{pmatrix}=\tfrac12\big(\hat X-i\hat Y\big), \qquad \mathtt{SP}=\hat\sigma^+=\vert 0\rangle\langle 1\vert=\tfrac12\big(\hat X+i\hat Y\big). \tag{8a} $$
 #
-# The names follow the quantum-information reading of the computational basis, in which $\vert 1\rangle$ is the excited state and $\vert 0\rangle$ the ground state:
-# $\hat\sigma^-$ takes $\vert 1\rangle$ to $\vert 0\rangle$ and annihilates $\vert 0\rangle$, so it describes the decay of an excitation (amplitude damping, spontaneous emission,
-# Section 11). In spin language the same matrix is the raising operator: since $\vert 0\rangle$ is spin up, $\vert 0\rangle\langle 1\vert=\vert{\uparrow}\rangle\langle{\downarrow}\vert=\hat S^x+i\hat S^y=\hat S^+$.
-# A text that writes $\hat\sigma^-=\vert{\downarrow}\rangle\langle{\uparrow}\vert$ (the spin-lowering operator) therefore means the matrix the engine calls `SP`. Whenever a
+# We use $\hat\sigma^\pm=(\hat X\pm i\hat Y)/2$, so that $\hat\sigma^-=\vert 1\rangle\langle 0\vert$ lowers spin up $\vert 0\rangle$ to spin down $\vert 1\rangle$ and $\hat\sigma^+=\vert 0\rangle\langle 1\vert$ raises it.
+# With Eq. (8) these are the spin ladder operators, $\hat\sigma^\pm=\hat S^x\pm i\hat S^y=\hat S^\pm$. In the quantum-information reading of the computational basis, $\vert 1\rangle$ is the excited state
+# and $\vert 0\rangle$ the ground state, and the decay of an excitation, $\vert 1\rangle\to\vert 0\rangle$ (amplitude damping, spontaneous emission, Section 11), has the jump operator
+# $\vert 0\rangle\langle 1\vert=\hat\sigma^+$, the matrix the engine calls `SP`. Quantum-optics texts call the same operator $\hat\sigma^-=\vert g\rangle\langle e\vert$: they take
+# $\hat\sigma^z=\vert e\rangle\langle e\vert-\vert g\rangle\langle g\vert$, which is $-\hat Z$ when the ground state is $\vert 0\rangle$. Whenever a
 # jump operator or a hopping term is copied from the literature, the matrix has to be chosen by the direction of the transition it describes, whatever its name.
 # `P0` and `P1` are the projectors $\vert 0\rangle\langle 0\vert$ and $\vert 1\rangle\langle 1\vert$.
 #
@@ -343,7 +344,7 @@ PALETTE = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4"]   # fixed cate
 # %% [markdown]
 # The checks compare every constant with an independent NumPy construction. The mutants are the four classic slips: the opposite
 # sign of $\hat Y$, the control of CNOT on the second qubit, a Kronecker product read in the reversed (little-endian) order, and the
-# spin-language $\vert 1\rangle\langle 0\vert$ in place of the engine's `SM`. The check of `CZ` has no control-qubit mutant, because $\mathrm{CZ}$ is symmetric under the
+# quantum-optics $\vert 0\rangle\langle 1\vert$ in place of the engine's `SM`. The check of `CZ` has no control-qubit mutant, because $\mathrm{CZ}$ is symmetric under the
 # exchange of the two qubits and the wrong control gives the same matrix.
 
 # %%
@@ -364,10 +365,10 @@ check("Y matches NumPy", maxdiff(Y, NP_Y), 10 * TOL, mutant=maxdiff(X @ Y.T, 1j 
 check("H = (X + Z)/sqrt2,  H X H = Z", maxdiff(H, NP_H) + maxdiff(H @ X @ H, Z), 10 * TOL)
 check("S^2 = Z,  S S^dag = 1", maxdiff(S @ S, Z) + maxdiff(S @ SDG, I2), 10 * TOL)
 check("T^2 = S,  T T^dag = 1", maxdiff(T @ T, S) + maxdiff(T @ TDG, I2), 10 * TOL)
-check("sigma^- |1> = |0>,  sigma^+ = (sigma^-)^dag", maxdiff(SM @ e1, e0) + maxdiff(SP, np.asarray(SM).conj().T), 10 * TOL,
-      mutant=maxdiff(np.outer(e1, e0) @ e1, e0))                      # spin-language sigma^- = |1><0| annihilates |1>
-check("SM = (X + iY)/2, SP = (X - iY)/2, Eq. (8a)", maxdiff(SM, (NP_X + 1j * NP_Y) / 2) + maxdiff(SP, (NP_X - 1j * NP_Y) / 2), 10 * TOL,
-      mutant=maxdiff(SM, (NP_X - 1j * NP_Y) / 2))
+check("sigma^- |0> = |1>,  sigma^+ = (sigma^-)^dag", maxdiff(SM @ e0, e1) + maxdiff(SP, np.asarray(SM).conj().T), 10 * TOL,
+      mutant=maxdiff(np.outer(e0, e1) @ e0, e1))                      # quantum-optics sigma^- = |0><1| annihilates |0>
+check("SM = (X - iY)/2, SP = (X + iY)/2, Eq. (8a)", maxdiff(SM, (NP_X - 1j * NP_Y) / 2) + maxdiff(SP, (NP_X + 1j * NP_Y) / 2), 10 * TOL,
+      mutant=maxdiff(SM, (NP_X + 1j * NP_Y) / 2))
 check("P0 + P1 = 1,  P0 - P1 = Z", maxdiff(P0 + P1, I2) + maxdiff(P0 - P1, Z), 10 * TOL)
 # Eq. (9)-(10): two-qubit constants from projectors and Pauli strings
 NP_P0, NP_P1 = np.diag([1, 0]).astype(complex), np.diag([0, 1]).astype(complex)
@@ -382,7 +383,7 @@ check("XX, YY, ZZ are Kronecker products", maxdiff(XX, np.kron(NP_X, NP_X)) + ma
 # %% [markdown]
 # All constants agree with their independent definitions, and the mutants are far off. The reversed bit order puts the
 # amplitude of $\vert 1011\rangle$ at index 13, $\hat X\hat Y^T=-i\hat Z$ differs from $i\hat Z$ by 2, a CNOT controlled by the wrong qubit
-# differs in four entries, and the spin-language lowering operator $\vert 1\rangle\langle 0\vert$ annihilates $\vert 1\rangle$ instead of mapping it to $\vert 0\rangle$.
+# differs in four entries, and the quantum-optics lowering operator $\vert 0\rangle\langle 1\vert$ annihilates $\vert 0\rangle$ instead of mapping it to $\vert 1\rangle$.
 #
 # ### 3.4 Precision and the einsum alphabet
 #
@@ -1267,7 +1268,7 @@ check("sample_bitstrings in bases 'XYZ' of |+>|r>|0>: always 000",
 # $$ \text{dephasing: } (r_x,r_y,r_z)\to\big((1-2p)r_x,(1-2p)r_y,r_z\big), \qquad \text{bit flip: } (r_x,r_y,r_z)\to\big(r_x,(1-2p)r_y,(1-2p)r_z\big). \tag{53} $$
 #
 # The phase-flip channel is the dephasing channel. Amplitude damping with probability $g$ (decay $\vert 1\rangle\to\vert 0\rangle$) has
-# $\hat K_0=\mathrm{diag}(1,\sqrt{1-g})$ and $\hat K_1=\sqrt g\,\hat\sigma^-$. Multiplying out $\hat K_0\hat\rho\hat K_0^\dagger+\hat K_1\hat\rho\hat K_1^\dagger$ entry by entry gives
+# $\hat K_0=\mathrm{diag}(1,\sqrt{1-g})$ and $\hat K_1=\sqrt g\,\vert 0\rangle\langle 1\vert=\sqrt g\,\hat\sigma^+$. Multiplying out $\hat K_0\hat\rho\hat K_0^\dagger+\hat K_1\hat\rho\hat K_1^\dagger$ entry by entry gives
 #
 # $$ \rho_{11}\to(1-g)\,\rho_{11},\qquad \rho_{00}\to\rho_{00}+g\,\rho_{11},\qquad \rho_{01}\to\sqrt{1-g}\,\rho_{01}, \qquad (r_x,r_y,r_z)\to\big(\sqrt{1-g}\,r_x,\sqrt{1-g}\,r_y,(1-g)\,r_z+g\big). \tag{54} $$
 #
@@ -1351,8 +1352,8 @@ for gdt in gdts:
 print(f"      remainder of Eq. (56): {rem[0]:.2e} (gamma dt = {gdts[0]:g}), {rem[1]:.2e} ({gdts[1]:g}), ratio {rem[0] / rem[1]:.1f}")
 ratio_dt2 = (gdts[0] / gdts[1]) ** 2                                  # O(dt^2): 100 for a step ratio of 10
 check(f"kraus_from_jump: remainder ratio = {ratio_dt2:.0f} (order dt^2)", abs(rem[0] / rem[1] / ratio_dt2 - 1), 0.05 if PRECISION == "double" else 0.1)
-K_over = np.asarray(kraus_from_jump(SM, 1.5))                         # gamma dt ||L^dag L|| = 1.5 > 1
-print(f"      gamma dt = 1.5 for L = sigma^-: completeness error {maxdiff(sum(Km.conj().T @ Km for Km in K_over), NP_I):.2f} (condition violated)")
+K_over = np.asarray(kraus_from_jump(SP, 1.5))                         # decay L = |0><1|; gamma dt ||L^dag L|| = 1.5 > 1
+print(f"      gamma dt = 1.5 for L = sigma^+: completeness error {maxdiff(sum(Km.conj().T @ Km for Km in K_over), NP_I):.2f} (condition violated)")
 
 # Eq. (57): trajectory average of apply_kraus_mcwf vs apply_kraus_dm, amplitude damping on qubit 1 of N = 3
 N = 3
@@ -1760,7 +1761,7 @@ plt.show()
 # The two integrators show their orders: RK4 converges as $dt^4$ and the Kraus splitting as $dt$, and both preserve the trace to round-off. For the
 # same step the Kraus splitting is less accurate but guarantees a positive state, which matters for long runs with large $dt$.
 #
-# The last check unravels the same Trotter–Kraus step into 2000 pure-state trajectories (amplitude damping $\hat\sigma^-$ on every qubit), with `lax.scan` over the
+# The last check unravels the same Trotter–Kraus step into 2000 pure-state trajectories (amplitude damping $\hat\sigma^+=\vert 0\rangle\langle 1\vert$ on every qubit), with `lax.scan` over the
 # time steps and `jax.vmap` over the trajectory keys, and compares $\langle\hat Z_q\rangle$ with the density-tensor evolution.
 
 # %%
@@ -1769,7 +1770,7 @@ plt.show()
 # ==============================================================================
 gamma, dt, n_steps, n_traj = 0.4, 0.05, 30, 2000
 gates = tebd_gates(terms3, dt, order=2)
-jk = [((q,), kraus_from_jump(SM, gamma * dt)) for q in range(N)]
+jk = [((q,), kraus_from_jump(SP, gamma * dt)) for q in range(N)]
 psi_start = product_state("1+1")
 
 

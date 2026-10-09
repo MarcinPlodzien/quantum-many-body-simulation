@@ -29,7 +29,7 @@ print("<Z_0>(t) every 10 steps:", [round(float(z), 3) for z in z0[::10]])
 # 4. Dissipative dynamics: driven, decaying qubit (Lindblad)
 rho = to_dm(zero_state(1))
 drive = [((0,), 0.5 * X)]
-decay = [((0,), SM, 0.2)]           # jump operator sigma^-, rate 0.2
+decay = [((0,), SP, 0.2)]           # decay |1> -> |0>: jump operator |0><1| = sigma^+, rate 0.2
 for _ in range(200):
     rho = lindblad_rk4_step(rho, drive, decay, dt=0.05)
 print(f"excited population at t = 10: {dm_matrix(rho)[1, 1].real:.4f}")

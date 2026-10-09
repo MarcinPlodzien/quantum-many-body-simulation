@@ -817,9 +817,10 @@ assert list(counts) == [comb(N, k) for k in range(N, -1, -1)] and counts.sum() =
 # isotropic, $J\,\boldsymbol\sigma_i\cdot\boldsymbol\sigma_j$; $J>0$ favours antiparallel neighbours
 # (**antiferromagnet**), $J<0$ parallel ones. This is the basic model of magnetic insulators, e.g. the
 # spin-chain compounds KCuF$_3$ and Sr$_2$CuO$_3$. Writing $X_iX_j+Y_iY_j = 2(\sigma^+_i\sigma^-_j+\sigma^-_i\sigma^+_j)$
-# with $\sigma^\pm=(X\pm iY)/2$ shows what the "XY part" does ($\sigma^+=|{\uparrow}\rangle\langle{\downarrow}|$
-# raises a spin, $\sigma^-$ lowers it; beware that in qubit language, where $|1\rangle=|{\downarrow}\rangle$
-# counts as the "excited" state, the same matrix $|0\rangle\langle1|$ is called a *lowering* operator): it
+# with $\sigma^\pm=(X\pm iY)/2$ shows what the "XY part" does. In this convention, used throughout the course,
+# $\sigma^-=|1\rangle\langle0|$ lowers spin up $|0\rangle$ to spin down $|1\rangle$ and $\sigma^+=|0\rangle\langle1|=|{\uparrow}\rangle\langle{\downarrow}|$
+# raises it (beware that quantum-optics texts, where $|1\rangle=|{\downarrow}\rangle$ counts as the "excited" state,
+# call the same matrix $|0\rangle\langle1|$ a *lowering* operator, $\sigma^-$). The XY part
 # moves a down spin from one site to its neighbour — it is a **hopping term**. If one reads "down spin" as "a
 # particle sits here", the XXZ chain is a model of hard-core bosons hopping on a lattice with amplitude $2J$
 # and nearest-neighbour interaction $4J\Delta$ (from $Z_iZ_j=(1-2n_i)(1-2n_j)$). Ultracold atoms in a deep optical lattice realise the two ends of

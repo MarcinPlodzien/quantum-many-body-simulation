@@ -579,7 +579,8 @@ for N in (12, 40):
 #
 # The XX spin chain, $\hat H = J\sum_j(\hat X_j\hat X_{j+1} + \hat Y_j\hat Y_{j+1})$, commutes with $\sum_j\hat Z_j$, so
 # the number of reversed spins is conserved (notebook 03, Section 6.2; the magnetisation sectors are defined in its
-# Section 4.3). With $\sigma^\pm=(\hat X\pm i\hat Y)/2$ one has
+# Section 4.3). With $\sigma^\pm=(\hat X\pm i\hat Y)/2$, so that $\sigma^-=\vert1\rangle\langle0\vert$ lowers spin up $\vert0\rangle$ to spin
+# down $\vert1\rangle$ and $\sigma^+=\vert0\rangle\langle1\vert$ raises it, one has
 #
 # $$ \hat X_j\hat X_{j+1}+\hat Y_j\hat Y_{j+1} = 2\big(\sigma^+_j\sigma^-_{j+1}+\sigma^-_j\sigma^+_{j+1}\big), $$
 #

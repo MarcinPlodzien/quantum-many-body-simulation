@@ -24,7 +24,7 @@ Entanglement of mixed states: separability, the partial transpose as an axis swa
 ::: {.nb-item}
 [Many-body Bell correlators](../ch09_entanglement_and_complexity/26_many_body_bell_correlators.ipynb)
 
-From CHSH to N parties: the many-body Bell correlator built from local raising operators, its local-realistic and separability bounds derived from scratch, matrix-free evaluation with einsum, optimisation of the measurement directions with jax.grad and SPSA, noise sweeps on the density tensor and on quantum trajectories with a bias-corrected estimator, and the correlator along a one-axis-twisting evolution.
+From CHSH to N parties: the many-body Bell correlator built from local lowering operators, its local-realistic and separability bounds derived from scratch, matrix-free evaluation with einsum, optimisation of the measurement directions with jax.grad and SPSA, noise sweeps on the density tensor and on quantum trajectories with a bias-corrected estimator, and the correlator along a one-axis-twisting evolution.
 :::
 
 ::: {.nb-item}

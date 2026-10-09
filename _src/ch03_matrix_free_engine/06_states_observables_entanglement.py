@@ -1599,7 +1599,7 @@ for Delta_ring in (0.5, -2.0):
 # split by an amount that vanishes **exponentially** in $N$ — the finite-size remnant of spontaneous symmetry breaking. This near-degeneracy is not
 # a sign of criticality; the physical gap is the one to the next level in the same sector, and it stays finite. This is why we compute the gap within a sector.
 #
-# **An exact example of a closing gap.** At $\Delta=0$, $h_x=0$ the chain is the XX chain. With $\sigma^\pm=(X\pm iY)/2$ one has
+# **An exact example of a closing gap.** At $\Delta=0$, $h_x=0$ the chain is the XX chain. With $\sigma^\pm=(X\pm iY)/2$, so that $\sigma^-=|1\rangle\langle0|$ lowers spin up $|0\rangle$ to spin down $|1\rangle$ and $\sigma^+=|0\rangle\langle1|$ raises it, one has
 # $X_iX_{i+1}+Y_iY_{i+1}=2(\sigma^+_i\sigma^-_{i+1}+\sigma^-_i\sigma^+_{i+1})$, and the Jordan–Wigner transformation (Jordan and Wigner 1928; applied to this chain by Lieb, Schultz and Mattis 1961; quoted here) turns every
 # $\sigma^+_i\sigma^-_{i+1}$ into a fermion hopping $c_i^\dagger c_{i+1}$. The Hamiltonian becomes a free-fermion hopping problem,
 #

@@ -863,7 +863,8 @@ assert abs(ratios.mean() - 0.5) < 0.05
 # Take $H_{\rm XX}=\sum_i(\sigma^x_i\sigma^x_{i+1}+\sigma^y_i\sigma^y_{i+1})$ and $\vert\psi_0\rangle=\vert0\rangle^{\otimes N}$,
 # and imprint with $G=\tfrac12\sigma^x_0$. Three facts make this case completely solvable.
 #
-# 1. $\vert0\rangle^{\otimes N}$ is the **vacuum**: writing $\sigma^x\sigma^x+\sigma^y\sigma^y=2(\sigma^+_i\sigma^-_{i+1}+\sigma^-_i\sigma^+_{i+1})$,
+# 1. $\vert0\rangle^{\otimes N}$ is the **vacuum**: writing $\sigma^x\sigma^x+\sigma^y\sigma^y=2(\sigma^+_i\sigma^-_{i+1}+\sigma^-_i\sigma^+_{i+1})$
+#    with $\sigma^\pm=(\sigma^x\pm i\sigma^y)/2$ ($\sigma^-=\vert1\rangle\langle0\vert$ lowers spin up $\vert0\rangle$ to spin down $\vert1\rangle$),
 #    the Hamiltonian annihilates it. So $\vert\psi(t)\rangle=\vert\psi_0\rangle$ for all time.
 # 2. The tangent vector is a **single magnon** at site $0$: $\vert\phi_0\rangle=\tfrac12\sigma^x_0\vert0\cdots0\rangle
 #    =\tfrac12\vert1_0\rangle$. The Hamiltonian acts inside the one-magnon sector as a hopping problem,

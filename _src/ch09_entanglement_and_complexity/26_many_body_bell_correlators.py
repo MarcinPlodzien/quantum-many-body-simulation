@@ -1,6 +1,6 @@
 #@title: Many-body Bell correlators
 #@part: Chapter 9 — Entanglement and complexity diagnostics
-#@description: From CHSH to N parties: the many-body Bell correlator built from local raising operators, its local-realistic and separability bounds derived from scratch, matrix-free evaluation with einsum, optimisation of the measurement directions with jax.grad and SPSA, noise sweeps on the density tensor and on quantum trajectories with a bias-corrected estimator, and the correlator along a one-axis-twisting evolution.
+#@description: From CHSH to N parties: the many-body Bell correlator built from local lowering operators, its local-realistic and separability bounds derived from scratch, matrix-free evaluation with einsum, optimisation of the measurement directions with jax.grad and SPSA, noise sweeps on the density tensor and on quantum trajectories with a bias-corrected estimator, and the correlator along a one-axis-twisting evolution.
 
 # %% [markdown]
 # ## 1. Introduction and motivation
@@ -21,15 +21,15 @@
 #
 # The correlator we study is built from one operator per site,
 #
-# $$\mathcal B(\boldsymbol\theta)=\bigotimes_{k=0}^{N-1}\tilde\sigma^{+}_{k},\qquad
-#   \tilde\sigma^{+}_k=U_k\,\sigma^{+}\,U_k^{\dagger},\qquad \sigma^{+}=\vert1\rangle\langle0\vert , \tag{1}$$
+# $$\mathcal B(\boldsymbol\theta)=\bigotimes_{k=0}^{N-1}\tilde\sigma^{-}_{k},\qquad
+#   \tilde\sigma^{-}_k=U_k\,\sigma^{-}\,U_k^{\dagger},\qquad \sigma^{-}=\vert1\rangle\langle0\vert , \tag{1}$$
 #
 # with an independent local unitary $U_k$ on every site, and the quantity of interest is
 #
 # $$\mathcal E=\max_{\{U_k\}}\bigl\vert\langle\mathcal B\rangle\bigr\vert^2 . \tag{2}$$
 #
-# At first sight Eq. (1) has nothing to do with Bell inequalities: $\sigma^+$ is not even Hermitian, so it is not an
-# observable. Section 4 shows that it is a disguise: $\tilde\sigma^+=\tfrac12(A+iB)$ where $A$ and $B$ are two *orthogonal*
+# At first sight Eq. (1) has nothing to do with Bell inequalities: $\sigma^-$ is not even Hermitian, so it is not an
+# observable. Section 4 shows that it is a disguise: $\tilde\sigma^-=\tfrac12(A+iB)$ where $A$ and $B$ are two *orthogonal*
 # dichotomic observables — exactly the two measurement settings each party has in a Bell test — so Eq. (2) is a specific
 # complex combination of the $2^N$ ordinary correlation functions that an $N$-party Bell experiment measures. Two bounds then
 # follow by direct calculation:
@@ -47,7 +47,7 @@
 #
 # **Road map.** Section 3 recalls what a Bell inequality is and states CHSH. Section 4 builds the correlator and *derives*
 # both bounds, together with the bound for states that factorise into $m$ groups (which certifies genuine $N$-partite
-# entanglement). Section 5 turns Eq. (2) into two array lookups: because $\sigma^+{}^{\otimes N}=\vert1\cdots1\rangle\langle
+# entanglement). Section 5 turns Eq. (2) into two array lookups: because $\sigma^-{}^{\otimes N}=\vert1\cdots1\rangle\langle
 # 0\cdots0\vert$, the whole expectation value is one matrix element of the locally rotated state, costing $O(N2^N)$ instead of
 # $O(4^N)$. Section 6 derives closed forms for product, GHZ, W and Dicke states and verifies them. Section 7 is the
 # optimisation problem: two angles per site, `jax.grad` plus Adam, `vmap` over random restarts, compared with SPSA and with the
@@ -103,7 +103,8 @@
 #   and [34 — from OAT to GHZ](../ch10_quantum_metrology_protocols/34_oat_to_ghz_full_metrology_protocol.ipynb) for Section 11.
 #
 # **Conventions.** Qubit $q$ = tensor axis $q$, counted from $0$; $\vert0\rangle$ is the $+1$ eigenstate of $Z$;
-# $\sigma^{+}=\vert1\rangle\langle0\vert$ raises. Logarithms in Eq. (3) are base $2$.
+# $\sigma^\pm=(X\pm iY)/2$, so that $\sigma^{-}=\vert1\rangle\langle0\vert$ lowers spin up $\vert0\rangle$ to spin down $\vert1\rangle$ and
+# $\sigma^{+}=\vert0\rangle\langle1\vert$ raises it. Logarithms in Eq. (3) are base $2$.
 
 # %% [markdown]
 # ## 2. Engine recap and helpers
@@ -112,7 +113,7 @@
 # density-matrix and trajectory form, the Adam and SPSA routines, and the exact one-axis-twisting evolution.
 
 # %%
-#@engine: apply_gate, apply_gate_dm, apply_kraus_dm, apply_kraus_mcwf, rdm, to_dm, dm_matrix, zero_state, product_state, ghz_state, w_state, dicke_state, haar_state, I2, X, Y, Z, H, S, T, CZ, SP, ry, rz, kraus_dephasing, kraus_depolarizing, kraus_amplitude_damping, adam_init, adam_update, spsa_grad, oat_evolve, spin_squeezing, expect_pauli_string
+#@engine: apply_gate, apply_gate_dm, apply_kraus_dm, apply_kraus_mcwf, rdm, to_dm, dm_matrix, zero_state, product_state, ghz_state, w_state, dicke_state, haar_state, I2, X, Y, Z, H, S, T, CZ, SM, ry, rz, kraus_dephasing, kraus_depolarizing, kraus_amplitude_damping, adam_init, adam_update, spsa_grad, oat_evolve, spin_squeezing, expect_pauli_string
 
 # %%
 # ==============================================================================
@@ -129,7 +130,7 @@ def max_abs(a):
     return float(jnp.max(jnp.abs(jnp.asarray(a))))
 
 
-print("sigma^+ = |1><0| :\n", np.asarray(SP))
+print("sigma^- = |1><0| :\n", np.asarray(SM))
 
 # %% [markdown]
 # ## 3. From CHSH to $N$ parties
@@ -174,18 +175,20 @@ print("sigma^+ = |1><0| :\n", np.asarray(SP))
 # %% [markdown]
 # ## 4. The many-body Bell correlator and its bounds
 #
-# ### 4.1 A rotated raising operator is a pair of orthogonal measurement settings
+# ### 4.1 A rotated lowering operator is a pair of orthogonal measurement settings
 #
-# Start from $\sigma^{+}=\vert1\rangle\langle0\vert$. In terms of Pauli matrices
+# Start from $\sigma^{-}=\vert1\rangle\langle0\vert$. In terms of Pauli matrices
 #
-# $$\sigma^{+}=\frac{X-iY}{2} .$$
+# $$\sigma^{-}=\frac{X-iY}{2} .$$
 #
 # (Check: $X=\vert0\rangle\langle1\vert+\vert1\rangle\langle0\vert$ and $Y=i\vert1\rangle\langle0\vert-i\vert0\rangle\langle1\vert$,
-# so $iY=\vert0\rangle\langle1\vert-\vert1\rangle\langle0\vert$ and $X-iY=2\vert1\rangle\langle0\vert$. The opposite sign,
-# $\sigma^{+}=(X+iY)/2$, belongs to the spin convention in which $\vert0\rangle$ is the *lower* state; here
-# $\vert0\rangle$ is the $+1$ eigenstate of $Z$ and $\sigma^{+}$ raises the *bit*.) Conjugating with a local unitary $U$ gives
+# so $iY=\vert0\rangle\langle1\vert-\vert1\rangle\langle0\vert$ and $X-iY=2\vert1\rangle\langle0\vert$. This is the convention
+# $\sigma^\pm=(X\pm iY)/2$ of the whole course: $\vert0\rangle$ is spin up, the $+1$ eigenstate of $Z$, and $\sigma^{-}$ lowers it.
+# Building $\mathcal B$ from $\sigma^{+}=(X+iY)/2=\vert0\rangle\langle1\vert$ instead, as some papers do, gives
+# $\bigotimes_kU_k\sigma^{+}U_k^{\dagger}=\mathcal B^\dagger$ and $\langle\mathcal B^\dagger\rangle=\langle\mathcal B\rangle^*$, hence the same
+# $\mathcal E$.) Conjugating with a local unitary $U$ gives
 #
-# $$\tilde\sigma^{+}=U\sigma^{+}U^{\dagger}=\frac{A+iB}{2},\qquad A=UXU^{\dagger},\quad B=-\,UYU^{\dagger} . \tag{5}$$
+# $$\tilde\sigma^{-}=U\sigma^{-}U^{\dagger}=\frac{A+iB}{2},\qquad A=UXU^{\dagger},\quad B=-\,UYU^{\dagger} . \tag{5}$$
 #
 # $A$ and $B$ are Hermitian, traceless, and $A^2=UX^2U^\dagger=\mathbb 1$, $B^2=\mathbb 1$: each is a **dichotomic
 # observable** with outcomes $\pm1$ (the minus sign in $B$ only swaps the labels of its two outcomes). They also
@@ -197,7 +200,7 @@ print("sigma^+ = |1><0| :\n", np.asarray(SP))
 #
 # Substituting Eq. (5) into Eq. (1),
 #
-# $$\mathcal B=\bigotimes_k\tilde\sigma^{+}_k=\frac{1}{2^N}\bigotimes_k\bigl(A_k+iB_k\bigr)
+# $$\mathcal B=\bigotimes_k\tilde\sigma^{-}_k=\frac{1}{2^N}\bigotimes_k\bigl(A_k+iB_k\bigr)
 #  =\frac{1}{2^N}\sum_{S\subseteq\{0..N-1\}}i^{\vert S\vert}\prod_{k\in S}B_k\prod_{k\notin S}A_k . \tag{6}$$
 #
 # The right-hand side is a sum over the $2^N$ ways of picking one setting per party, each term a product of commuting
@@ -238,10 +241,10 @@ print("sigma^+ = |1><0| :\n", np.asarray(SP))
 #
 # The operator $\mathcal B$ factorises over the same groups, so
 #
-# $$\langle\mathcal B\rangle=\sum_jp_j\prod_{g=1}^{m}\mathrm{Tr}\Bigl(\rho^{(j)}_{G_g}\bigotimes_{k\in G_g}\tilde\sigma^{+}_k\Bigr) .$$
+# $$\langle\mathcal B\rangle=\sum_jp_j\prod_{g=1}^{m}\mathrm{Tr}\Bigl(\rho^{(j)}_{G_g}\bigotimes_{k\in G_g}\tilde\sigma^{-}_k\Bigr) .$$
 #
 # Each group factor is bounded by $1/2$:
-# $\bigotimes_{k\in G}\tilde\sigma^{+}_k=\vert a_G\rangle\langle b_G\vert$ with
+# $\bigotimes_{k\in G}\tilde\sigma^{-}_k=\vert a_G\rangle\langle b_G\vert$ with
 # $\vert a_G\rangle=\bigotimes_{k\in G}U_k\vert1\rangle$ and $\vert b_G\rangle=\bigotimes_{k\in G}U_k\vert0\rangle$, which are
 # **orthonormal** because $U\vert0\rangle\perp U\vert1\rangle$ on every site. Then, for any state $\rho$ of that group,
 #
@@ -303,7 +306,7 @@ print("sigma^+ = |1><0| :\n", np.asarray(SP))
 #   between corresponding to multipartite EPR steering. Chwedenczuk (2022) derives the same bound by the Cauchy–Schwarz
 #   inequality applied directly to Eq. (4).
 # * $Q_{\rm B}=\log_2\mathcal E+N$ has the form of the quantity called $Q_N$ in Plodzien *et al.*, Phys. Rev. Research
-#   **6**, 023050 (2024), whose Eq. (3) defines $\mathcal E_N\equiv2^{Q_N-N}$ (there the raising operators are taken along
+#   **6**, 023050 (2024), whose Eq. (3) defines $\mathcal E_N\equiv2^{Q_N-N}$ (there the local operators are taken along
 #   one fixed axis, whereas Eq. (2) maximises over them); $Q_{\rm E}=\tfrac12\log_2\mathcal E+N=\log_4(4^N\mathcal E)$ is
 #   the quantity called $\mathcal Q$ in Eq. (7) of Plodzien *et al.*, Phys. Rev. A **110**, 032428 (2024). In that notation
 #   Eq. (10) reads $Q_{\rm E}\le N-m$ for $m$-separable states, which is Eq. (16) of the latter paper, and the biseparable
@@ -326,9 +329,9 @@ print("sigma^+ = |1><0| :\n", np.asarray(SP))
 #
 # ### 5.1 The whole expectation value is one matrix element
 #
-# The reason this correlator is cheap is an identity that takes one line. Since $\sigma^{+}=\vert1\rangle\langle0\vert$,
+# The reason this correlator is cheap is an identity that takes one line. Since $\sigma^{-}=\vert1\rangle\langle0\vert$,
 #
-# $$\bigotimes_k\sigma^{+}_k=\vert1\cdots1\rangle\langle0\cdots0\vert ,$$
+# $$\bigotimes_k\sigma^{-}_k=\vert1\cdots1\rangle\langle0\cdots0\vert ,$$
 #
 # and therefore, pulling the local unitaries out of the tensor product,
 #
@@ -355,7 +358,7 @@ print("sigma^+ = |1><0| :\n", np.asarray(SP))
 # ### 5.2 Parametrising the local unitary
 #
 # Every $U\in SU(2)$ is $U=R_z(\varphi)R_y(\theta)R_z(\chi)$ (Euler angles). The third angle is free of charge here:
-# $R_z(\chi)\sigma^{+}R_z(\chi)^{\dagger}=e^{i\chi}\sigma^{+}$, so it only multiplies $\mathcal B$ by a phase and leaves
+# $R_z(\chi)\sigma^{-}R_z(\chi)^{\dagger}=e^{i\chi}\sigma^{-}$, so it only multiplies $\mathcal B$ by a phase and leaves
 # $\vert\langle\mathcal B\rangle\vert$ untouched. **Two angles per site suffice**, and we take
 #
 # $$U_k(\theta_k,\varphi_k)=R_z(\varphi_k)\,R_y(\theta_k) , \tag{14}$$
@@ -373,7 +376,7 @@ def local_u(theta, phi):
 
 
 def bell_expectation(psi, angles):
-    """<psi| (x)_k U_k sigma^+ U_k^dagger |psi>   for a state TENSOR psi of shape (2,)*N.
+    """<psi| (x)_k U_k sigma^- U_k^dagger |psi>   for a state TENSOR psi of shape (2,)*N.
 
     MATH   psi' = (x)_k U_k^dagger psi   =>   <B> = conj(psi'[1,..,1]) * psi'[0,..,0]        [Eq. (12)]
     IMPLEMENTATION  N single-qubit einsums (`apply_gate`), then two scalar lookups.  The operator B is
@@ -426,11 +429,11 @@ def q_values(E, N):
 # STEP 2: checkpoint -- Eq. (12) and Eq. (13) against a dense Kronecker construction
 # ==============================================================================
 def bell_operator_dense(angles, N):
-    """B = (x)_k U_k sigma^+ U_k^dagger as a dense 2^N x 2^N matrix.  VALIDATION ONLY (cost 4^N)."""
+    """B = (x)_k U_k sigma^- U_k^dagger as a dense 2^N x 2^N matrix.  VALIDATION ONLY (cost 4^N)."""
     B = np.ones((1, 1), dtype=complex)
     for q in range(N):
         U = np.asarray(local_u(angles[q, 0], angles[q, 1]))
-        B = np.kron(B, U @ np.asarray(SP) @ U.conj().T)
+        B = np.kron(B, U @ np.asarray(SM) @ U.conj().T)
     return B
 
 
@@ -867,8 +870,8 @@ print(f"\nrun time after compilation [s]: " + "; ".join(
 # Haar-random state has no such symmetry: its slice shows two isolated peaks separated by regions where $\mathcal E$ falls
 # to zero. The two peaks are one and the same maximum. The chart $(\theta,\varphi)$ covers every measurement frame twice:
 # since $R_y(-\theta)=ZR_y(\theta)Z$ and $R_z(\pi)=-iZ$, one has $R_z(\varphi+\pi)R_y(-\theta)=-i\,R_z(\varphi)R_y(\theta)Z$, and
-# $Z\sigma^{+}Z=-\sigma^{+}$, so $(\theta_0,\varphi_0)\to(-\theta_0,\varphi_0+\pi)$ only flips the sign of
-# $\tilde\sigma^{+}_0$ (both outcomes of $A_0$ and of $B_0$ relabelled) and leaves $\mathcal E$ unchanged.
+# $Z\sigma^{-}Z=-\sigma^{-}$, so $(\theta_0,\varphi_0)\to(-\theta_0,\varphi_0+\pi)$ only flips the sign of
+# $\tilde\sigma^{-}_0$ (both outcomes of $A_0$ and of $B_0$ relabelled) and leaves $\mathcal E$ unchanged.
 #
 # In the method comparison, gradient ascent reaches the analytic optimum from all $32$ starting points for every state:
 # $0.25$ for GHZ, the star graph and the $T$-doped star graph, $0.09765625=\binom{6}{3}^24^{-6}$ for the Dicke state and
@@ -1784,15 +1787,15 @@ fig.tight_layout(); plt.show()
 #
 # * A **Bell inequality** bounds the correlations of any local hidden-variable model, in which every party's outcome for
 #   every setting is a fixed function of a shared variable. For $N$ parties the correlator
-#   $\mathcal E=\max_U\vert\langle\bigotimes_kU_k\sigma^{+}U_k^{\dagger}\rangle\vert^2$ packages the $2^N$ correlation
-#   functions into one number, because $\tilde\sigma^{+}=\tfrac12(A+iB)$ with $A\perp B$ dichotomic.
+#   $\mathcal E=\max_U\vert\langle\bigotimes_kU_k\sigma^{-}U_k^{\dagger}\rangle\vert^2$ packages the $2^N$ correlation
+#   functions into one number, because $\tilde\sigma^{-}=\tfrac12(A+iB)$ with $A\perp B$ dichotomic.
 # * **Three bounds, all derived here**: $\mathcal E\le2^{-N}$ for every local hidden-variable model (the factors
 #   $\pm1\pm i$ have modulus $\sqrt2$); $\mathcal E\le4^{-m}$ for every state separable into $m$ groups (Cauchy–Schwarz plus
 #   the orthogonality of $\bigotimes U\vert0\rangle$ and $\bigotimes U\vert1\rangle$); and $\mathcal E\le1/4$ for every state
 #   whatsoever. In the logarithmic rulers of Eq. (3): $Q_{\rm B}\le0$, $Q_{\rm E}\le N-m$ (so $\le0$ for full
 #   separability), $Q_{\rm B}\le N-2$. Those two rulers are the $Q_N$ of Phys. Rev. Research **6**, 023050 and the
 #   $\mathcal Q$ of Phys. Rev. A **110**, 032428.
-# * **Evaluation is two array lookups.** $\sigma^{+\otimes N}=\vert1\cdots1\rangle\langle0\cdots0\vert$, so
+# * **Evaluation is two array lookups.** $\sigma^{-\otimes N}=\vert1\cdots1\rangle\langle0\cdots0\vert$, so
 #   $\langle\mathcal B\rangle=\overline{\psi'[1\ldots1]}\,\psi'[0\ldots0]$ after $N$ single-qubit rotations: $O(N2^N)$ instead
 #   of $O(4^N)$, and $\rho'[0\ldots0;1\ldots1]$ for a density tensor.
 # * **Closed forms verified**: $\mathcal E=4^{-N}$ for $\vert+\rangle^{\otimes N}$ (the separability bound is saturated),

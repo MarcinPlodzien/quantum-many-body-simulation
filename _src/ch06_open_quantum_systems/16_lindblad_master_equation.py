@@ -54,7 +54,7 @@
 #
 # **Physics**
 # * what the terms of the Lindblad equation mean; the Born, Markov and secular approximations behind them; jump operators
-#   for decay ($\sigma^-$), pumping ($\sigma^+$), dephasing ($\sigma^z$) and bit flips ($\sigma^x$), and the freedom in choosing them;
+#   for decay ($\sigma^+=\vert0\rangle\langle1\vert$), pumping ($\sigma^-=\vert1\rangle\langle0\vert$), dephasing ($\sigma^z$) and bit flips ($\sigma^x$), and the freedom in choosing them;
 # * $T_1$, $T_2$ and the relation $1/T_2 = 1/(2T_1) + 1/T_\varphi$; optical Bloch equations, saturation, damped Rabi oscillations;
 # * the maximally mixed state versus structured steady states in a dissipative spin chain; purity and entropy production; the Liouvillian gap.
 #
@@ -151,11 +151,13 @@
 # can absorb what the system gives it. That sum is Fermi's golden rule: the rate is the environment's spectral density
 # at the transition frequency.
 #
-# * **Spin in the electromagnetic vacuum.** $V=g(\sigma^-\otimes a^\dagger+\sigma^+\otimes a)$. From the vacuum the
-#   only environment transition is "no photon $\to$ one photon", whose system partner is $\sigma^-$. Hence
-#   $L=\sigma^-$: spontaneous emission.
+# * **Spin in the electromagnetic vacuum.** We use $\sigma^\pm=(\sigma^x\pm i\sigma^y)/2$, so that $\sigma^-=|1\rangle\langle0|$
+#   lowers spin up $|0\rangle$ to spin down $|1\rangle$ and $\sigma^+=|0\rangle\langle1|$ raises it. With $|1\rangle$ the excited
+#   level, $V=g(\sigma^+\otimes a^\dagger+\sigma^-\otimes a)$. From the vacuum the
+#   only environment transition is "no photon $\to$ one photon", whose system partner is $\sigma^+$, the de-excitation
+#   $|1\rangle\to|0\rangle$. Hence $L=\sigma^+$: spontaneous emission.
 # * **Thermal environment.** The environment can also give a quantum back, so "one photon $\to$ none" contributes with
-#   system partner $\sigma^+$. Two jump operators, their rates in a ratio fixed by temperature.
+#   system partner $\sigma^-$. Two jump operators, their rates in a ratio fixed by temperature.
 # * **Fluctuating field along $z$.** $V=Z\otimes B$: the environment learns the spin direction and exchanges no
 #   energy. The system operator in the coupling is $Z$, so $L=Z$ - pure dephasing, populations untouched.
 #
@@ -240,11 +242,14 @@
 #
 # Our basis convention: $|0\rangle=(1,0)^T$ is the $+1$ eigenstate of $Z$ ("up"), $|1\rangle=(0,1)^T$. For a single qubit we take
 # $|1\rangle$ as the *excited* level that decays to $|0\rangle$, consistent with the amplitude-damping channel of notebook 07.
+# Relaxation of $|1\rangle$ to $|0\rangle$ has the jump operator $|0\rangle\langle1|=\sigma^+$ in our convention. Quantum-optics
+# texts call the same operator $\sigma^-=|g\rangle\langle e|$: they take $\sigma^z=|e\rangle\langle e|-|g\rangle\langle g|$, which
+# is $-Z$ when the ground state is $|0\rangle$.
 #
 # | name | $L$ | engine | $L^\dagger L$ | what the bath does | physical example |
 # |---|---|---|---|---|---|
-# | decay (relaxation) | $\sigma^- = \lvert0\rangle\langle1\rvert$ | `SM` | $\lvert1\rangle\langle1\rvert$ | takes away one excitation | spontaneous emission |
-# | pumping | $\sigma^+ = \lvert1\rangle\langle0\rvert$ | `SP` | $\lvert0\rangle\langle0\rvert$ | adds one excitation | incoherent (optical) pumping |
+# | decay (relaxation) | $\sigma^+ = \lvert0\rangle\langle1\rvert$ | `SP` | $\lvert1\rangle\langle1\rvert$ | takes away one excitation | spontaneous emission |
+# | pumping | $\sigma^- = \lvert1\rangle\langle0\rvert$ | `SM` | $\lvert0\rangle\langle0\rvert$ | adds one excitation | incoherent (optical) pumping |
 # | dephasing | $\sigma^z$ | `Z` | $\mathbb{1}$ | measures $Z$ without telling us | fluctuating magnetic field |
 # | bit flip | $\sigma^x$ | `X` | $\mathbb{1}$ | random spin flips | transverse noise |
 #
@@ -254,7 +259,7 @@
 # > **Physics insight.** For a Hermitian jump operator with $L^2=\mathbb 1$ (dephasing, bit flip) the dissipator is
 # > $\mathcal D[L](\rho) = L\rho L - \rho$: the bath applies $L$ at random times. Such noise is **unital**
 # > ($\mathcal{L}(\mathbb 1)=0$): the maximally mixed state $\mathbb 1/2^N$ is always a steady state, and such noise can only make the state more mixed.
-# > Decay is different: $\mathcal{D}[\sigma^-](\mathbb 1) = \sigma^-\sigma^+ - \sigma^+\sigma^- = Z \neq 0$. It pumps the
+# > Decay is different: $\mathcal{D}[\sigma^+](\mathbb 1) = \sigma^+\sigma^- - \sigma^-\sigma^+ = Z \neq 0$. It pumps the
 # > system towards the pure state $|0\rangle$: decay can *purify*.
 #
 # ### 2.5 The pair $(H, \{L_j\})$ is not unique
@@ -294,11 +299,11 @@
 # Write $\rho = \begin{pmatrix}\rho_{00}&\rho_{01}\\ \rho_{10}&\rho_{11}\end{pmatrix}$, where $\rho_{11}$ is the population of the
 # excited level and $\rho_{01}$ the coherence.
 #
-# **Decay**, $L=\sigma^-=|0\rangle\langle1|$, rate $\gamma_1$. We need three small products:
-# $\sigma^-\rho\,\sigma^+ = \rho_{11}|0\rangle\langle0|$, $\;L^\dagger L = \sigma^+\sigma^- = |1\rangle\langle1|$, and
+# **Decay**, $L=\sigma^+=|0\rangle\langle1|$, rate $\gamma_1$. We need three small products:
+# $\sigma^+\rho\,\sigma^- = \rho_{11}|0\rangle\langle0|$, $\;L^\dagger L = \sigma^-\sigma^+ = |1\rangle\langle1|$, and
 # $\tfrac12\{|1\rangle\langle1|,\rho\} = \begin{pmatrix}0&\rho_{01}/2\\ \rho_{10}/2&\rho_{11}\end{pmatrix}$. Hence
 #
-# $$ \mathcal{D}[\sigma^-](\rho) = \begin{pmatrix}+\rho_{11} & -\rho_{01}/2\\ -\rho_{10}/2 & -\rho_{11}\end{pmatrix}
+# $$ \mathcal{D}[\sigma^+](\rho) = \begin{pmatrix}+\rho_{11} & -\rho_{01}/2\\ -\rho_{10}/2 & -\rho_{11}\end{pmatrix}
 #    \quad\Longrightarrow\quad \rho_{11}(t) = \rho_{11}(0)\,e^{-\gamma_1 t},\qquad \rho_{01}(t)=\rho_{01}(0)\,e^{-\gamma_1t/2}. $$
 #
 # The population relaxes with the time constant $T_1 = 1/\gamma_1$, and the coherence — inevitably — at half that rate.
@@ -405,7 +410,7 @@ psi0 = jnp.array([np.cos(theta0 / 2), np.sin(theta0 / 2)], dtype=CDTYPE)
 rho0_1q = jnp.outer(psi0, psi0.conj())
 
 H_1q = -0.5 * delta * Z
-f_1q = lambda r: lindblad_rhs_dense(r, H_1q, [SM, Z], [gamma_1, gamma_phi])
+f_1q = lambda r: lindblad_rhs_dense(r, H_1q, [SP, Z], [gamma_1, gamma_phi])
 
 # record the full 2x2 matrix after every step (tiny), so we can look at populations AND coherences
 _, rho_t = jax.jit(lambda r: integrate(lambda y: rk4_step(f_1q, y, dt_1q), r, n_1q, lambda y: y))(rho0_1q)
@@ -447,7 +452,7 @@ plt.tight_layout(); plt.show()
 #
 # ### 3.4 Analytic solution II: a driven qubit — optical Bloch equations
 #
-# Now drive the decaying qubit resonantly: $H=\tfrac\Omega2 X$ (rotating frame, $\Omega$ = Rabi frequency), $L=\sigma^-$ with rate $\gamma$.
+# Now drive the decaying qubit resonantly: $H=\tfrac\Omega2 X$ (rotating frame, $\Omega$ = Rabi frequency), $L=\sigma^+$ with rate $\gamma$.
 # Parametrise $\rho = \tfrac12(\mathbb 1 + xX+yY+zZ)$ with the Bloch vector $(x,y,z)=(\langle X\rangle,\langle Y\rangle,\langle Z\rangle)$, i.e.
 # $\rho_{11} = (1-z)/2$ and $\rho_{01} = (x-iy)/2$.
 #
@@ -482,7 +487,7 @@ dt_d, T_d = 0.01, 16.0
 n_d = int(round(T_d / dt_d))
 
 H_d = 0.5 * Omega * X
-f_d = lambda r: lindblad_rhs_dense(r, H_d, [SM], [gamma_d])
+f_d = lambda r: lindblad_rhs_dense(r, H_d, [SP], [gamma_d])
 rho_start = jnp.array([[1, 0], [0, 0]], dtype=CDTYPE)                   # |0><0|: the qubit starts in its lower level
 _, bloch_t = jax.jit(lambda r: integrate(lambda y: rk4_step(f_d, y, dt_d), r, n_d, bloch_vector))(rho_start)
 t_d = dt_d * np.arange(1, n_d + 1)
@@ -529,7 +534,7 @@ ax.legend(ncol=2); ax.grid(alpha=.3); plt.tight_layout(); plt.show()
 # ==============================================================================
 def excited_population_at_late_time(Om, gamma=gamma_d, dt=0.01, n_steps=6000):
     """Integrate the driven, decaying qubit to t = n_steps*dt and return rho_11 = (1 - <Z>)/2."""
-    f = lambda r: lindblad_rhs_dense(r, 0.5 * Om * X, [SM], [gamma])
+    f = lambda r: lindblad_rhs_dense(r, 0.5 * Om * X, [SP], [gamma])
     rho, _ = integrate(lambda y: rk4_step(f, y, dt), rho_start, n_steps, lambda y: 0.0)
     return jnp.real(rho[1, 1])
 
@@ -656,7 +661,7 @@ for label, Ow in [("O^dagger", O.conj().T), ("O^*", O.conj()), ("O (no transpose
 #
 # > **Common pitfall.** For a Hermitian operator $O^T = O^*$, and for a *real* Hermitian one ($X$, $Z$, $XX$, $ZZ$, ...)
 # > even $O^T=O$, so a wrong transpose/conjugate can stay unnoticed for a long time. It strikes as soon as a $Y$ appears
-# > (e.g. in the $YY$ coupling of the Heisenberg model) or a non-Hermitian $L=\sigma^-$. Always test with a *generic complex* operator.
+# > (e.g. in the $YY$ coupling of the Heisenberg model) or a non-Hermitian $L=\sigma^+$. Always test with a *generic complex* operator.
 #
 # ### 4.4 The general function
 #
@@ -677,7 +682,7 @@ for label, Ow in [("O^dagger", O.conj().T), ("O^*", O.conj()), ("O (no transpose
 #
 # *Reference A* is the literal `lindblad_rhs_dense` of Section 3 fed with dense $2^N\times2^N$ operators. We obtain those with
 # `dense_hamiltonian`, which builds the matrix of any list of local terms from its matrix-free action (it does not
-# care whether the "Hamiltonian" is Hermitian, so it embeds $\sigma^-_q$ just as well).
+# care whether the "Hamiltonian" is Hermitian, so it embeds $\sigma^+_q$ just as well).
 #
 # *Reference B* is the **superoperator**: since $\mathcal L$ is linear, we may flatten $\rho$ into a vector of length $4^N$
 # and write $\mathcal L$ as a $4^N\times4^N$ matrix. With C-ordered (row-major) flattening, `rho.reshape(-1)`, the rule is
@@ -725,7 +730,7 @@ def dense_liouvillian(terms, jumps, N):
 # ------------------------------------------------------------------------------
 N3 = 3
 terms3 = heisenberg_terms(N3, Jxx=1.0, Jyy=1.0, Jzz=0.5, hx=1.0)
-jumps3 = [((q,), SM, 0.3) for q in range(N3)] + [((q,), Z, 0.2) for q in range(N3)]
+jumps3 = [((q,), SP, 0.3) for q in range(N3)] + [((q,), Z, 0.2) for q in range(N3)]
 ka, kb = jax.random.split(jax.random.PRNGKey(7))
 rho3 = 0.7 * to_dm(haar_state(ka, N3)) + 0.3 * to_dm(haar_state(kb, N3))
 
@@ -857,7 +862,7 @@ assert abs(order(errs["Euler"]) - 1) < 0.2 and abs(order(errs["RK4"]) - 4) < 0.3
 # $K_0\rho K_0^\dagger+K_1\rho K_1^\dagger = \rho+dt\,\gamma\,\mathcal D[L](\rho)+O(dt^2)$ — the dissipator, to first order.
 #
 # *Exactly trace preserving is not the same as exact.* The channel is a legitimate CPTP map for every $dt$, but it is the
-# wrong one at order $dt^2$. For $L=\sigma^-$ it is $K_0={\rm diag}(1,\sqrt{1-\gamma dt})$, $K_1=\sqrt{\gamma dt}\,\sigma^-$:
+# wrong one at order $dt^2$. For $L=\sigma^+$ it is $K_0={\rm diag}(1,\sqrt{1-\gamma dt})$, $K_1=\sqrt{\gamma dt}\,\sigma^+$:
 # the amplitude-damping channel of notebook 07 with $g=\gamma\,dt$, whereas the exact solution of Section 3.1 requires
 # $g=1-e^{-\gamma dt}=\gamma dt-\tfrac12(\gamma dt)^2+\dots$. For $L=\sigma^z$ it is the dephasing channel with
 # $p=\gamma\,dt$ instead of the exact $p=(1-e^{-2\gamma dt})/2$. Both discrepancies are $O(dt^2)$ per step, hence $O(dt)$
@@ -894,7 +899,7 @@ assert abs(order(errs["Euler"]) - 1) < 0.2 and abs(order(errs["RK4"]) - 4) < 0.3
 def exact_local_kraus(L_name, gamma_dt):
     """Kraus operators of exp(gamma dt D[L]) for a single site -- EXACT for any dt.
 
-    MATH   L = sigma^- : amplitude damping with g = 1 - exp(-gamma dt)          (rho_11 -> rho_11 e^{-gamma dt})
+    MATH   L = sigma^+ : amplitude damping with g = 1 - exp(-gamma dt)          (rho_11 -> rho_11 e^{-gamma dt})
            L = sigma^z : dephasing with        p = (1 - exp(-2 gamma dt)) / 2   (rho_01 -> rho_01 e^{-2 gamma dt})
     """
     if L_name == "decay":
@@ -925,12 +930,12 @@ def trotter_kraus_step3(r, dt):
 
 def strang_step3(r, dt):
     half_gates = tebd_gates(terms3, dt / 2, order=2)
-    site_kraus = [(q, exact_local_kraus("decay" if L is SM else "dephasing", g * dt)) for q, L, g in jumps3]
+    site_kraus = [(q, exact_local_kraus("decay" if L is SP else "dephasing", g * dt)) for q, L, g in jumps3]
     return lindblad_strang_step_dm(r, half_gates, site_kraus)
 
 
 # sanity: both Kraus constructions are complete, sum_m K_m^dag K_m = 1
-for name, K in [("kraus_from_jump(sigma^-, 0.05)", kraus_from_jump(SM, 0.05)),
+for name, K in [("kraus_from_jump(sigma^+, 0.05)", kraus_from_jump(SP, 0.05)),
                 ("exact_local_kraus('dephasing', 0.05)", exact_local_kraus("dephasing", 0.05))]:
     dev = float(jnp.max(jnp.abs(jnp.einsum("mab,mac->bc", jnp.conj(K), K) - jnp.eye(2))))
     print(f"completeness of {name:38s}: {dev:.1e}")
@@ -997,7 +1002,7 @@ ax.legend(loc="lower right"); ax.grid(alpha=.3, which="both"); plt.tight_layout(
 N4 = 4
 gamma4 = 0.1
 terms4 = heisenberg_terms(N4, Jxx=1.0, Jyy=1.0, Jzz=0.5, hx=1.0)
-jumps4 = [((q,), SM, gamma4) for q in range(N4)]                      # decay on every site
+jumps4 = [((q,), SP, gamma4) for q in range(N4)]                      # decay on every site
 rho0_4 = to_dm(zero_state(N4))
 T_diag = 10.0
 
@@ -1090,7 +1095,7 @@ ax.legend(); ax.grid(alpha=.3); plt.tight_layout(); plt.show()
 # breaks the conservation of the total magnetisation, so the closed chain already shows non-trivial dynamics. We run three cases:
 #
 # * **dephasing**, $L_i=Z_i$ with $\gamma=0.1$ — e.g. a fluctuating magnetic field along $z$;
-# * **decay**, $L_i=\sigma^-_i$ — every spin relaxes towards $|0\rangle$ (up), while the field $h_x$ keeps driving it away —
+# * **decay**, $L_i=\sigma^+_i$ — every spin relaxes towards $|0\rangle$ (up), while the field $h_x$ keeps driving it away —
 #   once *weak* ($\gamma=0.1$) and once *strong* ($\gamma=1$), so that we can see which of bath and drive wins.
 #
 # Questions: what is the long-time state? How fast is it approached? How mixed does the chain become?
@@ -1158,9 +1163,9 @@ rho0 = to_dm(zero_state(N))
 t0 = time.perf_counter()
 rho_deph, obs_deph = evolve_chain(rho0, Z, gamma); obs_deph.block_until_ready()
 t1 = time.perf_counter()
-rho_dec, obs_dec = evolve_chain(rho0, SM, gamma); obs_dec.block_until_ready()
+rho_dec, obs_dec = evolve_chain(rho0, SP, gamma); obs_dec.block_until_ready()
 t2 = time.perf_counter()
-rho_str, obs_str = evolve_chain(rho0, SM, gamma_strong); obs_str.block_until_ready()
+rho_str, obs_str = evolve_chain(rho0, SP, gamma_strong); obs_str.block_until_ready()
 print(f"dephasing run: {t1 - t0:6.2f} s  (includes compilation)")
 print(f"decay run    : {t2 - t1:6.2f} s  (compiled program reused: L and gamma are traced arguments)")
 t_rec = dt * every * np.arange(1, n_rec + 1)
@@ -1237,7 +1242,7 @@ plt.tight_layout(); plt.show()
 # VALIDATION (N = 4): steady state and spectrum from the dense superoperator vs matrix-free RK4
 # ==============================================================================
 gamma_ss = 1.0
-jumps4_ss = [((q,), SM, gamma_ss) for q in range(N4)]            # strong decay on every site of the N = 4 chain
+jumps4_ss = [((q,), SP, gamma_ss) for q in range(N4)]            # strong decay on every site of the N = 4 chain
 Ls4 = dense_liouvillian(terms4, jumps4_ss, N4)                  # 256 x 256 superoperator
 _, svals, Vh = jnp.linalg.svd(Ls4)
 rho_ss = Vh[-1].conj().reshape(2 ** N4, 2 ** N4)                # null vector of the superoperator ...
@@ -1313,7 +1318,7 @@ plt.tight_layout(); plt.show()
 # where the gap closes as $N\to\infty$; (iii) $\rho_{\rm ss}$ is obtainable as a null vector, with no time integration;
 # (iv) a single long trajectory time-averages to $\mathrm{tr}(O\rho_{\rm ss})$, which is what makes the Monte-Carlo wave
 # function of the next notebook usable for steady-state questions. A zero can also be built on purpose: a **dark state**, a pure state
-# annihilated by every $L_j$ and an eigenstate of $H$, is stationary by construction (decay alone, $H=0$, $L_i=\sigma^-_i$, has the dark
+# annihilated by every $L_j$ and an eigenstate of $H$, is stationary by construction (decay alone, $H=0$, $L_i=\sigma^+_i$, has the dark
 # state $|0\dots0\rangle$ and no other steady state). When the dark state is the *only* zero every initial state is driven into it, and
 # engineering such a dark state is how dissipation becomes a tool for *preparing* states; two dark states give two zeros.
 
@@ -1324,7 +1329,7 @@ plt.tight_layout(); plt.show()
 GAMMAS = np.concatenate([[0.0], np.logspace(-2, 0.6, 22)])
 spec = {}
 for gam in GAMMAS:
-    jumps_g = [((q,), SM, gam) for q in range(N3)] if gam > 0 else []
+    jumps_g = [((q,), SP, gam) for q in range(N3)] if gam > 0 else []
     ev = np.linalg.eigvals(np.asarray(dense_liouvillian(terms3, jumps_g, N3)))
     spec[gam] = ev[np.argsort(-ev.real)]
 
@@ -1400,7 +1405,7 @@ for n in [2, 4, 6, 8, 10, 12, 13, 14, 16, 20]:
 # ==============================================================================
 def benchmark_step(Nb, method, dt=0.02, g=0.1, repeats=3):
     terms_b = heisenberg_terms(Nb, Jxx=1.0, Jyy=1.0, Jzz=0.5, hx=1.0)
-    jumps_b = [((q,), SM, g) for q in range(Nb)]
+    jumps_b = [((q,), SP, g) for q in range(Nb)]
     if method == "RK4":
         step = jax.jit(lambda r: lindblad_rk4_step(r, terms_b, jumps_b, dt))
     else:
@@ -1478,9 +1483,9 @@ plt.tight_layout(); plt.show()
 #
 # ## 11. Exercises
 #
-# 1. ★ **Pumping.** Add a second jump operator $\sigma^+$ with rate $\gamma_\uparrow$ to the decaying qubit of Section 3 (no drive).
-#    Derive the steady-state population $\rho_{11}^{\rm ss}=\gamma_\uparrow/(\gamma_\uparrow+\gamma_1)$ and the relaxation rate
-#    $\gamma_\uparrow+\gamma_1$, and verify both numerically. For which ratio $\gamma_\uparrow/\gamma_1$ is the steady state maximally mixed?
+# 1. ★ **Pumping.** Add a second jump operator $\sigma^-=|1\rangle\langle0|$ with pumping rate $\gamma_{\rm p}$ to the decaying qubit of Section 3 (no drive).
+#    Derive the steady-state population $\rho_{11}^{\rm ss}=\gamma_{\rm p}/(\gamma_{\rm p}+\gamma_1)$ and the relaxation rate
+#    $\gamma_{\rm p}+\gamma_1$, and verify both numerically. For which ratio $\gamma_{\rm p}/\gamma_1$ is the steady state maximally mixed?
 # 2. ★ **Bit-flip noise.** Replace dephasing by $L=X$ in the Ramsey experiment of Section 3.3 with $\delta=0$. Which Bloch-vector
 #    components decay, and at which rate? Derive it as in Section 3.1 and check.
 # 3. ★★ **Detuned drive.** Add a detuning, $H=\tfrac\Omega2X-\tfrac\delta2Z$, to the optical Bloch equations (4), derive the

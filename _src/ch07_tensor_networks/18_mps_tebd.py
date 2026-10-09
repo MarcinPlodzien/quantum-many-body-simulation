@@ -2173,7 +2173,7 @@ print(f"  SV |            |            |                  |            | {float(
 #   much entanglement does the flow create?
 # * **Néel state** $|\!\uparrow\downarrow\uparrow\downarrow\cdots\rangle$: a highly excited state everywhere in the chain.
 #
-# Writing $X_jX_{j+1}+Y_jY_{j+1}=2(\sigma^+_j\sigma^-_{j+1}+\sigma^-_j\sigma^+_{j+1})$ shows what $H$ does: it moves a down spin one site to the left or right with
+# Writing $X_jX_{j+1}+Y_jY_{j+1}=2(\sigma^+_j\sigma^-_{j+1}+\sigma^-_j\sigma^+_{j+1})$, with $\sigma^\pm=(X\pm iY)/2$ ($\sigma^-=|1\rangle\langle0|$ lowers spin up $|0\rangle$ to spin down $|1\rangle$), shows what $H$ does: it moves a down spin one site to the left or right with
 # amplitude $2J$, and it conserves the total magnetisation $\sum_jZ_j$. The Jordan-Wigner transformation (quoted without
 # proof; Lieb, Schultz and Mattis 1961) maps down spins to *non-interacting* fermions hopping on the chain. For free
 # particles everything follows from the single-particle propagator $U(t)=e^{-i\,h_1t}$, where $h_1$ is the $N\times N$ hopping matrix

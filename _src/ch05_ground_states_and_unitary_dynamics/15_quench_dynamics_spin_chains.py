@@ -866,7 +866,7 @@ print("chain-averaged <Z> at t = 0, 1, 2, 3:", {float(h): np.round(mz2[k][[0, 25
 #
 # $$H=J\sum_j\big(X_jX_{j+1}+Y_jY_{j+1}+\Delta\,Z_jZ_{j+1}\big).$$
 #
-# $XX+YY=2(\sigma^+_j\sigma^-_{j+1}+{\rm h.c.})$ *hops* a flipped spin to the neighbouring site; the $\Delta$ term is an interaction between neighbouring flipped spins. The total magnetisation $\sum_jZ_j$ is conserved
+# $XX+YY=2(\sigma^+_j\sigma^-_{j+1}+{\rm h.c.})$, with $\sigma^\pm=(X\pm iY)/2$ ($\sigma^-=|1\rangle\langle0|$ lowers spin up $|0\rangle$ to spin down $|1\rangle$), *hops* a flipped spin to the neighbouring site; the $\Delta$ term is an interaction between neighbouring flipped spins. The total magnetisation $\sum_jZ_j$ is conserved
 # (each bond gate commutes with $Z_j+Z_{j+1}$), so the only thing that can happen is **transport** of magnetisation across the wall — the spin-chain version of opening a valve between a full and an empty container.
 # This *inhomogeneous quench* is the standard probe of transport (Gobert *et al.* 2005; Ljubotina, Žnidarič, Prosen 2017), and the answer depends dramatically on $\Delta$:
 #

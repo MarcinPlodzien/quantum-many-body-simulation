@@ -123,7 +123,7 @@ plt.rcParams.update({"axes.prop_cycle": plt.cycler(color=CB), "axes.grid": True,
 # i.e. pointing along $x$ — a state with *no* $z$ order. The two terms **do not commute** ($[Z,X]=2iY\neq0$), so they cannot be satisfied at the same time; their
 # competition is controlled by the single ratio $h/J$ and produces a phase transition at $h=J$ in one dimension.
 #
-# *Reading the XXZ model.* Using $\sigma^\pm=(X\pm iY)/2$ one finds $X_iX_j+Y_iY_j = 2(\sigma^+_i\sigma^-_j+\sigma^-_i\sigma^+_j)$: this part **moves** an up-spin from site $j$ to site $i$
+# *Reading the XXZ model.* Using $\sigma^\pm=(X\pm iY)/2$, so that $\sigma^-=|1\rangle\langle0|$ lowers spin up $|0\rangle$ to spin down $|1\rangle$ and $\sigma^+=|0\rangle\langle1|$ raises it, one finds $X_iX_j+Y_iY_j = 2(\sigma^+_i\sigma^-_j+\sigma^-_i\sigma^+_j)$: this part **moves** an up-spin from site $j$ to site $i$
 # (a "hopping" term), while $\Delta Z_iZ_j$ is an interaction between neighbouring spins. At $\Delta=1$ the bond term is the rotation-invariant
 # Heisenberg coupling $\vec\sigma_i\cdot\vec\sigma_j$.
 #

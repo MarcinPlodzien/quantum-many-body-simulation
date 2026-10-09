@@ -1062,7 +1062,7 @@ for scheme, dt_h in (("2", 0.1), ("2", 0.05), ("4", 0.2), ("4", 0.1)):
 #
 # We now go beyond the reach of dense references: $N=18$ spins ($2^{18}=262\,144$ amplitudes; the dense propagator would need 1.1 TB). Initial state: a **domain wall** $|\!\uparrow\cdots\uparrow\downarrow\cdots\downarrow\rangle$. Hamiltonian: the XXZ chain with $\Delta=0$ (the "XX chain") and with $\Delta=1$ (Heisenberg).
 #
-# For $\Delta=0$ an exact solution exists for any $N$. The Jordan–Wigner transformation maps down-spins to fermions and $J(X_jX_{j+1}+Y_jY_{j+1})=2J(\sigma^+_j\sigma^-_{j+1}+{\rm h.c.})$ to *free* hopping with amplitude $2J$. For free particles the density evolves with the single-particle propagator
+# For $\Delta=0$ an exact solution exists for any $N$. The Jordan–Wigner transformation maps down-spins to fermions and $J(X_jX_{j+1}+Y_jY_{j+1})=2J(\sigma^+_j\sigma^-_{j+1}+{\rm h.c.})$, with $\sigma^\pm=(X\pm iY)/2$ ($\sigma^-=|1\rangle\langle0|$ lowers spin up $|0\rangle$ to spin down $|1\rangle$), to *free* hopping with amplitude $2J$. For free particles the density evolves with the single-particle propagator
 # $u(t)=e^{-ih_1t}$, where $h_1$ is the $N\times N$ hopping matrix ($(h_1)_{j,j\pm1}=2J$):
 #
 # $$ n_j(t)=\sum_{l\,\in\,\text{initially occupied}}|u_{jl}(t)|^2,\qquad\langle Z_j(t)\rangle=1-2\,n_j(t). $$

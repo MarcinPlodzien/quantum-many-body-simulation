@@ -86,7 +86,7 @@
 # Pauli matrices (not spin-$1/2$ operators), qubit $q$ is tensor axis $q$.
 
 # %%
-#@engine: I2, X, Y, Z, P0, SM, XX, YY, ZZ, ry, apply_gate, apply_gate_dm, apply_kraus_dm, zero_state, haar_state, to_dm, dm_matrix, rdm, rdm_dm, reset_qubit, sample_bitstrings, trace_distance, purity, kraus_from_jump, kraus_dephasing, kraus_amplitude_damping, tebd_gates, apply_gates, apply_gates_dm
+#@engine: I2, X, Y, Z, P0, SP, XX, YY, ZZ, ry, apply_gate, apply_gate_dm, apply_kraus_dm, zero_state, haar_state, to_dm, dm_matrix, rdm, rdm_dm, reset_qubit, sample_bitstrings, trace_distance, purity, kraus_from_jump, kraus_dephasing, kraus_amplitude_damping, tebd_gates, apply_gates, apply_gates_dm
 
 # %% [markdown]
 # ## 2. Reservoir computing
@@ -677,14 +677,15 @@ print("first eight feature labels:", readout_labels(L_IN, N_RAILS)[:8])
 # ### 4.1 The reset channel and the encoding in code
 #
 # Eq. (10) needs two Kraus operators, $K_0=\vert0\rangle\langle0\vert$ and $K_1=\vert0\rangle\langle1\vert$. The engine
-# already has both matrices: `P0` and `SM` $=\sigma^-=\vert0\rangle\langle1\vert$. The channel is then one call of
+# already has both matrices: `P0` and `SP` $=\sigma^+=\vert0\rangle\langle1\vert$ (with $\sigma^\pm=(X\pm iY)/2$, $\sigma^-=\vert1\rangle\langle0\vert$
+# lowers spin up $\vert0\rangle$ to spin down $\vert1\rangle$ and $\sigma^+$ raises it). The channel is then one call of
 # `apply_kraus_dm`, which contracts both Kraus branches inside a single `einsum`.
 
 # %%
 # ==============================================================================
 # STEP 1: erase the input rail (Kraus channel) and write the new input
 # ==============================================================================
-RESET_KRAUS = jnp.stack([P0, SM])      # K0 = |0><0|,  K1 = |0><1| = sigma^-
+RESET_KRAUS = jnp.stack([P0, SP])      # K0 = |0><0|,  K1 = |0><1| = sigma^+
 
 
 def reset_and_encode_dm(rho, u_window, L, erase_kraus=RESET_KRAUS):
@@ -1946,7 +1947,7 @@ plt.tight_layout(); plt.show()
 # ## 10. Decoherence during the evolution
 #
 # A laboratory reservoir is not unitary between inputs. Add a Lindblad channel acting on every qubit during the evolution —
-# dephasing ($L=Z$, coherences decay as $e^{-2\gamma t}$) or amplitude damping ($L=\sigma^-$, excited population decays as
+# dephasing ($L=Z$, coherences decay as $e^{-2\gamma t}$) or amplitude damping ($L=\sigma^+=\vert0\rangle\langle1\vert$, excited population decays as
 # $e^{-\gamma t}$) with rate $\gamma$ — implemented as one Kraus pair per Trotter sub-step, as in
 # [notebook 16](../ch06_open_quantum_systems/16_lindblad_master_equation.ipynb). We use the *exact* single-qubit channel of
 # each sub-step, $p=\tfrac12(1-e^{-2\gamma\delta t})$ for dephasing and $1-e^{-\gamma\delta t}$ for damping, rather than the
@@ -1966,7 +1967,7 @@ def dephasing_channel(gamma_dt):
 
 
 def damping_channel(gamma_dt):
-    """Exact solution of drho/dt = gamma D[sigma^-](rho) over gamma_dt: excited population x exp(-gamma dt)."""
+    """Exact solution of drho/dt = gamma D[sigma^+](rho) over gamma_dt: excited population x exp(-gamma dt)."""
     return kraus_amplitude_damping(1.0 - jnp.exp(-gamma_dt))
 
 

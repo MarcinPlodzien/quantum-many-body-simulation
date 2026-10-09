@@ -70,11 +70,13 @@
 # * [notebook 12 (Chapter 5) — TEBD](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb): `tebd_gates`;
 # * [notebook 01 (Chapter 1) — JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, `lax.scan`, PRNG keys.
 #
-# Units and conventions as before: $\hbar=1$; $|0\rangle$ is the $+1$ eigenstate of $Z$; $\sigma^-=|0\rangle\langle1|$ (engine: `SM`) takes the
-# excited level $|1\rangle$ to $|0\rangle$.
+# Units and conventions as before: $\hbar=1$; $|0\rangle$ is the $+1$ eigenstate of $Z$; $\sigma^\pm=(X\pm iY)/2$, so that
+# $\sigma^-=|1\rangle\langle0|$ lowers spin up $|0\rangle$ to spin down $|1\rangle$ and $\sigma^+=|0\rangle\langle1|$ (engine: `SP`)
+# raises it, taking the excited level $|1\rangle$ to $|0\rangle$: decay has the jump operator $\sigma^+$ (quantum-optics texts call it
+# $\sigma^-$, see [notebook 16](16_lindblad_master_equation.ipynb)).
 
 # %%
-#@engine: X, Y, Z, SM, XX, YY, ZZ, apply_gate, zero_state, basis_state, product_state, to_dm, rdm, rdm_dm, entanglement_entropy, kraus_from_jump, apply_kraus_mcwf, heisenberg_terms, tebd_gates, apply_gates, lindblad_rhs, lindblad_rk4_step, lindblad_trotter_step_dm, lindblad_trotter_step_mcwf
+#@engine: X, Y, Z, SP, XX, YY, ZZ, apply_gate, zero_state, basis_state, product_state, to_dm, rdm, rdm_dm, entanglement_entropy, kraus_from_jump, apply_kraus_mcwf, heisenberg_terms, tebd_gates, apply_gates, lindblad_rhs, lindblad_rk4_step, lindblad_trotter_step_dm, lindblad_trotter_step_mcwf
 
 # %% [markdown]
 # ## 2. Theory: unravelling the master equation
@@ -357,7 +359,7 @@ def run_trajectory(step, psi0, key, n_steps, observe):
 #
 # ### 3.2 The single-qubit laboratory
 #
-# One driven, decaying qubit: $H=\tfrac\Omega2X$, $L=\sigma^-$ with rate $\gamma$, hence $H_{\rm eff}=\tfrac\Omega2X-\tfrac{i\gamma}2|1\rangle\langle1|$.
+# One driven, decaying qubit: $H=\tfrac\Omega2X$, $L=\sigma^+$ with rate $\gamma$, hence $H_{\rm eff}=\tfrac\Omega2X-\tfrac{i\gamma}2|1\rangle\langle1|$.
 # The function below runs $M$ trajectories from an arbitrary initial state; `psi0` and `Omega` are traced arguments, so the three
 # experiments of this section share one compiled program. Recorded per step: $\langle X\rangle$, $\langle Y\rangle$, $\langle Z\rangle$ of the pure state and the jump flag $m$.
 
@@ -384,7 +386,7 @@ def bloch_pure(psi):
 def qubit_trajectories(psi0, Omega, keys):
     """M = len(keys) trajectories of the driven decaying qubit.  Returns (bloch[M, n_q, 3], jumps[M, n_q])."""
     terms = [((0,), 0.5 * Omega * X)]
-    jumps = [((0,), SM, gamma_q)]
+    jumps = [((0,), SP, gamma_q)]
     step = lambda k, p: mcwf_rk4_step(k, p, terms, jumps, dt_q)
     return jax.vmap(lambda k: run_trajectory(step, psi0, k, n_q, bloch_pure))(keys)
 
@@ -624,7 +626,7 @@ obs_names = [r"$\overline{X}$", r"$\overline{Y}$", r"$\overline{Z}$", r"$\overli
 # ### 4.2 Checkpoint on a small system: $N=4$ with decay *and* dephasing
 #
 # Before the production run we test both steppers where everything is cheap: $N=4$, **two** jump operators per site
-# ($\sigma^-$ with rate 0.2 and $Z$ with rate 0.1), initial state $|1{+}0{-}\rangle$ so that all observables are non-trivial. Reference:
+# ($\sigma^+$ with rate 0.2 and $Z$ with rate 0.1), initial state $|1{+}0{-}\rangle$ so that all observables are non-trivial. Reference:
 # the RK4 density-tensor evolution validated in the previous notebook. We print the final-time comparison and the
 # **pull** $(\bar O-O_{\rm ref})/\mathrm{SE}$, which should be of order one.
 
@@ -635,7 +637,7 @@ obs_names = [r"$\overline{X}$", r"$\overline{Y}$", r"$\overline{Z}$", r"$\overli
 Nv, dt_v, T_v, M_v = 4, 0.05, 6.0, 2000
 n_v = int(round(T_v / dt_v))
 terms_v = heisenberg_terms(Nv, Jxx=1.0, Jyy=1.0, Jzz=0.5, hx=1.0)
-jumps_v = [((q,), SM, 0.2) for q in range(Nv)] + [((q,), Z, 0.1) for q in range(Nv)]
+jumps_v = [((q,), SP, 0.2) for q in range(Nv)] + [((q,), Z, 0.1) for q in range(Nv)]
 psi0_v = product_state("1+0-")
 step_rk4_v, step_trotter_v = make_steppers(terms_v, jumps_v, dt_v)
 
@@ -885,13 +887,13 @@ plt.tight_layout(); plt.show()
 # ## 7. Single trajectories of a many-body system: staircases, clicks, hidden entanglement
 #
 # To *see* quantum jumps in a chain we choose a model in which nothing else changes the monitored quantity. Switch off the field, $h_x=0$:
-# the XXZ Hamiltonian then conserves the number of excitations $\hat n=\sum_i|1\rangle\langle1|_i$. With decay $L_i=\sigma^-_i$ on every
+# the XXZ Hamiltonian then conserves the number of excitations $\hat n=\sum_i|1\rangle\langle1|_i$. With decay $L_i=\sigma^+_i$ on every
 # site, $\hat n$ changes **only** through jumps, by exactly $-1$ per click. Start from the fully excited chain $|11\dots1\rangle$.
 #
 # **Exact results** (valid for any $N$ — we shall use them again in Section 8). In the Heisenberg picture
-# $\tfrac d{dt}\langle\hat n\rangle = i\langle[H,\hat n]\rangle+\gamma\sum_i\langle\sigma^+_i\hat n\sigma^-_i-\tfrac12\{\sigma^+_i\sigma^-_i,\hat n\}\rangle$. The commutator
-# vanishes, and $\sigma_i^+\hat n\,\sigma_i^- = (\hat n-1)\,\sigma^+_i\sigma^-_i$ (the jump removes one excitation), so the bracket is
-# $-\sigma_i^+\sigma_i^-=-|1\rangle\langle1|_i$ and
+# $\tfrac d{dt}\langle\hat n\rangle = i\langle[H,\hat n]\rangle+\gamma\sum_i\langle\sigma^-_i\hat n\sigma^+_i-\tfrac12\{\sigma^-_i\sigma^+_i,\hat n\}\rangle$. The commutator
+# vanishes, and $\sigma_i^-\hat n\,\sigma_i^+ = (\hat n-1)\,\sigma^-_i\sigma^+_i$ (the jump removes one excitation), so the bracket is
+# $-\sigma_i^-\sigma_i^+=-|1\rangle\langle1|_i$ and
 #
 # $$ \frac{d\langle\hat n\rangle}{dt}=-\gamma\langle\hat n\rangle\quad\Longrightarrow\quad\langle\hat n\rangle(t)=\langle\hat n\rangle(0)\,e^{-\gamma t}. \tag{6}$$
 #
@@ -911,7 +913,7 @@ N_s, gamma_s, dt_s, T_s, M_s = 8, 0.2, 0.05, 20.0, 400
 n_s = int(round(T_s / dt_s))
 t_s = dt_s * np.arange(1, n_s + 1)
 terms_s = heisenberg_terms(N_s, Jxx=1.0, Jyy=1.0, Jzz=0.5)                    # hx = 0: excitation number conserved by H
-jumps_s = [((q,), SM, gamma_s) for q in range(N_s)]
+jumps_s = [((q,), SP, gamma_s) for q in range(N_s)]
 step_s, _ = make_steppers(terms_s, jumps_s, dt_s)
 
 
@@ -1035,7 +1037,7 @@ for n in [6, 8, 10, 12, 14, 16, 18, 20, 24]:
 def bench_setup(Nb, dt_b=0.05, g=0.1):
     terms_b = heisenberg_terms(Nb, Jxx=1.0, Jyy=1.0, Jzz=0.5)
     gates_b = tebd_gates(terms_b, dt_b, order=2)
-    jk_b = [((q,), kraus_from_jump(SM, g * dt_b)) for q in range(Nb)]
+    jk_b = [((q,), kraus_from_jump(SP, g * dt_b)) for q in range(Nb)]
     return gates_b, jk_b, basis_state([1] * (Nb // 2) + [0] * (Nb - Nb // 2))
 
 
@@ -1123,7 +1125,7 @@ N_big, gamma_big, dt_big, T_big, M_big = 16, 0.2, 0.1, 4.0, 24
 n_big = int(round(T_big / dt_big))
 t_big = dt_big * np.arange(1, n_big + 1)
 terms_big = heisenberg_terms(N_big, Jxx=1.0, Jyy=1.0, Jzz=0.5)
-jumps_big = [((q,), SM, gamma_big) for q in range(N_big)]
+jumps_big = [((q,), SP, gamma_big) for q in range(N_big)]
 _, step_big = make_steppers(terms_big, jumps_big, dt_big)
 psi0_big = basis_state([1] * (N_big // 2) + [0] * (N_big - N_big // 2))
 
@@ -1356,7 +1358,7 @@ plt.tight_layout(); plt.show()
 # 5. ★★ **Physics: waiting-time distribution of a driven atom.** From `jumps_C` (experiment C) histogram the delays between successive clicks. Why does the
 #    distribution vanish at zero delay (**photon antibunching**)? Compare with $w(\tau)=\gamma\,|\langle1|e^{-iH_{\rm eff}\tau}|0\rangle|^2$.
 # 6. ★★ **Entanglement depends on the unravelling.** Pair the sites up, $(0,1),(2,3),\dots$, and in Section 7 replace the two jump operators
-#    $\sigma^-_i,\sigma^-_{i+1}$ of each pair by the unitarily mixed pair $(\sigma^-_i\pm\sigma^-_{i+1})/\sqrt2$ with the same rate $\gamma$. Show
+#    $\sigma^+_i,\sigma^+_{i+1}$ of each pair by the unitarily mixed pair $(\sigma^+_i\pm\sigma^+_{i+1})/\sqrt2$ with the same rate $\gamma$. Show
 #    algebraically that the dissipator is unchanged, check it with the density tensor for $N=4$, and compare the mean trajectory entanglement
 #    entropy. Physically: the detector can no longer tell which of the two sites emitted.
 # 7. ★★★ **The waiting-time (integral) algorithm of Section 2.7.** Instead of deciding at every step, draw $r\in(0,1)$ once, propagate the
@@ -1364,7 +1366,7 @@ plt.tight_layout(); plt.show()
 #    current $r$, key) and compare accuracy at large $dt$ ($dt=0.2$, say) with stepper A. Then argue about what is and is not gained: the no-jump
 #    probability is now *integrated* instead of Bernoulli-sampled, so several jumps in one step are no longer missed; but on a fixed grid the
 #    crossing is still located only to within $dt$, so an $O(dt)$ error in the jump time remains. Which of the two effects dominates here?
-# 8. ★★★ **Dissipative state preparation.** With jump operators $L_i=\tfrac12(X_i+iY_i)\equiv\sigma^-_i$ and $H=0$ every initial state is pumped into $|0\dots0\rangle$. Design
+# 8. ★★★ **Dissipative state preparation.** With jump operators $L_i=\tfrac12(X_i+iY_i)\equiv\sigma^+_i$ and $H=0$ every initial state is pumped into $|0\dots0\rangle$. Design
 #    two-site jump operators that pump *any* state into a Bell pair, and verify with trajectories that the fidelity approaches one.
 #
 # ## 12. References

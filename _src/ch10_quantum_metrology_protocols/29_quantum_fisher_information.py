@@ -2931,7 +2931,7 @@ for name, psi, n, gname in wit_states:
 #   spin. The converse fails: GHZ and Dicke states have $\langle\mathbf J\rangle=0$, so $\xi_R^2$ is undefined (infinite),
 #   although their $F_Q$ is of order $N^2$.
 # * **Many-body Bell correlator** ([26](../ch09_entanglement_and_complexity/26_many_body_bell_correlators.ipynb),
-#   Sections 4.1–4.3). $\mathcal E=\max\vert\langle\bigotimes_kU_k\sigma^+U_k^\dagger\rangle\vert^2$ needs local
+#   Sections 4.1–4.3). $\mathcal E=\max\vert\langle\bigotimes_kU_k\sigma^-U_k^\dagger\rangle\vert^2$, with $\sigma^-=(X-iY)/2=\vert1\rangle\langle0\vert$, needs local
 #   measurements of every particle in two orthogonal settings. $\mathcal E>4^{-N}$ certifies entanglement,
 #   $\mathcal E>4^{-\lceil N/k\rceil}$ a depth above $k$, and $\mathcal E>2^{-N}$ correlations that no local
 #   hidden-variable model reproduces. It reaches its maximum $1/4$ on GHZ states and detects every W state as entangled

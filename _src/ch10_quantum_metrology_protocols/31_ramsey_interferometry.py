@@ -1568,8 +1568,10 @@ fig.tight_layout(); plt.show()
 #
 # If instead the excited state *decays* with probability $g$ during the interrogation (the engine's
 # `kraus_amplitude_damping`), the channel is **non-unital**: besides shrinking the Bloch vector, it also pushes it
-# towards the pole. Starting from the encoded equatorial state $(\cos\varphi,\sin\varphi,0)$, the Kraus pair
-# $K_0=\mathrm{diag}(1,\sqrt{1-g})$, $K_1=\sqrt g\,\sigma^-$ gives
+# towards the pole. We use $\sigma^\pm=(X\pm iY)/2$, so that $\sigma^-=\vert1\rangle\langle0\vert$ lowers spin up $\vert0\rangle$ to
+# spin down $\vert1\rangle$ and $\sigma^+=\vert0\rangle\langle1\vert$ raises it; the decay $\vert1\rangle\to\vert0\rangle$ is therefore $\sigma^+$.
+# Starting from the encoded equatorial state $(\cos\varphi,\sin\varphi,0)$, the Kraus pair
+# $K_0=\mathrm{diag}(1,\sqrt{1-g})$, $K_1=\sqrt g\,\sigma^+$ gives
 #
 # $$\mathbf r=\big(\sqrt{1-g}\cos\varphi,\ \sqrt{1-g}\sin\varphi,\ g\big),$$
 #
@@ -1579,7 +1581,7 @@ fig.tight_layout(); plt.show()
 # $g^2$ terms cancel. The shift is likewise invisible in the signal: the final $\pi/2$ pulse maps $(x,y,z)\mapsto(-z,y,x)$,
 # so what the atom counter reads is $r_x$, and $r_z$ ends up along an axis that is never measured. The readout probability is
 # again $p=(1-C\cos\varphi)/2$ with $C=\sqrt{1-g}$, so Eq. (22) applies unchanged. (Amplitude damping also commutes with the
-# encoding as a *map* — $R_z\sigma^-R_z^\dagger=e^{-i\varphi}\sigma^-$, and the phase cancels between $K$ and $K^\dagger$ —
+# encoding as a *map* — $R_z\sigma^+R_z^\dagger=e^{-i\varphi}\sigma^+$, and the phase cancels between $K$ and $K^\dagger$ —
 # so "during" and "after" again coincide.)
 #
 # All of this is now checked against the engine.
