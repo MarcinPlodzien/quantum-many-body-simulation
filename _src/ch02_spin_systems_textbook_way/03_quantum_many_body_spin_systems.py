@@ -17,7 +17,7 @@
 #   will diagonalise below.
 # * **Quantum simulators.** Chains and arrays of trapped ions, neutral atoms excited to Rydberg states,
 #   ultracold atoms in optical lattices and superconducting circuits all realise, to an excellent approximation,
-#   spin-1/2 Hamiltonians whose couplings the experimentalist can *program*. Experiments with 50–250 spins exist
+#   spin-1/2 Hamiltonians whose couplings the experimentalist can *program*. Experiments with 50–256 spins exist
 #   today (Bernien *et al.* 2017: 51 Rydberg atoms; Zhang *et al.* 2017: 53 trapped ions; Ebadi *et al.* 2021:
 #   256 Rydberg atoms — all in the references).
 # * **Quantum computers.** A qubit *is* a spin-1/2. A quantum processor with $N$ qubits is an interacting spin
@@ -820,7 +820,7 @@ assert list(counts) == [comb(N, k) for k in range(N, -1, -1)] and counts.sum() =
 # with $\sigma^\pm=(X\pm iY)/2$ shows what the "XY part" does. In this convention, used throughout the course,
 # $\sigma^-=|1\rangle\langle0|$ lowers spin up $|0\rangle$ to spin down $|1\rangle$ and $\sigma^+=|0\rangle\langle1|=|{\uparrow}\rangle\langle{\downarrow}|$
 # raises it (beware that quantum-optics texts, where $|1\rangle=|{\downarrow}\rangle$ counts as the "excited" state,
-# call the same matrix $|0\rangle\langle1|$ a *lowering* operator, $\sigma^-$). The XY part
+# call this matrix $|0\rangle\langle1|$, our $\sigma^+$, a *lowering* operator and write it $\sigma^-$). The XY part
 # moves a down spin from one site to its neighbour — it is a **hopping term**. If one reads "down spin" as "a
 # particle sits here", the XXZ chain is a model of hard-core bosons hopping on a lattice with amplitude $2J$
 # and nearest-neighbour interaction $4J\Delta$ (from $Z_iZ_j=(1-2n_i)(1-2n_j)$). Ultracold atoms in a deep optical lattice realise the two ends of
@@ -848,8 +848,8 @@ assert list(counts) == [comb(N, k) for k in range(N, -1, -1)] and counts.sum() =
 # **From formula to code.** Eq. (4) is a sum of site operators, and the code is a literal transcription: loop
 # over the bonds and add $J_{\alpha\alpha}\,\sigma^\alpha_i\sigma^\alpha_j$ (one `two_site_operator` per Pauli
 # component), then loop over the sites and add the field terms (`site_operator`). Terms with a vanishing
-# coefficient are skipped. The function signature mirrors Eq. (4) and will be reused, unchanged, in
-# [notebook 04](04_time_evolution_the_textbook_way.ipynb).
+# coefficient are skipped. The function signature mirrors Eq. (4);
+# [notebook 04](04_time_evolution_the_textbook_way.ipynb) rebuilds the function with the same arguments in the same order.
 
 # %%
 # ==============================================================================
@@ -974,7 +974,9 @@ checkpoint("Heisenberg ring N=4: E0 = -8", jnp.abs(jnp.linalg.eigvalsh(xxz_dense
 #
 # is a symmetry: $P$ commutes with every $X_j$, and $PZ_jP=-Z_j$ (because $XZX=-Z$), so $PZ_iZ_jP=Z_iZ_j$. The
 # eigenvalues of $P$ are $\pm1$ ("even" and "odd" parity). This $\mathbb Z_2$ symmetry is the one that is
-# *spontaneously broken* in the ferromagnetic phase. It has an important consequence for finite systems: in any
+# *spontaneously broken* in the ferromagnetic phase: in the limit $N\to\infty$ the chain settles into one of the two
+# ordered states, which are not parity eigenstates, although $H$ itself is parity symmetric. In a
+# finite chain the symmetry has an important consequence: in any
 # non-degenerate eigenstate, $P|\psi\rangle=\pm|\psi\rangle$ and therefore
 #
 # $$ \langle\psi|Z_j|\psi\rangle = \langle\psi|P\,Z_j\,P|\psi\rangle = -\langle\psi|Z_j|\psi\rangle = 0 . $$
@@ -1594,7 +1596,7 @@ ax.set_title("Run time of dense exact diagonalisation (measured)"); ax.grid(alph
 ax = axes[1]
 N_ext = np.arange(2, 31)
 ax.semilogy(N_ext, BYTES * 4.0 ** N_ext, "-", color="C3", label=rf"dense $H$, complex: ${BYTES}\cdot4^N$ bytes")
-ax.semilogy(Ns, nbytes, "o", color="C3", label="measured `H.nbytes`")
+ax.semilogy(Ns, nbytes, "o", color="C3", label="measured H.nbytes")
 ax.semilogy(N_ext, (BYTES + IDX_BYTES) * (N_ext + 1) * 2.0 ** N_ext, "-", color="C4",
             label=rf"sparse $H$ (TFIM): $\approx{BYTES + IDX_BYTES}\,(N+1)\,2^N$ bytes")
 ax.semilogy(N_ext, BYTES * 2.0 ** N_ext, "-", color="C0", label=rf"one state vector: ${BYTES}\cdot2^N$ bytes")
@@ -1673,7 +1675,7 @@ assert all(nnz_measured[N] == (N + 1) * 2 ** N for N in nnz_measured if N % 2 ==
 # The classical answer to the wall has two ingredients. (i) Store $H$ in a **sparse format** (*Numerical Recipes*, §2.7). (ii) Do not ask
 # for all $2^N$ eigenpairs; ask for the ground state and a few excited states, which **iterative (Krylov)
 # methods** such as the Lanczos algorithm deliver using nothing but matrix–vector products $H|\psi\rangle$, each
-# costing $O(N2^N)$ instead of $O(8^N)$. (We derive Lanczos from scratch in
+# costing $O(N2^N)$ instead of $O(8^N)$. (Lanczos is derived in
 # [notebook 11 (Chapter 5)](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb).)
 #
 # As a glimpse, the next cell uses SciPy's sparse matrices and its Lanczos-type solver `eigsh` as a black box
@@ -1869,7 +1871,7 @@ checkpoint(f"sparse Lanczos gap at N={N_SPARSE} == Eq. (7)", abs(gap_sp - gap_ex
 # * H. Bernien *et al.*, *Probing many-body dynamics on a 51-atom quantum simulator*, Nature **551**, 579–584
 #   (2017), DOI 10.1038/nature24622 — Rydberg-atom arrays.
 # * S. Ebadi *et al.*, *Quantum phases of matter on a 256-atom programmable quantum simulator*, Nature **595**,
-#   227–232 (2021), DOI 10.1038/s41586-021-03582-4 — the upper end of the "50–250 spins" of Section 1.
+#   227–232 (2021), DOI 10.1038/s41586-021-03582-4 — the upper end of the "50–256 spins" of Section 1.
 # * J. Zhang *et al.*, *Observation of a many-body dynamical phase transition with a 53-qubit quantum
 #   simulator*, Nature **551**, 601–604 (2017), DOI 10.1038/nature24654 — trapped ions with long-range
 #   Ising couplings $J_{ij}\propto|i-j|^{-\alpha}$.

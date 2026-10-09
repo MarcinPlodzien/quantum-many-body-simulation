@@ -1,6 +1,6 @@
 #@title: Time evolution with dense matrices — propagators, ODE solvers and Trotterization
 #@part: Chapter 2 — Quantum many-body spin systems with dense matrices
-#@description: Solving the many-body Schrödinger equation with dense matrices: exact propagators, why Euler fails and what RK4 does, Trotterization derived from scratch with measured error scaling, a transverse-field Ising quench, and the cost wall that motivates matrix-free methods.
+#@description: Solving the many-body Schrödinger equation with dense matrices: exact propagators, why Euler fails and what RK4 does, Trotterization with measured error scaling, a transverse-field Ising quench, and the cost wall that motivates matrix-free methods.
 
 # %% [markdown]
 # ## 1. Introduction and motivation
@@ -92,7 +92,8 @@
 # * `site_operator(op, j, N)` is the Kronecker chain $\mathbb 1\otimes\dots\otimes O\otimes\dots\otimes\mathbb 1$: start from the $1\times1$ matrix $(1)$ and
 #   multiply from the right with `jnp.kron`, inserting `op` at position `j` and the $2\times2$ identity elsewhere. Because spin 0 is the leftmost factor,
 #   it is the most significant bit of the flat index — consistent with the table above.
-# * `two_site_operator(h2, j, N)` embeds a $4\times4$ matrix acting on the neighbouring spins $(j,j+1)$:
+# * `two_site_operator(h2, j, N)` embeds a $4\times4$ matrix acting on the neighbouring spins $(j,j+1)$ (notebook 03 used the same name for a
+#   function of two single-spin operators on arbitrary sites; this version takes a general bond matrix):
 #   $\mathbb 1_{2^j}\otimes h_2\otimes\mathbb 1_{2^{N-j-2}}$. For a product $h_2=A\otimes B$ it equals `site_operator(A,j,N) @ site_operator(B,j+1,N)`
 #   (we check this), but it needs no large matrix product. We will need it again for Trotterization, where $h_2$ is *not* a simple product.
 # * `build_hamiltonian_dense` adds up all terms of Eq. (1).
@@ -101,7 +102,7 @@
 from jax.scipy.linalg import expm          # dense matrix exponential (Section 5)
 
 # ==============================================================================
-# STEP 1: Pauli matrices and embedded operators (same names and conventions as notebook 03)
+# STEP 1: Pauli matrices and embedded operators (conventions of notebook 03; two_site_operator takes a 4x4 bond matrix here)
 # ==============================================================================
 I2 = jnp.eye(2, dtype=CDTYPE)
 X = jnp.array([[0, 1], [1, 0]], dtype=CDTYPE)
@@ -1325,7 +1326,7 @@ plt.tight_layout(); plt.show()
 # ### 7.9 A conservation law as a free diagnostic
 #
 # If an operator $Q$ commutes with *every bond term* $h_{j,j+1}$, it commutes with every factor of the Trotter step, so it is conserved **exactly** by the Trotterised dynamics, for any $dt$. Example: the XXZ chain conserves the total magnetisation
-# $S^z_{\rm tot}=\sum_jZ_j$ (notebook 03), and each bond $J(XX+YY)+J_{zz}ZZ$ conserves it separately. Starting from the Néel state $|{\uparrow\downarrow\uparrow\downarrow}\cdots\rangle$ with $\langle S^z_{\rm tot}\rangle=0$, the Trotter evolution must keep
+# $M_z=\sum_jZ_j=2S^z_{\rm tot}$ (notebook 03), and each bond $J(XX+YY)+J_{zz}ZZ$ conserves it separately. Starting from the Néel state $|{\uparrow\downarrow\uparrow\downarrow}\cdots\rangle$ with $\langle S^z_{\rm tot}\rangle=0$, the Trotter evolution must keep
 # it at zero to round-off even when $dt$ is far too large for the state to be accurate. If it does not, the bug is in the code, whatever the step size.
 
 # %%
@@ -1541,8 +1542,8 @@ print(f"   the column j = 0 is not a correlation but the on-site variance C_00 =
 
 # %% [markdown]
 # **Interpretation.** The bright column at $j=0$ is not a correlation at all: it is the reference site itself, where $C_{00}=\langle(\sigma^\alpha_0)^2\rangle-\langle\sigma^\alpha_0\rangle^2$ is the on-site variance (equal to 1 in the initial state, as the printed number confirms). At every genuine distance $j\ge1$
-# both correlators vanish identically at $t=0$ and then fill a **cone**: outside the dashed line $j=2v_{\max}t$ the correlations are suppressed by many orders of magnitude (dark region) although every spin is coupled, through its neighbours, to every other one from the very first instant.
-# The $zz$ correlations live inside the same cone but build up more slowly behind the front. After $t\approx N/(2v_{\max})\approx2.5/J$ the front has reached the far end of the chain; what follows is finite-size physics (reflections).
+# both correlators vanish identically at $t=0$ and then fill a **cone**: the dark region (below $10^{-4}$) ends close to the dashed line $j=2v_{\max}t$, although every spin is coupled, through its neighbours, to every other one from the very first instant.
+# The $xx$ correlations exceed $10^{-4}$ some $0.2$–$0.5/J$ before the line reaches distance $j$ (the low-threshold tail discussed below); the $zz$ correlations live inside the same cone but build up more slowly, at or behind the line. After $t\approx N/(2v_{\max})\approx2.5/J$ the front has reached the far end of the chain; what follows is finite-size physics (reflections).
 #
 # **Reading the measured velocities.** There is no sharp front to measure: at distance $j$ the correlation rises smoothly from an exponentially
 # small tail to a value of order one, so *any* definition of "arrival" is a choice of threshold — and the fitted velocity moves with it, in a known direction. A **high**
