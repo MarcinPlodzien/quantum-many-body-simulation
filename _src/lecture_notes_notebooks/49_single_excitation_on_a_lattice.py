@@ -423,7 +423,7 @@ tt = np.linspace(0, 40, 40001)
 for n in (5, 10, 20, 40):
     t_peak = tt[(jv(n, 2 * W * tt) ** 2).argmax()]
     print(f"  n={n:2d}: arrival n/(2w) = {n/(2*W):5.1f};  peak at t = {t_peak:6.3f}, i.e. z = {2*W*t_peak:6.3f}"
-          f"   against n + 0.81 n^(1/3) = {n + 0.81*n**(1/3):6.3f}")
+          f"   against n + 0.8086 n^(1/3) = {n + 0.8086*n**(1/3):6.3f}")
 
 # %%
 from scipy.special import airy, ai_zeros
@@ -507,8 +507,8 @@ plt.show()
 # $e^{ikj} \to e^{i(k+\pi)j}$, shifting every momentum by $\pi$ and so turning the cosine over. On a ring it is an exact
 # unitary equivalence between $+w$ and $-w$ *when $N$ is even*, because the allowed set $\{2\pi m/N\}$ is then mapped
 # onto itself. For odd $N$ it is not: the closing bond picks up $(-1)^{N-1}=+1$ and keeps its old sign, so the two
-# spectra genuinely differ. This is the smallest instance of frustration on an odd ring, and it matters here because the
-# three-point Laplacian of notebook 00a corresponds to $w = -1/(2\Delta x^2) < 0$, whose band bottom sits at $k=0$ rather
+# spectra genuinely differ: on an odd ring $H(+w)$ is equivalent to $H(-w)$ with one bond reversed, i.e. with a flux $\pi$
+# through the ring, a sign effect of the odd ring. The sign of $w$ matters here because the three-point Laplacian of notebook 00a corresponds to $w = -1/(2\Delta x^2) < 0$, whose band bottom sits at $k=0$ rather
 # than $k=\pi$. Near that minimum $E\simeq{\rm const}+\vert w\vert k^2$ with $k$ the lattice momentum; restoring the grid
 # spacing, $k = k_{\rm phys}\Delta x$, gives $\vert w\vert\Delta x^2k_{\rm phys}^2 = k_{\rm phys}^2/2$, so the grid reproduces the
 # mass $m=1$ it was built for.
@@ -546,7 +546,7 @@ for N in (8, 9, 12, 13, 200, 201):
                    - np.sort(np.linalg.eigvalsh(hop(N, True, -W)))).max()
     print(f"  N={N:4d} ({'even' if N % 2 == 0 else ' odd'}): max|U H(+w) U - H(-w)| = {gauge:.1f}"
           f"   max spectral difference = {dspec:.2e}")
-print("  N=3, the smallest frustrated ring:", np.round(np.linalg.eigvalsh(hop(3, True, +W)), 6),
+print("  N=3, the smallest odd ring:", np.round(np.linalg.eigvalsh(hop(3, True, +W)), 6),
       "against", np.round(np.linalg.eigvalsh(hop(3, True, -W)), 6))
 
 print("\nlevel spacing near the band centre, against 2 pi w/(N+1)")
@@ -571,7 +571,7 @@ for N in (12, 40):
 # ($0.99180$ at $N=20$, $0.99992$ at $N=200$), so $m_{\rm eff}\to1/(2w)$; the control $m_{\rm eff}=1/w$ is excluded
 # by the assert. On even rings the sign change is an exact gauge transformation and the spectra coincide; on odd rings
 # the closing bond keeps its sign and the spectra differ, by an amount that shrinks with $N$ ($0.70$, $0.48$, $0.031$ for
-# $N=9,13,201$) because a single frustrated bond matters less on a longer ring. The level spacing at the band centre
+# $N=9,13,201$) because a single reversed bond matters less on a longer ring. The level spacing at the band centre
 # approaches $2\pi w/(N+1)$ with ratios $0.9976$, $0.9998$, $1.0000$, and the normalisation and orthonormality of
 # the standing waves hold to $10^{-13}$ or better.
 #

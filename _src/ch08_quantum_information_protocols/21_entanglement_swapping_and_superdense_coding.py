@@ -1426,12 +1426,13 @@ assert abs(chi_bob - 2.0) < 1e-9 and abs(chi_eve) < 1e-9
 # $$C^{(1)}_{\text{dc}}(\rho_{AB})=\log_2 d_A+S(\rho_B)-\min_{\Lambda}S\big((\Lambda\otimes\mathbb 1)\rho_{AB}\big) . \tag{14}$$
 #
 # The identity channel gives back Eq. (13); a channel that replaces Alice's qubit by a fixed pure state gives
-# $S\big((\Lambda\otimes\mathbb 1)\rho_{AB}\big)=S(\rho_B)$ and hence $\log_2d_A=1$ bit. So for our states
-# $C^{(1)}_{\text{dc}}\ge\max\big(1,\;2-H(q)\big)$, and the capacity never falls below one bit. Exercise 9 asks you to check
-# numerically that no other $\Lambda$ lowers the entropy further for the depolarised and dephased pairs of this section, i.e. that
-# the bound is an equality there. Whether general encodings acting jointly on many pairs can exceed the single-copy value is an
-# additivity question (Winter 2002) that Eq. (14) leaves open. The curve we are about to plot is therefore the rate of *this*
-# protocol: above $1$ bit it equals the unitary-encoding capacity, and below $1$ bit Alice does better by discarding the pair.
+# $S\big((\Lambda\otimes\mathbb 1)\rho_{AB}\big)=S(\rho_B)$ and hence $\log_2d_A=1$ bit. So for our states, with the noise on
+# the stored pair and a noiseless transmission, $C^{(1)}_{\text{dc}}\ge\max\big(1,\;2-H(q)\big)$, and the capacity never falls
+# below one bit. A numerical minimisation over qubit channels (Exercise 9) finds no $\Lambda$ that lowers the entropy below
+# $\min\big(1,H(q)\big)$ for the depolarised and dephased pairs of this section, so for these states the bound appears to be an
+# equality; this is a numerical observation, for which we know no general proof. Whether general encodings acting jointly on many
+# pairs can exceed the single-copy value is an additivity question (Winter 2002) that Eq. (14) leaves open. The curve we are about
+# to plot is therefore the rate of *this* protocol: above $1$ bit it equals the unitary-encoding capacity, and below $1$ bit Alice does better by discarding the pair.
 #
 # We now measure the full $4\times4$ confusion matrix on the density tensor, extract the empirical mutual information, and compare it
 # with Eq. (12) *and* with Eq. (13). Nothing about Eq. (11) is assumed by the code: the channel is applied as Kraus operators, the

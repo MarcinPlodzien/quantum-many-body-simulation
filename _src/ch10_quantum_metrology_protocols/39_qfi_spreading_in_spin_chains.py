@@ -837,8 +837,9 @@ assert abs(ratios.mean() - 0.5) < 0.05
 # The ring also tests the mechanism. At $t=2.5$ the correlation $C(r)$ halves from one distance to the next, the ratio
 # $\xi^{-1}=\ln2$ predicted for the stationary state, and the bulk density $2.96$ is close to the value $3$ that a
 # pure $2^{-\vert r\vert}$ profile would give. This is why $f_Q$ plateaus: the light cone keeps expanding, but beyond a
-# few sites there is almost nothing left to add to the sum of Eq. (1). The height of the plateau in Figure 1 ($\approx2.3$
-# at $N=12$) is the bulk value minus the edge correction.
+# few sites there is almost nothing left to add to the sum of Eq. (1). Only the decay rate is predicted; the prefactor
+# ($C(1)=0.50$) and with it the value $3$ are measured here, not derived. The height of the plateau in Figure 1
+# ($\approx2.3$ at $N=12$) is the bulk value minus the edge correction.
 
 # ### 6.2 A short summary before the second half
 #
@@ -1660,10 +1661,11 @@ for l in (1, 2, 4, 7, 10, 13):
 #   $0.5$), a low one converges to $v_{\max}=4$ only at large distance. In the critical Ising chain the local encoding
 #   moves at $1.96$ to $2.29$, bracketing the single-quasiparticle velocity $v_{\max}=2$ — half the speed of the
 #   correlation front of a global quench, which is carried by pairs.
-# * **The QFI density of a quench is intensive, and open ends hide it.** After the critical Ising quench the bulk
-#   density approaches $3$: the stationary correlations halve from one site to the next (correlation length
-#   $1/\ln2$), so the cone stops adding to Eq. (1) after a few sites. Open chains of $8$–$14$ spins show $2.2$–$2.4$
-#   instead; the difference is a $1/N$ edge correction, and two sizes recover the periodic-chain value to $0.02$.
+# * **The QFI density of a quench is intensive, and open ends hide it.** After the critical Ising quench the measured
+#   bulk density approaches $3$ ($2.96$ on a $16$-site ring): the stationary correlations halve from one site to the
+#   next (correlation length $1/\ln2$), so the cone stops adding to Eq. (1) after a few sites. Open chains of
+#   $8$–$14$ spins show $2.2$–$2.4$ instead; the difference is a $1/N$ edge correction, and two sizes recover the
+#   periodic-chain value to $0.02$.
 # * **Interactions decide where the resource goes.** With $\Delta=2$ a magnon encoded at an open end is trapped in an
 #   end-bound state ($84\%$ of its weight, Eq. 12a), and an encoded pair in the bulk binds into a carrier that spreads
 #   at $\sqrt2/\Delta$ and moves at most at $2/\Delta$ (Eq. 12b, measured to about $1\%$); in the XX chain the same pair

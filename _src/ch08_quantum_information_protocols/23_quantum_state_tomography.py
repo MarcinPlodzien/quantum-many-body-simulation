@@ -2530,9 +2530,11 @@ fig.tight_layout(); plt.show()
 # 3. ★★ **A different informationally complete measurement (extend the code).** Replace the $3^N$ Pauli settings by the *tetrahedral*
 #    single-qubit POVM: four sub-normalised rank-one elements $\tfrac14(\mathbb 1+\hat n_i\cdot\vec\sigma)$ with the $\hat n_i$ pointing
 #    to the vertices of a regular tetrahedron. Build the new $4^N\times4^N$ design matrix, check that it is invertible, and compare the
-#    reconstruction error at the same *total* number of shots with the Pauli scheme. Which one is better, and why? (`setting_probs`
-#    cannot help here — a tetrahedral POVM is not a projective measurement, so compute $p_i=\mathrm{Tr}(\rho\,\Pi_i)$ directly, as
-#    `povm_probs` does, and sample from the $4^N$ probabilities in one `categorical` draw.)
+#    reconstruction error at the same *total* number of shots $T$ with the Pauli scheme. Which one is better, and why? Check value
+#    for $N=1$: $\mathbb E\Vert\hat\rho-\rho\Vert_F^2=(9-3\vert\vec r\vert^2)/(2T)$ (Pauli) and $(9-\vert\vec r\vert^2)/(2T)$
+#    (tetrahedral), i.e. equal for $\rho=\mathbb 1/2$ and $3/T$ versus $4/T$ for every pure state. (`setting_probs`
+#    cannot help here — a tetrahedral POVM is not a projective measurement, so compute $p_i=\mathrm{Tr}(\rho\,\Pi_i)$
+#    directly, as `povm_probs` does, and sample from the $4^N$ probabilities in one `categorical` draw.)
 # 4. ★★ **Weighted least squares done right (extend the code).** Our `weighted_least_squares` uses a diagonal weight matrix, but
 #    Eq. (5) says the multinomial covariance is block-diagonal with full blocks. Evaluate the Gauss-Markov bound
 #    $\mathrm{Cov}=(A^{\mathsf T}C^{-1}A)^{-1}$ exactly and compare it with OLS and with diagonal WLS on the three states of

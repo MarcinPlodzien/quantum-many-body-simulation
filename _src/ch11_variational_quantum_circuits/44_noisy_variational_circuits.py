@@ -1534,8 +1534,8 @@ fig.tight_layout(); plt.show()
 # Best-of-eight is a fragile statistic, and the paired table is the more reliable one. At strength $0.01$ the paired
 # penalties have both signs (six and four of eight positive, sign-test $p=0.29$ and $1$): the shift of the minimum is
 # smaller than the run-to-run differences of the optimisation itself and is not resolved. From $0.02$ upwards the
-# penalty is positive in seven or eight of eight starts (sign-test $p=0.07$ and $0.008$) and grows with the noise, to
-# medians of $0.04$–$0.07$ at strengths $0.04$–$0.08$. The two
+# penalty is positive in seven or eight of eight starts (sign-test $p=0.07$ and $0.008$; with eight starts a single
+# negative one already gives $p=0.07$), with medians of $0.04$–$0.07$ at strengths $0.04$–$0.08$. The two
 # channels are not distinguished by these data: their paired medians cross from one strength to the next, and at
 # equal strength damping has half the error per gate of depolarising noise. The last column is a warning: under strong
 # damping the noisy cost is still changing at the end of the 150 iterations (by $0.41$ over the last 50 at strength
@@ -1549,9 +1549,9 @@ fig.tight_layout(); plt.show()
 # reported.
 #
 # > **Common pitfall.** This conclusion is a measurement on one Hamiltonian, one ansatz and two channels, at
-# > $N=4$, with a fixed training budget. It is not a theorem. What *is* a theorem is Section 6: for global depolarising
-# > noise the optimum is exactly unchanged. For local noise the optimum moves (Section 7.2), and how much that costs has
-# > to be measured.
+# > $N=4$, with a fixed training budget and eight starts per point. It is not a theorem. What *is* a theorem is
+# > Section 6: for global depolarising noise the optimum is exactly unchanged. For local noise the optimum moves
+# > (Section 7.2), and how much that costs has to be measured.
 
 # %% [markdown]
 # ## 11. The depth trade-off
@@ -1637,11 +1637,14 @@ fig.tight_layout(); plt.show()
 #
 # * On a **perfect** device ($p_2=0$) the best energy falls from $-4.376$ at $L=1$ to $-4.4545$ at $L=6$, within
 #   $3\cdot10^{-4}$ of $E_0$, but not monotonically: $L=3$ ($-4.4391$) ends above $L=2$ ($-4.4406$). That inversion
-#   belongs to the training budget of 150 constant-step Adam iterations from eight starts; every entry of the table is
-#   the best energy found within that budget.
-# * At $p_2=5\cdot10^{-4}$ the optimum is already at $L=2$. In the dictionary of Section 3.2 this model has a two-qubit
-#   error per gate $r_2=\tfrac45[1-(1-p_2)^2]=8.0\cdot10^{-4}$. The margin to the next depth is small ($-4.4191$ at
-#   $L=2$ against $-4.4114$ at $L=3$), smaller than the effects of the training budget just mentioned.
+#   belongs to the training budget of 150 constant-step Adam iterations from eight starts (BFGS run to convergence from
+#   the same starts reaches $E_0$ to four digits at every $L\ge3$); every entry of the table is the best energy found
+#   within that budget.
+# * At $p_2=5\cdot10^{-4}$ (two-qubit error per gate $r_2=\tfrac45[1-(1-p_2)^2]=8.0\cdot10^{-4}$, Section 3.2) this
+#   budget puts the optimum at $L=2$ ($-4.4191$, against $-4.4114$ at $L=3$), but the optimum depends on the optimiser:
+#   BFGS from the same eight starts, run until the gradient is below $10^{-8}$, reaches $-4.4275$ at $L=2$ and
+#   $-4.4282$ at $L=3$, i.e. $L^\star=3$ by a margin of $7\cdot10^{-4}$. At this error rate the study fixes $L^\star$
+#   only to $2$–$3$.
 # * At $p_2=2\cdot10^{-3}$ the optimum is $L=2$ by a wider margin; at $p_2=8\cdot10^{-3}$ and $p_2=2\cdot10^{-2}$
 #   it has dropped to $L=1$, the shallowest circuit in the study.
 #
@@ -1912,11 +1915,12 @@ fig.tight_layout(); plt.show()
 #   Eq. (16), with bootstrap intervals that exclude both Eq. (16) and the weight-1 control.
 # * **The parameters are more robust than the cost.** Training at an error rate so high that the device reports $-2.451$
 #   still produced angles worth $-4.397$ on a noiseless simulator, $0.042$ from the best of the same eight runs. Paired
-#   by start, the penalty is resolved from $p_2\approx0.02$ upwards and reaches a few $10^{-2}$; at $0.01$ it is
-#   smaller than the run-to-run differences of the optimisation.
+#   by start, the penalty is positive in seven or eight of the eight starts from $p_2\approx0.02$ upwards and reaches a
+#   few $10^{-2}$; at $0.01$ it is smaller than the run-to-run differences of the optimisation.
 # * **There is an optimal depth and it shrinks with the error rate.** Measured with a fixed training budget:
 #   $L^\star=6$ (the largest tried) at $p_2=0$, $L^\star=2$ at $p_2=5\cdot10^{-4}$ and $2\cdot10^{-3}$, $L^\star=1$
-#   at $8\cdot10^{-3}$ and $2\cdot10^{-2}$; the smallest of these margins is within the reach of the training budget.
+#   at $8\cdot10^{-3}$ and $2\cdot10^{-2}$. At $5\cdot10^{-4}$ the answer depends on the optimiser: converged BFGS from
+#   the same starts gives $L^\star=3$, by $7\cdot10^{-4}$, and leaves $L^\star$ unchanged from $2\cdot10^{-3}$ upwards.
 # * **Zero-noise extrapolation removes bias order by order and costs variance.** Richardson extrapolation from three
 #   noise levels reduced the error at $p_2=2.5\cdot10^{-3}$ from $7.7\cdot10^{-2}$ to $2.2\cdot10^{-5}$, with residuals
 #   scaling as $p_2^m$ for $m=1,2,3$, at $57$ times the shots of an unmitigated estimate of equal statistical error; at

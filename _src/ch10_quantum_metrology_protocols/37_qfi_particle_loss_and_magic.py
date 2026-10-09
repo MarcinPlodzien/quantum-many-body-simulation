@@ -613,8 +613,8 @@ fig.tight_layout(); plt.show()
 # middle of the range each lost particle costs $30$–$45\%$ of what is left (the ratio $F_Q(k+1)/F_Q(k)$ in the table
 # lies between $0.56$ and $0.71$ for $2\le k\le6$); the first loss costs $60\%$ for the over-squeezed and Dicke
 # probes. The decay is not geometric: for the W and Dicke states it is the polynomial and hypergeometric law of
-# Eqs. (11)–(12). These states have many Schmidt components across any cut (Eq. 8), so the lost particles can only
-# partly tell which component the survivors are in.
+# Eqs. (11)–(12). A heuristic picture, not a derivation: these states have many Schmidt components across any cut
+# (Eq. 8), so the lost particles can only partly tell which component the survivors are in.
 #
 # **A Page-like shape.** The Haar-random probe follows the standard quantum limit of its survivors, $F_Q\approx K$, up
 # to $k=3$ and collapses once fewer than half of the qubits remain ($F_Q=2.2$ at $K=5$, $0.44$ at $K=4$). This is the
@@ -1605,8 +1605,9 @@ for N in (6, 8, 10, 12):
 #    derivative of `eigh` is undefined: either use a derivative-free optimiser (e.g. `scipy.optimize.minimize` with
 #    `method="Powell"`, several random starts) or regularise $\rho_A\to\rho_A+\epsilon\mathbb 1$ with $\epsilon\sim10^{-8}$
 #    before differentiating with `jax.grad`. Compare the optimum with the squeezed probe of Section 5 at $k=2$.
-#    (Check: the optimum is $F_Q\approx16.0$, against $15.96$ for the optimally squeezed probe and $13.71$ for the
-#    Dicke state; its intact value is $F_Q(0)\approx40$.)
+#    (Check: the optimum is $F_Q=16.000$, against $15.96$ for the optimally squeezed probe and $13.71$ for the
+#    Dicke state; its intact value is $F_Q(0)\approx40$. That $16=2K$ for $K=8$ survivors is a numerical observation,
+#    reproduced to twelve digits from each of twelve random starts; we have not derived it.)
 # 8. ★★★ **Interleaved imprinting (extend the code).** Replace the single imprint-then-encode step of Eq. (15) by $R$
 #    rounds of "imprint $\theta/R$ with $J_z$, then apply one Clifford layer", for $R=1,\dots,6$. The tangent vector at
 #    $\theta=0$ is $\frac1R\sum_{r=1}^{R}V^{R-r+1}J_zV^{r-1}\vert\mathrm{GHZ}\rangle$ ($V$ = one layer). Measure the full

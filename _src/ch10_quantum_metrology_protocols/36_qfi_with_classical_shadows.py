@@ -807,7 +807,10 @@ print(f"{'lambda_max':>16s} {lam_exact:10.4f} {lam_est:10.4f} {float(lam_boot_de
 # $\vert+\rangle^{\otimes N}$ measured along a direction perpendicular to its spin gives, by the same counting
 # (independent random signs, $\psi_m=9\sum_{i\neq j}s_is_j$ over the qubits measured along $a$),
 # $\sigma_1^2=162\,\mathbb E[n(n-1)]=18N(N-1)$, i.e. a relative error that approaches the $N$-independent constant
-# $\sqrt{18}/\sqrt M$.
+# $\sqrt{18}/\sqrt M$. For a general state, $\vert\mathbf n\cdot\mathbf v_m\vert\le3N$ and $\vert\mathbf n\cdot\mathbf m\vert\le N$
+# only bound $\sigma_1^2$ by $O(N^4)$, and that order is reached: the normalised superposition of the even-$N$ cat and
+# $\vert0\rangle^{\otimes N}$, measured along $\hat x$, gives $\psi_m\approx N^2$ or $\approx0$ with equal weight, so
+# $\sigma_1^2\to N^4/4$.
 #
 # A tempting shortcut is to say that the error is "set by the spread of $v^a$", i.e. $\sigma_1\propto
 # \mathrm{sd}(v^a)^2=\mathcal{F}_{aa}+2N$ by Eq. (12). That law grows like $N^2$ and is wrong: $\psi_m$ is a

@@ -686,15 +686,16 @@ plt.tight_layout(); plt.show()
 #   and quantum together;
 # * the **entropy** $S(\rho_{ij})$ of the pair itself.
 #
-# The four parameter points are a gapless point $\Delta=0.5$, the Heisenberg point $\Delta=1$, the Néel side
-# $\Delta=1.5$, and the XX chain in a transverse field $h_x=1.5$.
+# The four parameter points are a gapless point $\Delta=0.5$, the Heisenberg point $\Delta=1$, the point $\Delta=1.5$
+# (on the Néel side, but close to the Kosterlitz–Thouless point $\Delta=1$, where the gap opens exponentially slowly),
+# and the XX chain in a transverse field $h_x=1.5$.
 
 # %%
 N = 14
 i0 = N // 2 - 1
 RS = list(range(1, N // 2 + 1))
 PHASES = [("gapless, D=0.5", 0.5, 0.0), ("Heisenberg, D=1", 1.0, 0.0),
-          ("Neel, D=1.5", 1.5, 0.0), ("field, hx=1.5", 0.0, 1.5)]
+          ("D=1.5", 1.5, 0.0), ("field, hx=1.5", 0.0, 1.5)]
 curves = {}
 for name, D, h in PHASES:
     _, psi = lanczos_ground_state(heisenberg_terms(N, 1., 1., D, hx=h), N)
@@ -1160,8 +1161,8 @@ plt.show()
 # degenerate; any value of the entropy there is a property of the solver.
 #
 # **Everywhere else** the comparison is meaningful. The half-chain entropy grows from $N=12$ to $N=32$ at most of these
-# points, as expected for gapless chains, where it grows logarithmically with the length, and stays unchanged at the
-# gapped, field-polarised points such as $(-1, 2)$. The nearest-neighbour negativity does not grow systematically: it
+# points, consistent with the logarithmic growth expected for gapless chains (two sizes allow no central-charge fit), and
+# stays unchanged at the gapped, field-polarised points such as $(-1, 2)$. The nearest-neighbour negativity does not grow systematically: it
 # moves up at some points and down at others, by up to about $0.2$. The largest changes are at $\Delta=1$, where
 # $\sum_jX_j$ is conserved and the finite-chain ground state changes magnetisation sector in discrete jumps as $h_x$
 # grows, at different fields for different $N$. Its maximum over these points is smaller at $N=32$ than at $N=12$. That is the difference between a quantity attached to a
