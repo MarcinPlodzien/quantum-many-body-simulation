@@ -5,29 +5,34 @@
 # %% [markdown]
 # ## 1. Introduction and motivation
 #
-# The state
+# The Bell pair of [notebook 19](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb) has two qubits. Its natural
+# extension to $N$ qubits, named after Greenberger, Horne and Zeilinger, is
 #
-# $$\vert\mathrm{GHZ}_N\rangle=\frac{\vert00\cdots0\rangle+\vert11\cdots1\rangle}{\sqrt2}$$
+# $$\vert\mathrm{GHZ}_N\rangle=\frac{\vert00\cdots0\rangle+\vert11\cdots1\rangle}{\sqrt2}.$$
 #
-# is the simplest thing one can write down that is *genuinely* $N$-partite entangled, and it is simultaneously the most fragile.
-# Every qubit is perfectly correlated with every other one, yet no pair of qubits shares any entanglement at all; the whole
-# resource lives in a single coherence between two basis states that are as far apart as two basis states can be. That is what
-# makes it a standard benchmark of quantum platforms: preparing $\vert\mathrm{GHZ}_N\rangle$ and *proving* that you have it
-# tests the coherence of the whole register at once. Ion traps reached $N=4$ (Sackett and co-workers, 2000), $N=6$ (Leibfried and
-# co-workers, 2005) and $N=14$ (Monz and co-workers, 2011); superconducting and neutral-atom processors have since pushed further.
-# The ion-trap experiments characterise the state through the quantities we compute here: the two extreme **populations**, the
-# **parity oscillation** that measures the coherence between them, and the **fidelity** built from the two.
+# Every experiment on this state faces two questions: how to prove from measured counts that a device really produced it, and how
+# fast noise acting on each qubit destroys it. The state is the simplest one that is *genuinely* $N$-partite entangled — no division
+# of the qubits into two groups makes it a product state — and simultaneously the most fragile. Every qubit is perfectly correlated
+# with every other one, yet no pair of qubits shares any entanglement at all; the whole resource lives in a single **coherence**,
+# the density-matrix element between $\vert0\cdots0\rangle$ and $\vert1\cdots1\rangle$, two basis states as far apart as two basis
+# states can be. That is what makes it a standard benchmark of quantum platforms: preparing $\vert\mathrm{GHZ}_N\rangle$ and
+# *proving* that you have it tests the coherence of the whole register at once. Ion traps reached $N=4$ (Sackett and co-workers,
+# 2000), $N=6$ (Leibfried and co-workers, 2005) and $N=14$ (Monz and co-workers, 2011); superconducting and neutral-atom processors
+# have since pushed further. The ion-trap experiments characterise the state through the quantities we compute here: the two extreme
+# **populations** (the probabilities of reading all zeros and all ones), the **parity oscillation**, the product of all $N$ outcomes
+# measured along $x$, which reveals the coherence, and the **fidelity** with the target state built from the two.
 #
 # The state also has a place in the foundations of quantum mechanics. Greenberger, Horne and Zeilinger showed in 1989, for four
-# spin-$\tfrac12$ particles, that the conflict with local realism becomes an *all-or-nothing* contradiction, and Mermin (*Physics Today*, 1990)
-# reduced the argument to three: where CHSH is a statistical inequality, here a single sign is predicted wrongly with certainty
-# by every local-realistic model. We derive that contradiction
-# from the stabilisers in Section 5; it takes three lines once the algebra is set up.
+# spin-$\tfrac12$ particles, that the conflict with local hidden variables becomes an *all-or-nothing* contradiction, and Mermin
+# (*Physics Today*, 1990) reduced the argument to three: where CHSH is a statistical inequality, here a single sign is predicted
+# wrongly with certainty by every local-realistic model. We derive that contradiction in Section 5 from the stabilisers, the
+# operators that leave the state unchanged; it takes three lines once the algebra is set up.
 #
 # And it is the workhorse of quantum metrology: the phase accumulated by $\vert\mathrm{GHZ}_N\rangle$ is $N$ times faster than that
-# of a single qubit, which is the origin of the Heisenberg limit (Chapter 10). The very same $N$-fold enhancement makes it decay
-# $N$ times faster under dephasing. The tension between those two statements — *the best sensor is the most fragile state* — is the
-# subject of the second half of this notebook.
+# of a single qubit, which is the origin of the Heisenberg limit, the best precision scaling quantum mechanics allows (Chapter 10).
+# The very same $N$-fold enhancement makes it decay $N$ times faster under dephasing, the random phase noise of each qubit. The
+# tension between those two statements — *the best sensor is the most fragile state* — is the subject of the second half of this
+# notebook.
 #
 # **Road map.**
 #
@@ -36,16 +41,17 @@
 # 2. Certify it: the $N$ **stabiliser generators** $Z_qZ_{q+1}$ and $X^{\otimes N}$, all pairwise correlators, and the
 #    Greenberger–Horne–Zeilinger sign (Section 5).
 # 3. Show the paradox: every pair has $\langle Z_iZ_j\rangle=1$, and yet **every two-qubit reduced state is a separable classical
-#    mixture**; tracing out a single qubit leaves a state with zero entanglement across every cut (Sections 6–7).
-# 4. Measure the $N$-body coherence the way experiments do: **parity oscillations** $\langle X^{\otimes N}\rangle(\varphi)=\cos(N\varphi)$
-#    after a collective $R_z(\varphi)$, and combine them with populations into the **fidelity witness** $F>1/2$ (Sections 8–9).
+#    mixture** (a mixture of product states); tracing out a single qubit leaves a state with zero entanglement across every cut (Sections 6–7).
+# 4. Measure the $N$-body coherence the way experiments do: **parity oscillations**
+#    $\langle X^{\otimes N}\rangle(\varphi)=\cos(N\varphi)$ after a collective $R_z(\varphi)$, and combine them with populations
+#    into the **fidelity witness**: $F>1/2$ certifies genuine $N$-partite entanglement (Sections 8–9).
 # 5. Decoherence. Derive closed formulas for the coherence, for $\langle Z_1Z_2\rangle$ and for the fidelity under local dephasing,
 #    depolarising and amplitude damping; verify them on the exact density tensor for $N\le6$; then unravel the same channels into
-#    **quantum trajectories**, check the $1/\sqrt M$ convergence with error bars, and use them to reach $N=12$, where a density
-#    tensor would need $2^{24}$ complex numbers (Sections 10–14).
+#    **quantum trajectories** (notebook 17), check the $1/\sqrt M$ convergence with error bars, and use them to reach $N=12$, where
+#    a density tensor would need $2^{24}$ complex numbers (Sections 10–14).
 # 6. Quantify the **fragility**: the noise level at which the witness stops working shrinks roughly like $1/N$ (Section 15).
-# 7. Compare with the **W state**, which is entangled in a completely different way: part of its entanglement survives the loss
-#    of a qubit, while that of GHZ is destroyed completely (Section 16).
+# 7. Compare with the **W state**, a single excitation shared by all qubits, which is entangled in a completely different way: part
+#    of its entanglement survives the loss of a qubit, while that of GHZ is destroyed completely (Section 16).
 #
 # ### What you will learn
 #
@@ -72,7 +78,7 @@
 #   simulator, and every simulated number against the formula.
 #
 # ### Prerequisites
-# * [01 — JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, PRNG keys;
+# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, PRNG keys;
 # * [02 — einsum from scratch](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb);
 # * [06 — states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb): reduced density
 #   matrices, entanglement entropy;

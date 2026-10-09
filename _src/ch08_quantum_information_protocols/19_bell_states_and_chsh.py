@@ -5,44 +5,54 @@
 # %% [markdown]
 # ## 1. Introduction and motivation
 #
-# In 1935 Einstein, Podolsky and Rosen argued that quantum mechanics cannot be a complete description of reality. Their reasoning
-# used a two-particle state in which measuring one particle instantly tells you the outcome of a measurement on the other, however far
-# away it is. Either the distant particle "already had" the value — in which case quantum mechanics, which does not list that value,
-# is incomplete — or measuring one particle somehow acts on the other, which Einstein later called "spooky action at a distance".
-# For nearly thirty years the debate was philosophical.
+# Two experimenters, by tradition called Alice and Bob, work in distant laboratories, and a source between them sends each of them
+# one qubit of every pair it emits. For each pair Alice measures with one of two settings, $a$ or $a'$, and records an outcome
+# $\pm1$; Bob does the same with $b$ or $b'$. The **correlation** $E(a,b)$ is the average product of their two outcomes: $+1$ if
+# they always agree, $-1$ if they always disagree, $0$ if they are unrelated. For
+# $\vert\Phi^+\rangle=(\vert00\rangle+\vert11\rangle)/\sqrt2$ the outcomes agree whenever both measure $Z$ and also whenever both
+# measure $X$. Two classical coins prepared to show the same face can agree in one such test but not in two incompatible bases at
+# once; this double agreement is the signature of **entanglement**, a two-qubit state that is not a product of one state for each
+# qubit. Can a set of instructions written into each particle at the source reproduce such correlations?
 #
-# In 1964 John Bell turned the philosophy into an **experimentally testable inequality**. If the
-# outcomes are fixed in advance by some hidden variable $\lambda$ carried by the particles, and if what happens at Alice's detector
-# does not depend on the knob setting at Bob's, then a certain combination of measured correlations is bounded by a number.
-# Quantum mechanics predicts a *larger* number. The question is thereby moved from interpretation to the laboratory: the apparatus
-# is built, the clicks are counted, and the measured combination either respects the bound or exceeds it. The form of the inequality used in every real experiment since is the one written down by
-# Clauser, Horne, Shimony and Holt in 1969:
+# In 1935 Einstein, Podolsky and Rosen used a state of this kind to argue that quantum mechanics cannot be a complete description of
+# reality: measuring one particle instantly tells you the outcome of a measurement on the other, however far away it is. Either the
+# distant particle "already had" the value — in which case quantum mechanics, which does not list that value, is incomplete — or
+# measuring one particle somehow acts on the other, which Einstein later called "spooky action at a distance". For nearly thirty
+# years the debate was philosophical.
+#
+# In 1964 John Bell turned the philosophy into an **experimentally testable inequality**. If the outcomes are fixed in advance by
+# some hidden variable $\lambda$ carried by the particles (the instructions above), and if what happens at Alice's detector does not
+# depend on the setting at Bob's, then a certain combination of measured correlations is bounded by a number. Quantum mechanics
+# predicts a *larger* number. The question is thereby moved from interpretation to the laboratory: the apparatus is built, the
+# clicks are counted, and the measured combination either respects the bound or exceeds it. The form of the inequality used in every
+# real experiment since is the one written down by Clauser, Horne, Shimony and Holt (CHSH) in 1969:
 #
 # $$S=E(a,b)+E(a,b')+E(a',b)-E(a',b') ,\qquad \vert S\vert\le 2 \quad\text{(local hidden variables)}.$$
 #
 # Quantum mechanics allows $\vert S\vert$ up to $2\sqrt2\approx2.828$ (Tsirelson's bound) and no larger value. Experiments — Aspect
-# and co-workers in the early 1980s, and the loophole-free experiments of 2015 — measure a violation. The 2022 Nobel Prize in Physics
-# went to Aspect, Clauser and Zeilinger for this line of work. Today the same inequality is a *tool*: a CHSH violation certifies that a
-# device really produces entanglement, and it is the security foundation of device-independent quantum key distribution.
+# and co-workers in the early 1980s, and the loophole-free experiments of 2015 — measure a violation. The 2022 Nobel Prize in
+# Physics went to Aspect, Clauser and Zeilinger for this line of work. Today the same inequality is a *tool*: a CHSH violation
+# certifies that a device really produces entanglement, and it is the security foundation of device-independent quantum key
+# distribution, in which two parties establish a secret key without trusting the inner workings of their devices.
 #
 # **What we will do.** Everything, from the state to the measured number and its error bar.
 #
-# 1. **The states.** Define the four Bell states, build them with one Hadamard and one CNOT while tracking the amplitudes gate by
-#    gate, and measure their correlations $\langle ZZ\rangle,\langle XX\rangle,\langle YY\rangle$ and their maximally mixed
-#    one-qubit marginals (Sections 3–4).
-# 2. **The classical bound.** Write down what a local hidden-variable model is, prove $\vert S\vert\le2$ in three lines, and check the
-#    proof by brute force over all deterministic strategies (Section 5).
+# 1. **The states.** Define the four Bell states, build them with one Hadamard and one CNOT, and measure their correlations
+#    $\langle ZZ\rangle,\langle XX\rangle,\langle YY\rangle$ and their one-qubit reduced states, which are maximally mixed: each
+#    qubit on its own is a fair coin (Sections 3–4).
+# 2. **The classical bound.** Write down what a local hidden-variable model is, prove $\vert S\vert\le2$ in three lines, and check
+#    the proof by brute force over all deterministic strategies (Section 5).
 # 3. **The quantum prediction.** Derive $E(a,b)=\cos(\theta_a-\theta_b)$ for $\vert\Phi^+\rangle$ from the correlators of Section 4,
 #    prove Tsirelson's bound from the operator identity $S^2=4-[A,A']\otimes[B,B']$, and find the optimal angles geometrically
 #    (Sections 6–8).
-# 4. **The experiment.** Simulate it shot by shot: rotate into the measurement basis, draw single shots from the Born rule with explicit
-#    PRNG keys, `vmap` over the four settings and over shots, and watch $\hat S$ converge to $2\sqrt2$ with a $1/\sqrt{n}$ error bar.
-#    Compute how many shots are needed to exceed the classical bound by five standard errors — and check that number by Monte Carlo
-#    (Sections 9–10).
-# 5. **Noise and loopholes.** Werner states, depolarising and dephasing noise, and the difference between the **entanglement**
-#    threshold and the **nonlocality** threshold: there are states that are provably entangled and provably local. Then the detection
-#    loophole: we measure how far the detection efficiency can fall before a maximally entangled pair stops violating CHSH at all
-#    (Sections 11–13).
+# 4. **The experiment.** Simulate it shot by shot: rotate into the measurement basis, draw single outcomes from the Born rule,
+#    `vmap` over the four settings and over shots, and watch $\hat S$ converge to $2\sqrt2$ with a $1/\sqrt{n}$ error bar. Compute
+#    how many shots are needed to exceed the classical bound by five standard errors, and check that number by Monte Carlo (Sections
+#    9–10).
+# 5. **Noise and loopholes.** Werner states (a Bell pair mixed with white noise), depolarising and dephasing noise, and the
+#    difference between the **entanglement** threshold and the **nonlocality** threshold (CHSH violation): there are states that are provably
+#    entangled and provably local. Then the detection loophole: we measure how far the detection efficiency can fall before a
+#    maximally entangled pair stops violating CHSH at all (Sections 11–13).
 #
 # ### What you will learn
 #
@@ -66,7 +76,7 @@
 # * a validation ladder — exact correlator vs sampled correlator, operator identity, analytic error bars vs measured scatter.
 #
 # ### Prerequisites
-# * [01 — JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, PRNG keys;
+# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, PRNG keys;
 # * [02 — einsum from scratch](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb): index notation as executable code;
 # * [06 — states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb): reduced density
 #   matrices, entanglement entropy;

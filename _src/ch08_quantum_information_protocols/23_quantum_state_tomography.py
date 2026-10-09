@@ -5,40 +5,44 @@
 # %% [markdown]
 # ## 1. Introduction and motivation
 #
-# Every notebook so far has *started* from a known state: we prepared $|\psi\rangle$ or $\rho$ with a circuit or a Hamiltonian and then
-# computed things from it. An experiment works the other way round. A laboratory builds a device that is *supposed* to prepare a Bell pair,
-# a GHZ state or the output of a variational circuit, and then has to determine **which state it actually prepared**.
-# The only access it has is the one described in
-# [08 — measurements](../ch03_matrix_free_engine/08_measurements.ipynb): choose a measurement axis for every qubit, run the device,
-# read out a string of $N$ bits, repeat. From those click statistics the full density matrix must be *reconstructed*.
-# That reconstruction problem is **quantum state tomography** (QST).
+# The protocols of notebooks 19–22 all *started* from a known state: we prepared $|\psi\rangle$ or $\rho$ with a circuit and then
+# computed what the parties would observe. An experiment faces the reverse problem. A laboratory builds a device that is *supposed*
+# to prepare a Bell pair, a GHZ state or the output of a parametrised circuit, and then has to determine **which state it actually
+# prepared**. One run cannot answer this, because a measurement returns a single bit string and disturbs the state; the device must
+# be run many times. The only access is the one described in [08 — measurements](../ch03_matrix_free_engine/08_measurements.ipynb):
+# choose a measurement axis for every qubit, run the device, read out a string of $N$ bits, repeat. From those click statistics the
+# full density matrix must be *reconstructed*. That reconstruction problem is **quantum state tomography** (QST).
 #
 # It is the standard acceptance test of every quantum device. "We prepared a three-qubit GHZ state with fidelity $0.97$" is a
 # statement produced by tomography. It is also the place where a physicist meets, usually for the first time, a genuine
 # **statistical estimation problem**: the data are random, the model is linear but constrained, the naive estimator returns
-# something that is not a quantum state at all, and the fix for that introduces a bias. All of this is ordinary statistics —
-# and all of it has a specifically quantum twist, because the parameter we estimate must be a positive semi-definite matrix.
+# something that is not a quantum state at all, and the fix for that introduces a bias. All of this is ordinary statistics — and all
+# of it has a specifically quantum twist, because the parameter we estimate must be a positive semi-definite matrix, one without
+# negative eigenvalues.
 #
 # **What we will do.** We build the whole pipeline from scratch and validate every piece.
 #
-# 1. **The model.** Expand the density matrix in Pauli strings, $\rho=2^{-N}\sum_P\langle P\rangle\,P$, count the $4^N-1$ real
-#    parameters and the $3^N$ measurement settings needed to pin them down (Sections 3–4).
-# 2. **The data.** Simulate the experiment with the einsum engine: rotate the density tensor into the measurement basis, sample
-#    bit strings, `vmap` over settings and over shots, explicit PRNG keys (Section 5).
-# 3. **Linear-regression tomography.** Write the measurement model as a linear map $p=A\,r$ on the Pauli vector, build the
-#    **design matrix** explicitly for $N=1$ and $N=2$, discover its Kronecker structure, and solve the normal equations.
-#    Show that ordinary least squares is *exactly* the "direct inversion" of Pauli expectation values, derive the statistical
-#    error bars analytically and check them by Monte Carlo, and add weighted least squares (Sections 6–9).
-# 4. **Unphysical estimates.** Linear inversion regularly returns a matrix with **negative eigenvalues** — not a quantum state. We measure
-#    how often, and repair it by the eigenvalue-truncation projection of Smolin, Gambetta and Smith (Sections 10–11).
-# 5. **Maximum-likelihood tomography.** Write the multinomial likelihood, derive the extremal equation $R\rho R=\rho$, implement
-#    the iterative $R\rho R$ algorithm and its *diluted* variant with convergence monitoring, then solve the *same* problem by
-#    gradient ascent with `jax.grad` and Adam on the Cholesky parametrisation $\rho=T^\dagger T/\mathrm{Tr}(T^\dagger T)$,
-#    and check that the two agree (Sections 12–14).
-# 6. **Assessment.** Fidelity and trace distance versus the number of shots with **bootstrap** error bars; linear inversion versus
-#    projected linear inversion versus maximum likelihood on pure (Bell, GHZ, W), mixed (Werner, noisy GHZ) and random states;
-#    the bias of maximum likelihood at the boundary of the state space; and finally the cost wall ($3^N$ settings, and a total
-#    shot budget that grows like $5^N$ at fixed accuracy) that makes full tomography hopeless beyond a handful of qubits — which is why the next notebook replaces it by
+# 1. **The model.** Expand the density matrix in Pauli strings (tensor products of $\mathbb 1,X,Y,Z$),
+#    $\rho=2^{-N}\sum_P\langle P\rangle\,P$, count the $4^N-1$ real parameters and the $3^N$ measurement settings needed to pin them
+#    down (Sections 3–4).
+# 2. **The data.** Simulate the experiment with the einsum engine: rotate the density tensor into the measurement basis, sample bit
+#    strings, `vmap` over settings and over shots, explicit PRNG keys (Section 5).
+# 3. **Linear-regression tomography.** Write the measurement model as a linear map $p=A\,r$ from the Pauli vector $r$ of expectation
+#    values to the outcome probabilities $p$, build the **design matrix** $A$ explicitly for $N=1$ and $N=2$, discover its Kronecker
+#    structure, and solve the normal equations. Show that ordinary least squares is *exactly* the "direct inversion" of Pauli
+#    expectation values, derive the statistical error bars analytically and check them by Monte Carlo, and add weighted least
+#    squares (Sections 6–9).
+# 4. **Unphysical estimates.** Linear inversion regularly returns a matrix with **negative eigenvalues** — not a quantum state. We
+#    measure how often, and repair it by the eigenvalue-truncation projection of Smolin, Gambetta and Smith (Sections 10–11).
+# 5. **Maximum-likelihood tomography.** Write the multinomial likelihood, derive the extremal equation $R\rho R=\rho$, implement the
+#    iterative $R\rho R$ algorithm and its *diluted* variant with convergence monitoring, then solve the *same* problem by gradient
+#    ascent with `jax.grad` and Adam on the Cholesky parametrisation $\rho=T^\dagger T/\mathrm{Tr}(T^\dagger T)$, and check that the
+#    two agree (Sections 12–14).
+# 6. **Assessment.** Fidelity and trace distance versus the number of shots with **bootstrap** error bars, obtained by resampling a
+#    single data set; linear inversion versus projected linear inversion versus maximum likelihood on pure (Bell, GHZ, W), mixed
+#    (Werner, noisy GHZ) and random states; the bias of maximum likelihood at the boundary of the state space; and finally the cost
+#    wall ($3^N$ settings, and a total shot budget that grows like $5^N$ at fixed accuracy) that makes full tomography hopeless
+#    beyond a handful of qubits — which is why the next notebook replaces it by
 #    [24 — classical shadows](../ch08_quantum_information_protocols/24_classical_shadows.ipynb) (Sections 15–18).
 #
 # ### What you will learn
@@ -67,7 +71,7 @@
 #   agreement of two independent optimisers.
 #
 # ### Prerequisites
-# * [01 — JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, `lax.scan`, `grad`, PRNG keys;
+# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, `lax.scan`, `grad`, PRNG keys;
 # * [02 — einsum from scratch](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb): index notation as executable code;
 # * [07 — density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb):
 #   density tensors, partial trace, Kraus channels, fidelity, trace distance;

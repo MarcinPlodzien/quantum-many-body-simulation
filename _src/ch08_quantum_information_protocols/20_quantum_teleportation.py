@@ -5,25 +5,28 @@
 # %% [markdown]
 # ## 1. Introduction and motivation
 #
-# You hold a qubit in an unknown state $\vert\psi\rangle$ and you want your colleague, far away, to hold *that* state. Three obvious
-# ideas fail:
+# You hold a qubit in an unknown state $\vert\psi\rangle=\alpha\vert0\rangle+\beta\vert1\rangle$ and want a colleague far away to
+# hold a qubit in *that* state. Sending the qubit itself is often impossible: it may be an atom in a trap, or the channel may
+# destroy photon polarisation. Phoning is possible, but no classical message alone does the job. Measuring the qubit and phoning the
+# result fails because one measurement yields one bit and destroys the state, whereas $\vert\psi\rangle$ is specified by two real
+# numbers, which could only be estimated from many copies. Making those copies is forbidden by the **no-cloning theorem** (Section
+# 3). The best measure-and-phone strategy reaches an average **fidelity** of $2/3$ (Section 8); the fidelity
+# $\vert\langle\psi\vert\phi\rangle\vert^2$ is the probability that the delivered state $\vert\phi\rangle$ passes the test "are you
+# $\vert\psi\rangle$?" ([06](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb), Section 5).
 #
-# * **Send the qubit.** Often impossible — the qubit may be an atom in a trap, or the channel may destroy photon polarisation.
-# * **Measure it and send the result.** A single measurement of a qubit yields one bit, whereas $\vert\psi\rangle$ is specified by
-#   two real numbers, and the measurement destroys the state. Section 8 shows that this strategy reaches an average fidelity of at
-#   most $2/3$.
-# * **Copy it first, then experiment on the copies.** This is forbidden by the **no-cloning theorem** (Section 3).
+# In 1993 Bennett, Brassard, Crépeau, Jozsa, Peres and Wootters found the way out. Alice and Bob share, before the protocol starts,
+# one Bell pair of [notebook 19](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb), the unit of entanglement
+# called one **ebit**. Alice performs a **Bell measurement**, a joint measurement of her unknown qubit *and* her half of the pair in
+# the basis of the four Bell states, and phones Bob the two classical bits that name the outcome. Bob then recovers the state
+# exactly by applying one of four fixed single-qubit Pauli gates. One ebit plus two classical bits thus replace one transmitted
+# qubit. The state is destroyed at Alice's end (as no-cloning demands) and reappears at Bob's, and nothing travels faster than
+# light, because Bob's qubit is useless until the two bits arrive. The protocol was demonstrated with photons in 1997 and has since
+# been run over distances up to 1400 km, from the ground to a satellite.
 #
-# In 1993 Bennett, Brassard, Crépeau, Jozsa, Peres and Wootters found the way out. If the two parties share one entangled pair
-# beforehand, then Alice can perform a joint measurement on her unknown qubit *and* her half of the pair, send the two classical bits
-# she obtains, and Bob can recover the state exactly by applying one of four fixed single-qubit gates. The only thing sent from Alice
-# to Bob is two classical bits; the state itself is destroyed at Alice's end (as no-cloning demands) and reappears at Bob's. The protocol was
-# demonstrated with photons in 1997 and has since been run over distances up to 1400 km, from the ground to a satellite.
-#
-# Teleportation is the primitive behind **quantum repeaters** (long-distance entanglement distribution),
-# **measurement-based quantum computing** (where every gate is a teleportation), **fault-tolerant gate implementations** (magic-state
-# injection), and it is the operational meaning of "we have distributed entanglement of quality $F$": the fidelity a noisy pair
-# supports, Eq. (13) below, is a standard figure of merit for quantum-network hardware.
+# Teleportation is the primitive behind **quantum repeaters**, which distribute entanglement over long distances (notebook 21),
+# **measurement-based quantum computing**, where every gate is a teleportation, and **fault-tolerant gate implementations**
+# (magic-state injection, Exercise 8). The fidelity a noisy pair supports, Eq. (13) below, is a standard figure of merit for
+# quantum-network hardware.
 #
 # **What we will do.**
 #
@@ -31,16 +34,17 @@
 #    classical bits and destroys quantum superpositions (Section 3).
 # 2. **The protocol**, derived by rewriting $\vert\psi\rangle_0\otimes\vert\Phi^+\rangle_{12}$ in the Bell basis of qubits 0 and 1 —
 #    four lines of algebra that contain the whole idea (Section 4).
-# 3. **The implementation**, with a real mid-circuit measurement and classical feed-forward written so that it stays inside `jit`
+# 3. **The implementation**, with a real mid-circuit measurement whose result selects Bob's gate (classical feed-forward), written so that it stays inside `jit`
 #    and `vmap`: no Python `if` on a measurement result, only `jnp.where` (Sections 5–6).
-# 4. **Why nothing is transmitted faster than light**: the four outcomes are uniform with probability $1/4$ *whatever* the input, and
-#    Bob's state before the correction is exactly $\mathbb 1/2$. Without the classical bits the fidelity is exactly $1/2$
-#    (Section 7).
-# 5. **The classical benchmark $2/3$**, derived from the Haar-averaging identity $\int d\psi\,(\vert\psi\rangle\langle\psi\vert)^{\otimes2}
-#    =P_{\rm sym}/3$ (Section 8); the same identity gives the noisy-teleportation formula in Section 10.
-# 6. **Noisy resources.** A Werner/depolarised Bell pair gives average fidelity $\bar F=(2F_{\rm res}+1)/3$; we verify this on the
-#    density tensor *and* with quantum trajectories, and find that the protocol beats the classical $2/3$ exactly when the resource
-#    is entangled (Sections 10–12).
+# 4. **Why nothing is transmitted faster than light**: the four outcomes occur with probability $1/4$ *whatever* the input, and
+#    Bob's qubit before the correction is the maximally mixed state $\mathbb 1/2$, a fair coin. Without the classical bits the
+#    fidelity is exactly $1/2$ (Section 7).
+# 5. **The classical benchmark $2/3$**, derived by averaging the fidelity over all input states with the identity
+#    $\int d\psi\,(\vert\psi\rangle\langle\psi\vert)^{\otimes2}=P_{\rm sym}/3$, with $P_{\rm sym}$ the projector onto symmetric two-copy states (Section 8); the same identity gives the
+#    noisy-teleportation formula in Section 10.
+# 6. **Noisy resources.** A Bell pair mixed with white noise (a Werner state, notebook 19) with overlap $F_{\rm res}$ with the ideal
+#    pair gives average fidelity $\bar F=(2F_{\rm res}+1)/3$; we verify this on the density tensor *and* with quantum trajectories
+#    (notebook 17), and find that the protocol beats the classical $2/3$ exactly when the resource is entangled (Sections 10–12).
 # 7. **Deferred measurement**: replacing the measurement and the feed-forward by two controlled gates gives literally the same state
 #    (Section 13).
 #
@@ -66,7 +70,9 @@
 # * building $\rho_{\rm in}\otimes\rho_{\rm res}$ and partial traces of a rank-$2N$ density tensor with einsum.
 #
 # ### Prerequisites
-# * [01 — JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, PRNG keys;
+# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, PRNG keys;
+# * [06 — states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb): reduced density
+#   matrices, fidelity, the ebit;
 # * [07 — density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb):
 #   density tensors, partial trace, Kraus channels, fidelity;
 # * [08 — measurements](../ch03_matrix_free_engine/08_measurements.ipynb): Born rule, collapse, sampling;

@@ -5,29 +5,34 @@
 # %% [markdown]
 # ## 1. Introduction and motivation
 #
-# Entanglement is usually introduced as a *property* of a state: "these two qubits are correlated more strongly than any classical
-# pair can be". This notebook treats it as something else — as a **resource that can be spent, moved, and traded for other resources**.
-# Two protocols make that concrete, and between them they define the arithmetic of quantum communication.
+# Teleportation ([notebook 20](../ch08_quantum_information_protocols/20_quantum_teleportation.ipynb)) showed that one shared Bell
+# pair, one **ebit**, together with two classical bits can stand in for one transmitted qubit. This notebook follows that
+# bookkeeping further and treats entanglement as a **resource that is distributed in advance, spent by protocols, and traded for
+# other resources**. Two protocols make the trade concrete.
 #
-# **Entanglement swapping.** Alice holds qubit $0$, entangled with qubit $1$; a second, completely independent pair consists of
-# qubits $2$ and $3$, the last one held by Bob. Qubits $0$ and $3$ have never interacted, have never been in the same laboratory,
-# and are described by a state that contains no correlation whatsoever. Then somebody in the middle performs a joint measurement on
-# qubits $1$ and $2$ — and afterwards $0$ and $3$ are in a maximally entangled state. Nothing travelled between the two outer qubits
-# except a two-bit classical message saying which of four outcomes occurred. Entanglement was *swapped* from the pairs
-# $(0,1)$ and $(2,3)$ onto the pair $(0,3)$. The idea is due to Żukowski, Zeilinger, Horne and Ekert (1993), was demonstrated with
-# photons by Pan and co-workers (1998), and is the elementary step of a **quantum repeater**, the standard proposal for distributing
-# entanglement through optical fibre over distances much larger than its attenuation length.
+# **Entanglement swapping.** Alice and Bob may be too far apart to share a pair directly: photons sent through an optical fibre are
+# lost exponentially with distance, and no-cloning forbids amplifying them. A relay, Charlie, therefore stands in the middle.
+# Alice's qubit $0$ is entangled with qubit $1$ at the relay; a second, completely independent pair consists of qubit $2$ at the
+# relay and qubit $3$ at Bob's. Qubits $0$ and $3$ have never interacted and are described by a state that contains no correlation
+# whatsoever. Charlie then performs a **Bell measurement**, a joint measurement in the basis of the four Bell states, on qubits $1$
+# and $2$ — and afterwards $0$ and $3$ are in a maximally entangled state. Nothing travelled between the two outer qubits except a
+# two-bit classical message saying which of four outcomes occurred. The idea is due to Żukowski, Zeilinger, Horne and Ekert (1993),
+# was demonstrated with photons by Pan and co-workers (1998), and is the elementary step of a **quantum repeater**, the standard
+# proposal for distributing entanglement through optical fibre over distances much larger than its attenuation length (the distance over
+# which the transmission of the fibre falls by a factor $e$).
 #
-# **Superdense coding.** Alice and Bob share one entangled pair, prepared long ago. Alice now wants to send Bob two classical bits.
-# She applies one of four single-qubit gates to *her half of the pair*, physically sends that one qubit to Bob, and Bob — measuring
-# the two qubits jointly — recovers both bits with certainty. One qubit carried two bits. Without the shared pair this is impossible:
-# the Holevo bound says a $d$-dimensional quantum system carries at most $\log_2 d$ bits. The protocol is due to Bennett and Wiesner
-# (1992) and was realised with photons by Mattle, Weinfurter, Kwiat and Zeilinger (1996).
+# **Superdense coding.** Alice and Bob share one ebit, prepared long ago. Alice now wants to send Bob two classical bits. She
+# applies one of four Pauli gates to *her half of the pair*, physically sends that one qubit to Bob, and Bob, with a Bell
+# measurement on the two qubits, recovers both bits with certainty. One qubit carried two bits. Without the shared pair this is
+# impossible: the Holevo bound says a $d$-dimensional quantum system carries at most $\log_2 d$ bits, so one qubit alone carries at
+# most one. The protocol is due to Bennett and Wiesner (1992) and was realised with photons by Mattle, Weinfurter, Kwiat and
+# Zeilinger (1996).
 #
-# The two protocols are mirror images of each other, and both are close relatives of teleportation. All three consist of exactly the
-# same three ingredients: a shared Bell pair, a **Bell measurement**, and a **Pauli correction chosen by a classical message**.
-# Once one of them has been understood in full algebraic detail, the others cost almost nothing, so the algebra is carried out here
-# in full and every step of it is checked numerically.
+# In resource language the two transmission protocols are mirror images: teleportation turns $1$ ebit $+$ $2$ classical bits into
+# $1$ transmitted qubit, superdense coding turns $1$ ebit $+$ $1$ transmitted qubit into $2$ classical bits, and swapping turns two
+# short ebits into one long one. All three consist of the same three ingredients: a shared Bell pair, a Bell measurement, and a
+# **Pauli correction chosen by a classical message**. Once one of them has been understood in full algebraic detail, the others cost
+# almost nothing.
 #
 # **Road map.**
 #
@@ -37,15 +42,17 @@
 # 3. Implement it with the einsum engine: the state, the Bell-measurement circuit, the four conditional outer states, and the
 #    corrections (Sections 5–6).
 # 4. Measure the entanglement of the outer pair **before** the measurement, **after** it conditioned on each outcome, and after it
-#    **without** knowing the outcome — three different answers, and the difference between them is exactly the value of the classical
-#    message (Sections 7–8).
-# 5. Run the protocol as a real device would: a mid-circuit measurement with a `jnp.where` feed-forward, `jit`-compiled and `vmap`-ed
-#    over thousands of shots, with error bars on the outcome frequencies (Section 9).
-# 6. Replace the perfect links by **Werner states** of parameter $W$ and prove — then verify on the density tensor — that swapping
-#    multiplies the parameters, $W_{\text{out}}=W_1W_2$. Iterate over a chain of $n$ links, watch $W$ collapse like $W^n$,
-#    and understand why entanglement *purification* is not optional (Sections 10–11).
+#    **without** knowing the outcome — three different answers, and the difference between them is exactly the value of the
+#    classical message (Sections 7–8).
+# 5. Run the protocol as a real device would: a mid-circuit measurement with a `jnp.where` feed-forward, `jit`-compiled and
+#    `vmap`-ed over thousands of shots, with error bars on the outcome frequencies (Section 9).
+# 6. Replace the perfect links by **Werner states** of parameter $W$ (Bell pairs mixed with white noise) and prove — then verify on
+#    the density tensor — that swapping multiplies the parameters, $W_{\text{out}}=W_1W_2$. Iterate over a chain of $n$ links, watch
+#    $W$ collapse like $W^n$, and understand why entanglement *purification*, which distils fewer but better pairs from many noisy
+#    ones, is not optional (Sections 10–11).
 # 7. Turn to superdense coding: protocol, algebra, decoding circuit, perfect statistics for all four messages, the Holevo bound, and
-#    the confusion matrix and the transmission rate when the shared pair is depolarised or dephased (Sections 12–17).
+#    the confusion matrix (sent against decoded message) and the transmission rate when the shared pair is depolarised or dephased
+#    (Sections 12–17).
 #
 # ### What you will learn
 #
@@ -75,7 +82,7 @@
 # * binomial error bars on measured frequencies, and the discipline of never quoting a number the code did not print.
 #
 # ### Prerequisites
-# * [01 — JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, PRNG keys, `jnp.where`;
+# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, PRNG keys, `jnp.where`;
 # * [02 — einsum from scratch](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb): index notation as executable code;
 # * [06 — states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb): reduced density
 #   matrices, Schmidt decomposition;
