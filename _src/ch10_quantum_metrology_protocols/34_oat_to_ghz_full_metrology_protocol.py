@@ -1,6 +1,6 @@
 #@title: From one-axis twisting to GHZ — the full metrology protocol
 #@part: Chapter 10 — Quantum metrology protocols
-#@description: The complete pipeline prepare-twist-encode-read out: the exact derivation that one-axis twisting turns a coherent spin state into a GHZ-like cat at chi t = pi/2 (for even and for odd N), the cat axis tracked numerically with the 3x3 QFI matrix along the whole evolution, the N^2/2 plateau of the multi-component cats, parity readout reaching the Heisenberg limit from sampled data, the SLD quantum Fisher information under dephasing, amplitude damping and depolarising noise, the exponential fragility of the cat derived and verified, the optimal stopping time under noise, and a final comparison of the sensitivity of Ramsey, squeezed, GHZ and one-axis-twisting interferometry.
+#@description: The complete pipeline prepare-twist-encode-read out: the exact derivation that one-axis twisting turns a coherent spin state into a GHZ-like cat at $\chi t=\pi/2$ (for even and for odd $N$), the cat axis tracked numerically with the $3\times3$ QFI matrix along the whole evolution, the $N^2/2$ plateau of the multi-component cats, parity readout reaching the Heisenberg limit from sampled data, the SLD quantum Fisher information under dephasing, amplitude damping and depolarising noise, the exponential fragility of the cat derived and verified, the optimal stopping time under noise, and a final comparison of the sensitivity of Ramsey, squeezed, GHZ and one-axis-twisting interferometry.
 
 # %% [markdown]
 # ## 1. Introduction and motivation

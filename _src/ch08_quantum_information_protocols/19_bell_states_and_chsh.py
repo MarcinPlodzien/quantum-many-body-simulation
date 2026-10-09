@@ -1,6 +1,6 @@
 #@title: Bell states and the CHSH inequality — violation of local realism in simulated measurements
 #@part: Chapter 8 — Quantum information protocols
-#@description: The four Bell states and the circuit that makes them, their correlations and maximally mixed marginals, a full derivation of the local-hidden-variable bound |S| <= 2 and of Tsirelson's bound 2*sqrt(2), a simulated shot-by-shot CHSH experiment with error bars, and the fate of the violation under white noise, dephasing and imperfect detectors.
+#@description: The four Bell states and the circuit that makes them, their correlations and maximally mixed marginals, a full derivation of the local-hidden-variable bound $\vert S\vert\le2$ and of Tsirelson's bound $2\sqrt2$, a simulated shot-by-shot CHSH experiment with error bars, and the fate of the violation under white noise, dephasing and imperfect detectors.
 
 # %% [markdown]
 # ## 1. Introduction and motivation

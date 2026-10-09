@@ -35,7 +35,7 @@ automatic differentiation.
 ::: {.nb-item}
 [Quantum Fisher information — how fast a quantum state changes under a small parameter shift](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb)
 
-Parameter estimation and its quantum limit: estimators, score and classical Fisher information, the Cramér–Rao bound derived by Cauchy–Schwarz, the symmetric logarithmic derivative and the Braunstein–Caves inequality, the pure-state reduction F_Q = 4 Var(G) and the speed of a state, error propagation, product state versus GHZ (standard quantum limit and Heisenberg limit) and the fragility of the GHZ advantage, including superdecoherence, a zoo of many-body states, the 3x3 collective QFI matrix and its optimal direction, QFI as an entanglement witness, and QFI under noise and particle loss.
+Parameter estimation and its quantum limit: estimators, score and classical Fisher information, the Cramér–Rao bound derived by Cauchy–Schwarz, the symmetric logarithmic derivative and the Braunstein–Caves inequality, the pure-state reduction $F_Q=4\,\mathrm{Var}(G)$ and the speed of a state, error propagation, product state versus GHZ (standard quantum limit and Heisenberg limit) and the fragility of the GHZ advantage, including superdecoherence, a zoo of many-body states, the $3\times3$ collective QFI matrix and its optimal direction, QFI as an entanglement witness, and QFI under noise and particle loss.
 :::
 
 ::: {.nb-item}
@@ -53,19 +53,19 @@ The complete Ramsey protocol of an atomic clock — coherent spin state, phase e
 ::: {.nb-item}
 [GHZ interferometry and the Heisenberg limit — gain, ambiguity, fragility](../ch10_quantum_metrology_protocols/32_ghz_interferometry_heisenberg_limit.ipynb)
 
-The maximally entangled interferometer end to end: GHZ preparation, N-fold phase encoding, parity readout, phase estimation from sampled records reaching Delta phi = 1/N, the 2 pi/N ambiguity, the collapse of the advantage under dephasing, depolarising, damping and particle loss, the Huelga argument that Markovian dephasing removes the asymptotic gain, and phase estimation from randomised measurements after scrambling.
+The maximally entangled interferometer end to end: GHZ preparation, N-fold phase encoding, parity readout, phase estimation from sampled records reaching $\Delta\varphi=1/N$, the $2\pi/N$ ambiguity, the collapse of the advantage under dephasing, depolarising, damping and particle loss, the Huelga argument that Markovian dephasing removes the asymptotic gain, and phase estimation from randomised measurements after scrambling.
 :::
 
 ::: {.nb-item}
 [Spin squeezing by one-axis twisting](../ch10_quantum_metrology_protocols/33_spin_squeezing_one_axis_twisting.ipynb)
 
-Coherent spin states and their isotropic projection noise, the one-axis-twisting Hamiltonian and its two exact implementations, the shearing mechanism, the Kitagawa–Ueda and Wineland squeezing parameters derived from Ramsey error propagation, the analytic OAT moments verified numerically, the N^(-2/3) scaling of the optimal squeezing, a squeezed Ramsey interferometer simulated end to end from sampled bit strings, Husimi-Q maps on the Bloch sphere, and the point where squeezing stops measuring the metrological gain.
+Coherent spin states and their isotropic projection noise, the one-axis-twisting Hamiltonian and its two exact implementations, the shearing mechanism, the Kitagawa–Ueda and Wineland squeezing parameters derived from Ramsey error propagation, the analytic OAT moments verified numerically, the $N^{-2/3}$ scaling of the optimal squeezing, a squeezed Ramsey interferometer simulated end to end from sampled bit strings, Husimi-Q maps on the Bloch sphere, and the point where squeezing stops measuring the metrological gain.
 :::
 
 ::: {.nb-item}
 [From one-axis twisting to GHZ — the full metrology protocol](../ch10_quantum_metrology_protocols/34_oat_to_ghz_full_metrology_protocol.ipynb)
 
-The complete pipeline prepare-twist-encode-read out: the exact derivation that one-axis twisting turns a coherent spin state into a GHZ-like cat at chi t = pi/2 (for even and for odd N), the cat axis tracked numerically with the 3x3 QFI matrix along the whole evolution, the N^2/2 plateau of the multi-component cats, parity readout reaching the Heisenberg limit from sampled data, the SLD quantum Fisher information under dephasing, amplitude damping and depolarising noise, the exponential fragility of the cat derived and verified, the optimal stopping time under noise, and a final comparison of the sensitivity of Ramsey, squeezed, GHZ and one-axis-twisting interferometry.
+The complete pipeline prepare-twist-encode-read out: the exact derivation that one-axis twisting turns a coherent spin state into a GHZ-like cat at $\chi t=\pi/2$ (for even and for odd $N$), the cat axis tracked numerically with the $3\times3$ QFI matrix along the whole evolution, the $N^2/2$ plateau of the multi-component cats, parity readout reaching the Heisenberg limit from sampled data, the SLD quantum Fisher information under dephasing, amplitude damping and depolarising noise, the exponential fragility of the cat derived and verified, the optimal stopping time under noise, and a final comparison of the sensitivity of Ramsey, squeezed, GHZ and one-axis-twisting interferometry.
 :::
 
 ::: {.nb-item}
@@ -77,7 +77,7 @@ What a scrambler does to metrologically useful entanglement: one-axis-twisting p
 ::: {.nb-item}
 [Measuring the quantum Fisher information with classical shadows](../ch10_quantum_metrology_protocols/36_qfi_with_classical_shadows.ipynb)
 
-How the quantum Fisher information of a collective generator is estimated from one randomised-measurement data set: the expansion of 4 Var(G) in one- and two-body Pauli expectation values, the O(N^2) observable count, a collapse of the estimator to six numbers per snapshot, the exact bias of the plug-in estimator and its U-statistic correction, bootstrap error bars and their scaling with the number of snapshots and the system size, the 3x3 matrix and the optimal direction from data, the snapshot budget needed to certify entanglement and entanglement depth, and what happens for mixed states — the gap between 4 Var(G) and the true quantum Fisher information, and a converging series of polynomial lower bounds that randomised measurements can reach.
+How the quantum Fisher information of a collective generator is estimated from one randomised-measurement data set: the expansion of $4\,\mathrm{Var}(G)$ in one- and two-body Pauli expectation values, the $O(N^2)$ observable count, a collapse of the estimator to six numbers per snapshot, the exact bias of the plug-in estimator and its U-statistic correction, bootstrap error bars and their scaling with the number of snapshots and the system size, the $3\times3$ matrix and the optimal direction from data, the snapshot budget needed to certify entanglement and entanglement depth, and what happens for mixed states — the gap between $4\,\mathrm{Var}(G)$ and the true quantum Fisher information, and a converging series of polynomial lower bounds that randomised measurements can reach.
 :::
 
 ::: {.nb-item}

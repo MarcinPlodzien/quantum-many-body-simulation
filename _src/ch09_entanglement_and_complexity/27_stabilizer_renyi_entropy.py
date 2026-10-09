@@ -1,6 +1,6 @@
 #@title: Stabilizer Renyi entropy: measuring the magic of a quantum state
 #@part: Chapter 9 — Entanglement and complexity diagnostics
-#@description: Non-stabilizerness ("magic") as the resource that entanglement misses: the Pauli group and the symplectic product, stabilizer states and the Gottesman-Knill theorem, the characteristic Pauli distribution, stabilizer Renyi entropies with proofs of their properties, the brute-force 4^N algorithm and the fast Walsh-Hadamard algorithm derived from scratch, and magic in T-doped circuits, in Ising ground states and after a quench.
+#@description: Non-stabilizerness ("magic") as the resource that entanglement misses: the Pauli group and the symplectic product, stabilizer states and the Gottesman-Knill theorem, the characteristic Pauli distribution, stabilizer Renyi entropies with proofs of their properties, the brute-force $4^N$ algorithm and the fast Walsh–Hadamard algorithm, and magic in T-doped circuits, in Ising ground states and after a quench.
 
 # %% [markdown]
 # ## 1. Introduction and motivation

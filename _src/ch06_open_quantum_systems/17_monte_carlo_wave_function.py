@@ -1,6 +1,6 @@
 #@title: Open quantum systems II — quantum trajectories (Monte-Carlo wave function)
 #@part: Chapter 6 — Open quantum systems
-#@description: Quantum trajectories from scratch: effective non-Hermitian Hamiltonian, quantum jumps, proof that the ensemble average obeys the Lindblad equation, scan-over-time and vmap-over-trajectories implementation, 1/sqrt(M) error bars, the 2x2 comparison density matrix vs trajectories and RK4 vs Trotter, and a 16-spin open chain that no density matrix could hold.
+#@description: Quantum trajectories: effective non-Hermitian Hamiltonian, quantum jumps, proof that the ensemble average obeys the Lindblad equation, scan-over-time and vmap-over-trajectories implementation, $1/\sqrt M$ error bars, the $2\times2$ comparison density matrix vs trajectories and RK4 vs Trotter, and a 16-spin open chain that no density matrix could hold.
 
 # %% [markdown]
 # ## 1. Introduction and motivation

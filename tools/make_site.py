@@ -117,13 +117,18 @@ def ensure_front_matter(nb_path, meta):
                                       "[www](https://chaos.if.uj.edu.pl/marcinplodzien/)\n", 1)
             changed |= fixed != c.source
             c.source = fixed
-    if nb.cells and nb.cells[0].cell_type == "raw":
-        if changed:
-            nbformat.write(nb, nb_path)
-        return
-    nb.cells.insert(0, new_raw_cell('---\npagetitle: "{}"\ndescription: "{}"\n---'.format(
-        meta["title"].replace('"', "'"), meta.get("description", "").replace('"', "'"))))
-    nbformat.write(nb, nb_path)
+    # front matter: YAML single-quoted strings, so LaTeX backslashes in titles and descriptions stay literal
+    def sq(t):
+        return "'" + t.replace("'", "''") + "'"
+    front = "---\npagetitle: {}\ndescription: {}\n---".format(sq(meta["title"]), sq(meta.get("description", "")))
+    if nb.cells and nb.cells[0].cell_type == "raw" and nb.cells[0].source.startswith("---\npagetitle:"):
+        changed |= nb.cells[0].source != front
+        nb.cells[0].source = front
+    else:
+        nb.cells.insert(0, new_raw_cell(front))
+        changed = True
+    if changed:
+        nbformat.write(nb, nb_path)
 
 
 def collect():

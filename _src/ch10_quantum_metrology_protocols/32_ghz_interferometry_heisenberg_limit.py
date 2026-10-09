@@ -1,6 +1,6 @@
 #@title: GHZ interferometry and the Heisenberg limit — gain, ambiguity, fragility
 #@part: Chapter 10 — Quantum metrology protocols
-#@description: The maximally entangled interferometer end to end: GHZ preparation, N-fold phase encoding, parity readout, phase estimation from sampled records reaching Delta phi = 1/N, the 2 pi/N ambiguity, the collapse of the advantage under dephasing, depolarising, damping and particle loss, the Huelga argument that Markovian dephasing removes the asymptotic gain, and phase estimation from randomised measurements after scrambling.
+#@description: The maximally entangled interferometer end to end: GHZ preparation, N-fold phase encoding, parity readout, phase estimation from sampled records reaching $\Delta\varphi=1/N$, the $2\pi/N$ ambiguity, the collapse of the advantage under dephasing, depolarising, damping and particle loss, the Huelga argument that Markovian dephasing removes the asymptotic gain, and phase estimation from randomised measurements after scrambling.
 
 # %% [markdown]
 # ## 1. Introduction and motivation

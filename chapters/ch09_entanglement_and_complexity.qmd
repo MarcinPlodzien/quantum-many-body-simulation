@@ -30,7 +30,7 @@ From CHSH to N parties: the many-body Bell correlator built from local raising o
 ::: {.nb-item}
 [Stabilizer Renyi entropy: measuring the magic of a quantum state](../ch09_entanglement_and_complexity/27_stabilizer_renyi_entropy.ipynb)
 
-Non-stabilizerness ("magic") as the resource that entanglement misses: the Pauli group and the symplectic product, stabilizer states and the Gottesman-Knill theorem, the characteristic Pauli distribution, stabilizer Renyi entropies with proofs of their properties, the brute-force 4^N algorithm and the fast Walsh-Hadamard algorithm derived from scratch, and magic in T-doped circuits, in Ising ground states and after a quench.
+Non-stabilizerness ("magic") as the resource that entanglement misses: the Pauli group and the symplectic product, stabilizer states and the Gottesman-Knill theorem, the characteristic Pauli distribution, stabilizer Renyi entropies with proofs of their properties, the brute-force $4^N$ algorithm and the fast Walsh–Hadamard algorithm, and magic in T-doped circuits, in Ising ground states and after a quench.
 :::
 
 ::: {.nb-item}

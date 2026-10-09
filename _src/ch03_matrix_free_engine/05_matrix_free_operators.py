@@ -1,6 +1,6 @@
 #@title: Matrix-free operators — acting on a many-body state with einsum
 #@part: Chapter 3 — The matrix-free engine
-#@description: The core lecture: one- and two-site operators act on a rank-N state tensor through einsum, the 2^N x 2^N matrix is never built; from hand-written index strings to apply_gate, matrix-free H|psi> and the first matrix-free time evolution of 20 spins.
+#@description: The core lecture: one- and two-site operators act on a rank-N state tensor through einsum, the $2^N\times2^N$ matrix is never built; from hand-written index strings to apply_gate, matrix-free $H\vert\psi\rangle$ and the first matrix-free time evolution of 20 spins.
 
 # %% [markdown]
 # ## 1. Introduction and motivation

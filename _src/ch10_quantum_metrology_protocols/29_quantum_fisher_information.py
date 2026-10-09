@@ -1,6 +1,6 @@
 #@title: Quantum Fisher information — how fast a quantum state changes under a small parameter shift
 #@part: Chapter 10 — Quantum metrology protocols
-#@description: Parameter estimation and its quantum limit: estimators, score and classical Fisher information, the Cramér–Rao bound derived by Cauchy–Schwarz, the symmetric logarithmic derivative and the Braunstein–Caves inequality, the pure-state reduction F_Q = 4 Var(G) and the speed of a state, error propagation, product state versus GHZ (standard quantum limit and Heisenberg limit) and the fragility of the GHZ advantage, including superdecoherence, a zoo of many-body states, the 3x3 collective QFI matrix and its optimal direction, QFI as an entanglement witness, and QFI under noise and particle loss.
+#@description: Parameter estimation and its quantum limit: estimators, score and classical Fisher information, the Cramér–Rao bound derived by Cauchy–Schwarz, the symmetric logarithmic derivative and the Braunstein–Caves inequality, the pure-state reduction $F_Q=4\,\mathrm{Var}(G)$ and the speed of a state, error propagation, product state versus GHZ (standard quantum limit and Heisenberg limit) and the fragility of the GHZ advantage, including superdecoherence, a zoo of many-body states, the $3\times3$ collective QFI matrix and its optimal direction, QFI as an entanglement witness, and QFI under noise and particle loss.
 
 # %% [markdown]
 # ## 1. Introduction and motivation
