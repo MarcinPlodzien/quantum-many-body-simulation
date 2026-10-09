@@ -7,13 +7,13 @@
 #
 # The previous notebook,
 # [29 — quantum Fisher information: how fast a quantum state changes under a small parameter shift](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb),
-# established what the quantum Fisher information $F_Q$ *is* — the largest classical Fisher information any measurement can
-# produce — and computed it for **pure** states, where it reduces analytically to $F_Q=4\,\mathrm{Var}(G)$.
-# Three of its statements were left without proof or without a test:
+# derived the symmetric logarithmic derivative (SLD), the quantum Fisher information $F_Q$ of a mixed state, and the
+# Braunstein–Caves theorem ($F_Q$ is the largest classical Fisher information any measurement can produce), and
+# tested the SLD and its optimal measurement on one full-rank two-qubit state. Three things were left open:
 #
-# 1. the formula for **mixed** states was quoted, not derived;
-# 2. the statement that some measurement actually **attains** $F_Q$ was quoted, not constructed;
-# 3. nothing was ever **simulated end to end** — no clicks, no estimator, no measured error bar.
+# 1. **rank-deficient** states (pure states, or the dephased GHZ state of rank two), where the SLD equation has a kernel;
+# 2. many-qubit states stored as density tensors, with noise applied before or after the encoding;
+# 3. the chain from clicks to an error bar for a general measurement, including the finite-sample bias of the estimator.
 #
 # This notebook supplies all three. It is the workshop notebook of the chapter: we build, from the definition, the generic
 # pipeline that every later protocol instantiates,
@@ -26,13 +26,11 @@
 # * **Encoding.** We apply $e^{-i\theta G}$ to a density *tensor* without ever building a $2^N\times2^N$ matrix, and get
 #   $\partial_\theta\rho_\theta$ three independent ways (an exact commutator, central finite differences, and forward-mode
 #   automatic differentiation straight through the encoding function) that must agree.
-# * **The QFI.** We define the **symmetric logarithmic derivative** (SLD) $L$ by the operator equation
-#   $\partial_\theta\rho=\tfrac12(L\rho+\rho L)$ — a *Lyapunov equation* — solve it line by line in the eigenbasis of $\rho$,
-#   treat the kernel where $\lambda_m+\lambda_n=0$ explicitly, and evaluate $F_Q=\mathrm{Tr}(\rho L^2)$.
-# * **The optimal measurement** is the projective measurement in the eigenbasis of $L$. We prove that its classical Fisher
-#   information equals $F_Q$ (one line, once $L$ is known), prove that no measurement can do better (Cauchy–Schwarz in the
-#   Hilbert–Schmidt inner product — the Braunstein–Caves theorem, now with a proof), and check both numerically against
-#   naive readouts.
+# * **The QFI.** We solve the SLD equation $\partial_\theta\rho=\tfrac12(L\rho+\rho L)$ — a *Lyapunov equation* —
+#   numerically in the eigenbasis of $\rho$, treat the kernel where $\lambda_m+\lambda_n=0$ explicitly, and evaluate
+#   $F_Q=\mathrm{Tr}(\rho L^2)$.
+# * **The optimal measurement** is the projective measurement in the eigenbasis of $L$ (notebook 29, Section 5.3). We
+#   build it from the numerical $L$ and check that it reaches $F_Q$ while naive readouts do not.
 # * **Simulated experiments.** We sample outcomes from the exact Born probabilities, estimate $\theta$ by maximum
 #   likelihood, repeat the experiment tens of thousands of times and compare the measured variance with $1/(M F_Q)$, and
 #   the measured bias with its first-order prediction, with error bars.
@@ -408,33 +406,19 @@ assert tr_abs < 1e3 * TOL and max_abs(dm - dm.conj().T) < 1e3 * TOL
 # %% [markdown]
 # ## 5. The symmetric logarithmic derivative
 #
-# ### 5.1 Why the ordinary logarithmic derivative is not used
+# ### 5.1 Definition (recap)
 #
-# In the classical theory of notebook 29 the central object was the **score** $s=\partial_\theta\log p=\left(\partial_\theta p\right)/p$.
-# The obvious quantum analogue, $\rho^{-1}\partial_\theta\rho$, is *not* Hermitian, because $\rho$ and $\partial_\theta\rho$
-# do not commute. Since a measurable quantity must be represented by a Hermitian operator, one symmetrises the division.
-#
-# **Definition.** The **symmetric logarithmic derivative** (SLD) of the family $\rho_\theta$ is the Hermitian operator
+# Notebook 29, Section 5.2, motivated and defined the **symmetric logarithmic derivative** (SLD), the Hermitian operator
 # $L_\theta$ solving
 #
 # $$\partial_\theta\rho_\theta=\frac{1}{2}\left(L_\theta\,\rho_\theta+\rho_\theta\,L_\theta\right). \tag{6}$$
 #
-# If $\rho$ and $\partial_\theta\rho$ happened to commute this would reduce to $L=\rho^{-1}\partial_\theta\rho$, the exact
-# analogue of the classical score. Equation (6) is a **Lyapunov equation**: linear in the unknown $L$, of the form
-# $AL+LA=B$ with $A=\rho/2$ and $B=\partial_\theta\rho$. Such equations are solved by going to the eigenbasis of $A$.
+# Equation (6) is a **Lyapunov equation**, $AL+LA=B$ with $A=\rho/2$ and $B=\partial_\theta\rho$, solved in the eigenbasis of $A$.
 #
 # ### 5.2 The solution in the eigenbasis of $\rho$
 #
-# Diagonalise the state, $\rho=\sum_m\lambda_m\vert m\rangle\langle m\vert$ with $\lambda_m\ge0$ and $\sum_m\lambda_m=1$.
-# Sandwich Eq. (6) between $\langle m\vert$ and $\vert n\rangle$ and use $\rho\vert n\rangle=\lambda_n\vert n\rangle$,
-# $\langle m\vert\rho=\lambda_m\langle m\vert$:
-#
-# $$\langle m\vert\partial_\theta\rho\vert n\rangle
-#   =\frac12\left(\langle m\vert L\rho\vert n\rangle+\langle m\vert\rho L\vert n\rangle\right)
-#   =\frac12\left(\lambda_n+\lambda_m\right)\langle m\vert L\vert n\rangle .$$
-#
-# Writing $(\partial\rho)_{mn}=\langle m\vert\partial_\theta\rho\vert n\rangle$ and $L_{mn}=\langle m\vert L\vert n\rangle$,
-# **every matrix element decouples**:
+# With $\rho=\sum_m\lambda_m\vert m\rangle\langle m\vert$, $(\partial\rho)_{mn}=\langle m\vert\partial_\theta\rho\vert n\rangle$
+# and $L_{mn}=\langle m\vert L\vert n\rangle$, every matrix element of Eq. (6) decouples (notebook 29, Eq. (45)):
 #
 # $$\left(\lambda_m+\lambda_n\right)L_{mn}=2\,(\partial\rho)_{mn}. \tag{7}$$
 #
@@ -487,30 +471,21 @@ assert tr_abs < 1e3 * TOL and max_abs(dm - dm.conj().T) < 1e3 * TOL
 # %% [markdown]
 # ### 5.4 The quantum Fisher information from the SLD
 #
-# With $L$ in hand, the quantum Fisher information is *defined* (Helstrom; Braunstein–Caves — Section 8 proves it is the
-# maximal classical Fisher information) as
+# The quantum Fisher information is the mean square of the SLD, and notebook 29, Eqs. (46)–(49), expands it in the
+# eigenbasis of $\rho$ (inserting Eq. (8) and symmetrising the double sum). In this notebook's numbering:
 #
-# $$F_Q=\mathrm{Tr}\!\left(\rho\,L^2\right). \tag{10}$$
+# $$F_Q=\mathrm{Tr}\!\left(\rho\,L^2\right)=\sum_{m,n}\lambda_m\left\vert L_{mn}\right\vert^2, \tag{10}$$
 #
-# **Two equivalent working formulas.** Expand Eq. (10) in the eigenbasis. Since $\rho\vert m\rangle=\lambda_m\vert m\rangle$,
-#
-# $$\mathrm{Tr}(\rho L^2)=\sum_m\lambda_m\langle m\vert L^2\vert m\rangle=\sum_{m,n}\lambda_m\left\vert L_{mn}\right\vert^2 .$$
-#
-# Insert Eq. (8) and symmetrise the double sum (the summand $\vert L_{mn}\vert^2=\vert L_{nm}\vert^2$ is symmetric, so we may
-# replace $\lambda_m$ by $\tfrac12(\lambda_m+\lambda_n)$):
-#
-# $$F_Q=\sum_{m,n}\frac{\lambda_m+\lambda_n}{2}\cdot\frac{4\left\vert(\partial\rho)_{mn}\right\vert^2}{(\lambda_m+\lambda_n)^2}
-#      =2\sum_{m,n\,:\,\lambda_m+\lambda_n>0}\frac{\left\vert(\partial\rho)_{mn}\right\vert^2}{\lambda_m+\lambda_n}. \tag{11}$$
+# $$F_Q=2\sum_{m,n\,:\,\lambda_m+\lambda_n>0}\frac{\left\vert(\partial\rho)_{mn}\right\vert^2}{\lambda_m+\lambda_n}. \tag{11}$$
 #
 # Equation (11) is completely general: it needs only the state and its derivative, whatever produced them. The same algebra
-# shows $F_Q=\mathrm{Tr}(L\,\partial_\theta\rho)$, a form that is sometimes more convenient.
-#
-# **Specialising to unitary encoding.** Substituting Eq. (9), $\left\vert(\partial\rho)_{mn}\right\vert^2=(\lambda_m-\lambda_n)^2\vert G_{mn}\vert^2$:
+# shows $F_Q=\mathrm{Tr}(L\,\partial_\theta\rho)$, a form that is sometimes more convenient. For unitary encoding Eq. (9)
+# gives $\left\vert(\partial\rho)_{mn}\right\vert^2=(\lambda_m-\lambda_n)^2\vert G_{mn}\vert^2$ and
 #
 # $$\boxed{\;F_Q[\rho,G]=2\sum_{m,n\,:\,\lambda_m+\lambda_n>0}\frac{\left(\lambda_m-\lambda_n\right)^2}{\lambda_m+\lambda_n}
 #   \left\vert\langle m\vert G\vert n\rangle\right\vert^2\;} \tag{12}$$
 #
-# This is the formula quoted in notebook 29 and implemented by the engine's `qfi_mixed` — now derived.
+# the formula implemented by the engine's `qfi_mixed`.
 #
 # ### 5.5 Three corollaries
 #
@@ -536,7 +511,7 @@ assert tr_abs < 1e3 * TOL and max_abs(dm - dm.conj().T) < 1e3 * TOL
 # notebook 29. $\square$
 #
 # **(c) Convexity.** For any mixture, $F_Q\!\left[\sum_ip_i\rho_i,G\right]\le\sum_ip_iF_Q[\rho_i,G]$. The proof takes two
-# lines once Section 8 has shown that $F_Q$ is the largest classical Fisher information over all measurements. Fix a POVM.
+# lines since $F_Q$ is the largest classical Fisher information over all measurements (notebook 29, Eq. (58)). Fix a POVM.
 # The outcome distribution of the mixture is the mixture of the outcome distributions, $p_x=\sum_ip_i\,p^{(i)}_x$, and
 # likewise for $\partial_\theta p_x$. The function $f(a,b)=a^2/b$ is jointly convex for $b>0$ (its Hessian is
 # $\tfrac{2}{b^3}\begin{pmatrix}b^2&-ab\\-ab&a^2\end{pmatrix}\succeq0$), so
@@ -894,51 +869,17 @@ fig.tight_layout(); plt.show()
 # **Theorem (Braunstein and Caves 1994).** For every POVM $\{E_x\}$, the classical Fisher information of the outcome
 # distribution obeys $I(\theta;\{E_x\})\le F_Q$, and the projective measurement in the eigenbasis of $L_\theta$ attains it.
 #
-# *Proof of the upper bound.* Write $p_x=\mathrm{Tr}(\rho E_x)$ and use the defining equation (6):
-#
-# $$\partial_\theta p_x=\mathrm{Tr}\!\left(E_x\,\partial_\theta\rho\right)
-#   =\tfrac12\mathrm{Tr}\!\left(E_x(L\rho+\rho L)\right)=\mathrm{Re}\,\mathrm{Tr}\!\left(E_x\rho L\right),$$
-#
-# because $\mathrm{Tr}(E_xL\rho)=\overline{\mathrm{Tr}(E_x\rho L)}$ for Hermitian $E_x,\rho,L$. Now introduce the two
-# operators $A=E_x^{1/2}\rho^{1/2}$ and $B=E_x^{1/2}L\rho^{1/2}$, so that
-# $\mathrm{Tr}(A^\dagger B)=\mathrm{Tr}(\rho^{1/2}E_xL\rho^{1/2})=\mathrm{Tr}(E_xL\rho)$ and hence
-# $\partial_\theta p_x=\mathrm{Re}\,\mathrm{Tr}(A^\dagger B)$. The Cauchy–Schwarz inequality for the Hilbert–Schmidt inner
-# product $\langle A,B\rangle=\mathrm{Tr}(A^\dagger B)$ gives
-#
-# $$\left(\partial_\theta p_x\right)^2\le\left\vert\mathrm{Tr}(A^\dagger B)\right\vert^2
-#   \le\mathrm{Tr}(A^\dagger A)\,\mathrm{Tr}(B^\dagger B)
-#   =\underbrace{\mathrm{Tr}\!\left(\rho^{1/2}E_x\rho^{1/2}\right)}_{=\,p_x}\cdot\;\mathrm{Tr}\!\left(E_xL\rho L\right).$$
-#
-# Divide by $p_x$ and sum over $x$, using $\sum_xE_x=\mathbb 1$:
-#
-# $$I(\theta;\{E_x\})=\sum_x\frac{\left(\partial_\theta p_x\right)^2}{p_x}
-#   \le\sum_x\mathrm{Tr}\!\left(E_xL\rho L\right)=\mathrm{Tr}\!\left(L\rho L\right)=\mathrm{Tr}\!\left(\rho L^2\right)=F_Q. \;\square$$
-#
-# Two inequalities were used, and equality in the chain requires both: $\mathrm{Tr}(A^\dagger B)$ must be **real**, and
-# Cauchy–Schwarz becomes an equality only when $B=c_xA$ for some scalar $c_x$, i.e. when
-# $E_x^{1/2}\left(L-c_x\mathbb 1\right)\rho^{1/2}=0$ for every outcome. The next paragraph exhibits a measurement that
-# satisfies both, so the bound is tight; we do not need the conditions themselves.
-#
-# *Proof that the SLD eigenbasis attains it.* Let $L=\sum_x\ell_x\vert\ell_x\rangle\langle\ell_x\vert$ and measure the
-# projectors $E_x=\vert\ell_x\rangle\langle\ell_x\vert$. Then, using Eq. (6) and
-# $L\vert\ell_x\rangle=\ell_x\vert\ell_x\rangle$ on both sides,
-#
-# $$\partial_\theta p_x=\langle\ell_x\vert\partial_\theta\rho\vert\ell_x\rangle
-#   =\tfrac12\langle\ell_x\vert L\rho+\rho L\vert\ell_x\rangle=\ell_x\,\langle\ell_x\vert\rho\vert\ell_x\rangle=\ell_x\,p_x,$$
-#
-# so
-#
-# $$I=\sum_x\frac{\left(\ell_xp_x\right)^2}{p_x}=\sum_x\ell_x^2\,p_x
-#   =\sum_x\ell_x^2\,\langle\ell_x\vert\rho\vert\ell_x\rangle=\mathrm{Tr}\!\left(\rho L^2\right)=F_Q. \;\square$$
-#
-# This completes the proof. Three points are not visible in the algebra:
+# The proof is in notebook 29, Section 5.3, Eqs. (50)–(57): the Cauchy–Schwarz inequality in the Hilbert–Schmidt inner
+# product bounds every outcome's contribution, and in the eigenbasis $\{\vert\ell_x\rangle\}$ of $L$ Eq. (6) gives
+# $\partial_\theta p_x=\ell_x\,p_x$, so that $I=\sum_x\ell_x^2\,p_x=\mathrm{Tr}(\rho L^2)=F_Q$. Three points are not
+# visible in the algebra:
 #
 # * the optimal basis depends on $\theta$ (through $L_\theta=U(\theta)L_0U^\dagger(\theta)$), so the measurement is only
 #   **locally optimal** — you must already know $\theta$ roughly in order to measure it optimally. In practice one runs an
 #   adaptive scheme, or accepts a fixed basis and the loss it entails;
 # * when $\rho$ is rank-deficient, $L$ is not unique (Section 5.3) and neither is its eigenbasis: the kernel block we set
 #   to zero contributes $2^N-\mathrm{rank}(\rho)$ degenerate eigenvalues $\ell=0$, so *any* orthonormal basis of that
-#   subspace may be returned by `eigh`. The proof above uses only Eq. (6) and $L\vert\ell_x\rangle=\ell_x\vert\ell_x\rangle$,
+#   subspace may be returned by `eigh`. The attainability proof uses only Eq. (6) and $L\vert\ell_x\rangle=\ell_x\vert\ell_x\rangle$,
 #   both of which hold for every such choice, so every one of them attains $F_Q$;
 # * outcomes with $p_x=0$ need care in the code: they contribute $0$ to the Fisher information (their derivative vanishes
 #   too), but $0/0$ in floating point does not.
@@ -1809,6 +1750,7 @@ fig.tight_layout(); plt.show()
 #    gradient turns into `NaN` after a few hundred steps. A remedy is to solve the Lyapunov equation (6) directly as a
 #    $4^N\times4^N$ linear system, $\tfrac12(\rho\otimes\mathbb 1+\mathbb 1\otimes\rho^{\mathsf T})\,\mathrm{vec}(L)=\mathrm{vec}(\partial_\theta\rho)$
 #    in row-major vectorisation, which is differentiable as long as $\rho$ has full rank (true here for $g>0$).
+#    [Notebook 44b](../ch11_variational_quantum_circuits/44b_variational_quantum_metrology.ipynb) carries out this optimisation in full.
 #
 # ## References
 #

@@ -86,11 +86,14 @@
 # * [29 — quantum Fisher information](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb):
 #   $F_Q=4\,\mathrm{Var}(G)$, the $3\times3$ matrix, the entanglement-witness inequalities;
 # * [30 — QFI from the SLD](../ch10_quantum_metrology_protocols/30_qfi_from_the_sld_prepare_encode_estimate.ipynb):
-#   the mixed-state formula used in Section 11;
+#   the mixed-state formula used in Section 10;
 # * helpful: [33 — spin squeezing](../ch10_quantum_metrology_protocols/33_spin_squeezing_one_axis_twisting.ipynb),
 #   [34 — one-axis twisting to GHZ](../ch10_quantum_metrology_protocols/34_oat_to_ghz_full_metrology_protocol.ipynb)
 #   and [35 — scrambling a metrological probe](../ch10_quantum_metrology_protocols/35_oat_plus_haar_scrambling.ipynb),
-#   which supply the states of Section 9.
+#   which supply the states of Section 8.
+#
+# **What comes next.** [37 — particle loss, magic and encoded probes](../ch10_quantum_metrology_protocols/37_qfi_particle_loss_and_magic.ipynb)
+# asks how much quantum Fisher information survives when particles are lost.
 #
 # **Conventions.** Qubit $q$ = tensor axis $q$; $\vert0\rangle$ is the $+1$ eigenstate of $Z$. Collective spins are
 # $J_a=\tfrac12\sum_q\sigma^a_q$, so the standard quantum limit is $F_Q=N$ and the Heisenberg limit $F_Q=N^2$.
@@ -102,8 +105,8 @@
 # From the engine we reuse the state constructors, `apply_gate` / `apply_gate_dm` / `apply_kraus_dm`,
 # `collect_pauli_shadows` and `shadow_estimate_pauli` (the randomised-measurement primitives),
 # `apply_collective` and `spin_moments` (the exact quantum Fisher information matrix we validate against),
-# `qfi_mixed` and `collective_dense` (the exact mixed-state value of Section 11), `oat_evolve` and `haar_unitary`
-# (the states of Section 9). Everything specific to this notebook is built below.
+# `qfi_mixed` and `collective_dense` (the exact mixed-state value of Section 10), `oat_evolve` and `haar_unitary`
+# (the probe states). Everything specific to this notebook is built below.
 
 # %%
 #@engine: apply_gate, apply_gate_dm, apply_kraus_dm, dm_matrix, to_dm, product_state, ghz_state, haar_unitary, I2, X, Y, Z, H, SDG, _BASIS_ROT, apply_collective, qfi_pure, qfi_mixed, collective_dense, spin_moments, oat_evolve, collect_pauli_shadows, shadow_estimate_pauli, expect_pauli_string, kraus_dephasing, kraus_depolarizing, entanglement_entropy

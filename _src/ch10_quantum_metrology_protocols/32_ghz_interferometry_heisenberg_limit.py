@@ -52,7 +52,8 @@
 #    the classical Fisher information $N^2$ (Section 6).
 # 3. Simulated records, estimator, histogram, and the measured Heisenberg scaling against the Ramsey protocol on one plot
 #    (Sections 7–8).
-# 4. The $2\pi/N$ ambiguity and what it costs (Section 9).
+# 4. The $2\pi/N$ ambiguity, what it costs, and Bayesian estimation with a ladder of GHZ sizes that removes it
+#    (Section 9).
 # 5. Fragility: closed-form contrasts, quantum Fisher information under three channels and under particle loss, achieved
 #    sensitivity versus noise and $N$ (Sections 10–12).
 # 6. Frequency estimation under dephasing: the Huelga argument, derived and verified, and the $\sqrt e$ bound on any
@@ -99,6 +100,9 @@
 # * [31 — Ramsey interferometry](./31_ramsey_interferometry.ipynb): the protocol we compare against, the standard quantum
 #   limit, and the optimal-interrogation-time argument we repeat here for an entangled probe;
 # * [07 — density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb).
+#
+# **What comes next.** [33 — spin squeezing by one-axis twisting](./33_spin_squeezing_one_axis_twisting.ipynb) gains less
+# than the GHZ state but keeps most of the robustness of the coherent spin state.
 #
 # **Conventions.** Atom $q$ = tensor axis $q$; $\vert0\rangle$ is the $+1$ eigenstate of $Z$; $J_a=\tfrac12\sum_q\sigma^a_q$;
 # $\vert\bar0\rangle=\vert0\rangle^{\otimes N}$, $\vert\bar1\rangle=\vert1\rangle^{\otimes N}$; $\hbar=1$.
@@ -147,13 +151,13 @@ def std_of_std(sigma, n):
 #
 # * **Classical Fisher information** of a distribution $p(x\vert\varphi)$:
 #
-# $$F(\varphi)=\sum_x\frac{1}{p(x\vert\varphi)}\left(\frac{\partial p(x\vert\varphi)}{\partial\varphi}\right)^{\!2},$$
+# $$F_C(\varphi)=\sum_x\frac{1}{p(x\vert\varphi)}\left(\frac{\partial p(x\vert\varphi)}{\partial\varphi}\right)^{\!2},$$
 #
 # additive over independent repetitions.
 #
-# * **Cramer-Rao bound**: any unbiased estimator obeys $\Delta\varphi\ge1/\sqrt{MF(\varphi)}$, with $M$ the number of
+# * **Cramer-Rao bound**: any unbiased estimator obeys $\Delta\varphi\ge1/\sqrt{MF_C(\varphi)}$, with $M$ the number of
 #   repetitions; the maximum-likelihood estimator saturates it asymptotically.
-# * **Quantum Fisher information**: $F_Q=\max_{\text{measurements}}F$, giving $\Delta\varphi\ge1/\sqrt{MF_Q}$. For a pure
+# * **Quantum Fisher information**: $F_Q=\max_{\text{measurements}}F_C$, giving $\Delta\varphi\ge1/\sqrt{MF_Q}$. For a pure
 #   state encoded as $e^{-i\varphi G}\vert\psi\rangle$,
 #
 # $$F_Q=4\,\mathrm{Var}(G)=4\big(\langle G^2\rangle-\langle G\rangle^2\big), \tag{1}$$
@@ -162,7 +166,7 @@ def std_of_std(sigma, n):
 #
 # $$F_Q=2\sum_{m,n:\ \lambda_m+\lambda_n>0}\frac{(\lambda_m-\lambda_n)^2}{\lambda_m+\lambda_n}\,\vert\langle m\vert G\vert n\rangle\vert^2. \tag{2}$$
 #
-# From [31](./31_ramsey_interferometry.ipynb): the Ramsey protocol with a coherent spin state has $F=F_Q=N$ at every phase in
+# From [31](./31_ramsey_interferometry.ipynb): the Ramsey protocol with a coherent spin state has $F_C=F_Q=N$ at every phase in
 # the open interval $0<\varphi<\pi$, so $\Delta\varphi=1/\sqrt{NM}$ — the **standard quantum limit** (SQL) — and it is
 # saturated by counting excited atoms. (At the two fringe extrema $\varphi=0,\pi$ the binomial likelihood is degenerate, the
 # closed form is $0/0$, and the regularity assumptions behind the Cramer-Rao bound fail; notebook 31 discusses this, and
@@ -397,13 +401,13 @@ assert err_loc < 1e3 * TOL
 #
 # With the two-outcome distribution (8), $\partial_\varphi p_\pm=\mp\tfrac N2\sin(N\varphi)$ and
 #
-# $$F(\varphi)=\frac{(\partial_\varphi p_+)^2}{p_+}+\frac{(\partial_\varphi p_-)^2}{p_-}
+# $$F_C(\varphi)=\frac{(\partial_\varphi p_+)^2}{p_+}+\frac{(\partial_\varphi p_-)^2}{p_-}
 # =\frac{N^2}{4}\sin^2(N\varphi)\,\frac{1}{p_+p_-}
 # =\frac{N^2}{4}\sin^2(N\varphi)\,\frac{4}{1-\cos^2(N\varphi)}=N^2 \tag{11}$$
 #
 # for every $\varphi$, using $p_+p_-=\tfrac14(1-\cos^2 N\varphi)=\tfrac14\sin^2 N\varphi$. Comparing with Eq. (4),
 #
-# $$F(\varphi)=N^2=F_Q,$$
+# $$F_C(\varphi)=N^2=F_Q,$$
 #
 # so the parity measurement is **optimal**: it extracts the entire quantum Fisher information of the GHZ probe, at every
 # operating point, and the bound (5) is attainable.
@@ -414,9 +418,9 @@ assert err_loc < 1e3 * TOL
 # $(N^2\varphi/2)^2/(N^2\varphi^2/4)=N^2$ while the $p_+$ term vanishes. The limit exists, but the standard regularity
 # assumptions behind the Cramer-Rao bound (a strictly positive likelihood, an asymptotically normal estimator) fail at that
 # point: the estimator (12) is pinned against the edge of its range, so its distribution is one-sided and no longer Gaussian.
-# Second, and more practically, the flat $F=N^2$ is a property of *unit* contrast only. With any $C<1$ the same algebra gives
+# Second, and more practically, the flat $F_C=N^2$ is a property of *unit* contrast only. With any $C<1$ the same algebra gives
 #
-# $$F(\varphi)=\frac{N^2C^2\sin^2(N\varphi)}{1-C^2\cos^2(N\varphi)},$$
+# $$F_C(\varphi)=\frac{N^2C^2\sin^2(N\varphi)}{1-C^2\cos^2(N\varphi)},$$
 #
 # which **vanishes** at the extrema and peaks at mid-fringe — Section 10.2 uses this. Every experiment in this notebook is
 # therefore run at $N\varphi=\pi/2$, where the ideal and the noisy cases agree on where the information is.
@@ -493,12 +497,12 @@ print(f"contrast C = 0.6, N = 3, at the fringe maximum N phi = 0:  F = {f_ext:.3
 assert err_cfi < 1e-8 and f_ext < 1e-12
 
 # %% [markdown]
-# Parity signal and decoded single-atom probability match the derivations to machine precision, and $F=N^2=F_Q$ at every
+# Parity signal and decoded single-atom probability match the derivations to machine precision, and $F_C=N^2=F_Q$ at every
 # phase tested. Equation (5) is therefore attained by a concrete readout.
 #
 # The second table is the checkpoint that actually has power. The Fisher information computed by differentiating the
 # *simulated* fringe agrees with the closed form at unit contrast **and** at $C=0.6$, where the formula stops being a
-# constant: there $F$ drops from $N^2C^2$ at mid-fringe to $0$ at the extrema, and the last line prints that zero.
+# constant: there $F_C$ drops from $N^2C^2$ at mid-fringe to $0$ at the extrema, and the last line prints that zero.
 #
 # > **Numerical practice.** A checkpoint must be able to fail for the error it is supposed to catch. Comparing
 # > `cfi_parity(phi, N)` with $N^2$ cannot fail: at $C=1$ the expression $N^2(1-c^2)/(1-c^2)$ reduces to $N^2$ before any
@@ -538,7 +542,7 @@ fig.tight_layout(); plt.show()
 # half of the Fisher-information bookkeeping, though: the plotted Ramsey signal is the *average* of $N$ atoms, so one
 # repetition of it has variance $\sin^2\varphi/N$, while one repetition of the GHZ protocol is a single bounded $\pm1$ parity
 # bit of variance $\sin^2(N\varphi)$ — $N$ times more. Dividing the $N^2$ from the slopes by that $N$ leaves exactly the
-# factor $N$ between $F_Q=N$ and $F_Q=N^2$. (Check: $F=(\partial_\varphi s)^2/\mathrm{Var}(s)$ gives
+# factor $N$ between $F_Q=N$ and $F_Q=N^2$. (Check: $F_C=(\partial_\varphi s)^2/\mathrm{Var}(s)$ gives
 # $\sin^2\varphi/(\sin^2\varphi/N)=N$ for Ramsey and $N^2\sin^2(N\varphi)/\sin^2(N\varphi)=N^2$ for GHZ.) The right
 # panel also shows the price: the first zero crossing moves from $\varphi=\pi/2$ to $\varphi=\pi/(2N)$.
 
@@ -1005,6 +1009,264 @@ fig.tight_layout(); plt.show()
 # > the earlier stages of Section 9 are part of that price.
 
 # %% [markdown]
+# ### 9.1 Global estimation: the Bayesian posterior and a ladder of GHZ sizes
+#
+# Sections 6–8 are local: the Cramer-Rao bound (5) describes the scatter of the estimate inside one window and presumes
+# that the window is known ([notebook 29](./29_quantum_fisher_information.ipynb), Section 4.7). Without that knowledge the
+# natural object is the Bayesian posterior over the whole circle. Let shot $s$ use a GHZ probe of $N_s$ atoms and a control
+# phase $\theta_s$, applied as $R_z(-\theta_s)$ on one atom before the readout; it shifts the relative phase of Eq. (3) from
+# $N_s\varphi$ to $N_s\varphi-\theta_s$. By Eq. (8) the parity $x_s=\pm1$ then has the law below, and Bayes' rule with a
+# flat prior on $[0,2\pi)$ gives the posterior after $S$ shots,
+#
+# $$p(x_s\vert\varphi)=\frac{1+x_s\cos(N_s\varphi-\theta_s)}{2},\qquad
+# \pi(\varphi\vert x_1,\dots,x_S)=\frac{\prod_{s}p(x_s\vert\varphi)}{\int_0^{2\pi}\prod_{s}p(x_s\vert\varphi')\,d\varphi'} .
+# \tag{12b}$$
+#
+# On a grid of phases the logarithm of the product is a single matrix product of the outcome table with the table of
+# $\ln p_\pm$. The $j$-th of the $m$ shots taken with one probe size gets $\theta_j=j\pi/m$, the choice of Higgins and
+# co-workers (2009); it makes the likelihood non-even in $\varphi$ and removes the reflection $\varphi\to-\varphi$ discussed
+# above, so only the translations by $2\pi/N$ remain.
+#
+# **One probe size.** If every shot uses the same $N$, every factor of Eq. (12b) is invariant under
+# $\varphi\to\varphi+2\pi/N$, and so is the posterior, whatever the data. Each window $[2\pi j/N,2\pi(j+1)/N)$ carries
+# weight exactly $1/N$, and the circular mean is undefined, because $\langle e^{i\varphi}\rangle
+# =\langle e^{i\varphi}\rangle_{\text{window }0}\sum_{j=0}^{N-1}e^{2\pi ij/N}=0$. The maximum of the posterior lands on one
+# of $N$ equally high aliases; for a true phase uniform on the circle the offset $2\pi j/N$ between that alias and the true
+# phase is uniform in $j$, with wrapped distance $d_j=\tfrac{2\pi}{N}\min(j,N-j)$. For even $N$, using
+# $2\sum_{j=1}^{N/2-1}j^2=\tfrac{(N-2)(N-1)N}{12}$ and neglecting the width of each peak,
+#
+# $$\mathbb E[d^2]=\frac1N\sum_{j=0}^{N-1}d_j^2=\frac{4\pi^2}{N^3}\left[\frac{(N-2)(N-1)N}{12}+\frac{N^2}{4}\right]
+# =\frac{\pi^2(N^2+2)}{3N^2}. \tag{12c}$$
+#
+# The RMSE is $1.842$ rad for $N=8$, independent of the number of shots, and tends to $\pi/\sqrt3$, the RMSE of a phase
+# guessed uniformly at random, as $N$ grows.
+#
+# **A ladder of sizes.** Kitaev's procedure for measuring an eigenvalue of a unitary (1995) and its interferometric
+# versions — adaptive (Higgins *et al.* 2007), non-adaptive (Higgins *et al.* 2009), and the general theory for NOON states
+# and multi-pass interferometry (Berry *et al.* 2009) — remove the ambiguity with the sizes $N_k=2^k$, $k=0,\dots,K$: each
+# stage selects one window of the next. Higgins and co-workers (2009) found that the same number of shots at every stage
+# leaves a variance that stops decreasing, and that $M(K,k)=M_K+\mu(K-k)$ shots at stage $k$, with $M_K=2$ and $\mu=3$,
+# works robustly. We count as resources the total number of phase passes $R=\sum_sN_s$ (the same count for one atom passing
+# $N_s$ times, the multi-pass version). Each shot carries Fisher information $N_s^2$ at every phase, Eq. (11), so the
+# ladder's local bound is $1/\sqrt{F_{\mathrm{tot}}}$; with $\sum_{k=0}^K(K-k)2^k=2^{K+1}-K-2$ and
+# $\sum_{k=0}^K(K-k)4^k=(4^{K+1}-3K-4)/9$,
+#
+# $$R=M_K\big(2^{K+1}-1\big)+\mu\big(2^{K+1}-K-2\big),\qquad
+# F_{\mathrm{tot}}=\frac{M_K\big(4^{K+1}-1\big)}{3}+\frac{\mu\big(4^{K+1}-3K-4\big)}{9},\qquad
+# \frac{R}{\sqrt{F_{\mathrm{tot}}}}\xrightarrow[K\to\infty]{}\frac{3(M_K+\mu)}{\sqrt{3M_K+\mu}} . \tag{12d}$$
+#
+# A ladder that reaches its local bound therefore has $\mathrm{RMSE}\cdot R\to$ const, Heisenberg scaling; the constant is
+# $5$ for $M_K=2$, $\mu=3$, that is $1.59$ times the Heisenberg limit $\pi/R$ quoted by Higgins and co-workers, whose
+# simulations of this schedule up to $R=10^7$ give a standard deviation below $2.03\,\pi/R$. With $N\le8$ the ladder stops at $K=3$, far
+# from that limit, so the simulation below tests two narrower statements: whether the global estimate reaches
+# $1/\sqrt{F_{\mathrm{tot}}}$, and what that buys against the standard quantum limit at equal $R$. Every point is $2000$
+# independent experiments with their own true phase drawn uniformly from $[0,2\pi)$, and the estimate is the maximum of the
+# posterior on a grid of $2048$ phases.
+
+# %%
+# ==============================================================================
+# STEP 7b: Bayesian grid estimation -- one GHZ size against a ladder of sizes 1, 2, 4, 8
+# ==============================================================================
+def offset_parity_engine(N, phi, theta):
+    """<X^{(x)N}> of the encoded GHZ probe after an extra R_z(-theta) on atom 0; Eq. (12b) says cos(N phi - theta)."""
+    return expect_pauli_string(apply_gate(ghz_encoded(N, phi), rz(-theta), [0]), "X" * N)
+
+
+def ladder_schedule(K, MK, mu):
+    """Measurement groups (N, theta, shots) of the non-adaptive ladder, Eq. (12d): stage k = 0..K uses N_k = 2^k and
+    M(K,k) = MK + mu (K-k) shots, the j-th read out with the offset theta = j pi / M(K,k).  Rows (N, theta, 1)."""
+    groups = []
+    for k in range(K + 1):
+        m = MK + mu * (K - k)
+        groups += [(2.0 ** k, j * np.pi / m, 1) for j in range(m)]
+    return np.array(groups)
+
+
+def single_schedule(N, m):
+    """m shots of one probe size N, offsets theta_j = j pi / m."""
+    return np.array([(float(N), j * np.pi / m, 1) for j in range(m)])
+
+
+G_B = 2048                                        # grid points on [0, 2 pi); divisible by every N_k <= 8
+GRID_B = jnp.arange(G_B) * (2 * np.pi / G_B)
+
+
+def log_posterior(counts, sched):
+    """Log-posterior on GRID_B (flat prior, up to a constant) for every row of +1 counts, Eq. (12b).
+    MATH  ln pi(phi|D) = sum_g [k_g ln p_+(phi; N_g, theta_g) + (m_g - k_g) ln p_-(phi; N_g, theta_g)]
+    COST  one (runs x groups) @ (groups x G) matrix product."""
+    N, th, m = (jnp.asarray(sched[:, i])[:, None] for i in range(3))
+    c = jnp.cos(N * GRID_B[None, :] - th)
+    lp, lm = jnp.log(jnp.clip((1 + c) / 2, 1e-300)), jnp.log(jnp.clip((1 - c) / 2, 1e-300))
+    return counts @ (lp - lm) + jnp.sum(m * lm, axis=0)[None, :]
+
+
+def sample_counts(key, phi, sched):
+    """Number of +1 parity outcomes in every group, for each true phase in `phi` (binomial, Eq. (12b))."""
+    N, th, m = (jnp.asarray(sched[:, i])[None, :] for i in range(3))
+    p_plus = (1 + jnp.cos(N * phi[:, None] - th)) / 2
+    return jax.random.binomial(key, jnp.broadcast_to(m, p_plus.shape), p_plus).astype(RDTYPE)
+
+
+def map_errors(key, sched, runs):
+    """`runs` independent experiments, each with its own true phase drawn uniformly from [0, 2 pi):
+    sample, build the posterior, return the wrapped error of the maximum-a-posteriori estimate."""
+    k_phi, k_shot = jax.random.split(key)
+    phi = jax.random.uniform(k_phi, (runs,), maxval=2 * np.pi)
+    est = GRID_B[jnp.argmax(log_posterior(sample_counts(k_shot, phi, sched), sched), axis=1)]
+    return np.asarray(jnp.angle(jnp.exp(1j * (est - phi))))
+
+
+def rmse_with_error(d):
+    """RMSE of wrapped errors d and its standard error, se(MSE)/(2 RMSE)."""
+    mse = np.mean(d ** 2)
+    return np.sqrt(mse), np.std(d ** 2, ddof=1) / np.sqrt(len(d)) / (2 * np.sqrt(mse))
+
+
+def resources(sched):
+    """Total phase passes R = sum m N and total Fisher information F_tot = sum m N^2 (Eq. (11) per shot)."""
+    return float(np.sum(sched[:, 2] * sched[:, 0])), float(np.sum(sched[:, 2] * sched[:, 0] ** 2))
+
+
+# --- CHECKPOINT 1: the offset likelihood (12b) from the state vector ------------------------------------
+err_off = max(abs(float(offset_parity_engine(N, ph, th)) - np.cos(N * ph - th))
+              for N in (1, 2, 4, 8) for ph in (0.3, 2.1, 5.0) for th in (0.0, np.pi / 4, np.pi / 2))
+print(f"largest |<X..X> engine - cos(N phi - theta)|, N = 1, 2, 4, 8: {err_off:.1e}")
+assert err_off < 1e3 * TOL
+
+# --- CHECKPOINT 2: resource count and Fisher information of the ladder, Eq. (12d) ----------------------
+MK_L, MU_L = 2, 3                                 # the schedule of Higgins et al. (2009)
+R_closed = lambda K, MK, mu: MK * (2 ** (K + 1) - 1) + mu * (2 ** (K + 1) - K - 2)
+F_closed = lambda K, MK, mu: MK * (4 ** (K + 1) - 1) / 3 + mu * (4 ** (K + 1) - 3 * K - 4) / 9
+for K in range(8):
+    R, F = resources(ladder_schedule(K, MK_L, MU_L))
+    assert R == R_closed(K, MK_L, MU_L) and abs(F - F_closed(K, MK_L, MU_L)) < 1e-6
+lim = 3 * (MK_L + MU_L) / np.sqrt(3 * MK_L + MU_L)
+r40 = R_closed(40, MK_L, MU_L) / np.sqrt(F_closed(40, MK_L, MU_L))
+print("R / sqrt(F_tot) for K = 0..3: " + ", ".join(f"{R_closed(K, MK_L, MU_L) / np.sqrt(F_closed(K, MK_L, MU_L)):.3f}"
+                                                    for K in range(4))
+      + f";  K = 40: {r40:.6f};  limit 3(M_K+mu)/sqrt(3M_K+mu) = {lim:.6f}")
+assert abs(r40 / lim - 1) < 1e-6
+
+# --- one experiment of each kind: the posterior itself ---------------------------------------------------
+PHI_DEMO = 2.0
+demo = {}
+for i, (name, sched) in enumerate({"GHZ N=8 only": single_schedule(8, 8),
+                                   "ladder 1,2,4,8": ladder_schedule(3, MK_L, MU_L)}.items()):
+    lp = log_posterior(sample_counts(jax.random.PRNGKey(400 + i), jnp.array([PHI_DEMO]), sched), sched)[0]
+    w = jnp.exp(lp - lp.max()); w = w / w.sum()
+    z = jnp.sum(w * jnp.exp(1j * GRID_B))                       # posterior circular moment <e^{i phi}>
+    win = np.asarray(w).reshape(8, -1).sum(axis=1)              # weight of each window [2 pi j/8, 2 pi (j+1)/8)
+    demo[name] = np.asarray(w) * G_B / (2 * np.pi)              # posterior density
+    print(f"{name:>15s}: R = {int(resources(sched)[0]):3d};  |<e^(i phi)>| = {float(jnp.abs(z)):.2e},  "
+          + (f"circular mean = {float(jnp.angle(z)) % (2 * np.pi):.4f} (true {PHI_DEMO}),  " if float(jnp.abs(z)) > 1e-6
+             else "circular mean undefined,  ")
+          + f"weight per window of width 2pi/8: " + " ".join(f"{x:.3f}" for x in win))
+    if name.startswith("GHZ"):
+        assert float(jnp.abs(z)) < 1e-10 and np.max(np.abs(win - 1 / 8)) < 1e-10      # Eq. (12c), first step
+
+# --- the sweep: RMSE against total resources R ------------------------------------------------------------
+RUNS_B = 2000
+cases = ([("Ramsey, N=1", single_schedule(1, m)) for m in (2, 8, 32, 128, 512)]
+         + [("GHZ N=8 only", single_schedule(8, m)) for m in (2, 8, 32)]
+         + [("ladder M_K=2, mu=3", ladder_schedule(K, MK_L, MU_L)) for K in range(4)]
+         + [("ladder K=3, M_K>2", ladder_schedule(3, MK, MU_L)) for MK in (4, 8, 16, 32)]
+         + [("ladder M_K=2, mu=0", ladder_schedule(K, 2, 0)) for K in range(1, 4)])
+t0 = time.time()
+sweep = []
+print(f"\n{RUNS_B} runs per point (independent key per point), MAP estimate on {G_B} grid phases\n")
+print(f"{'scheme':>20s} {'R':>5s} {'RMSE':>8s} {'+- se':>7s} {'RMSE sqrt(R)':>13s} {'RMSE R/pi':>10s} "
+      f"{'RMSE sqrt(F_tot)':>17s}")
+for i, (name, sched) in enumerate(cases):
+    r, se = rmse_with_error(map_errors(jax.random.fold_in(jax.random.PRNGKey(909), i), sched, RUNS_B))
+    R, F = resources(sched)
+    sweep.append((name, R, r, se, F))
+    print(f"{name:>20s} {int(R):5d} {r:8.4f} {se:7.4f} {r * np.sqrt(R):13.3f} {r * R / np.pi:10.3f} {r * np.sqrt(F):17.3f}")
+print(f"sweep took {time.time() - t0:.1f} s")
+
+floor8 = np.pi * np.sqrt((8 ** 2 + 2) / (3 * 8 ** 2))
+z_floor = [(s[2] - floor8) / s[3] for s in sweep if s[0] == "GHZ N=8 only"]
+print(f"\nGHZ N=8 only against Eq. (12c), pi sqrt((N^2+2)/(3N^2)) = {floor8:.4f}: deviations "
+      + ", ".join(f"{z:+.1f}" for z in z_floor) + " se")
+assert max(abs(z) for z in z_floor) < 4
+
+# --- what the ladder buys, and the control without extra early shots ------------------------------------
+pick = lambda name: [s for s in sweep if s[0] == name]
+lad, lad_big, ram, fixed = pick("ladder M_K=2, mu=3"), pick("ladder K=3, M_K>2"), pick("Ramsey, N=1"), pick("ladder M_K=2, mu=0")
+gain = ram[-1][2] / lad_big[-1][2]
+se_gain = gain * np.hypot(ram[-1][3] / ram[-1][2], lad_big[-1][3] / lad_big[-1][2])
+print(f"RMSE sqrt(F_tot) along the ladder: " + ", ".join(f"{s[2] * np.sqrt(s[4]):.2f}" for s in lad + lad_big))
+print(f"R = {int(lad_big[-1][1])}: ladder {lad_big[-1][2]:.4f}, Ramsey (R = {int(ram[-1][1])}) {ram[-1][2]:.4f}, "
+      f"gain {gain:.2f} +- {se_gain:.2f}  (sqrt(8) = {np.sqrt(8):.2f} with the window known)")
+print(f"fixed M = 2 at every stage, K = 1, 2, 3: RMSE " + ", ".join(f"{s[2]:.3f}" for s in fixed)
+      + f"  (with mu = 3: " + ", ".join(f"{s[2]:.3f}" for s in lad[1:]) + ")")
+assert all(s[2] * np.sqrt(s[4]) < 1.2 for s in lad_big[-2:])          # the ladder reaches 1/sqrt(F_tot) within 20%
+assert gain - 1.8 > 4 * se_gain                                       # and beats the SQL at equal R
+assert all(s[2] > 0.6 for s in fixed) and fixed[-1][2] > 5 * lad[-1][2]   # WRONG CONTROL: no early repetitions
+
+# %%
+# ==============================================================================
+# FIGURE 3b: the posterior of one experiment, and the RMSE against total resources
+# ==============================================================================
+fig, axes = plt.subplots(1, 2, figsize=(11.5, 4.2))
+axes[0].plot(np.asarray(GRID_B), demo["GHZ N=8 only"], color=PALETTE[1], lw=1.5, label=r"GHZ $N=8$ only, $R=64$")
+axes[0].plot(np.asarray(GRID_B), demo["ladder 1,2,4,8"], color=PALETTE[2], lw=1.5,
+             label=r"ladder $N_k=1,2,4,8$, $R=63$")
+axes[0].axvline(PHI_DEMO, color="k", ls="--", lw=1.2, label=r"true $\varphi$")
+axes[0].set_xticks([0, np.pi / 2, np.pi, 3 * np.pi / 2, 2 * np.pi])
+axes[0].set_xticklabels(["0", r"$\pi/2$", r"$\pi$", r"$3\pi/2$", r"$2\pi$"])
+axes[0].set_xlabel(r"$\varphi$ [rad]"); axes[0].set_ylabel(r"posterior density $\pi(\varphi\vert D)$")
+axes[0].set_title("One experiment, flat prior on $[0,2\\pi)$")
+axes[0].legend(fontsize=8)
+
+STYLE = {"Ramsey, N=1": (PALETTE[0], "s", r"Ramsey, $N=1$"),
+         "GHZ N=8 only": (PALETTE[1], "o", r"GHZ $N=8$ only"),
+         "ladder M_K=2, mu=3": (PALETTE[2], "^", r"ladder, $M_K=2$, $\mu=3$, $K=0\dots3$"),
+         "ladder K=3, M_K>2": (PALETTE[3], "D", r"ladder, $K=3$, $M_K=4\dots32$"),
+         "ladder M_K=2, mu=0": (PALETTE[4], "v", r"ladder, $M=2$ at every stage")}
+for name, (col, mk, lab) in STYLE.items():
+    rows = pick(name)
+    axes[1].errorbar([s[1] for s in rows], [s[2] for s in rows], yerr=[s[3] for s in rows], fmt=mk + "-",
+                     color=col, ms=5, lw=1.0, capsize=2, label=lab)
+RR = np.logspace(0, 2.9, 100)
+axes[1].plot(RR, 1 / np.sqrt(RR), "k--", lw=1.2, label=r"SQL $1/\sqrt{R}$")
+axes[1].plot(RR, np.pi / RR, "k:", lw=1.6, label=r"Heisenberg $\pi/R$")
+axes[1].plot(RR, 1 / np.sqrt(8 * RR), color="0.5", ls="-.", lw=1.2, label=r"$N=8$, window known: $1/\sqrt{8R}$")
+axes[1].axhline(floor8, color=PALETTE[1], ls=":", lw=1.2)
+axes[1].set_xscale("log"); axes[1].set_yscale("log")
+axes[1].set_xlabel(r"total phase passes $R=\sum_s N_s$"); axes[1].set_ylabel("RMSE of the MAP estimate [rad]")
+axes[1].set_title("Global phase estimation")
+axes[1].legend(fontsize=7, loc="lower left")
+fig.tight_layout(); plt.show()
+
+# %% [markdown]
+# The engine reproduces the shifted fringe of Eq. (12b) to $4\cdot10^{-15}$, and the resource count and Fisher information
+# of Eq. (12d) are exact. For the single GHZ size the posterior of the left panel has eight equal peaks, each window holds
+# weight $0.125$, and $\vert\langle e^{i\varphi}\rangle\vert=10^{-15}$, while the ladder with almost the same resources
+# ($R=63$ against $64$) puts weight $1.000$ in one window, with circular mean $2.10$ for a true phase $2$.
+#
+# In the right panel the single size stays at RMSE $1.80$–$1.85$ from $R=16$ to $R=256$, within $2.3$ standard errors of
+# Eq. (12c): more shots sharpen every peak and leave the choice among the eight of them uniform. The value at $R=16$
+# lies lowest because the peaks are still broad there: a finite width pulls the MSE from Eq. (12c) towards
+# $\pi^2/3$, the value for a phase guessed at random. Ramsey with single atoms follows
+# $1/\sqrt R$, with $\mathrm{RMSE}\sqrt R=1.03$ at $R=128$ and $512$. The ladder with $M_K=2$, $\mu=3$ goes from RMSE $0.82$ at
+# $R=2$ to $0.086$ at $R=63$, with $\mathrm{RMSE}\cdot\sqrt{F_{\mathrm{tot}}}$ between $1.15$ and $1.66$. Its
+# $\mathrm{RMSE}\cdot R/\pi$ still grows, $0.52$, $1.32$, $1.48$, $1.73$, because $R/\sqrt{F_{\mathrm{tot}}}$ itself grows,
+# $1.41$, $2.50$, $3.36$, $3.98$, towards its limit $5$: at $K\le3$ the shots spent on the small sizes are not yet a
+# negligible fraction of $R$. Raising $M_K$ at $K=3$ shows the other side of the cap $N\le8$. The RMSE then approaches a
+# $1/\sqrt R$ law ($\mathrm{RMSE}\sqrt R=0.59$, $0.52$, $0.48$, $0.46$), a factor $2.21\pm0.05$ below Ramsey at $R\simeq512$, and
+# $\mathrm{RMSE}\cdot\sqrt{F_{\mathrm{tot}}}$ approaches $1$ ($1.26$, $1.16$, $1.10$, $1.08$): once enough shots resolve
+# every stage, the ambiguity costs no more than the Fisher information spent on $N=1,2,4$. A GHZ state of eight atoms with
+# the window known in advance would reach $1/\sqrt{8R}$, a gain of $\sqrt8=2.83$; the measured $2.21$ is that gain times
+# Ramsey's own excess $1.026$ over $1/\sqrt R$, divided by $\sqrt{8R/F_{\mathrm{tot}}}=1.21$ and by the residual $8\%$
+# excess of the ladder over its local bound.
+#
+# The control without extra shots at the early stages ($M=2$ at every stage) stays at RMSE $0.75$–$0.79$ for $K=1,2,3$,
+# against $0.46$, $0.18$, $0.086$ with $\mu=3$, which is the plateau Higgins and co-workers describe: a wrong decision at
+# stage $k$ costs an error of order $\pi/2^k$, and the probability of making it does not shrink unless stage $k$ gets more
+# shots than the stages after it.
+
+# %% [markdown]
 # ## 10. Decoherence during the interrogation: closed forms
 #
 # Three single-qubit channels act independently on each atom during the interrogation. All three **commute** with the encoding
@@ -1039,7 +1301,7 @@ fig.tight_layout(); plt.show()
 #
 # With contrast $C$, the outcome distribution is $p_\pm=(1\pm C\cos N\varphi)/2$ and the classical Fisher information is
 #
-# $$F(\varphi)=\frac{N^2C^2\sin^2(N\varphi)}{1-C^2\cos^2(N\varphi)},\qquad \max_\varphi F=N^2C^2\ \text{ at }\ N\varphi=\frac\pi2,$$
+# $$F_C(\varphi)=\frac{N^2C^2\sin^2(N\varphi)}{1-C^2\cos^2(N\varphi)},\qquad \max_\varphi F_C=N^2C^2\ \text{ at }\ N\varphi=\frac\pi2,$$
 #
 # (the same expression as notebook 31's noisy Ramsey fringe with $\varphi\to N\varphi$ and an extra $N^2$; the maximum
 # follows the same way: writing $u=\cos N\varphi$, $\partial_uF\propto-u(1-C^2)$, so the extremum is at $u=0$). At the
@@ -1089,7 +1351,7 @@ fig.tight_layout(); plt.show()
 # 3. **Parity registers $t<1$ only as a loss of contrast.** The leaked population is diagonal and has no
 #    $\vert s\rangle\langle\bar s\vert$ coherence, so it contributes $\pm1$ to $X^{\otimes N}$ with probability $\tfrac12$
 #    each: a $\varphi$-independent background. The parity distribution is $p_\pm=(1\pm C\cos N\varphi)/2$ with
-#    $F=N^2C^2$ at mid-fringe, against $F_Q=N^2C^2/t$.
+#    $F_C=N^2C^2$ at mid-fringe, against $F_Q=N^2C^2/t$.
 #
 # The ratio is therefore exactly
 #
@@ -1423,16 +1685,10 @@ assert max(abs(d) for d in dev_nz) < 4
 # the interrogation. The experimenter is left with the reduced state of the remaining $N-1$ atoms, and the phase they can
 # estimate is the one imprinted on *those* atoms, i.e. with generator $J_z^{(N-1)}$.
 #
-# For the GHZ state, tracing out atom $N-1$ gives
-#
-# $$\rho_{N-1}=\mathrm{Tr}_{N-1}\vert\mathrm{GHZ}(\varphi)\rangle\langle\mathrm{GHZ}(\varphi)\vert
-# =\frac12\big(\vert\bar0\rangle\langle\bar0\vert+\vert\bar1\rangle\langle\bar1\vert\big),$$
-#
-# because the lost atom's state is $\vert0\rangle$ in one branch and $\vert1\rangle$ in the other, and those are orthogonal:
-# the trace kills the coherence completely. The survivor is a **classical mixture**, diagonal in the eigenbasis of
-# $J_z^{(N-1)}$. In the SLD formula (2) every pair then has either $\lambda_m=\lambda_n$ (vanishing numerator) or
-# $\langle m\vert G\vert n\rangle=0$, because a generator diagonal in the computational basis cannot connect two different
-# basis states. Hence
+# For the GHZ state the result is derived in [notebook 29](./29_quantum_fisher_information.ipynb), Section 10.1,
+# Eqs. (107)–(108): the lost atom is $\vert0\rangle$ in one branch and $\vert1\rangle$ in the other, so the partial trace
+# kills the coherence and leaves the classical mixture $\tfrac12\big(\vert\bar0\rangle\langle\bar0\vert+\vert\bar1\rangle\langle\bar1\vert\big)$,
+# which commutes with $J_z^{(N-1)}$ and does not change under the encoding:
 #
 # $$F_Q=0\ \text{ exactly.}$$
 #
@@ -2196,7 +2452,10 @@ for N in (4, 6, 8):
 #   $17$ standard errors at $M=10$.
 # * **Range for resolution.** $\cos(N\varphi)$ has $N$ maxima per $2\pi$, and the likelihood of a generic record has $2N$;
 #   the unambiguous window shrinks from $\pi$ to $\pi/N$, exactly the factor gained. Two phases differing by $2\pi/N$ produce
-#   statistically identical records.
+#   statistically identical records. With a flat prior on the whole circle a single GHZ size $N=8$ leaves an RMSE of
+#   $1.80$–$1.85$ rad at every number of shots, as Eq. (12c) predicts, while a Bayesian ladder of sizes $1,2,4,8$ with $32$
+#   shots at $N=8$ comes within $8\%$ of its local Cramer-Rao bound and beats the standard quantum limit by
+#   $2.21\pm0.05$ at $R\simeq512$ phase passes. Heisenberg scaling of the ladder, Eq. (12d), needs larger $K$.
 # * **Fragility is exponential in $N$.** Contrasts $(1-2p)^N$, $\lambda^N$, $(1-g)^{N/2}$, all verified against exact Kraus
 #   evolution to $4\cdot10^{-16}$. All three channels leave the state diagonal apart from the single coherence
 #   $\rho_{\bar0\bar1}$, which gives the closed form $F_Q=N^2C^2/t$ with $t=\rho_{\bar0\bar0}+\rho_{\bar1\bar1}$, Eqs. (16a)
@@ -2280,6 +2539,14 @@ for N in (4, 6, 8):
 #   constant factor; the dephasing bound used in Eq. (21a) is in their Table I.
 # * B. L. Higgins, D. W. Berry, S. D. Bartlett, H. M. Wiseman and G. J. Pryde, *Entanglement-free Heisenberg-limited phase
 #   estimation*, Nature **450**, 393 (2007) — adaptive multi-pass phase estimation (Section 9).
+# * B. L. Higgins, D. W. Berry, S. D. Bartlett, M. W. Mitchell, H. M. Wiseman and G. J. Pryde, *Demonstrating
+#   Heisenberg-limited unambiguous phase estimation without adaptive measurements*, New J. Phys. **11**, 073023 (2009) —
+#   the non-adaptive ladder with $M(K,k)=M_K+\mu(K-k)$ shots per stage used in Section 9.1.
+# * D. W. Berry, B. L. Higgins, S. D. Bartlett, M. W. Mitchell, G. J. Pryde and H. M. Wiseman, *How to perform the most
+#   accurate possible phase measurements*, Phys. Rev. A **80**, 052114 (2009) — the theory of removing the phase ambiguity
+#   of NOON-state and multi-pass interferometry within a constant factor of the Heisenberg limit.
+# * A. Yu. Kitaev, *Quantum measurements and the Abelian Stabilizer Problem*, arXiv:quant-ph/9511026 (1995) — the
+#   procedure for measuring an eigenvalue of a unitary operator from which the ladder descends.
 # * E. M. Kessler, P. Kómár, M. Bishof, L. Jiang, A. S. Sørensen, J. Ye and M. D. Lukin, *Heisenberg-limited atom clocks
 #   based on entangled qubits*, Phys. Rev. Lett. **112**, 190403 (2014) — cascaded GHZ states of increasing size (Section 9).
 # * E. M. Kessler, I. Lovchinsky, A. O. Sushkov and M. D. Lukin, *Quantum error correction for metrology*, Phys. Rev. Lett.

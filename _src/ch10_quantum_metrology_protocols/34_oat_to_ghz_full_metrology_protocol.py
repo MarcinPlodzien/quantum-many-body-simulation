@@ -94,6 +94,9 @@
 # * [07 — density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb):
 #   density tensors, Kraus channels.
 #
+# **What comes next.** [35 — scrambling a metrological probe](../ch10_quantum_metrology_protocols/35_oat_plus_haar_scrambling.ipynb)
+# asks what is left of these probes after a unitary scrambles them.
+#
 # **Conventions.** $J_a=\tfrac12\sum_q\sigma^a_q$; $\vert0\rangle$ is the $+1$ eigenstate of $Z$; the twisting angle is
 # $\mu=\chi t$ and the propagator is $e^{-i\mu J_z^2}$. SQL $=N$, Heisenberg limit $=N^2$.
 
@@ -178,7 +181,7 @@ print("helpers ready")
 # | stage | Ramsey (nb 31) | GHZ (nb 32) | this notebook |
 # |---|---|---|---|
 # | prepare | $\vert+x\rangle^{\otimes N}$ | $\left(\vert0\rangle^{\otimes N}+\vert1\rangle^{\otimes N}\right)/\sqrt2$ | $e^{-i\mu J_z^2}\vert+x\rangle^{\otimes N}$ |
-# | encode | $e^{-i\phi J_z}$ | $e^{-i\theta J_z}$ | $e^{-i\theta\,\mathbf n\cdot\mathbf J}$, $\mathbf n$ optimal |
+# | encode | $e^{-i\theta J_z}$ | $e^{-i\theta J_z}$ | $e^{-i\theta\,\mathbf n\cdot\mathbf J}$, $\mathbf n$ optimal |
 # | read out | population imbalance | parity in the $X$ basis | parity in the $Z$ basis |
 # | ideal $F_Q$ | $N$ | $N^2$ | $N$ to $N^2$, depending on $\mu$ |
 #
@@ -193,7 +196,7 @@ print("helpers ready")
 # collective generator $G=\mathbf n\cdot\mathbf J$ this is the quadratic form $F_Q(\mathbf n)=\mathbf n^{\mathsf T}\mathcal F\mathbf n$
 # with $\mathcal F_{ab}=4C_{ab}$; the best direction is the top eigenvector of $\mathcal F$.
 #
-# **(b) Ramsey and GHZ** (notebooks 31, 32). A coherent spin state reaches $\Delta\phi=1/\sqrt{NM}$ — the standard
+# **(b) Ramsey and GHZ** (notebooks 31, 32). A coherent spin state reaches $\Delta\theta=1/\sqrt{NM}$ — the standard
 # quantum limit; a GHZ state encoded with $J_z$ and read out with the parity $\prod_qX_q$ reaches $\Delta\theta=1/(N\sqrt M)$
 # — the Heisenberg limit. The GHZ fringe has period $2\pi/N$, so the phase is only determined modulo $2\pi/N$ unless one
 # already knows it that well.
@@ -726,14 +729,14 @@ fig.tight_layout(); plt.show()
 #
 # ### 8.1 The fringe
 #
-# Take the cat $\vert C\rangle=\left(e^{-i\pi/4}\vert{+}\mathbf n\rangle^{\otimes N}+\epsilon\,e^{+i\pi/4}\vert{-}\mathbf n\rangle^{\otimes N}\right)/\sqrt2$
+# Take the cat $\vert C\rangle=\left(e^{-i\pi/4}\vert{+}\mathbf n\rangle^{\otimes N}+\eta\,e^{+i\pi/4}\vert{-}\mathbf n\rangle^{\otimes N}\right)/\sqrt2$
 # with $\mathbf n$ the cat axis ($\hat x$ for even $N$, $\hat y$ for odd $N$, as Section 4 proved and Section 6 confirmed
-# numerically) and $\epsilon=\pm1$: Eq. (3) has exactly this form with $\epsilon=(-1)^{N/2}$, and Eq. (5) has it up to a
-# global phase with $\epsilon=(-1)^{(N-1)/2}$. Encode the phase with the optimal generator $G=\mathbf n\cdot\mathbf J$. Since
+# numerically) and $\eta=\pm1$: Eq. (3) has exactly this form with $\eta=(-1)^{N/2}$, and Eq. (5) has it up to a
+# global phase with $\eta=(-1)^{(N-1)/2}$. Encode the phase with the optimal generator $G=\mathbf n\cdot\mathbf J$. Since
 # $\vert\pm\mathbf n\rangle^{\otimes N}$ are eigenstates of $G$ with eigenvalues $\pm N/2$,
 #
 # $$e^{-i\theta G}\vert C\rangle=\frac{1}{\sqrt2}\left(e^{-i\theta N/2}e^{-i\pi/4}\vert{+}\mathbf n\rangle^{\otimes N}
-#  +e^{+i\theta N/2}\epsilon\,e^{+i\pi/4}\vert{-}\mathbf n\rangle^{\otimes N}\right). \tag{6}$$
+#  +e^{+i\theta N/2}\eta\,e^{+i\pi/4}\vert{-}\mathbf n\rangle^{\otimes N}\right). \tag{6}$$
 #
 # The two branches acquire a **relative phase $N\theta$**: the whole point of the Heisenberg limit is this factor $N$,
 # which comes from $N$ particles each collecting $\theta$ *coherently*.
@@ -1486,7 +1489,7 @@ for N, vals in frag_rows:
 #
 # which is the quantum Cramér–Rao bound and, for the readouts of notebooks 31, 32 and Section 8, also the achieved value.
 #
-# * **Ramsey** (nb 31): $\vert+x\rangle^{\otimes N}$, $F_Q=N$, $\Delta\phi\sqrt M=1/\sqrt N$.
+# * **Ramsey** (nb 31): $\vert+x\rangle^{\otimes N}$, $F_Q=N$, $\Delta\theta\sqrt M=1/\sqrt N$.
 # * **Squeezed** (nb 33): the OAT state at the optimal $\mu$, $F_Q\ge N/\xi_R^2$ with $\xi_R^2\sim N^{-2/3}$.
 # * **Ideal GHZ** (nb 32): $F_Q=N^2$, $\Delta\theta\sqrt M=1/N$.
 # * **OAT cat** (this notebook): the same $F_Q=N^2$, prepared by letting the *same* interaction run to $\mu=\pi/2$.
@@ -2246,8 +2249,6 @@ fig.tight_layout(); plt.show()
 #   $F_Q=13.6$, while the cat at $\mu=\pi/2$ has fallen to $4.47$, below the standard quantum limit $N=6$.
 # * The unitary/dissipative splitting is first order in $\delta\mu$; the $32$-step value used in the sweeps is about
 #   $6\%$ below the Richardson extrapolation.
-# * Under depolarising noise the exact cat-axis law is Eq. (14); the geometric law (14a) misses the term $(2\gamma/3)^N$
-#   of the pair population, a relative error $[2\gamma/(3-2\gamma)]^N$ that the table resolves at its predicted size.
 # * The readouts actually used, $N=8$: before the eigenvalue crossing the parity along the mean spin saturates $F_Q$ as
 #   $\theta\to0$ (Eq. 17, verified to $6\times10^{-6}$); on the plateau no parity on the searched axes does (down to
 #   $0.37\,F_Q$ on the grid) and the best

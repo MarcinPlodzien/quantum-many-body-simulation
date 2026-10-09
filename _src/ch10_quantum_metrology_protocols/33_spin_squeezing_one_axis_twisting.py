@@ -11,8 +11,9 @@
 #
 # after $M$ repetitions. This is the **standard quantum limit** (SQL). It is set by the projection noise of $N$
 # independent coin flips, so better electronics cannot remove it, and atomic clocks and atom interferometers are designed
-# to operate at it. Going *below* it requires the atoms to be correlated, and a simple way to correlate them is to let them
-# interact with each other for a short time.
+# to operate at it ([notebook 31](../ch10_quantum_metrology_protocols/31_ramsey_interferometry.ipynb)). Going *below* it
+# requires correlated atoms. The GHZ state of [notebook 32](../ch10_quantum_metrology_protocols/32_ghz_interferometry_heisenberg_limit.ipynb)
+# is the extreme and most fragile case; a gentler way is to let the atoms interact with each other for a short time.
 #
 # The interaction we study is the simplest one imaginable: every pair of spins feels the same $Z_iZ_j$ coupling. The
 # resulting Hamiltonian, $H=\chi J_z^2$, is called **one-axis twisting** (OAT). It was introduced by Kitagawa and Ueda in

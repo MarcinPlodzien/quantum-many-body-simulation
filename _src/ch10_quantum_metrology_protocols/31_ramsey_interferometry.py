@@ -94,9 +94,12 @@
 #   density tensors, Kraus operators;
 # * [08 — measurements](../ch03_matrix_free_engine/08_measurements.ipynb): the Born rule and sampling bit strings;
 # * [29 — quantum Fisher information](./29_quantum_fisher_information.ipynb): estimators, classical Fisher information, the
-#   Cramer-Rao bound, $F_Q=4\,\mathrm{Var}(J)$ for pure states;
+#   Cramer-Rao bound, $F_Q=4\,\mathrm{Var}(G)$ for pure states;
 # * [30 — QFI from the SLD: prepare, encode, estimate](./30_qfi_from_the_sld_prepare_encode_estimate.ipynb): the
 #   symmetric-logarithmic-derivative formula for mixed states, which we use in Section 15.
+#
+# **What comes next.** [32 — GHZ interferometry and the Heisenberg limit](./32_ghz_interferometry_heisenberg_limit.ipynb)
+# replaces the coherent spin state by a GHZ state and reaches $\Delta\varphi=1/(N\sqrt M)$.
 #
 # **Conventions.** Atom $q$ = tensor axis $q$, counted from $0$. The ground state is $\vert0\rangle$, the $+1$ eigenstate of $Z$;
 # the excited state is $\vert1\rangle$. Collective spin operators are $J_a=\tfrac12\sum_q\sigma^a_q$ with $a=x,y,z$, so that
@@ -166,22 +169,22 @@ def std_of_std(sigma, n):
 #
 # **(ii) Classical Fisher information.** For a probability distribution $p(x\vert\varphi)$,
 #
-# $$F(\varphi)=\sum_x\frac{1}{p(x\vert\varphi)}\left(\frac{\partial p(x\vert\varphi)}{\partial\varphi}\right)^{\!2}. \tag{1}$$
+# $$F_C(\varphi)=\sum_x\frac{1}{p(x\vert\varphi)}\left(\frac{\partial p(x\vert\varphi)}{\partial\varphi}\right)^{\!2}. \tag{1}$$
 #
-# It is **additive** over independent repetitions: $M$ repetitions of the same experiment carry $MF$.
+# It is **additive** over independent repetitions: $M$ repetitions of the same experiment carry $MF_C$.
 #
 # **(iii) Cramer-Rao bound.** Every unbiased estimator obeys
 #
-# $$\Delta\varphi\ \ge\ \frac{1}{\sqrt{M\,F(\varphi)}}. \tag{2}$$
+# $$\Delta\varphi\ \ge\ \frac{1}{\sqrt{M\,F_C(\varphi)}}. \tag{2}$$
 #
 # The bound holds under two conditions (notebook 29, Section 4.7): the estimator is (locally) unbiased,
 # $\partial_\varphi\mathbb E[\hat\varphi]=1$ at the working point, and the model is *regular* there, meaning that the set of
 # outcomes with non-zero probability does not change with $\varphi$. It is *attainable* asymptotically: under the same
 # regularity conditions the maximum-likelihood estimator has a bias that falls like $1/M$ and a variance that approaches
-# $1/(MF)$ as $M\to\infty$. Both conditions fail somewhere in this notebook (Sections 7.1 and 13), and the bias at finite
+# $1/(MF_C)$ as $M\to\infty$. Both conditions fail somewhere in this notebook (Sections 7.1 and 13), and the bias at finite
 # $M$ is measured in Section 11.1.
 #
-# **(iv) Quantum Fisher information.** Maximising $F$ over all possible measurements of the state $\rho_\varphi$ gives the
+# **(iv) Quantum Fisher information.** Maximising $F_C$ over all possible measurements of the state $\rho_\varphi$ gives the
 # quantum Fisher information $F_Q[\rho_\varphi]$, and hence $\Delta\varphi\ge1/\sqrt{MF_Q}$ (the *quantum* Cramer-Rao bound).
 # For a **pure** state $\vert\psi\rangle$ whose phase is imprinted by $e^{-i\varphi G}$,
 #
@@ -543,7 +546,7 @@ fig.tight_layout(); plt.show()
 # to propagate errors through, the estimator cannot tell $+\varphi$ from $-\varphi$, and — as Section 13 will show by measuring
 # it — the estimator becomes strongly biased and its distribution strongly non-Gaussian. Exactly at $\varphi=0$ the limit and
 # the value disagree: $\lim_{\varphi\to0^+}\Delta\varphi=1/\sqrt{NM}$, but the outcome distribution at $\varphi=0$ is
-# deterministic, its Fisher information is $F=0$, and the regularity condition of the Cramer-Rao theorem fails, so the
+# deterministic, its Fisher information is $F_C=0$, and the regularity condition of the Cramer-Rao theorem fails, so the
 # theorem makes no statement at that point (Section 7.1). A bound can be correct and still describe no estimator that is
 # used in practice.
 
@@ -587,7 +590,7 @@ assert err_var < 1e3 * TOL
 # With $p=\tfrac12(1-\cos\varphi)$ we have $\partial_\varphi p=\tfrac12\sin\varphi$ and $p(1-p)=\tfrac14\sin^2\varphi$, so
 #
 # $$F_1(\varphi)=\frac{\tfrac14\sin^2\varphi}{\tfrac14\sin^2\varphi}=1\quad\text{for }0<\varphi<\pi,
-# \qquad\Longrightarrow\qquad F(\varphi)=N\ \ \text{for }0<\varphi<\pi. \tag{12}$$
+# \qquad\Longrightarrow\qquad F_C(\varphi)=N\ \ \text{for }0<\varphi<\pi. \tag{12}$$
 #
 # A Ramsey measurement of $N$ uncorrelated atoms therefore carries exactly **one unit of Fisher information per atom, at every
 # operating point strictly inside the fringe**. The Cramer-Rao bound (2) with $M$ repetitions is then
@@ -616,7 +619,7 @@ assert err_var < 1e3 * TOL
 #
 # ### 7.3 The conclusion
 #
-# $$F(\varphi)=N=F_Q\qquad\text{for }0<\varphi<\pi .$$
+# $$F_C(\varphi)=N=F_Q\qquad\text{for }0<\varphi<\pi .$$
 #
 # **Counting atoms after the second $\pi/2$ pulse extracts all the phase information the coherent spin state contains.**
 # No other measurement, including a joint measurement of all $M$ copies, gives more Fisher information, and no locally
@@ -1228,12 +1231,12 @@ fig.tight_layout(); plt.show()
 # of the Cramer-Rao inequality with $\mathbb E[\hat\varphi]=\varphi+b(\varphi)$ in place of $\varphi$ replaces the numerator
 # $1$ by $\partial_\varphi\mathbb E[\hat\varphi]=1+b'(\varphi)$:
 #
-# $$\mathrm{Var}(\hat\varphi)\ \ge\ \frac{\big(1+b'(\varphi)\big)^2}{M\,F(\varphi)}. \tag{16}$$
+# $$\mathrm{Var}(\hat\varphi)\ \ge\ \frac{\big(1+b'(\varphi)\big)^2}{M\,F_C(\varphi)}. \tag{16}$$
 #
 # Two things follow. An estimator whose response curve is *flatter* than the diagonal, $b'<0$, is allowed a smaller variance —
 # in the extreme case $b'=-1$ (an estimator that ignores the data) the bound is zero, which is why "small variance" on its own
 # is never evidence of a good estimator. Second, the figure of merit of a biased estimator is the mean squared error,
-# $\mathrm{bias}^2+\mathrm{Var}\ge b^2+(1+b')^2/(MF)$, which can lie below $1/(MF)$ at a single phase; this is what the
+# $\mathrm{bias}^2+\mathrm{Var}\ge b^2+(1+b')^2/(MF_C)$, which can lie below $1/(MF_C)$ at a single phase; this is what the
 # RMS columns of the tables and the dashed curves below report.
 #
 # Equation (16) is a sharp, checkable statement, so we check it. For this estimator no sampling is needed: as in
@@ -1551,11 +1554,11 @@ fig.tight_layout(); plt.show()
 #
 # The classical Fisher information of the readout does *not* share that property. From `cfi_binomial` with contrast $C$,
 #
-# $$F(\varphi)=\frac{NC^2\sin^2\varphi}{1-C^2\cos^2\varphi}\ \le\ NC^2=F_Q, \tag{21}$$
+# $$F_C(\varphi)=\frac{NC^2\sin^2\varphi}{1-C^2\cos^2\varphi}\ \le\ NC^2=F_Q, \tag{21}$$
 #
 # with equality **only** at mid-fringe. (Substituting $u=\cos^2\varphi$ turns the ratio into $(1-u)/(1-C^2u)$, whose
 # derivative $(C^2-1)/(1-C^2u)^2$ is negative for $C<1$: the information decreases monotonically as one moves away from
-# $u=0$, i.e. away from $\varphi=\pi/2$.) At $C=1$ the two cancel and $F$ is flat, which is the special situation of
+# $u=0$, i.e. away from $\varphi=\pi/2$.) At $C=1$ the two cancel and $F_C$ is flat, which is the special situation of
 # Section 7; as soon as $C<1$, atom counting is optimal at one operating point and strictly sub-optimal everywhere else.
 # **The Ramsey readout is still optimal, provided you sit at mid-fringe**, and there
 #
@@ -1652,7 +1655,7 @@ assert err_ad < 1e-9
 # %% [markdown]
 # Every entry matches to $4\cdot10^{-15}$: the exact density-tensor evolution, the closed-form contrast, the classical
 # Fisher information of the binomial readout and the symmetric-logarithmic-derivative QFI all agree. In particular
-# $F=F_Q=NC^2$ at mid-fringe for dephasing — decoherence degrades the sensitivity but does **not** make atom counting a
+# $F_C=F_Q=NC^2$ at mid-fringe for dephasing — decoherence degrades the sensitivity but does **not** make atom counting a
 # suboptimal measurement.
 
 # %%
@@ -1942,10 +1945,10 @@ for N, M, K in ((4, 50, 400), (7, 50, 400), (10, 50, 200)):
 #   verified against the engine to $3\cdot10^{-15}$ and $2\cdot10^{-14}$. The variance is quantum projection noise, the
 #   randomness of projecting $N$ independent superpositions.
 # * **The standard quantum limit, three times over.** Error propagation, the classical Fisher information of the binomial
-#   record ($F=N$ at every phase strictly inside the fringe; at the two extrema $F=0$ while its limit is $N$, and the
+#   record ($F_C=N$ at every phase strictly inside the fringe; at the two extrema $F_C=0$ while its limit is $N$, and the
 #   Cramer-Rao regularity condition fails, Section 7.1), and the quantum Fisher information of the probe
 #   ($F_Q=4\mathrm{Var}(J_z)=N$) all give $\Delta\varphi=1/\sqrt{NM}$, with $\nu=NM$ phase imprints as the resource.
-#   Because $F=F_Q$, atom counting is an **optimal** measurement: no better readout exists for this probe.
+#   Because $F_C=F_Q$, atom counting is an **optimal** measurement: no better readout exists for this probe.
 # * **The scaling, measured.** Sweeping $N=2\dots16$ and $M=10\dots1000$ with $8000$ independent experiments per point, the
 #   measured $\Delta\varphi$ followed power laws with fitted exponents $-0.508\pm0.004$ and $-0.499\pm0.002$ ($1.9\sigma$ and
 #   $0.7\sigma$ from $-1/2$), and stayed within $1.6\%$ of the Cramer-Rao bound at every point.
@@ -1961,7 +1964,7 @@ for N, M, K in ((4, 50, 400), (7, 50, 400), (10, 50, 200)):
 # * **The phase is known only modulo aliases.** $p(\varphi)=p(-\varphi)=p(\varphi+2\pi)$, so the likelihood has infinitely many
 #   equal maxima and the unambiguous window has width $\pi$.
 # * **Dephasing is a contrast.** $C=e^{-\gamma T}$ (verified against exact Kraus evolution to $3\cdot10^{-15}$). The QFI is
-#   $F_Q=NC^2$ at *every* phase, but the classical information of the atom count, $F=NC^2\sin^2\varphi/(1-C^2\cos^2\varphi)$,
+#   $F_Q=NC^2$ at *every* phase, but the classical information of the atom count, $F_C=NC^2\sin^2\varphi/(1-C^2\cos^2\varphi)$,
 #   reaches it **only at mid-fringe**: with $C<1$ the readout is optimal at one operating point and strictly sub-optimal
 #   everywhere else. There $\Delta\varphi=e^{\gamma T}/\sqrt{NM}$. Amplitude damping behaves identically with
 #   $C=\sqrt{1-g}$ and $F_Q=N(1-g)$ exactly, although the channel is non-unital and also shifts the Bloch vector to

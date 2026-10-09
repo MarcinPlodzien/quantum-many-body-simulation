@@ -1269,8 +1269,8 @@ print(f"loss optimum, Eq. (3) split: all particles survive {f_all:.4f}, some los
 # $$F_C(\theta)=\sum_x\frac{\big(\partial_\theta p_x(\theta)\big)^2}{p_x(\theta)},\qquad p_x(\theta)=\langle x\vert V\rho_\theta V^\dagger\vert x\rangle. \tag{14}$$
 #
 # Braunstein and Caves (1994) showed $F_C\le F_Q$ for every measurement, with equality for the projective measurement in
-# the eigenbasis of the SLD (derived in notebook 30, Section 8). Every projective measurement is a computational-basis
-# measurement after some unitary $V$; the question is how deep $V$ must be.
+# the eigenbasis of the SLD (proved in notebook 29, Section 5.3, and constructed in notebook 30, Section 8). Every
+# projective measurement is a computational-basis measurement after some unitary $V$; the question is how deep $V$ must be.
 #
 # **From formula to code.** By linearity, $\partial_\theta p_x=\langle x\vert V(\partial_\theta\rho_\theta)V^\dagger\vert x\rangle$
 # with $\partial_\theta\rho_\theta=-i[J_z,\rho_\theta]$, so `outcome_probs_and_derivs` pushes $\rho$ and

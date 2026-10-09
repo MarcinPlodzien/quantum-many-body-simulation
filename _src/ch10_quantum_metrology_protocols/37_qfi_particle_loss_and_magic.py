@@ -80,6 +80,9 @@
 #   [34 — one-axis twisting to GHZ](../ch10_quantum_metrology_protocols/34_oat_to_ghz_full_metrology_protocol.ipynb) and
 #   [35 — one-axis twisting plus Haar scrambling](../ch10_quantum_metrology_protocols/35_oat_plus_haar_scrambling.ipynb).
 #
+# **What comes next.** [38 — scramblers and the locking of metrological information](../ch10_quantum_metrology_protocols/38_scramblers_and_qfi.ipynb)
+# asks how much of the phase information a block of $k$ qubits keeps after the probe has been scrambled.
+#
 # **Conventions.** Qubit $q$ = tensor axis $q$; $\vert 0\rangle$ is the $+1$ eigenstate of $Z$. Collective spins are
 # $J_a=\tfrac12\sum_q\sigma^a_q$, so the standard quantum limit is $F_Q=N$ and the Heisenberg limit is $F_Q=N^2$. The
 # parameter is imprinted by $U(\theta)=e^{-i\theta G}$. Throughout, $k$ is the number of **lost** qubits and
@@ -191,7 +194,7 @@ def timed(f, *args, budget=0.3, min_reps=3, max_reps=200):
 #
 # **The value of $\theta$ matters for non-local generators.** For a local generator Eq. (3) gives
 # $\rho_A(\theta)=e^{-i\theta G_A}\rho_Ae^{i\theta G_A}$, a unitary orbit, and the QFI does not depend on $\theta$
-# (notebook 30, Section 5.5a), so $\theta=0$ is no restriction. For a generator that does not split into a kept and a
+# (notebook 30, Section 5.5(a)), so $\theta=0$ is no restriction. For a generator that does not split into a kept and a
 # lost part, $\rho_A(\theta)$ is *not* a unitary orbit and its QFI may depend on $\theta$. Equation (4) holds at any
 # $\theta$ if $\vert\psi\rangle$ is replaced by $\vert\psi_\theta\rangle$ and $\vert\phi\rangle$ by
 # $G\vert\psi_\theta\rangle$; Sections 8–11 evaluate it at $\theta=0$ and Section 9.2 measures what changes at
