@@ -46,7 +46,7 @@
 # * **Section 4** introduces joint and conditional entropy and the mutual information $I(X{:}Y)$ on worked examples.
 # * **Section 5** defines a classical channel by its transition matrix, works through the noiseless, binary symmetric,
 #   erasure and Z-channels, simulates them, computes their capacities by scanning the input distribution, and states the
-#   noisy-channel coding theorem.
+#   noisy-channel coding theorem, tested with random codes.
 # * **Section 6** builds and simulates error correction: the repetition code, the Hamming(7,4) code with syndrome
 #   decoding, and the parity-check binary search that Alice and Bob use to correct a shared key by public discussion,
 #   with the number of revealed bits compared with $h(Q)$.
@@ -672,8 +672,83 @@ ax.legend(fontsize=8); plt.tight_layout(); plt.show()
 #
 # $$\frac{2^{nH(Y)}}{2^{nH(Y\vert X)}}=2^{n\,I(X:Y)} \tag{18}$$
 #
-# distinguishable messages, a rate of at most $I(X{:}Y)\leq C$ bits per use. Shannon showed that codewords chosen *at
-# random* already come close to this limit, but random codes cannot be decoded efficiently. The search for codes that
+# distinguishable messages, a rate of at most $I(X{:}Y)\leq C$ bits per use.
+#
+# The same counting shows why every rate below $C$ is achievable. Shannon drew the codebook *at random*: each of the
+# $2^{nR}$ codewords is a string of $n$ fair coin tosses, and Bob decodes to the codeword closest to the received string
+# in **Hamming distance**, the number of positions in which two strings differ. On the BSC the noise flips about $nq$ of
+# the $n$ bits, and there are about $2^{n\,h(q)}$ such flip patterns (Eq. (7) for the noise), so each sent codeword
+# spreads into a cloud of about $2^{n\,h(q)}$ typical outputs. A wrong codeword is a uniformly random string, which lands
+# in the cloud around the received string with probability about $2^{n\,h(q)}/2^n$. With $2^{nR}$ codewords, the
+# probability that any wrong one does is at most about
+#
+# $$2^{nR}\,2^{-n(1-h(q))}=2^{-n(C-R)},$$
+#
+# which vanishes as $n$ grows whenever $R<C$ (Shannon 1948; Cover and Thomas 2006, Ch. 7). Above capacity the expected
+# number of wrong codewords inside the cloud grows like $2^{n(R-C)}$, and decoding fails more and more often. The next
+# cell tests this on the BSC with $q=0.11$, where $C=0.500$. For every block length it draws $10^4$ independent
+# codebooks, sends the first codeword and decodes by minimum distance, with ties broken at random. One rate lies below
+# capacity, $R=1/4$ with $n\leq24$ (at most $64$ codewords), the other above, $R=2/3$ with $n\leq12$ (at most $256$).
+
+# %%
+# ==============================================================================
+# Random codes on a BSC: block error against block length below and above capacity
+# ==============================================================================
+Q_RC, NBOOK, NMAX, MMAX = 0.11, 10_000, 24, 256      # codebooks per point; largest block length and codebook
+C_RC = 1 - h2(Q_RC)
+
+
+def random_code_error(key, n, k, q):
+    """One random codebook of 2^k codewords of length n; send codeword 0 through a BSC(q), decode by minimum distance.
+
+    Codewords are stored as n-bit integers, so the Hamming distance is the number of ones in their bitwise XOR.
+    Arrays have the fixed sizes MMAX and NMAX, with unused codewords and bit positions masked, so that one compiled
+    function serves every (n, k). Returns the error probability of a random tie-break: 1 if a wrong codeword is
+    strictly closer, t/(t+1) if t wrong codewords tie with the sent one, 0 otherwise.
+    """
+    k1, k2 = jax.random.split(key)
+    pos = jnp.arange(NMAX, dtype=jnp.uint32)
+    book = jax.random.bits(k1, (MMAX,), jnp.uint32) & ((jnp.uint32(1) << n) - 1)
+    flips = jax.random.bernoulli(k2, q, (NMAX,)) & (pos < n)
+    received = book[0] ^ jnp.sum(jnp.where(flips, jnp.uint32(1) << pos, 0)).astype(jnp.uint32)
+    dist = jax.lax.population_count(book ^ received)
+    wrong = (jnp.arange(MMAX) >= 1) & (jnp.arange(MMAX) < 2**k)
+    ties = jnp.sum(wrong & (dist == dist[0]))
+    return jnp.where(jnp.any(wrong & (dist < dist[0])), 1.0, ties / (ties + 1.0))
+
+
+random_code_batch = jax.jit(jax.vmap(random_code_error, in_axes=(0, None, None, None)))
+rc_rows = {}
+for R, ns, base in ((1 / 4, (4, 8, 12, 16, 20, 24), 400), (2 / 3, (3, 6, 9, 12), 500)):
+    rc_rows[R] = []
+    for n in ns:
+        keys = jax.random.split(key_for(base + n), NBOOK)                     # one key per codebook and noise draw
+        err = np.asarray(random_code_batch(keys, n, round(n * R), Q_RC))
+        rc_rows[R].append((n, err.mean(), err.std() / np.sqrt(NBOOK)))
+    print(f"R = {R:.3f} ({'below' if R < C_RC else 'above'} C = {C_RC:.3f}): block error "
+          + ", ".join(f"{p:.3f} (n={n})" for n, p, _ in rc_rows[R]))
+lo, hi = rc_rows[1 / 4], rc_rows[2 / 3]
+assert all(a[1] > b[1] for a, b in zip(lo, lo[1:]))                          # R < C: falls at every step in n
+assert lo[0][1] - lo[-1][1] > 5 * np.hypot(lo[0][2], lo[-1][2])
+assert hi[-1][1] - hi[0][1] > 5 * np.hypot(hi[0][2], hi[-1][2])               # R > C: rises
+
+fig, ax = plt.subplots(figsize=(5.2, 3.4))
+for i, (R, rows) in enumerate(rc_rows.items()):
+    ax.errorbar([r[0] for r in rows], [r[1] for r in rows], yerr=[r[2] for r in rows], fmt=MARKERS[i] + "-",
+                color=PALETTE[i], capsize=2, label=f"$R={'1/4' if i == 0 else '2/3'}$, "
+                + ("below" if R < C_RC else "above") + f" $C={C_RC:.3f}$")
+ax.set_xlabel("block length $n$"); ax.set_ylabel("block error probability")
+ax.set_title(f"Random codes on a BSC, $q={Q_RC}$"); ax.set_ylim(0, None)
+ax.legend(fontsize=8); plt.tight_layout(); plt.show()
+
+# %% [markdown]
+# At rate $1/4$, half the capacity, the block error of codebooks drawn blindly falls at every step, from $0.104$ at
+# $n=4$ to $0.036$ at $n=24$. The fall is slow at these short lengths, because the exponent $n(C-R)$ grows by only
+# $1/4$ per added bit. At rate $2/3$, above capacity, the block error rises instead, from $0.325$ at $n=3$ to $0.498$ at
+# $n=12$. The bars, one standard error over the $10^4$ codebooks, are smaller than the markers.
+#
+# Random codes come close to the capacity, but they cannot be decoded efficiently: minimum-distance decoding compares
+# the received string with all $2^{nR}$ codewords, a number that grows exponentially with $n$. The search for codes that
 # approach the capacity *and* can be decoded fast took decades. Two families that do are low-density parity-check codes
 # (Richardson, Shokrollahi and Urbanke 2001) and polar codes, which provably reach the capacity of channels such as the
 # BSC (Arıkan 2009); the 5G mobile standard encodes its data with the first and its control information with the second
@@ -847,7 +922,9 @@ for i, q in enumerate((0.05, 0.1)):
 # message. On the simulated channel the block error rate agrees with Eq. (22): $0.044$ at $q=0.05$ and $0.150$ at
 # $q=0.1$. Per message bit, the error falls from $q=0.05$ to $0.020$ at rate $4/7$, while the repetition code
 # needs rate $1/3$ to reach $0.007$. The plot places both codes in the plane of rate and error and compares them with
-# the capacity $C=1-h(0.1)=0.531$ of the channel with $q=0.1$.
+# the capacity $C=1-h(0.1)=0.531$ of the channel with $q=0.1$. The bars on the simulated repetition points are one
+# binomial standard error, $\sigma=\sqrt{p(1-p)/M}$ for an error frequency $p$ observed in $M=4\times10^5$ messages;
+# they become visible only for the longest codes, where few messages fail.
 
 # %%
 # ==============================================================================
@@ -855,8 +932,10 @@ for i, q in enumerate((0.05, 0.1)):
 # ==============================================================================
 fig, ax = plt.subplots(figsize=(5.6, 3.6))
 odd = [r for r in rep_rows if r[0] % 2 == 1]
-ax.semilogy([r[1] for r in odd], [max(r[2], 1e-6) for r in odd], MARKERS[0], color=PALETTE[0],
-            label="repetition, $n=1,3,\\ldots,15$ (simulated)")
+assert all(r[2] > 0 for r in odd)                    # every simulated point has failures, so it fits a log axis
+ax.errorbar([r[1] for r in odd], [r[2] for r in odd], yerr=[binom_se(r[2], NMSG) for r in odd], fmt=MARKERS[0],
+            color=PALETTE[0], capsize=2, label="repetition, $n=1,3,\\ldots,15$ (simulated)")
+ax.set_yscale("log")
 ax.semilogy([r[1] for r in odd], [r[3] for r in odd], "-", color=PALETTE[0], lw=1, alpha=0.6, label="Eq. (19)")
 q01 = [r for r in ham_rows if r[0] == 0.1][0]
 ax.semilogy(4 / 7, q01[1], MARKERS[1], color=PALETTE[1], ms=8, label="Hamming(7,4), message-bit error")
@@ -1061,8 +1140,12 @@ ax.legend(fontsize=8); plt.tight_layout(); plt.show()
 # 6. ★★ **A longer Hamming code.** The same construction with $r=4$ checks gives the Hamming(15,11) code: $\mathsf H$ has
 #    the binary numbers $1,\dots,15$ as columns. Implement it, verify that it corrects every single error, and compute
 #    its rate and its block error probability at $q=0.01$, analogous to Eq. (22).
-# 7. ★★ **The Z-channel.** Derive Eq. (17) from Eqs. (5) and (14). For $s=0.1$ compute $p^\star$ and the capacity, and
-#    check both with the scan of Section 5.2.
+# 7. ★★ **A Z-channel and a three-symbol channel.** For $s=0.1$ compute $p^\star$ from Eq. (17) and the capacity from
+#    Eq. (14), and check both with the scan of Section 5.2. A ternary symmetric channel has inputs and outputs $0,1,2$;
+#    each symbol arrives correctly with probability $1-\varepsilon$ and as each of the two other symbols with probability
+#    $\varepsilon/2$. Show that $H(Y\vert X)$ does not depend on the input distribution and that the uniform input
+#    maximises $H(Y)$, so that $C=\log_23-h(\varepsilon)-\varepsilon$. Evaluate it for $\varepsilon=0.1$ and check it
+#    with `mutual_info` on a grid of input distributions $(P_0,P_1,1-P_0-P_1)$.
 # 8. ★★★ **One known error.** A block of $L=2^m$ bits is known to contain exactly one error, at a uniformly random
 #    position. Show that $m$ parities
 #    locate it and that no strategy can do with fewer on average. Compare the cost per bit, $(m+1)/L$ including the
@@ -1072,7 +1155,8 @@ ax.legend(fontsize=8); plt.tight_layout(); plt.show()
 # *Check values.* 1: $h(0.05)=0.286$, $h(1/4)=0.811$, $C=0.189$ bits per use. 2: $H(\text{sum})=3.274$ bits;
 # $I=H(\text{sum})-H(\text{second die})=3.274-2.585=0.689$ bits. 3: $H(Y)=h(1/3)=0.918$, $H(X\vert Y)=\log_26-0.918=1.667$,
 # $I=0.918$ bits. 4: $q=0.18$, $C=1-h(0.18)=0.320$ against $0.531$ for one link. 5: $P_{\rm err}=0.00856$. 6: rate
-# $11/15=0.733$, $P_{\rm block}=1-0.99^{15}-15\cdot0.01\cdot0.99^{14}=0.0096$. 7: $p^\star=0.456$, $C=0.763$ bits.
+# $11/15=0.733$, $P_{\rm block}=1-0.99^{15}-15\cdot0.01\cdot0.99^{14}=0.0096$. 7: $p^\star=0.456$, $C=0.763$ bits;
+# ternary channel $C=\log_23-h(0.1)-0.1=1.016$ bits.
 # 8: $(m+1)/L=0.500$, $0.109$, $0.0107$ against $h(1/L)=0.544$, $0.116$, $0.0112$; knowing that there is exactly one
 # error leaves only $\log_2L$ bits of uncertainty about the error pattern, less than the $L\,h(1/L)$ of independent
 # errors at rate $1/L$, which is what Eq. (24) assumes.
