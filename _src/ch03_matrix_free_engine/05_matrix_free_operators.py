@@ -813,7 +813,9 @@ print("CHECKPOINT passed: four implementations, one result.")
 # * the dense operator is built once (timed separately) and only the product `O @ psi_vec` enters the run time; we stop at $N=12$,
 #   where the matrix already occupies 268 MB.
 #
-# We apply a one-site operator to the middle spin $q=N/2$ and a two-site operator to the distant pair $(1,N-2)$.
+# We apply a one-site operator to the middle spin $q=N/2$ and a two-site operator to the distant pair $(1,N-2)$. The random
+# state for each $N$ comes from `jax.random.fold_in(key, n)`, which derives a new key from a key and an integer, so every $N$
+# gets its own reproducible state without a list of split keys.
 #
 # > **Numerical practice.** Absolute timings depend on the machine, on the backend (CPU/GPU) and on whatever else the computer
 # > is doing. Conclusions should rest on **scaling with $N$ and ratios between methods**, which are robust.

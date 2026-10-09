@@ -501,8 +501,8 @@ assert max(err_pt, err_loc, err_str) < TOL
 
 # %% [markdown]
 # > **Numerical practice.** The density tensor holds $4^N$ complex numbers, the *square* of the state vector's $2^N$. With
-# > `complex128` (16 bytes) one copy takes $16\cdot4^N$ bytes: 1 MB at $N=8$, 16 MB at $N=10$, 256 MB at $N=12$, 1 GB at
-# > $N=13$, 4 GB at $N=14$. A computation holds several copies at once (input, output, einsum intermediates), so on a
+# > `complex128` (16 bytes) one copy takes $16\cdot4^N$ bytes: 1 MB at $N=8$, 17 MB at $N=10$, 268 MB at $N=12$, 1.1 GB at
+# > $N=13$, 4.3 GB at $N=14$. A computation holds several copies at once (input, output, einsum intermediates), so on a
 # > laptop with 16 GB of memory everything in §5–§10 ends at $N\approx13$–$14$. This is the ceiling quoted in the rest of
 # > the notebook. §11 removes it at the price of statistical noise.
 
@@ -1925,9 +1925,9 @@ assert abs(slope + 1.0) > 0.3                                   # wrong control:
 # ==============================================================================
 def human(nbytes):
     for unit in ("B", "KB", "MB", "GB", "TB", "PB"):
-        if nbytes < 1024:
+        if nbytes < 1000:
             return f"{nbytes:7.1f} {unit}"
-        nbytes /= 1024
+        nbytes /= 1000
     return f"{nbytes:7.1f} EB"
 
 itemsize = jnp.zeros((), dtype=CDTYPE).dtype.itemsize
@@ -1942,7 +1942,7 @@ for n in (4, 8, 10, 12, 14, 16, 20, 24, 28):
 # **Experiment.** $|{+}\rangle^{\otimes N}$ with dephasing $p=0.2$ on the first and the last qubit; we measure the Bloch
 # components of those two qubits. Exact result: $\langle X\rangle=1-2p=0.6$, $\langle Y\rangle=\langle Z\rangle=0$, for every
 # $N$. We run the density tensor while it fits comfortably ($N\le10$ here) and $M=100$ trajectories up to $N=20$, where
-# the density tensor would need 16 TB.
+# the density tensor would need 17.6 TB.
 #
 # > **JAX practice.** `vmap` over 100 trajectories of $2^{20}$ amplitudes would allocate all of them (and the einsum
 # > intermediates) at once. `lax.map(f, keys, batch_size=b)` is the memory-bounded alternative: it vmaps over chunks of

@@ -61,7 +61,7 @@
 #
 # From earlier notebooks we reuse the state constructors, `apply_gate` (one einsum that applies a small matrix to chosen axes of the
 # state tensor), the reduced density matrix `rdm`, expectation values and the entanglement entropy. The measurement functions themselves
-# are **not** in this recap — we build them from scratch below.
+# are **not** in this recap; they are derived below.
 
 # %%
 #@engine: apply_gate, rdm, I2, X, Y, Z, H, S, SDG, P0, P1, XX, ZZ, PAULI, rx, ry, zero_state, product_state, ghz_state, w_state, bell_state, cluster_state, haar_state, to_dm, dm_matrix, expect_local, expect_pauli_string, entanglement_entropy, heisenberg_terms, apply_hamiltonian, energy, lanczos_ground_state
@@ -920,8 +920,10 @@ for kind in ("phi+", "psi-"):
 # %% [markdown]
 # The diagonal entries are *exactly* $\pm1$ with zero error bar: all 2000 shots agree (or all disagree) — perfect correlations have no shot noise. Mixed settings give zero within two standard errors.
 #
-# **Arbitrary axes.** Let spin 0 be measured along $z$ and spin 1 along the axis $\hat n(\theta)=(\sin\theta,0,\cos\theta)$ in the $x$–$z$ plane, i.e. the observable $\sigma_\theta=\cos\theta\,Z+\sin\theta\,X$. Since
-# $R_y(\theta)ZR_y(\theta)^\dagger=\cos\theta Z+\sin\theta X$, the rule of Section 6 applies with $U=R_y(\theta)^\dagger=R_y(-\theta)$: rotate spin 1 with $R_y(-\theta)$, then read out in $Z$. Quantum mechanics predicts
+# **Arbitrary axes.** Let spin 0 be measured along $z$ and spin 1 along the axis $\hat n(\theta)=(\sin\theta,0,\cos\theta)$ in the $x$–$z$ plane, i.e. the observable $\sigma_\theta=\cos\theta\,Z+\sin\theta\,X$. With the rotation gate
+# $R_y(\theta)=e^{-i\theta Y/2}=\cos\tfrac\theta2\,\mathbb 1-i\sin\tfrac\theta2\,Y$ (engine `ry`; `rx` is $R_x(\theta)=e^{-i\theta X/2}$; both are derived in
+# [notebook 08b, Section 4](08b_building_quantum_simulator_engine.ipynb)) one has
+# $R_y(\theta)ZR_y(\theta)^\dagger=\cos\theta Z+\sin\theta X$, so the rule of Section 6 applies with $U=R_y(\theta)^\dagger=R_y(-\theta)$: rotate spin 1 with $R_y(-\theta)$, then read out in $Z$. Quantum mechanics predicts
 #
 # $$E(\theta)=\langle Z\otimes\sigma_\theta\rangle=\cos\theta\ \ (\Phi^+),\qquad E(\theta)=-\cos\theta\ \ (\Psi^-).$$
 #

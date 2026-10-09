@@ -1,6 +1,6 @@
 #@title: States, observables and entanglement
 #@part: Chapter 3 — The matrix-free engine
-#@description: A zoo of many-body states as tensors, reduced density matrices by einsum, correlators and Pauli strings, Schmidt decomposition, entanglement entropies, the Page value, and area law versus volume law.
+#@description: A zoo of many-body states as tensors, reduced density matrices by einsum, correlators and Pauli strings, Schmidt decomposition, entanglement entropies, the Page value, area law versus volume law, and a first phase diagram of the XXZ chain in a transverse field.
 
 # %% [markdown]
 # ## 1. Introduction and motivation
@@ -44,7 +44,8 @@
 # * what the states GHZ, W, Dicke, cluster and Haar-random are, and how differently they store correlations;
 # * why a subsystem of a pure entangled state is in a *mixed* state, and what the reduced density matrix means;
 # * connected correlation functions; why GHZ looks like pure noise locally;
-# * Schmidt decomposition, von Neumann and Rényi-2 entanglement entropies, the Page value, area law vs volume law.
+# * Schmidt decomposition, von Neumann and Rényi-2 entanglement entropies, the Page value, area law vs volume law;
+# * how a first phase diagram (the XXZ chain in a transverse field) is read from correlators, gaps and entropies within a symmetry sector.
 #
 # *Numerical methods*
 # * partial trace **without** ever forming $|\psi\rangle\langle\psi|$: cost $O(2^N 2^{|A|})$ instead of $O(4^N)$;
@@ -415,7 +416,7 @@ fig.tight_layout(); plt.show()
 # **The independent reference.** To test these strings we need a partial trace that shares *no code and no idea* with
 # them. We use the definition literally: build the full projector $|\psi\rangle\langle\psi|$ as a $2^N\times2^N$ matrix and
 # sum its entries over the bits of $B$ with explicit Python loops over bit strings and the flat-index formula
-# $i=\sum_qs_q2^{N-1-q}$. Slow, transparent, obviously correct — the ideal referee.
+# $i=\sum_qs_q2^{N-1-q}$. It is slow, and every line can be checked by hand, which makes it a good referee.
 
 # %%
 # ==============================================================================
@@ -1980,7 +1981,7 @@ for n in BENCH_N:
             results[name].append(np.nan); row.append(f"{'(skipped)':>32s}"); continue
         t_first, t_run = time_jitted(fn, psi)
         results[name].append(t_run); row.append(f"{t_run * 1e3:16.2f} ms ({t_first:6.2f} s)")
-    print(f"{n:3d} {psi.size * psi.dtype.itemsize / 2 ** 20:11.2f} | " + " | ".join(row))
+    print(f"{n:3d} {psi.size * psi.dtype.itemsize / 1e6:11.2f} | " + " | ".join(row))
 
 fig, ax = plt.subplots(figsize=(7, 4.2))
 for (name, ts_), c, m in zip(results.items(), PALETTE, MARKERS):
@@ -1999,7 +2000,7 @@ ax.legend(fontsize=8); fig.tight_layout(); plt.show()
 # * The weight-$N$ Pauli string costs $N$ passes over the state and lies one to two orders of magnitude above the single-spin RDM at large $N$.
 # * The half-chain entropy is the expensive one: SVD of a $2^{N/2}\times2^{N/2}$ matrix scales as $2^{3N/2}$ (dashed line). For *small* subsystems it is cheap again — cost $O(2^N2^{|A|})$.
 # * The first call (brackets) adds tracing and compilation, between a few hundredths of a second and about a second per distinct function, paid once; in a time-evolution loop the same compiled observable is called thousands of times.
-# * At $N=22$ the state occupies 64 MB. The textbook route through the $2^N\times2^N$ projector would need $4^{22}\times16$ bytes $\approx 280$ TB.
+# * At $N=22$ the state occupies 67 MB. The textbook route through the $2^N\times2^N$ projector would need $4^{22}\times16$ bytes $\approx 280$ TB.
 
 # %% [markdown]
 # ## 12. Key takeaways
