@@ -5,7 +5,7 @@
 # %% [markdown]
 # ## 1. Introduction and motivation
 #
-# A simulator hands us the full wave function: $2^N$ complex amplitudes, to sixteen digits. **A laboratory never does.**
+# A simulator hands us the full wave function: $2^N$ complex amplitudes, to sixteen digits, which a laboratory never sees.
 # What an experiment on $N$ spins (trapped ions, superconducting qubits, Rydberg atoms, cold atoms under a quantum-gas
 # microscope) returns is a *click pattern*: one string of $N$ bits per run of the experiment — a "shot". Expectation
 # values are then **estimated** by averaging over many shots and come with statistical error bars that shrink only like
@@ -23,7 +23,7 @@
 #
 # **What we will do.** We derive the Born rule and the collapse for one spin out of $N$ directly on the state *tensor*
 # (Sections 3–4), turn them into a function `measure_qubit` that contains **no Python branching on random values** and can therefore
-# be compiled with `jax.jit` and batched over thousands of shots with `jax.vmap` (Sections 5–8), add the active `reset_qubit`
+# be compiled with `jax.jit` and batched over thousands of shots with `jax.vmap` (Sections 5, 6 and 8), add the active `reset_qubit`
 # (Section 7), study what a measurement does to the *other* spins (Section 9), sample complete bit strings
 # (`sample_bitstrings`, Section 10), do **shot-noise statistics with error bars** (Section 11), look at the correlations of a
 # Bell pair measured along different axes (Section 12), and finally put measurements *inside* compiled loops: the quantum
@@ -48,7 +48,7 @@
 # * `vmap` over keys = many shots; `lax.scan` with keys as the scanned input = repeated measurements in time.
 #
 # ### Prerequisites
-# * [01 — JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, `lax.scan`, PRNG keys;
+# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, `lax.scan`, PRNG keys;
 # * [05 — matrix-free operators](05_matrix_free_operators.ipynb): state tensors and `apply_gate`;
 # * [06 — states, observables, entanglement](06_states_observables_entanglement.ipynb): reduced density matrices `rdm`, expectation values, entanglement entropy;
 # * helpful but not required: [07 — density matrices and quantum channels](07_density_matrices_and_quantum_channels.ipynb).
@@ -120,11 +120,11 @@ def bits_to_str(bits):
 # which we recognise as a diagonal element of the single-spin reduced density matrix $\rho_q[a,a']=\sum_{\rm rest}\psi[..a..]\psi^*[..a'..]$ of notebook 06.
 # This is general: **the statistics of any measurement on a subsystem depend only on its reduced density matrix.**
 #
-# ### 3.1 What the postulate does and does not say
+# ### 3.1 General measurements, the Lüders rule and unread outcomes
 #
 # Three qualifications belong to the statement above; all three come back later in these notes.
 #
-# * **Projective, not general.** The postulate as written is the *projective* (von Neumann) case. The general measurement
+# * **Projective measurements as a special case.** The postulate as written is the *projective* (von Neumann) case. The general measurement
 #   postulate replaces the projectors by any family of operators $M_m$ with $\sum_mM_m^\dagger M_m=\mathbb 1$, giving
 #   $p(m)=\langle\psi\vert M_m^\dagger M_m\vert\psi\rangle$ and $\vert\psi_m\rangle=M_m\vert\psi\rangle/\sqrt{p(m)}$;
 #   projective measurements are the special case $M_m=\Pi_m$ with $\Pi_m^\dagger=\Pi_m=\Pi_m^2$. The $M_m$ are the Kraus
@@ -136,7 +136,7 @@ def bits_to_str(bits):
 #   probabilities and still leave a different state behind.
 # * **Selective versus non-selective.** The update is the state we assign *given* that the outcome $m$ has been read. If the
 #   measurement happens but the result is discarded, the correct description is the average $\sum_mp(m)\vert\psi_m\rangle\langle\psi_m\vert$
-#   — a density matrix, not a state vector. Section 9.2 computes it and identifies it with a noise channel. "Collapse" is the
+#   — a density matrix. Section 9.2 computes it and identifies it with a noise channel. "Collapse" is the
 #   name of this update rule; the formalism prescribes it without saying what brings it about, which is the measurement problem.
 #
 # ### 3.2 The algorithm
@@ -186,10 +186,10 @@ for m, P in enumerate((P0, P1)):
 # **Drawing the outcome.** A two-outcome random variable with $P(m{=}0)=p_0$ is obtained from one uniform random number $u\in[0,1)$: set $m=0$ if $u<p_0$ and $m=1$ otherwise.
 #
 # **Randomness in JAX** (recap of notebook 01; JAX documentation, *Pseudorandom numbers*). There is no hidden global random state. Every random function takes an explicit **key**; the same key always produces the same number.
-# To get independent numbers we `split` a key into new ones and *never reuse a key*. This looks pedantic, but it is exactly what makes a stochastic simulation reproducible, parallelisable
+# To get independent numbers we `split` a key into new ones and *never reuse a key*. This discipline is what makes a stochastic simulation reproducible, parallelisable
 # (each shot gets its own key — no ordering issues) and compatible with `jit`.
 #
-# **The NumPy-style version** of a measurement is what everybody writes first:
+# **The NumPy-style version** of a measurement translates the rule directly:
 # ```python
 # if u < p0:  project with P0   else:  project with P1
 # ```
@@ -224,7 +224,7 @@ except Exception as err:                         # jax.errors.TracerBoolConversi
 # `jnp.where(outcome == 0, P0, P1)` — a $2\times2$ array whose entries depend on the traced outcome. There is no branch any more: the compiled program is the same for both outcomes, only the numbers differ.
 # (Alternatives are `lax.cond`/`lax.switch`; for selecting between two tiny matrices `jnp.where` is the simplest, and under `vmap` a `cond` is converted into a select anyway.)
 #
-# > **Common pitfall.** Could we divide by zero when renormalising? No: outcome 0 is chosen only if $u<p_0$, which requires $p_0>0$; outcome 1 only if $u\ge p_0$, which for $u<1$ requires $p_0<1$, i.e. $p_1>0$.
+# > **Common pitfall.** Renormalising never divides by zero: outcome 0 is chosen only if $u<p_0$, which requires $p_0>0$; outcome 1 only if $u\ge p_0$, which for $u<1$ requires $p_0<1$, i.e. $p_1>0$.
 # > An outcome of probability zero is never selected, so the projected state never has zero norm. Both halves of the argument use the
 # > half-open range $u\in[0,1)$ of `jax.random.uniform`, and both are exact-arithmetic statements: the outcome is decided with the
 # > *computed* $p_0$, while the division is by the norm the projection actually produces. A probability that is zero on paper but comes
@@ -275,7 +275,7 @@ assert worst < TOL
 #
 # $$p(m)=\|U^\dagger P_mU|\psi\rangle\|^2=\|P_m\,(U|\psi\rangle)\|^2,\qquad|\psi_m\rangle\propto U^\dagger\,P_m\,(U|\psi\rangle).$$
 #
-# Read from right to left: **rotate with $U$, do an ordinary $Z$ measurement, rotate back with $U^\dagger$.** This is also literally what hardware does, since most platforms can only read out in one fixed basis.
+# Read from right to left: **rotate with $U$, do an ordinary $Z$ measurement, rotate back with $U^\dagger$.** Most hardware measures this way, since most platforms can only read out in one fixed basis.
 #
 # Which eigenstate belongs to which outcome follows from the same line: $\Pi^P_m=U^\dagger P_mU$ projects onto $U^\dagger|m\rangle$, so
 # **outcome $m$ means the eigenvector $U^\dagger|m\rangle$ of $P$, with eigenvalue $(-1)^m$.**
@@ -346,7 +346,7 @@ assert bool(jnp.all(records == jnp.array([0, 0, 1])))
 # measuring in $Z$ and flipping the spin if the outcome was 1: the simplest example of *feedback* (a classical measurement result controls a later quantum operation). Again no Python branch is needed —
 # the correction is `jnp.where(outcome == 1, X, I2)`.
 #
-# What does a reset do to the *other* spins? In each shot they are left in the conditional state $|\psi_m\rangle$. If we do not look at the outcome (we only wanted a fresh spin), we must average over it.
+# In each shot the *other* spins are left in the conditional state $|\psi_m\rangle$. If we do not look at the outcome (we only wanted a fresh spin), we must average over it.
 # With $\rho=|\psi\rangle\langle\psi|$, the operation applied for outcome $m$ is $X^m\Pi_m$, and on spin $q$ one has $X^m|m\rangle\langle m|=|0\rangle\langle m|$. The average is therefore the **reset channel**
 #
 # $$\rho\;\longmapsto\;\sum_m\big(|0\rangle\langle m|\big)_q\,\rho\,\big(|m\rangle\langle0|\big)_q=|0\rangle\langle0|_q\otimes\sum_m\langle m|\rho|m\rangle_q=|0\rangle\langle0|_q\otimes\mathrm{Tr}_q\,\rho :$$
@@ -386,13 +386,17 @@ M = 4000
 posts = jax.vmap(lambda k: my_reset_qubit(k, psi_r, 0))(jax.random.split(jax.random.PRNGKey(2), M))
 rho_avg = jnp.mean(jax.vmap(lambda p: dm_matrix(to_dm(p)))(posts), axis=0)      # trajectory average of |psi><psi|
 rho_exact = jnp.kron(P0, rdm(psi_r, (1, 2)))                                  # |0><0| on spin 0 (x) RDM of spins 1,2
+rms_exact = np.sqrt((1 - float(jnp.real(jnp.trace(rho_exact @ rho_exact)))) / M)  # E||avg - rho'||_F^2 = (1 - Tr rho'^2)/M
 err = float(jnp.linalg.norm(rho_avg - rho_exact))
-print(f"\nCHECKPOINT reset channel: ||average over {M} shots - exact channel||_F = {err:.4f}   (statistical, ~ 1/sqrt(M) = {1 / np.sqrt(M):.4f})")
-assert err < 5 / np.sqrt(M)
+err_wrong = float(jnp.linalg.norm(rho_avg - jnp.kron(rdm(psi_r, (1, 2)), P0)))  # WRONG CONTROL: tensor factors swapped
+print(f"\nCHECKPOINT reset channel: ||average over {M} shots - exact channel||_F = {err:.4f} = {err / rms_exact:.2f} x the expected rms {rms_exact:.4f}")
+print(f"wrong control (kron factors in the wrong order): {err_wrong:.3f} = {err_wrong / rms_exact:.0f} x the expected rms")
+assert err < 4 * rms_exact and err_wrong > 10 * rms_exact
 
 # %% [markdown]
 # After the reset the spin is in the requested state in *every* shot (error at rounding level), while the shot-averaged state of the full register agrees with the reset channel up to a
-# statistical error that is bounded by a few times $1/\sqrt M$ — our first encounter with the scaling that governs all of Section 11.
+# statistical error of order $1/\sqrt M$ — our first encounter with the scaling that governs all of Section 11. Each post-measurement state is pure, so $\mathbb E\|\bar\rho-\rho'\|_F^2=(1-\mathrm{Tr}\,\rho'^2)/M$ exactly;
+# only two post-measurement states occur here, so the printed ratio is the $|z|$-score of the count $n_0$. The same register with the tensor factors of the reference swapped is rejected by two orders of magnitude.
 #
 # Here are the production versions of the two functions, verbatim from the course engine; later notebooks use these.
 
@@ -495,20 +499,22 @@ assert abs(p0 - (1 - 1 / N)) < 4 * se and abs(S0 - h(0.4)) < 1e3 * TOL and S1 < 
 assert results[("GHZ", "Z")][4] < 1e3 * TOL and abs(results[("GHZ", "X")][4] - 1) < 1e3 * TOL
 
 # %% [markdown]
-# The numbers confirm the four predictions to the printed digits: a $Z$ measurement of a single spin wipes out the GHZ entanglement completely, whereas the W state keeps about $0.8$ of its $0.92$ bits on average (and the full $0.97$ bits of $W_5$ in five shots out of six);
+# The entropies confirm the four predictions to the printed digits, and the outcome frequencies agree with them within shot noise (the largest deviation, $-2.1$ SE, is for W in $Z$;
+# the same 2000 keys serve all four rows, which is why the three rows with $P(0)=1/2$ print the same $0.490$). A $Z$ measurement of a single spin wipes out the GHZ entanglement completely, whereas the W state keeps about $0.8$ of its $0.92$ bits on average (and the full $0.97$ bits of $W_5$ in five shots out of six);
 # in the $X$ basis the W state is left with $0.7440$ bit in both branches, which is $h\big((3+\sqrt3)/6\big)$ to fourteen digits.
 # This is the precise sense in which **GHZ entanglement is fragile and W entanglement is robust**. It also shows that the damage depends on the *basis*: measured in $X$, the GHZ state survives as a smaller GHZ state —
 # but with an outcome-dependent sign, so the outcome must be recorded to make use of it.
 #
 # ### 9.2 An unread measurement is dephasing
 #
-# What if the measurement happens but nobody reads the result — for instance, because the "observer" is the environment? Then we must describe the register by the average over outcomes,
+# If the measurement happens but nobody reads the result (the "observer" may be the environment), the register is described by the average over outcomes,
 #
 # $$\rho'=\sum_mp(m)|\psi_m\rangle\langle\psi_m|=\sum_m\Pi_m\,|\psi\rangle\langle\psi|\,\Pi_m .$$
 #
 # The derivation is one line ($p(m)|\psi_m\rangle\langle\psi_m|=\Pi_m|\psi\rangle\langle\psi|\Pi_m$ by the collapse rule). In the density matrix this *deletes all matrix elements between the sectors $s_q=0$ and $s_q=1$* and leaves the rest untouched: complete
-# **dephasing** of spin $q$, one of the noise channels of notebook 07. Measurement and decoherence are the same mathematics. The same fact underlies the principle of implicit measurement (Nielsen & Chuang, Sec. 4.4): an unread measurement of one qubit does not change the reduced state of the others. We verify it by averaging projectors over shots; the exact channel is two `apply_gate` calls per term on the density *tensor*
-# ($\Pi_m$ on the ket axis $q$, $\Pi_m^*$ on the bra axis $N+q$).
+# **dephasing** of spin $q$, one of the noise channels of notebook 07, so an unread measurement and decoherence by an environment are the same map. The same fact underlies the principle of implicit measurement (Nielsen & Chuang, Sec. 4.4): an unread measurement of one qubit does not change the reduced state of the others. We verify it by averaging projectors over shots; the exact channel is two `apply_gate` calls per term on the density *tensor*
+# ($\Pi_m$ on the ket axis $q$, $\Pi_m^*$ on the bra axis $N+q$). The size of the statistical error is known exactly: every post-measurement state is pure, $\||\psi\rangle\langle\psi|\|_F=1$, so the
+# average $\bar\rho$ of $M$ of them satisfies $\mathbb E\|\bar\rho-\rho'\|_F^2=(1-\mathrm{Tr}\,\rho'^2)/M$.
 
 # %%
 # ==============================================================================
@@ -531,19 +537,24 @@ def trajectory_error(key, M):
 
 
 print(f"{'shots M':>8s} {'rms error over ' + str(R) + ' repetitions':>32s} {'rms * sqrt(M)':>14s}")
+c_exact = np.sqrt(1 - float(jnp.real(jnp.trace(rho_exact @ rho_exact))))          # sqrt(1 - Tr rho'^2): the exact rms * sqrt(M)
+pooled = []
 for M in (100, 1000, 10000):
     # lax.map = sequential map over the R repetition keys (keeps memory at ONE batch of M shots; vmap would need R of them)
     errs = jax.jit(lambda ks: lax.map(partial(trajectory_error, M=M), ks))(jax.random.split(jax.random.PRNGKey(M), R))
     rms = float(jnp.sqrt(jnp.mean(errs ** 2)))
     print(f"{M:8d} {rms:32.5f} {rms * np.sqrt(M):14.3f}")
-    assert rms < 2 / np.sqrt(M)
+    pooled.append(rms ** 2 * M)
+ratio_c = np.sqrt(np.mean(pooled)) / c_exact                                      # 60 squared errors: relative SE 1/sqrt(2*60)
+print(f"exact sqrt(1 - Tr rho'^2) = {c_exact:.3f};  pooled rms * sqrt(M) / exact = {ratio_c:.3f} +- {1 / np.sqrt(2 * 3 * R):.3f}")
+assert abs(ratio_c - 1) < 4 / np.sqrt(2 * 3 * R)
 coh_before = max_abs(dm_matrix(rho).reshape((2,) * 6)[:, 0, :, :, 1, :])
 coh_after = max_abs(rho_exact.reshape((2,) * 6)[:, 0, :, :, 1, :])
 print(f"\nlargest coherence between the sectors s_1=0 and s_1=1:  before {coh_before:.3f}  ->  after {coh_after:.1e}")
 
 # %% [markdown]
-# The trajectory average converges to the dephased density matrix: the rms error (over 20 independent repetitions) falls by roughly $\sqrt{10}\approx3.2$ for every tenfold increase of $M$ — measured factors $2.95$ and $3.59$ — so that the product
-# rms$\,\times\sqrt M$ in the last column stays flat to within the accuracy with which $20$ repetitions determine an rms, which is $1/\sqrt{2\cdot20}\approx16\,\%$. The coherences between the two measurement sectors are gone.
+# The trajectory average converges to the dephased density matrix: the rms error (over 20 independent repetitions) falls by roughly $\sqrt{10}\approx3.2$ for every tenfold increase of $M$ — measured factors $2.95$ and $3.59$ — and the product
+# rms$\,\times\sqrt M$ scatters by the $1/\sqrt{2\cdot20}\approx16\,\%$ that 20 repetitions allow around the exact value $\sqrt{1-\mathrm{Tr}\,\rho'^2}=0.697$; pooled over all 60 runs it agrees with it to $0.5\,\%$. The coherences between the two measurement sectors are gone.
 # The same idea — *average of random pure-state trajectories = deterministic evolution of a density matrix* — is the basis of the Monte-Carlo wave-function method for open systems
 # ([notebook 17, Chapter 6](../ch06_open_quantum_systems/17_monte_carlo_wave_function.ipynb)).
 
@@ -569,7 +580,7 @@ print(f"\nlargest coherence between the sectors s_1=0 and s_1=1:  before {coh_be
 # Other bases: rotate every spin first with its $U$ from Section 6 (a string like `"XZY"`).
 #
 # **How to draw from a discrete distribution in JAX.** `jax.random.categorical(key, logits, shape=(shots,))` takes *log*-probabilities and uses the Gumbel-max trick: it adds independent Gumbel noise (Gumbel 1958) $g_i$ to every
-# $\log p_i$ and returns $\arg\max_i(\log p_i+g_i)$, which is distributed exactly according to $p$. It is simple and parallel, but note its cost: **$2^N$ random numbers per shot**. We clip $p$ before the logarithm because $\log0=-\infty$.
+# $\log p_i$ and returns $\arg\max_i(\log p_i+g_i)$, which is distributed exactly according to $p$. It is simple and parallel, at a cost of **$2^N$ random numbers per shot**. We clip $p$ before the logarithm because $\log0=-\infty$.
 
 # %%
 # ==============================================================================
@@ -644,6 +655,10 @@ for label, n in (("joint (categorical)", n_joint), ("sequential collapse", n_seq
     chi2 = np.sum((n - M * p_exact) ** 2 / (M * p_exact))
     print(f"{label:20s}: chi^2 = {chi2:6.2f}   (expected {dof} +- {np.sqrt(2 * dof):.1f})")
     assert chi2 < dof + 5 * np.sqrt(2 * dof)
+n_rev = histogram(np.asarray(my_sample_bitstrings(jax.random.PRNGKey(10), psi, M))[:, ::-1])   # WRONG CONTROL: spin 0 = least significant bit
+chi2_rev = np.sum((n_rev - M * p_exact) ** 2 / (M * p_exact))
+print(f"wrong control, bit order reversed: chi^2 = {chi2_rev:.0f}")
+assert chi2_rev > dof + 20 * np.sqrt(2 * dof)
 
 labels = ["".join(map(str, b)) for b in itertools.product([0, 1], repeat=N)]
 x = np.arange(2 ** N)
@@ -657,7 +672,7 @@ ax.set_title(f"Sampling a random 4-spin state, {M} shots (error bars: binomial s
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# Both $\chi^2$ values lie in the expected range $15\pm5.5$, and in the figure the sampled frequencies scatter around the exact probabilities by about one error bar, as they should. The two procedures are statistically equivalent;
+# Both $\chi^2$ values lie in the expected range $15\pm5.5$, while the same joint samples read with the bit order reversed (spin 0 as the least significant bit, a common bug) are rejected by orders of magnitude. In the figure the sampled frequencies scatter around the exact probabilities by about one error bar, as they should. The two procedures are statistically equivalent;
 # they differ in cost (Section 14) and in what they return (the sequential one also gives the collapsed state, which matters when only *some* spins are measured).
 #
 # The production version, with the optional per-spin bases:
@@ -671,7 +686,7 @@ fig.tight_layout(); plt.show()
 # The Gumbel-max trick spends $2^N$ random numbers *per shot*: for $N=12$ and $10^4$ shots that is $4\times10^7$ numbers and as many logarithms, and the memory grows as shots $\times\,2^N$.
 # The classic alternative is **inverse-transform sampling** (Devroye 1986; Press *et al.* 2007, §7.3): compute the cumulative distribution $c_i=\sum_{j\le i}p_j$ once ($O(2^N)$), draw *one* uniform number $u$ per shot and find the first index with $c_i>u$
 # by binary search (`jnp.searchsorted`, $O(N)$ per shot). Picture the interval $[0,1)$ cut into $2^N$ segments of lengths $p_i$: a uniformly thrown dart lands in segment $i$ with probability $p_i$.
-# We add this function in engine style (it is a candidate for the engine) and use it whenever we need very many shots.
+# We write it with an engine-style docstring and use it whenever we need very many shots.
 
 # %%
 # ==============================================================================
@@ -681,9 +696,10 @@ def sample_bitstrings_cdf(key, psi, shots, bases=None):
     """Sample `shots` bit strings from |psi[s]|^2 by inverse-transform sampling.
 
     MATH            c_i = sum_{j<=i} p_j ;  u ~ U[0,1) ;  i = #{j : c_j <= u}   =>   P(i) = p_i
+                    (p_i after rotating spin q with U of bases[q], Section 6, if `bases` is given)
     IMPLEMENTATION  cumsum once, one uniform number per shot, binary search (`searchsorted`, side='right' so that
                     states with p_i = 0 are never returned); u is scaled by c_last to absorb rounding in the cumsum.
-    COST            O(2^N + shots*N) time, O(2^N + shots) memory  (Gumbel-max `categorical`: O(shots * 2^N) both).
+    COST            O(2^N + shots*N) time and memory  (Gumbel-max `categorical`: O(shots * 2^N) both).
     JAX             `shots` fixes an array shape -> static under jit; psi and key are traced.
     """
     N = psi.ndim
@@ -733,7 +749,7 @@ print("GHZ_10, 5000 shots (CDF sampler): distinct records =", sorted(set(bits_to
 #
 # $$\mathrm{SE}=\frac{\sigma}{\sqrt M}=\sqrt{\frac{1-\langle O\rangle^2}{M}}\;\approx\;\frac{\text{sample std}}{\sqrt M}.$$
 #
-# Three practical consequences: (i) one more digit costs $100\times$ more shots; (ii) the closer $|\langle O\rangle|$ is to 1, the smaller the noise (an eigenstate gives no noise at all); (iii) a result without an error bar is not a result.
+# Three practical consequences: (i) one more digit costs $100\times$ more shots; (ii) the closer $|\langle O\rangle|$ is to 1, the smaller the noise (an eigenstate gives no noise at all); (iii) an estimate is reported together with its standard error.
 # $X$- or $Y$-type observables need shots taken in another basis setting (`bases="XX..X"`) — **each measurement setting costs its own shots**, because $X_q$ and $Z_q$ cannot be read in the same run.
 #
 # ### 11.2 Experiment: measuring the energy of a ground state the way a laboratory would
@@ -745,7 +761,7 @@ print("GHZ_10, 5000 shots (CDF sampler): distinct records =", sorted(set(bits_to
 # $$\mathrm{Var}\Big(\sum_ie_i\Big)=\sum_i\mathrm{Var}(e_i)+\sum_{i\ne j}\mathrm{Cov}(e_i,e_j),$$
 #
 # and the bond terms $z_iz_{i+1}$ and $z_{i+1}z_{i+2}$ measured in the *same* shot are strongly correlated. For this ground state the covariances are positive and raise the variance of $e^{ZZ}$ by a factor $1.30$ over the sum of the individual
-# variances, so estimating each bond separately and adding the standard errors in quadrature would report an error bar $14\,\%$ too small. The sample standard deviation of the single-shot sum contains the covariances automatically.
+# variances, so estimating each bond separately and adding the standard errors in quadrature would report an error bar $\sqrt{1.30}=1.14$ times ($12\,\%$) too small; the cell below shows this on the samples. The sample standard deviation of the single-shot sum contains the covariances automatically.
 # Across the two settings the situation is different: they use different keys and different shots, so their covariance really is
 # zero and *their* errors do add in quadrature.
 
@@ -787,11 +803,13 @@ e_zz = -J_ISING * jnp.sum(z[:, :-1] * z[:, 1:], axis=1)                         
 e_x = -H_FIELD * jnp.sum(x, axis=1)                                              # single-shot field energy
 (E_zz, se_zz), (E_x, se_x) = mean_and_se(e_zz), mean_and_se(e_x)
 E_est, E_se = E_zz + E_x, np.sqrt(se_zz ** 2 + se_x ** 2)
+se_bonds = np.sqrt(sum(mean_and_se(-J_ISING * z[:, i] * z[:, i + 1])[1] ** 2 for i in range(N - 1)))   # WRONG: covariances dropped
+print(f"bond energy: SE of the single-shot sum = {se_zz:.4f};  per-bond SEs added in quadrature = {se_bonds:.4f}  (ratio {se_zz / se_bonds:.2f})")
 print(f"\nenergy from 2 x {N_SHOTS} shots: E = {E_est:.3f} +- {E_se:.3f}    exact E0 = {E0:.3f}    deviation = {(E_est - E0) / E_se:+.2f} SE")
 assert abs(E_est - E0) < 4 * E_se
 
 # %% [markdown]
-# Every estimate agrees with its exact value within a few standard errors (the `assert`s allow four). Note $\langle Z_3\rangle$: by the spin-flip symmetry of the Hamiltonian its exact value is 0, and the estimate is "zero within the error bar" — not zero.
+# Every estimate agrees with its exact value within a few standard errors (the `assert`s allow four). By the spin-flip symmetry of the Hamiltonian the exact $\langle Z_3\rangle$ is 0, and its estimate is zero only within the error bar.
 # The energy comes out with a relative error of a fraction of a percent after $8000$ state preparations. Because of the $1/\sqrt M$ law, a variational algorithm that needs the energy with a standard error of $10^{-2}$ at every optimisation step would need about 30 times more shots, and $10^{-3}$ about 3000 times more: this measurement overhead is a central practical issue of near-term quantum algorithms ([notebook 41, Chapter 11](../ch11_variational_quantum_circuits/41_optimizers.ipynb)).
 #
 # ### 11.3 The $1/\sqrt M$ law and the central limit theorem over $R=400$ repetitions
@@ -831,6 +849,11 @@ for M, r_, c1, c2 in zip(SHOT_LIST, rms, cover1, cover2):
     print(f"{M:6d} {r_:10.5f} {sigma / np.sqrt(M):14.5f} {r_ / (sigma / np.sqrt(M)):6.2f} {c1:12.2f} {c2:12.2f}")
 ratio = np.array(rms) / (sigma / np.sqrt(np.array(SHOT_LIST)))
 assert np.all(np.abs(ratio - 1) < 0.15), "rms error deviates from sigma/sqrt(M) by more than 15%"
+q_pool = np.mean([np.mean((estimates[M] - exact) ** 2) * M for M in SHOT_LIST])     # pooled (error / (1/sqrt(M)))^2
+q_se = np.sqrt(2 / (R * len(SHOT_LIST)))
+print(f"pooled over {R * len(SHOT_LIST)} experiments: rms/(sigma/sqrt M) = {np.sqrt(q_pool) / sigma:.3f};  (mean sq. error)/(sigma^2/M) = {q_pool / sigma ** 2:.3f} +- {q_se:.3f}"
+      f"  ->  {(q_pool / sigma ** 2 - 1) / q_se:+.1f} SE;  wrong control sigma = 1: {(q_pool - 1) / q_se:+.1f} SE")
+assert abs(q_pool / sigma ** 2 - 1) < 4 * q_se and abs(q_pool - 1) > 4 * q_se
 
 fig, axes = plt.subplots(1, 2, figsize=(12, 4))
 ax = axes[0]
@@ -851,9 +874,10 @@ ax.set_xlabel(r"estimate of $\langle Z_3Z_4\rangle$"); ax.set_ylabel("probabilit
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# **(a)** Over three and a half decades of $M$ the measured rms error sits on the parameter-free line $\sigma/\sqrt M$ (ratios close to 1 in the table; they are themselves estimated from 400 repetitions and fluctuate by a few percent).
-# **(b)** The estimates are Gaussian distributed around the exact value with exactly that width. The coverage columns show that the *estimated* error bars cover the exact value at the stated rate: about two thirds of the experiments land within one standard error, about 95 % within two.
-# The one-standard-error column sits a little below the Gaussian $68.3\,\%$, and that is not a defect of the code: for a $\pm1$ observable the coverage can be computed exactly from the binomial distribution, and with $\langle Z_3Z_4\rangle=0.5787$ it is
+# **(a)** Over three and a half decades of $M$ the measured rms error sits on the parameter-free line $\sigma/\sqrt M$ (ratios close to 1 in the table; an rms from 400 repetitions has a relative uncertainty of $1/\sqrt{800}=3.5\,\%$, so the $1.10$ at $M=30000$ is a $2.8\sigma$ fluctuation, and the pooled test below the table uses all $3200$ experiments at once).
+# Misreading the single-shot variance as 1, the bound for a $\pm1$ variable, would predict errors $1/0.8155=1.23$ times larger; the pooled test passes the correct $\sigma$ at $+0.8$ SE and rejects $\sigma=1$ at $-12.8$ SE.
+# **(b)** The histogram of the estimates follows the Gaussian of that width centred on the exact value. The coverage columns show that the *estimated* error bars cover the exact value at the stated rate: about two thirds of the experiments land within one standard error, about 95 % within two.
+# The one-standard-error column sits a little below the Gaussian $68.3\,\%$, as it should: for a $\pm1$ observable the coverage can be computed exactly from the binomial distribution, and with $\langle Z_3Z_4\rangle=0.5787$ it is
 # $0.52$ at $M=10$, $0.62$ at $M=30$ and then $0.67$–$0.69$, approaching $0.683$ only slowly. Two effects push it down: the estimate lives on a lattice of spacing $2/M$, and the estimated error bar $\sqrt{(1-\widehat{\langle O\rangle}^2)/M}$ *shrinks*
 # exactly when the estimate wanders towards $\pm1$. At $M=10$ the last effect is extreme: all ten shots agree in 9 % of the experiments, and those get an error bar of zero, which can never cover anything.
 #
@@ -894,7 +918,7 @@ for kind in ("phi+", "psi-"):
     print(f"   single-spin average of spin 0 in the X basis: {mean_and_se(single[:, 0])[0]:+.3f} +- {mean_and_se(single[:, 0])[1]:.3f}  (a fair coin)\n")
 
 # %% [markdown]
-# The diagonal entries are *exactly* $\pm1$ with zero error bar: all 2000 shots agree (or all disagree) — perfect correlations have no shot noise. Mixed settings give zero within errors.
+# The diagonal entries are *exactly* $\pm1$ with zero error bar: all 2000 shots agree (or all disagree) — perfect correlations have no shot noise. Mixed settings give zero within two standard errors.
 #
 # **Arbitrary axes.** Let spin 0 be measured along $z$ and spin 1 along the axis $\hat n(\theta)=(\sin\theta,0,\cos\theta)$ in the $x$–$z$ plane, i.e. the observable $\sigma_\theta=\cos\theta\,Z+\sin\theta\,X$. Since
 # $R_y(\theta)ZR_y(\theta)^\dagger=\cos\theta Z+\sin\theta X$, the rule of Section 6 applies with $U=R_y(\theta)^\dagger=R_y(-\theta)$: rotate spin 1 with $R_y(-\theta)$, then read out in $Z$. Quantum mechanics predicts
@@ -941,14 +965,14 @@ ax.set_ylim(-1.15, 1.6)
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# The sampled correlations follow $\pm\cos\theta$ within their error bars; note how the error bars shrink to zero where $|E|=1$ and are largest ($1/\sqrt M\approx0.03$) where $E=0$ — the $\sqrt{1-E^2}$ law of Section 11.
+# The sampled correlations follow $\pm\cos\theta$ within three standard errors (largest deviation $2.7$ SE among 50 points); the error bars shrink to zero where $|E|=1$ and are largest ($1/\sqrt M\approx0.03$) where $E=0$ — the $\sqrt{1-E^2}$ law of Section 11.
 # The smooth cosine is what makes quantum correlations stronger than any classical "hidden instruction set" could produce: such models are constrained by the CHSH inequality $|S|\le2$, while four well-chosen angles on this curve give $2\sqrt2$.
 # The derivation and a sample-based CHSH test are the subject of [notebook 19, Chapter 8](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb) (and of Exercise 6).
 
 # %% [markdown]
 # ## 13. Measurements inside compiled loops: mid-circuit measurement
 #
-# So far a measurement ended the story. In many protocols it sits *in the middle* of the dynamics and is repeated many times. The JAX pattern is `lax.scan` (notebook 01): the loop body is compiled once; the **carry** holds the
+# In many protocols a measurement sits *in the middle* of the dynamics and is repeated many times. The JAX pattern is `lax.scan` (notebook 01): the loop body is compiled once; the **carry** holds the
 # state (and any classical memory), and the **scanned input is an array of keys**, one per round, prepared beforehand with `jax.random.split`. `vmap` over a second batch of keys then runs many independent realisations in parallel.
 #
 # ### 13.1 The quantum Zeno effect
@@ -1018,7 +1042,8 @@ ax.set_title("Quantum Zeno effect"); ax.legend(fontsize=8); fig.tight_layout(); 
 # concentrate it into a pair. Its two end spins in particular are **not entangled with each other**: for $N\ge4$ their reduced state is $\mathbb 1/4$ (no correlations whatsoever), and for $N=3$ it is the classical mixture
 # $\tfrac12(|{+}{+}\rangle\langle{+}{+}|+|{-}{-}\rangle\langle{-}{-}|)=(\mathbb 1+X_0X_2)/4$ — correlated in $X$, but separable (the code below checks both statements). Now measure all *interior* spins in the $X$ basis. For $N=3$ the argument is short: the state is stabilised by $K_0=X_0Z_1$, $K_1=Z_0X_1Z_2$, $K_2=Z_1X_2$
 # (eigenvalue $+1$ each). The products $K_0K_2=X_0X_2$ and $K_1$ commute with the measured $X_1$, so they remain valid after the measurement, with $X_1$ replaced by its outcome $(-1)^m$:
-# the ends are left in the state with $X_0X_2=+1$ and $Z_0Z_2=(-1)^m$ — a Bell state, $|\Phi^+\rangle$ or $|\Psi^+\rangle$ depending on the outcome. Measuring the middle spin in $Z$ instead *cuts* the chain and leaves a product state.
+# the ends are left in the state with $X_0X_2=+1$ and $Z_0Z_2=(-1)^m$ — a Bell state, $|\Phi^+\rangle$ or $|\Psi^+\rangle$ depending on the outcome. For $N=7$ the same reasoning uses
+# $K_0K_2K_4K_6=X_0X_2X_4X_6$ and $K_1K_3K_5=Z_0X_1X_3X_5Z_6$, which give $X_0X_6=(-1)^{m_2+m_4}$ and $Z_0Z_6=(-1)^{m_1+m_3+m_5}$. Measuring the middle spin in $Z$ instead *cuts* the chain and leaves a product state.
 # This is the elementary step of measurement-based quantum computing and of entanglement swapping in quantum repeaters.
 
 # %%
@@ -1060,7 +1085,7 @@ for N_c, basis in ((3, "X"), (3, "Z"), (7, "X")):
 # %% [markdown]
 # * $X$ measurements: in **every** shot the end spins share exactly 1 bit of entanglement — for $N=3$ and also for $N=7$, where the two ends are six sites apart and five spins were measured. For $N=3$ the correlations are $X_0X_2=+1$ and
 #   $Z_0Z_2=(-1)^m$, as derived.
-# * $Z$ measurement: the ends are left in a product state ($S=0$). The printed $\langle X_0X_2\rangle=+1$ is not a leftover of entanglement but a classical correlation: $K_0=X_0Z_1$ and $K_2=Z_1X_2$ both commute with the measured $Z_1$, so the
+# * $Z$ measurement: the ends are left in a product state ($S=0$), and the printed $\langle X_0X_2\rangle=+1$ is a classical correlation: $K_0=X_0Z_1$ and $K_2=Z_1X_2$ both commute with the measured $Z_1$, so the
 #   outcome fixes $X_0=X_2=(-1)^m$ separately on each end, and the state is the product $|x_0\rangle|z_1\rangle|x_2\rangle$.
 # * If the record is discarded, $\langle Z_0Z_2\rangle$ averages to zero (within shot noise): the entanglement is only *useful* together with the classical outcome. Turning "a random one of several Bell states" into "always $|\Phi^+\rangle$" requires a correction conditioned on the outcome — feedback,
 #   exactly as in `reset_qubit`, and exactly as in quantum teleportation ([notebook 20, Chapter 8](../ch08_quantum_information_protocols/20_quantum_teleportation.ipynb)).
@@ -1068,7 +1093,7 @@ for N_c, basis in ((3, "X"), (3, "Z"), (7, "X")):
 # %% [markdown]
 # ## 14. Performance
 #
-# How expensive is randomness? We time (i) single-spin measurement shots at $N=12$: a Python loop over a jitted single-shot function versus one `jit(vmap(...))` call; and (ii) a complete readout at $N=12$: sequential collapse versus
+# We time (i) single-spin measurement shots at $N=12$: a Python loop over a jitted single-shot function versus one `jit(vmap(...))` call; and (ii) a complete readout at $N=12$: sequential collapse versus
 # `categorical` (Gumbel-max) versus the inverse CDF. Timing rules as always: block until the result is ready; the first call includes compilation and is reported separately.
 #
 # | method | time per batch | memory |
@@ -1076,7 +1101,7 @@ for N_c, basis in ((3, "X"), (3, "Z"), (7, "X")):
 # | `measure_qubit`, $M$ shots (vmap) | $O(M\,2^N)$ | $O(M\,2^N)$ — the batch of post-measurement states |
 # | full readout, sequential | $O(M\,N\,2^N)$ | $O(M\,2^N)$ |
 # | full readout, `categorical` | $O(M\,2^N)$ random numbers | $O(M\,2^N)$ |
-# | full readout, inverse CDF | $O(2^N+M\,N)$ | $O(2^N+M)$ |
+# | full readout, inverse CDF | $O(2^N+M\,N)$ | $O(2^N+M\,N)$ — the returned bits |
 
 # %%
 # ==============================================================================
@@ -1138,7 +1163,7 @@ for shots in (1000, 10000):
 # * Stochastic JAX code: explicit keys (split, never reuse), **no Python `if` on random values** — select with `jnp.where`; then `jit`, `vmap` (shots) and `lax.scan` (repeated rounds) just work. Feedback (reset, corrections) is the same trick.
 # * Measuring part of an entangled state changes the rest: GHZ is destroyed by one $Z$ measurement, W mostly survives; an unread measurement is dephasing; reset is the channel $\rho\to|0\rangle\langle0|\otimes\mathrm{Tr}_q\rho$; $X$ measurements on a cluster chain create a Bell pair between its ends.
 # * A complete readout can be sampled jointly from $|\psi_s|^2$ (chain rule $\Rightarrow$ same statistics as sequential collapse). Know the cost of your sampler: Gumbel-max $O(\text{shots}\times2^N)$, inverse CDF $O(2^N+\text{shots}\times N)$.
-# * **Shot noise**: standard error $\sqrt{(1-\langle O\rangle^2)/M}$; every measurement setting needs its own shots; always report mean $\pm$ SE and validate stochastic code with $z$-scores and $\chi^2$, not with `TOL`.
+# * **Shot noise**: standard error $\sqrt{(1-\langle O\rangle^2)/M}$; every measurement setting needs its own shots; always report mean $\pm$ SE and validate stochastic code with $z$-scores and $\chi^2$ (`TOL` is for deterministic checks).
 # * Frequent measurements freeze dynamics (Zeno); measurement + classical record + feedback is a universal primitive of quantum protocols.
 
 # %% [markdown]

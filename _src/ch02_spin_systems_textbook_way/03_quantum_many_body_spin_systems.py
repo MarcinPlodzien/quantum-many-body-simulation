@@ -28,11 +28,11 @@
 #   are a central theme of condensed-matter physics.
 #
 # The catch is the size of the problem. One spin needs 2 complex numbers, two spins need 4, and $N$ spins need
-# $2^N$. This exponential growth is the reason why classical computers struggle with quantum matter, why
-# Feynman proposed quantum simulators in the first place, and why this course exists: **we want to push a
-# classical computer as far as it can go, and understand exactly where and why it stops.**
+# $2^N$. This exponential growth is the reason why classical computers struggle with quantum matter and why
+# Feynman proposed quantum simulators in the first place. The aim is to push a classical computer as far as it
+# can go, and to understand exactly where and why it stops.
 #
-# **This notebook is the physics entry point of the course.** We deliberately use the most direct method, the
+# We start with the most direct method, the
 # one found in every textbook: write every operator as a $2^N\times 2^N$ matrix (with Kronecker products), add
 # the matrices up to get the Hamiltonian, and hand it to a dense eigenvalue solver. This is called **exact
 # diagonalisation (ED)**. There are no tricks here; the goal is to understand the objects. At the end we will
@@ -82,7 +82,7 @@
 # ### Prerequisites
 #
 # One semester of quantum mechanics (spin-1/2, Pauli matrices, eigenvalues and eigenvectors) and the two
-# previous notebooks: [01 — JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb) (arrays, `jit`, `vmap`, timing) and
+# previous notebooks: [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb) (arrays, `jit`, `vmap`, timing) and
 # [02 — einsum from scratch](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb) (index notation, `reshape` and C-ordering). We use
 # `jax.numpy` (imported as `jnp`) for all arrays, but nothing more advanced than matrix products and `kron`.
 
@@ -107,8 +107,8 @@
 #    Z \equiv \sigma^z = \begin{pmatrix}1&0\\0&-1\end{pmatrix}. $$
 #
 # > **Convention of the whole course.** $|0\rangle=(1,0)^T$ is the $+1$ eigenstate of $Z$ ("spin up"),
-# > $|1\rangle=(0,1)^T$ the $-1$ eigenstate ("spin down"). We work with Pauli matrices (eigenvalues $\pm1$),
-# > *not* with spin operators $S^\alpha=\sigma^\alpha/2$, and we set $\hbar=1$. When you compare with a paper
+# > $|1\rangle=(0,1)^T$ the $-1$ eigenstate ("spin down"). We work with Pauli matrices (eigenvalues $\pm1$)
+# > instead of the spin operators $S^\alpha=\sigma^\alpha/2$, and we set $\hbar=1$. When you compare with a paper
 # > written in terms of $S^\alpha$, couplings differ by factors of 4 (two-spin terms) and 2 (field terms).
 #
 # The Pauli matrices have three properties that we will use again and again:
@@ -296,7 +296,7 @@ checkpoint("<n.sigma> = n . r   (Bloch vector)", jnp.abs(expval(psi, n_sigma) - 
 # %% [markdown]
 # Any spin component of a spin-1/2 has eigenvalues $\pm1$ (because $(\mathbf n\cdot\boldsymbol\sigma)^2=1$,
 # a consequence of the anticommutation relations), and the measurement statistics follow from the Bloch
-# vector. That is all there is to know about one spin.
+# vector, so a pure state of one spin is completely characterised by its Bloch vector.
 #
 # ## 3. Two spins: the tensor product
 #
@@ -377,8 +377,8 @@ checkpoint("states: kron_by_hand(a, b) == jnp.kron(a, b)",
 # is visible at the level of $2\times2$ blocks, and each block is a copy of the *right* factor $Z$.
 #
 # > **Common pitfall.** The Kronecker product is **not commutative**: $X\otimes Z\neq Z\otimes X$. The left
-# > factor belongs to spin 0 and varies *slowest* in the flat index. Half of all bugs in many-body codes are
-# > a confusion about which factor is which spin. In this course: **spin $q$ = Kronecker factor number $q$
+# > factor belongs to spin 0 and varies *slowest* in the flat index. Confusing which factor is which spin is
+# > one of the most common bugs in many-body codes. In this course: **spin $q$ = Kronecker factor number $q$
 # > counted from the left = bit number $q$ of the label $s_0s_1\ldots$ read from the left (most significant
 # > bit first).**
 #
@@ -402,13 +402,13 @@ for s0 in (0, 1):
 # %% [markdown]
 # ### 3.3 Operators acting on one of the two spins
 #
-# What is the matrix of "$Z$ on spin 0, nothing on spin 1"? "Nothing" is the identity, so the answer is
+# The operator "$Z$ on spin 0, nothing on spin 1" acts on spin 1 with the identity, so its matrix is
 # $Z_0 \equiv Z\otimes 1$; likewise $Z_1\equiv 1\otimes Z$:
 #
 # $$ Z\otimes 1 = \mathrm{diag}(1,1,-1,-1),\qquad 1\otimes Z = \mathrm{diag}(1,-1,1,-1). $$
 #
 # Read these diagonals against the basis order $|00\rangle,|01\rangle,|10\rangle,|11\rangle$: $Z_0$ gives
-# $+1$ when the *first* label is 0 and $Z_1$ gives $+1$ when the *second* label is 0. Exactly as it should.
+# $+1$ when the *first* label is 0, and $Z_1$ gives $+1$ when the *second* label is 0.
 #
 # Two algebraic facts follow from the **mixed-product property**
 # $(A\otimes B)(C\otimes D) = (AC)\otimes(BD)$ (which is Eq. (1) written for matrices; prove it from the index
@@ -451,7 +451,7 @@ checkpoint("Z_0 Z_1 = Z (x) Z", jnp.abs(Z0 @ Z1 - jnp.kron(Z, Z)).max())
 # ### 3.4 Product states versus entangled states: the singlet
 #
 # A product state $|a\rangle\otimes|b\rangle$ is described by two Bloch vectors: each spin has "its own
-# state". But the four-dimensional space contains much more than product states. The most famous example is the
+# state". But the four-dimensional space contains much more than product states. The best-known example is the
 # **singlet**
 #
 # $$ |S\rangle = \frac{|01\rangle-|10\rangle}{\sqrt2} = \frac{|{\uparrow\downarrow}\rangle-|{\downarrow\uparrow}\rangle}{\sqrt2}. $$
@@ -508,13 +508,13 @@ checkpoint("<P_0 P_1> = -1 for P = X, Y, Z", sum(jnp.abs(expval(singlet, jnp.kro
 # > $\langle Z_0Z_1\rangle=\langle Z_0\rangle\langle Z_1\rangle=-1$; there are no correlations along $x$ or $y$.
 # > In the singlet **every local expectation value is zero** — each spin on its own looks completely random,
 # > its Bloch vector has length zero — and yet the two spins are **perfectly anticorrelated along every axis**.
-# > The information is not stored in the parts but in the correlations between them. No assignment of "a
+# > The information resides in the correlations between the parts. No assignment of "a
 # > direction to each spin" can reproduce this. This is what makes many-body quantum states hard to describe
 # > classically, and it is the resource behind quantum technologies.
 #
 # ### 3.5 Our first interacting Hamiltonian
 #
-# Where does a singlet come from? From interactions. The exchange interaction between two electron spins has
+# A singlet is produced by interactions. The exchange interaction between two electron spins has
 # the **Heisenberg** form
 #
 # $$ H_2 = J\,\boldsymbol\sigma_0\cdot\boldsymbol\sigma_1 = J\,(X\otimes X + Y\otimes Y + Z\otimes Z). $$
@@ -821,22 +821,24 @@ assert list(counts) == [comb(N, k) for k in range(N, -1, -1)] and counts.sum() =
 # raises a spin, $\sigma^-$ lowers it; beware that in qubit language, where $|1\rangle=|{\downarrow}\rangle$
 # counts as the "excited" state, the same matrix $|0\rangle\langle1|$ is called a *lowering* operator): it
 # moves a down spin from one site to its neighbour — it is a **hopping term**. If one reads "down spin" as "a
-# particle sits here", the XXZ chain is a model of hard-core bosons hopping on a lattice with
-# nearest-neighbour interaction $\Delta$. Ultracold atoms in a deep optical lattice realise the two ends of
+# particle sits here", the XXZ chain is a model of hard-core bosons hopping on a lattice with amplitude $2J$
+# and nearest-neighbour interaction $4J\Delta$ (from $Z_iZ_j=(1-2n_i)(1-2n_j)$). Ultracold atoms in a deep optical lattice realise the two ends of
 # this correspondence in different ways: bosons in the hard-core limit give the free-particle chain
 # $\Delta=0$ directly, while a two-component Mott insulator at unit filling has an effective
 # *superexchange* Hamiltonian of Heisenberg (or, with unequal tunnelling amplitudes, XXZ) form. In
 # superconducting-qubit processors the same hopping term arises from the capacitive coupling between
 # neighbouring qubits. The anisotropy $\Delta$ interpolates
 # between the XY chain ($\Delta=0$, free fermions after a Jordan–Wigner transformation; Lieb, Schultz and Mattis 1961), the isotropic Heisenberg point ($\Delta=1$) and the
-# Ising-like antiferromagnet ($\Delta\gg1$). The chain was solved by Bethe in 1931 with his famous ansatz; its
+# Ising-like antiferromagnet ($\Delta\gg1$). The chain was solved by Bethe in 1931 with the ansatz that bears his name; its
 # ground-state energy per site in the thermodynamic limit (Hulthén 1938) is, in our Pauli convention,
 # $E_0/N = J\,(1-4\ln2)\approx-1.7726\,J$.
 #
 # > **Physics insight.** In all these models the interesting physics comes from terms that **do not commute**.
-# > If all terms of $H$ commuted (e.g. $h=0$ in the TFIM), the basis states would be eigenstates, and there
-# > would be nothing to compute. Non-commuting terms force the eigenstates to be superpositions of
-# > exponentially many basis states — generically highly entangled ones.
+# > If all terms of $H$ were diagonal in the basis of bit strings (e.g. $h=0$ in the TFIM), the basis states
+# > would be eigenstates, and there would be nothing to compute. Non-commuting terms force the eigenstates to
+# > be superpositions of exponentially many basis states — generically highly entangled ones. (Commutation
+# > alone is not the criterion: the terms $Z_{j-1}X_jZ_{j+1}$ of the cluster-state Hamiltonian all commute,
+# > yet its ground state is entangled.)
 #
 # ## 6. Building the Hamiltonian matrix
 #
@@ -1068,7 +1070,8 @@ print(f"non-zero entries: {np.count_nonzero(H_sorted)} of {H_sorted.size}  ({100
 # The phrase "to machine precision" needs a practical rule attached to it. A backward-stable symmetric
 # eigensolver returns the *exact* eigenvalues of a perturbed matrix $H+\delta H$ with
 # $\lVert\delta H\rVert=O(\varepsilon)\lVert H\rVert$, and Weyl's inequality then bounds each eigenvalue error
-# by $\lVert\delta H\rVert$. The error is therefore **absolute, not relative**:
+# by $\lVert\delta H\rVert$. The error is therefore **absolute**: it is set by the largest energy scale of
+# $H$ and does not shrink with the eigenvalue itself,
 #
 # $$ \delta E \approx c\,\varepsilon\,\lVert H\rVert, \qquad
 #    \lVert H\rVert \le \sum_{\alpha}\big(\lvert J_{\alpha\alpha}\rvert\,n_{\rm bonds} + \lvert h_\alpha\rvert\,N\big), \qquad\text{(6)} $$
@@ -1080,7 +1083,7 @@ print(f"non-zero entries: {np.count_nonzero(H_sorted)} of {H_sorted.size}  ({100
 # > $\lVert H\rVert\le2NJ=24$, so double precision resolves energy *differences* down to about $10^{-14}$ and
 # > single precision only down to about $10^{-5}$; anything smaller is noise, whatever the number of digits
 # > printed. This is why the exponentially small doublet splitting $E_1-E_0\sim J(h/J)^N$ of Section 7.2 is the
-# > first casualty of reduced precision (Exercise 8), while the energy per site itself keeps eight digits.
+# > first casualty of reduced precision (Exercise 8), while the energy per site itself keeps six to seven digits.
 #
 # Never trust an eigensolver blindly. Three cheap tests: the residual $\lVert Hv-Ev\rVert$, the orthonormality
 # $V^\dagger V=1$, and the trace identity $\sum_nE_n=\mathrm{Tr}\,H$.
@@ -1112,7 +1115,7 @@ print(f"<Z_0> in the ground state: {float(expval(V[:, 0].astype(CDTYPE), site_op
 # %% [markdown]
 # The solver passes all tests. The two lowest states have opposite parity ($+1$ and $-1$) and are separated by
 # a small energy; and, as predicted in Section 6.2, $\langle Z_0\rangle=0$ in the ground state even though
-# $h<J$. We now turn the crank and extract physics.
+# $h<J$.
 #
 # ### 7.2 The energy gap of the TFIM and the quantum critical point
 #
@@ -1214,8 +1217,8 @@ print(f"N = 6 sweep:  Python loop {1e3 * t_loop:8.1f} ms   |   jit(vmap) {1e3 * 
 # > matrix–vector products, ...), each with a small overhead; `jit(vmap(...))` sends **one** compiled, batched
 # > program to the device. For small matrices the overhead dominates, and the compiled sweep is several times
 # > faster. Do not expect the same gain for $N=10$: there the time is spent inside the eigensolver itself, and
-# > no transformation changes its $O(8^N)$ arithmetic. `jit` and `vmap` remove overhead; they do not change the
-# > algorithm.
+# > no transformation changes its $O(8^N)$ arithmetic. `jit` and `vmap` remove overhead and leave the
+# > algorithm unchanged.
 
 # %%
 # ==============================================================================
@@ -1259,16 +1262,18 @@ for hv in (0.5, 1.0, 1.5):
 # The minimum of the gap sits near $h=J$ and **decreases with $N$**: this is the *finite-size precursor of the
 # quantum critical point*. A finite system has no true phase transition — the gap never closes and everything
 # is smooth — but the sequence $N=4,6,8,10$ clearly points to a gap closing in the limit $N\to\infty$ at
-# $h=J$. How fast does it close? We study this next, and use the occasion to start a stopwatch.
+# $h=J$. The next section measures how fast it closes and, at the same time, how the cost of the calculation
+# grows.
 #
-# ### 7.3 The gap at the critical point versus $N$ — with a stopwatch
+# ### 7.3 The critical gap and the run time versus $N$
 #
 # At $h=J$ the free-fermion solution of the open chain gives the gap in closed form (quoted without proof):
 #
 # $$ \Delta_N(h=J) = 4J\sin\frac{\pi}{2(2N+1)} \;\xrightarrow{N\gg1}\; \frac{\pi J}{N}. \qquad\text{(7)} $$
 #
-# The gap closes as a **power law** $\Delta\sim N^{-z}$ with dynamical critical exponent $z=1$; away from the
-# critical point it converges exponentially fast to a constant. In the next cell we diagonalise the critical
+# The gap closes as a **power law** $\Delta\sim N^{-z}$ with dynamical critical exponent $z=1$. Away from the
+# critical point it tends to the non-zero constant $2|h-J|$; in an open chain the approach is slow, with a
+# correction of order $1/N^2$, the kinetic energy of an excitation confined to $N$ sites. In the next cell we diagonalise the critical
 # chain for $N=2,\ldots,12$. For every $N$ we record the wall-clock time of building $H$ and of `eigh`, as well
 # as the memory taken by $H$ — the raw material for Section 8.
 #
@@ -1276,7 +1281,8 @@ for hv in (0.5, 1.0, 1.5):
 # > before reading the clock. (ii) The first call of a JAX function with a new array *shape* includes
 # > compilation. Every size $N$ has its own shapes, so *every* row of the table would otherwise pay that price:
 # > we therefore call `tfim_dense` once as a warm-up and time the second call, and for $N\le10$ we time `eigh`
-# > twice and report both the first call (compile + run) and the second call (run only). For $N\ge11$ a second
+# > four times and report the first call (compile + run) and the fastest of the other three (run only; the
+# > minimum is the timing least affected by other jobs on the machine). For $N\ge11$ a second
 # > `eigh` would only cost time without adding information: the compile overhead (a fraction of a second, as
 # > the small sizes show) is negligible against several seconds of arithmetic.
 
@@ -1312,7 +1318,7 @@ for N in WALL_SIZES:
     nbytes = Hc.nbytes
     del Hc                                                        # free the complex copy before the heavy step
     (E, V), t_first = timed(jnp.linalg.eigh, Hr)
-    t_run = timed(jnp.linalg.eigh, Hr)[1] if N <= 10 else float("nan")
+    t_run = min(timed(jnp.linalg.eigh, Hr)[1] for _ in range(3)) if N <= 10 else float("nan")   # best of three
     gap = float(E[1] - E[0])
     wall.append((N, gap, t_build, t_first, t_run, nbytes, nnz))
     print(f" {N:2d} | {2 ** N:5d} | {gap:.10f} | {4 * np.sin(np.pi / (2 * (2 * N + 1))):.10f} |"
@@ -1400,8 +1406,8 @@ for N in SWEEP_SIZES:
 # ordered) and moves towards it as $N$ grows, see the printed values at $h/J=0.5$. For $h>J$ it keeps
 # decreasing with $N$ (asymptotically as $1/\sqrt N$; compare the printed values at $h/J=1.5$). The curves for
 # different $N$ cross and fan out on the way to $h=J$ and become steeper with increasing $N$ — the finite-size
-# rounding of the singular infinite-chain curve (dashed). Locating a critical point from such data is the art of
-# *finite-size scaling*. *Right:* $m_x$ grows linearly for small fields (second-order perturbation theory
+# rounding of the singular infinite-chain curve (dashed). Locating a critical point from such data is the
+# subject of *finite-size scaling*. *Right:* $m_x$ grows linearly for small fields (second-order perturbation theory
 # around $|{\Uparrow}\rangle$, where each flipped spin in the bulk costs $4J$, gives $m_x\to h/2J$ for
 # $N\to\infty$; the open chains lie above that slope because a flip at either end costs only $2J$), bends
 # over around $h=J$ and saturates towards 1. Unlike $m_z$ it stays continuous through the transition even for
@@ -1468,9 +1474,10 @@ for h in CORR_FIELDS:
 
 print("Checkpoint: correlations")
 r = 3
+# (E0, gs) and h are those of the last loop iteration, so the three always refer to the same field
 checkpoint("sign-table formula == <psi|Z_0 Z_3|psi> with the dense operator",
-           abs(corr_tfim[CORR_FIELDS[-1]][r] - float(expval(gs.astype(CDTYPE), two_site_operator(Z, 0, Z, r, N_CORR)))))
-checkpoint("ground-state energy == Eq. (5)", abs(float(E0) - tfim_ring_energy_exact(N_CORR, 1.0, CORR_FIELDS[-1])) / abs(float(E0)))
+           abs(corr_tfim[h][r] - float(expval(gs.astype(CDTYPE), two_site_operator(Z, 0, Z, r, N_CORR)))))
+checkpoint("ground-state energy == Eq. (5)", abs(float(E0) - tfim_ring_energy_exact(N_CORR, 1.0, h)) / abs(float(E0)))
 
 # %% [markdown]
 # ### 7.6 The Heisenberg antiferromagnet
@@ -1498,19 +1505,20 @@ HEIS_SIZES = (4, 6, 8, 10, 12)                  # even ring lengths (N = 12 take
 E_BETHE = 1 - 4 * np.log(2)                     # Bethe-ansatz energy per site, Pauli convention, J = 1
 
 print("   N |   E0/N      | E0/N - Bethe |  <S_tot^2>")
-heis_energy = {}
+heis_energy, heis_S2 = {}, {}
 for N in HEIS_SIZES:
     E0, gs = ground_state(as_real(xxz_dense(N, J=1.0, Delta=1.0, periodic=True)))
     heis_energy[N] = float(E0) / N
     gs_c = gs.astype(CDTYPE)
     S2 = 0.25 * sum(jnp.linalg.norm(total_magnetisation(P, N) @ gs_c) ** 2 for P in (X, Y, Z))
+    heis_S2[N] = float(S2)
     print(f"  {N:2d} | {heis_energy[N]:+.8f} | {heis_energy[N] - E_BETHE:+.6f}    | {float(S2):.2e}")
-corr_heis = np.asarray(zz_correlation_matrix(gs))[0, : N // 2 + 1]                   # largest ring
+corr_heis = np.asarray(zz_correlation_matrix(gs))[0, : N // 2 + 1]                   # gs, gs_c of the last (largest) ring
 N_HEIS = N
 print(f"N = {N_HEIS}: C(r) = <Z_0 Z_r> =", np.round(corr_heis, 4))
 
 print("Checkpoint: Heisenberg ring")
-checkpoint("ground state is a total-spin singlet, <S_tot^2> = 0", S2)
+checkpoint("ground state is a total-spin singlet, <S_tot^2> = 0, every N", max(heis_S2.values()))
 checkpoint("isotropy: <X_0 X_1> = <Z_0 Z_1>",
            abs(float(expval(gs_c, two_site_operator(X, 0, X, 1, N_HEIS))) - corr_heis[1]))
 checkpoint("E0/N = 3 <Z_0 Z_1>   (energy from the correlation function)",
@@ -1576,7 +1584,7 @@ t_best = np.where(np.isnan(t_run), t_first, t_run)             # run time withou
 fig, axes = plt.subplots(1, 2, figsize=(12.5, 4.4))
 ax = axes[0]
 ax.semilogy(Ns, t_first, "o:", color="C1", ms=4, label="eigh, first call (compile + run)")
-ax.semilogy(Ns, t_best, "o-", color="C0", label="eigh, run only")
+ax.semilogy(Ns, t_best, "o-", color="C0", label="eigh, run only (best of three)")
 ax.semilogy(Ns, t_build, "s-", color="C2", label="build $H$ (Kronecker chains)")
 ax.semilogy(Ns, t_best[-1] * 8.0 ** (Ns - Ns[-1]), "k--", lw=1, label=r"$\propto 8^N$")
 ax.semilogy(Ns, t_build[-1] * 4.0 ** (Ns - Ns[-1]), "k:", lw=1, label=r"$\propto 4^N$")
@@ -1604,18 +1612,19 @@ for N_target in (14, 16, 20, 30):
 
 # %% [markdown]
 # **Reading the figure.** For small $N$ the run time is flat: the matrices are tiny and we only measure fixed
-# overheads (Python, dispatch, and — orange — compilation on the first call). From $N\approx8$ on the
+# overheads (Python, dispatch, and — orange — compilation on the first call; the orange dips at $N=6$ and 8 are
+# matrix shapes that `eigh` had already compiled earlier in the notebook). From $N\approx8$ on the
 # asymptotic scaling takes over and the measured points turn upwards, bending towards the dashed $8^N$ line:
 # **every additional spin must eventually multiply the diagonalisation time by $2^3=8$**, while the memory
 # grows by exactly $4$ per spin. The ratio printed above is the *measured* one for a single step, $N=11\to12$,
 # and it is not a precision measurement of the exponent: consecutive runs of this very cell on one and the
-# same machine scatter it over the whole range from about $4$ to about $20$, depending on what else the
-# machine is doing. Three reasons. At these matrix sizes a multi-core CPU is still
+# same machine scatter it over the whole range from about $3$ to about $20$, depending on what else the
+# machine is doing. There are three reasons for this. At these matrix sizes a multi-core CPU is still
 # ramping up its parallel efficiency (a $4096\times4096$ eigendecomposition keeps the cores busier than a
 # $2048\times2048$ one); the last two rows are first-call timings and still contain compilation; and a machine
-# shared with other jobs adds scatter of a factor of two in either direction. Only the slope over *several*
-# spins is meaningful. The absolute numbers depend on your machine and on how busy it is; the trend does
-# not. The extrapolation printed above is the point of the exercise: whatever the time for
+# shared with other jobs adds scatter that can exceed a factor of two in either direction. Only the slope
+# over *several* spins is meaningful. The absolute numbers depend on your machine and on how busy it is,
+# while the trend is the same everywhere. The extrapolation printed above is the point of the exercise: whatever the time for
 # $N=12$ is on your computer, $N=16$ takes $8^4=4096$ times longer and needs 64 GB just to store $H$; for
 # $N=20$ the matrix alone needs 16 TB. Buying a computer that is a thousand times faster and bigger gains
 # $\log_8 1000\approx3$ spins in time, and 5 spins in memory. This is the **exponential wall**.
@@ -1722,7 +1731,7 @@ checkpoint(f"sparse Lanczos gap at N={N_SPARSE} == Eq. (7)", abs(gap_sp - gap_ex
 # The sparse matrix with its $(N+1)2^N\approx1.1$ million non-zeros takes 13 MB (real entries: 8 bytes per value
 # plus 4 bytes per column index) instead of 64 GB, and the two lowest eigenvalues — in agreement with the exact
 # formula (7) to better than $10^{-8}$ — are obtained in the time printed above. Compare that with
-# the *hours* that the $8^N$ extrapolation of Section 8.1 predicts for a dense diagonalisation at $N=16$ — a run
+# the hours to days that the $8^N$ extrapolation of Section 8.1 predicts for a dense diagonalisation at $N=16$ — a run
 # that could not be started in the first place, for want of 64 GB of memory. Sparse exact diagonalisation
 # (usually combined with the symmetry sectors of Section 6.2) is a mature technique and the workhorse of
 # computational quantum magnetism; record calculations reach $N\approx50$ spins.
@@ -1741,9 +1750,8 @@ checkpoint(f"sparse Lanczos gap at N={N_SPARSE} == Eq. (7)", abs(gap_sp - gap_ex
 # that, [notebook 04](04_time_evolution_the_textbook_way.ipynb) stays with the dense matrices of this notebook
 # for one more round and makes the spins *move*: time evolution, the textbook way.
 #
-# The functions `site_operator` and `build_hamiltonian_dense` will remain with us for the whole course in a new
-# role: as the slow-but-obviously-correct **reference** against which every fast method is validated on small
-# systems.
+# The dense constructions `site_operator` and `build_hamiltonian_dense` keep their value as the slow but
+# transparent **reference** against which every fast method is validated on small systems.
 #
 # ## 9. Key takeaways
 #
@@ -1756,7 +1764,8 @@ checkpoint(f"sparse Lanczos gap at N={N_SPARSE} == Eq. (7)", abs(gap_sp - gap_ex
 #   sum of such chains. `site_operator` and `build_hamiltonian_dense` are literal transcriptions of the
 #   formulas.
 # * **Exact diagonalisation** = build $H$, call `eigh`, check the result (residual, orthonormality, known
-#   limits, exact solutions). It gives *everything* — all energies and eigenstates to machine precision.
+#   limits, exact solutions). It gives *everything* — all energies and eigenstates, with an absolute error of
+#   order $\varepsilon\lVert H\rVert$, Eq. (6).
 # * Physics of the TFIM seen in chains of 4–12 spins: a quasi-degenerate ground-state doublet and domain-wall
 #   excitations for $h<J$, a spin-flip gap $2(h-J)$ for $h>J$, and a gap closing as $\pi J/N$ at the quantum
 #   critical point $h=J$; long-range, power-law and exponentially decaying correlations in the three regimes.

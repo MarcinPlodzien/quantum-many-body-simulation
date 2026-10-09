@@ -15,22 +15,21 @@
 # in double precision occupies $16\cdot 4^{14}$ bytes $\approx 4.3$ GB, and for $N=20$ it would need $17.6$ **tera**bytes.
 #
 # Look again at the formula above. Almost all of that gigantic matrix is *identity*. The only non-trivial information in
-# $M_q$ are the **four numbers** of the $2\times2$ matrix $M$ and the **integer** $q$. It must be possible to act with
-# $M_q$ on a state using only those — and it is. The trick is a change of viewpoint:
+# $M_q$ are the **four numbers** of the $2\times2$ matrix $M$ and the **integer** $q$. We can act with
+# $M_q$ on a state using only those, after a change of viewpoint:
 #
-# > a state of $N$ spins is not "a vector of length $2^N$" but **an array with $N$ indices, each running over 2 values**
-# > — a rank-$N$ tensor $\psi[s_0,s_1,\dots,s_{N-1}]$ — and an operator on spin $q$ is a small matrix **contracted with index $q$**.
+# > a state of $N$ spins is **an array with $N$ indices, each running over 2 values** — a rank-$N$ tensor
+# > $\psi[s_0,s_1,\dots,s_{N-1}]$ — and an operator on spin $q$ is a small matrix **contracted with index $q$**.
 #
 # This is what *matrix-free* means: the operator exists only through its **action** on a state; the $2^N\times2^N$ matrix
 # is never formed. Memory drops from $O(4^N)$ to $O(2^N)$ and the work per operator from $O(4^N)$ to $O(2^k\,2^N)$ for an
-# operator on $k$ spins. On a laptop this moves the wall from $N\approx 13$ to $N\approx 25$–$30$, and it is how every
-# serious state-vector simulator — for spin chains, cold atoms or quantum computers — works (a massively parallel example: De Raedt *et al.* 2007). **Everything in the rest
+# operator on $k$ spins. On a 16 GB laptop this moves the wall from $N\approx 14$ to $N\approx 28$ (§6), and it is how
+# state-vector simulators for spin chains, cold atoms or quantum computers work (a massively parallel example: De Raedt *et al.* 2007). **Everything in the rest
 # of this course is built on the single function `apply_gate` that we derive in this notebook.**
 #
-# **Why should you care?** Experiments with Rydberg-atom arrays, trapped ions and superconducting circuits today control
+# Experiments with Rydberg-atom arrays, trapped ions and superconducting circuits today control
 # $N = 20$–$100$ two-level systems and watch their quantum dynamics. To interpret such experiments, to benchmark quantum
-# hardware, or to explore many-body physics on your own, you need exact numerics at the largest $N$ you can afford.
-# The difference between $N=12$ and $N=24$ is the difference between a toy and a research tool.
+# hardware, or to explore many-body physics on your own, one needs exact numerics at the largest $N$ that can be afforded.
 #
 # ### Road map
 #
@@ -64,7 +63,7 @@
 #
 # ### Prerequisites
 #
-# * [01 — JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, `lax.scan`, timing compiled code.
+# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, `lax.scan`, timing compiled code.
 # * [02 — einsum from scratch](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb): the three rules of einsum, `reshape` and C-ordering, building strings by program.
 # * [03 — Quantum many-body spin systems](../ch02_spin_systems_textbook_way/03_quantum_many_body_spin_systems.ipynb): Kronecker products, `site_operator`, dense Hamiltonians, the transverse-field Ising model.
 # * [04 — Time evolution the textbook way](../ch02_spin_systems_textbook_way/04_time_evolution_the_textbook_way.ipynb): Trotterization with dense matrices, the TFIM quench.
@@ -95,8 +94,8 @@
 #
 # $$ i \;=\; s_0\,2^{N-1}+s_1\,2^{N-2}+\dots+s_{N-1}\,2^{0}\;=\;\sum_{q=0}^{N-1}s_q\,2^{\,N-1-q}. \tag{1} $$
 #
-# Spin 0 is the **most significant bit**. This was not a free choice: it is forced by the Kronecker product, because in
-# $u\otimes v$ the index of the *left* factor varies slowest.
+# Spin 0 is the **most significant bit**, because spin 0 is the left Kronecker factor and in $u\otimes v$ the index of the
+# *left* factor varies slowest.
 #
 # Now the key observation. Equation (1) is *exactly* the rule by which NumPy/JAX lay out a multi-dimensional array in memory
 # ("C order" or "row-major": the **last index runs fastest**, see notebook 02). Therefore
@@ -169,7 +168,7 @@ print("site_operator(Z, 1, 3) has shape", site_operator(Z, 1, 3).shape, "  two_s
 # ### 2.2 Reshape: from one big index to $N$ small ones
 #
 # Take $N=3$. To *see* where every number goes we fill the vector with the recognisable "amplitudes"
-# $\psi_i = i$ (not normalised — this is bookkeeping, not physics), reshape, and check Eq. (1) for all 8 basis states.
+# $\psi_i = i$ (not normalised; the values only label the positions), reshape, and check Eq. (1) for all 8 basis states.
 
 # %%
 # ==============================================================================
@@ -302,7 +301,7 @@ assert err < TOL
 # In words: *all other indices are spectators*; for every fixed value of the spectators, the two numbers
 # $\psi[\dots,0,\dots]$ and $\psi[\dots,1,\dots]$ form a little 2-component vector which is multiplied by the $2\times2$ matrix $M$.
 # There are $2^{N-1}$ such pairs, so the whole operation costs $2^{N-1}\times 4 = 2\cdot2^N$ multiplications — instead of the
-# $4^N$ of a dense matrix–vector product. The identities cost nothing because *doing nothing* is free.
+# $4^N$ of a dense matrix–vector product; the identities cost nothing.
 #
 # ### 3.2 Hand-written einsum strings for $N=3$
 #
@@ -344,17 +343,17 @@ print("CHECKPOINT passed: the contraction with axis q IS the action of 1 x..x M 
 
 # %% [markdown]
 # All three agree to round-off — here the printed differences are even exactly $0$ (with only two terms in each sum there is no
-# room for the two routes to round differently). Note what is *absent* on the left-hand side: no identity matrices, no `kron`, no
+# room for the two routes to round differently). The einsum route contains no identity matrices, no `kron`, no
 # $8\times8$ matrix. The position of the operator in the chain is encoded **only in the einsum string**.
 #
 # ### 3.3 What the contraction does to the flat vector
 #
-# To demystify the einsum, here is Eq. (2) once more as an explicit loop over the flat vector. Flipping spin $q$ changes the
+# Here is Eq. (2) once more as an explicit loop over the flat vector. Flipping spin $q$ changes the
 # flat index by the stride $2^{N-1-q}$, so amplitude $i$ is combined with exactly one partner, $i\pm2^{N-1-q}$:
 
 # %%
 # ==============================================================================
-# STEP 3: the same operation as an explicit (slow!) Python loop over the flat vector
+# STEP 3: the same operation as an explicit (slow) Python loop over the flat vector
 # ==============================================================================
 def apply_one_site_loop(psi_vec, M, q, N):
     """Eq. (2) written with for-loops on the FLAT vector -- for understanding only.
@@ -404,11 +403,11 @@ plt.tight_layout(); plt.show()
 # **Reading the figure.** Each arc is one independent $2\times2$ matrix–vector product. An operator on the last spin mixes
 # neighbouring amplitudes (stride 1); an operator on spin 0 mixes the first half of the vector with the second half (stride 4).
 # For every $q$ there are $2^{N-1}=4$ arcs — the work does not depend on *where* the operator acts. The einsum performs all
-# arcs at once, in compiled code; our Python loop does the same arithmetic painfully slowly and is only there to be understood.
+# arcs at once, in compiled code; our Python loop does the same arithmetic slowly and serves only as an explicit reading of Eq. (2).
 #
 # > **Physics insight.** "Local operator" has a precise computational meaning: it couples each basis state to only
 # > $2^k$ others ($k$ = number of spins it touches), not to all $2^N$. A dense matrix stores and multiplies $2^N-2^k$ zeros per row.
-# > Matrix-free simulation is nothing but refusing to do that.
+# > Matrix-free simulation skips them.
 #
 # ## 4. Two-site operators
 #
@@ -550,7 +549,7 @@ for (q1, q2), sub in hand_strings_2.items():
 # The order matters for a non-symmetric operator: (2,0) and (0,2) are DIFFERENT operators ...
 out_20 = jnp.einsum("CAca,abcd->AbCd", U, psi)
 out_02 = jnp.einsum("ACac,abcd->AbCd", U, psi)
-print(f"\n| U on (2,0) - U on (0,2) |_max = {max_abs_diff(out_20, out_02):.3f}   (not small: different operators!)")
+print(f"\n| U on (2,0) - U on (0,2) |_max = {max_abs_diff(out_20, out_02):.3f}   (different operators)")
 # ... related by exchanging the roles of the two spins in U:  U[a1,a2,b1,b2] -> U[a2,a1,b2,b1]  (= SWAP U4 SWAP)
 U_swapped = jnp.transpose(U, (1, 0, 3, 2))
 err = max_abs_diff(out_20, jnp.einsum("ACac,abcd->AbCd", U_swapped, psi))
@@ -575,7 +574,7 @@ assert abs(out[1, 0, 1, 0] - 1.0) < TOL
 #
 # > **Physics insight.** A distant pair costs exactly as much as a neighbouring pair. Long-range interactions (dipolar
 # > $1/r^3$ couplings of Rydberg atoms, all-to-all couplings of trapped ions) are therefore no harder for a state-vector
-# > simulator than nearest-neighbour ones — in contrast to matrix-product-state methods ([notebook 18](../ch07_tensor_networks/18_mps_tebd.ipynb), Chapter 7), which love locality in space.
+# > simulator than nearest-neighbour ones — in contrast to matrix-product-state methods ([notebook 18](../ch07_tensor_networks/18_mps_tebd.ipynb), Chapter 7), which rely on locality in space.
 #
 # ## 5. The general `apply_gate`: building the string by program
 #
@@ -689,10 +688,8 @@ print("CHECKPOINT passed: the generated strings are correct for k = 1, 2, 3.")
 #
 # ### 5.1 The production version
 #
-# Below is the function as it lives in the engine of this course — the cell is inserted verbatim from the engine file and is what
-# every later notebook reuses in its "Engine recap". It is our `apply_gate_v0` with the string construction inlined. Read the
-# docstring: it summarises this whole notebook. (Its illustrative strings use capital letters for readability; the generated ones use
-# the next free lowercase letters, as we saw.)
+# Below is the engine's `apply_gate`: our `apply_gate_v0` with the string construction inlined. Its docstring collects the
+# conventions derived above, and its example strings are the ones the generator produces.
 
 # %%
 #@engine-show: apply_gate
@@ -936,15 +933,15 @@ print(f"N={n_big}: one-site einsum {bench['einsum (apply_gate), 1 site'][n_big][
 # **Reading the benchmark** (absolute numbers are those of the machine that executed this notebook, and of its load at that
 # moment; rerun to get yours — the *shapes* of the curves are what matters).
 #
-# * **First call vs run.** For small $N$ the first call of every jitted variant costs a few tenths of a second — entirely tracing and compilation — while
-#   the steady-state run takes a fraction of a millisecond. Compilation is paid once per (function, qubits, shape); in a time
+# * **First call vs run.** For small $N$ the first call of every jitted variant costs tens to thousands of milliseconds, depending on the load
+#   of the machine — almost entirely tracing and compilation — while the steady-state run takes a fraction of a millisecond. Compilation is paid once per (function, qubits, shape); in a time
 #   evolution with thousands of identical steps it is irrelevant, in a one-off calculation it dominates. Always report them separately.
-# * **Small $N$ is overhead-dominated.** Up to $N\approx10$–$12$ the run time of the matrix-free variants is flat: the actual arithmetic
+# * **Small $N$ is overhead-dominated.** Up to $N\approx8$–$10$ the run time of the matrix-free variants is roughly flat: the actual arithmetic
 #   (a few thousand multiplications) is negligible compared with the fixed cost of launching a compiled kernel. The un-jitted einsum
-#   is roughly an order of magnitude slower there, because each call re-does Python-level work (building the string, dispatching the operation).
+#   is several to thirty times slower there, because each call re-does Python-level work (building the string, dispatching the operation).
 # * **Large $N$ follows the $2^N$ law.** Beyond the overhead regime all matrix-free curves become parallel to the thin black
-#   $2^N$ reference line: doubling the Hilbert space doubles the time. (On our machine the last step, $N=20\to22$, is steeper than that: the 67 MB state and its equally
-#   large output no longer fit into the CPU caches.) The **dense** matrix–vector product follows $4^N$ instead
+#   $2^N$ reference line: doubling the Hilbert space doubles the time. (Single points can sit a factor of two off the line, when the state and its equally large output
+#   stop fitting into a level of the CPU cache or other jobs compete for the processor.) The **dense** matrix–vector product follows $4^N$ instead
 #   (dashed reference): the two families of curves part company already around $N\approx6$–$8$, and by $N=12$ the dense product is slower by more than two orders of magnitude (the exact ratio is printed under the figure) — not counting the time to *build* the
 #   matrix, nor its memory.
 # * **The variants are close relatives.** einsum, tensordot and transpose+matmul describe the same contraction, and XLA lowers
@@ -958,7 +955,7 @@ print(f"N={n_big}: one-site einsum {bench['einsum (apply_gate), 1 site'][n_big][
 #
 # > **JAX practice.** On a GPU the same code runs unchanged (set `DEVICE="gpu"` in the Configuration cell) — rerun this section there. Expect the same two regimes: an
 # > overhead plateau set by the kernel-launch latency, and the $2^N$ law with a prefactor set mostly by *memory bandwidth*:
-# > applying a small gate to a large state is **memory-bound** — the processor spends its time moving amplitudes, not multiplying them.
+# > applying a small gate to a large state is **memory-bound**: the processor spends most of its time moving amplitudes rather than multiplying them.
 #
 # ## 7. Matrix-free $H|\psi\rangle$: a Hamiltonian is a list of local terms
 #
@@ -1062,12 +1059,14 @@ assert herm < TOL
 # ==============================================================================
 N = 8
 terms = heisenberg_terms(N, **generic)
-t0 = time.perf_counter(); H_vmap = jax.block_until_ready(dense_hamiltonian(terms, N)); t_vmap = time.perf_counter() - t0
-t0 = time.perf_counter(); H_kron = jax.block_until_ready(build_hamiltonian_dense(N, **generic)); t_kron = time.perf_counter() - t0
+t_vmap = time_fn(lambda: dense_hamiltonian(terms, N))                  # (first call, best repeated call)
+t_kron = time_fn(lambda: build_hamiltonian_dense(N, **generic))
+H_vmap, H_kron = dense_hamiltonian(terms, N), build_hamiltonian_dense(N, **generic)
 
 err = max_abs_diff(H_vmap, H_kron)
 print(f"dense_hamiltonian (vmap of the matrix-free action) vs kron construction: max|diff| = {err:.2e}")
-print(f"   build time: vmap {t_vmap:.2f} s   |   kron chains {t_kron:.2f} s      (N={N}, first call, includes compilation)")
+print(f"   build time, first call: vmap {t_vmap[0]:.2f} s | kron chains {t_kron[0]:.2f} s;   "
+      f"repeated call: vmap {t_vmap[1] * 1e3:.1f} ms | kron chains {t_kron[1] * 1e3:.1f} ms   (N={N})")
 assert err < TOL
 assert max_abs_diff(H_vmap, H_vmap.conj().T) < TOL                                   # Hermitian
 
@@ -1077,8 +1076,9 @@ assert max_abs_diff(E_vmap, E_kron) < 1e3 * TOL
 
 # %% [markdown]
 # The two matrices are identical to round-off and have the same spectrum. In operation count the route through the matrix-free action is the
-# cheaper one — $O(N4^N)$ (one $H|e_j\rangle$ per basis vector) against $O(N8^N)$ for products of dense Kronecker chains — but at $N=8$ both build times
-# printed above are dominated by one-off overheads (compilation of the batched einsums), not by arithmetic; do not read a scaling law into them.
+# cheaper one — $O(N4^N)$ (one $H|e_j\rangle$ per basis vector) against $O(N8^N)$ for products of dense Kronecker chains. The first calls
+# printed above are dominated by one-off overheads (tracing and compiling the batched einsums). In the repeated calls the vmap route is
+# the faster one, although at $N=8$ its time is still mostly per-call overhead (about $3\cdot10^6$ multiplications against $4\cdot10^8$ for the 21 dense $256\times256$ matrix products of the Kronecker route).
 #
 # ### 7.4 The speed-up of the matrix-free $H|\psi\rangle$
 #
@@ -1112,10 +1112,10 @@ for n in [6, 8, 10, 12, 14, 16, 18, 20]:
 # At small $N$ the dense product is perfectly competitive: a $64\times64$ matrix–vector product is a single tiny BLAS call, while the matrix-free
 # version launches $2N-1$ separate einsums, each with its own kernel-launch overhead. Up to $N\approx8$ the two stay within a small factor of each other (last column of the table
 # is the dense run time divided by the matrix-free one); from $N\approx10$ the matrix-free product pulls ahead, and by $N=12$ it is faster by close to
-# an order of magnitude or more — the exact factor swings with the load of the machine, the trend does not. Beyond that the dense route does not exist: the matrix for $N=16$ would need 69 GB, for $N=20$ 17.6 TB,
-# while the matrix-free product for 20 spins (39 local terms, a million amplitudes) takes a fraction of a second.
+# an order of magnitude or more. The exact factor varies with the load of the machine, while the trend is reproducible. Beyond that the dense route does not exist: the matrix for $N=16$ would need 69 GB, for $N=20$ 17.6 TB,
+# while the matrix-free product for 20 spins (39 local terms, a million amplitudes) is a routine computation (last row of the table).
 #
-# > **Numerical practice.** "Faster" is not a property of an algorithm alone but of an algorithm **at a given problem size**. For
+# > **Numerical practice.** "Faster" is a property of an algorithm **at a given problem size**. For
 # > $N\le 8$ dense linear algebra is simpler and quicker — and gives you *everything* (full spectrum, exact propagator). Use it as the
 # > reference; use the matrix-free code beyond.
 #
@@ -1255,7 +1255,8 @@ def z_observables(psi, c):
     MATH   marginals   p_j[a] = sum_{s: s_j=a} p[s],      p_cj[a,b] = sum_{s: s_c=a, s_j=b} p[s]
            <Z_j> = p_j[0] - p_j[1] = sum_a z[a] p_j[a],   <Z_c Z_j> = sum_{a,b} z[a] z[b] p_cj[a,b],   z = (+1,-1)
            L = p[0,..,0]
-    IMPLEMENTATION   a marginal is a `sum` over all axes except the kept ones (axis q = spin q!).
+    IMPLEMENTATION   a marginal is a `sum` over all axes except the kept ones (axis q = spin q). The kept axes stay in
+                     ascending order, so for j < c the pair array is p_jc = p_cj^T; z^T p z does not notice.
     COST   O(N 2^N) additions on a REAL array; valid for diagonal observables only.
     """
     n = psi.ndim
@@ -1364,7 +1365,7 @@ def zero_state_tensor(N):
 # * the **implementation error** of the matrix-free code — it should reproduce the *dense Trotter* evolution (same scheme, same $dt$)
 #   up to floating-point round-off, $\sim10^{-14}$;
 # * the **method error** of the Trotter splitting itself — both Trotter codes differ from the *exact* evolution
-#   $e^{-iHt}|\psi_0\rangle$ (dense diagonalisation) by $O(dt^2)$. This is not a bug and it is controlled by $dt$.
+#   $e^{-iHt}|\psi_0\rangle$ (dense diagonalisation) by $O(dt^2)$, an error controlled by $dt$.
 
 # %%
 # ==============================================================================
@@ -1557,10 +1558,10 @@ print("measured front (|C| > 1e-3):  " + "  ".join(f"d={d}: tJ={t:.2f}, d/t={d /
 #   units of $J$, i.e. just inside the bound $2v_{\max}=4J$. Outside
 #   this **light cone** correlations are exponentially small (note the logarithmic colour scale) — an instance of the Lieb–Robinson bound and of
 #   the quasi-particle picture of Calabrese and Cardy. With $N=20$ the cone has room to develop before it hits the edges.
-# * *Right.* The return probability $\mathcal L\sim e^{-N\lambda(t)}$ decays exponentially with the system size (for 20 spins its minimum, printed above, is already
-#   below $10^{-3}$), which is why one plots the intensive rate function $\lambda(t)$. At early times the curves for $N=8$ and $N=20$ coincide: $\lambda$ is a bulk quantity.
+# * *Right.* The return probability $\mathcal L\sim e^{-N\lambda(t)}$ decays exponentially with the system size (for 20 spins it is already below $10^{-3}$ at the
+#   end of the window, printed above, and still falling), which is why one plots the intensive rate function $\lambda(t)$. At early times the curves for $N=8$ and $N=20$ coincide: $\lambda$ is a bulk quantity.
 #   Then the small chain develops a pronounced peak near $tJ\approx2.9$, where the $N=20$ curve shows only a gentle bump — a finite-size effect that one could easily have
-#   mistaken for physics had only $N=8$ been available. Comparing system sizes is the only way to tell the two apart — one more reason to need large $N$.
+#   mistaken for physics had only $N=8$ been available; comparing system sizes tells the two apart.
 #   (Genuine non-analytic peaks of $\lambda(t)$ in the thermodynamic limit, *dynamical quantum phase transitions* (Heyl, Polkovnikov and Kehrein 2013), occur for
 #   quenches *across* the critical point; you can look for their precursors in Exercise 6.)
 #
@@ -1636,19 +1637,19 @@ plt.tight_layout(); plt.show()
 # * *Scaling with $N$ (left).* The small sizes sit above the model line — launching a couple of dozen compiled kernels costs more than the arithmetic inside them — and the measured curve bends down onto the model as $N$ grows.
 #   The exponential law itself is unmistakable: between $N=8$ and $N=20$ the time per step grows by more than three orders of magnitude. Two more spins multiply it by a factor whose model value is
 #   $4\,(6N-4)/(6N-16)$, which decreases from $\approx5.1$ at $N=10$ to $\approx4.5$ at $N=20$ (last two columns of the table; factor 4 from the Hilbert-space dimension, the rest from the additional gates)
-#   and whose measured values scatter around it, and the fitted slope of $\log_2T$ versus $N$ over the four largest
-#   sizes lands below the model slope (both are printed above): the measured growth is slower than the operation count because the fixed overheads, which inflate the small-$N$ times, shrink in relative importance as $N$ grows. Do not read more than that out of the individual numbers. The column "per gate per amplitude" — the effective $\tau$ times $2^k=4$ —
-#   is a few nanoseconds at the larger sizes (several times that at the smallest, where the fixed overheads still dominate) and drifts downwards as those overheads lose importance; it is not exactly constant, and a single entry can be off by a factor of two when other jobs compete for the
-#   processor or when the state stops fitting into a level of cache. The cost model counts multiplications; the hardware also charges for overhead and memory traffic.
-# * *Scaling with $k$ (right).* The multiplication count predicts a factor 2 per additional target spin, and the dashed line has that slope. The measured curve is much flatter: the ratios printed above stay at or below that predicted factor 2,
-#   and are typically much closer to 1: a gate on four spins does four times the arithmetic of a gate on two and takes roughly the same time. The reason is that every gate reads and writes all $2^N$ amplitudes exactly once regardless of $k$, so the extra
+#   and whose measured values scatter around it by a factor of two or more, because each entry is the ratio of two timings taken on a shared machine. The fitted slope of $\log_2T$ versus $N$ over the four largest
+#   sizes averages over this scatter and is printed next to the model slope. The column "per gate per amplitude" — the effective $\tau$ times $2^k=4$ —
+#   would be constant if the cost model were complete. It is constant only to within a factor of a few: fixed overheads inflate it at the smallest sizes, and competing jobs or a state that
+#   stops fitting into a level of cache shift single entries by a factor of two or more. The cost model counts multiplications; the hardware also charges for overhead and memory traffic.
+# * *Scaling with $k$ (right).* The multiplication count predicts a factor 2 per additional target spin, and the dashed line has that slope. The measured curve is much flatter: the ratios printed above stay below that predicted factor 2,
+#   and a gate on four spins does four times the arithmetic of a gate on two but takes less than twice as long. The reason is that every gate reads and writes all $2^N$ amplitudes exactly once regardless of $k$, so the extra
 #   multiplications of a larger gate hide behind memory traffic that has to be paid anyway. Larger gates are therefore "cheaper per multiplication", which is why simulators *fuse* gates:
 #   we already did so when we absorbed the single-site field terms into the bond gates ($\tfrac{3N}2-1$ two-site gates per step instead of the $2(2N-1)$ gates of the unfused `heisenberg_terms` list), and merging the
 #   two half-layers of consecutive steps saves another third (Exercise 5).
 # * *Compilation* grows with the number of gates in the step (the circuit is unrolled at trace time) but not with $2^N$, and thanks to `lax.scan` it
-#   is paid once, not once per time step.
+#   is paid once for the whole time loop.
 #
-# > **Numerical practice.** A cost model is a hypothesis. Measure it. Where it fails (small $N$: overhead; large $N$: memory bandwidth) you learn
+# > **Numerical practice.** A cost model is a hypothesis to be tested by measurement. Where it fails (small $N$: overhead; large $N$: memory bandwidth) you learn
 # > something about your computer that no operation count will tell you.
 #
 # ## 10. Summary — key takeaways

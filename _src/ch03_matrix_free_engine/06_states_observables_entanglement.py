@@ -6,20 +6,16 @@
 # ## 1. Introduction and motivation
 #
 # A state of $N$ spins-1/2 is a list of $2^N$ complex numbers. For $N=14$ that is $16\,384$ amplitudes, for $N=30$ a billion.
-# **Nobody can look at such a list and understand it.** An experimentalist cannot either: a laboratory never
-# returns amplitudes, it returns a magnetisation, a correlation between two sites, a histogram of clicks.
-# So the practical question of many-body physics is not "what is $|\psi\rangle$?" but
-#
-# > *Which few numbers, computed from $|\psi\rangle$, tell me what kind of state I have?*
-#
-# This notebook builds the toolbox that answers it. There are two families of tools.
+# Such a list cannot be read directly, and a laboratory never returns it either: it returns a magnetisation, a correlation
+# between two sites, a histogram of clicks. The practical task of many-body physics is therefore to find a few numbers,
+# computed from $|\psi\rangle$, that characterise the state. This notebook builds the toolbox for that task. There are two families of tools.
 #
 # 1. **Observables that live on a few spins** — local magnetisations $\langle\sigma^z_i\rangle$, two-point correlators
 #    $\langle\sigma^z_i\sigma^z_j\rangle$, products of Pauli matrices on many sites. We will see that everything
 #    a small group of spins $A$ can ever reveal is contained in a small matrix, the **reduced density matrix** $\rho_A$,
 #    and that $\rho_A$ is *one einsum* away from the state tensor.
 # 2. **Entanglement measures** — numbers that quantify how strongly a part $A$ of the system is quantum-correlated with
-#    the rest $B$. The central object is the **Schmidt decomposition**, which is nothing but the singular value
+#    the rest $B$. The central object is the **Schmidt decomposition**, which is the singular value
 #    decomposition (SVD) of the state tensor reshaped into a matrix; from it we get the **entanglement entropy** (review: Horodecki *et al.* 2009).
 #
 # Entanglement entropy matters for three reasons.
@@ -65,7 +61,7 @@
 # * [02 — einsum from scratch](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb): index notation, `reshape`/`transpose`, partial traces of small matrices;
 # * [03 — quantum many-body spin systems](../ch02_spin_systems_textbook_way/03_quantum_many_body_spin_systems.ipynb): tensor products, `kron`, site operators, the flat-index convention;
 # * [05 — matrix-free operators](05_matrix_free_operators.ipynb): the state as a rank-$N$ tensor and `apply_gate`;
-# * [01 — JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, PRNG keys.
+# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, PRNG keys.
 #
 # **Conventions** (the same in the whole course): spin/qubit $q$ is tensor axis $q$ (0-indexed); $|0\rangle=(1,0)^T$ is the
 # $+1$ eigenstate of $Z\equiv\sigma^z$ ("up"), $|1\rangle=(0,1)^T$ is "down"; the flat index of $|s_0 s_1\dots s_{N-1}\rangle$
@@ -77,7 +73,7 @@
 # We start from what notebook 05 established: an $N$-spin state is a **rank-$N$ array** `psi[s0, s1, ..., s_{N-1}]` of shape
 # `(2,)*N`, and a small operator acts on it through `apply_gate` (one einsum). The cell below is the *engine recap*:
 # the pieces derived in earlier notebooks that we reuse here (Pauli matrices, `apply_gate`, the conversion of a pure
-# state to a density tensor). Everything else in this notebook is built from scratch.
+# state to a density tensor).
 
 # %%
 #@engine: apply_gate, I2, X, Y, Z, H, CZ, XX, YY, ZZ, PAULI, to_dm, dm_matrix, normalize
@@ -274,7 +270,7 @@ print("mean probability per basis state    :", f"{float(jnp.mean(jnp.abs(psi_a) 
 #
 # ### 2.5 The engine versions of the zoo
 #
-# The cell below shows the production versions of these constructors, verbatim from the course engine. They do the same
+# The cell below shows the engine versions of these constructors. They do the same
 # as our hand-made functions (the Dicke mask is computed with NumPy bit counting instead of broadcasting, the cluster state
 # with gates instead of the sign formula) — the checkpoint after it confirms that the states are identical.
 
@@ -350,7 +346,7 @@ fig.tight_layout(); plt.show()
 # > **Common pitfall.** Probabilities in one basis say almost nothing about entanglement. The product state $|{+}\rangle^{\otimes N}$
 # > and the highly entangled cluster state have *identical* histograms — all the difference is in the signs.
 # > And the participation number is basis dependent: $|{+}\rangle^{\otimes N}$ has $P=2^N$ in the $Z$ basis but $P=1$ in the $X$ basis.
-# > We need tools that look at *parts* of the system. That is the next section.
+# > Tools that look at *parts* of the system are the subject of the next section.
 
 # %% [markdown]
 # ## 3. Reduced density matrices
@@ -689,9 +685,10 @@ for name, psi in zoo.items():
 # * **GHZ, Dicke ($k=N/2$) and the cluster state have $\vec r=0$ exactly**: every single spin is a fair coin. Looking at one
 #   spin you cannot distinguish these three very different states from each other, nor from pure noise.
 # * W has $\langle Z\rangle=1-2/N=0.75$: each spin is "up" except for the $1/N$ chance of hosting the excitation.
-# * The random state has a small but non-zero Bloch vector, of the order $2^{-N/2}$.
+# * The random state has a small but non-zero Bloch vector, of the order $2^{-N/2}$: for any Pauli string $P\neq\mathbb 1$ the Haar
+#   average of $\langle P\rangle$ is $0$ and its variance is $(\mathrm{Tr}P^2)/(D(D+1))=1/(2^N+1)$.
 #
-# > **Physics insight.** In an entangled state the information is not stored *in* the parts but *between* them — in correlations.
+# > **Physics insight.** In an entangled state the information is stored *between* the parts, in correlations.
 # > To tell GHZ, Dicke and cluster apart we must look at two or more spins at a time.
 #
 # ### 4.3 Two-point correlators and correlation matrices
@@ -720,7 +717,7 @@ for name, psi in zoo.items():
 # STEP 3: correlation matrices -- general loop version and the one-einsum version
 # ==============================================================================
 def correlation_matrix_loop(psi, P):
-    """M_ij = <P_i P_j> (i != j; M_ii = 1) and m_i = <P_i> for a single-spin operator P, via `expect_local`."""
+    """M_ij = <P_i P_j> (i != j; M_ii = 1, valid for P^2 = 1, i.e. Pauli operators) and m_i = <P_i>, via `expect_local`."""
     N = psi.ndim
     PP = jnp.kron(P, P)
     m = np.array([float(my_expect_local(psi, P, (i,))) for i in range(N)])
@@ -817,7 +814,7 @@ assert abs(Cw + 4 / N ** 2) < TOL and abs(Cd + 1 / (N - 1)) < TOL
 #   its correlations sit in three-body operators (next subsection). The two spins at each **end** are the exception: $\langle X_0Z_1\rangle=+1$
 #   and $\langle Z_{N-2}X_{N-1}\rangle=+1$, because the end stabilisers $X_0Z_1$ and $Z_{N-2}X_{N-1}$ are two-body. A mixed $XZ$ correlator is
 #   not plotted above, which is why the figure shows nothing there.
-# * **Random state**: only a faint random speckle of order $2^{-N/2}\approx0.06$, with no structure.
+# * **Random state**: only a faint random speckle of order $2^{-N/2}\approx0.06$ (the variance $1/(2^N+1)$ of Section 4.2), with no structure.
 #
 # > **JAX practice.** `zz_matrix_fast` is a pure function of the state tensor with no Python loop, so `jax.vmap` lifts it to a
 # > whole *batch* of states, and `jax.jit` compiles the batch computation into one XLA program. Below: the typical size of
@@ -845,7 +842,7 @@ for n in (4, 6, 8, 10, 12):
 
 # %% [markdown]
 # The typical two-point correlation in a random state follows $2^{-N/2}$ closely: it is *exponentially small* in the system size. Random states are extremely
-# entangled (Section 8), yet they have no visible few-body correlations — the opposite extreme from GHZ, where the entanglement shows up in every pair.
+# entangled (Section 8), yet they have no visible few-body correlations — the opposite extreme from GHZ, whose $ZZ$ correlations are maximal for every pair.
 #
 # ### 4.4 Pauli strings: observables on many spins
 #
@@ -936,7 +933,7 @@ assert abs(float(expect_pauli_string(ghz, 'X' * N)) - 1) < TOL and max(abs(np.ar
 # > tables (`zz_matrix_fast`): all pairs of a *diagonal* observable at once.
 
 # %% [markdown]
-# ## 5. How mixed, how different? Purity, fidelity, trace distance
+# ## 5. Purity, fidelity and trace distance
 #
 # Before quantifying entanglement we collect three standard numbers for density matrices. They are *defined* on small dense
 # matrices — we apply them to RDMs.
@@ -944,7 +941,7 @@ assert abs(float(expect_pauli_string(ghz, 'X' * N)) - 1) < TOL and max(abs(np.ar
 # **Purity** $\gamma=\mathrm{Tr}\rho^2=\sum_kp_k^2$. It equals 1 iff the state is pure and reaches its minimum $1/d$ for the maximally mixed
 # state $\mathbb 1/d$. For one spin, inserting the Bloch form gives $\gamma=(1+|\vec r|^2)/2$ (check it against the table of Section 4.2).
 #
-# **Fidelity** — "how similar are two states?" For pure states $F=|\langle\psi|\phi\rangle|^2$, the probability that $|\phi\rangle$ passes the test
+# **Fidelity** measures how similar two states are. For pure states $F=|\langle\psi|\phi\rangle|^2$, the probability that $|\phi\rangle$ passes the test
 # "are you $|\psi\rangle$?". For mixed states the generalisation is the *Uhlmann fidelity*
 # $F(\rho,\sigma)=\big(\mathrm{Tr}\sqrt{\sqrt\rho\,\sigma\sqrt\rho}\big)^2$ (quoted without proof, see Nielsen & Chuang, Sec. 9.2); it reduces to the overlap
 # formula when both states are pure. Numerically the square root of a positive matrix comes from its eigendecomposition, $\sqrt\rho=V\sqrt{w}V^\dagger$.
@@ -1017,7 +1014,7 @@ assert 1 - np.sqrt(F) <= D + TOL and D <= np.sqrt(1 - F) + TOL
 #
 # ### 6.2 Entanglement entropies
 #
-# How entangled? Measure how spread-out the distribution $p_k=\lambda_k^2$ is, with the Shannon entropy:
+# The amount of entanglement is measured by how spread-out the distribution $p_k=\lambda_k^2$ is, with the Shannon entropy:
 #
 # $$S_A=-\mathrm{Tr}\,\rho_A\log_2\rho_A=-\sum_kp_k\log_2p_k\qquad\text{(von Neumann entanglement entropy, in bits).}$$
 #
@@ -1103,7 +1100,7 @@ assert max_abs(rebuilt - M) < TOL
 # %% [markdown]
 # The squared singular values coincide with the spectrum of $\rho_A$, the entropies agree with the ones computed from the RDM, $S_A=S_B$ holds for every cut, and Eq. (3) rebuilds the state.
 #
-# > **Numerical practice — why SVD and not `eigh(rho_A)`?** Not for the cost: both routes are $O(d_A^2d_B)$ for $d_A\le d_B$ (forming
+# > **Numerical practice — SVD versus `eigh(rho_A)`.** The cost is the same: both routes are $O(d_A^2d_B)$ for $d_A\le d_B$ (forming
 # > $MM^\dagger$ costs $d_A^2d_B$ and the subsequent `eigh` only $d_A^3$), so the two are of the same order and differ at most by a constant factor.
 # > The reason is **accuracy** (Golub and Van Loan 2013; Press *et al.* 2007, Sec. 2.6 and Ch. 11). Both LAPACK routines are backward stable, which means an error of order $\varepsilon$ times the *largest* quantity
 # > in the problem — but the two routes measure different quantities. `eigh(rho_A)` returns $p_k=\lambda_k^2$ with an absolute error
@@ -1172,7 +1169,7 @@ fig.tight_layout(); plt.show()
 # > value adds $-10^{-16}\log_2 10^{-16}=5.3\cdot10^{-15}$ bit to $S$. The bias is therefore positive and proportional to the number of zero
 # > Schmidt values. For a GHZ state cut in the middle of $N=12$ spins there are $2^6-2=62$ of them, so $S$ comes out $3.3\cdot10^{-13}$ bit
 # > above the exact 1 bit — exactly the error the checkpoints of Section 7 report. This is why those asserts use a tolerance of $10^3\,$`TOL`
-# > and not `TOL`: the deviation is a known, controlled artefact of the regularisation, not a bug.
+# > instead of `TOL`: the deviation is a known, controlled artefact of the regularisation.
 
 # %% [markdown]
 # ## 7. Entanglement of the zoo as a function of the cut
@@ -1227,10 +1224,10 @@ fig.tight_layout(); plt.show()
 # %% [markdown]
 # **Reading the figure.** The grey line is the absolute maximum $\min(\ell,N-\ell)$. The "famous" entangled states are, by this measure, *weakly* entangled: GHZ and cluster carry
 # exactly 1 bit across any cut (their markers coincide), W at most 1 bit, the Dicke state about 1.9 bits at the centre. Only the random state comes close to the
-# maximum, with a characteristic triangular shape. All the analytic predictions are met to $3\cdot10^{-13}$ bit — the bias of the $0\log 0$
-# clip counted in the practice box of Section 6.3, not a numerical accident.
+# maximum, with a characteristic triangular shape. All the analytic predictions are met to $3\cdot10^{-13}$ bit, the bias of the $0\log 0$
+# clip counted in the practice box of Section 6.3.
 #
-# **Contiguous cuts are not the whole story.** Entropy depends on *which* spins form $A$. For the partition "even sites | odd sites" every bond of the chain is cut:
+# **Non-contiguous cuts.** Entropy depends on *which* spins form $A$. For the partition "even sites | odd sites" every bond of the chain is cut:
 
 # %%
 # ==============================================================================
@@ -1254,7 +1251,7 @@ assert abs(float(entanglement_entropy(ghz_x, A_half)) - 1) < 1e3 * TOL
 # * The **cluster state** jumps from 1 bit to $N/2=6$ bits — the *maximum* possible for six spins. The even/odd partition cuts all 11 bonds and each spin of $A$ ends up maximally entangled with its neighbours in $B$.
 #   The cluster state has short-range entanglement: $S$ grows with the number of bonds that cross the boundary of $A$, saturating at $\min(|A|,|B|)$. This is the prototype of an **area law**.
 # * **GHZ** stays at 1 bit for *every* bipartition: a single, global, shared bit.
-# * W, Dicke and the random state do not care much: they are permutation symmetric (or structureless), so only the *size* of $A$ matters.
+# * W, Dicke and the random state barely change: they are permutation symmetric (or structureless), so only the *size* of $A$ matters.
 # * Rewriting GHZ in the $X$ basis spreads it over $2^{N-1}=2048$ basis states, but the entropy is unchanged — entanglement is invariant under local basis changes, unlike the participation number of Section 2.6.
 
 # %% [markdown]
@@ -1313,10 +1310,11 @@ fig.tight_layout(); plt.show()
 print(f"half-chain deficit  N/2 - <S> = {N / 2 - mean[N // 2 - 1]:.4f} bits    (large-N prediction 1/(2 ln 2) = {1 / (2 * np.log(2)):.4f})")
 
 # %% [markdown]
-# The sample means agree with Page's formula within the statistical error for every cut (deviations of a few standard errors at most — the `assert` allows four). Two more lessons hide in the table:
+# The sample means agree with Page's formula within the statistical error for every cut (at most $1.8$ standard errors; the `assert` allows four).
+# All nine cuts are evaluated on the same 400 states, so the nine deviations are correlated, which is why most of them share one sign. Two more lessons hide in the table:
 #
 # * The **sample standard deviation is tiny** (the error bars in the plot are smaller than the markers): *every single* random state has almost exactly the Page entropy. This "typicality" is a
-#   concentration-of-measure effect of high-dimensional spaces; it is the reason why a single random state is a fair representative of the whole ensemble, a fact used in several later notebooks.
+#   concentration-of-measure effect of high-dimensional spaces; it is the reason why a single random state is a fair representative of the whole ensemble.
 # * The half-chain deficit is already within about $10^{-3}$ bit of the asymptotic constant $1/(2\ln2)$ at $N=10$.
 #
 # > **Physics insight.** A subsystem of a random pure state is, to exponential accuracy, *maximally mixed*: no measurement on the subsystem alone can tell it apart from $\mathbb 1/2^{\ell}$, although the global state is pure.
@@ -1344,7 +1342,7 @@ print(f"half-chain deficit  N/2 - <S> = {N / 2 - mean[N // 2 - 1]:.4f} bits    (
 #
 # in the gapped paramagnetic phase ($h=1.5$) and at the critical point ($h=1$, where $c=1/2$). The ground state comes from the **Lanczos method**, a matrix-free eigensolver that
 # needs nothing but the action $H|\psi\rangle$ (sum of local `apply_gate` contractions, notebook 05); it is derived in detail in
-# [notebook 11 (Chapter 5)](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb). Here we use the engine version as a black box — *but we do not trust it blindly*: we check the energy
+# [notebook 11 (Chapter 5)](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb). Here we use the engine version as a black box and check it: we compare the energy
 # against dense diagonalisation for a small chain, and for every $N$ we monitor the residual $\|H\psi-E\psi\|$, which vanishes only for a true eigenstate.
 
 # %%
@@ -1420,7 +1418,7 @@ spectra = {label: np.asarray(schmidt_values(ground[(label, N_MAX)], range(N_MAX 
 spectra["Haar random"] = np.asarray(schmidt_values(random_states[N_MAX], range(N_MAX // 2))) ** 2
 for label, p in spectra.items():
     ax.semilogy(np.arange(1, len(p) + 1), np.clip(p, 1e-20, None), ls="-", lw=1, ms=4, label=label, **styles[label])
-ax.set_ylim(1e-18, 2); ax.set_xlim(0, 60)
+ax.set_ylim(1e-18, 2); ax.set_xlim(0, 2 ** (N_MAX // 2) + 1)
 ax.set_xlabel("Schmidt index $k$"); ax.set_ylabel(r"$p_k=\lambda_k^2$"); ax.set_title(f"(c) Schmidt spectrum at the half cut, N = {N_MAX}"); ax.legend(fontsize=8)
 fig.tight_layout(); plt.show()
 
@@ -1431,7 +1429,7 @@ print(f"Haar random       : S(N/2) for N = {N_LIST}: {np.round(half['Haar random
 
 # central charge from the critical profile:  S[nats] = (c/6) ln[(2N/pi) sin(pi l/N)] + const
 x = np.log(2 * N_MAX / np.pi * np.sin(np.pi * cuts / N_MAX)) / 6.0
-c_fit = np.polyfit(x[1:-1], profiles["critical (h = 1.0)"][1:-1] * np.log(2), 1)[0]
+c_fit = np.polyfit(x[1:-1], profiles["critical (h = 1.0)"][1:-1] * np.log(2), 1)[0]   # biased upward at N = 14 (see the text)
 print(f"\ncentral charge fitted from the critical profile (N = {N_MAX}, cuts 2..N-2): c = {c_fit:.3f}   (exact: 1/2)")
 assert 0.4 < c_fit < 0.7
 
@@ -1450,7 +1448,7 @@ for label, p in spectra.items():
 # (it has converged to a constant); at criticality it creeps up logarithmically; for random states it grows linearly, following Page's $N/2-0.72$. The fit of the critical profile to the conformal formula
 # gives $c=0.56$, about 12 % above the exact $c=1/2$.
 #
-# That 12 % is a **bias, not noise**: the Calabrese–Cardy formula is the leading term of a large-$N$ expansion, and the subleading corrections
+# That 12 % is a systematic **bias**: the Calabrese–Cardy formula is the leading term of a large-$N$ expansion, and the subleading corrections
 # — the non-universal boundary constant, the finite-size corrections to it, and an oscillating term that alternates with the parity of $\ell$
 # in the open Ising chain — are all absorbed into the fitted slope. The bias is positive and shrinks only logarithmically: solving the same
 # model exactly by free fermions and fitting in exactly the same way gives $c=0.562$ at $N=14$, $0.554$ at $N=20$, $0.544$ at $N=32$, $0.532$ at
@@ -1459,8 +1457,8 @@ for label, p in spectra.items():
 # without fitting the subleading terms as well — is the standard way to overstate it.
 #
 # **(c)** The Schmidt spectrum explains why this matters for *numerics*. In the ground states $p_k$ falls off roughly exponentially: only a handful of Schmidt states carry weight above $10^{-8}$
-# — out of 128. The random state is the opposite: the sixty largest of its 128 values span less than one decade (the panel shows them), the
-# rest trail off smoothly, and the discarded weight stays above $10^{-8}$ until every one of the 128 is kept. Keeping only the $\chi$ largest terms of Eq. (3) at *every* cut is exactly what a **matrix product state** does; the
+# — out of 128. The random state is the opposite: most of its 128 values lie within two decades of the largest, only the last few drop
+# steeply, and the discarded weight stays above $10^{-8}$ until every one of the 128 is kept. Keeping only the $\chi$ largest terms of Eq. (3) at *every* cut is exactly what a **matrix product state** does; the
 # discarded weight $\sum_{k>\chi}p_k$ is its truncation error. Area law $\Rightarrow$ small $\chi$ suffices $\Rightarrow$ memory $O(N\chi^2)$ instead of $O(2^N)$: this is why DMRG and MPS-TEBD
 # ([notebook 18 (Chapter 7)](../ch07_tensor_networks/18_mps_tebd.ipynb)) reach hundreds of spins for ground states, and why they fail for volume-law states (e.g. long after a quench).
 #
@@ -1559,7 +1557,7 @@ for Delta_ring in (0.5, -2.0):
 # | time reversal | $\Theta=\big(\prod_i iY_i\big)K$, flips every spin | the exchange terms are even in the spins | **broken**: a magnetic field is odd under time reversal |
 # | reflection $i\to N-1-i$ | spatial | uniform couplings | preserved (the field is uniform) |
 #
-# A related transformation is **not** a symmetry but a useful map: the rotation $U_{\rm sub}=\prod_{i\ \rm odd}Z_i$ of every second spin
+# A related transformation, which is not a symmetry, provides a useful map: the rotation $U_{\rm sub}=\prod_{i\ \rm odd}Z_i$ of every second spin
 # changes the sign of $X_iX_{i+1}+Y_iY_{i+1}$ on every bond and leaves $Z_iZ_{i+1}$ unchanged, so at $h_x=0$ it maps $H(\Delta)$ onto
 # $-\sum(X_iX_{i+1}+Y_iY_{i+1})+\Delta\sum Z_iZ_{i+1}$. At $\Delta=-1$ the result is $-\sum(X_iX_{i+1}+Y_iY_{i+1}+Z_iZ_{i+1})$, the $SU(2)$
 # **ferromagnet**: its ground state is a multiplet of $N+1$ degenerate states, and the point $\Delta=-1$, $h_x=0$ is special. With a field the
@@ -1599,7 +1597,7 @@ for Delta_ring in (0.5, -2.0):
 #
 # One subtlety: in a phase with a broken discrete symmetry the lowest *two* levels of a finite chain belong to different symmetry sectors and are
 # split by an amount that vanishes **exponentially** in $N$ — the finite-size remnant of spontaneous symmetry breaking. This near-degeneracy is not
-# criticality; the physical gap is the one to the next level in the same sector, and it stays finite. This is why we compute the gap within a sector.
+# a sign of criticality; the physical gap is the one to the next level in the same sector, and it stays finite. This is why we compute the gap within a sector.
 #
 # **An exact example of a closing gap.** At $\Delta=0$, $h_x=0$ the chain is the XX chain. With $\sigma^\pm=(X\pm iY)/2$ one has
 # $X_iX_{i+1}+Y_iY_{i+1}=2(\sigma^+_i\sigma^-_{i+1}+\sigma^-_i\sigma^+_{i+1})$, and the Jordan–Wigner transformation (Jordan and Wigner 1928; applied to this chain by Lieb, Schultz and Mattis 1961; quoted here) turns every
@@ -1777,7 +1775,7 @@ panels = [("XX", r"$\langle X_cX_{c+1}\rangle$", "RdBu_r", (-1, 1)), ("ZZ", r"$\
 fig, axes = plt.subplots(2, 4, figsize=(17, 8.0))
 axes = axes.ravel()
 for ax, (key_, title, cmap, (vmin, vmax)) in zip(axes, panels):
-    data = np.where(deg, np.nan, R[key_]) if key_ == "S" else R[key_]
+    data = np.where(deg, np.nan, R[key_])                       # degenerate point: the solver returns an arbitrary multiplet member
     if key_ in ("gap", "split"):
         data = np.log10(np.maximum(R[key_], 1e-16))
     im = ax.imshow(data, origin="lower", aspect="auto", extent=extent, cmap=cmap, vmin=vmin, vmax=vmax)
@@ -1837,7 +1835,7 @@ for d in cut_deltas:
 #   drives the chain from the $z$ ferromagnet to a paramagnet polarised along $-x$, the same physics as the transverse-field Ising chain.
 # * **Polarised paramagnet** (large $h_x$, lower right). $m_x\to-1$, $\langle X_cX_{c+1}\rangle\to1$, $S(N/2)\to0$: a product state. At $\Delta=1$ it is
 #   reached exactly at $h_x=4$, where $\langle X_cX_{c+1}\rangle=1$, $m_x=-1$ and $S=0$; there the fully polarised state is an exact eigenstate.
-# * **Steps.** For $\Delta>-1$ every observable changes with $h_x$ in sharp steps. They are **level crossings**, not phase transitions. At $\Delta=1$ the
+# * **Steps.** For $\Delta>-1$ every observable changes with $h_x$ in sharp steps. They are **level crossings** of the finite chain. At $\Delta=1$ the
 #   total $M_x=\sum_iX_i$ is conserved ($SU(2)$), and $m_x=M_x/N$ jumps by $2/N=0.2$ at each crossing ($0,-0.2,-0.4,-0.6,\dots$). Away from $\Delta=1$,
 #   $M_x$ is not conserved, but consecutive ground states still belong to alternating parity sectors, and states of different symmetry sectors may
 #   cross exactly; the crossings are the thin lines of vanishing splitting in the splitting map. In an infinite chain the steps merge into
@@ -1846,7 +1844,7 @@ for d in cut_deltas:
 #   $0.29$ at $h_x=0$ (the power-law correlation of the critical XX chain), $0.36$ at $h_x=2$, and it collapses to $0.09$ at $h_x=3$ and to $0.003$
 #   at $h_x=4$. This is the antiferromagnetic order along $y$ predicted for the field-induced phase; one chain length can only suggest it, and
 #   establishing long-range order needs the correlations at several $N$ (Exercise 9).
-# * **The ferromagnetic Heisenberg point** $\Delta=-1$, $h_x=0$ is the only degenerate point of the grid (masked in the entropy map). Next to it the
+# * **The ferromagnetic Heisenberg point** $\Delta=-1$, $h_x=0$ is the only degenerate point of the grid (masked in the maps, where any member of the multiplet could be returned). Next to it the
 #   entropy reaches its largest value, $1.75$ bits at $h_x=0.1$: the field selects a strongly entangled state from the remnant of the $(N+1)$-fold
 #   degenerate multiplet. Along the whole line $\Delta=-1$ the two long-distance correlators are *equal*, $C^{zz}=C^{yy}_{\rm st}$ ($0.355$ at $h_x=1$,
 #   $0.039$ at $h_x=2$; the checkpoint above confirms it to rounding). The equality is exact: the rotation $U_{\rm sub}$ of Section 10.3 maps the chain at
@@ -1912,8 +1910,8 @@ plt.tight_layout(); plt.show()
 #   closes as $1/N$. The entropy alternates with the parity of $N/2$ (an effect of the open ends), but within each parity it grows
 #   ($1.04\to1.09$ for $N=6,10$ and $0.82\to0.95$ for $N=8,12$), as the logarithm of a critical state does.
 # * **Ferromagnet.** The gap in the sector converges to $3.0$ and the entropy is exactly $1$ bit for every $N$: a gapped phase with a broken symmetry,
-#   whose cat state carries one bit. Why $3$ and not the ring value $4(|\Delta|-1)=4$ of Eq. (9)? On an **open** chain the cheapest excitation is a
-#   magnon bound to an end. At $\Delta=-2$ a flipped end spin breaks one bond, which costs $-2\Delta=4$, a flipped bulk spin two bonds, $-4\Delta=8$, and the
+#   whose cat state carries one bit. The value $3$ differs from the ring value $4(|\Delta|-1)=4$ of Eq. (9) because on an **open** chain the cheapest
+#   excitation is a magnon bound to an end. At $\Delta=-2$ a flipped end spin breaks one bond, which costs $-2\Delta=4$, a flipped bulk spin two bonds, $-4\Delta=8$, and the
 #   hopping amplitude is $2$. For amplitudes $a_n=x^n$ with $|x|<1$, decaying away from the end $n=0$, the bulk and boundary equations are
 #
 #   $$ E\,a_n=8a_n+2(a_{n-1}+a_{n+1})\ (n\ge1),\qquad E\,a_0=4a_0+2a_1
@@ -1924,7 +1922,7 @@ plt.tight_layout(); plt.show()
 # * **The Néel side and the field.** At $(2,0)$ the gap still decreases at $N=12$ ($3.19\to1.98$), and at $(0,1)$ it decreases as well ($1.53\to0.93$).
 #   The theory predicts finite gaps at both points, but the correlation lengths there are comparable to the chains we can diagonalise, and
 #   $N\le12$ cannot decide between a finite limit and a slow closing. This is the practical limit of exact diagonalisation, and the reason for the
-#   methods of later chapters: iterative eigensolvers that reach $N\approx20$--$24$, finite-size scaling, and matrix product states for hundreds of spins.
+#   methods of later chapters: iterative eigensolvers that reach $N\approx20$–$24$, finite-size scaling, and matrix product states for hundreds of spins.
 
 # %%
 # ==============================================================================
@@ -1938,7 +1936,7 @@ for n in (8, 12):
     assert abs(0.5 * (w_open[0] + w_open[1]) - 3.0) < 0.05
 
 # %% [markdown]
-# ## 11. Performance: the cost
+# ## 11. Measured cost
 #
 # The cost model of this notebook is simple. With $D=2^N$:
 #
@@ -1996,17 +1994,17 @@ ax.legend(fontsize=8); fig.tight_layout(); plt.show()
 # %% [markdown]
 # **Interpreting the benchmark.** (Absolute numbers depend on your machine and on what else it is doing; look at the trends.)
 #
-# * For small $N$ all curves are flat: the run time is dominated by a constant dispatch overhead, not by arithmetic. From $N\approx16$ on, the RDM and the correlator follow the dotted $2^N$ line —
+# * For small $N$ all curves are flat: the run time is dominated by a constant dispatch overhead. From $N\approx16$ on, the RDM and the correlator grow roughly like the dotted $2^N$ line (single points can be off by a factor of a few when other jobs compete for the processor) —
 #   *linear in the size of the state*, which is the best one can hope for since every amplitude must be touched once.
-# * The weight-$N$ Pauli string costs $N$ passes over the state, consistently a factor of order $N$ above the single-spin RDM at large $N$.
+# * The weight-$N$ Pauli string costs $N$ passes over the state and lies one to two orders of magnitude above the single-spin RDM at large $N$.
 # * The half-chain entropy is the expensive one: SVD of a $2^{N/2}\times2^{N/2}$ matrix scales as $2^{3N/2}$ (dashed line). For *small* subsystems it is cheap again — cost $O(2^N2^{|A|})$.
-# * Compilation (brackets) costs a fraction of a second per distinct function and is paid once; in a time-evolution loop the same compiled observable is called thousands of times.
+# * The first call (brackets) adds tracing and compilation, between a few hundredths of a second and about a second per distinct function, paid once; in a time-evolution loop the same compiled observable is called thousands of times.
 # * At $N=22$ the state occupies 64 MB. The textbook route through the $2^N\times2^N$ projector would need $4^{22}\times16$ bytes $\approx 280$ TB.
 
 # %% [markdown]
 # ## 12. Key takeaways
 #
-# * A many-body state is understood through **few-body reduced density matrices** and **entanglement across cuts**, not through its $2^N$ amplitudes.
+# * A many-body state is understood through **few-body reduced density matrices** and **entanglement across cuts**, rather than through its $2^N$ amplitudes.
 # * $\rho_A[a,a']=\sum_b\psi[a,b]\psi^*[a',b]$ is **one einsum**: shared letters for the traced spins, fresh letters for the kept ones. Cost $O(2^N2^{|A|})$; the $4^N$ projector is never formed.
 #   For a density tensor, the partial trace is a repeated letter inside a single operand.
 # * $\langle O_A\rangle=\mathrm{Tr}(\rho_AO_A)$. Use the RDM for few spins and many operators, apply-then-overlap for Pauli strings of any weight, one-einsum tables for all pairs of a diagonal observable.

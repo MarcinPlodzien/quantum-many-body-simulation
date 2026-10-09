@@ -11,7 +11,7 @@
 #
 # $$ i\,\frac{d}{dt}|\psi(t)\rangle = H\,|\psi(t)\rangle ,\qquad |\psi(0)\rangle=|\psi_0\rangle \qquad(\hbar=1). $$
 #
-# **Why people care.** For most of the twentieth century this question was academic: a magnet in a laboratory is never isolated well enough
+# **Experimental context.** For most of the twentieth century this question was academic: a magnet in a laboratory is never isolated well enough
 # for its wave function to evolve coherently. That has changed. Ultracold atoms in optical lattices, chains of trapped ions, arrays of
 # Rydberg atoms held in optical tweezers and superconducting circuits are *isolated, controllable spin chains*: one prepares a product state,
 # suddenly switches on a Hamiltonian (a **quantum quench**) and photographs the spins after a time $t$. Such experiments watch order
@@ -57,7 +57,7 @@
 #
 # ### Prerequisites
 #
-# * [01 — JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, `lax.scan`, timing.
+# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, `lax.scan`, timing.
 # * [03 — Quantum many-body spin systems](03_quantum_many_body_spin_systems.ipynb): tensor products, `site_operator`, dense Hamiltonians, the
 #   transverse-field Ising and XXZ chains, exact diagonalisation with `eigh`.
 #
@@ -65,7 +65,7 @@
 # so energies are frequencies and time is measured in units of the inverse coupling $1/J$.
 
 # %% [markdown]
-# ## 2. The dense toolbox of notebook 03, rebuilt
+# ## 2. The dense toolbox of notebook 03
 #
 # ### 2.1 Conventions
 #
@@ -481,11 +481,11 @@ for k_short in (1, 2):
 # %% [markdown]
 # **Interpretation.** The ferromagnetic order of the initial state melts: $m_z$ drops from 1 to about zero within $t\approx2/J$, following the parabola
 # $1-2h^2t^2$ at the very beginning: the printed remainder divided by $t^4$ is the same number ($\approx2.8$) at both times, which is what
-# "the next term is $O(t^4)$" means. (The order, not the size, is what the expansion predicts; the coefficient $2.8$ contains the $\tfrac23h^4$ of a
+# "the next term is $O(t^4)$" means. (The expansion predicts the order of the remainder; the coefficient $2.8$ contains the $\tfrac23h^4$ of a
 # free spin plus a contribution from the coupling.) Afterwards it does not stay at zero: in a chain of only 8 spins
 # the excitations created by the quench travel to the ends, are reflected, and come back — and around $tJ\approx9$ they rebuild a magnetisation of magnitude $0.6$,
 # here with the *opposite* sign. These **finite-size revivals** are a property of the
-# small system, not of the method (which is exact). We come back to the physics in Section 8; first we need more methods.
+# small system; the method itself is exact. We come back to the physics in Section 8; first we need more methods.
 
 # %% [markdown]
 # ## 5. Method 2 — the matrix exponential `expm`
@@ -685,7 +685,7 @@ plt.show()
 # prediction (6): they agree with the measured norms to round-off, so we understand this failure completely. One could renormalise the state after each step,
 # but that cures the symptom only: the relative weights of the energy eigenstates are still distorted (high-$|E|$ components are amplified most), and energy is not conserved.
 #
-# > **Common pitfall.** "My wave function blows up" is, nine times out of ten, a non-unitary integrator with too large a step. Always monitor $\|\psi\|$ and $\langle H\rangle$.
+# > **Common pitfall.** "My wave function blows up" is most often a non-unitary integrator with too large a step. Always monitor $\|\psi\|$ and $\langle H\rangle$.
 #
 # ### 6.3 Runge–Kutta 4: much better, still not unitary
 #
@@ -782,7 +782,7 @@ assert abs(slopes_ode["Euler"] - 1) < 0.25 and abs(slopes_ode["RK4"] - 4) < 0.25
 # and the true norm is a fixed fraction of that bound. $\|H\|$ is **extensive**: it grows *linearly with the number of spins*, because energy is extensive.
 # The next cell measures it.
 #
-# The consequence is uncomfortable. At a fixed final time $T$ the number of RK4 steps is
+# At a fixed final time $T$ the number of RK4 steps is
 #
 # $$ n=\frac{T}{dt}\;\ge\;\frac{T\,\|H\|}{2\sqrt2}\;\propto\;N , $$
 #
@@ -809,7 +809,7 @@ for n_norm in (4, 6, 8, 10, 12):
 
 # %% [markdown]
 # The norm grows linearly: the ratio $\|H\|/N$ printed in the third column climbs from $1.19$ at $N=4$ towards about $1.25$, always safely below the bound $J(N-1)+hN=2N-1$.
-# The admissible RK4 step shrinks in proportion — it is already below $0.19$ at $N=12$, and it would be below $0.02$ for a chain of a hundred spins.
+# The admissible RK4 step shrinks in proportion — it is already below $0.19$ at $N=12$, and it would be about $0.02$ for a chain of a hundred spins.
 #
 # ### 6.5 Why unitary methods are preferred
 #
@@ -817,7 +817,7 @@ for n_norm in (4, 6, 8, 10, 12):
 #
 # 1. **No structure preservation.** Norm and energy drift systematically; the errors accumulate over long times instead of averaging out.
 # 2. **Conditional stability.** Eq. (7a): $dt\le2\sqrt2/\|H\|$ with $\|H\|\propto N$.
-# 3. **It needs $H\psi$ for the full $H$.** That is fine here, but it gives no handle for exploiting the *locality* of $H$.
+# 3. **It treats $H$ as a whole.** Every stage needs $H\psi$ for the full $H$; the method makes no use of the fact that $H$ is a sum of local terms whose exponentials are cheap.
 #
 # The exact propagator is unitary; it is natural to demand the same from its approximation. The method of the next section is exactly unitary for every $dt$ (hence unconditionally stable), is built from
 # exponentials of *small* matrices only, and is the basis of the most important algorithms for quantum many-body dynamics — on classical and on quantum computers alike.
@@ -845,7 +845,7 @@ for n_norm in (4, 6, 8, 10, 12):
 #
 # **The smallest example: one spin in a tilted field.** $H=aX+bZ$. Exactly as in Section 4.3, $(aX+bZ)^2=(a^2+b^2)\mathbb 1\equiv\omega^2\mathbb 1$ (the cross terms cancel because $XZ=-ZX$), so
 # $e^{-iHt}=\cos(\omega t)\mathbb 1-i\sin(\omega t)\,(aX+bZ)/\omega$: a rotation of the spin about the *tilted* axis $(a,0,b)$. The product $e^{-ibZt}e^{-iaXt}$ is instead a rotation about $x$ followed by a rotation about $z$.
-# Rotations about different axes do not commute — this is all there is to it.
+# Rotations about different axes do not commute, and this is the entire origin of the discrepancy.
 
 # %%
 # ==============================================================================
@@ -976,7 +976,7 @@ for name in res:
 # only *oscillate* within a band of width $O(dt)$ — it cannot drift away. This is the difference between an error that is bounded for all times and one that accumulates.
 # We will see it in Section 7.8, and Exercise 6 asks you to verify that $\langle H_{\rm eff}\rangle$ is indeed the better conserved quantity.
 #
-# ### 7.4 Second order for free: the symmetric (Strang) splitting
+# ### 7.4 The symmetric (Strang) splitting
 #
 # Consider the symmetric product
 #
@@ -994,7 +994,7 @@ for name in res:
 # *leapfrog/Verlet* method. Higher orders exist (Suzuki's fourth-order formula is covered in
 # [notebook 12, Chapter 5](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb)).
 #
-# The merging is a property of the *sequence*, not of one step: our `trotter_step_unitary` below builds the three-factor matrix $U_2(dt)$
+# The merging happens between consecutive steps: our `trotter_step_unitary` below builds the three-factor matrix $U_2(dt)$
 # of Eq. (14) once and then reuses it, so in this dense implementation the merging saves nothing. It matters in the matrix-free
 # implementation of notebook 05, where the layers are applied to the state one after the other at every step.
 
@@ -1041,7 +1041,7 @@ for lab, r, p in (("S(eps) - e^(eps(A+B))                  ", r_sym, 3), ("S(eps
 #
 # $$ e^{-iH_{\rm even}\tau}=e^{-ih_{01}\tau}\otimes e^{-ih_{23}\tau}\otimes e^{-ih_{45}\tau}\otimes\cdots \tag{16}$$
 #
-# **a Kronecker product of $4\times4$ exponentials.** The only non-commuting pair is $(H_{\rm even},H_{\rm odd})$, and that is what Trotter handles. Notice what has happened: to evolve a $2^N$-dimensional system we need
+# **a Kronecker product of $4\times4$ exponentials.** The only non-commuting pair is $(H_{\rm even},H_{\rm odd})$, and that is what Trotter handles. To evolve a $2^N$-dimensional system we therefore need
 # nothing but exponentials of $4\times4$ matrices. (We restrict ourselves to open chains; a periodic bond $(N-1,0)$ can be added to the odd layer for even $N$, but it is not a block of neighbouring Kronecker factors, which makes the dense bookkeeping clumsy.)
 #
 # **From formula to code.** `bond_hamiltonians` returns the list of $4\times4$ matrices $h_{j,j+1}$; `layer_unitary` builds Eq. (16) as one Kronecker chain — for the odd layer, and for a leftover last spin, identity factors $\mathbb 1_2$ fill the gaps:
@@ -1257,7 +1257,7 @@ assert abs(slopes_trot[1] - 1) < 0.15 and abs(slopes_trot[2] - 2) < 0.15
 #   ratio measured/predicted is $1.000$ at $dt=0.0125$ for both orders; at $dt=0.4$ it has dropped to about $0.93$, which is the neglected next order of the BCH series becoming visible.
 #   The size of the Trotter error is governed by commutators — nothing else (rigorous commutator bounds for product formulas of any order: Childs *et al.* 2021).
 # * *(b)* One power of $dt$ is lost on the way from one step to $n=T/dt$ steps, Eq. (12): the global error is first order for Lie–Trotter and second order for Strang, with measured slopes close to 1 and 2.
-#   At the same $dt$ the second-order scheme is more accurate by orders of magnitude, at essentially the same cost. **There is no reason ever to use the first-order formula in production.**
+#   At the same $dt$ the second-order scheme is more accurate by orders of magnitude, at essentially the same cost, so for a time-independent Hamiltonian the first-order formula has no place in production runs.
 
 # %% [markdown]
 # ### 7.8 Error growth in time, conserved quantities, and a comparison with RK4
@@ -1305,10 +1305,13 @@ plt.tight_layout(); plt.show()
 # %% [markdown]
 # **Interpretation.**
 #
-# * *(a)* The Trotter state errors grow **linearly** in time (slope 1 on the log–log plot) and stay below the dotted bounds $n\|U_p-U\|$ of Eq. (12). Eventually every error saturates — two normalised vectors cannot differ by more than 2 —
-#   which is what happens to the first-order scheme. Rule of thumb: for a target accuracy $\delta$ at time $t$ with a second-order scheme, choose $dt\propto\sqrt{\delta/t}$.
-# * *(b)* The Trotter energy error **does not grow**: it oscillates around a constant of order $dt$ (order 1) or $dt^2$ (order 2), as predicted by the effective-Hamiltonian argument. The RK4 energy error starts out below both,
-#   but it *drifts* monotonically upwards, crosses the Trotter bands within the first couple of time units and ends up, at $t=30$, more than an order of magnitude above the first-order Trotter error (compare the printed maxima).
+# * *(a)* Both Trotter errors stay below the dotted bounds $n\|U_p-U\|$ of Eq. (12), but they behave differently. The second-order error grows **linearly** in time (slope 1 on the log–log plot,
+#   from $2.2\cdot10^{-3}$ at $t=3$ to $1.9\cdot10^{-2}$ at $t=30$), while the first-order error grows only up to $t\approx1$ and then stays at about $4\cdot10^{-2}$ for the rest of the run. The reason lies in $H_{\rm eff}$ of Section 7.3. Its $O(dt)$
+#   correction $-\tfrac{i\,dt}{2}[H_B,H_A]$ has vanishing diagonal elements $\langle n|i[H_B,H_A]|n\rangle$ in the real eigenvectors of the real symmetric $H$ (both orderings of the product give the same
+#   real number), so it shifts no energy at first order. It only tilts the eigenvectors by $O(dt)$, which costs a bounded error; the phases drift only through the $O(dt^2)$ terms, as in the
+#   second-order scheme. The bound (12) assumes the worst case at every step and is far from tight here. Rule of thumb: for a target accuracy $\delta$ at time $t$ with a second-order scheme, choose $dt\propto\sqrt{\delta/t}$.
+# * *(b)* The Trotter energy error **does not grow**: it oscillates around a constant of order $dt$ (order 1) or $dt^2$ (order 2), as predicted by the effective-Hamiltonian argument. The RK4 energy error starts out comparable to the Trotter errors,
+#   but it *drifts* monotonically upwards, leaves both Trotter bands within the first time unit and ends up, at $t=30$, more than an order of magnitude above the first-order Trotter error (compare the printed maxima).
 # * *(c)* The norm is conserved to round-off by both Trotter schemes ($\sim10^{-13}$, slowly accumulating round-off), while RK4 loses norm steadily — a couple of per cent by $t=30$ at this $dt$, small but systematic.
 #
 # A remark on the comparison: RK4 is a *fourth*-order method and we are running it against first- and second-order ones, so one would expect it to win on accuracy. At $dt=0.05$ it does beat first-order Trotter, but it does
@@ -1323,7 +1326,7 @@ plt.tight_layout(); plt.show()
 #
 # If an operator $Q$ commutes with *every bond term* $h_{j,j+1}$, it commutes with every factor of the Trotter step, so it is conserved **exactly** by the Trotterised dynamics, for any $dt$. Example: the XXZ chain conserves the total magnetisation
 # $S^z_{\rm tot}=\sum_jZ_j$ (notebook 03), and each bond $J(XX+YY)+J_{zz}ZZ$ conserves it separately. Starting from the Néel state $|{\uparrow\downarrow\uparrow\downarrow}\cdots\rangle$ with $\langle S^z_{\rm tot}\rangle=0$, the Trotter evolution must keep
-# it at zero to round-off even when $dt$ is far too large for the state to be accurate. If it does not, the bug is in the code, not in $dt$.
+# it at zero to round-off even when $dt$ is far too large for the state to be accurate. If it does not, the bug is in the code, whatever the step size.
 
 # %%
 # ==============================================================================
@@ -1483,7 +1486,7 @@ for hq in H_FIELDS:
 # Such a light cone of correlations, carried by quasi-particle pairs, was observed with ultracold atoms in an optical lattice by Cheneau *et al.* (2012).
 #
 # We plot $|C_{0j}(t)|$ on a logarithmic colour scale and overlay the line $j=2v_{\max}t$. We choose spin 0 (the left end) as the reference to have the longest possible
-# distances in our short chain (the centre of the chain gives the same velocity to within a few per cent, but only half the range of distances).
+# distances in our short chain (a reference at the centre of the chain gives velocities within about ten per cent of these, but only half the range of distances).
 
 # %%
 # ==============================================================================
@@ -1541,11 +1544,11 @@ print(f"   the column j = 0 is not a correlation but the on-site variance C_00 =
 # both correlators vanish identically at $t=0$ and then fill a **cone**: outside the dashed line $j=2v_{\max}t$ the correlations are suppressed by many orders of magnitude (dark region) although every spin is coupled, through its neighbours, to every other one from the very first instant.
 # The $zz$ correlations live inside the same cone but build up more slowly behind the front. After $t\approx N/(2v_{\max})\approx2.5/J$ the front has reached the far end of the chain; what follows is finite-size physics (reflections).
 #
-# **How to read the measured velocities, and how not to.** There is no sharp front to measure: at distance $j$ the correlation rises smoothly from an exponentially
+# **Reading the measured velocities.** There is no sharp front to measure: at distance $j$ the correlation rises smoothly from an exponentially
 # small tail to a value of order one, so *any* definition of "arrival" is a choice of threshold — and the fitted velocity moves with it, in a known direction. A **high**
 # threshold (our half-of-the-first-peak criterion, or $|C|>10^{-2}$) declares the arrival too late and therefore **under**estimates the velocity; a **low** threshold
 # triggers already on the tail and **over**estimates it. The printed numbers do exactly that: $3.4$, $3.7$, $4.0$, $4.3$ for the four criteria, bracketing the
-# parameter-free prediction $2v_{\max}=4J$. The correct statement is therefore not "we measured $3.39$ and the theory says $4$", but: *the front velocity of the
+# parameter-free prediction $2v_{\max}=4J$. The correct statement is therefore that *the front velocity of the
 # $xx$-correlations is $4J$ to within the systematic uncertainty of the front definition, which at $N=10$ is some ten per cent.* Extracting a velocity better than that
 # needs a longer chain, or a fit to the whole space–time profile rather than to one contour of it — see
 # [notebook 15, Chapter 5](../ch05_ground_states_and_unitary_dynamics/15_quench_dynamics_spin_chains.ipynb), where the same bias is studied at several fields.
@@ -1645,7 +1648,7 @@ for n in (8, 10, 12, 14, 16, 20, 24, 30):
 
 # %% [markdown]
 # At $N=14$ a *single* dense operator needs 4 GB, and `eigh`/`expm` need several of them as workspace; $N=16$ asks for 64 GB per matrix. The state vector, by contrast, remains harmless far longer: 16 MB at $N=20$, 16 GB at $N=30$.
-# **The state is not the problem — the operators are.**
+# **The memory goes into the operators; the state itself stays small.**
 #
 # Now the time. We measure `eigh`, `expm`, and a single dense matrix–vector product for growing $N$. Each function is called once for warm-up/compilation and then timed; the largest sizes are timed once,
 # and the matrix–vector product — which takes microseconds, i.e. the same order as the measurement noise — is timed as the *best of 50 repetitions*.
@@ -1706,8 +1709,8 @@ for n_ex in (12, 14, 16):
 # **Interpretation.** For small matrices the timings are dominated by fixed overheads — the matrix–vector curve is flat up to $N=6$, where the whole operation still
 # costs tens of microseconds of dispatch; once the matrices are large enough the asymptotic laws take over and each added spin must cost a factor of 8 for `eigh`/`expm` and
 # 4 for a dense matrix–vector product. Do not expect the measured ratio between two consecutive sizes to *be* 8. Matrices of a few thousand rows are still small for a multi-core CPU, which uses its cores
-# better the larger the problem gets, so the ratio comes out *below* 8 while fixed overheads still dominate and can overshoot 8 once they stop dominating; a machine shared with other jobs adds scatter on top. Read the trend, not a single ratio.
-# The extrapolation is sobering all the same: whatever your machine, full diagonalisation passes from a fraction of a second at $N=10$ to minutes at $N\approx14$ and many hours at $N\approx16$, and well before that the memory table above has the last word. *Every* method of this notebook — eigendecomposition, `expm`, Euler, RK4, our dense Trotter — hits the same wall at $N\approx12$–$14$, because every one
+# better the larger the problem gets, so the ratio comes out *below* 8 while fixed overheads still dominate and can overshoot 8 once they stop dominating; a machine shared with other jobs adds scatter on top. Only the trend over several sizes is meaningful.
+# The extrapolation is unambiguous all the same: whatever your machine, full diagonalisation passes from about a second at $N=10$ to an hour at $N\approx14$ and days at $N\approx16$, and well before that the memory table above has the last word. *Every* method of this notebook — eigendecomposition, `expm`, Euler, RK4, our dense Trotter — hits the same wall at $N\approx12$–$14$, because every one
 # of them stores at least one $2^N\times2^N$ matrix. (Sparse matrices, the traditional remedy mentioned in notebook 03, reduce the $4^N$ to about $N2^N$ for $H$ itself, but the propagator and the eigenvector matrix are dense regardless.)
 #
 # ### What must change
@@ -1729,7 +1732,7 @@ for n in (8, 10):
 # The embedded matrix $\mathbb 1\otimes u\otimes\mathbb 1$ repeats the same 16 numbers $2^{N-2}$ times and is otherwise empty: at $N=10$ fewer than half a per cent of its million entries are non-zero. Its action on a state is simple to describe in words —
 # *"mix the four amplitudes that differ only in spins $j$ and $j+1$, for every configuration of the other spins"* — and that costs $O(4\cdot2^N)$ operations and **no memory beyond the state vector**.
 #
-# This is the single idea behind the rest of the course:
+# The remedy is a single idea:
 #
 # > **Never build the big matrix. Only ever apply small matrices directly to the state.**
 #
@@ -1747,12 +1750,12 @@ for n in (8, 10):
 # * **Trotterization**: $e^{\varepsilon A}e^{\varepsilon B}=e^{\varepsilon(A+B)+\frac{\varepsilon^2}2[A,B]+\dots}$ (BCH). First-order splitting has local error $O(dt^2)$ and global error $O(t\,dt)$, with the commutator as prefactor; the symmetric (Strang) splitting
 #   has global error $O(t\,dt^2)$ at no extra cost. Unitary errors accumulate at most linearly. Each step is exactly unitary, energy errors stay bounded, and symmetries shared by all terms are preserved exactly.
 # * The **even/odd bond decomposition** reduces the evolution of any nearest-neighbour chain to exponentials of $4\times4$ matrices.
-# * **Measure, don't assume**: orders of accuracy are read off log–log plots with reference slopes; formulas are verified by their observed order; solvers are validated against each other and against conservation laws.
+# * **Verification by measurement**: orders of accuracy are read off log–log plots with reference slopes; formulas are verified by their observed order; solvers are validated against each other and against conservation laws.
 # * After a **quench** in the TFIM local order melts although the evolution is unitary, and correlations spread inside a **light cone** whose front moves at $2v_{\max}=4\min(J,h)$ —
 #   with the caveat that a measured front velocity always depends on the threshold that defines "arrival", so it must be quoted with that spread.
 # * The **Loschmidt echo** decays exponentially in $N$; the rate function of a quench across the critical point develops kinks at the times $t_n$ of the infinite chain, although a
 #   finite chain is strictly analytic in $t$ and only shows the precursors.
-# * All dense methods die at $N\approx12$–$14$: $4^N$ memory, $8^N$ time. The operators are the problem, not the state — and the Trotter step never needed more than $4\times4$ matrices.
+# * All dense methods die at $N\approx12$–$14$: $4^N$ memory, $8^N$ time. The memory goes into the operators while the state stays small, and the Trotter step never needed more than $4\times4$ matrices.
 
 # %% [markdown]
 # ## 11. Exercises
@@ -1800,7 +1803,7 @@ for n in (8, 10):
 #   Chapter 11 (*Eigensystems*; §11.3 the reduction to tridiagonal form, §11.4 the QL iteration for the tridiagonal matrix, §11.5 the Hermitian case — the algorithms behind `eigh`).
 # * W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes in Fortran 90: The Art of Parallel Scientific Computing*, Volume 2 of
 #   *Fortran Numerical Recipes*, 2nd ed., Cambridge University Press (1996), ISBN 978-0-521-57439-6 — Chapter B16 is the same Runge–Kutta material written as whole-array
-#   operations instead of loops, the style used throughout this course (`integrate` is a `lax.scan` over array expressions, not a Python loop over components).
+#   operations instead of loops, the style of the code in this notebook (`integrate` is a `lax.scan` over array expressions, not a Python loop over components).
 #
 # *Product formulas*
 # * H. F. Trotter, *On the product of semi-groups of operators*, Proc. Amer. Math. Soc. **10**, 545 (1959).
