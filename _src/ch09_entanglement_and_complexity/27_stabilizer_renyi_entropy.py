@@ -573,7 +573,7 @@ plt.show()
 #   with the cleanest analytic properties (Section 7.3) and is a strong monotone (Leone and Bittel 2024).
 #
 # **Write the absolute value.** Equation (9) contains $\vert\langle P\rangle\vert^{2\alpha}$, with the modulus.
-# The two agree when $2\alpha$ is an even integer, i.e. for $\alpha=1,2,3,\dots$, and differ otherwise — at $\alpha=3/2$ the
+# It equals $\langle P\rangle^{2\alpha}$ when $2\alpha$ is an even integer, i.e. for $\alpha=1,2,3,\dots$, and differs otherwise — at $\alpha=3/2$ the
 # exponent $2\alpha=3$ is odd and a negative $\langle P\rangle$ would contribute with the wrong sign. Section 9.6
 # demonstrates the damage on a concrete state.
 #
@@ -1321,9 +1321,9 @@ for b in batches:
         sre(psi_bs, 2.0, batch=b)
     times_bs.append((time.time() - t0) / reps)
 print(f"N = {N_bs}   (state: (T|+>)^N, exact M_2 = {N_bs * LOG2_4_3:.6f})")
-print(f"{'batch':>6s} {'time [s]':>10s} {'peak f-array [MiB]':>20s}")
+print(f"{'batch':>6s} {'time [s]':>10s} {'peak f-array [MB]':>20s}")
 for b, t in zip(batches, times_bs):
-    print(f"{b:6d} {t:10.4f} {b * 2 ** N_bs * 16 / 2 ** 20:20.1f}")
+    print(f"{b:6d} {t:10.4f} {b * 2 ** N_bs * 16 / 1e6:20.1f}")
 
 # %%
 # ==============================================================================
@@ -1386,9 +1386,9 @@ ax2.set_xscale("log", base=2)
 ax2.set_xlabel("batch size (number of $X$-patterns $a$ per kernel)")
 ax2.set_ylabel("wall-clock time [s]")
 ax2b = ax2.twinx()
-ax2b.plot(batches, [b * 2 ** N_bs * 16 / 2 ** 20 for b in batches], MARKERS[1] + "--", color=PALETTE[1])
+ax2b.plot(batches, [b * 2 ** N_bs * 16 / 1e6 for b in batches], MARKERS[1] + "--", color=PALETTE[1])
 ax2b.set_yscale("log", base=2)
-ax2b.set_ylabel("peak batch memory [MiB]", color=PALETTE[1])
+ax2b.set_ylabel("peak batch memory [MB]", color=PALETTE[1])
 ax2b.grid(False)
 ax2.set_title(rf"Batch trade-off at $N={N_bs}$")
 fig.tight_layout()
@@ -1422,8 +1422,8 @@ plt.show()
 # numbers no longer fits in cache (we have not measured the cache behaviour directly). The whole variation across a
 # factor $256$ in batch size stays within a factor of two to three in time, so this is a parameter worth setting sensibly once and
 # then leaving alone. The memory line, in contrast, is exactly linear in the batch size by construction, and it is the reason
-# the loop exists at all: at $N=13$ a single un-batched call would allocate $16\cdot2^{13}\cdot2^{13}$ bytes $=1$ GiB,
-# while `batch=256` keeps it at $32$ MiB. Timings on a shared machine fluctuate by tens of per cent, so the result is the
+# the loop exists at all: at $N=13$ a single un-batched call would allocate $16\cdot2^{13}\cdot2^{13}$ bytes $=1.07$ GB,
+# while `batch=256` keeps it at $34$ MB. Timings on a shared machine fluctuate by tens of per cent, so the result is the
 # shape of these curves; the individual numbers change from run to run.
 #
 # > **JAX practice.** `_pauli_moment_batch` is jitted with `N` as a *static* argument and everything else traced. That
@@ -2298,7 +2298,7 @@ print(f"\nN = {N_m}: the maximally mixed state is reported as having M_2 = {N_m}
 # ## 13. Key takeaways
 #
 # * **Entanglement alone does not make quantum computation hard.** Stabilizer states can be maximally entangled and are
-#   still simulable in polynomial time (Gottesman-Knill). In Figure 6 the random Clifford-circuit states carry $1$ to $3$
+#   still simulable in polynomial time (Gottesman-Knill). In the entanglement-magic plane of Section 10.2 the random Clifford-circuit states carry $1$ to $3$
 #   bits of half-chain entropy and the product of four Bell pairs the maximal $4$ bits, all with exactly zero magic.
 # * **The characteristic distribution.** For a pure state, $\Xi_P=\langle P\rangle^2/2^N$ is a probability distribution
 #   over the $4^N$ Pauli strings (a consequence of purity alone), and stabilizer states are exactly those for which it is

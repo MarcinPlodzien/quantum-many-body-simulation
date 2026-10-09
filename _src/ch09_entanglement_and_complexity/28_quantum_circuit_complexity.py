@@ -1160,8 +1160,8 @@ plt.show()
 # $x=x_-+(x_+-x_-)\sin^2\theta$ is what makes it so: on a uniform $x$-grid the $\gamma=1$ integral is wrong in the third
 # decimal, because the density diverges as $x^{-1/2}$ at the origin.)
 #
-# The Kolmogorov distance between the measured eigenvalue distribution and the MP law orders the families exactly as the
-# other diagnostics do:
+# The Kolmogorov distance between the measured eigenvalue distribution and the MP law (the largest difference between the
+# two cumulative distribution functions) orders the families exactly as the other diagnostics do:
 #
 # | family | non-zero levels (of 64) | $x_{\max}$ | $x_{\min}$ | distance to MP |
 # |---|---|---|---|---|
@@ -1755,7 +1755,7 @@ assert abs(vals.mean() - D_ENT * np.sum(p_test ** 2)) < 5 * vals.std() / np.sqrt
 # single realisation** (the printed check compares against $10^{-9}$), and the integers that occur in these $24$
 # circuits are $0$, $1$ and $2$. The case $m=0$, no diagonal stabilizer at all, means a *perfectly uniform*
 # distribution over all $4096$ bit strings. The measured frequencies of $m$ printed above ($8$, $15$ and $1$ of the
-# $24$ circuits for $m=0,1,2$) are within two binomial standard deviations of Eq. (6a) for uniformly random stabilizer
+# $24$ circuits for $m=0,1,2$) are within about two binomial standard deviations of Eq. (6a) for uniformly random stabilizer
 # states (expected $10.1\pm2.4$, $10.1\pm2.4$ and $3.4\pm1.7$); repeating the draw with $200$ circuits gives
 # $m=0,1,2,3$ in $47\%$, $41\%$, $10\%$, $2\%$ of them in one run and $40.5\%$, $45.5\%$, $11\%$, $2.5\%$ in another,
 # against $42\%$, $42\%$, $14\%$, $2\%$ from Eq. (6a) (Exercise 3). The ensemble mean $1.75\pm0.14$ is the average of
@@ -2108,7 +2108,7 @@ plt.show()
 # and $5.7$ $T$ gates. The curves do not collapse in the density: at fixed density the number of $T$ gates grows as
 # $4N^2$, so larger systems cross over at smaller density.)
 #
-# **5. (★★) Marchenko-Pastur at an unequal cut.** Recompute Figure 3 for $n_A=N/2-2$, so that $\gamma=d_A/d_B=1/16$ and
+# **5. (★★) Marchenko-Pastur at an unequal cut.** Recompute the spectrum figure of Section 6.3 for $n_A=N/2-2$, so that $\gamma=d_A/d_B=1/16$ and
 # the support $[x_-,x_+]$ is bounded away from zero. The square-root edges at both ends should now be clearly visible.
 # Measure the position of the upper edge and compare with $(1+\sqrt\gamma)^2$.
 #
@@ -2136,7 +2136,7 @@ plt.show()
 # Trotterised evolution of the Ising chain $H=-\sum_jZ_jZ_{j+1}-h_x\sum_jX_j-h_z\sum_jZ_j$ with the tools of
 # [notebook 12](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb). For $h_z=0$ this is the
 # transverse-field Ising chain, which is integrable for every $h_x$ (it maps to free fermions by the Jordan-Wigner
-# transformation, notebook 47); a longitudinal field $h_z\neq0$ breaks integrability. Start from the product state with
+# transformation, [notebook 47](../ch13_quantum_phase_transitions/47_quantum_phase_transitions.ipynb)); a longitudinal field $h_z\neq0$ breaks integrability. Start from the product state with
 # every spin along $+y$, which has $\langle H\rangle=0$ for both models, and measure $S$, $M_2$ and
 # $\langle\tilde r\rangle$ against time for $h_x=1$ with $h_z=0$ and with $h_z=0.5$. Determine which of the three
 # separates the two models first. (Check values from exact evolution at $N=10$, averaged over $t=8$-$80$: integrable

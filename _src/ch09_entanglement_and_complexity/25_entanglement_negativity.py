@@ -83,7 +83,9 @@
 #   density tensors, partial trace, Kraus channels, and — used constantly below — the difference between a *positive* and a
 #   *completely positive* map;
 # * [11 — Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb)
-#   and [12 — TEBD](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb) for Section 9 and Section 10;
+#   and [12 — TEBD](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb) for Section 9 and Section 10,
+#   and [15 — quench dynamics](../ch05_ground_states_and_unitary_dynamics/15_quench_dynamics_spin_chains.ipynb) for the
+#   light cone and the quasiparticle picture used in Section 10.1;
 # * [21 — entanglement swapping and superdense coding](../ch08_quantum_information_protocols/21_entanglement_swapping_and_superdense_coding.ipynb):
 #   Werner states and the concurrence appear there as tools; here they are the subject.
 #
@@ -1501,7 +1503,8 @@ fig.tight_layout(); plt.show()
 # Prepare the paramagnetic product state $\vert+\rangle^{\otimes N}$ — the ground state of Eq. (16) at $h=\infty$ — and switch
 # the Hamiltonian on at $h=1$ at $t=0$. Information spreads at a finite maximal speed (a Lieb–Robinson bound), so two blocks
 # far apart cannot become entangled before that speed has carried a signal between them. For the TFIM the quasiparticle
-# dispersion is $\varepsilon(k)=2\sqrt{1+h^2-2h\cos k}$ and the maximal group velocity at $h=1$ is
+# dispersion, derived in Section 6 of
+# [notebook 15](../ch05_ground_states_and_unitary_dynamics/15_quench_dynamics_spin_chains.ipynb) with $J=1$, is $\varepsilon(k)=2\sqrt{1+h^2-2h\cos k}$ and the maximal group velocity at $h=1$ is
 # $v_{\max}=\max_k\vert d\varepsilon/dk\vert=2$ sites per unit time. Two blocks whose nearest members are $\ell$ sites apart
 # should therefore stay unentangled until roughly $t\approx\ell/(2v_{\max})$ — quasiparticles are created in pairs and travel in
 # opposite directions, so each of the two halves of a pair covers half of the distance.
@@ -1542,7 +1545,7 @@ print(f"\nfirst time at which N > {thr}:")
 for j, (A, B, ell) in enumerate(configs):
     idx = np.flatnonzero(traj[:, j] > thr)
     t_on = ts_q[idx[0]] if idx.size else np.inf
-    print(f"  {labels[j]:28s}  separation {ell}:  t_on = {t_on:.2f}   "
+    print(f"  A = {str(A):12s} B = {str(B):12s}  separation {ell}:  t_on = {t_on:.2f}   "
           f"(peak {traj[:, j].max():.4f} at t = {ts_q[int(np.argmax(traj[:, j]))]:.2f})")
 
 # ------------------------------------------------------------------------------
@@ -1876,11 +1879,11 @@ fig.tight_layout(); plt.show()
 #
 # Two very different price tags appear in this notebook.
 #
-# * **Full density tensor.** $\rho$ has $4^N$ complex entries ($16\cdot4^N$ bytes in double precision: $16\,$MB at $N=10$,
+# * **Full density tensor.** $\rho$ has $4^N$ complex entries ($16\cdot4^N$ bytes in double precision: $17\,$MB at $N=10$,
 #   $4.3\,$GB at $N=14$), and the eigenvalues of its partial transpose cost $O(8^N)$: every extra qubit multiplies the time
 #   by $8$ and the memory by $4$. On one CPU thread the full negativity of a random $N$-qubit state takes about $0.7\,$s at
 #   $N=10$, $5\,$s at $N=11$ and $40\,$s at $N=12$ (compilation included), so $N=13$ costs minutes and $N=14$ needs
-#   $4\,$GiB for the tensor alone. This is the route used in Sections 8 and 10.3.
+#   $4.3\,$GB for the tensor alone. This is the route used in Sections 8 and 10.3.
 # * **Pure state, small blocks.** The state is $2^N$ numbers. The reduced state of $A\cup B$ costs one einsum,
 #   $O(2^N2^{\vert A\vert+\vert B\vert})$, and its partial transpose costs $O(8^{\vert A\vert+\vert B\vert})$ — independent of
 #   $N$. For $\vert A\vert+\vert B\vert=4$ that second term is the diagonalisation of a $16\times16$ matrix, which is free. The
@@ -1912,11 +1915,11 @@ for Nb in (6, 8, 10, 12):
         for _ in range(3):
             w = negativity(rho_b, list(A))[0]
         w.block_until_ready(); t_p = (time.time() - t0) / 3
-        print(f"{Nb:3d} {2**Nb:10d} {16*4**Nb/2**20:9.1f} MB {t_p:13.4f} {t_s:12.5f} {t_p/t_s:8.0f}x "
+        print(f"{Nb:3d} {2**Nb:10d} {16*4**Nb/1e6:9.1f} MB {t_p:13.4f} {t_s:12.5f} {t_p/t_s:8.0f}x "
               f"{abs(float(v) - float(w)):13.2e}")
         assert abs(float(v) - float(w)) < 1e-6 * max(1.0, float(v))
     else:
-        print(f"{Nb:3d} {2**Nb:10d} {16*4**Nb/2**20:9.1f} MB {'(skipped)':>13s} {t_s:12.5f} {'-':>9s} {'-':>13s}")
+        print(f"{Nb:3d} {2**Nb:10d} {16*4**Nb/1e6:9.1f} MB {'(skipped)':>13s} {t_s:12.5f} {'-':>9s} {'-':>13s}")
 
 print("\nreduced-block route: cost is set by |A|+|B|, not by N")
 N_big = 14
@@ -1931,7 +1934,7 @@ t0 = time.time()
 n_haar = block_negativity(psi_haar14, (5, 6), (7, 8))
 print(f"  Haar-random state, same blocks       : N = {n_haar[0]:.6f}, E_N = {n_haar[1]:.6f}  [{time.time()-t0:.3f} s]"
       f"   min spec(PT) = {pt_min_eigenvalue(rdm(psi_haar14, (5, 6, 7, 8)), 2, 2):+.4f}")
-print(f"  the full density tensor of {N_big} spins would need {16*4**N_big/2**30:.1f} GiB")
+print(f"  the full density tensor of {N_big} spins would need {16*4**N_big/1e9:.1f} GB")
 
 # %% [markdown]
 # The Schmidt route is faster at every size measured, and the last column shows that it computes the same number: the two
@@ -1941,10 +1944,10 @@ print(f"  the full density tensor of {N_big} spins would need {16*4**N_big/2**30
 # few hundred to about two thousand. Do not read a scaling exponent off three noisy ratios. What is solid is the cost
 # formula: the brute-force route touches $4^N$ numbers and diagonalises a $2^N\times2^N$ matrix at $O(8^N)$, the Schmidt
 # route touches $2^N$ numbers and takes one SVD. By $N=10$ that difference is worth at least two orders of magnitude. $N=12$
-# is skipped for the brute-force route only to keep this notebook fast: it needs $256\,$MB for the density tensor and about
+# is skipped for the brute-force route only to keep this notebook fast: it needs $268\,$MB for the density tensor and about
 # $40\,$s on one thread for the diagonalisation.
 #
-# The last lines are the block route at $N=14$, where the density tensor would need $4.0\,$GiB. Two adjacent two-spin blocks
+# The last lines are the block route at $N=14$, where the density tensor would need $4.3\,$GB. Two adjacent two-spin blocks
 # of a cluster state have $\mathcal N=1/2$ exactly, one full ebit, computed in a fraction of a second; the same two blocks of
 # a Haar-random state have $\mathcal N=0$, and robustly so — the smallest eigenvalue of that partial transpose is $+0.047$, not
 # a borderline zero. Monogamy again, in its most extreme form, since in a volume-law state every spin is entangled with
@@ -1999,7 +2002,7 @@ print(f"  the full density tensor of {N_big} spins would need {16*4**N_big/2**30
 #   and, for
 #   two small blocks of a pure state, a cost set by
 #   $\vert A\vert+\vert B\vert$ alone, which is why the $N=14$ block negativity took a fraction of a second while its density
-#   tensor would have needed $4\,$GiB.
+#   tensor would have needed $4.3\,$GB.
 #
 # ## 13. Exercises
 #
