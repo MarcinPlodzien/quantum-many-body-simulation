@@ -10,7 +10,7 @@
 # they probe the lowest-energy configuration of a system. Almost everything we want to know about the low-energy
 # properties of quantum matter is encoded in this one state and in the few eigenstates just above it:
 #
-# * Is the system magnetically **ordered** or **disordered**? (Look at correlations $\langle\sigma^z_i\sigma^z_j\rangle$ in $|\psi_0\rangle$.)
+# * Is the system magnetically **ordered** or **disordered**? (Look at correlations $\langle Z_iZ_j\rangle$ in $|\psi_0\rangle$.)
 # * Is there an **energy gap** $\Delta = E_1 - E_0$ to the first excited state? A finite gap means that small
 #   perturbations cannot excite the system (an insulator, a protected qubit); a gap that *closes* as a parameter is tuned
 #   signals a **quantum phase transition**.
@@ -252,7 +252,7 @@ for sites, mat in terms:
 #
 # ### 3.5 Checkpoint: the term list against a dense $H$
 #
-# *Never trust a simulator you have not tested.* We compare the matrix-free Hamiltonian with an **independent** construction: the textbook
+# We compare the matrix-free Hamiltonian with an **independent** construction: the textbook
 # Kronecker-product formula $X_i = 1\otimes\cdots\otimes X\otimes\cdots\otimes1$ from
 # [notebook 03 (Chapter 2)](../ch02_spin_systems_textbook_way/03_quantum_many_body_spin_systems.ipynb), written in plain NumPy. The engine's `dense_hamiltonian(terms, N)` turns
 # the matrix-free action into a matrix (column $j$ = $H|e_j\rangle$); if our bond bookkeeping, the einsum strings or the qubit ordering were wrong, the two
@@ -375,7 +375,7 @@ assert float(jnp.linalg.norm(comm_P)) < TOL * 100 and float(jnp.linalg.norm(comm
 #
 # ### 4.2 Aiming at the ground state: the spectral shift
 #
-# We want the *lowest* eigenvalue $E_0$ of $H$, not the one of largest modulus. Trick: iterate with
+# We want the *lowest* eigenvalue $E_0$ of $H$, not the one of largest modulus. We therefore iterate with
 #
 # $$ A=\sigma\mathbb 1-H,\qquad \sigma\ge E_{\max}. $$
 #
@@ -598,7 +598,7 @@ assert abs(theta[0] - E0_ex) < 1e3 * TOL
 # two exact eigenvalues of $H$ after two matrix–vector products. The Ritz vectors $V s$ are $(1,1,1)/\sqrt3$ for $\theta=4$ (from $s=(1,\sqrt2)/\sqrt3$) and $(2,-1,-1)/\sqrt6$ for $\theta=1$
 # (from $s=(\sqrt2,-1)/\sqrt3$), exact eigenvectors of $H$.
 #
-# **Why only two?** The eigenvalue $1$ is doubly degenerate, but Lanczos found it once. The exchange of the second and third components commutes with $H$, and the start vector is symmetric
+# **One copy of a degenerate eigenvalue.** The eigenvalue $1$ is doubly degenerate, but Lanczos found it once. The exchange of the second and third components commutes with $H$, and the start vector is symmetric
 # under it, so every Krylov vector is symmetric too: the antisymmetric eigenvector $(0,1,-1)/\sqrt2$ can never be reached. This is the mechanism of Section 10 in miniature: **a Krylov space
 # never leaves the symmetry sector of its start vector.** A Lanczos run therefore sees one copy of each distinct eigenvalue present in the start vector, and it cannot count degeneracies.
 # The cell below repeats the calculation with `lanczos_basic`.
@@ -641,12 +641,12 @@ print(f"max |V^dag H V - T| = {err_T:.1e}")
 assert err_orth < 1e4 * TOL and err_T < 1e4 * TOL
 
 # %% [markdown]
-# Both identities hold (to $\sim10^{-12}$ or better) for the first 25 vectors. Keep the phrase "*for the first 25 vectors*" in mind.
+# Both identities hold (to $\sim10^{-12}$ or better) for the first 25 vectors. Section 7 shows that the first identity fails in longer runs.
 
 # %% [markdown]
 # ## 6. Convergence of the Ritz values
 #
-# ### 6.1 What theory says (quoted)
+# ### 6.1 The Kaniel–Paige–Saad bound
 #
 # Because the lowest Ritz value is the minimum of the energy over *all* polynomials $p(H)|v\rangle$ of degree $<m$, one can bound its error by inserting a cleverly chosen polynomial.
 # The optimal choice is a Chebyshev polynomial, which is small on the whole interval $[E_1,E_{\max}]$ of unwanted eigenvalues while being large at $E_0$. The result is the
@@ -657,12 +657,12 @@ assert err_orth < 1e4 * TOL and err_T < 1e4 * TOL
 # where $\varphi$ is the angle between the start vector and the true ground state and $T_{k}$ is the Chebyshev polynomial of degree $k$. For small $\gamma$ one has
 # $T_k(1+2\gamma)\approx\tfrac12e^{2k\sqrt\gamma}$, so
 #
-# $$ \theta_0^{(m)}-E_0\;\lesssim\; e^{-4m\sqrt{\gamma}}\qquad\text{(Lanczos)}\qquad\text{vs.}\qquad e^{-2m\,\Delta/(\sigma-E_0)}\approx e^{-2m\gamma}\qquad\text{(power method)}. $$
+# $$ \theta_0^{(m)}-E_0\;\lesssim\; e^{-4m\sqrt{\gamma}}\qquad\text{(Lanczos)}\qquad\text{vs.}\qquad e^{-2m\,\Delta/(\sigma-E_0)}\approx e^{-2m\gamma}\qquad\text{(power method, }\sigma=E_{\max},\ \Delta\ll W). $$
 #
 # The relative gap enters through its **square root**: if the power method needs $10^4$ iterations, Lanczos needs of the order of $10^2$. The same argument applies to the *other end* of the
 # spectrum (replace $H\to-H$): the largest Ritz value converges to $E_{\max}$ equally fast. Interior eigenvalues converge much later, and the more slowly the denser the spectrum around them.
 #
-# ### 6.2 What the numbers say
+# ### 6.2 Measured convergence of the Ritz values
 #
 # We run Lanczos once with $m=120$ and diagonalise every leading block $T_k$. The next figure shows (left) the classic "Ritz fan" — all Ritz values as a function of the Krylov dimension — and (right)
 # the errors of the lowest, second-lowest and highest Ritz values, together with the power method and the slope predicted by Eq. (6). To isolate the *mathematics* of Lanczos from floating-point effects (next section)
@@ -705,6 +705,7 @@ plt.tight_layout(); plt.show()
 m_tol = int(np.argmax(err0 < 1e-10)) + 1
 print(f"gamma = (E1-E0)/(Emax-E1) = {gamma:.5f},  sqrt(gamma) = {np.sqrt(gamma):.4f}")
 print(f"Lanczos reaches |theta_0 - E0| < 1e-10 at m = {m_tol};  |theta_1 - E1| at m={m_conv}: {abs(err1[-1]):.1e};  E_max error at m={m_conv}: {errmax[-1]:.1e}")
+print(f"decay rate of theta_0 - E0 per step: m = 1..20: {np.log(err0[0] / err0[19]) / 19:.2f},  m = 20..{m_tol}: {np.log(err0[19] / err0[m_tol - 1]) / (m_tol - 20):.2f}   (Eq. (6): 4 sqrt(gamma) = {4 * np.sqrt(gamma):.2f})")
 k_pm = int(np.argmax(np.asarray(E_power) - E0_ex < 1e-10)) if np.any(np.asarray(E_power) - E0_ex < 1e-10) else None
 print(f"power method reaches 1e-10 after {k_pm} iterations" if k_pm else
       f"power method: error still {float(E_power[-1]) - E0_ex:.1e} after {n_power} iterations")
@@ -714,8 +715,10 @@ print(f"power method reaches 1e-10 after {k_pm} iterations" if k_pm else
 #
 # * *Left:* at small $m$ the Ritz values are spread over the whole band; as $m$ grows, the outermost ones lock onto the exact extremal eigenvalues (horizontal lines) one after another, from
 #   the edges inwards. The interior of the fan keeps moving — $m=120$ numbers cannot represent a spectrum of 1024 levels, and they do not need to.
-# * *Right:* the error of $\theta_0$ falls exponentially with a slope close to the Chebyshev prediction $e^{-4m\sqrt\gamma}$ (dashed; only the slope is meaningful, the prefactor was chosen for visibility) until it hits the
-#   round-off floor $\sim10^{-14}$. The top of the spectrum converges similarly. The second-lowest Ritz value $\theta_1$ lags behind: it must first "wait" for $\theta_0$ to converge and is governed by the
+# * *Right:* the error of $\theta_0$ falls exponentially until it hits the round-off floor $\sim10^{-14}$. The dashed line is the Chebyshev rate $e^{-4m\sqrt\gamma}$ (only its slope is meaningful, the prefactor
+#   was chosen for visibility). The printed rates show that Eq. (6) bounds the curve without fixing its shape: during the first twenty steps, while the Ritz values still sweep the band, the error decays
+#   more slowly than $4\sqrt\gamma$ per step (the bound stays above the curve because of its large prefactor $\tan^2\varphi$), and afterwards about twice as fast. This late acceleration is the *superlinear convergence*
+#   of Krylov methods: once Ritz values have locked onto $E_1,E_2,\dots$, the polynomial no longer has to suppress those levels, and the effective relative gap grows. The top of the spectrum converges similarly. The second-lowest Ritz value $\theta_1$ lags behind: it must first "wait" for $\theta_0$ to converge and is governed by the
 #   smaller relative gap $E_2-E_1$. The power method (black) decays exponentially as well, but with a far smaller rate, which on this *logarithmic* horizontal
 #   axis bends its curve and pushes it to the right: the printed numbers say that it needs about 1200 matrix–vector products for the accuracy that Lanczos
 #   reaches with about 40 — the order-of-magnitude difference promised by $\sqrt\gamma$ instead of $\gamma$ in the exponent.
@@ -724,9 +727,9 @@ print(f"power method reaches 1e-10 after {k_pm} iterations" if k_pm else
 # > A common stopping rule is $|\theta_0^{(k)}-\theta_0^{(k-1)}|<\varepsilon$; a better one (Section 8) uses the residual.
 
 # %% [markdown]
-# ## 7. What goes wrong in floating point: loss of orthogonality
+# ## 7. Loss of orthogonality in floating point
 #
-# ### 7.1 The experiment
+# ### 7.1 The Gram matrix of plain Lanczos
 #
 # In exact arithmetic the three-term recurrence produces vectors that are orthogonal to *all* previous ones. In floating-point arithmetic each step commits a round-off error of relative size
 # $\varepsilon\approx10^{-16}$. One might hope that these errors stay small. They do not. We repeat the run of Section 5 with `lanczos_basic` for $m=150$ and look at the Gram matrix
@@ -779,7 +782,7 @@ ks_long = np.arange(1, m_long + 1)
 axes[1].semilogy(ks_long, np.maximum(orth_plain, 1e-17), label="plain (3-term recurrence)")
 axes[1].semilogy(ks_long, np.maximum(orth_reo, 1e-17), label="with full reorthogonalisation")
 axes[1].semilogy(ks_long, np.maximum([r[0] - E0_ex for r in ritz_plain], 1e-17), ":", color=CB[6], label=r"plain: $\theta_0-E_0$")
-axes[1].semilogy(ks_long[:-1], np.maximum(res_plain, 1e-17), "--", color=CB[4], label=r"plain: residual $\rho_m=\beta_m|s_m^{(0)}|$")
+axes[1].semilogy(ks_long[:-1], np.maximum(res_plain, 1e-17), "--", color=CB[2], label=r"plain: residual $\rho_m=\beta_m|s_m^{(0)}|$")
 axes[1].set_xlabel("Lanczos step $m$"); axes[1].set_ylabel(r"$\max_{i\neq j\leq m}|\langle v_i|v_j\rangle|$")
 axes[1].set_title("orthogonality is lost when $\\theta_0$ converges"); axes[1].legend(fontsize=8)
 
@@ -804,16 +807,16 @@ for k in (50, 60, 70, 80, 100):
 #
 # * *Left/middle:* for the first few dozen steps the vectors are orthogonal to $\sim10^{-14}$. Then the overlaps grow **exponentially** and reach $O(1)$: the late Lanczos vectors are not even
 #   approximately orthogonal to the early ones. The dotted line shows *when* this happens: orthogonality collapses at the moment the first Ritz value converges. This is Paige's classic result
-#   (1971): round-off errors are amplified precisely in the direction of converged Ritz vectors. It is not a bug in our code; it is a property of the recurrence in finite precision.
+#   (1971): round-off errors are amplified precisely in the direction of converged Ritz vectors. Every correct implementation of the recurrence in finite precision shows the same effect.
 #   Paige's analysis is quantitative, and the printed table checks it. The component of the new vector along a Ritz vector whose residual is $\rho_m$ (Eq. (8) below) is of size
 #
 #   $$ \big\vert\langle\tilde\psi_0\vert v_{m+1}\rangle\big\vert\;\approx\;\frac{\varepsilon\,\Vert H\Vert}{\rho_m}, $$
 #
 #   so the *product* of the orthogonality defect and the residual should stay at the round-off level $\varepsilon\Vert H\Vert$ while each factor moves by ten orders of magnitude. The printed table shows exactly that:
-#   from $m=50$ to $m=80$ the overlap grows by about nine orders and the residual falls by seven to nine, while their product stays between $10^{-17}$ and $3\times10^{-16}$, one to two orders of
-#   magnitude below $\varepsilon\Vert H\Vert$ (Paige's relation carries an $O(1)$ constant). In the figure this is the orange curve falling as the blue one rises, the two crossing near $10^{-8}$. The last printed line, $m=100$, breaks the pattern because by then the
+#   from $m=50$ to $m=80$ the overlap grows by more than eight orders of magnitude and the residual falls by more than eight, while their product stays between $1.3\times10^{-16}$ and $2.7\times10^{-16}$,
+#   about one order of magnitude below $\varepsilon\Vert H\Vert$ (Paige's relation carries an $O(1)$ constant). In the figure this is the dashed green curve falling as the blue one rises, the two crossing near $10^{-8}$. The last printed line, $m=100$, breaks the pattern because by then the
 #   overlaps have saturated at $O(1)$ and $\beta_m|s_m^{(0)}|$ has stopped being a residual at all: the identity that produces it (Eq. (7) below) assumes an orthonormal basis, which no longer exists. Loss of orthogonality
-#   is therefore not a slow accumulation of noise but the mirror image of convergence: the better the ground state is known, the faster the basis rots.
+#   is therefore the mirror image of convergence: the better the ground state is known, the faster the basis rots.
 # * *Right:* once orthogonality is lost, the algorithm "forgets" that it has already found the ground state and **finds it again**. The tridiagonal matrix acquires several eigenvalues
 #   equal to $E_0$ to many digits — so-called **ghost (spurious) eigenvalues** — although the true ground state is non-degenerate.
 #
@@ -821,7 +824,7 @@ for k in (50, 60, 70, 80, 100):
 # multiplicities are wrong (a disaster if you want to count degenerate states or compute the gap as $\theta_1-\theta_0$: a ghost would give $\Delta=0$), convergence of the *other* eigenvalues is delayed, and the Krylov-space
 # formulas for time evolution used later in this chapter ([Krylov propagation](14_krylov_and_integrator_comparison.ipynb)) assume $V^\dagger V=\mathbb 1$.
 #
-# ### 7.2 The cure: full reorthogonalisation
+# ### 7.2 Full reorthogonalisation
 #
 # The simplest fix is to stop trusting the three-term recurrence and explicitly project out **all** previous vectors after each step (one extra line in the loop):
 #
@@ -835,7 +838,7 @@ for k in (50, 60, 70, 80, 100):
 # | work per step | 1 matvec + $O(2^N)$ | 1 matvec + $O(j\,2^N)$ → total $O(m^2 2^N)$ |
 # | memory | 3 vectors (eigenvalues only) | all $m$ vectors: $m\,2^N$ numbers |
 #
-# For spin chains one matvec costs $\sim 6N$ vector-sized operations, so for $m\lesssim100$ the overhead is comparable to the matvecs themselves — a fair price for robustness. Cheaper strategies exist (*selective* and *partial*
+# For spin chains one matvec costs $\sim 6N$ vector-sized operations, so the overhead is comparable to the matvecs themselves as long as $m$ is of the order of $6N$ — a fair price for robustness. Cheaper strategies exist (*selective* and *partial*
 # reorthogonalisation, which project only when and where needed; see Parlett's book) and **restarting** (Section 8.3) keeps $m$ small.
 #
 # > **Common pitfall.** "My Lanczos finds a doubly degenerate ground state" — before announcing spontaneous symmetry breaking, check the orthogonality of your Krylov basis.
@@ -851,7 +854,7 @@ for k in (50, 60, 70, 80, 100):
 #
 # This is why we store $V$: memory $m\,2^N$ complex numbers (for $N=20$, $m=80$: 1.3 GB in double precision — the real limit of the method on a laptop).
 #
-# ### 8.2 How good is it? The residual
+# ### 8.2 The residual norm as an error estimate
 #
 # On a large system there is no exact result to compare with. A **reference-free** quality measure is the residual norm
 #
@@ -880,10 +883,10 @@ for k in (50, 60, 70, 80, 100):
 #
 # $$ |\tilde E_0-E_0|\;\le\;\frac{\rho^2}{\Delta},\qquad \sin\angle(\tilde\psi_0,\psi_0)\;\le\;\frac{\rho}{\Delta}. $$
 #
-# > **Numerical practice.** Stop on the residual, not on the change of the energy. The rule of thumb that follows from the two bounds: iterate until $\rho\ll\Delta$ if you want the *state* (a wave function accurate to $10^{-6}$ needs
-# > $\rho\approx10^{-6}\Delta$), and until $\rho\lesssim\sqrt{\varepsilon\Delta}$ if you only want the *energy* to accuracy $\varepsilon$. Energies are cheap, states are expensive — and the ratio of the two costs is $\Delta$ itself,
-# > which is why a nearly degenerate problem is hard even when its ground-state energy comes out to twelve digits. $\Delta$ is not known a priori, but the Ritz values supply an estimate: $\theta_1^{(m)}-\theta_0^{(m)}$ is a lower bound
-# > on the true gap that improves as the run proceeds.
+# > **Numerical practice.** Stop on the residual rather than on the change of the energy. The rule of thumb that follows from the two bounds: iterate until $\rho\ll\Delta$ if you want the *state* (a wave function accurate to $10^{-6}$ needs
+# > $\rho\approx10^{-6}\Delta$), and until $\rho\lesssim\sqrt{\varepsilon\Delta}$ if you only want the *energy* to accuracy $\varepsilon$. A small $\Delta$ therefore makes the
+# > *state* hard to obtain even when the ground-state energy comes out to twelve digits. $\Delta$ is not known a priori. The Ritz values supply an estimate, but one that errs on the unsafe side: since $\theta_1^{(m)}\ge E_1$
+# > (a Ritz value never lies below the eigenvalue of the same rank), $\theta_1^{(m)}-\theta_0^{(m)}$ *overestimates* the gap once $\theta_0$ has converged and approaches it from above, so the bounds computed with it are optimistic early in the run.
 #
 # ### 8.3 Restarts
 #
@@ -918,7 +921,7 @@ for name, terms_v in validation_models.items():
     assert abs(E_lan - w_dense[0]) < 1e3 * TOL and abs(1 - fid) < 1e3 * TOL
 
 # %% [markdown]
-# Energies agree with dense diagonalisation to $\sim10^{-13}$, the states have fidelity one up to round-off, and the residuals — which we could have computed *without* knowing the exact answer — are tiny.
+# Energies agree with dense diagonalisation to $\sim10^{-14}$, the states have fidelity one up to round-off, and the residuals — which we could have computed *without* knowing the exact answer — are tiny.
 # All four Hamiltonians went through the same ten lines of code; only the list of terms changed.
 #
 # > **Common pitfall.** We deliberately did *not* include the ordered phase of the Ising chain ($h<J$) in this table. There the two lowest states are separated by a gap that is exponentially small in $N$,
@@ -1109,7 +1112,7 @@ for h_val in (0.5, 1.0, 1.5):
 #
 # The small splitting at $h=0.5J$ answers a physical question: why a *finite* magnet does not order. The two sector ground states are, to a good approximation, the even and odd
 # combinations $(|\!\uparrow\cdots\uparrow\rangle\pm|\!\downarrow\cdots\downarrow\rangle)/\sqrt2$ of the two ferromagnets. The field $-hX_i$ flips one spin at a time, so connecting all up
-# to all down takes $N$ flips, each through states with domain walls that cost an energy of order $J$: the tunnelling amplitude, and with it the splitting, is of order $N$ in $h/J$,
+# to all down takes $N$ flips, each through states with domain walls that cost an energy of order $J$: the tunnelling amplitude, and with it the splitting, is of $N$-th order in $h/J$,
 # $E_1-E_0\propto J(h/J)^N$.
 #
 # **The prefactor from the free-fermion solution.** In the exact solution of Section 11.2 the gap is twice the smallest singular value $s_N$ of the bidiagonal matrix $B$ with $h$ on the diagonal and
@@ -1143,7 +1146,7 @@ for N in (8, 10, 12, 14):
 # %% [markdown]
 # ## 11. Physics I: the quantum phase transition of the Ising chain
 #
-# ### 11.1 What to expect
+# ### 11.1 The phase transition and its finite-size fingerprints
 #
 # For $h\ll J$ the ground state is ferromagnetic; for $h\gg J$ all spins point along $x$. In the thermodynamic limit the two regimes are separated by a **quantum critical point at $h=J$** (Pfeuty 1970), where the gap closes as
 # $\Delta=2|h-J|$ and correlations decay as power laws (the general theory of quantum phase transitions: Sachdev 2011). On a finite chain nothing is singular, but the transition leaves clear fingerprints, which we now compute for $N=8,12,16$:
@@ -1221,7 +1224,7 @@ for N in sizes:
 # **Checkpoint passed at every size**, including $N=16$ (Hilbert-space dimension 65 536, where the dense matrix would need 69 GB): the ground-state energies agree with the free-fermion solution to round-off and the gaps to
 # a few parts in $10^8$. The residuals tell the same story without using the exact solution, and they show *where* the Krylov space of fixed dimension $m=70$ is working hardest: the odd-sector residual at large $h$ is several orders
 # of magnitude above the even one, because the lowest $P=-1$ states there form a band of closely spaced one-particle levels — a small relative gap $\gamma$ in Eq. (6). Even so the *energy* error stays tiny, because it is quadratic
-# in the residual ($\rho\approx6\times10^{-4}$ and a gap $\Delta\approx3J$ to the next odd state give $\rho^2/\Delta\sim10^{-7}$, and the measured gap error is $3\times10^{-8}$). Raising $m$ to 80 lowers the worst gap error from
+# in the residual: at $h=2J$, $\rho\approx6\times10^{-4}$ and the distance $\approx0.17J$ to the next odd level (free fermions) give the bound $\rho^2/\Delta\approx2\times10^{-6}$, and the measured gap error, $3\times10^{-8}$, lies well inside it. Raising $m$ to 80 lowers the worst gap error from
 # $3\times10^{-8}$ to $1\times10^{-11}$ for about a third more time (measured on this machine); try it.
 
 # %%
@@ -1260,7 +1263,7 @@ for N in sizes:
 # **Interpretation.**
 #
 # * **Gap (top left).** Symbols (Lanczos) sit on the exact free-fermion curves. The dashed line is the thermodynamic-limit *excitation* gap $2|h-J|$, which is the energy of one quasiparticle on either side of the transition
-#   (a flipped spin for $h>J$, a domain wall for $h<J$); it is the curve the symbols approach only for $h>J$, because for $h<J$ the quantity we plot is the splitting *inside* the ground-state doublet, a different level. For $h>J$ the gap
+#   (a flipped spin for $h>J$, a domain wall for $h<J$); it is the curve the symbols approach only for $h>J$, because for $h<J$ the quantity we plot is the splitting *inside* the ground-state doublet, a different level. For $h<J$ the gap
 #   between the two parity sectors collapses **exponentially with $N$** (compare the printed values at $h=0.5J$): the two sector ground states are the symmetric and antisymmetric combinations
 #   $(|\!\uparrow\uparrow\cdots\rangle\pm|\!\downarrow\downarrow\cdots\rangle)/\sqrt2$ of the two ferromagnets, and connecting them requires flipping all $N$ spins — an $N$-th order process with amplitude $\sim(h/J)^N$. In the thermodynamic limit they
 #   become degenerate: this is how **spontaneous symmetry breaking** looks on a finite system. At $h=J$ the gap is neither finite nor exponentially small; we quantify it below.
@@ -1268,13 +1271,13 @@ for N in sizes:
 #   the value $1/N$ of uncorrelated spins (only the $i=j$ terms survive); at $h=2J$ it is still about $1.7$ times that, because neighbouring spins remain correlated. The drop sharpens with $N$, but the field at which $m_z^2$
 #   has halved drifts *downwards* (printed: $0.937J$, $0.914J$, $0.907J$ for $N=8,12,16$) rather than towards $h=J$. The reason is that $m_z^2$ is not scale invariant at the critical point: it decays there as
 #   $N^{-2\beta/\nu}=N^{-1/4}$ (two-dimensional Ising exponents $\beta=1/8$, $\nu=1$), and the printed products $N^{1/4}m_z^2(h{=}J)$ are indeed nearly constant. A quantity whose curves *cross* at the critical point — a
-#   dimensionless ratio such as $N^{1/4}m_z^2$ itself, or a Binder cumulant — is what finite-size scaling uses to locate $h_c$; a raw order parameter is not.
-# * **Entanglement (bottom right).** For $h\to0$ the entropy tends to **exactly 1 bit**, not to zero: the symmetric ground state is the cat (GHZ) state, and cutting a GHZ state anywhere yields one bit
+#   dimensionless ratio such as $N^{1/4}m_z^2$ itself, or a Binder cumulant — is what finite-size scaling uses to locate $h_c$.
+# * **Entanglement (bottom right).** For $h\to0$ the entropy tends to **exactly 1 bit**: the symmetric ground state is the cat (GHZ) state, and cutting a GHZ state anywhere yields one bit
 #   ([notebook 06 (Chapter 3)](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb)). For $h\gg J$ the state is a product state and $S\to0$. In between, the curves for different $N$ coincide away from $h=J$ (the entropy obeys an *area law*:
 #   it does not grow with the size of the block) and fan out around the critical point, where $S$ **grows with $N$**.
 #
-# > **Physics insight.** An experiment (or a simulation with a tiny symmetry-breaking field $h_zZ_i$) would find one of the two ferromagnets, a product state with $S=0$, not the cat state. The cat state is the correct ground
-# > state of the symmetric finite-size Hamiltonian but is extremely fragile. Numerics in a symmetry sector give you the cat — know what you are looking at.
+# > **Physics insight.** An experiment (or a simulation with a tiny symmetry-breaking field $h_zZ_i$) would find one of the two ferromagnets, a product state with $S=0$. The cat state is the correct ground
+# > state of the symmetric finite-size Hamiltonian but is extremely fragile, and numerics in a symmetry sector always return it.
 #
 # ### 11.3 Finite-size scaling at the critical point
 #
@@ -1454,7 +1457,7 @@ print(f"N=16, r=8: staggered correlation = {xxz[16][0.0]['czz'][-1]:.4f} (Delta=
 #
 # by dense diagonalisation in the two sectors of the spin flip $P=\prod_iX_i$, and it ended with open questions: with $N\le12$ it could not decide whether the gap
 # inside the ground-state sector stays finite on the Néel side $(\Delta,h_x)=(2,0)$ and in the field $(0,1)$, and the field-induced antiferromagnetic order along $y$ was only suggested
-# by one chain length. Lanczos in a parity sector reaches $N=18$ at the same cost per point as a dense run at $N=12$. Three tools of this notebook combine:
+# by one chain length. Lanczos in a parity sector reaches $N=18$ (sector dimension 131 072). Three tools of this notebook combine:
 #
 # * the **start vector is projected** onto the sector $P=\pm1$, and the projector is applied again after every $H|v\rangle$ (Section 10.2), so that round-off cannot leak into the other sector;
 # * the **gap within the sector** is the difference of the two lowest Ritz values $\theta_1-\theta_0$ of *one* run. This is legitimate only with full reorthogonalisation (no ghosts, Section 7)
@@ -1493,7 +1496,7 @@ def make_xxz_field_solver(N, m):
 # PARAMETERS
 # ------------------------------------------------------------------------------
 POINTS_XF = {"critical (0, 0)": (0.0, 0.0), "field (0, 1)": (0.0, 1.0), "ferro (-2, 0)": (-2.0, 0.0),
-             "Neel side (2, 0)": (2.0, 0.0), "y order? (0, 2)": (0.0, 2.0)}
+             "Neel side (2, 0)": (2.0, 0.0), "field (0, 2)": (0.0, 2.0)}
 N_XF = (6, 8, 10, 12, 14, 16, 18)        # N = 18: sectors of dimension 131 072, Krylov basis m * 2^N * 16 B = 0.5 GB
 m_xf = 120
 
@@ -1539,6 +1542,7 @@ for label in POINTS_XF:
     print(f"  {label:17s} gap   " + "  ".join(f"{xf[(label, N)]['gap']:7.4f}" for N in N_XF))
     print(f"  {'':17s} split " + "  ".join(f"{xf[(label, N)]['split']:7.1e}" for N in N_XF))
     print(f"  {'':17s} C^yy  " + "  ".join(f"{xf[(label, N)]['cyy']:+7.4f}" for N in N_XF))
+    print(f"  {'':17s} rho_1 " + "  ".join(f"{xf[(label, N)]['res'][1]:7.1e}" for N in N_XF))   # residual of theta_1
 print("  distance r        " + "  ".join(f"{xf[('field (0, 1)', N)]['r']:7d}" for N in N_XF))
 
 # %%
@@ -1554,24 +1558,24 @@ for c, label in zip(CB, POINTS_XF):
 axes[0].loglog(Ns, 4 * np.sin(np.pi / (2 * (Ns + 1))), "k:", lw=1, label=r"$4\sin\frac{\pi}{2(N+1)}$")
 axes[0].set_xticks(Ns); axes[0].set_xticklabels(Ns); axes[0].minorticks_off()
 axes[0].set_xlabel("$N$"); axes[0].set_ylabel(r"gap in the ground-state sector $\theta_1-\theta_0$"); axes[0].legend(fontsize=7)
-axes[1].set_xlabel("$N$"); axes[1].set_ylabel("splitting between the two parity sectors"); axes[1].set_title("exponentially small = broken $P$")
+axes[1].set_xlabel("$N$"); axes[1].set_ylabel("splitting between the two parity sectors"); axes[1].set_title("splitting of the lowest levels of the two sectors")
 axes[2].set_xlabel("$N$"); axes[2].set_ylabel(r"$C^{yy}_{\rm st}=(-1)^r\langle Y_iY_j\rangle$, $r\approx N/2$"); axes[2].set_title("staggered $y$ correlation at the largest distance")
 plt.tight_layout(); plt.show()
 
 # %% [markdown]
-# **What the larger chains tell** (numbers printed above).
+# **Results for the larger chains** (numbers printed above).
 #
 # * **Checkpoints.** At the XX point the gap in the sector equals $4\sin\frac{\pi}{2(N+1)}$ for every $N$ up to $18$, and at $N=10$ all five gaps agree with dense diagonalisation inside the sectors.
-#   The residuals of both Ritz pairs stay below $10^{-8}$ except for the second pair at $N=18$ in two places. At the ferromagnetic point the second Ritz value belongs to a pair of magnons
+#   The residuals of both Ritz pairs stay at the level of $10^{-8}$ or below except for the second pair (row $\rho_1$) at the ferromagnetic point and at $(0,2)$ for $N=16$ and $18$. At the ferromagnetic point the second Ritz value belongs to a pair of magnons
 #   bound to the two ends of the chain (notebook 06, Eq. (16)): the two levels are split only by $\sim3\times10^{-5}$ at $N=18$, the relative gap $\gamma$ of Eq. (6) is tiny, and the residual of
-#   $\theta_1$ stops at $\sim6\times10^{-5}$. The gap value $\approx2.99998$ is still accurate to about that level — the rule "energies to $\rho^2/\Delta$" of Section 8.2 with a $\Delta$ that is itself $10^{-5}$.
+#   $\theta_1$ stops at $\sim6\times10^{-5}$. The gap value $\approx2.99998$ is still accurate to about that level — the rule "energies to $\rho^2/\Delta$" of Section 8.2 with a $\Delta$ that is itself $3\times10^{-5}$.
 #   At $(0,2)$ the residual of $\theta_1$ is $1.3\times10^{-4}$, so that gap is known to about four digits — enough for the conclusions below.
 # * **The field at $\Delta=0$, $h_x=1$.** The gap in the sector decreases from $1.53$ ($N=6$) to $0.68$ ($N=18$), but *more slowly than $1/N$*: $N\Delta_N$ keeps growing, and the ratio to the
-#   gapless XX chain rises from $1.7$ to $2.1$. At the same time the splitting between the two parity sectors, of order one up to $N=12$, collapses to $0.07$ at $N=18$, and the staggered
-#   $y$ correlation stays near $0.24$ out to distance $9$. Both are the fingerprints of the prediction of Dmitriev, Krivnov and Ovchinnikov (2002): the field opens a gap and the ground state
+#   gapless XX chain rises from $1.7$ to $2.1$. At the same time the splitting between the two parity sectors, between $0.4$ and $0.5$ up to $N=12$, collapses to $0.07$ at $N=18$, and the staggered
+#   $y$ correlation, after fluctuating at small $N$, is $0.24$ at both distance $7$ and distance $9$. Both are the fingerprints of the prediction of Dmitriev, Krivnov and Ovchinnikov (2002): the field opens a gap and the ground state
 #   orders antiferromagnetically along $y$, which breaks $P$ (the operator $P=\prod_iX_i$ reverses every $Y_i$), so the two sector ground states become a near-degenerate doublet.
 #   Eighteen spins make this strongly suggestive; a proof needs the extrapolation of the splitting and of $C^{yy}_{\rm st}$ to $N\to\infty$.
-# * **Deep in the field-induced phase, $(0,2)$.** $C^{yy}_{\rm st}$ at the largest distance stays between $0.45$ and $0.58$ for all sizes — it does not decay with distance — and the parity splitting
+# * **Deep in the field-induced phase, $(0,2)$.** $C^{yy}_{\rm st}$ at the largest distance stays between $0.36$ and $0.58$ for all sizes, with its largest value at the largest distance, and the parity splitting
 #   is small at every $N$ (it jumps up and down because levels of the two sectors cross as $N$ changes). This is the clearest case of long-range $y$ order in the scan.
 # * **The Néel side, $(2,0)$.** The gap still decreases at $N=18$ ($3.19\to1.50$), and the parity splitting shrinks only slowly ($1.50\to0.30$). The Néel gap of the XXZ chain opens
 #   exponentially slowly above $\Delta=1$ (Section 12.2), so the correlation length at $\Delta=2$ is still comparable to our chains: $N\le18$ cannot decide this point either, and it is the natural
@@ -1656,8 +1660,8 @@ for alpha in (3.0, 1.5):
 # $4$ — mean field would already move $h_c$ down by a quarter — and the block is only four sites wide, so the order parameter has not yet saturated (the same finite-size drift that pulled the chain's crossover from $J$ to $0.91J$).
 #
 # The long-range chains behave the same way, and the printed table separates the two contributions. Going from nearest-neighbour to $\alpha=3$ multiplies $\bar w$ by $1.17$ and the crossover field by $1.32$; going to
-# $\alpha=1.5$ multiplies them by $1.72$ and $2.22$. Most of the extra robustness of the long-range ferromagnet is therefore *not* a long-range effect at all, it is simply a larger total coupling per spin; what is left over
-# (factors $1.13$ and $1.29$) is the real one. A fair comparison at fixed energy scale uses the Kac rescaling $J\to J/\bar w$, which is also what keeps the energy extensive for $\alpha<1$. The genuinely long-range physics —
+# $\alpha=1.5$ multiplies them by $1.72$ and $2.22$. Most of the extra robustness of the long-range ferromagnet therefore comes from the larger total coupling per spin; what is left over
+# (factors $1.13$ and $1.29$) is the genuine long-range effect. A fair comparison at fixed energy scale uses the Kac rescaling $J\to J/\bar w$, which is also what keeps the energy extensive for $\alpha<1$. The genuinely long-range physics —
 # a changed universality class, correlations that never decay — needs larger systems than a state vector allows. What the experiment does show is that the *cost* is unchanged: the $\alpha$ runs touch $66$ bonds instead
 # of $11$ and are one line of code apart, whereas analytical solutions (and also matrix-product-state methods) are tied to one dimension and short-range couplings.
 
@@ -1697,7 +1701,7 @@ ax.set_xlabel("$N$"); ax.set_ylabel(r"time per $H|\psi\rangle$ [ms]"); ax.set_ti
 plt.tight_layout(); plt.show()
 
 # %% [markdown]
-# For small $N$ the time is dominated by constant overheads (dispatching a few dozen tiny kernels); from $N\approx14$ on it follows the $N2^N$ law, i.e. it roughly doubles per added spin. The table makes the central point of the matrix-free
+# For small $N$ the time is dominated by constant overheads (dispatching a few dozen tiny kernels); from $N\approx14$ on it follows the $N2^N$ law, about a factor $4.5$ per two added spins, within the scatter of a loaded machine. The table makes the central point of the matrix-free
 # approach: at $N=20$ the dense Hamiltonian would occupy 17.6 **tera**bytes, the Krylov basis 1.3 GB, a single state 17 MB.
 #
 # ### How far the method reaches
@@ -1724,8 +1728,8 @@ if RUN_LARGE:
 
 # %% [markdown]
 # A million-dimensional eigenproblem solved to many digits on a single CPU in the wall time printed above, using nothing but einsum contractions with $2\times2$ and $4\times4$ matrices. That number is machine dependent
-# (and, on a busy laptop, load dependent), so read it as an order of magnitude: it is $2m=100$ matrix–vector products on a vector of 17 MB, plus the reorthogonalisation against a Krylov basis of 0.84 GB — memory
-# traffic, not floating-point work, is what you are paying for. Going further is a matter of
+# (and, on a busy laptop, load dependent), so read it as an order of magnitude: it is $2m=100$ matrix–vector products on a vector of 17 MB, plus the reorthogonalisation against a Krylov basis of 0.84 GB, and the cost is set by memory
+# traffic rather than by floating-point work. Going further is a matter of
 # memory ($N=24$: 270 MB per vector) and patience; with a GPU, single precision for the basis, restarts with small $m$ and symmetry-reduced bases, state-of-the-art exact-diagonalisation codes reach $N\approx40$–$50$ spins on supercomputers (Wietek & Läuchli 2018 report spin-1/2 models of up to 50 sites). Beyond that, one
 # needs a compressed representation of the state itself — the subject of [the MPS notebook](../ch07_tensor_networks/18_mps_tebd.ipynb).
 
@@ -1736,7 +1740,7 @@ if RUN_LARGE:
 #   $O(N_t2^N)$ time and $O(2^N)$ memory. Always validate a new builder against an independent dense construction on small $N$ and test the expected symmetries on a random vector.
 # * The **power method** converges like $(1-\Delta/W)^k$: simple, robust, and hopeless for small gaps.
 # * **Lanczos** uses the same matrix–vector products but keeps all of them: it minimises the energy over the Krylov space. Hermiticity makes the projected matrix **tridiagonal**, so the orthonormal basis is generated by a three-term
-#   recurrence. Extremal Ritz values converge first, at a rate $\sim e^{-4m\sqrt{\gamma}}$ governed by the *square root* of the relative gap.
+#   recurrence. Extremal Ritz values converge first; Eq. (6) bounds their error by $\propto e^{-4m\sqrt{\gamma}}$, a rate governed by the *square root* of the relative gap.
 # * In floating point the Lanczos vectors **lose orthogonality as soon as a Ritz value converges**, producing ghost copies of converged eigenvalues. Full reorthogonalisation (or restarts) cures it at the price of storing the basis.
 # * Judge convergence with the **residual** $\rho=\|H\psi-E\psi\|$ (the energy variance): it needs no reference solution and no extra matvec — $\rho=\beta_m|s^{(0)}_m|$, the last subdiagonal element times the last component of the
 #   small eigenvector. Energies are accurate to $\rho^2/\Delta$, states only to $\rho/\Delta$.
@@ -1761,7 +1765,7 @@ if RUN_LARGE:
 # 5. **(★★) Physics: the XXZ ferromagnet.** For $\Delta<-1$ the ground state of the XXZ chain is the fully polarised state with energy $J\Delta N_b$. Verify this with Lanczos *without* the $M=0$ projection. What does Lanczos return if you
 #    *do* project on $M=0$, and what is that state physically? At $\Delta=-1$, check that the $M=0$ ground state is the Dicke state with $N/2$ excitations (up to a basis rotation on every second site — find it).
 # 6. **(★★) Physics: gap of the Heisenberg chain.** The first excited state of the Heisenberg ring is a triplet; its $S_z=+1$ member — one spin flipped from down to up, i.e. $M=\sum_iZ_i=2$ in Pauli units — is the ground state of the $M=2$ sector. Compute the gap
-#    $E_0(M=2)-E_0(M=0)$ for $N=8,\dots,16$ and show that $N\cdot\Delta$ tends to a constant (the chain is gapless).
+#    $E_0(M=2)-E_0(M=0)$ for $N=8,\dots,16$ and show that $N\cdot\Delta$ tends to a constant (the chain is gapless; logarithmic corrections at the Heisenberg point make the approach slow).
 # 7. **(★★★) Excited states by deflation.** Without using symmetries, obtain the first excited state by running Lanczos on $H'=H+\mu|\psi_0\rangle\langle\psi_0|$ with $\mu>E_1-E_0$ (implement the projector term matrix-free inside `matvec`). Apply
 #    it to the TFIM with an additional longitudinal field $h_z\sum_iZ_i$, which destroys the parity symmetry, and plot the gap versus $h_z$.
 # 8. **(★★★) Differentiate through Lanczos.** `ground_state_scan` is differentiable. Compute $dE_0/dh$ for the TFIM with `jax.grad` and compare it with the Hellmann–Feynman theorem, $dE_0/dh=\langle\psi_0|\partial_hH|\psi_0\rangle=-N m_x$.

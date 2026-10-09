@@ -69,7 +69,7 @@
 # * [09 Quantum gates and circuits](09_quantum_gates_and_circuits.ipynb) (gate set, circuits as lists, Clifford gates).
 
 # %% [markdown]
-# ## 2. What does "a random unitary" mean? The Haar measure
+# ## 2. The Haar measure
 #
 # ### 2.1 Uniform = invariant
 #
@@ -190,7 +190,7 @@ print(f"variance of z:  naive = {float(jnp.var(z_naive)):.4f} (arcsine law: 1/2)
 # where $\mathbb 1$ is the $D\times D$ identity matrix.
 # The last statement says that the *average* over all pure states is the maximally mixed state - complete ignorance.
 # We test these with $M$ samples; a Monte-Carlo average has a statistical error $\sigma/\sqrt M$, so the checks are
-# formulated as "deviation in units of the standard error", not with `TOL`.
+# formulated as deviations in units of the standard error and do not use `TOL`.
 
 # %%
 # ==============================================================================
@@ -265,8 +265,9 @@ print(f"average state: max |E[|psi><psi|] - 1/D| = {float(jnp.max(jnp.abs(rho_av
 #
 # A sharp test uses the eigenvalues $e^{i\varphi_k}$ of $U$. For Haar-random unitaries the density of eigenphases is
 # flat, $\rho(\varphi)=1/2\pi$: if $U$ is Haar then so is $e^{i\alpha}U$, which shifts all eigenphases by $\alpha$, so no
-# phase can be preferred. We also check $\mathbb E\lvert\mathrm{Tr}\,U\rvert^2=1$ (quoted: a standard result for the Haar
-# measure, valid for every $d$).
+# phase can be preferred. We also check $\mathbb E\lvert\mathrm{Tr}\,U\rvert^2=\sum_{i,j}\mathbb E[U_{ii}U_{jj}^*]=1$ for every $d$: the
+# terms $i\neq j$ vanish because multiplying row $i$ by a phase is a Haar-invariant operation that changes $U_{ii}$ but not
+# $U_{jj}$, and the $d$ diagonal terms are $\mathbb E\lvert U_{ii}\rvert^2=1/d$ (Section 4.3).
 #
 # We draw 20000 matrices of size $d=2$ and $d=4$ with and without the phase fix (`vmap` over keys), and compute
 # the eigenvalues with NumPy (the non-Hermitian eigenvalue solver is one of the few routines that JAX offers on CPU only).
@@ -295,8 +296,10 @@ for ax, d in zip(axes, (2, 4)):
         phases = np.angle(np.linalg.eigvals(U_np)).ravel()
         tr2 = np.abs(np.trace(U_np, axis1=1, axis2=2)) ** 2
         ax.hist(phases / np.pi, bins=40, range=(-1, 1), density=True, histtype="step", lw=2, color=color, label=label)
-        print(f"d={d}  {label:34s}: E|Tr U|^2 = {tr2.mean():.3f} +- {tr2.std() / np.sqrt(M_SAMPLES):.3f}   (Haar: 1),"
+        z_tr = (tr2.mean() - 1) / (tr2.std() / np.sqrt(M_SAMPLES))            # deviation from Haar in standard errors
+        print(f"d={d}  {label:34s}: E|Tr U|^2 = {tr2.mean():.3f} +- {tr2.std() / np.sqrt(M_SAMPLES):.3f}   (Haar: 1, {z_tr:+.0f} SE),"
               f"  smallest |phi|/pi among {phases.size} eigenphases = {np.abs(phases).min() / np.pi:.4f}")
+        assert abs(z_tr) < 5 if U_set is U_haar else z_tr > 20                 # the sampler without the fix must fail
     ax.axhline(0.5, color="k", ls=":", lw=1, label="flat density")
     ax.set_xlabel(r"eigenphase $\varphi/\pi$")
     ax.set_title(f"d = {d}")
@@ -309,23 +312,25 @@ plt.show()
 # The library's $R$ has a real diagonal, but about half of its entries are negative. Without the fix the eigenphase
 # density is grossly non-uniform: there is a *hard gap* around $\varphi=0$ - among the $40000$ eigenphases at $d=2$ not
 # one comes closer to $0$ than $0.24\pi$, among the $80000$ at $d=4$ none closer than $0.12\pi$, so an eigenvalue near
-# $+1$ is not merely rare but impossible - and $\mathbb E\lvert\mathrm{Tr}U\rvert^2$ is far from 1. That is the
+# $+1$ never occurs - and $\mathbb E\lvert\mathrm{Tr}U\rvert^2$ misses 1 by 46 and 90 standard errors. That is the
 # constraint $\mathrm{Re}\,Q_{11}\le0$ of Section 4.1 showing up in the spectrum. With the fix the histogram is flat within statistical
 # noise, the smallest eigenphase found is $0.0000\pi$ to the printed precision, and $\mathbb E\lvert\mathrm{Tr}U\rvert^2=1$ within
 # the error bar. Both samplers return perfectly *unitary* matrices; a test of
 # unitarity alone would never have revealed the problem.
 #
 # > **Common pitfall.** "It is unitary and looks random" is not a validation of a random-unitary sampler. Test
-# > *statistical* properties with known exact values (moments, eigenphase density). The same warning applies to
+# > *statistical* properties with known exact values that are sensitive to phases ($\mathbb E\lvert\mathrm{Tr}\,U\rvert^2$,
+# > eigenphase density). The same warning applies to
 # > `scipy.linalg.qr`, `numpy.linalg.qr` and their analogues in every language.
 #
 # > **Numerical practice.** It is tempting to code the Gram-Schmidt procedure by hand, since it delivers $R_{jj}>0$ with
-# > no phase fix at all. Resist it. Measuring the departure from orthogonality of the computed $Q$ by
+# > no phase fix at all, but it is numerically inferior. Measuring the departure from orthogonality of the computed $Q$ by
 # > $\lVert \mathbb 1-Q^\dagger Q\rVert$, classical Gram-Schmidt gives $O(\varepsilon\,\kappa^2)$ and the modified variant
 # > $O(\varepsilon\,\kappa)$, where $\varepsilon$ is the machine epsilon and $\kappa$ the condition number (Giraud *et al.*
 # > 2005, who also recall Björck's bound for the modified variant), while the Householder algorithm used by the libraries
-# > (Numerical Recipes, 3rd ed., Section 2.10) gives $O(\varepsilon)$ whatever $\kappa$ (Higham 2002, Chapter 19). For a Ginibre matrix $\kappa$ is modest and all three would do, but the habit is the point: call the
-# > library and repair the *convention* afterwards, rather than reimplementing the *algorithm*.
+# > (Numerical Recipes, 3rd ed., Section 2.10) gives $O(\varepsilon)$ whatever $\kappa$ (Higham 2002, Chapter 19). For a
+# > Ginibre matrix $\kappa$ is modest and all three would do; the general rule is to call the library and repair the
+# > *convention* afterwards.
 #
 # ### 4.3 More checkpoints: unitarity and the moments of matrix elements
 #
@@ -352,9 +357,10 @@ print(f"3-qubit Haar gate on qubits (0,2,5) of a 6-qubit register: norm = {float
 print("entanglement entropy of qubit 1 (untouched) with the rest:", f"{float(entanglement_entropy(psi, [1])):.2e} bit")
 
 # %% [markdown]
-# All matrices are unitary to rounding, the second and fourth moments agree with $1/d$ and $2/(d(d+1))$ within the
-# statistical error, and a three-qubit random gate acts on arbitrary axes of the state tensor while leaving the other
-# qubits in a product state (entropy 0).
+# All matrices are unitary to rounding, the second and fourth moments agree with $1/d$ and $2/(d(d+1))$ within two
+# standard errors, and a three-qubit random gate acts on arbitrary axes of the state tensor while leaving the other
+# qubits in a product state (entropy 0). The moments of $\lvert U_{ij}\rvert$ cannot detect a missing phase fix, since
+# $Q$ and $Q\Lambda$ have the same moduli; that test belongs to Section 4.2.
 #
 # > **Numerical practice.** A Haar unitary on $N$ qubits costs $O(8^N)$ to generate (QR of a $2^N\times2^N$ matrix) and
 # > $4^N$ numbers to store. If you need a Haar-random *state*, never generate a unitary: `haar_state` costs $O(2^N)$.
@@ -393,7 +399,7 @@ print("entanglement entropy of qubit 1 (untouched) with the rest:", f"{float(ent
 # (exactly: $2/(D+1)$). Remember the quantity $D\sum_sp_s^2$: it is 1 for the uniform distribution, 2 for Porter-Thomas
 # and $D$ for a basis state; it will serve as our "speckle contrast".
 #
-# **How large is the largest probability?** Treating the $D$ variables $x_s$ as independent exponentials,
+# **The largest probability.** Treating the $D$ variables $x_s$ as independent exponentials,
 #
 # $$ \Pr\big(\max_s x_s < a\big)=(1-e^{-a})^D\;\approx\;\exp\big(-e^{-(a-\ln D)}\big), $$
 #
@@ -565,18 +571,19 @@ print(f"engine `brickwall`, N=8, depth 24: norm = {float(jnp.linalg.norm(psi_eng
 # We start from the product state $\lvert0\dots0\rangle$ and record the half-chain entanglement entropy after every layer,
 # averaged over an ensemble of random circuits, for several system sizes.
 #
-# What should we expect? (i) A gate can change the entanglement across a cut only if it *acts across the cut*, and a
+# Two facts set the expectations. (i) A gate can change the entanglement across a cut only if it *acts across the cut*, and a
 # single two-qubit gate can change the entropy by at most 2 bits. The bound follows from subadditivity: let the gate act
 # on qubit $a\in A$ and qubit $b\in B$, and write $A=\{a\}\cup A'$. The gate does not touch $A'$, so $S_{A'}$ is the same
 # before and after, while both $S_A$ obey $\lvert S_{A'}-S_a\rvert\le S_A\le S_{A'}+S_a$ with $S_a\le1$ bit; the two
 # inequalities together give $\lvert\Delta S_A\rvert\le 2$ bits. In our geometry one gate crosses the
-# central cut every second layer - so the entropy can grow at most **linearly** in depth. (ii) It cannot exceed $N/2$ bits. For a Haar-random state Page (1993) gave
-# the average entropy of a subsystem of dimension $m$ in a bipartite system of dimensions $m\le n$ (quoted, in nats;
-# Page conjectured the exact sum and derived its asymptotic form):
+# central cut every second layer - so the entropy can grow at most **linearly** in depth. (ii) It cannot exceed $N/2$ bits.
+# For a Haar-random state Page (1993) conjectured the average entropy of a subsystem of dimension $m$ in a bipartite
+# system of dimensions $m\le n$ (in nats) and derived its asymptotic form; the exact sum was proved by Foong and Kanno
+# (1994), and more simply by Sánchez-Ruiz (1995):
 #
 # $$ \langle S\rangle = \sum_{k=n+1}^{mn}\frac1k-\frac{m-1}{2n}\;\approx\;\ln m-\frac{m}{2n}. $$
 #
-# For equal halves this is $N/2$ bits minus the famous deficit $1/(2\ln2)\approx0.72$ bit, independent of $N$: a random
+# For equal halves this is $N/2$ bits minus a deficit $1/(2\ln2)\approx0.72$ bit, independent of $N$: a random
 # state is almost, but not quite, maximally entangled.
 
 # %%
@@ -636,14 +643,15 @@ axes[1].grid(alpha=0.3, which="both")
 plt.tight_layout()
 plt.show()
 
-print(f"{'N':>3s} {'S(final)':>18s} {'Page':>8s} {'D sum p^2 (final)':>20s} {'2D/(D+1)':>10s} {'layers to 90% of Page':>22s} "
+print(f"{'N':>3s} {'S(final)':>18s} {'Page':>8s} {'D sum p^2 (final)':>21s} {'2D/(D+1)':>10s} {'layers to 90% of Page':>22s} "
       f"{'growth, layers 2-8 (bit/layer)':>32s}")
 for N in N_LIST:
     ent = results[N][1][:, :, 0]
     page = page_entropy_bits(2 ** (N // 2), 2 ** (N - N // 2))
     reach = int(layers[np.argmax(ent.mean(axis=0) > 0.9 * page)])
+    con = results[N][1][:, -1, 1]
     print(f"{N:3d} {ent[:, -1].mean():10.3f} +- {ent[:, -1].std() / np.sqrt(N_CIRCUITS):.3f} {page:8.3f} "
-          f"{results[N][1][:, -1, 1].mean():20.3f} {2 * 2 ** N / (2 ** N + 1):10.3f} {reach:22d} "
+          f"{con.mean():12.3f} +- {con.std() / np.sqrt(N_CIRCUITS):.3f} {2 * 2 ** N / (2 ** N + 1):10.3f} {reach:22d} "
           f"{(ent[:, 7].mean() - ent[:, 1].mean()) / 6:32.3f}")
 
 # %% [markdown]
@@ -656,7 +664,7 @@ for N in N_LIST:
 # $N=6$ reaches 90 % of its Page value after only 7 layers). Entanglement
 # is produced locally at the cut and information spreads with a finite speed, exactly as in the quench dynamics of spin
 # chains ([notebook 15](../ch05_ground_states_and_unitary_dynamics/15_quench_dynamics_spin_chains.ipynb)).
-# The growth stops at the Page value (dashed), not at $N/2$, after a depth that increases with $N$:
+# The growth stops at the Page value (dashed), $0.72$ bit below $N/2$, after a depth that increases with $N$:
 # bigger systems take longer to scramble. After 32 layers the entropies of $N=8$ and $N=10$ match Page's formula to the
 # printed three decimals, $N=6$ sits about 1.5 standard errors below it (an ordinary fluctuation of an average over 32
 # circuits), and $N=12$ is still about 0.014 bit short - its saturation is not quite complete.
@@ -664,11 +672,12 @@ for N in N_LIST:
 # **Right panel.** The speckle contrast equals $D$ for the initial basis state (off scale) and decays quickly to the
 # Porter-Thomas value, $D\sum_sp_s^2-1\to1$: the output distribution of a sufficiently deep random circuit is statistically
 # indistinguishable from that of a Haar state, although the circuit contains only $O(N\times{\rm depth})$ gates instead
-# of the $O(4^N)$ parameters of a Haar unitary. The curves settle slightly *below* the dashed line for the small
-# systems, and that is not an error: the Haar average is $2D/(D+1)$, printed in the table, which is $1.969$ for $N=6$ and
-# only reaches $2.000$ to three decimals at $N=12$. Two numbers are needed to judge the agreement, because a *single*
-# Haar state has $D\sum_sp_s^2=2\pm2/\sqrt D$ - a scatter of $0.06$ at $N=10$ but only $0.002$ at $N=20$, so at large $N$
-# even a one-per-cent excess is a statistically enormous deviation from Haar.
+# of the $O(4^N)$ parameters of a Haar unitary. The reference for the final values is the Haar average $2D/(D+1)$
+# ($1.969$ at $N=6$, printed in the table), and their statistical scatter is set by a *single* Haar state having
+# $D\sum_sp_s^2=2\pm2/\sqrt D$, i.e. $\pm0.022$ for the mean over 32 circuits at $N=8$ (the table prints $0.019$). Three
+# final values lie within one standard error of $2D/(D+1)$; the exception is $N=8$, $2.4$ standard errors low.
+# The scatter $2/\sqrt D$ is $0.06$ at $N=10$ but only $0.002$ at $N=20$, so at large $N$ even a one-per-cent excess is
+# a statistically enormous deviation from Haar.
 #
 # > **Physics insight.** Linear growth of entanglement is the reason why classical simulation of generic quantum
 # > dynamics is hard. A matrix-product state ([notebook 18](../ch07_tensor_networks/18_mps_tebd.ipynb)) with bond dimension $\chi$ can hold at most
@@ -714,7 +723,7 @@ print(f"max |<S_k> - Page| :  Haar states {dev_haar:.4f} bit,  deep brick-wall c
 assert dev_haar < 0.05
 
 # %% [markdown]
-# The Haar states follow Page's formula to within about a hundredth of a bit (the fluctuations from state to state are
+# The Haar states follow Page's formula to within $0.004$ bit (the fluctuations from state to state are
 # tiny - a manifestation of *typicality*: almost every state has almost exactly the average entropy). The deep brick-wall
 # states lie on the same curve; any remaining deviation is located at the central cuts, which are the last to
 # saturate.
@@ -784,7 +793,7 @@ except ValueError:
 # The search finds exactly 24 gates, they form a group (closure), and they realise all 24 admissible ways of mapping
 # $(X,Z)$ to signed Paulis. The $T$ gate fails the test: $TXT^\dagger=(X+Y)/\sqrt2$.
 #
-# ### 7.2 How random is the Clifford group? Frame potentials
+# ### 7.2 Frame potentials and unitary designs
 #
 # A finite set $\mathcal E=\{U_a\}$ is called a **unitary $t$-design** if averaging any polynomial of degree $\le t$ in
 # the matrix elements of $U$ (and $t$ in those of $U^*$) over $\mathcal E$ gives the same result as averaging over the
@@ -821,8 +830,10 @@ print(f"{'t':>2s} {'Pauli group':>12s} {'Clifford group':>15s} {'Haar (exact)':>
 for t, exact in zip((1, 2, 3, 4), (1, 2, 5, 14)):
     sample = haar_traces ** (2 * t)
     mc, mc_err = float(jnp.mean(sample)), float(jnp.std(sample) / np.sqrt(sample.shape[0]))
-    print(f"{t:2d} {frame_potential(pauli_group, t):12.3f} {frame_potential(cliffords, t):15.3f} {exact:13d} "
-          f"{mc:14.3f} +- {mc_err:.3f}")
+    f_pauli, f_cliff = frame_potential(pauli_group, t), frame_potential(cliffords, t)
+    print(f"{t:2d} {f_pauli:12.3f} {f_cliff:15.3f} {exact:13d} {mc:14.3f} +- {mc_err:.3f}")
+    assert abs(mc - exact) < 5 * mc_err and (abs(f_cliff - exact) < 1e-9 if t <= 3 else f_cliff > exact + 0.5)
+    assert t == 1 or f_pauli > exact + 1                                  # the Paulis must fail beyond t = 1
 
 # %% [markdown]
 # The four Paulis match Haar only for $t=1$ (they form a 1-design: averaging over random Paulis completely depolarises a
@@ -912,8 +923,9 @@ print(f"Clifford subset : norm {float(jnp.linalg.norm(psi_cliff)):.10f}, D sum p
 print("distinct values of D*p for the Clifford circuit:", np.unique(np.round(x_cliff, 6)))
 
 fig, ax = plt.subplots(figsize=(7, 3.6))
-ax.hist(x_univ, bins=40, range=(0, 8), density=True, alpha=0.6, label="full gate set (with T and rotations)")
-ax.hist(x_cliff, bins=40, range=(0, 8), density=True, alpha=0.6, label="Clifford gates only")
+bins_x = np.arange(-0.1, 8.0, 0.2)                                    # bin centres on multiples of 0.2, e.g. x = 1
+ax.hist(x_univ, bins=bins_x, density=True, alpha=0.6, label="full gate set (with T and rotations)")
+ax.hist(x_cliff, bins=bins_x, density=True, alpha=0.6, label="Clifford gates only")
 xx = np.linspace(0, 8, 100)
 ax.plot(xx, np.exp(-xx), "k--", lw=2, label=r"Porter-Thomas $e^{-x}$")
 ax.set_yscale("log")
@@ -925,22 +937,23 @@ plt.tight_layout()
 plt.show()
 
 # %% [markdown]
-# With the full gate set the output probabilities follow the Porter-Thomas law: a discrete universal gate set scrambles
-# like Haar-random gates - only more slowly, because a third of the two-qubit slots is empty and CNOT/CZ entangle less
-# than a typical Haar gate (after 60 layers the half-chain entropy is still below the Page value of 4.28 bit). The Clifford-only circuit
+# With the full gate set the output probabilities approach the Porter-Thomas law: a discrete universal gate set scrambles
+# like Haar-random gates, only more slowly, because a third of the two-qubit slots is empty and CNOT/CZ entangle less
+# than a typical Haar gate. After 60 layers $D\sum_sp_s^2=2.18$ is still three times the Haar scatter $2/\sqrt D=0.06$
+# above 2, and the half-chain entropy is below the Page value of 4.28 bit. The Clifford-only circuit
 # (same skeleton, gates restricted to $H,X,Y,Z,S$, CNOT, CZ) is also strongly entangled - with an *integer* number of
 # bits - yet its output distribution is completely different: $D\,p_s$ takes a single non-zero value. The state is a
 # **stabilizer state**, a superposition with equal weights (and phases $\pm1,\pm i$) over an affine subspace of bit
 # strings containing $2^k$ elements; in this instance the subspace is the whole space ($k=N$), so the measured bit strings are
 # *perfectly uniform* coin flips that reveal nothing about the entanglement inside. Entanglement alone does not make a state "generic"; the missing resource is the non-Clifford
-# *magic* supplied by $T$ gates or generic rotations (notebook 27, Chapter 9).
+# *magic* supplied by $T$ gates or generic rotations ([notebook 27](../ch09_entanglement_and_complexity/27_stabilizer_renyi_entropy.ipynb)).
 #
 # ### 8.2 Sampling and the cost of classical simulation
 #
 # Given the final state, sampling $M$ bit strings is a draw from the categorical distribution $p_s$ (`sample_bitstrings`,
-# [notebook 08](../ch03_matrix_free_engine/08_measurements.ipynb)). Simulator and hardware are asymmetric here: a quantum device must rerun the
-# circuit for every shot, because the measurement destroys the state; the state-vector simulator computes the state once
-# and then draws as many samples as we like.
+# [notebook 08](../ch03_matrix_free_engine/08_measurements.ipynb)). A quantum device must rerun the circuit for every
+# shot, because the measurement destroys the state, whereas the state-vector simulator computes the state once and then
+# draws as many samples as we like.
 #
 # The cost of the simulation is $O(2^N)$ per gate in time and $16\times2^N$ bytes in memory (double precision). The cell
 # below measures it for $N=4\dots20$: compile time, run time of a circuit with 10 double layers and the time to draw 100
@@ -1020,14 +1033,14 @@ plt.show()
 
 # %% [markdown]
 # For small registers the run time grows far more slowly than $2^N$ - it is dominated by fixed overheads (one kernel
-# launch per gate, the random-number generation), not by arithmetic - and the compile
-# time dominates everything. Beyond $N\approx12$ the run time grows by a factor of roughly 16 for every four added qubits,
-# following the $2^N$ line. The two samplers give statistically equivalent samples (checkpoint above), but their costs differ: `jax.random.categorical`
+# launch per gate, the random-number generation) - and the compile
+# time dominates everything. Beyond $N\approx12$ the run time grows by an order of magnitude for every four added qubits,
+# close to the factor $2^4=16$ of the $2^N$ line. The two samplers give statistically equivalent samples (checkpoint above), but their costs differ: `jax.random.categorical`
 # draws one random number per outcome *and per shot*, $O(M\,2^N)$, and at $N=20$ drawing 100 bit strings costs as much as
 # running the whole circuit; inversion of the cumulative distribution costs $O(2^N)$ once plus a binary search per shot and
 # stays cheap. Each additional qubit also doubles the memory: at 16 bytes per amplitude, $N=20$ needs 17 MB, $N=30$ needs 17 GB and $N=50$
 # would need 18 petabytes. This exponential wall is what gives random circuit sampling on 50+ qubits its significance.
-# (Absolute numbers depend on the machine and its load; the scaling does not.)
+# (The absolute times depend on the machine and its load.)
 
 # %% [markdown]
 # ## 9. Cross-entropy benchmarking (XEB)
@@ -1054,19 +1067,18 @@ plt.show()
 # $\mathcal F_{\rm XEB}^{\rm norm} = (D\,\overline{p_{s_i}}-1)/(D\sum_sp_s^2-1)$. The statistical error of the estimate is
 # $\approx1/\sqrt M$, because $Dp_{s_i}$ has a variance of order one.
 #
-# Two assumptions are hidden in the third bullet and should be stated plainly, because they are what the argument rests
-# on and they are not automatic:
+# The third bullet rests on two assumptions:
 #
 # 1. **The noise is global white noise.** Only for $\rho=F\lvert\psi\rangle\langle\psi\rvert+(1-F)\mathbb 1/D$ does the
 #    linearity step go through. Real devices have *local* errors; that they add up to something close to global white
-#    noise is a property of deep scrambling circuits, not a theorem about arbitrary circuits (Boixo *et al.* 2018).
-#    Section 9.3 tests exactly this: local depolarising noise is put in, and the global-white-noise prediction comes out.
+#    noise is a property of deep scrambling circuits (Boixo *et al.* 2018) and does not hold for arbitrary circuits.
+#    Section 9.3 puts in local depolarising noise and compares the result with the global-white-noise prediction.
 # 2. **The ideal distribution is anticoncentrated.** $D\sum_sp_s^2-1$ is the signal; if the circuit is too shallow this
 #    number is far from 1 and the normalisation is doing most of the work (Exercise 8).
 #
-# The XEB is therefore an estimator of fidelity *under a noise model*, not a model-free measurement of it, and it can be
-# fooled: classical algorithms are known that produce a large $\mathcal F_{\rm XEB}$ without preparing the state at all
-# (Gao *et al.* 2024). It remains the standard diagnostic because nothing cheaper exists at 50 qubits.
+# The XEB therefore estimates the fidelity only within a noise model, and classical algorithms are known that produce a
+# large $\mathcal F_{\rm XEB}$ without preparing the state at all (Gao *et al.* 2024). It remains the standard
+# diagnostic of random-circuit-sampling experiments.
 #
 # ### 9.2 Ideal versus uniform samples
 
@@ -1102,6 +1114,7 @@ for M in (100, 1000, 10000, 100000):
     f_i, e_i = xeb_from_samples(p_ideal, ideal_idx)
     f_u, e_u = xeb_from_samples(p_ideal, uniform_idx)
     print(f"{M:8d} {f_i:14.3f} +- {e_i:.3f} {f_u:16.3f} +- {e_u:.3f}")
+    assert abs(f_i - 1) < 5 * e_i and abs(f_u) < 5 * e_u and 1 - f_u > 5 * e_u     # uniform sampler must fail F = 1
 
 # %% [markdown]
 # Samples from the ideal distribution give $\mathcal F_{\rm XEB}\to1$, uniformly random strings give
@@ -1175,6 +1188,7 @@ for i, p in enumerate(noise_levels):
     f_true, e_true = float(jnp.mean(fids)), float(jnp.std(fids) / np.sqrt(M_TRAJ))
     rows.append((p, f_xeb, e_xeb, f_true, e_true, (1 - p) ** n_loc))
     print(f"{p:7.3f} {f_xeb:12.3f} +- {e_xeb:.3f} {f_true:12.3f} +- {e_true:.3f} {(1 - p) ** n_loc:12.3f}")
+    assert abs(f_xeb - f_true) < 4 * np.hypot(e_xeb, e_true)
 rows = np.array(rows)
 
 fig, ax = plt.subplots(figsize=(7, 3.8))
@@ -1192,11 +1206,12 @@ plt.show()
 
 # %% [markdown]
 # At $p=0$ every trajectory is the ideal state (fidelity exactly 1) and the XEB is 1 within its statistical error. With
-# noise, the XEB estimated from one bit string per run follows the true fidelity within one to two of its error bars, and both follow
-# the simple law $(1-p)^{n_{\rm loc}}$: in a scrambling circuit *a single Pauli error anywhere* makes the state almost
-# orthogonal to the ideal one, so the fidelity is just the probability of an error-free run. (Small systematic
-# differences are expected: errors in the last layers do not have time to spread, which affects XEB and fidelity
-# slightly differently.) The same error-free-run model predicted a fidelity of about $0.2\%$ for the 53-qubit, 20-cycle
+# noise, the XEB estimated from one bit string per run follows the true fidelity within one of its error bars, and both
+# follow the simple law $(1-p)^{n_{\rm loc}}$: in a scrambling circuit *a single Pauli error almost anywhere* makes the
+# state nearly orthogonal to the ideal one, so the fidelity is close to the probability of an error-free run. Small
+# systematic differences are expected. An error in the first layers, while the state is still weakly entangled, leaves a
+# sizeable overlap with the ideal state and pushes the fidelity slightly above $(1-p)^{n_{\rm loc}}$; a $Z$ error after
+# the last gate on a qubit leaves every $p_s$ unchanged, so the XEB does not register it although the fidelity does. The same error-free-run model predicted a fidelity of about $0.2\%$ for the 53-qubit, 20-cycle
 # experiment of Arute *et al.*, and the XEB measured on simplified (elided) versions of those circuits,
 # $(2.24\pm0.21)\times10^{-3}$, agreed with it. The model also shows why error rates have to fall well below
 # $1/(\text{number of gates})$ before large circuits become useful.
@@ -1227,21 +1242,20 @@ print(f"D sum p^2 = {float(2 ** N_big * jnp.sum(jnp.abs(psi_big) ** 4)):.4f}")
 
 # %% [markdown]
 # Twenty layers bring the collision probability to within about 7 % of the Porter-Thomas value ($D\sum p^2=2.13$
-# against 2) but nowhere near entanglement saturation: the entropy is still far below the Page value. The 7 % is not
-# statistical noise - a genuine Haar state at $D=2^{20}$ scatters by only $2/\sqrt D=0.002$ - so the circuit is
+# against 2) but nowhere near entanglement saturation: the entropy is still far below the Page value. The 7 % excess is
+# far outside the scatter of a genuine Haar state at $D=2^{20}$, $2/\sqrt D=0.002$, so the circuit is
 # *close to* anticoncentrated rather than Haar-like, and the gap is still shrinking with depth. Divide the two printed numbers - about 6.5 bits
 # after 20 layers is about 0.33 bit per layer, the same few-tenths-of-a-bit rate as in Section 6.3 - and at
 # this rate reaching the Page value of 9.28 bits would need some 30 layers: the saturation depth grows proportionally to
-# $N$, while the collision probability is already within a few per cent of its final value. The two time scales really
-# are different: for brick-wall circuits anticoncentration sets in after a depth $O(\log N)$ (Dalzell, Hunter-Jones and
-# Brandão 2022), whereas the entanglement needs a depth $O(N)$ to saturate (Nahum *et al.* 2017).
-# *Anticoncentration is fast, scrambling is slow.*
+# $N$, while the collision probability is already within a few per cent of its final value. For brick-wall circuits
+# anticoncentration sets in after a depth $O(\log N)$ (Dalzell, Hunter-Jones and Brandão 2022), whereas the
+# entanglement needs a depth $O(N)$ to saturate (Nahum *et al.* 2017).
 
 # %% [markdown]
 # ## 10. Summary - key takeaways
 #
-# * "Uniformly random" unitaries/states are defined by **invariance** (Haar measure). Uniform parameters (Euler angles)
-#   are *not* uniform unitaries.
+# * "Uniformly random" unitaries/states are defined by **invariance** (Haar measure). Uniformly drawn Euler angles give
+#   a biased distribution of unitaries.
 # * **Haar states**: normalise a complex Gaussian vector - $O(2^N)$. **Haar unitaries**: QR-decompose a Ginibre matrix
 #   **and fix the phases** with the diagonal of $R$ (Mezzadri). Without the fix the matrices are unitary but not Haar -
 #   visible in the eigenphase density. Validate samplers statistically, with error bars.
@@ -1293,6 +1307,9 @@ print(f"D sum p^2 = {float(2 ** N_big * jnp.sum(jnp.abs(psi_big) ** 4)):.4f}")
 #   the moments $\mathbb E\lvert\mathrm{Tr}\,U\rvert^{2t}=t!$ for $t\le d$.
 # * C. E. Porter and R. G. Thomas, *Fluctuations of nuclear reaction widths*, Phys. Rev. **104**, 483 (1956).
 # * D. N. Page, *Average entropy of a subsystem*, Phys. Rev. Lett. **71**, 1291 (1993).
+# * S. K. Foong and S. Kanno, *Proof of Page's conjecture on the average entropy of a subsystem*, Phys. Rev. Lett.
+#   **72**, 1148 (1994); J. Sánchez-Ruiz, *Simple proof of Page's conjecture on the average entropy of a subsystem*,
+#   Phys. Rev. E **52**, 5653 (1995).
 # * A. Nahum, J. Ruhman, S. Vijay and J. Haah, *Quantum entanglement growth under random unitary dynamics*,
 #   Phys. Rev. X **7**, 031016 (2017).
 # * M. P. A. Fisher, V. Khemani, A. Nahum and S. Vijay, *Random quantum circuits*, Annu. Rev. Condens. Matter Phys.

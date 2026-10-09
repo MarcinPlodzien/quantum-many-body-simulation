@@ -1,6 +1,6 @@
 #@title: Time evolution II — Chebyshev propagation
 #@part: Chapter 5 — Ground states and unitary dynamics
-#@description: The Chebyshev (Tal-Ezer–Kosloff) expansion of the propagator derived from scratch: Chebyshev polynomials, Bessel coefficients, the Jacobi–Anger identity, spectral rescaling, a lax.scan implementation accurate to machine precision, and its cost compared with TEBD.
+#@description: The Chebyshev (Tal-Ezer–Kosloff) expansion of the propagator: Chebyshev polynomials, Bessel coefficients, the Jacobi–Anger identity, spectral rescaling, a lax.scan implementation accurate to machine precision, and its cost compared with TEBD.
 
 # %% [markdown]
 # ## 1. Introduction and motivation
@@ -13,9 +13,9 @@
 # for a time-independent Hamiltonian $H$. In the [previous notebook](12_tebd_trotter_suzuki.ipynb) we *split* the exponential
 # into many small two-spin gates (TEBD / Trotter–Suzuki). That method is simple and robust, but it has a built-in
 # **Trotter error** that decreases only as a power of the time step, $\mathcal{O}(dt^{p})$: every additional digit of accuracy costs a
-# fixed *factor* more work. If you need 3 digits, this is fine. If you need 10 digits — to compute an echo
+# fixed *factor* more work. Three digits are cheap; ten digits, needed to compute an echo
 # $|\langle\psi(0)|\psi(t)\rangle|^2$ that is itself $10^{-6}$, to benchmark another code, to separate a genuinely small
-# physical effect from numerical error, or to evolve for a very long time — it becomes hopeless.
+# physical effect from numerical error, or to evolve for a very long time, cost orders of magnitude more (§12, §13).
 #
 # **The idea of this notebook.** The only thing our matrix-free simulator can do with $H$ is to *apply it to a state*,
 # $|\phi\rangle \mapsto H|\phi\rangle$ (notebook [Matrix-free operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb)).
@@ -45,7 +45,7 @@
 #    estimating the spectral bounds and what happens when they are wrong (§8).
 # 5. The matrix-free `lax.scan` implementation (§9), validated to machine precision (§10).
 # 6. Physics: a quench in a non-integrable spin chain, by chaining steps (§11).
-# 7. Cost compared with TEBD at fixed accuracy (§12); long-time evolution and the choice of the step (§13); how far can we go (§14).
+# 7. Cost compared with TEBD at fixed accuracy (§12); long-time evolution and the choice of the step (§13); the reach in system size (§14).
 #
 # ### What you will learn
 #
@@ -86,7 +86,7 @@
 #@engine: apply_gate, zero_state, product_state, haar_state, heisenberg_terms, apply_hamiltonian, energy, dense_hamiltonian, tebd_gates, apply_gates, spectral_bounds, chebyshev_evolve, entanglement_entropy
 
 # %% [markdown]
-# ## 2. Polynomials, and why not Taylor
+# ## 2. Polynomial approximation and the failure of the Taylor series
 #
 # ### 2.1 The only thing we can afford is $H|\phi\rangle$
 #
@@ -105,7 +105,7 @@
 # **The many-body problem has been reduced to a one-dimensional problem about ordinary functions**: approximate
 # $e^{-ixt}$ by a polynomial, uniformly on an interval. We do not need to know the eigenvalues — only an interval that contains them.
 #
-# ### 2.2 The obvious polynomial is a bad one
+# ### 2.2 Catastrophic cancellation in the Taylor series
 #
 # The Taylor series $e^{-ixt} = \sum_k (-ixt)^k/k!$ converges for every $x$, so why not truncate it? Let us try for a single
 # number. With $z = xt = 30$ (a modest value: for our chains $|E|_{\max}\approx 2N$, so this is $N=15$ at $t=1$):
@@ -146,7 +146,7 @@ plt.show()
 # For matrices it is the same story with $z \to \|H\|t$ (Moler and Van Loan list the Taylor series first among their
 # "nineteen dubious ways to compute the exponential of a matrix").
 #
-# The cure is not more precision but a **better basis of polynomials**: one whose members stay of size $\le 1$ on the
+# The remedy is a **better basis of polynomials**, one whose members stay of size $\le 1$ on the
 # whole interval, so that coefficients of size $\le 2$ suffice and nothing large ever has to cancel.
 #
 # > **Numerical practice.** "The series converges" (mathematics) and "the partial sums can be computed accurately"
@@ -249,7 +249,7 @@ plt.show()
 #
 # $$ c_k = \frac{2-\delta_{k0}}{\pi}\int_0^\pi f(\cos\theta)\,\cos k\theta\; d\theta . \qquad (5) $$
 #
-# This is *literally* the Fourier cosine series of the $2\pi$-periodic, even function $g(\theta) = f(\cos\theta)$.
+# This is the Fourier cosine series of the $2\pi$-periodic, even function $g(\theta) = f(\cos\theta)$.
 # Everything known about Fourier series carries over: the smoother $f$, the faster $c_k\to0$; for functions analytic in the whole
 # complex plane — like $e^{-izx}$ — the decay is faster than any exponential. In particular, once $\sum_k|c_k|$ converges the series
 # converges *uniformly* and its sum is $f$ again, so writing $f=\sum_kc_kT_k$ is legitimate and the error of stopping at $k=K$ is at
@@ -366,7 +366,7 @@ plt.show()
 
 # %% [markdown]
 # **Interpretation.** Our twenty-line quadrature agrees with SciPy to $\sim10^{-16}$: definition (6) and the library convention are
-# the same function. The figure is the single most important picture of this notebook. For each $z$ (vertical line) the coefficients
+# the same function. The figure shows the mechanism on which the method rests. For each $z$ (vertical line) the coefficients
 # are of order $z^{-1/2}$ as long as $k<z$ — *all of these terms are needed* — and then fall off a cliff: within a few tens of orders
 # beyond $k=z$ they are below the machine epsilon $2.2\times10^{-16}$. The dotted bound $(z/2)^k/k!$ is very pessimistic near $k \approx z$
 # but captures the eventual factorial decay.
@@ -377,7 +377,7 @@ plt.show()
 # > $H$-applications is set by the largest phase $e^{-iEt}$ that any eigenstate can accumulate** — and no method based on polynomials in $H$ can beat that scaling.
 
 # %% [markdown]
-# ## 5. The Jacobi–Anger identity — checked for numbers first
+# ## 5. The Jacobi–Anger identity for scalar arguments
 #
 # Inserting the coefficients (7) into the Chebyshev series gives the **Jacobi–Anger expansion**
 #
@@ -460,7 +460,7 @@ plt.tight_layout(); plt.show()
 # > $J_k(z)T_k(x)$ first grow enormously (property (b) of §3.3) and the truncated sum is garbage. We return to this in §8.
 
 # %% [markdown]
-# ## 6. How many terms? The rule $K \approx z + c\,z^{1/3}$
+# ## 6. The number of terms, $K \approx z + c\,z^{1/3}$
 #
 # For a tolerance `tol` we define $K(z,\text{tol})$ as the largest order with $|J_k(z)| \ge \text{tol}$ — all later coefficients are dropped.
 # The transition region of $J_k(z)$ around $k = z$ has a width $\propto z^{1/3}$ (A&S 9.3: for $k\approx z$ the Bessel function turns into an
@@ -471,9 +471,9 @@ plt.tight_layout(); plt.show()
 # The Airy picture also predicts how $c$ depends on the tolerance. Writing $k = z + c\,z^{1/3}$, the Airy argument is $y=2^{1/3}c$, and
 # $\mathrm{Ai}(y)$ decays as $e^{-\frac23 y^{3/2}}$; setting that equal to `tol` and solving for $c$ gives
 #
-# $$ c(\text{tol}) \;\approx\; \Big(\frac{3}{2\sqrt2}\,\ln\frac{1}{\text{tol}}\Big)^{2/3} \;=\; 4.6,\;7.3,\;10.1 \quad\text{for}\quad \text{tol}=10^{-4},10^{-8},10^{-13}. \qquad (10a)$$
+# $$ c(\text{tol}) \;\approx\; \Big(\frac{3}{2\sqrt2}\,\ln\frac{1}{\text{tol}}\Big)^{2/3} \;=\; 4.6,\;7.3,\;10.0 \quad\text{for}\quad \text{tol}=10^{-4},10^{-8},10^{-13}. \qquad (10a)$$
 #
-# Two things follow at once, and they are the whole economics of the method: the overhead over the unavoidable $z$ grows only as
+# Two consequences determine the cost of the method: the overhead over the unavoidable $z$ grows only as
 # $z^{1/3}$, and the price of extra digits grows only as $(\log_{10}(1/\text{tol}))^{2/3}$. We now measure both.
 
 # %%
@@ -527,8 +527,8 @@ assert abs(sum_rule - 1) < 1e3 * TOL
 # %% [markdown]
 # **Interpretation.** For large $z$ the number of terms is $z$ plus a *sub-linear* overhead that follows the $z^{1/3}$ law (solid lines,
 # right panel; for $z\lesssim 1$ the asymptotic law does not apply and the overhead levels off at a few terms). The fitted constants
-# $c = 3.42,\,6.36,\,9.35$ sit 10–25 % below the Airy prediction (10a) ($4.6,\,7.3,\,10.1$), which ignores the algebraic prefactor of
-# $\mathrm{Ai}$ and is therefore slightly conservative; the $(\ln 1/\text{tol})^{2/3}$ growth is reproduced. The consequences are worth spelling out:
+# $c = 3.42,\,6.36,\,9.35$ sit 7–25 % below the Airy prediction (10a) ($4.6,\,7.3,\,10.0$), which ignores the algebraic prefactor of
+# $\mathrm{Ai}$ and is therefore slightly conservative; the $(\ln 1/\text{tol})^{2/3}$ growth is reproduced. In practice:
 #
 # * **Accuracy is almost free.** At $z=100$, going from `tol`$=10^{-4}$ to $10^{-13}$ increases $K$ only from 116 to 143 — 23 % more work for nine more digits.
 #   Compare: a second-order Trotter scheme pays a factor $10^{4.5}\approx 30\,000$ for the same improvement.
@@ -632,7 +632,7 @@ assert max(err_poly) < 1e3 * TOL and min(err_U) < 1e2 * TOL
 # ### 7.4 The same recurrence for any function of $H$
 #
 # Nothing in the recurrence (12) knows about $e^{-izx}$. Only the coefficients $c_k$ do, and they come from one integral, Eq. (5). Changing that
-# integral gives a different function of $H$ for the same code and the same cost. Two cases are worth knowing.
+# integral gives a different function of $H$ for the same code and the same cost. Two cases are standard.
 #
 # * **Imaginary time.** For $f(x)=e^{-\tau a x}$ the integral (5) is the standard representation of the *modified* Bessel function,
 #   $\int_0^\pi e^{w\cos\theta}\cos k\theta\,d\theta = \pi I_k(w)$, so $c_k=(2-\delta_{k0})(-1)^kI_k(\tau a)$ and $e^{-\tau H}=e^{-\tau b}\sum_kc_kT_k(\tilde H)$.
@@ -645,7 +645,7 @@ assert max(err_poly) < 1e3 * TOL and min(err_U) < 1e2 * TOL
 #   *numerically exact* while a KPM spectrum is always a smoothed one.
 
 # %% [markdown]
-# ## 8. Spectral bounds — and what happens if they are wrong
+# ## 8. Spectral bounds and the failure for wrong bounds
 #
 # The rescaling needs $E_{\min}$ and $E_{\max}$, but computing the spectrum is exactly what we cannot afford. Two practical options:
 #
@@ -730,14 +730,16 @@ for label, psi_in in (("|00...0>", psi0_val), ("Haar-random state", psi0_haar)):
         dn = float(jnp.linalg.norm(psi_s)) - 1.0
         er = float(jnp.linalg.norm(psi_s - exact_state(psi_in, t_blow)))
         print(f"    {s:5.2f}  |    {1 / s:6.3f}    | {n_out:26d} | {dn:+12.4e} | {er:24.3e} | {abs(dn) / er:14.1e}")
+        assert (er < 1e3 * TOL) if s >= 1 else True          # correct (or generous) bounds: exact state
+        assert (er > 1.0) if s <= 0.9 else True              # wrong control: 10 % missing width must ruin the state
 
 # %% [markdown]
 # **Interpretation.** With $s\ge1$ every choice gives the exact state to $\sim10^{-14}$ — over-estimating the width (even by 50 %) is *harmless for accuracy* and only costs proportionally more terms.
-# With $s<1$ the method does not degrade gracefully, it **explodes**: the error grows by many orders of magnitude for every few per cent of missing width, and a "state" with norm $\gg1$ comes out.
+# With $s<1$ the method **explodes**: the error grows by many orders of magnitude for every few per cent of missing width, and a "state" with norm $\gg1$ comes out.
 # How fast the disaster strikes depends on the state: the damage is proportional to the overlap of $|\psi\rangle$ with the eigenvectors whose eigenvalues were left outside — only a handful at the sparse edges of a many-body spectrum, and
 # the product state happens to have a particularly small overlap with the lowest one. This makes the failure treacherous: slightly wrong bounds may go unnoticed in a test with one initial state or a short time, and ruin the production run with another.
 #
-# ### The norm as an error monitor — and how far it can be trusted
+# ### The norm as an error monitor and its limits
 #
 # The truncated propagator $p_K(\tilde H)$ is a polynomial, not a unitary, so $\|\,p_K(\tilde H)|\psi\rangle\|$ is not exactly 1 and the deviation
 # is free information. How much information? Expand in eigenstates, $p_K(\tilde E_n)=e^{-i(E_n-b)t}+\delta_n$ with $|\delta_n|$ the scalar
@@ -747,10 +749,10 @@ for label, psi_in in (("|00...0>", psi0_val), ("Haar-random state", psi0_haar)):
 #    \|\psi_K-\psi_{\rm exact}\|^2 = \sum_n |A_n|^2|\delta_n|^2 . \qquad (9a)$$
 #
 # If one eigenvalue dominates the damage — which is exactly the situation here, the one that leaked out — with amplitude $A$ and error $\delta$,
-# the true error is $|A||\delta|$ while the norm moves by only $\sim|A|^2|\delta|$. **The norm under-reports the error by the overlap factor $|A|$**,
-# and $|A|$ is small precisely in the treacherous cases. The last column of the table measures this ratio. Read it in the rows where exactly two eigenvalues have
-# leaked, $s=0.99$ and $0.98$: there the ratio is about half the overlap printed above each block ($1.1\times10^{-2}$ for the product state,
-# $4.4\times10^{-2}$ for the Haar state), so a norm deviation of $2\times10^{-10}$ accompanies a state that is wrong by $3\times10^{-8}$. Above those rows nothing
+# the true error is $|A||\delta|$ while the norm moves by $|A|^2\,\mathrm{Re}\big[e^{\,i(E-b)t}\delta\big]$, at most $|A|^2|\delta|$. **The norm under-reports the error by the overlap factor $|A|$**
+# (times the cosine of a phase), and $|A|$ is small precisely in the treacherous cases. The last column of the table measures this ratio. Read it in the rows where exactly two eigenvalues have
+# leaked, $s=0.99$ and $0.98$: there the ratio lies between about half the overlap printed above each block and the overlap itself ($1.1\times10^{-2}$ for the product state,
+# $4.4\times10^{-2}$ for the Haar state, whose lowest eigenvector contributes as well), so a norm deviation of $2\times10^{-10}$ accompanies a state that is wrong by $3\times10^{-8}$. Above those rows nothing
 # has leaked and both columns are pure round-off, so their ratio means nothing; below them the corruption is so large that the "state" *is* the error and the ratio
 # saturates at 1.
 #
@@ -776,7 +778,7 @@ for label, psi_in in (("|00...0>", psi0_val), ("Haar-random state", psi0_haar)):
 # of the carry, so the memory footprint really is four state vectors.
 #
 # > **JAX practice.** The Bessel coefficients are computed *outside* the compiled function and enter it as an ordinary array. This is the general pattern: set-up code that runs
-# > once may use any Python library (here `scipy.special`), the hot loop must be pure JAX. Note the consequence: the *length* of `coef` is part of the array's shape, so a different
+# > once may use any Python library (here `scipy.special`), the hot loop must be pure JAX. Consequently the *length* of `coef` is part of the array's shape, so a different
 # > $K$ (a different step $\Delta t$ or tolerance) triggers a re-compilation, whereas a different state or different coefficient *values* does not.
 
 # %%
@@ -955,7 +957,7 @@ assert float(jnp.linalg.norm(psi_back - psi0_big)) < 100 * TOL
 # $\Delta t$ is fixed, the coefficients are computed once; the time loop is an outer `lax.scan` whose body calls the inner Chebyshev `scan` and then evaluates the observables — the
 # whole trajectory is one compiled program. Here $\Delta t$ is dictated *only by how densely we want to sample the observables*, not by accuracy.
 #
-# **The protocol** (a *quantum quench*): prepare all spins up, $|\psi(0)\rangle=|00\dots0\rangle$ — an eigenstate of the $Z_jZ_{j+1}$ couplings, but not of the $XX+YY$ exchange together with the transverse field — and let it evolve under the full $H$.
+# **The protocol** (a *quantum quench*): prepare all spins up, $|\psi(0)\rangle=|00\dots0\rangle$, and let it evolve under the full $H$. The fully polarised state is an eigenstate of the whole XXZ part (the exchange $XX+YY$ conserves the total $Z$ and annihilates it), so the dynamics is started by the transverse field alone.
 # We record the local magnetisation $\langle Z_j(t)\rangle$ and the entanglement entropy of the left half of the chain
 # (defined in [States, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb)).
 #
@@ -1038,12 +1040,12 @@ plt.tight_layout(); plt.show()
 # * *Magnetisation.* The transverse field rotates the spins away from $+z$ and the exchange couplings spread the disturbance: $\langle Z_j\rangle$ drops from 1, overshoots, and performs
 #   damped oscillations around a small value. The edge spins (one neighbour instead of two) follow visibly different curves from the bulk spins, and the reflection symmetry of the open chain
 #   $j\leftrightarrow N-1-j$ is evident in the colour map — a free sanity check of the code.
-# * *Entanglement.* The half-chain entropy grows roughly linearly — the hallmark of a quench in a generic interacting chain — and then bends over towards the
-#   value of a random state (dashed), which it approaches from below because of energy conservation and the finite size. The initial product state needed $2N$ numbers; by $t\approx5$ its
-#   half-chain entropy has reached about three quarters of the maximal (Page) value, i.e. the state is already close to as complex as a state of this chain can be. This is why long-time dynamics of generic chains is restricted to small $N$ and is the natural habitat of exact state-vector methods like this one.
-# * *Diagnostics.* Norm and energy are conserved to $\sim10^{-13}$ over the whole trajectory.
+# * *Entanglement.* The half-chain entropy grows roughly linearly — the hallmark of a quench in a generic interacting chain — and begins to bend over near $t\approx5$.
+#   Its stationary value is expected below that of a random state (dashed, Page), because the initial energy $E(0)=6.5$ differs from the infinite-temperature value $\mathrm{Tr}\,H/2^N=0$ and the chain is finite. The initial product state needed $2N$ numbers; by $t\approx5$ its
+#   half-chain entropy has reached about three quarters of the Page value, i.e. the state is already close to as complex as a state of this chain can be. This is why long-time dynamics of generic chains is restricted to small $N$ and is the natural habitat of exact state-vector methods like this one.
+# * *Diagnostics.* Over the whole trajectory the norm is conserved to $2\times10^{-13}$ and the energy to $4\times10^{-12}$, i.e. $5\times10^{-13}$ relative to $E(0)$.
 #
-# > **Physics insight.** The model is non-integrable: apart from energy (and the reflection symmetry) it has no conservation laws, so local observables relax to stationary values that depend on the initial
+# > **Physics insight.** The model is non-integrable: apart from energy and two discrete symmetries (the reflection $j\leftrightarrow N-1-j$ and the spin-flip parity $\prod_jX_j$) it has no conservation laws, so local observables relax to stationary values that depend on the initial
 # > state essentially only through its energy density. The relaxation of $\langle Z\rangle$ above is a small-scale view of this; the physics is explored in depth in
 # > [Quench dynamics in spin chains](15_quench_dynamics_spin_chains.ipynb).
 #
@@ -1064,8 +1066,8 @@ print(f"N = {N_val}: max over {N_SHOTS} times of ||psi_cheb(t) - psi_exact(t)|| 
 assert err_t.max() < 100 * TOL
 
 # %% [markdown]
-# **Interpretation.** One hundred chained steps, each of machine-precision quality, give a trajectory that is exact to $\sim10^{-13}$ at all times. The error of the individual steps
-# adds up linearly in the number of steps, and §13.2 identifies which error that is — it is not the one most people assume.
+# **Interpretation.** One hundred chained steps, each of machine-precision quality, give a trajectory that is exact to $\sim10^{-13}$ at all times. The errors of the individual steps
+# accumulate over the chain of steps; §13.2 separates the two sources, truncation and round-off.
 
 # %% [markdown]
 # ## 12. Cost versus TEBD at fixed accuracy
@@ -1163,7 +1165,7 @@ w = np.array([50.0, 2e4])
 r2, r4 = results["TEBD-2"][2], results["TEBD-4"][2]
 axes[0].loglog(w, r2[2] * (w / r2[1]) ** -2.0, "C0:", lw=1, label=r"slope $-2$")
 axes[0].loglog(w, r4[2] * (w / r4[1]) ** -4.0, "C1:", lw=1, label=r"slope $-4$")
-axes[0].axvline(1.02 * half_width(bounds_lanczos) * T_wp, color="C2", lw=0.7, ls="--"); axes[0].text(1.02 * half_width(bounds_lanczos) * T_wp * 1.05, 3e-15, "$aT$", color="C2")
+axes[0].axvline(1.02 * half_width(bounds_lanczos) * T_wp, color="C2", lw=1.2, ls="--"); axes[0].text(1.02 * half_width(bounds_lanczos) * T_wp * 1.05, 3e-15, "$aT$", color="C2")
 axes[0].set_xlabel("work  [$H$-equivalents]"); axes[1].set_xlabel("wall time of the compiled run  [ms]")
 for ax in axes:
     ax.set_ylim(1e-15, 10); ax.set_ylabel(r"error $\|\psi(T)-\psi_{\rm exact}(T)\|$"); ax.grid(alpha=0.3, which="both"); ax.legend(fontsize=8)
@@ -1191,7 +1193,7 @@ plt.show()
 # > **Numerical practice.** Absolute timings depend on the machine and on what else is running on it (these notes were executed on a shared CPU); ratios and slopes are robust. Always compare algorithms **at equal accuracy** —
 # > "method A needs 0.1 s, method B 1 s" means nothing if A delivers 3 digits and B 13. And always *measure* the error against a trusted reference rather than assuming the nominal order.
 #
-# Two caveats in favour of TEBD, to be fair: (i) its gates act locally, which is what makes it extendable to matrix-product states for $N\gg30$ ([MPS-TEBD](../ch07_tensor_networks/18_mps_tebd.ipynb)), and to time-dependent
+# Two properties favour TEBD: (i) its gates act locally, which is what makes it extendable to matrix-product states for $N\gg30$ ([MPS-TEBD](../ch07_tensor_networks/18_mps_tebd.ipynb)), and to time-dependent
 # Hamiltonians and noisy circuits with no extra effort; (ii) if observables are needed on a very fine time grid anyway, small steps come for free. A full comparison, including the Krylov method, follows in the
 # [next notebook](14_krylov_and_integrator_comparison.ipynb).
 
@@ -1204,7 +1206,7 @@ plt.show()
 #
 # $$ W(n)=n\,K\!\big(a\,\Delta t\big)\approx aT+n^{2/3}\,c\,(aT)^{1/3} : $$
 #
-# the unavoidable $aT$ plus an overhead that grows with the number of steps. **Fewer, larger steps are cheaper** — the opposite of every finite-difference method you know. There is no stability
+# the unavoidable $aT$ plus an overhead that grows with the number of steps. **Fewer, larger steps are cheaper**, the opposite of finite-difference time stepping. There is no stability
 # limit and no accuracy penalty for a large step. The reasons to subdivide are practical: you want observables at intermediate times; the Hamiltonian changes in time (piecewise constant $H$);
 # or $K$ becomes so large that rounding errors in the recurrence, which grow linearly with $K$, start to matter.
 #
@@ -1252,23 +1254,24 @@ for dt_tebd in (0.05, 0.01):
 #   The accuracy stays at the $10^{-12}$ level in all cases, degrading slowly (from $4\times10^{-13}$ to $8\times10^{-12}$) as the number of chained steps grows from 1 to 1000 — the error of the individual steps accumulates (§13.2).
 # * TEBD-2 is left far behind. With $dt=0.05$ (4 000 $H$-equivalents — as much as the $\Delta t=1$ Chebyshev run) the state error at $T=100$ is $0.25$, a quarter of the way to the
 #   maximum $\sqrt2$ that two orthogonal unit vectors can have; with $dt=0.01$ it spends 20 000 $H$-equivalents — five times the Chebyshev budget — to reach $10^{-2}$, still ten orders of magnitude worse.
-#   The error grows linearly in time, $\propto T\,dt^2$, so long times are exactly where it hurts. Its norm, however, is perfect to $10^{-11}$ — **unitarity is not accuracy**.
+#   The error grows linearly in time, $\propto T\,dt^2$, so long times are exactly where it hurts. Its norm, however, is perfect to $10^{-11}$: **a unitary propagator can still be far from the exact one**.
 # * Local observables are much more forgiving than the state vector, as always: at $dt=0.01$ the worst magnetisation $\langle Z_j\rangle$ is off by only $5\times10^{-4}$, at $dt=0.05$ by $1.4\times10^{-2}$.
 #
 # > **Numerical practice.** Rule of thumb for Chebyshev propagation: choose $\Delta t$ as the spacing at which you want to *see* observables, provided $a\Delta t\gtrsim10$; below that you are paying mostly overhead.
 # > Local observables (magnetisations) are often fine with a much larger TEBD error than the full state vector — the state error is the most demanding measure — but for echoes, overlaps and long times there is no substitute for an exact propagator.
 #
-# ### 13.2 Which error accumulates: truncation against round-off
+# ### 13.2 Accumulation of truncation and round-off errors
 #
-# "No Trotter error" does not mean "no error". A single Chebyshev step carries exactly two:
+# Without a Trotter error, a single Chebyshev step still carries two errors:
 #
 # 1. **Truncation.** We stopped the series at $K$, so a deterministic $\delta_{\rm trunc}\lesssim2\sum_{k>K}|J_k(a\Delta t)|\sim\text{`tol`}$ is left over.
 #    It is the *same* operator at every step, so over $n$ chained steps it adds up **coherently**: $n\,\delta_{\rm trunc}$.
 # 2. **Round-off.** Each of the $K$ recurrence steps commits rounding errors of relative size $\varepsilon=2.2\times10^{-16}$; because both solutions of the
-#    recurrence are bounded on $[-1,1]$ (§3.2), they neither grow nor cancel systematically, and one step accumulates $\sim K\varepsilon$. Their *signs* differ
-#    from step to step, so over $n$ steps they add up incoherently, like a random walk, much more slowly than $n$.
+#    recurrence are bounded on $[-1,1]$ (§3.2), they are not amplified, and one step accumulates at most $\sim K\varepsilon$. Part of this error is the same at every
+#    step (the rounded coefficients $c_k$, the rounded $a$, $b$ and phase define a slightly different but *fixed* polynomial) and adds up coherently; the rest changes
+#    from step to step and partly cancels.
 #
-# The distinction matters because only the first one is under our control, through `tol`. In the table above the two are mixed (both $K$ and $n$ change from row to
+# Only the first one is under our control, through `tol`. In the table above the two are mixed (both $K$ and $n$ change from row to
 # row), so we separate them: fix $\Delta t=0.5$, vary only $n$, and repeat with a tighter `tol`.
 
 # %%
@@ -1291,18 +1294,20 @@ print(f"  for reference: K * machine epsilon = {K_acc * np.finfo(float).eps:.2e}
 # %% [markdown]
 # **Interpretation.** With the default `tol`$=10^{-13}$ the per-step error is $\sim5\times10^{-14}$ and it grows with an exponent $p\approx1$: **linear, coherent
 # accumulation of the truncation error**, exactly as predicted. Tightening `tol` to $10^{-15}$ costs two extra terms out of $\sim30$ and drops the single-step error
-# by a factor of 20, to the round-off floor (compare it with the printed $K\varepsilon$); what is left then grows with $p\approx0.9$ — sub-linear, because rounding errors partly cancel. So the
-# "slow degradation" of the long-time table is truncation, not arithmetic, and it is cheap to remove.
+# by a factor of 20, to the round-off floor (compare it with the printed $K\varepsilon$). What is left still grows with $p\approx0.9$, far from the $p=1/2$ of a random walk:
+# round-off, too, accumulates almost linearly, because part of it is the same fixed perturbation in every step. The gain lies in the prefactor, which drops from
+# $\sim$`tol` to $\sim\varepsilon$ per step: after 100 steps the error is $\sim2\times10^{-13}$ instead of $5\times10^{-12}$. The slow degradation in the long-time table is therefore
+# mostly truncation, and it is cheap to remove.
 #
-# > **Numerical practice.** Two rules follow, and they are the practical content of this section.
+# > **Numerical practice.** Two rules follow.
 # > **(i)** Chaining $n$ steps at tolerance `tol` gives a final error of about $n\cdot$`tol`, so choose `tol` $\approx\varepsilon_{\rm target}/n$ — it costs only
 # > $\propto(\ln 1/\text{tol})^{2/3}$ extra terms by Eq. (10a), which is nearly free.
 # > **(ii)** Below that lies a hard floor: a single step cannot be more accurate than the round-off of its own recurrence, of order $K\varepsilon$ — compare the
 # > printed reference value with the `tol`$=10^{-15}$ row above, and note that the one-shot $T=100$ run ($K=1869$, so $K\varepsilon=4\times10^{-13}$) came out at
-# > $4\times10^{-13}$. Asking for an accuracy below $K\varepsilon$ is asking for nothing.
+# > $4\times10^{-13}$. No choice of `tol` reaches below this floor.
 
 # %% [markdown]
-# ## 14. Performance: how far the method reaches
+# ## 14. Performance and the reach in system size
 #
 # Memory: four state vectors (three in the carry plus one temporary) of $16\times2^N$ bytes each in double precision — 64 MB at $N=20$, 16 GB at $N=28$. Time: $K\approx1.02\,aT+\dots$ applications
 # of $H$, each $\mathcal{O}(N2^N)$, with $a\approx1.8N$ for our model, so the total cost of reaching a fixed time $T$ scales as $\mathcal O(N^2\,2^N\,T)$. Let us measure one Chebyshev step of length $t=1$ for
@@ -1334,10 +1339,10 @@ ax.legend(); ax.grid(alpha=0.3, which="both")
 plt.show()
 
 # %% [markdown]
-# **Interpretation.** For small $N$ the run time is dominated by fixed overheads (dispatch, tiny arrays) and the compile time dwarfs it; from $N\approx12$ on the curve follows the predicted $N^22^N$ law — very roughly a factor of four for every two additional spins — and the
-# time per elementary operation (last-but-one column) stops growing and drifts slowly *downwards*, because larger arrays use the cache and the vector units better. Read that column for its trend only: its absolute value depends on the machine and on what else is running on it
+# **Interpretation.** For small $N$ the run time is dominated by fixed overheads (dispatch, tiny arrays) and the compile time dwarfs it; from $N\approx12$ on the curve follows the predicted $N^22^N$ law — a factor of four to five for every two additional spins — and the
+# time per elementary operation (last-but-one column) stops growing and, apart from timing noise, drifts slowly *downwards*, because larger arrays use the cache and the vector units better. Read that column for its trend only: its absolute value depends on the machine and on what else is running on it
 # (these notes are executed on a shared CPU, and the same cell can differ by a factor of several between runs). The norm column confirms that the cruder $m=20$ bounds with a 5 % safety margin were sufficient at every size (had they not been, the norm would have exploded, §8).
-# A million-dimensional state ($N=20$) is propagated by $e^{-iH}$ to machine precision in seconds on a CPU; on a GPU the same code runs unchanged (set `DEVICE` in the configuration cell) and the large-$N$ end of the curve drops by a large factor.
+# A million-dimensional state ($N=20$) is propagated by $e^{-iH}$ to machine precision in well under a minute on a CPU; on a GPU the same code runs unchanged (set `DEVICE` in the configuration cell) and the large-$N$ end of the curve drops by a large factor.
 #
 # > **JAX practice.** Compile time is *per shape*: a new $N$, a new number of coefficients $K$ — new compilation. In parameter scans keep $\Delta t$ (hence $K$) fixed and vary what enters as *values*. If you must vary $\Delta t$, you can pad the coefficient array with zeros to a common length at the cost of some wasted applications of $H$.
 
@@ -1350,7 +1355,7 @@ plt.show()
 # * The Hamiltonian must be rescaled so that its spectrum lies in $[-1,1]$: $\tilde H=(H-b)/a$. Bounds from a short Lanczos run lie *inside* the spectrum $\Rightarrow$ safety factor. Over-estimating $a$ costs proportionally more work; under-estimating it makes the result explode. Watch the norm.
 # * Implementation: coefficients once in SciPy; recurrence as a `lax.scan` with carry $(\phi_{k-1},\phi_k,\Sigma)$; trajectories as a scan of scans. Memory: four state vectors. Cost: $\approx at$ applications of $H$, i.e. $\mathcal O(N^22^Nt)$ for a chain.
 # * There is no time-step error, but there are exactly two other errors and both are quantified: the **truncation** at `tol`, which accumulates *linearly* over $n$ chained steps (so take `tol` $\approx\varepsilon_{\rm target}/n$),
-#   and the **round-off** of the recurrence, of order $K\varepsilon$ per step, which accumulates sub-linearly and is a hard floor. Wrong spectral bounds are a third, catastrophic failure mode rather than an error.
+#   and the **round-off** of the recurrence, of order $\varepsilon$ to $K\varepsilon$ per step, which also accumulates almost linearly (partly coherently) and is a hard floor. Wrong spectral bounds are a third, catastrophic failure mode rather than an error.
 # * The truncated propagator is not exactly unitary, so the norm is a free monitor — but by Eq. (9a) it under-reports the error by the overlap with the offending eigenvectors and must be read as a lower bound.
 # * Compared with TEBD at equal accuracy, Chebyshev loses for rough answers and wins by orders of magnitude for precise ones and for long times; the advantage shrinks only as $N^{1-1/p}$ with system size.
 # * Large steps are *more* efficient than small ones; the step is chosen by the desired sampling of observables.
@@ -1363,7 +1368,7 @@ plt.show()
 # 2. ★ **Bessel sum rules.** Verify numerically $\sum_{k=-\infty}^{\infty}J_k(z)=1$ (set $\theta=\pi/2$ in the textbook form of the Jacobi–Anger identity) and $J_0^2+2\sum_{k\ge1}J_k^2=1$ for several $z$, using `jv`. Which physical property of the propagator does the second one express?
 # 3. ★ **Backward evolution.** `make_chebyshev_step(..., dt=-t)` evolves backward in time. Explain, using $J_k(-z)=(-1)^kJ_k(z)$, why the backward coefficients are the complex conjugates of the forward ones, and verify it with `chebyshev_coefficients`.
 # 4. ★★ **Single precision.** Set `PRECISION = "single"` in the configuration cell and rerun §10. Where is the rounding floor now? What `tol` is sensible? How does the floor grow with the number of chained steps in §13?
-# 5. ★★ **Imaginary time (extend the code).** Nothing in `chebyshev_apply` is specific to $e^{-izx}$ (§7.4). Implement $e^{-\tau H}$: compute the coefficients of $f(x)=e^{-\tau a x}$ both with the midpoint rule of §4 and from the closed form $c_k=(2-\delta_{k0})(-1)^kI_k(\tau a)$ (`scipy.special.iv`), and check that they agree. Apply the step to a Haar-random state and normalise. Use several moderate steps (e.g. twenty steps of $\tau=1$) rather than one huge one: $I_k(\tau a)$ grows like $e^{\tau a}$ and overflows for $\tau a\gtrsim700$, for which `scipy.special.ive` is the cure. At $N=10$ and total $\tau=20$ the energy should match `lanczos_ground_state` from [Hamiltonians and ground states](11_hamiltonians_and_ground_states.ipynb) to $\sim10^{-13}$. Two questions: why does the truncation now need $K\gtrsim\tau a$ terms (look at where $I_k(z)$ starts to decay), and why is there no cancellation catastrophe of §2.2 even though every term is of size $e^{\tau a}$?
+# 5. ★★ **Imaginary time (extend the code).** Nothing in `chebyshev_apply` is specific to $e^{-izx}$ (§7.4). Implement $e^{-\tau H}$: compute the coefficients of $f(x)=e^{-\tau a x}$ both with the midpoint rule of §4 and from the closed form $c_k=(2-\delta_{k0})(-1)^kI_k(\tau a)$ (`scipy.special.iv`), and check that they agree. Apply the step to a Haar-random state and normalise. Use several moderate steps (e.g. twenty steps of $\tau=1$) rather than one huge one: $I_k(\tau a)$ grows like $e^{\tau a}$ and overflows for $\tau a\gtrsim700$, for which `scipy.special.ive` is the cure. At $N=10$ and total $\tau=20$ the energy should match `lanczos_ground_state` from [Hamiltonians and ground states](11_hamiltonians_and_ground_states.ipynb) to $\sim10^{-13}$. Two questions: how does the number of terms needed at relative accuracy `tol` grow with $\tau a$ (use $I_k(w)/I_0(w)\approx e^{-k^2/2w}$ for $1\ll k\ll w$; you should find $K\approx\sqrt{2\tau a\ln(1/\text{tol})}$, far fewer than the $K\approx at$ of real time when $\tau a$ is large), and why is there no cancellation catastrophe of §2.2 even though every term is of size $e^{\tau a}$?
 # 6. ★★ **Loschmidt echo (physics).** Compute $\mathcal L(t)=|\langle\psi(0)|\psi(t)\rangle|^2$ for the quench of §11 up to $t=10$ at $N=14$ with Chebyshev, and with TEBD-2 at $dt=0.05$ and $0.01$. Plot on a logarithmic scale. At which value of $\mathcal L$ does each TEBD curve become unreliable, and why is this observable so much more sensitive than $\langle Z_j\rangle$?
 # 7. ★★ **Wrong bounds, quantitatively.** For the experiment of §8 predict the norm of the corrupted state from the *first omitted* term of the series, $2\,\vert J_{K+1}(z)\vert\,T_{K+1}(1/s)$ with $T_{K+1}(1/s)=\cosh\big((K+1)\,\mathrm{arccosh}(1/s)\big)$ and $z=s\,a\,t$, times the overlap of $|\psi_0\rangle$ with the extremal eigenvectors (dense, $N=10$). The truncation order is the engine's: $K=\lceil z\rceil+20$, raised in steps of 10 until $|J_K(z)|<$ `tol`. Compare with the measured norms — at $s=0.9$ and $0.8$ this single term should account for them to about 20 %. At $s=0.98$ the same estimate comes out far below 1, so it predicts not the norm but the *error* column; check that as well.
 # 8. ★★★ **Piecewise-constant driving (extend the code).** Let the field switch periodically between $h_x=1$ and $h_x=0$ every $\tau=0.5$ (a Floquet drive). Build the two Chebyshev steps once and alternate them inside a `lax.scan` (hint: `lax.cond` on the step parity, or scan over pairs of steps). Record the energy with respect to the *average* Hamiltonian and the half-chain entropy: does the energy drift towards $0$, the energy of the maximally mixed state, and does the entropy approach the Page value?
@@ -1383,7 +1388,7 @@ plt.show()
 # * L. N. Trefethen, *Approximation Theory and Approximation Practice*, Other Titles in Applied Mathematics **128**, SIAM (2013) — why Chebyshev expansions are
 #   near-optimal polynomial approximations (Ch. 16, "Best and Near-Best").
 # * J. C. Mason and D. C. Handscomb, *Chebyshev Polynomials*, Chapman & Hall/CRC, Boca Raton (2003), ISBN 978-0-8493-0355-5.
-* L. N. Trefethen and J. A. C. Weideman, *The exponentially convergent trapezoidal rule*, SIAM Review **56**, 385–458 (2014).
+# * L. N. Trefethen and J. A. C. Weideman, *The exponentially convergent trapezoidal rule*, SIAM Review **56**, 385–458 (2014).
 # * W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes: The Art of Scientific Computing*, 3rd ed., Cambridge University Press
 #   (2007) — §5.8 Chebyshev approximation, §6.5 Bessel functions of integer order; and *Numerical Recipes in Fortran 90: The Art of Parallel Scientific
 #   Computing*, 2nd ed., Cambridge University Press (1996).

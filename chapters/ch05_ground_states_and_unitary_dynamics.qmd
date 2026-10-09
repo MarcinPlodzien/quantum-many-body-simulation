@@ -32,7 +32,7 @@ Matrix-free Trotter–Suzuki (TEBD) time evolution with two-site gates applied b
 ::: {.nb-item}
 [Time evolution II — Chebyshev propagation](../ch05_ground_states_and_unitary_dynamics/13_chebyshev_propagation.ipynb)
 
-The Chebyshev (Tal-Ezer–Kosloff) expansion of the propagator derived from scratch: Chebyshev polynomials, Bessel coefficients, the Jacobi–Anger identity, spectral rescaling, a lax.scan implementation accurate to machine precision, and its cost compared with TEBD.
+The Chebyshev (Tal-Ezer–Kosloff) expansion of the propagator: Chebyshev polynomials, Bessel coefficients, the Jacobi–Anger identity, spectral rescaling, a lax.scan implementation accurate to machine precision, and its cost compared with TEBD.
 :::
 
 ::: {.nb-item}
@@ -44,6 +44,6 @@ Krylov-subspace (Lanczos) exponentiation derived and validated, with a rigorous 
 ::: {.nb-item}
 [Quench dynamics in spin chains — light cones, entanglement growth, relaxation](../ch05_ground_states_and_unitary_dynamics/15_quench_dynamics_spin_chains.ipynb)
 
-A physics showcase of the time-evolution toolbox: quantum quenches in XXZ, Heisenberg and transverse-field Ising chains — relaxation of magnetisation, Lieb–Robinson light cones, domain-wall melting, entanglement growth, integrable versus non-integrable behaviour and the Loschmidt echo.
+The time-evolution toolbox applied to quantum quenches in XXZ, Heisenberg and transverse-field Ising chains — relaxation of magnetisation, Lieb–Robinson light cones, domain-wall melting, entanglement growth, integrable versus non-integrable behaviour and the Loschmidt echo.
 :::
 

@@ -1,6 +1,6 @@
 #@title: Quench dynamics in spin chains — light cones, entanglement growth, relaxation
 #@part: Chapter 5 — Ground states and unitary dynamics
-#@description: A physics showcase of the time-evolution toolbox: quantum quenches in XXZ, Heisenberg and transverse-field Ising chains — relaxation of magnetisation, Lieb–Robinson light cones, domain-wall melting, entanglement growth, integrable versus non-integrable behaviour and the Loschmidt echo.
+#@description: The time-evolution toolbox applied to quantum quenches in XXZ, Heisenberg and transverse-field Ising chains — relaxation of magnetisation, Lieb–Robinson light cones, domain-wall melting, entanglement growth, integrable versus non-integrable behaviour and the Loschmidt echo.
 
 # %% [markdown]
 # ## 1. Introduction and motivation
@@ -13,7 +13,7 @@
 # * How fast can information and correlations travel through the chain? (There is no relativity in the Schrödinger
 #   equation of a spin chain — and yet we will see a *light cone*.)
 # * The evolution is unitary and the state stays pure forever, so in what sense can the system "relax"?
-# * Why does every classical algorithm eventually run out of steam when simulating such dynamics?
+# * Why does the cost of every classical simulation of such dynamics eventually grow beyond reach?
 #
 # **Why people care.** For decades these were questions for theorists only, because a solid-state magnet is never
 # isolated: it exchanges energy with phonons long before anything interesting happens. This changed with *quantum simulators*:
@@ -29,13 +29,13 @@
 #   Ising-type dynamics;
 # * **superconducting qubits** — the same dynamics run as a Trotter circuit, gate by gate.
 #
-# In all these platforms the experimental protocol is *literally* the numerical protocol of this notebook:
+# In all these platforms the experimental protocol is the numerical protocol of this notebook:
 # prepare a product state → evolve with $H$ → measure local observables and correlations. Simulations like ours are
 # used to benchmark the devices at small sizes — and the devices are interesting precisely because simulations fail at large sizes.
 # We will see *why* they fail: entanglement.
 #
-# **What we will compute.** This is the physics showcase of Chapter 5. The integrators themselves were derived in the previous
-# notebooks; here we use them as trusted tools (after re-validating them — never trust a simulator you have not tested):
+# **What we will compute.** The integrators were derived in the previous notebooks; here we re-validate them and then use them
+# as tools:
 #
 # | Section | Experiment | Physics |
 # |---|---|---|
@@ -43,7 +43,7 @@
 # | 5 | quench of an XXZ chain in a transverse field from $\vert\!\uparrow\uparrow\dots\uparrow\rangle$ | relaxation of magnetisation and correlators, entanglement, delocalisation in Hilbert space |
 # | 6 | transverse-field Ising chain | Lieb–Robinson light cone of correlations |
 # | 7 | XXZ chain from a domain wall $\vert\!\uparrow\uparrow\uparrow\downarrow\downarrow\downarrow\rangle$ | ballistic vs. slow vs. frozen spin transport, free-fermion check |
-# | 8 | tilted-field Ising chain, integrable vs. non-integrable | linear entanglement growth, Page saturation, relaxation of a local observable — and why classical simulation dies |
+# | 8 | tilted-field Ising chain, integrable vs. non-integrable | linear entanglement growth, Page saturation, relaxation of a local observable, cost of classical simulation |
 # | 9 | Loschmidt echo after an Ising quench | return probability, dynamical quantum phase transitions |
 # | 10 | performance | cost $O(N\,2^N)$ per step, compile vs. run time |
 #
@@ -101,7 +101,7 @@
 # In a small system the cancellation is imperfect (we will see fluctuations that shrink with $N$), and after a very long time the phases can re-align (revivals).
 #
 # What is conserved: the energy $E=\langle\psi_0|H|\psi_0\rangle$ — and in fact every $|c_n|^2$. A quench from a product state injects an
-# *extensive* amount of energy above the ground state ($E - E_{\rm gs} \propto N$): we are probing the middle of the many-body spectrum, not the low-energy physics of notebook
+# *extensive* amount of energy above the ground state ($E - E_{\rm gs} \propto N$): we are probing the middle of the many-body spectrum, far above the low-energy physics of notebook
 # [Hamiltonians and ground states](11_hamiltonians_and_ground_states.ipynb).
 #
 # > **Physics insight.** By Eq. (1) the long-time value of an observable is fixed by the weights $|c_n|^2$, i.e. by what the initial state and $H$ have in
@@ -144,7 +144,7 @@
 #
 # 1. **Reflection.** An excitation emitted at site $j$ reaches the nearer chain end after $t_{\rm edge}=d_{\rm end}/v_{\max}$ and bounces back
 #    (open ends are perfect mirrors: nothing leaves the chain). A correlation front, built from *pairs*, sweeps the chain twice as fast, so
-#    connected correlations feel the ends already at $t_{\rm edge}/2$. Beyond that time the profiles are those of a finite box, not of a chain.
+#    connected correlations feel the ends already at $t_{\rm edge}/2$. Beyond that time the profiles are those of a finite box.
 # 2. **Saturation of the half-chain entropy** at $t_{\rm sat}\simeq (N/2)/v_{\max}=N/(2v_{\max})$ — the time a quasiparticle emitted at the far
 #    end of one half needs to reach the cut (§8.1). Before $t_{\rm sat}$ all system sizes must lie on top of each other; after it the plateau
 #    is a finite-size number.
@@ -152,7 +152,7 @@
 #    they are strong in integrable chains, where the quasiparticles keep their identity, and weak in generic ones, where they scatter. A *full*
 #    Poincaré recurrence of the state needs a time exponentially long in $N$ and is never reached here.
 #
-# Read as a rule: **the window in which a finite chain imitates an infinite one is $t\lesssim t_{\rm edge}$**, and every plot in this notebook that
+# Read as a rule: **the window in which a finite chain imitates an infinite one is $t\lesssim t_{\rm edge}$** ($t_{\rm edge}/2$ for correlations), and every plot in this notebook that
 # extends beyond it does so deliberately — §8 wants the plateau, §9 wants many critical times. The concrete numbers ($v_{\max}=2\min(J,h)$ for the
 # Ising chains, $4J$ for the $XX$ chain) are collected with each experiment.
 
@@ -520,12 +520,11 @@ assert abs(inf_cheb) < 1e3 * TOL and abs(inf_kry) < 1e3 * TOL
 # %% [markdown]
 # Chebyshev and Krylov reproduce the exact state to (nearly) machine precision, so either can serve as the reference where dense algebra is impossible.
 # All five ways of computing $e^{-iHt}|\psi_0\rangle$ — dense diagonalisation, three Trotter orders, Chebyshev, Krylov — agree within their known error budgets.
-# We can now go to larger chains with a clear conscience.
 
 # %% [markdown]
 # ## 5. Experiment 1 — relaxation after a quench of the XXZ chain in a transverse field
 #
-# Same model and protocol, now at $N=14$ ($16\,384$ amplitudes; the dense Hamiltonian would already need 4 GB and a day of diagonalisation on a laptop — for us it is a few seconds).
+# Same model and protocol, now at $N=14$ ($16\,384$ amplitudes; the dense Hamiltonian would already need 4 GB of memory and of order $10^{13}$ floating-point operations to diagonalise, while TEBD needs a few seconds).
 # We record the complete measurement set of §2.4. Since the exact reference is gone, the run is validated at the final time against Chebyshev propagation, and continuously by two
 # conservation laws: the norm (exactly conserved by every unitary gate) and the energy (conserved by the exact dynamics, but only approximately by a Trotter circuit — a built-in error monitor).
 
@@ -614,12 +613,13 @@ print(f"S(T) = {S1[-1]:.2f} bits (Page value {page:.2f}),  E_N(T) = {EN1[-1]:.2f
 #   site (green) has only one neighbour and relaxes differently: open boundaries are visible.
 # * *Row 3, numerics.* The norm is conserved to round-off (unitary gates). The energy drifts by a small amount, consistent with the $O(\delta t^2)$ Trotter error — a free
 #   diagnostic that needs no reference solution. The final-time comparison with Chebyshev printed above confirms that observables are accurate to better than the line width.
-# * *Row 3, middle: delocalisation.* The IPR falls from 1 (a single basis state) by almost four orders of magnitude and then oscillates *around* the random-state value $2/(2^N+1)$ (dotted), dipping
-#   slightly below it at the first minimum: within a time $t\sim1$ the state is spread over essentially the whole computational basis. (The IPR is a crude measure — it says nothing about *which*
-#   states carry the weight, and energy conservation certainly restricts that.)
+# * *Row 3, middle: delocalisation.* The IPR falls from 1 (a single basis state) by four orders of magnitude and reaches the random-state value $2/(2^N+1)$ (dotted) at $t\approx0.8$:
+#   the state is then spread over essentially the whole computational basis. It does not stay there. At $t\approx1.6$, where $\langle Z\rangle$ has its deepest minimum, the IPR climbs back to
+#   $\approx2^{-4}$ (the weight has gathered on configurations close to all-down), and at $t\approx3$ it rises again together with the echo revival. The later minima approach the random-state value from above,
+#   and the maxima shrink. (The IPR is a crude measure: it says nothing about *which* states carry the weight, and energy conservation restricts that.)
 # * *Row 4, entanglement.* The half-chain entropy grows roughly linearly from $t\approx0.7$ and has only just begun to bend over at $T=5$, at $4.7$ bits against the Page value $6.3$ of a random state:
 #   saturation is a later story (§8). The logarithmic negativity follows it from above ($E_{\mathcal N}\ge S$, they are the Rényi-$\tfrac12$ and Rényi-1 entropies of the same Schmidt spectrum).
-#   The Loschmidt echo decays to $\sim 2^{-N}$-ish values (minimum $1.3\times10^{-5}$ against $2^{-14}=6.1\times10^{-5}$), with a partial revival around $t=3$: the evolved state is nearly orthogonal to the initial one.
+#   The Loschmidt echo decays to values of order $2^{-N}$ (minimum $1.3\times10^{-5}$ against $2^{-14}=6.1\times10^{-5}$), with a partial revival around $t=3$: the evolved state is nearly orthogonal to the initial one.
 #
 # ### 5.1 A sweep over initial states with `vmap`
 #
@@ -707,7 +707,7 @@ plt.tight_layout(); plt.show()
 # Two things about this theorem matter for what follows. First, it is an **existence statement**: it guarantees that *some* finite $v_{\rm LR}$ works, and the proof produces one — for a chain with
 # two-site terms $h_{j,j+1}$ the constant it produces is built from $\max_j\|h_{j,j+1}\|$ and is typically several times larger than the velocity one actually observes. It is an upper bound and a loose
 # one; it is not a prediction for where the front will be. Second, the quantity it bounds is the norm of a commutator — the worst case over all states — whereas we will measure a connected
-# correlation function in one particular state. The number that our data can be compared with is therefore **not** $v_{\rm LR}$ but the model-specific group velocity of the quasiparticles, which for
+# correlation function in one particular state. Our data are therefore to be compared with the model-specific group velocity of the quasiparticles, which for
 # the Ising chain is known exactly and is the subject of the next subsection. The Lieb–Robinson bound explains why a light cone exists at all; the quasiparticle picture says where its edge is.
 #
 # ### 6.2 The quasiparticle picture
@@ -719,13 +719,13 @@ plt.tight_layout(); plt.show()
 #
 # $$\varepsilon_k=2\sqrt{J^2+h^2-2Jh\cos k},\qquad v_k=\frac{2Jh\sin k}{\sqrt{J^2+h^2-2Jh\cos k}},\qquad v_{\max}=2\min(J,h)$$
 #
-# The last equality is worth deriving, because it is the only parameter-free number in this section. Write $c=\cos k$ and maximise $v_k^2=4J^2h^2(1-c^2)/(J^2+h^2-2Jhc)$ over $c$: the derivative
+# The last equality is the prediction this section tests, and it follows from a short maximisation. Write $c=\cos k$ and maximise $v_k^2=4J^2h^2(1-c^2)/(J^2+h^2-2Jhc)$ over $c$: the derivative
 # vanishes when $Jh\,c^2-(J^2+h^2)\,c+Jh=0$, whose two roots are $c=J/h$ and $c=h/J$. Exactly one of them lies in $[-1,1]$ — the ratio of the smaller coupling to the larger — and inserting it gives
 # $v_k^2=4\min(J,h)^2$. (For $J=h$ the two roots merge at $c=1$, i.e. the maximum sits at $k=0$, and $v_{\max}=2J$ again.) So
 #
 # $$v_{\max}=2\min(J,h),\qquad\text{and the prediction to test is }\ \ r_{\rm front}(t)=2v_{\max}\,t=4\min(J,h)\,t\ \ \text{sites}.$$
 #
-# The two factors of 2 have different origins and it is worth keeping them apart: the 2 in $\varepsilon_k$ is the Pauli convention of this course ($Z$ has eigenvalues $\pm1$, not $\pm\tfrac12$), while the
+# The two factors of 2 have different origins: the 2 in $\varepsilon_k$ is the Pauli convention of this course ($Z$ has eigenvalues $\pm1$, not $\pm\tfrac12$), while the
 # 2 in $2v_{\max}$ is the *pair* mechanism — the correlation front moves at twice the speed of a single quasiparticle. A single-particle disturbance, such as one flipped spin, spreads at $v_{\max}$ only
 # (Exercise 3), and so does the magnetisation front of the domain wall in §7.
 #
@@ -834,7 +834,7 @@ print("chain-averaged <Z> at t = 0, 1, 2, 3:", {float(h): np.round(mz2[k][[0, 25
 # switch on site after site along a straight line. The arrival times in the right panel grow **linearly** with the distance $r$, and increasing $\min(J,h)$ opens the cone — that is the qualitative content of the
 # Lieb–Robinson bound and it is unambiguous. Outside the cone the correlations are not zero but tiny and decaying fast with distance — exactly the leakage that the bound permits.
 #
-# The *numerical value* of the front velocity is a subtler matter, and it is worth dwelling on it because the same trap appears in every light-cone measurement, numerical or experimental. There is no sharp front:
+# The *numerical value* of the front velocity is a subtler matter, and the same trap appears in every light-cone measurement, numerical or experimental. There is no sharp front:
 # at distance $r$ the correlation rises smoothly from the exponentially small Lieb–Robinson tail to an $\mathcal O(1)$ value, so "arrival" is whatever the threshold says it is. A **high** threshold declares the
 # arrival too late (velocity too small), a **low** one already triggers on the tail (velocity too large). The printed scan over four thresholds shows the bias directly, and it is *monotone* in the threshold:
 #
@@ -846,8 +846,8 @@ print("chain-averaged <Z> at t = 0, 1, 2, 3:", {float(h): np.round(mz2[k][[0, 25
 # $10^{-2}$ threshold registers only the slow, bright core. The white dashed lines in the colour maps say the same thing: at $h=0.5$ the prediction follows the outer edge of the bright region, at $h=1$ it runs
 # along the faintest visible edge. Reducing the uncertainty needs a longer chain, a threshold that follows the known decay of the signal with distance, or a fit to the whole space–time profile.
 #
-# > **Common pitfall.** A front velocity read off a heat map is only as good as the contour you chose. Quote at least two thresholds, or quote the velocity with the bias it inherits — a single number
-# > agreeing with theory to three digits is a sign that the threshold was tuned, not that the physics was measured.
+# > **Common pitfall.** A front velocity read off a heat map is only as good as the contour you chose. Quote at least two thresholds, or quote the velocity with the bias it inherits. A single number
+# > that agrees with the theory to three digits usually reflects a tuned threshold.
 #
 # The time window is limited from above as well (§2.5): the reference site $c=6$ is 6 sites from the near end, so for $h=1$ the correlation front, moving at $2v_{\max}=4$, hits the end at $t\approx1.5$ and
 # comes back. This is why the fit stops at $r=5$, whose arrival time is $\approx1.25$; the data beyond $t\approx1.5$ in the colour maps are those of a box.
@@ -877,12 +877,12 @@ print("chain-averaged <Z> at t = 0, 1, 2, 3:", {float(h): np.round(mz2[k][[0, 25
 #   compatible with diffusive spreading with slowly decaying corrections (Misguich, Mallick, Krapivsky 2017): the long-time law of this particular initial state is not settled;
 # * $\Delta>1$: the wall is essentially **frozen** — the domain-wall state is close to an eigenstate of the Ising-dominated Hamiltonian, and the transferred magnetisation saturates at an $\mathcal O(1)$ value.
 #
-# The three regimes are statements about an *infinite* chain at *long* times. Our chain has 16 sites and the fastest front crosses it in $t=2$ (§2.5), so we can hope to see the ballistic case
-# quantitatively, the ordering of the three curves clearly, and nothing at all of these exponents — which the large-scale simulations above extract from chains of hundreds of sites and times of order $10^2$.
+# The three regimes are statements about an *infinite* chain at *long* times. Our chain has 16 sites and the fastest front reaches its ends at $t=2$ (§2.5), so we can hope to see the ballistic case
+# quantitatively and the ordering of the three curves clearly, but none of these exponents, which the large-scale simulations above extract from chains of hundreds of sites and times of order $10^2$.
 #
 # ### 7.2 An exact benchmark at any $N$: free fermions
 #
-# At $\Delta=0$ the chain is secretly non-interacting. The Jordan–Wigner transformation (Lieb, Schultz, Mattis 1961; quoted without proof) maps a down spin to a fermion, $n_j=(1-Z_j)/2$, and
+# At $\Delta=0$ the chain is equivalent to non-interacting fermions. The Jordan–Wigner transformation (Lieb, Schultz, Mattis 1961; quoted without proof) maps a down spin to a fermion, $n_j=(1-Z_j)/2$, and
 # $J(XX+YY)$ to a hopping Hamiltonian $\sum_{ij}h_{ij}c_i^\dagger c_j$ with the $N\times N$ matrix $h_{j,j+1}=h_{j+1,j}=2J$. Free fermions evolve independently: a particle starting on site $l$ has amplitude
 # $u_{jl}(t)=[e^{-iht}]_{jl}$ on site $j$, and the density is the sum over the initially occupied sites,
 #
@@ -890,8 +890,8 @@ print("chain-averaged <Z> at t = 0, 1, 2, 3:", {float(h): np.round(mz2[k][[0, 25
 #
 # An $N\times N$ matrix instead of $2^N\times2^N$: this is what "integrable" buys you, and it gives us an **independent exact reference at sizes where dense diagonalisation is impossible**.
 # In the infinite chain the front moves with the maximal group velocity of $\varepsilon_k=4J\cos k$, i.e. $v_{\max}=\max_k\lvert d\varepsilon_k/dk\rvert=4J$ sites per unit time, and the magnetisation transferred
-# across the wall grows asymptotically as $4Jt/\pi$ (Antal *et al.* 1999). The front of a *melting wall* moves at $v_{\max}$, not at $2v_{\max}$ as the correlation front of §6: a domain wall is a single-particle
-# disturbance that the dynamics transports, not a source of entangled pairs whose two halves must both travel. Watching which of the two velocities a given observable picks up is the cleanest way to tell the
+# across the wall grows asymptotically as $4Jt/\pi$ (Antal *et al.* 1999). The front of a *melting wall* moves at $v_{\max}$, half the speed of the correlation front of §6: a domain wall is a single-particle
+# disturbance carried by the dynamics, whereas a correlation front needs both partners of an entangled pair to travel. Watching which of the two velocities a given observable picks up is the cleanest way to tell the
 # two mechanisms apart (Exercise 3).
 #
 # ### 7.3 Code: a `vmap` over the anisotropy $\Delta$
@@ -977,6 +977,12 @@ plt.tight_layout(); plt.show()
 i1 = int(np.argmin(np.abs(times3 - 1.6)))
 print(f"transferred magnetisation at t = {times3[i1]:.2f}: " + ", ".join(f"Delta={d}: {transferred[k][i1]:.3f}" for k, d in enumerate(np.asarray(DELTAS)))
       + f"   [4Jt/pi = {4 * J3 * times3[i1] / np.pi:.3f}]")
+# effective transport exponent: slope of log(transferred) vs log(t) for 1 <= t <= 2 (before the fastest front reaches the ends)
+win3 = (times3 > 1.0 - 1e-9) & (times3 < 2.0 + 1e-9)
+alpha3 = [np.polyfit(np.log(times3[win3]), np.log(transferred[k][win3]), 1)[0] for k in range(len(DELTAS))]
+print("log-log slope of the transferred magnetisation, 1 <= t <= 2: "
+      + ", ".join(f"Delta={d}: {a:.2f}" for d, a in zip(np.asarray(DELTAS)[:3], alpha3[:3])))
+assert abs(alpha3[0] - 1.0) < 0.05 and alpha3[1] < 0.95      # control: exact ballistic at Delta=0; window bias visible at Delta=0.5
 
 # %% [markdown]
 # **Interpretation.**
@@ -985,17 +991,18 @@ print(f"transferred magnetisation at t = {times3[i1]:.2f}: " + ", ".join(f"Delta
 #   A simulator that respects an exact solution *and* a symmetry it was never told about has earned some trust for the interacting cases, for which no such simple formula exists.
 # * **$\Delta<1$: ballistic melting.** The wall dissolves inside a cone bounded by the maximal velocity $4J$ (dashed), leaving behind a smooth profile; the transferred magnetisation grows linearly and follows $4Jt/\pi$ at $\Delta=0$.
 #   At $\Delta=0.5$ transport is still linear in time but slower. (Beyond $t=2$ the fastest front reaches the ends of our short chain.)
-# * **$\Delta=1$:** clearly slower than ballistic — the curve bends, and at $t=1.6$ it has transported $1.06$ spins against $2.03$ at $\Delta=0$. The asymptotic laws quoted in §7.1 are
-#   *not* what we are seeing here: over a time window of less than one decade, $t^{1/2}$, $t^{3/5}$, $t^{2/3}$ and, say, $t^{0.8}$ are indistinguishable, and the curve is still dominated by the initial rearrangement. All our data support
-#   is the ordering "slower than ballistic, faster than frozen".
+# * **$\Delta=1$:** clearly slower than ballistic: the curve bends, and at $t=1.6$ it has transported $1.06$ spins against $2.03$ at $\Delta=0$. The printed log–log slopes over $1\le t\le2$ (before the
+#   fastest front reaches the chain ends) show how little this window says about the asymptotic laws of §7.1. The fit returns $1.02$ at $\Delta=0$, the exact ballistic exponent, but only $0.87$ at
+#   $\Delta=0.5$, where transport is ballistic as well: the window is pre-asymptotic, with a bias of more than $0.1$ in the exponent. The value $0.66$ at $\Delta=1$ is therefore no evidence for the $2/3$
+#   of weakly polarised walls; a bias of that size covers the $3/5$ and the diffusive $1/2$ discussed for the fully polarised wall as well. The data support only the ordering "slower than ballistic, faster than frozen".
 # * **$\Delta=2$: frozen.** After a quick rearrangement of the two spins next to the wall nothing moves: moving a spin across costs an energy $\sim J\Delta$ that the hopping $J$ cannot supply.
-# * **Entanglement.** At $\Delta=0$ the entropy across the wall shoots up to about one bit while the first particles cross and then barely moves (analytically it creeps up like $\tfrac16\ln t$ in nats, Eisler, Iglói, Peschel 2009,
-#   i.e. some $0.24$ bits per $e$-folding of the time — far too slowly to be visible in our window, where it is masked by the oscillations of the free-fermion front) —
-#   a free-particle front is a very "classical" object — whereas the interacting cases ($\Delta=0.5,1$) keep entangling the two halves and end up around $1.6$–$1.75$ bits. Note the ordering: at $t=2.4$ the $\Delta=1$ chain has transported the *least*
-#   magnetisation of the three mobile cases but generated the *most* entanglement. **Transport and entanglement are different things.**
+# * **Entanglement.** At $\Delta=0$ the entropy across the wall shoots up to about one bit while the first particles cross and then only oscillates between $0.9$ and $1.25$ bits. Analytically it grows like
+#   $\tfrac16\ln t$ in nats (Eisler, Iglói, Peschel 2009), some $0.24$ bits per $e$-folding of the time, far too slowly to be visible in our window, where it is masked by the oscillations of the
+#   free-fermion front. The interacting cases ($\Delta=0.5,1$) keep entangling the two halves and end up around $1.6$–$1.75$ bits. At $t=2.4$ the $\Delta=1$ chain has transported the *least*
+#   magnetisation of the three mobile cases but generated the *most* entanglement, so the amount of transport does not fix the amount of entanglement.
 
 # %% [markdown]
-# ## 8. Entanglement growth, integrable versus non-integrable dynamics, and why classical simulation dies
+# ## 8. Entanglement growth, integrable versus non-integrable dynamics, and the cost of classical simulation
 #
 # ### 8.1 Linear growth and volume-law saturation
 #
@@ -1005,7 +1012,7 @@ print(f"transferred magnetisation at t = {times3[i1]:.2f}: " + ", ".join(f"Delta
 #
 # $$\frac{dS}{dt}\;\propto\;\int\frac{dk}{2\pi}\,\lvert v_k\rvert\,s(k),\qquad s(k)=-n_k\log_2 n_k-(1-n_k)\log_2(1-n_k), \qquad (4)$$
 #
-# with $n_k$ the occupation that the quench puts into mode $k$ (Calabrese & Cardy 2005; Alba & Calabrese 2017 turned this into an exact statement for integrable models). Eq. (4) is quoted, not derived; what we use of it is its structure. The growth stops when the pairs emitted at the far end of one half have reached the cut,
+# with $n_k$ the occupation that the quench puts into mode $k$ (Calabrese & Cardy 2005; Alba & Calabrese 2017 turned this into an exact statement for integrable models). Eq. (4) is quoted without derivation; we use only its structure. The growth stops when the pairs emitted at the far end of one half have reached the cut,
 #
 # $$t_{\rm sat}\simeq\frac{N/2}{v_{\max}}=\frac{N}{2v_{\max}},$$
 #
@@ -1013,12 +1020,12 @@ print(f"transferred magnetisation at t = {times3[i1]:.2f}: " + ", ".join(f"Delta
 # $S_\infty\simeq s_\infty\,N/2$, with $s_\infty$ an entropy *per site* fixed by the quench energy and by what the dynamics conserves. Two cases matter here.
 #
 # * A **chaotic** chain started at the centre of the spectrum ($e=0$) fills its half-chain Hilbert space as evenly as a random vector does, so $s_\infty=1$ bit per site up to the $O(1)$ correction computed by Page (1993):
-#   $S_{\rm Page}=N/2-\frac{1}{2\ln2}$ bits for an equal bipartition. This is an upper bound for every quench of this notebook — a state at $e\neq0$ saturates below it (§5.1).
+#   $S_{\rm Page}=N/2-\frac{1}{2\ln2}$ bits for an equal bipartition. A state at $e\neq0$ saturates below it (§5.1).
 # * An **integrable** chain keeps its mode occupations $n_k$ for ever (each of them is conserved), and $s_\infty=\int\frac{dk}{2\pi}s(k)$ is the entropy of the occupations that the quench happens to produce.
 #   Unless $n_k=\tfrac12$ for every $k$, this is *less* than one bit per site: an integrable chain saturates below the Page value even when its energy lies exactly at the centre of the spectrum.
 #   We will measure both numbers.
 #
-# ### 8.2 Why this kills classical simulation
+# ### 8.2 Entanglement growth and the cost of classical simulation
 #
 # The Schmidt decomposition is the optimal way to compress a state across a cut: keeping $\chi$ terms requires $\chi\gtrsim2^{S}$ (for a flat Schmidt spectrum exactly $\chi=2^S$).
 # Matrix product states ([MPS-TEBD notebook](../ch07_tensor_networks/18_mps_tebd.ipynb)) store precisely such a truncated decomposition at every bond, with cost $\propto\chi^3$. Linear entropy growth therefore means
@@ -1154,12 +1161,12 @@ for N in SIZES4:
 #   below the random-state value at the same energy. (Confirming the identification requires the mode occupations of this particular initial state, which we do not compute here.) Consistently, $\langle X_{N/2}(t)\rangle$ keeps oscillating with an amplitude that barely shrinks with system size ($0.16\to0.13$ from $N=8$ to $N=14$, against a factor of eight for the
 #   non-integrable chain) — free quasiparticles never scatter, and in a finite chain they bounce between the ends and partially re-phase, exactly the revivals of §2.5.
 # * **The wall.** The middle panel translates entropy into cost. The *strict* count of non-negligible Schmidt values ($\lambda_k^2>10^{-8}$, red) grows exponentially in time and hits the maximum $2^{N/2}$ after $t\approx6$ for **both** chains —
-#   no Schmidt value is exactly zero any more. What distinguishes them is the *effective* bond dimension $2^{S}$ (grey), i.e. how many values actually carry weight: $\approx70$ for the non-integrable chain against $\approx8$ for the integrable one.
+#   no Schmidt value is exactly zero any more. What distinguishes them is the *effective* bond dimension $2^{S}$ (grey), i.e. how many values actually carry weight: $\approx70$ for the non-integrable chain at $T=16$ against $8$–$14$ for the integrable one.
 #   A truncating tensor-network code lives off that second number, and for a generic quench it grows exponentially in time. For $N=14$ the maximum is a harmless 128, which is why we can afford the full state vector; for $N=100$ it would be $2^{50}$.
 #   Every classical method must give up at some $t$ or some $N$.
 #
-# > **Numerical practice.** The checkpoint shows the price of a long evolution: after $T=16$ (800 steps at $\delta t=0.02$) the *fidelity* error of the Trotterised state has grown to $\approx1.5\times10^{-5}$ for both chains —
-# > still small, but two to three orders of magnitude above what the same scheme delivers over $T=5$ in §4, and growing. Local observables and entropies stay accurate. If you need the state itself at long times, use order 4 or Chebyshev/Krylov steps.
+# > **Numerical practice.** The checkpoint shows the price of a long evolution: after $T=16$ (800 steps at $\delta t=0.02$) the *fidelity* error of the Trotterised state has grown to $1.2$–$1.6\times10^{-5}$ for the two chains,
+# > an order of magnitude above the $1.9\times10^{-6}$ that the same scheme delivers over $T=5$ in §4, as the $t^2$ growth of the infidelity predicts ($(16/5)^2\approx10$). Local observables and entropies stay accurate. If you need the state itself at long times, use order 4 or Chebyshev/Krylov steps.
 
 # %% [markdown]
 # ## 9. The Loschmidt echo and dynamical quantum phase transitions
@@ -1194,7 +1201,7 @@ for N in SIZES4:
 #
 # ### 9.3 Code
 #
-# $P_\uparrow$ and $P_\downarrow$ are just two amplitudes of the state tensor, `psi[0,0,...,0]` and `psi[1,1,...,1]`. We vmap over six post-quench fields.
+# $P_\uparrow$ and $P_\downarrow$ are just two amplitudes of the state tensor, `psi[0,0,...,0]` and `psi[1,1,...,1]`. We vmap over five post-quench fields.
 
 # %%
 # ==============================================================================
@@ -1276,7 +1283,7 @@ for k, h in enumerate(np.asarray(H_FIELDS5)):
 #
 # * **Checkpoint.** The matrix-free energy variance equals $Nh^2$ to round-off, and the measured initial curvature of the echo agrees with it within the expected $O(t^2)$ correction.
 # * **Quenches inside the ferromagnetic phase** ($h<J$, dashed): $\lambda(t)$ is smooth and small, the magnetisation stays positive, and $P_\downarrow$ never competes with $P_\uparrow$ — no crossings.
-# * **Quenches across the critical point** ($h>J$): the rate function develops sharp cusps. The middle panel shows their anatomy: each cusp is a crossing of the two branches $\lambda_\uparrow,\lambda_\downarrow$, and the crossing times (printed) fall close to the
+# * **Quenches across the critical point** ($h>J$): the rate function develops sharp, cusp-like maxima. The middle panel shows their anatomy: each cusp is a crossing of the two branches $\lambda_\uparrow,\lambda_\downarrow$, and the crossing times (printed) fall close to the
 #   critical times $t_n=(n+\frac12)t^*$ of the infinite chain. The agreement improves the further the quench goes beyond $h_c$: the first crossing is $0.7\,\%$ below the prediction at $h=3$, $2\,\%$ at $h=2$ and $5\,\%$ at $h=1.5$,
 #   because a quench close to the critical point has a long $t^*$ and therefore feels the finite chain more. Later crossings drift further (at $h=3$ the last two entries of the printed list are finite-size artefacts: the two branches
 #   touch and separate again instead of crossing cleanly).
@@ -1287,8 +1294,8 @@ for k, h in enumerate(np.asarray(H_FIELDS5)):
 #   rounded over a width in $t$ of order $1/N$, and the rounding disappears only as $N\to\infty$. What the numerics *does*
 #   establish is that the crossing times converge quickly, so that a finite chain locates the critical times of the infinite one to a few per cent. The critical times of the infinite chain are therefore obtained by extracting them at several $N$ and
 #   extrapolating (Exercise 6); the finite-$N$ curve itself remains analytic.
-# * **Order parameter.** The zeros of the magnetisation line up with the critical times (right panel, dotted lines for $h=2$): every DQPT is a moment at which the state is "equidistant" from the two symmetry-broken ground states. This correspondence is exact for
-#   the infinite chain in this quench and was the experimental signature used with trapped ions.
+# * **Order parameter.** The first two zeros of the magnetisation for $h=2$ line up with $t_0$ and $t_1$ (right panel, dotted lines): at a DQPT the state is "equidistant" from the two symmetry-broken
+#   ground states, $\lambda_\uparrow=\lambda_\downarrow$. The later oscillations of the magnetisation are damped, and the third zero is no longer resolved.
 #
 # > **Physics insight.** A DQPT is a non-analyticity *in time*, not in a control parameter, and no local observable jumps at $t_n$. But the echo is measurable (it is the probability of finding the initial bit
 # > string when all qubits are read out), and it is a remarkably sensitive fingerprint of the ground-state phase diagram.
@@ -1344,12 +1351,12 @@ plt.tight_layout(); plt.show()
 # * The two loop implementations come out close to each other here: on this CPU the Python → XLA dispatch that the explicit loop pays per step is already small compared with one TEBD step at $N=8$.
 #   The value of `scan` is that it compiles *once* (a 250-step Python loop under `jit` would be unrolled into 12 500 einsums) and that the whole quench, measurements included, becomes a single XLA program — not raw speed per step.
 #   On a GPU, or for much cheaper steps, the dispatch overhead does become visible.
-# * The growth with $N$ is close to, but a little shallower than, the $N\,2^N$ cost model (dotted line). The direction of the deviation is the expected one — bigger arrays use the vector units and the cache better —
-#   and it shows up in the last column, the time per gate per amplitude, which *falls* with $N$ instead of staying constant. Only the trends here are meaningful: these notes run on a shared CPU, and the absolute
-#   milliseconds (and single-digit factors) move from run to run. The exponential growth in $N$ is the robust part, and it is the part that matters.
-# * Compile time stays of the order of a second across the whole range, while the run time grows exponentially: compilation is set by the size of the **program** (the number of gates, $\propto N$), not by the
-#   size of the **data** ($2^N$), and it is paid once per chain length. Do not read the individual compile times as a clean trend — they are measured on a machine that is doing other things — but do read the
-#   fact that the *run* time crosses them somewhere around $N=14$ and leaves them far behind afterwards.
+# * The growth with $N$ follows the $N\,2^N$ cost model (dotted line) to within the scatter of the measurement. The last column, the time per gate per amplitude, would be constant for a perfect
+#   $N\,2^N$ law; here it varies by factors of two to three between neighbouring $N$, because these notes run on a shared CPU, where the absolute milliseconds move from run to run.
+#   The exponential growth in $N$ is the robust part of the table.
+# * Compile time stays below a few seconds across the whole range, while the run time grows exponentially: compilation is set by the size of the **program** (the number of gates, $\propto N$) and is independent
+#   of the size of the **data** ($2^N$); it is paid once per chain length. The individual compile times are measured on a machine that is doing other things and do not form a clean trend, but the
+#   run time of the 20 benchmarked steps overtakes them near $N=16$ and leaves them far behind afterwards.
 # * Extrapolating with the cost model: $N=24$ ($\approx270$ MB state) costs roughly $100\times$ the $N=18$ step; $N\approx30$ is the practical end of the state-vector road on a workstation (16 GB per copy of the state). Beyond that, one needs
 #   either structure (low entanglement → [matrix product states](../ch07_tensor_networks/18_mps_tebd.ipynb)) or a quantum simulator.
 #
@@ -1361,11 +1368,11 @@ plt.tight_layout(); plt.show()
 #
 # * A **quantum quench** — sudden change of $H$, then unitary evolution of a simple initial state — is the basic dynamical experiment of atoms in optical lattices, trapped ions, Rydberg arrays and superconducting qubits, and maps one-to-one onto "prepare, evolve, measure" in a simulator.
 # * **Relaxation in a closed system is dephasing** between exponentially many eigenstates, Eq. (1). In generic chains local observables relax to stationary values fixed essentially by the energy (entropy → Page value at the centre of the spectrum, fluctuations shrink with $N$); integrable chains remember more of the initial state.
-# * **Information has a speed limit.** The Lieb–Robinson theorem guarantees that some finite velocity bounds the spreading of commutators; it is an existence statement with a loose constant and it is *not*
-#   the number one measures. The measurable velocity is the quasiparticle one: correlations after a quench spread inside a light cone $r=2v_{\max}t$, with $v_{\max}=2\min(J,h)$ for the Ising chain and the
+# * **Information has a speed limit.** The Lieb–Robinson theorem guarantees that some finite velocity bounds the spreading of commutators; it is an existence statement with a loose constant.
+#   The velocity one measures is the quasiparticle one: correlations after a quench spread inside a light cone $r=2v_{\max}t$, with $v_{\max}=2\min(J,h)$ for the Ising chain and the
 #   factor 2 coming from the pair mechanism. Our data show the linear cone unambiguously, but the *numerical* front velocity depends on the threshold that defines "arrival" — high thresholds under-, low
 #   thresholds over-estimate it, and the prediction sits in between.
-# * **Transport depends on interactions**: a domain wall melts ballistically for $\lvert\Delta\rvert<1$, sub-ballistically at the Heisenberg point (superdiffusively, $t^{2/3}$ with KPZ scaling, for weakly polarised walls), and is frozen for $\Delta>1$. At $\Delta=0$ an $N\times N$ free-fermion calculation provides an exact check at any size. Short chains show the ordering of the three regimes, not the exponent.
+# * **Transport depends on interactions**: a domain wall melts ballistically for $\lvert\Delta\rvert<1$, sub-ballistically at the Heisenberg point (superdiffusively, $\propto t^{2/3}$, for weakly polarised walls; the long-time law of the fully polarised wall is not settled), and is frozen for $\Delta>1$. At $\Delta=0$ an $N\times N$ free-fermion calculation provides an exact check at any size. Short chains show the ordering of the three regimes; an exponent fitted to them is biased by more than $0.1$.
 # * **Entanglement grows linearly in time** after a quench, at a rate set by the velocity-weighted entropy of the excited modes, and saturates after $t\simeq N/(2v_{\max})$ at a volume law whose height is set by the
 #   quench energy and by what the dynamics conserves: the Page value for a chaotic chain at the centre of the spectrum, *less* for a state at $e\neq0$, and less again for an integrable chain, which saturates at the
 #   entropy of its conserved mode occupations ($0.49$ against $\approx1$ bit per site here). Since a tensor network needs bond dimension $\chi\sim2^S$, classical simulation cost grows exponentially in time — the reason quench dynamics is a prime application of quantum simulators.

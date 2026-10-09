@@ -10,18 +10,17 @@
 # [notebook 05](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb)), and we evolved it in time by chopping $e^{-iHt}$ into a product of
 # many small two-spin unitaries (Trotterization, [notebook 04](../ch02_spin_systems_textbook_way/04_time_evolution_the_textbook_way.ipynb)).
 #
-# Look at the last sentence again: *a product of many small unitaries acting on a register of two-level systems*.
-# This is, word for word, the definition of a **quantum circuit**. A quantum computer is a many-body spin system in
+# *A product of many small unitaries acting on a register of two-level systems* is, word for word, the definition of a
+# **quantum circuit**. A quantum computer is a many-body spin system in
 # which the experimentalist can switch the terms of the Hamiltonian on and off at will: a laser or microwave pulse on one
 # atom/ion/superconducting island is a *single-qubit gate*, a controlled interaction between two of them, left on for
 # a calibrated time, is a *two-qubit gate*. The "digital" language of gates and circuits used by the quantum-computing
 # community and the "analog" language of Hamiltonians used in many-body physics describe the same mathematics.
 #
-# The purpose of this notebook is to make this translation explicit, so that you can read both literatures and,
-# more importantly, so that you realise that **we already own a quantum-circuit simulator**: it is `apply_gate`
-# plus a Python list.
+# This notebook makes the translation explicit, so that both literatures can be read side by side. Its first
+# consequence is that **we already own a quantum-circuit simulator**: it is `apply_gate` plus a Python list.
 #
-# **Why should a many-body physicist care about gates?**
+# **Gates in many-body physics.**
 #
 # * *Digital quantum simulation*: present-day quantum processors (superconducting qubits, trapped ions, Rydberg-atom
 #   arrays) simulate spin models by running Trotter circuits. To understand those experiments, and their errors, you
@@ -36,7 +35,7 @@
 # gates (CNOT, CZ, SWAP, controlled-$U$, $R_{xx}, R_{yy}, R_{zz}$) and the three-qubit Toffoli/CCZ. In Section 5 a
 # circuit becomes a Python list, we draw it, compute its depth and prepare Bell, GHZ and cluster states. Section 6
 # compiles whole circuits with `jax.jit`, sweeps parameters with `vmap` and folds deep circuits with `lax.scan`.
-# Section 7 verifies the famous circuit identities numerically, Section 8 comments on universality (with a small
+# Section 7 verifies the standard circuit identities numerically, Section 8 comments on universality (with a small
 # numerical experiment), Section 9 rewrites a Trotter step of the transverse-field Ising model as a circuit and counts
 # its gates, and Section 10 runs circuits with noise after each gate on the density tensor
 # ([notebook 07](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb)).
@@ -158,7 +157,7 @@ print("H|0> =", np.round(np.asarray(H @ ket0), 4), "  = |+>")
 # All identities hold to machine precision, and $H\lvert0\rangle$ has two equal amplitudes $1/\sqrt2 \approx 0.7071$:
 # the Hadamard gate creates the equal superposition $\lvert+\rangle$.
 #
-# ### 3.2 Rotations are exponentials of Pauli matrices (derivation)
+# ### 3.2 Rotations as exponentials of Pauli matrices
 #
 # The fixed gates above are special cases of a continuous family. Physically, a gate is implemented by switching on a
 # Hamiltonian for some time: a resonant driving field along $x$ with Rabi frequency $\Omega$ is described (in the
@@ -252,7 +251,7 @@ for K in (2, 4, 6, 8, 12, 16):
 # %% [markdown]
 # ### 3.3 Checkpoint on the Bloch sphere
 #
-# Why "rotation"? Every pure qubit state can be written as
+# The name "rotation" refers to the Bloch sphere. Every pure qubit state can be written as
 # $\lvert\psi\rangle = \cos\frac\vartheta2\lvert0\rangle + e^{i\varphi}\sin\frac\vartheta2\lvert1\rangle$ and is represented by the
 # **Bloch vector** $\mathbf r = (\langle X\rangle,\langle Y\rangle,\langle Z\rangle) = (\sin\vartheta\cos\varphi,\ \sin\vartheta\sin\varphi,\ \cos\vartheta)$
 # (notebook 03). Apply $R_z(\theta)$ from Eq. (3):
@@ -386,8 +385,9 @@ def zyz_angles(U):
 print("phase-insensitive comparisons  Delta(U,V):")
 for text, U, V in (("Rz(pi)   vs Z", rz(jnp.pi), Z), ("Rz(pi/2) vs S", rz(jnp.pi / 2), S),
                    ("Rz(pi/4) vs T", rz(jnp.pi / 4), T), ("Rx(pi)   vs X", rx(jnp.pi), X),
-                   ("Ry(pi)   vs Y", ry(jnp.pi), Y), ("Rx(pi)   vs Z  (must differ!)", rx(jnp.pi), Z)):
+                   ("Ry(pi)   vs Y", ry(jnp.pi), Y), ("Rx(pi)   vs Z  (different gates)", rx(jnp.pi), Z)):
     print(f"   {text:32s} {gate_distance(U, V):.2e}")
+    assert (gate_distance(U, V) > 0.5) if "different" in text else (gate_distance(U, V) < TOL)
 
 print("\nZ-Y-Z decomposition, U -> (alpha, beta, gamma, delta), and reconstruction error:")
 for name, U in (("H", H), ("S", S), ("T", T), ("X", X), ("Rx(0.7)", rx(0.7))):
@@ -507,7 +507,7 @@ assert err < TOL
 # is $\lvert1\rangle$, so it is a *relative* phase between the two control branches and cannot be pulled out in front of the
 # whole matrix. Concretely $C(e^{i\alpha}U) = \big(\mathrm{diag}(1,e^{i\alpha})\otimes1\big)\,C(U)$ - a phase gate on the
 # control, which is the identity only when $e^{i\alpha}=1$. In particular a controlled-$R_z(2\pi)$ is not the identity
-# but a $Z$ gate on the control - the famous sign of a $2\pi$ rotation of a spin-1/2 becomes measurable.
+# but a $Z$ gate on the control - the sign of a $2\pi$ rotation of a spin-1/2 becomes measurable.
 
 # %%
 # ==============================================================================
@@ -527,6 +527,7 @@ d_single = gate_distance(rz(2 * jnp.pi), I2)
 d_ctrl_id = gate_distance(controlled(rz(2 * jnp.pi)), jnp.eye(4, dtype=CDTYPE))
 d_ctrl_z = gate_distance(controlled(rz(2 * jnp.pi)), jnp.kron(Z, I2))
 print(f"Delta(Rz(2pi), 1) = {d_single:.1e} | Delta(C-Rz(2pi), 1) = {d_ctrl_id:.2f} | Delta(C-Rz(2pi), Z(x)1) = {d_ctrl_z:.1e}")
+assert max(d_single, d_ctrl_z) < TOL and d_ctrl_id > 0.5
 
 # %% [markdown]
 # ### 4.3 Two-qubit Pauli rotations $R_{xx}, R_{yy}, R_{zz}$
@@ -612,8 +613,8 @@ print("Toffoli computes  t -> t XOR (c1 AND c2)  on all 8 basis states")
 #
 # ### 5.1 Data structure and execution
 #
-# A **quantum circuit** is an ordered sequence of gates, each with the qubits it acts on. We represent it by the most
-# boring data structure possible, a Python list of pairs
+# A **quantum circuit** is an ordered sequence of gates, each with the qubits it acts on. We represent it by the simplest
+# data structure available, a Python list of pairs
 # ```python
 # gates = [((0,), H), ((0, 1), CNOT), ((1, 2), CNOT)]          # [(qubits, matrix), ...]
 # ```
@@ -705,8 +706,8 @@ def draw_circuit(circuit, N, title=""):
 # ### 5.2 Bell, GHZ and cluster circuits
 #
 # **Bell state.** $H$ on qubit 0 turns $\lvert00\rangle$ into $(\lvert0\rangle+\lvert1\rangle)\lvert0\rangle/\sqrt2$; the CNOT then copies the
-# *basis value* of qubit 0 into qubit 1: $(\lvert00\rangle+\lvert11\rangle)/\sqrt2=\lvert\Phi^+\rangle$. This is not a
-# copy of the *state* (forbidden by the no-cloning theorem) but the creation of perfect correlations.
+# *basis value* of qubit 0 into qubit 1: $(\lvert00\rangle+\lvert11\rangle)/\sqrt2=\lvert\Phi^+\rangle$. The result is a
+# perfectly correlated pair; a copy of the *state*, $\lvert+\rangle\lvert+\rangle$, is forbidden by the no-cloning theorem.
 #
 # **GHZ state.** Continue the CNOT cascade along the register:
 # $\lvert0\dots0\rangle\to(\lvert0\dots0\rangle+\lvert1\dots1\rangle)/\sqrt2$. This takes $N$ gates and depth $N$.
@@ -758,6 +759,7 @@ for name, (circ, n, reference) in circuits.items():
 psi_cluster = apply_gates(zero_state(N), strip_labels(cluster_circuit(N)))
 stab = [float(expect_pauli_string(psi_cluster, {q - 1: "Z", q: "X", q + 1: "Z"})) for q in range(1, N - 1)]
 print("cluster-state stabilizers <Z X Z> on sites 1..N-2:", np.round(stab, 12))
+assert np.max(np.abs(np.array(stab) - 1.0)) < 100 * TOL
 
 draw_circuit(ghz_circuit_list(N), N, title=f"GHZ circuit, N={N} (depth {N})")
 draw_circuit(cluster_circuit(N), N, title=f"cluster-state circuit, N={N} (depth 3)")
@@ -769,11 +771,12 @@ draw_circuit(cluster_circuit(N), N, title=f"cluster-state circuit, N={N} (depth 
 # state are $+1$. The diagrams show the structural difference: the GHZ circuit is a *sequential* staircase (depth
 # $N$), the cluster circuit is *parallel* (depth 3 independent of $N$).
 #
-# > **Physics insight.** The depth-$N$ staircase is not a weakness of our particular GHZ circuit. With
-# > nearest-neighbour gates, information travels one site per layer (a "light cone", cf. notebook 04), and the GHZ state
-# > has correlations between the two ends of the chain, so *any* unitary nearest-neighbour circuit needs depth of order $N$
-# > (order $N/2$ if one starts in the middle; order $\log N$ with long-range gates, Exercise 4). The cluster state has
-# > correlation length of one site and is reachable in constant depth.
+# > **Physics insight.** The linear depth is forced on *any* nearest-neighbour circuit that prepares GHZ. After $d$ layers
+# > the operator $Z_0$, propagated back to the input, acts on sites $0,\dots,d$ only, and $Z_{N-1}$ on sites
+# > $N-1-d,\dots,N-1$ (a light cone). If the two sets do not overlap, $\langle Z_0Z_{N-1}\rangle$ factorises on the product
+# > input, whereas GHZ has $\langle Z_0Z_{N-1}\rangle-\langle Z_0\rangle\langle Z_{N-1}\rangle=1$; hence $d\ge(N-1)/2$
+# > (a cascade started in the middle comes within one layer of this bound; long-range gates give depth $\log N$,
+# > Exercise 4). The cluster state has correlation length of one site and is reachable in constant depth.
 
 # %% [markdown]
 # ## 6. Compiled circuits: `jit`, `vmap`, `scan`
@@ -898,7 +901,7 @@ plt.tight_layout()
 plt.show()
 
 # %% [markdown]
-# The simulated fringes coincide with $\cos(N\phi)$ to machine precision. Note `partial(ghz_parity_signal, N=N_ghz)`:
+# The simulated fringes coincide with $\cos(N\phi)$ to machine precision. In `partial(ghz_parity_signal, N=N_ghz)`
 # the register size is a *static* Python integer fixed before `vmap`/`jit` see the function, while `phi` is the
 # traced, batched argument. (For $N=1$ the "GHZ circuit" is just a Hadamard, preparing $\lvert+\rangle$.)
 #
@@ -1021,7 +1024,7 @@ for text, gates, target, n in identities:
 
 # %% [markdown]
 # Every identity of the table holds *exactly* (not only up to a phase): the entry-wise error is at the level of
-# rounding. Note the order in the gate lists: for $SXS^\dagger$ the list is `[SDG, X, S]` because the rightmost operator of
+# rounding. The gate lists are in time order: for $SXS^\dagger$ the list is `[SDG, X, S]` because the rightmost operator of
 # the formula acts first (the pitfall of Section 5.1). The $R_{yy}$ line uses
 # $R_x(\tfrac\pi2)\,Z\,R_x(-\tfrac\pi2) = -Y$: the two minus signs cancel in $Y\otimes Y$.
 #
@@ -1057,12 +1060,13 @@ assert max(err1, err2, d_swap) < 100 * TOL
 # %% [markdown]
 # ## 8. A remark on universality
 #
-# How many different gates does one need? A gate set is called **universal** if every unitary on $N$ qubits can be
+# A gate set is called **universal** if every unitary on $N$ qubits can be
 # approximated to arbitrary accuracy by a circuit built from it. We quote three classic results (proofs: Nielsen &
 # Chuang, Ch. 4; Barenco *et al.* 1995):
 #
 # 1. *All single-qubit gates + CNOT* are exactly universal: any $2^N\times2^N$ unitary can be decomposed into them
-#    (generically this needs of order $4^N$ gates - universality says nothing about efficiency).
+#    (a generic unitary has $4^N$ real parameters, so it needs at least of order $4^N$ gates; universality says
+#    nothing about efficiency).
 # 2. The *finite* set $\{H, T, \mathrm{CNOT}\}$ is universal in the approximate sense: its circuits form a dense subset
 #    of the unitary group, so any target can be reached to accuracy $\varepsilon$. The **Solovay-Kitaev theorem**
 #    bounds the price: $O(\log^c(1/\varepsilon))$ gates per single-qubit target. The algorithm of Dawson and Nielsen
@@ -1074,14 +1078,17 @@ assert max(err1, err2, d_swap) < 100 * TOL
 # 3. $H$, $S$ and CNOT generate the **Clifford group**, which is *not* universal: circuits built from these gates
 #    alone, acting on a computational-basis input and read out in the computational basis, can be simulated efficiently
 #    on a classical computer (Gottesman-Knill theorem, Gottesman 1998). The non-Clifford $T$ gate is the "magic"
-#    ingredient; we return to it in [notebook 10](10_random_unitaries_and_random_circuits.ipynb) and in Chapter 9.
+#    ingredient; we return to it in [notebook 10](10_random_unitaries_and_random_circuits.ipynb) and in
+#    [notebook 27](../ch09_entanglement_and_complexity/27_stabilizer_renyi_entropy.ipynb) (Chapter 9).
 #
 # **A numerical experiment for statement 2.** Separately, $H$ and $T$ are rotations by *rational* multiples of $\pi$
 # ($H$ by $\pi$ about $(\hat x+\hat z)/\sqrt2$, $T$ by $\pi/4$ about $\hat z$), so each of them alone generates only a
-# finite set. Density comes from their *product*: $HT$ is a rotation by an angle that is an irrational multiple of
-# $\pi$ (the cell below measures it: $0.8256\,\pi$), so its powers already come arbitrarily close to every rotation
-# about the $HT$ axis, and combining that axis with a second one fills the whole group (Nielsen & Chuang, Ch. 4).
-# How fast? Enumerating all $2^\ell$
+# finite set. Density comes from their *product*: $HT$ is a rotation by an angle $\theta$ that is an irrational
+# multiple of $\pi$. Indeed $(2\cos\frac\theta2)^2 = 1-1/\sqrt2$ (checked in the cell below, $\theta=0.8256\,\pi$),
+# which is not an algebraic integer (it solves $y^2-2y+\frac12=0$), whereas $2\cos(r\pi)=e^{ir\pi}+e^{-ir\pi}$, and
+# with it its square, is one for every rational $r$. The powers of $HT$ therefore come arbitrarily close to every
+# rotation about the $HT$ axis, and combining that axis with a second one fills the whole group (Nielsen & Chuang,
+# Ch. 4). Enumerating all $2^\ell$
 # words of length $\ell$ is wasteful, because most words coincide ($H^2=1$, $T^8=1$, $T^2=S$ is a Clifford gate, ...).
 # Matsumoto and Amano (2008) proved that every product of $H$ and $T$ gates can be written *uniquely*, up to a global
 # phase, in the normal form
@@ -1102,7 +1109,7 @@ assert max(err1, err2, d_swap) < 100 * TOL
 
 # %%
 # ==============================================================================
-# STEP 11: how well do Clifford+T gates approximate a given rotation?  (enumeration of normal forms)
+# STEP 11: best Clifford+T approximation of a given rotation (enumeration of normal forms)
 # ==============================================================================
 def rotation_angle(U):
     """Rotation angle of a 2x2 unitary: remove the phase (det V = 1), then Tr V = 2 cos(angle/2)."""
@@ -1112,7 +1119,9 @@ def rotation_angle(U):
 
 for name, U in (("H", H), ("T", T), ("H T", H @ T)):
     print(f"rotation angle of {name:3s} = {rotation_angle(U) / np.pi:.6f} pi")
-print("   -> H and T alone are rational multiples of pi; their product HT is not\n")
+x2 = (2 * np.cos(rotation_angle(H @ T) / 2)) ** 2
+print(f"HT: (2 cos(angle/2))^2 = {x2:.15f},  1 - 1/sqrt2 = {1 - 1 / np.sqrt(2):.15f}\n")
+assert abs(x2 - (1 - 1 / np.sqrt(2))) < 100 * TOL
 
 M_MAX = 14                                                             # syllables; 2^14 = 16384 strings
 targets = {r"$R_z(0.3)$": rz(0.3), r"$R_y(1.0)$": ry(1.0), r"$R_x(\sqrt{2})$": rx(jnp.sqrt(2.0))}
@@ -1164,7 +1173,7 @@ for name, vals in best.items():
 # number of available gates, and the best distance falls - in steps, and for the first few $m$ hardly at all (there are
 # too few gates for statistics), but for $m\gtrsim6$ roughly parallel to the dashed line.
 #
-# The dashed line is a **counting heuristic, not a theorem**. It goes as follows. The gates reachable with $m$
+# The dashed line is a **counting heuristic**. The gates reachable with $m$
 # syllables are $\sim2^m$ points scattered over the three-dimensional group of rotations, so if they were spread evenly
 # their typical spacing would be $\theta\propto(2^{-m})^{1/3}=2^{-m/3}$ in rotation angle. Two gates that differ by a
 # small rotation $\theta$ have $\Delta = 1-\lvert\cos\frac\theta2\rvert\approx\theta^2/8$ [insert $V=UR_{\mathbf n}(\theta)$
@@ -1329,6 +1338,7 @@ for order in (1, 2):
     slope = np.polyfit(np.log(dts[2:]), np.log(np.maximum(infid[order][2:], 1e-300)), 1)[0]
     print(f"order {order}: infidelity {infid[order][0]:.2e} (dt={dts[0]:.2f}) -> {infid[order][-1]:.2e} "
           f"(dt={dts[-1]:.4f}); fitted slope = {slope:.2f}")
+    assert abs(slope - 2 * order) < 0.2                # slopes 2 and 4; swapping the orders would fail by 2
 
 # %% [markdown]
 # Left: already 20 first-order steps follow the exact magnetisation closely, while 5 steps ($dt=0.4$) show visible
@@ -1377,7 +1387,7 @@ for n in (4, 8, 16, 32, 64):
 # compilation): a quantum processor executes all bonds of a layer in parallel. A simulation up to time $t$ with step
 # $dt$ therefore needs depth $\propto t/dt$ and $\propto N\,t/dt$ two-qubit gates. On a *classical* simulator nothing is
 # parallel in that sense: each gate costs $O(2^N)$, the full evolution $O(N\,2^N\,t/dt)$ - the exponential wall that a
-# quantum processor does not have. Its problem is a different one: every gate is slightly faulty.
+# quantum processor does not have. Its limitation is that every gate is slightly faulty.
 
 # %% [markdown]
 # ## 10. Noisy circuits on the density tensor
@@ -1411,7 +1421,7 @@ def noisy_circuit_dm(rho, gates, p1, p2):
 
     MATH   rho -> E_p^{(q)}( U rho U^dag )  for every qubit q touched by the gate;
            p = p1 for one-qubit gates, p = p2 for multi-qubit gates.
-    COST   O(4^N) memory and O(2^k 4^N) per gate: density tensors are limited to N <~ 12.
+    COST   O(4^N) memory and O(2^k 4^N) per gate: on a 16 GB laptop N <~ 13-14 (notebook 07, Sec. 5).
     JAX    p1, p2 may be traced (the structure of the computation does not depend on them).
     """
     for qubits, U in gates:
@@ -1443,7 +1453,7 @@ assert err < TOL
 # We prepare GHZ states of growing size with the noisy circuit and compute the fidelity with the ideal GHZ state. A
 # simple estimate: the circuit has $n_{\rm loc} = 1+2(N-1)$ noise locations (one after $H$, two after each CNOT); if
 # *any* single error ruined the state, the fidelity would be the probability that no error happens at all,
-# $F_{\rm est}=(1-p_1)(1-p_2)^{2(N-1)}$. Let us see how good this estimate is.
+# $F_{\rm est}=(1-p_1)(1-p_2)^{2(N-1)}$.
 
 # %%
 # ==============================================================================
@@ -1480,18 +1490,21 @@ plt.show()
 for k, p in enumerate(p2_values):
     est = (1 - P1_OVER_P2 * p) * (1 - p) ** (2 * (N_values[-1] - 1))
     print(f"p2={p}: F(N={N_values[-1]}) = {F_table[-1, k]:.4f},  estimate = {est:.4f}")
+    assert np.all(F_table[:, k] >= (1 - P1_OVER_P2 * p) * (1 - p) ** (2 * (np.array(N_values) - 1)) - TOL)
 
 # %% [markdown]
 # The fidelity decays exponentially with the number of gates, and the crude estimate captures the decay well. The exact
-# fidelity lies slightly *above* it: not every error is fatal. For instance, the depolarising channel applies $X$, $Y$
-# or $Z$ with probability $p/3$ each; an $X$ error on the *last* qubit right after its CNOT is fatal for the GHZ state, but
-# an $X$ error on qubit 0 right after the Hadamard does nothing at all, because $\lvert+\rangle$ is an eigenstate of $X$; and two $Z$ errors on
-# different qubits cancel, since $Z_iZ_j$ leaves the GHZ state invariant. The message for experiments: large
-# entangled states require error rates well below $1/(\text{number of gates})$.
+# fidelity lies slightly *above* it at every point (asserted), and it must: the no-error Kraus operator is
+# $\sqrt{1-p}\,1$, so $\rho$ contains the ideal state with weight $F_{\rm est}$ plus a positive remainder. The excess comes
+# from errors that are not fatal. The depolarising channel applies $X$, $Y$ or $Z$ with probability $p/3$ each; an $X$
+# error on the *last* qubit right after its CNOT is fatal for the GHZ state, but an $X$ error on qubit 0 right after the
+# Hadamard does nothing at all, because $\lvert+\rangle$ is an eigenstate of $X$; and two $Z$ errors on different qubits
+# cancel, since $Z_iZ_j$ leaves the GHZ state invariant. Large entangled states therefore require error rates well below
+# $1/(\text{number of gates})$.
 #
 # ### 10.3 Cross-check with quantum trajectories
 #
-# *Never trust a simulator you have not tested* - and the noisy simulator is new. In notebook 07 we derived an
+# The noisy simulator is new, so we test it against an independent method. In notebook 07 we derived an
 # independent way to simulate a channel: the **stochastic unravelling**. Keep a pure state, and at every noise location
 # draw one Kraus operator $K_m$ at random with probability $\lVert K_m\lvert\psi\rangle\rVert^2$ (`apply_kraus_mcwf`). Averaging
 # over many such trajectories reproduces $\rho$; in particular $F=\overline{\lvert\langle\psi_{\rm ideal}\vert\psi_{\rm traj}\rangle\rvert^2}$
@@ -1517,8 +1530,8 @@ N_mc, p2_mc, M_traj = 5, 0.03, 4000
 gates_mc = strip_labels(ghz_circuit_list(N_mc))
 target = ghz_state(N_mc)
 
-F_dm = float(jax.jit(lambda p: fidelity_with_pure(noisy_circuit_dm(to_dm(zero_state(N_mc)), gates_mc, P1_OVER_P2 * p, p),
-                                                  target))(p2_mc))
+F_dm_of = jax.jit(lambda p1, p2: fidelity_with_pure(noisy_circuit_dm(to_dm(zero_state(N_mc)), gates_mc, p1, p2), target))
+F_dm = float(F_dm_of(P1_OVER_P2 * p2_mc, p2_mc))
 
 one_traj = lambda k: fidelity_pure(noisy_circuit_mcwf(k, zero_state(N_mc), gates_mc, P1_OVER_P2 * p2_mc, p2_mc), target)
 F_samples = jax.jit(jax.vmap(one_traj))(jax.random.split(jax.random.PRNGKey(11), M_traj))
@@ -1527,15 +1540,24 @@ print(f"density tensor : F = {F_dm:.4f}")
 print(f"{M_traj} trajectories: F = {F_mc:.4f} +- {F_err:.4f}   (deviation = {abs(F_mc - F_dm) / F_err:.1f} standard errors)")
 assert abs(F_mc - F_dm) < 5 * F_err
 
+# WRONG CONTROL: the other common convention rho -> (1-p) rho + p 1/2 (Pauli errors p/4 each) is our channel at 3p/4
+F_wrong = float(F_dm_of(0.75 * P1_OVER_P2 * p2_mc, 0.75 * p2_mc))
+F_est = (1 - P1_OVER_P2 * p2_mc) * (1 - p2_mc) ** (2 * (N_mc - 1))
+print(f"wrong convention (3p/4)  : F = {F_wrong:.4f}  ({abs(F_mc - F_wrong) / F_err:.1f} standard errors away)")
+print(f"no-error estimate F_est  : F = {F_est:.4f}  ({abs(F_mc - F_est) / F_err:.1f} standard errors away)")
+assert abs(F_mc - F_wrong) > 5 * F_err
+
 # %% [markdown]
-# The two completely different simulations agree within the statistical error of the trajectory average. The density
+# The two independent simulations agree within the statistical error. The other common convention of the depolarising
+# channel, $\rho\to(1-p)\rho+p\,1/2$ (our channel at strength $3p/4$), is rejected by many standard errors, whereas the
+# exact value and the no-error estimate of Section 10.2 lie within one standard error of each other at $M=4000$. The density
 # tensor is exact but needs $4^N$ numbers; trajectories need $2^N$ numbers per trajectory and converge as $1/\sqrt M$ -
-# the method of choice beyond $N\approx12$
+# the method of choice beyond $N\approx13$–$14$, where the density tensor no longer fits into a laptop's memory
 # ([notebook 17](../ch06_open_quantum_systems/17_monte_carlo_wave_function.ipynb), Chapter 6).
 #
 # ### 10.4 The Trotter-step dilemma of noisy digital simulation
 #
-# On a perfect device a smaller Trotter step is always better (Section 9.2). On a noisy device a smaller step means
+# On a perfect device the Trotter error falls with the step size (Section 9.2). On a noisy device a smaller step means
 # *more gates*, hence more noise. We combine the two ingredients: the first-order TFIM Trotter circuit of Section 9,
 # run on the density tensor with noise $p$ after every gate, compared with the *exact* state
 # $e^{-iHt}\lvert\psi_0\rangle$.
@@ -1584,10 +1606,11 @@ for p, (n_best, val) in best_steps.items():
     print(f"p = {p:7g}: best number of steps = {n_best:3d},  minimal infidelity = {val:.2e}")
 
 # %% [markdown]
-# Without noise (black) the infidelity decreases monotonically, $\propto n_{\rm steps}^{-2}$. With noise each curve has
-# a **minimum**: to the left the Trotter error dominates, to the right the accumulated gate noise, which grows linearly
-# with the number of steps. The optimal number of steps and the best achievable accuracy are printed above: the noisier the device,
-# the *coarser* the optimal Trotter step and the worse the best result. Balancing the two errors,
+# Without noise (black) the infidelity decreases monotonically from $n_{\rm steps}=2$ on, $\propto n_{\rm steps}^{-2}$
+# (steps of size $dt=2$ and $1$ lie far outside the regime of the Trotter expansion). With noise each curve has a
+# **minimum**: to the left the Trotter error dominates, to the right the accumulated gate noise, which grows linearly
+# with the number of steps. The optimal number of steps and the best achievable accuracy are printed above: the noisier
+# the device, the *coarser* the optimal Trotter step and the worse the best result. Balancing the two errors,
 # $a/n^2 \sim b\,p\,n$, gives $n_{\rm opt}\propto p^{-1/3}$ - this is why digital quantum simulation on present-day
 # hardware is limited to short times and why higher-order formulas, better gates and error mitigation are active
 # research fields.
@@ -1601,8 +1624,8 @@ for p, (n_best, val) in best_steps.items():
 # * For any operator with $P^2=1$: $e^{-iaP}=\cos a-i\sin a\,P$. This single formula gives $R_x,R_y,R_z$,
 #   $R_{xx},R_{yy},R_{zz}$ and the exchange/SWAP gate in closed form - exact, cheap, differentiable.
 # * Gates are physical: a rotation is a resonant pulse of area $\theta$, $R_{zz}$ is an Ising interaction switched on
-#   for a time, the Heisenberg exchange at $\tau=\pi/4$ is a SWAP up to a phase. Global phases are irrelevant - until a
-#   gate is controlled, which turns them into relative phases between the control branches.
+#   for a time, the Heisenberg exchange at $\tau=\pi/4$ is a SWAP up to a phase. Global phases are irrelevant for a single
+#   gate; controlling the gate turns them into relative phases between the control branches.
 # * Compare unitaries with a phase-blind distance; obtain the dense unitary of a small circuit by `vmap`-ing the
 #   matrix-free action over basis states; verify every identity before using it in a "compiler pass".
 # * `jax.jit` fuses a whole circuit into one program (structure static, angles and states traced); `vmap` sweeps
@@ -1628,8 +1651,9 @@ for p, (n_best, val) in best_steps.items():
 # 4. ★★ **Log-depth GHZ (extend the code).** With long-range CNOTs a GHZ state can be prepared in depth
 #    $\lceil\log_2N\rceil+1$: in every layer, each qubit that already belongs to the GHZ cluster entangles one new qubit.
 #    Write `ghz_circuit_logdepth(N)`, draw it, confirm the depth with `schedule` and the fidelity with `ghz_state(N)` for
-#    $N=8, 16$. Then repeat the noise study of Section 10.2: which circuit gives the better GHZ fidelity at equal $p_2$, and why is the answer not obvious? (Add
-#    *idle noise* - a depolarising channel on every qubit that waits during a layer - to see depth matter.)
+#    $N=8, 16$. Then repeat the noise study of Section 10.2 (density tensor, $N\le7$ as there): which circuit gives
+#    the better GHZ fidelity at equal $p_2$, and why is the answer not obvious? (Add *idle noise* - a depolarising
+#    channel on every qubit that waits during a layer - to see depth matter.)
 # 5. ★★ **Physics: $\sqrt{\mathrm{SWAP}}$.** Using the exchange formula of Section 7 at $\tau=\pi/8$, construct
 #    $\sqrt{\mathrm{SWAP}}$ (up to a global phase - check with `gate_distance` against
 #    $\frac{1+i}{2}1_4+\frac{1-i}{2}\mathrm{SWAP}$, the square root with eigenvalues $1$ and $i$),

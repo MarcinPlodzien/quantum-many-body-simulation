@@ -24,7 +24,7 @@
 # as a function of the accuracy target and of the system size $N$ — and condense the outcome into a guidance table, *which integrator when*.
 #
 # **Road map.** §2 the Krylov idea and its derivation; §3 a jit-compiled Lanczos with `lax.scan`, validated; §4 the Krylov step, convergence in $m$ and $dt$, comparison with Chebyshev; §5 the a-posteriori error bound and adaptive time stepping; §6 the exact dense reference and its cost;
-# §7 physics interlude — the Loschmidt echo as the integrator's hardest exam; §8 work–precision diagram of all integrators; §9 scaling with $N$ at fixed accuracy, memory and compile time; §10 guidance table; then summary, exercises, references.
+# §7 the Loschmidt echo as a test of integrators; §8 work–precision diagram of all integrators; §9 scaling with $N$ at fixed accuracy, memory and compile time; §10 guidance table; then summary, exercises, references.
 #
 # ### What you will learn
 #
@@ -122,7 +122,7 @@
 # The Krylov approximation is thus within a factor $2$ of the *best possible* polynomial of degree $m-1$ — it is **quasi-optimal**. (The cancellation of the polynomial pieces rests on property (a), which is Lemma 3.1 of Saad (1992); a priori bounds of this type are the subject of Saad (1992) and Hochbruck and Lubich (1997).) Three consequences, all of them practical.
 #
 # **Only the spectral width matters, not $\|H\|$.** Replacing $H$ by $H+c\,\mathbb 1$ leaves every $v_j$ and every $\beta_j$ unchanged and shifts every $\alpha_j$ by $c$, so $T_m\to T_m+c\,\mathbb 1$ and $|\psi_m\rangle\to e^{-ict}|\psi_m\rangle$: the approximation error is untouched. The right-hand side of (2a) is shift invariant for the same reason.
-# The scale that controls everything is therefore the **spectral half-width** $a=(E_{\max}-E_{\min})/2$, and not $\|H\|$, which can be made arbitrarily large by adding a constant to $H$ without changing the physics or the difficulty of the problem.
+# The scale that controls everything is therefore the **spectral half-width** $a=(E_{\max}-E_{\min})/2$; $\|H\|$ can be made arbitrarily large by adding a constant to $H$ without changing the physics or the difficulty of the problem.
 #
 # **The Chebyshev estimate of the previous notebook carries over unchanged.** Take for $p$ the Chebyshev expansion of $e^{-iEt}$ truncated after degree $m-1$. Its error is at most the sum of the omitted coefficients, $\sum_{k\ge m}2|J_k(a\,t)|\le4\big(e\,a\,t/2m\big)^{m}$ for $m\ge a\,t$ ([Chebyshev propagation](13_chebyshev_propagation.ipynb), Stirling form of the Bessel bound), so (2a) gives
 #
@@ -135,7 +135,7 @@
 #
 # The geometric factor is the same as in (2b); the Gaussian in front makes the decay set in faster. The same paper states the negative half of the result: for a skew-Hermitian generator with eigenvalues spread over the whole interval, *no* super-linear decay can be proved below $m\approx\rho t$. The threshold in (2b) is not an artefact of our elementary derivation.
 #
-# **The practical rule.** Choose $m$ and $dt$ together so that $m$ exceeds $a\,dt$ by a safety margin. Over the whole range measured in §4.2 ($a\,dt=1.7$ to $35$) ten digits of accuracy require
+# **The practical rule.** Choose $m$ and $dt$ together so that $m$ exceeds $a\,dt$ by a safety margin. Over the whole range measured in §4.2 ($a\,dt=1.7$ to $35$) ten digits of accuracy are reached once
 #
 # $$ m\;\gtrsim\;a\,dt+15 . \qquad (2c) $$
 #
@@ -433,7 +433,7 @@ plt.show()
 # This is why Krylov steps can be so much longer than Trotter steps.
 
 # %% [markdown]
-# ## 5. How wrong are we? An a-posteriori error bound and adaptive steps
+# ## 5. An a-posteriori error bound and adaptive steps
 #
 # ### 5.1 Derivation
 #
@@ -486,18 +486,21 @@ for col, m in zip(("C0", "C1", "C2"), (10, 20, 30)):
     ax.semilogy(np.asarray(s_grid)[idx], true_err, "o", ms=3, color=col, label=f"true error, $m={m}$")
     ax.semilogy(s_grid, bound + 1e-300, "-", color=col, lw=1.2)
     ax.semilogy(s_grid, estimate + 1e-300, ":", color=col, lw=1.2)
-    ratio = np.asarray(bound)[idx] / true_err
+    ratio, ratio_est = np.asarray(bound)[idx] / true_err, np.asarray(estimate)[idx] / true_err
     sel = true_err > 1e-11
-    print(f"m = {m:2d}: bound / true error in the range where the error exceeds 1e-11:  min {ratio[sel].min():.2f}, max {ratio[sel].max():.2f}")
+    print(f"m = {m:2d}, where the error exceeds 1e-11:  bound / true error in [{ratio[sel].min():.2f}, {ratio[sel].max():.2f}],"
+          f"   estimate / true error in [{ratio_est[sel].min():.3f}, {ratio_est[sel].max():.3f}]")
     assert ratio[sel].min() > 0.99                                                   # it IS a bound
+    assert ratio_est[sel].max() < 1                                                  # the estimate is NOT: it lies below the true error
 ax.plot([], [], "k-", label=r"bound (3): $\beta_m\int_0^t|c_m|ds$"); ax.plot([], [], "k:", label=r"estimate $\beta_m|c_m(t)|\,t/m$")
 ax.set_ylim(1e-16, 10); ax.set_xlabel("time $t$ reached with ONE Krylov basis"); ax.set_ylabel("error")
 ax.set_title(f"A-posteriori error control, N = {N_val}"); ax.legend(fontsize=8); ax.grid(alpha=0.3)
 plt.show()
 
 # %% [markdown]
-# **Interpretation.** The bound (solid) sits just above the true error (dots) over fifteen orders of magnitude — it over-estimates by a factor between 1 and about 3 only — and never fails. The cheap estimate (dotted) coincides with it while the error is small and becomes unreliable (it oscillates
-# and may *under*-estimate) once the error is $\mathcal O(1)$: by then the wave packet on the Lanczos chain has been reflected from the end. Because the bound is monotonic in $t$, it is the safer quantity for automatic control.
+# **Interpretation.** The bound (solid) sits just above the true error (dots) over fifteen orders of magnitude — it over-estimates by a factor between 1 and about 3 only — and never fails. The cheap estimate (dotted) lies *below* the true error at every printed point:
+# by a few per cent while the error is small, by tens of per cent once it reaches $10^{-2}$, and by up to two orders of magnitude when the error is $\mathcal O(1)$ and the wave packet on the Lanczos chain has been reflected from the end, where the estimate oscillates.
+# A controller built on the estimate alone therefore overshoots its tolerance slightly unless the step is shortened by a safety factor; the bound is monotonic in $t$ and never too small, so it is the quantity used below.
 #
 # > **Numerical practice.** An error bound that is computed from the same data as the approximation itself, at negligible cost, is a luxury few algorithms offer. TEBD has nothing comparable (one has to repeat the run with a smaller step); Chebyshev has an *a-priori* estimate (the first omitted Bessel coefficient), which requires the spectral bounds to be right.
 #
@@ -610,14 +613,13 @@ print(f"Extrapolation from N=11 with a factor 8 per spin (an ESTIMATE, not a mea
       f"N=16: {exact_times[11] * 8 ** 5 / 3600:.0f} h and {16 * 4 ** 16 / 1e9:.0f} GB per matrix.")
 
 # %% [markdown]
-# **Interpretation.** Read the last column. Up to $N\approx8$ the dense route takes a few tens of milliseconds and up to $N\approx10$ well under a second (and is the most convenient method there is) — at those sizes what you actually wait for is the *compilation*,
-# which is the difference between the middle and the last column: a fraction of a second to a few seconds, almost independent of $N$. Then the $8^N$ wall rises: three more spins cost a factor of more than a hundred (the asymptotic $8^3=512$ is reached only once the diagonalisation dominates completely). The printed ratios per spin approach 8 only once the
-# $\mathcal O\big((2^N)^3\big)$ diagonalisation dominates over the cheaper $\mathcal O(N4^N)$ construction of the matrix; at these sizes they scatter by a factor of a few in either direction, because wall times on a shared machine do (the memory
-# column, which is arithmetic, does not). The extrapolation in the last line — an *estimate*, not a measurement — shows why nobody diagonalises beyond
+# **Interpretation.** Read the last column. At the smallest sizes the warm time is per-operation overhead and hardly changes with $N$; from $N\approx8$ on it rises steeply. The ratios per spin approach the asymptotic 8 (and three spins the factor $8^3=512$) only once the
+# $\mathcal O\big((2^N)^3\big)$ diagonalisation dominates over the cheaper $\mathcal O(N4^N)$ construction of the matrix. At these sizes they also scatter by a factor of a few, because wall times on a shared machine do: in different executions of this cell the factor for $N=8\to11$ has ranged from about 10 to about 300, while the memory
+# column, which is arithmetic, does not change. The first call adds the tracing and compilation of every operation for the new array shape, which dominates it at small $N$. Up to $N\approx10$ the dense route is nevertheless the most convenient method there is. The extrapolation in the last line (an *estimate*, labelled as such in the print) shows why nobody diagonalises beyond
 # $N\approx14$–$16$ without exploiting symmetries. The matrix-free integrators below need $\mathcal O(2^N)$ memory and, for a fixed evolution time, $\mathcal O(N^{1\text{–}2}2^N)$ operations.
 
 # %% [markdown]
-# ## 7. Physics interlude: the Loschmidt echo — a hard exam for integrators
+# ## 7. The Loschmidt echo as a test of integrators
 #
 # Before the systematic benchmark, let us see what integrator errors *do* to a physical observable. Prepare $|\psi_0\rangle=|0\dots0\rangle$ (all spins up), switch on $H$ suddenly (a *quench*) and ask: what is the probability to find the system back in its initial state?
 #
@@ -629,7 +631,7 @@ print(f"Extrapolation from N=11 with a factor 8 per spin (an ESTIMATE, not a mea
 # $$ \mathcal L_{\rm num}-\mathcal L=2\,\mathrm{Re}\big[\bar A\,\langle\psi_0|\delta\rangle\big]+\big|\langle\psi_0|\delta\rangle\big|^2,\qquad\text{so}\qquad \frac{\big|\mathcal L_{\rm num}-\mathcal L\big|}{\mathcal L}\;\le\;\frac{2\varepsilon}{\sqrt{\mathcal L}}+\frac{\varepsilon^2}{\mathcal L} . $$
 #
 # The relative error of the echo is the relative error of the state **amplified by $1/\sqrt{\mathcal L}$**. The bound is attained only if the error vector happens to point along $|\psi_0\rangle$; what enters is $\langle\psi_0|\delta\rangle=\eta\,\varepsilon$ with $0\le\eta\le1$, and we measure $\eta$ below.
-# Even so: an error of $10^{-3}$ in the state is invisible in a magnetisation curve, but it can be 100 % of an echo of $10^{-6}$.
+# Even with $\eta<1$, an error of $10^{-3}$ in the state, invisible in a magnetisation curve, can be 100 % of an echo of $10^{-6}$.
 #
 # We compute $\mathcal L(t)$ on the $N=10$ chain with every integrator at the *same* step $dt=0.05$ (TEBD orders 1, 2, 4; Krylov with a small subspace $m=8$) plus Chebyshev, recording the full state at every step so that we can also plot the state error against the dense solution.
 #
@@ -749,18 +751,18 @@ plt.tight_layout(); plt.show()
 # %% [markdown]
 # **Interpretation.**
 #
-# * *Left.* The echo drops by several orders of magnitude within a time of order one and then fluctuates at a small value set by the (large but finite) number of eigenstates involved. On this scale first-order TEBD is visibly wrong — not just inaccurate at the minima, where the true echo is small, but
-#   everywhere at late times; the other curves look fine to the eye.
-# * *Middle and right.* The error panels reveal the hierarchy. The state errors settle at $\sim10^{-1}$ (TEBD-1), $\sim10^{-2}$ (TEBD-2) and $\sim10^{-6}$ (TEBD-4) for this $dt$; Krylov with a mere $m=8$ vectors
+# * *Left.* The echo drops by several orders of magnitude within a time of order one and then fluctuates at a small value set by the (large but finite) number of eigenstates involved. On this scale only first-order TEBD can be told apart from the exact curve, and only near the dip at $t\approx4.7$,
+#   where its relative error reaches about 20 % (middle panel); the other curves coincide with the exact one to the eye.
+# * *Middle and right.* The error panels reveal the hierarchy. At $T=5$ the state errors are $\sim10^{-1}$ (TEBD-1), $\sim10^{-2}$ (TEBD-2) and $\sim10^{-6}$ (TEBD-4) for this $dt$; Krylov with a mere $m=8$ vectors
 #   sits at $10^{-7}$ and Chebyshev at $10^{-13}$ — for them $dt=0.05$ is a tiny step. All of them grow **linearly in time** after an initial transient: the fitted exponents printed above are $1.0$ for every scheme except fourth-order TEBD ($0.8$).
 #   Linear growth is what one expects when the same error operator is committed at every step and the individual contributions add up without cancelling.
 # * The *relative* error of the echo (middle) is not a constant multiple of the state error: it peaks exactly where the echo dips, at the minima of $\mathcal L$ around $t\approx1.9$ and $t\approx4.7$, as the printed ratio
 #   "relative echo error / state error at the same time" shows — between 3 and 18 for every scheme except first-order TEBD, whose state error is of order one, so that the linearised argument above no longer applies to it at all.
 #   These ratios are well below the worst case $2/\sqrt{\mathcal L}\approx60$–$130$ printed next to them, and the reason is in the same column: the overlap fraction $\eta=|\langle\psi_0|\delta\rangle|/\|\delta\|$ is only $0.04$–$0.16$, so most of the error vector is invisible to *this* observable.
-#   Do not count on that: $\eta$ is a property of the particular integrator, state and time, and the ratio is $2\eta/\sqrt{\mathcal L}$ with $\eta\le1$ the only guarantee.
+#   Since $\eta$ is a property of the particular integrator, state and time, it cannot be relied upon; the ratio is $2\eta/\sqrt{\mathcal L}$, and $\eta\le1$ is the only guarantee.
 #   On this grid $\mathcal L$ never falls below $\sim2\times10^{-4}$, so the amplification stays modest; push $N$ or $T$ up, let $\mathcal L$ reach $10^{-8}$, and
 #   the factor $1/\sqrt{\mathcal L}$ of the introduction turns a state error of $10^{-3}$ into a meaningless echo.
-# * *The conserved quantities say nothing.* Every integrator conserves the norm to rounding accuracy (printed above), including the one whose state is wrong by 30 %. The energy column makes the pitfall of §2.4 concrete from the other side:
+# * *Conserved quantities as diagnostics.* Every integrator conserves the norm to rounding accuracy (printed above), including the one whose state is wrong by 30 %. The energy column makes the pitfall of §2.4 concrete from the other side:
 #   Krylov with $m=8$ holds $\langle H\rangle$ to $6\times10^{-14}$ while its state is wrong by $10^{-7}$, and Chebyshev holds it to $1.6\times10^{-13}$ while being right to $5\times10^{-13}$ — the same diagnostic, opposite information. TEBD, which conserves the norm but not the energy,
 #   drifts by $1.5\times10^{-2}$ (order 2) and $2.9\times10^{-6}$ (order 4), that is by about its own state error: for a Trotter scheme the energy drift *is* a useful diagnostic, for a Krylov scheme it is not.
 #
@@ -869,9 +871,9 @@ plt.show()
 #   the polynomial methods are already at their threshold cost there.
 # * **Chebyshev and Krylov** have nearly vertical curves: a threshold cost of about $aT\approx90$ applications of $H$, after which additional digits are almost free. Chebyshev is the cheapest of all below $\sim10^{-4}$; Krylov with $m=30$ costs up to about twice as many $H$ applications (restart overhead: every step must again "fill" its
 #   subspace) and with $m=12$, whose steps are much shorter, up to nine times as many at the tightest tolerance — still far ahead of TEBD at high accuracy.
-# * In **wall time** Krylov pays additionally for re-orthogonalisation and for handling $m$ vectors; the ranking among the three families is unchanged.
+# * In **wall time** Krylov pays additionally for re-orthogonalisation and for handling $m$ vectors, and Chebyshev, a single `scan` with no restarts, gains. At the roughest accuracy ($\gtrsim10^{-2}$) second-order TEBD is level with Chebyshev or faster; below that the ranking is the same as in the operation count.
 # * **Compilation** (last column of the table) costs between a fraction of a second and a second or two — comparable to, and for most entries larger than, the compiled run itself at $N=10$. At small $N$ compile time is what you wait for,
-#   and it matters only that we compile *once*. TEBD-4, whose step contains $10(2N-1)$ gates, is the most expensive to compile; the Krylov entries look cheap only because the identical program (same static $m$) was already
+#   and it matters only that we compile *once*. TEBD-4, whose step contains $10(2N-1)$ gates, produces the largest program to compile; the Krylov entries look cheap only because the identical program (same static $m$) was already
 #   compiled in §5.2 and comes straight from JAX's cache.
 
 # %% [markdown]
@@ -972,16 +974,16 @@ plt.show()
 # * **Accuracy.** All contestants land at the $10^{-4}$ level at every size (Chebyshev overshoots it by about 10 %, because its tolerance is imposed on the last Bessel *coefficient* kept, not directly on the state error). The TEBD error at fixed $dt$ creeps up with $N$ (more bonds, more commutators) but stays below the target thanks to the calibration margin; Chebyshev and Krylov control their error themselves, independently of $N$.
 #   The two independent tight references agree to $\sim10^{-12}$ at every $N$, which is what entitles us to use one of them where no dense solution exists.
 # * **Small systems ($N\lesssim10$).** Run times are dominated by per-operation overheads rather than arithmetic, and are all in the millisecond range. A *single* propagation is much faster with Chebyshev or Krylov than with the dense
-#   solution even at $N=8$ — but the dense solution has the unique advantage that, after one diagonalisation, *any* time $t$ costs one matrix–vector product; ask for a trajectory with a hundred output times and it is back in the race up to $N\approx10$.
+#   solution even at $N=8$. The dense solution keeps one unique advantage: after one diagonalisation, *any* further time $t$ costs one matrix–vector product, which makes it the natural reference for whole trajectories at $N\lesssim10$.
 # * **Large systems.** From $N\approx12$ on the four matrix-free curves are roughly parallel straight lines on the logarithmic plot — the exponential $2^N$ growth of the state vector, mildly enhanced by the extra factors of $N$ in the
-#   cost model — while the dense solution follows its much steeper $8^N$ law and leaves the plot. Do not over-read the individual factors: the measured jump per two added spins scatters by up to a factor of a few in either direction around the value $4$ that $2^N$ alone would give, because at these sizes
+#   cost model — while the dense solution follows its much steeper $8^N$ law and leaves the plot. The individual factors are noisy: the measured jump per two added spins scatters by up to a factor of a few in either direction around the value $4$ that $2^N$ alone would give, because at these sizes
 #   the state still fits in the processor caches and wall times on a shared machine are noisy. The *ratios between the methods* at a given $N$, which is what this comparison is about, are far more stable.
 #   At this modest accuracy target Chebyshev, fourth-order TEBD and Krylov end up within a small factor of each other, with Chebyshev and fourth-order TEBD the fastest and second-order TEBD — which needs by far the most steps — the slowest. Tightening the target by four orders of magnitude would shift the two TEBD curves up by factors $\sim100$ (order 2) and $\sim10$ (order 4) and leave the other two almost unchanged (§8).
 #   Note also the different growth with $N$ at fixed $T$: a TEBD step costs $\propto N2^N$, whereas Chebyshev and Krylov need $\propto a\,T\propto N$ applications of $H$, so their cost grows as $N^22^N$ — an extra factor $N$, the price of resolving the growing spectral width.
 #   The extra factor is smaller than it looks, because the *number* of TEBD steps here is $N$-independent only by construction: the step was calibrated once at $N=10$, and the error column shows it creeping up with $N$. The Trotter error is extensive ([TEBD](12_tebd_trotter_suzuki.ipynb), §7.3),
-#   so holding the accuracy fixed requires $dt\propto N^{-1/p}$ and TEBD-$p$ costs $\propto N^{1+1/p}2^N$. At equal accuracy, the asymptotic advantage of TEBD over the polynomial methods in $N$ is therefore $N^{1-1/p}$: $\sqrt N$ at order 2, $N^{3/4}$ at order 4 — not a factor $N$.
+#   so holding the accuracy fixed requires $dt\propto N^{-1/p}$ and TEBD-$p$ costs $\propto N^{1+1/p}2^N$. At equal accuracy, the asymptotic advantage of TEBD over the polynomial methods in $N$ is therefore $N^{1-1/p}$, that is $\sqrt N$ at order 2 and $N^{3/4}$ at order 4.
 # * **Compilation.** The first call (right panel) traces and compiles the whole program before running it once. Up to $N\approx12$ that dominates: for most contestants the first call costs several times the run that follows. The compile
-#   times themselves all sit within a factor of a few of each other (a fraction of a second at small $N$, a few seconds at $N=16$) and grow slowly with $N$ — what matters in practice is only that you compile once and then loop.
+#   times themselves all sit within a factor of a few of each other (a fraction of a second at small $N$, one to a few seconds at $N=16$) and grow slowly with $N$ — what matters in practice is only that you compile once and then loop.
 #
 # ### 9.2 Memory
 #
@@ -1002,7 +1004,7 @@ print(f"{'exact: H, V, work (3 x 4^N)':28s} | {'--':>13s} | " + " | ".join(f"{3 
 # keeping $m$ small in Krylov codes.
 
 # %% [markdown]
-# ## 10. Which integrator when? A guidance table
+# ## 10. A guidance table for choosing an integrator
 #
 # The measurements of §§7–9 and of the two previous notebooks, condensed. "Cost" is for evolving to time $T$ with spectral half-width $a\propto N$; one application of $H$ costs $\mathcal O(N2^N)$.
 #
@@ -1038,7 +1040,7 @@ print(f"{'exact: H, V, work (3 x 4^N)':28s} | {'--':>13s} | " + " | ".join(f"{3 
 #   the bound is invariant under $H\to H+c$, so $\|H\|$ is irrelevant. For ten digits, $m\gtrsim a\,dt+15$ (measured). Per step this costs 8–17 % fewer $H$ applications than Chebyshev and needs no spectral bounds, but it stores $m$ vectors and must re-orthogonalise.
 # * Norm and energy are conserved *exactly* by construction — and are therefore no accuracy diagnostics. The right diagnostic is the residual: $\|\text{error}\|\le\beta_m\int_0^t|c_m(s)|ds$, computable from the small matrix alone, tight within a factor $\sim1$–$3$, and the basis of automatic step-size control with `lax.while_loop`.
 # * The exact dense solution costs $\mathcal O(8^N)$ time and $\mathcal O(4^N)$ memory: unbeatable for $N\le8$–$10$ and indispensable for validation, hopeless beyond $N\approx14$.
-# * Integrators are compared at equal accuracy in work–precision diagrams: TEBD follows power laws (a fixed *factor* of work per digit); Chebyshev and Krylov have a threshold cost $\approx aT$ applications of $H$ and then give digits almost for free. The crossover is near $10^{-2}$–$10^{-4}$ in the state error for our chain.
+# * Integrators are compared at equal accuracy in work–precision diagrams: TEBD follows power laws (a fixed *factor* of work per digit); Chebyshev and Krylov have a threshold cost $\approx aT$ applications of $H$ and then give digits almost for free. For our chain the polynomial methods are already level with TEBD at a state error of $10^{-2}$ and pull ahead with every further digit.
 # * At fixed modest accuracy all matrix-free methods scale as $\sim N^{1\text{–}2}2^N$ in time; memory (2, 4, $m+2$ vectors) decides the largest reachable $N$.
 # * Whether an integrator is accurate enough depends on the observable: local expectation values are forgiving, overlaps such as the Loschmidt echo are not.
 # * Benchmark practice: compile once, time the second call, `block_until_ready`, best of several runs, equal accuracy, validated references — and state clearly what was measured and what was extrapolated.
@@ -1049,7 +1051,7 @@ print(f"{'exact: H, V, work (3 x 4^N)':28s} | {'--':>13s} | " + " | ".join(f"{3 
 # 1. ★ **Exactness for polynomials.** Verify numerically property (a) of §2.4: for $m=6$ compare $V_mT_m^je_1$ with $H^jv_1$ for $j=0,\dots,7$ (use `lanczos_basis` and repeated `matvec_val`). For which $j$ does the identity fail first, and by how much? Relate the size of the failure to $\beta_1\cdots\beta_m$. (Compare *absolute* norms: $\|H^j v_1\|$ grows like $\|H\|^j$, so for $j\le m-1$ the agreement is limited by rounding to about $\|H\|^{j}\varepsilon$, not by the identity.)
 # 2. ★ **Invariant subspaces.** Start `lanczos_basis` from a state that is a superposition of only three eigenvectors of $H$ (take them from the dense diagonalisation at $N=8$) with $m=10$. Print `betas`: where does the iteration break down? Check that `krylov_step` is nevertheless exact for any $dt$.
 # 3. ★★ **No re-orthogonalisation.** Write a variant of `lanczos_basis` using only the three-term recurrence. Plot $\max|V^\dagger V-1|$ versus $m$ up to $m=80$ and the error of the Krylov step at $dt=1$ with and without re-orthogonalisation. Is the *propagated state* as sensitive as the orthogonality? (This is a classical and somewhat surprising observation about Lanczos.) Then repeat at $dt=8$, where $m=80$ is still far from convergence, and record $\big|\,\|\psi_m\|-1\big|$ in both cases: in which regime does the exact norm conservation of §2.4(b) actually break down?
-# 4. ★★ **Energy is conserved, accuracy is not (physics/numerics).** Run chained Krylov steps with $m=4$, $dt=0.2$ up to $T=5$ at $N=10$ and record energy, norm and the state error against `exact_state`. Do the same with TEBD-2. Which diagnostics reveal the error of which method?
+# 4. ★★ **Energy conservation versus accuracy (physics/numerics).** Run chained Krylov steps with $m=4$, $dt=0.2$ up to $T=5$ at $N=10$ and record energy, norm and the state error against `exact_state`. Do the same with TEBD-2. Which diagnostics reveal the error of which method?
 # 5. ★★ **Observables on a time grid (extend the code).** Combine `krylov_adaptive_evolve` with output at prescribed times $t_n=n\,\Delta t$: an outer `lax.scan` over $n$ whose body calls the adaptive evolution for the interval $\Delta t$ and then measures $\langle Z_j\rangle$. Compare the number of $H$ applications with a fixed-step Krylov trajectory of the same accuracy.
 # 6. ★★ **Dynamical quantum phase transition (physics).** For the transverse-field Ising chain (`heisenberg_terms(N, Jxx=0, Jyy=0, Jzz=-1, hx=h)`) quench from $|0\dots0\rangle$ (the $h=0$ ground state) to $h=0.5$ and to $h=2$. Compute the rate function $\lambda(t)=-\tfrac1N\ln\mathcal L(t)$ for $N=8,12,16$ up to $t=5$ with Chebyshev or Krylov.
 #    For which quench do sharp features (cusps in the limit $N\to\infty$) develop, and at what times? (Compare with Heyl, Polkovnikov and Kehrein, 2013, who predict cusps only for quenches across the critical point $h=1$.) Repeat with TEBD-2 at $dt=0.1$: can you trust its cusps?
@@ -1071,5 +1073,5 @@ print(f"{'exact: H, V, work (3 x 4^N)':28s} | {'--':>13s} | " + " | ".join(f"{3 
 # * S. Paeckel, T. Köhler, A. Swoboda, S. R. Manmana, U. Schollwöck and C. Hubig, *Time-evolution methods for matrix-product states*, Ann. Phys. **411**, 167998 (2019) — the same family of integrators in the MPS world.
 # * M. Heyl, A. Polkovnikov and S. Kehrein, *Dynamical quantum phase transitions in the transverse-field Ising model*, Phys. Rev. Lett. **110**, 135704 (2013) — Loschmidt echo and its non-analyticities.
 # * G. H. Golub and C. F. Van Loan, *Matrix Computations*, 4th ed., Johns Hopkins University Press (2013) — Lanczos, Arnoldi, Gram–Schmidt and re-orthogonalisation (Ch. 10).
-* L. Giraud, J. Langou, M. Rozložník and J. van den Eshof, *Rounding error analysis of the classical Gram–Schmidt orthogonalization process*, Numer. Math. **101**, 87 (2005) — two passes of classical Gram–Schmidt are enough.
+# * L. Giraud, J. Langou, M. Rozložník and J. van den Eshof, *Rounding error analysis of the classical Gram–Schmidt orthogonalization process*, Numer. Math. **101**, 87 (2005) — two passes of classical Gram–Schmidt are enough.
 

@@ -6,8 +6,8 @@
 # ## 1. Introduction and motivation
 #
 # **The physical question.** Prepare a chain of interacting spins in a simple state — all spins up, a Néel pattern $\uparrow\downarrow\uparrow\downarrow$, a domain wall $\uparrow\uparrow\uparrow\downarrow\downarrow\downarrow$ — and let it go.
-# What happens? How fast does magnetisation spread, does the system "forget" its initial state, how quickly does entanglement grow? Such *quench experiments* are routinely performed today with ultracold atoms in optical lattices,
-# trapped ions, Rydberg-atom arrays and superconducting qubits, and they are *the* way to study the dynamics of quantum matter. The theory is "just" the Schrödinger equation (we set $\hbar=1$),
+# The questions are how fast the magnetisation spreads, whether the system "forgets" its initial state, and how quickly entanglement grows. Such *quench experiments* are routinely performed today with ultracold atoms in optical lattices,
+# trapped ions, Rydberg-atom arrays and superconducting qubits, and they are a central probe of the dynamics of quantum matter. The theory is "just" the Schrödinger equation (we set $\hbar=1$),
 #
 # $$ i\,\frac{d}{dt}|\psi(t)\rangle=H|\psi(t)\rangle\qquad\Longrightarrow\qquad|\psi(t)\rangle=e^{-iHt}|\psi(0)\rangle , $$
 #
@@ -33,7 +33,7 @@
 # 4. Implementation with `jit` and `lax.scan`, validation against exact evolution (Section 6).
 # 5. **Measured error scaling**: local error $\propto dt^{p+1}$, global error $\propto dt^{p}$, accumulation in time, prefactors predicted by commutators (Section 7).
 # 6. **Conserved quantities as diagnostics**: what the norm, the magnetisation and the energy can and cannot tell you; commuting special cases with zero Trotter error (Sections 8–9).
-# 7. **Cost**: gates per step, gate fusion, compile vs run time, work–precision diagram — which order is the most efficient? (Section 10)
+# 7. **Cost**: gates per step, gate fusion, compile vs run time, work–precision diagram and the choice of the order (Section 10)
 # 8. A convergence test that needs no exact reference, and a domain-wall quench of $N=18$ spins checked against free fermions (Section 11).
 #
 # ### What you will learn
@@ -191,7 +191,7 @@ assert float(err_one) < TOL
 #
 # **Errors add up at most linearly in time** (no exponential blow-up, thanks to unitarity), and one power of $dt$ is lost: a method with local error $O(dt^{p+1})$ has global error $O(t\,dt^{p})$ and is called a method **of order $p$**. Lie–Trotter is first order.
 #
-# ### 4.4 Which $A$ and $B$? The even/odd (brick-wall) layout
+# ### 4.4 The even/odd (brick-wall) layout
 #
 # For a chain with nearest-neighbour bonds, the terms on **even** bonds $(0,1),(2,3),\dots$ act on disjoint pairs of spins and therefore commute with each other; the same holds for the **odd** bonds $(1,2),(3,4),\dots$. With
 #
@@ -211,11 +211,11 @@ assert float(err_one) < TOL
 #
 # $$ S_1(dt)-e^{-iH\,dt}=-\frac{dt^2}{2}[B,A]+O(dt^3),\qquad A=\text{even bonds (applied first)},\ B=\text{odd bonds}. \qquad (3')$$
 #
-# We check Eq. (3') numerically in a moment; reversing the two layers would flip the sign of the error vector without changing its norm, which is exactly the kind of mistake a test that looks only at $\|\cdot\|$ cannot see.
+# We check Eq. (3') numerically in a moment; reversing the two layers would flip the sign of the error vector without changing its norm, so a test of the norm alone cannot detect this mistake.
 #
 # Single-site field terms $h_xX_i+\dots$ can be treated as a third layer, or — better — **absorbed into the bonds**: give every bond a share of the fields of its two sites, so that the sum over bonds is unchanged. Then $H$ is again a sum of two layers,
 # there are fewer gates to apply (a first instance of *gate fusion*), and the two-layer theory applies literally. Other orderings are equally legitimate first-order formulas — e.g. sweeping through the bonds from left to right, which is
-# what one gets by feeding the engine's `heisenberg_terms` list directly into `tebd_gates`. Since the bond terms of a chain do **not** all commute, reordering them produces a genuinely *different* unitary, not a rewriting of the same one; what stays the same is the
+# what one gets by feeding the engine's `heisenberg_terms` list directly into `tebd_gates`. Since the bond terms of a chain do **not** all commute, reordering them produces a *different* unitary; what stays the same is the
 # order of accuracy, and what changes is the error prefactor. Section 7.1 measures the difference for the second-order scheme.
 
 # %%
@@ -274,7 +274,7 @@ assert float(jnp.max(jnp.abs(H_a - H_b))) < TOL
 #
 # ### 4.5 Checkpoint: the first-order step and its predicted error
 #
-# Eq. (3') does not just say "$O(dt^2)$", it predicts the *vector* of the leading local error, $\big(S_1(dt)-e^{-iH\,dt}\big)|\psi\rangle\approx-\tfrac{dt^2}{2}[B,A]|\psi\rangle$. We can compute $[B,A]|\psi\rangle=B(A|\psi\rangle)-A(B|\psi\rangle)$
+# Beyond the order $O(dt^2)$, Eq. (3') predicts the *vector* of the leading local error, $\big(S_1(dt)-e^{-iH\,dt}\big)|\psi\rangle\approx-\tfrac{dt^2}{2}[B,A]|\psi\rangle$. We can compute $[B,A]|\psi\rangle=B(A|\psi\rangle)-A(B|\psi\rangle)$
 # matrix-free with `apply_hamiltonian` on the two sub-lists and compare — both the norm and the *direction*. The direction is tested by the projection of the measured error vector $|e\rangle$ on the predicted one $|p\rangle$,
 #
 # $$ r=\frac{\mathrm{Re}\,\langle p\vert e\rangle}{\langle p\vert p\rangle}\;\longrightarrow\;1\quad(dt\to0), $$
@@ -315,8 +315,8 @@ assert abs(r - 1) < 0.05                                 # sign and direction, n
 
 # %% [markdown]
 # The measured one-step error divided by the prediction $\tfrac{dt^2}{2}\|[B,A]\psi_0\|$ tends to 1 as $dt\to0$: halving $dt$ reduces the local error by a factor 4, and we even know the prefactor — it is the commutator of the two layers acting on the *current state*.
-# The last column, the projection $r$ of the measured error vector on the predicted one, tends to $+1$ as well, so Eq. (3') is verified as a vector identity and not merely as a statement about magnitudes. $r$ approaches its limit more slowly than the norm ratio does
-# (at $dt=0.1$ the magnitude is already right to $1\%$ while $r=0.74$): the $O(dt^3)$ remainder is nearly orthogonal to the leading term, so it tilts the error vector long before it changes its length.
+# The last column, the projection $r$ of the measured error vector on the predicted one, tends to $+1$ as well, so Eq. (3') is verified as a vector identity. $r$ approaches its limit more slowly than the norm ratio does
+# (at $dt=0.1$ the magnitude is right to $1\%$ while $r=0.74$). The $O(dt^3)$ remainder is almost perpendicular to the leading term and rotates the error vector by about $40^\circ$ at $dt=0.1$; in the length it enters only quadratically and nearly cancels the shortfall of the parallel component, so the norm ratio alone overstates how well the prediction has converged.
 # (The `assert` on the norm inside the loop passed silently: every step is exactly unitary.)
 #
 # > **Numerical practice.** "Trotter error" is state dependent. A state on which the commutator $[A,B]$ acts weakly (an eigenstate of $H$, a very dilute state, …) is evolved much more accurately than the worst-case operator-norm bound suggests.
@@ -331,7 +331,7 @@ assert abs(r - 1) < 0.05                                 # sign and direction, n
 #
 # $$ S_2(dt)=e^{-iA\,dt/2}\,e^{-iB\,dt}\,e^{-iA\,dt/2}. $$
 #
-# It has the property $S_2(dt)\,S_2(-dt)=\mathbb 1$ — *time-reversal symmetry*, just like the exact propagator: the outer factors cancel pairwise, $e^{-iA\,dt/2}e^{+iA\,dt/2}=\mathbb 1$, then the $B$ factors, then the remaining $A$ factors. (The first-order product does not have it:
+# It has the property $S_2(dt)\,S_2(-dt)=\mathbb 1$ — *time-reversal symmetry*, just like the exact propagator: the two adjacent $A$ factors in the middle cancel, $e^{-iA\,dt/2}e^{+iA\,dt/2}=\mathbb 1$, then the $B$ factors, then the outer $A$ factors. (The first-order product does not have it:
 # $S_1(dt)S_1(-dt)=e^{-iA\,dt}e^{-iB\,dt}e^{iA\,dt}e^{iB\,dt}\neq\mathbb 1$.) Write $S_2(dt)=\exp\Omega(dt)$ with $\Omega(dt)=dt\,\Omega_1+dt^2\Omega_2+dt^3\Omega_3+\dots$. The symmetry says
 # $\exp\Omega(-dt)=\big(\exp\Omega(dt)\big)^{-1}=\exp(-\Omega(dt))$, i.e. $\Omega$ is an **odd function** of $dt$: all even coefficients vanish, $\Omega_2=\Omega_4=\dots=0$. Since $\Omega_1=-i(A+B)$ by the first-order expansion,
 #
@@ -358,7 +358,7 @@ assert abs(r - 1) < 0.05                                 # sign and direction, n
 #
 # $$ \sum_ic_i=1\quad(\text{consistency}),\qquad\sum_ic_i^3=0\quad(\text{kill the }dt^3\text{ error}). $$
 #
-# The second condition cannot be met with positive numbers — a sum of cubes of positive numbers is positive — so **some sub-steps must go backwards in time**. This is not an artefact of the ansatz: Suzuki (1991) proved that *no* product formula of order higher than two has only positive coefficients. The order conditions of such compositions are surveyed by McLachlan and Quispel (2002).
+# The second condition cannot be met with positive numbers — a sum of cubes of positive numbers is positive — so **some sub-steps must go backwards in time**. The same holds beyond this ansatz: Suzuki (1991) proved that *no* product formula of order higher than two has only positive coefficients. The order conditions of such compositions are surveyed by McLachlan and Quispel (2002).
 #
 # * **Suzuki (1990)**, five stages: $S_4(dt)=S_2(s\,dt)^2\,S_2\big((1-4s)\,dt\big)\,S_2(s\,dt)^2$. The two conditions read $4s+(1-4s)=1$ (automatic) and $4s^3+(1-4s)^3=0$; the latter gives $4^{1/3}s=-(1-4s)$, i.e.
 #   $s=\dfrac{1}{4-4^{1/3}}\approx0.41449$ and a middle step $1-4s\approx-0.65796$. This is the engine's `order=4`.
@@ -369,8 +369,8 @@ assert abs(r - 1) < 0.05                                 # sign and direction, n
 # total distance travelled, $\sum_i|c_i|$ — $2.32$ for Suzuki against $4.40$ for Forest–Ruth — and the leading $dt^5$ term contains, among others, the factor $\sum_ic_i^5$, which is $-0.074$ for Suzuki and $-5.29$ for Forest–Ruth, a ratio of $71$. The cell below prints these numbers and
 # Section 7 measures a ratio of error constants of about $70$. Which formula wins in gates-per-digit is then an empirical question (Section 10).
 #
-# Negative sub-steps *are* fatal in one situation: when the propagator is a contraction rather than a unitary. In imaginary time ($dt\to-i\,d\tau$, Exercise 8) or for a diffusion equation, a backward sub-step means $e^{+|c|\,d\tau\,h}$, which amplifies the largest eigenvalues instead of damping them;
-# fourth-order splittings with real coefficients are therefore unusable there, and one stays with orders 1 and 2 (or uses complex coefficients with positive real parts).
+# Negative sub-steps do matter when the propagator is a contraction rather than a unitary. In imaginary time ($dt\to-i\,d\tau$, Exercise 8) a backward sub-step means $e^{+|c|\,d\tau\,h}$, which amplifies the high-energy components instead of damping them. For a lattice Hamiltonian with bounded terms this amplification is bounded by $e^{|c|\,d\tau\,\|h\|}$
+# and the composed step still approximates $e^{-H\,d\tau}$ to fourth order. For a diffusion equation, whose generator has eigenvalues that grow without bound as the grid is refined, the amplification is unbounded; there splittings with real coefficients are limited to second order, and higher orders need complex coefficients with positive real parts.
 #
 # Iterating the construction gives formulas of order 6, 8, … — with rapidly growing numbers of stages. Both fourth-order local errors are $O(dt^5)$, global $O(t\,dt^4)$.
 
@@ -646,11 +646,11 @@ for scheme in propagators:
 #   more gates, more round-off. *High-order methods have an optimal $dt$.*
 # * Forest–Ruth is fourth order, but with an error constant almost two orders of magnitude worse than Suzuki's formula: at $dt=0.05$ the two global errors differ by a factor $3.59\times10^{-4}/5.33\times10^{-6}=67$, close to the ratio $71$ of the coefficients $\sum_ic_i^5$ printed in
 #   Section 5.2 — the price of sub-steps of length $1.35\,dt$ and $-1.70\,dt$.
-# * The ordering of the terms changes the prefactor (here by less than a factor of two), not the slope: the two second-order curves are parallel.
+# * The ordering of the terms changes the prefactor (here by less than a factor of two) and leaves the slope unchanged: the two second-order curves of the global error are parallel.
 #
 # ### 7.2 Error accumulation in time
 #
-# Equation (4) bounds the growth of the error by a straight line, $\epsilon(t)\le(t/dt)\,\epsilon_{\rm local}$. Is the bound tight? We fix $dt$ and record the error after every step. (We use the scan to collect all intermediate *states* — affordable at $N=10$ — and compare them with the exact states.)
+# Equation (4) bounds the growth of the error by a straight line, $\epsilon(t)\le(t/dt)\,\epsilon_{\rm local}$. To see how tight the bound is, we fix $dt$ and record the error after every step. (We use the scan to collect all intermediate *states* — affordable at $N=10$ — and compare them with the exact states.)
 
 # %%
 # ==============================================================================
@@ -718,13 +718,13 @@ plt.tight_layout(); plt.show()
 # EXPERIMENT 2b: system-size dependence of the Trotter error (Neel state, order 2, dt = 0.05, T = 1)
 # ==============================================================================
 dt_N, T_N = 0.05, 1.0
-print("   N   ||[B,A]psi0||   /sqrt(N)    state error at T=1    |d<Z_(N/2)>|")
+print("   N   ||[B,A]psi0||   ||[B,A]psi0||^2   state error at T=1    |d<Z_(N/2)>|")
 for N_s in (6, 8, 10, 12, 14, 16, 18):
     terms_s = even_odd_order(absorb_fields_into_bonds(heisenberg_terms(N_s, Jxx=J, Jyy=J, Jzz=J * Delta, hx=hx, hz=hz), N_s))
     A_s, B_s = layers(terms_s)
     psi_s = product_state("01" * (N_s // 2))
     c_s = float(jnp.linalg.norm(commutator_on_state(B_s, A_s, psi_s)))
-    line = f"  {N_s:2d}     {c_s:8.4f}      {c_s / np.sqrt(N_s):.4f}"
+    line = f"  {N_s:2d}     {c_s:8.4f}       {c_s**2:9.3f}"
     if N_s <= 10:                                                   # dense reference: 2^N x 2^N eigendecomposition
         psi_num = psi_s
         for _ in range(int(round(T_N / dt_N))):
@@ -735,20 +735,20 @@ for N_s in (6, 8, 10, 12, 14, 16, 18):
     print(line)
 
 # %% [markdown]
-# The commutator prefactor grows **sub-linearly**: the third column drifts by about a fifth while $N$ triples, i.e. the growth is close to $\sqrt N$ rather than the $N$ of the worst-case bound. On this product state the error vectors contributed by the individual bonds are nearly
-# orthogonal, so their norms add in quadrature. The state error at fixed $dt$ grows with $N$ all the same — there is no size at which a fixed $dt$ is "good enough" for the full many-body state — whereas the error of the local observable $\langle Z_{N/2}\rangle$ stays at
+# The commutator prefactor grows **sub-linearly**. Its square grows by exactly $32$ for every two added sites, $\|[B,A]\psi_0\|^2=16N-39.3$, so the prefactor approaches $4\sqrt N$ rather than the linear growth of the worst-case bound. On this real product state, commutators of
+# non-overlapping groups of bonds give orthogonal vectors (each has zero expectation value, since $[B,A]$ is a real antisymmetric matrix), and only the $O(N)$ overlapping pairs contribute to the squared norm: the bond contributions add in quadrature. The state error at fixed $dt$ grows with $N$ all the same — there is no size at which a fixed $dt$ is "good enough" for the full many-body state — whereas the error of the local observable $\langle Z_{N/2}\rangle$ stays at
 # $10^{-3}$ over the sizes we can check against a dense reference. This is the quantitative version of the *Common pitfall* box above: a simulation that reports local observables can use a larger step than a fidelity-based error budget would allow.
 
 # %% [markdown]
 # ## 8. Conserved quantities as diagnostics
 #
-# On a large system there is no exact reference. What can we monitor instead? Let us classify the conserved quantities of the *exact* dynamics by what the *Trotterised* dynamics does to them.
+# On a large system there is no exact reference, and the conserved quantities of the *exact* dynamics become the diagnostics. We classify them by what the *Trotterised* dynamics does to them.
 #
 # **(a) The norm** — conserved *exactly* by every product formula, for any $dt$, because each gate is unitary. A drifting norm signals a bug or accumulating round-off in very long runs. But a perfectly conserved norm says **nothing** about accuracy:
-# the evolution with $dt=1$ is perfectly unitary and perfectly wrong.
+# the evolution with $dt=1$ below is unitary to round-off and far from the exact state.
 #
 # **(b) Symmetries shared by every gate** — if $[h_k,Q]=0$ for all terms, then each gate commutes with $Q$ and $\langle Q\rangle$ (in fact the full distribution of $Q$) is conserved *exactly* by the Trotterised dynamics. Example: the magnetisation
-# $M=\sum_jZ_j$ of the XXZ chain ($h_x=0$). Like the norm, this is a test of the *implementation*, not of $dt$ — but a valuable one: a wrong gate, a wrong index convention or a field term pointing in the wrong direction shows up immediately.
+# $M=\sum_jZ_j$ of the XXZ chain ($h_x=0$). Like the norm, it tests the *implementation* and is insensitive to $dt$; a wrong gate, a wrong index convention or a field term pointing in the wrong direction shows up immediately.
 #
 # **(c) The energy** — conserved by the exact dynamics, but **not** by the product formula, since $[S(dt),H]\ne0$. A generator always exists: $S(dt)$ is unitary, so $S(dt)=e^{-i\,dt\,H_{\rm eff}}$ with a Hermitian $H_{\rm eff}=i\log S(dt)/dt$, unambiguous as long as $dt$ is small enough for the
 # logarithm to be single-valued. Eqs. (5)–(6) are the first terms of its expansion, $H_{\rm eff}=H+O(dt^p)$; this *effective* (or "shadow") Hamiltonian is conserved exactly by the stroboscopic evolution, since $[S(dt),H_{\rm eff}]=0$. Hence
@@ -756,7 +756,7 @@ for N_s in (6, 8, 10, 12, 14, 16, 18):
 # $$ \langle H\rangle_t-\langle H\rangle_0=-\big(\langle H_{\rm eff}-H\rangle_t-\langle H_{\rm eff}-H\rangle_0\big)=O(dt^p)\quad\text{at all measured times }t=n\,dt: $$
 #
 # the energy error **oscillates but does not drift**, with an amplitude $\propto dt^p$. This makes $\max_t|\langle H\rangle_t-\langle H\rangle_0|$ a cheap, reference-free indicator of whether $dt$ is small enough. (The same mechanism explains the excellent long-time energy behaviour of
-# symplectic integrators in classical mechanics — leapfrog/Verlet is nothing but Strang splitting of $H=T+V$; Hairer, Lubich and Wanner (2006), Chapter IX, develop this backward error analysis.)
+# symplectic integrators in classical mechanics — leapfrog/Verlet is the Strang splitting of $H=T+V$; Hairer, Lubich and Wanner (2006), Chapter IX, develop this backward error analysis.)
 #
 # Two caveats belong with this argument. First, $H_{\rm eff}$ is a *local* operator only as long as the expansion behaves: the series of nested commutators is asymptotic, not convergent, and for a many-body system its truncation is useful only while $dt$ times the local energy
 # scale is small. Second, "does not drift" is a statement about a long but finite time. Rigorous results for Floquet systems — and a Trotterised evolution is a periodically driven system, with period $dt$ — show that the energy stays close to its initial value for a time
@@ -808,7 +808,7 @@ print(f"\ndt = 1.0 (order 2), T = 10:  |norm - 1| = {abs(float(jnp.linalg.norm(p
 
 # %% [markdown]
 # * **Norm and magnetisation** (left, middle) sit at the round-off level $10^{-15}$–$10^{-12}$ for *every* order and *every* $dt$, slowly creeping upwards as round-off accumulates (the more gates, the faster: the fourth-order curves are the highest). They confirm that the gates are unitary and respect the $U(1)$ symmetry — nothing more.
-#   The last printed line is the proof: with $dt=1$ norm and magnetisation are still perfect while the state is garbage.
+#   The last printed line shows the limitation: with $dt=1$ norm and magnetisation are conserved to round-off while the fidelity with the exact state is $0.008$.
 # * **Energy** (right): the deviation is bounded — it fluctuates without secular growth — and its amplitude scales as $dt^p$: the printed ratios between $dt=0.1$ and $0.05$ are close to $2$, $4$, $16$. The energy is the diagnostic that actually *sees* the Trotter error.
 #
 # > **Numerical practice.** Monitor the energy (cheap: one `apply_hamiltonian` per measurement) in every production run. If $\max_t|\Delta E|$ is not small compared with the energy scales you care about (e.g. $J$ per site times the accuracy you want), reduce $dt$ or raise the order.
@@ -849,7 +849,7 @@ assert err_up < 1e3 * TOL
 # With $h_x=0$ a single gigantic step reproduces the exact state to round-off; the error then grows linearly with the strength of the non-commuting perturbation. And the fully polarised state does not notice the Trotterisation at all.
 
 # %% [markdown]
-# ## 10. Cost: gates per step, gate fusion, and which order is the most efficient
+# ## 10. Cost: gates per step, gate fusion and the choice of the order
 #
 # ### 10.1 Cost model
 #
@@ -913,7 +913,7 @@ print(f"  order 2, 'sweep' list with separate field gates: {len(g2)} -> {len(fus
 # fields into the bonds was the bigger saving compared with the naive list (compare the last line).
 #
 # > **JAX practice.** `fuse_gates` runs in Python on tiny matrices *before* compilation (or at trace time if `dt` is traced — the matrix products are then part of the compiled program, still negligible). XLA does not perform this algebraic simplification for us:
-# > it fuses element-wise operations, not consecutive tensor contractions. Knowing the structure of your circuit beats any compiler.
+# > it fuses element-wise operations and leaves consecutive tensor contractions as they are, so the merging has to come from the structure of the circuit.
 #
 # ### 10.3 Measured time per step
 #
@@ -964,9 +964,9 @@ plt.tight_layout(); plt.show()
 
 # %% [markdown]
 # For small $N$ the jitted step is limited by fixed overheads, and compilation is what you wait for; the un-jitted version pays Python dispatch for every gate and is one to two orders of magnitude slower there. From $N\approx16$ on, both curves
-# bend over towards the $G\,2^N$ law (the last column, the time per gate and per amplitude, stops falling and settles at a few nanoseconds): the arithmetic and the memory traffic dominate, every additional spin doubles the cost, and the advantage of `jit`
+# bend over towards the $G\,2^N$ law (the last column, the time per gate and per amplitude, stops falling and levels off at a few nanoseconds on an idle machine, or at a few tens under heavy load): the arithmetic and the memory traffic dominate, every additional spin doubles the cost, and the advantage of `jit`
 # shrinks — a chain of einsums over a state that no longer fits in cache is memory-bound whoever dispatches it. The two curves can even cross at the largest size on a loaded machine, where the compiled step, which uses more threads, suffers more from the
-# competition. What is robust here is the *scaling* with $N$ and with the number of gates, not the absolute milliseconds: those depend on the machine and on whatever else is running on it.
+# competition. The robust results are the *scaling* with $N$ and with the number of gates; the absolute milliseconds depend on the machine and on whatever else is running on it.
 #
 # ### 10.4 Work–precision: choosing the order
 #
@@ -1014,11 +1014,11 @@ for target in (1e-2, 1e-4, 1e-6, 1e-8):
 # Forest–Ruth, despite fewer gates per step, loses to Suzuki because of its larger error constant. **Rule of thumb:** second order is the robust default when another error source dominates anyway
 # (shot noise, truncation in MPS-TEBD, a coarse time grid dictated by the observables) or when $dt\,\|h\|$ is not small (the fourth-order advantage is an asymptotic statement); fourth order for precision work and long times.
 #
-# ### 10.5 Choosing $dt$: there is no stability limit
+# ### 10.5 Unconditional stability and the choice of $dt$
 #
 # Every factor of a Trotter–Suzuki step is $e^{-ih_k\tau}$ with a Hermitian $h_k$ and a real $\tau$ — of either sign. Each factor is therefore exactly unitary, and so is the whole step, **for every $dt$ and every order**: the method is unconditionally stable, and nothing in it can
-# blow up. The numbers confirm it: Section 8 ran the second-order scheme with $dt=1.0$, where the norm stayed at $1$ to $10^{-14}$ while the fidelity with the true state fell to $0.008$. An unstable method explodes and tells you that it failed; a Trotter step with too large a $dt$
-# returns a perfectly normalised, perfectly plausible, wrong state.
+# blow up. The numbers confirm it: Section 8 ran the second-order scheme with $dt=1.0$, where the norm stayed at $1$ to $10^{-14}$ while the fidelity with the true state fell to $0.008$. Where an unstable method signals failure by blowing up, a Trotter step with too large a $dt$
+# returns a normalised, plausible and wrong state.
 #
 # This is the practical difference from the explicit integrators of [notebook 04 (Chapter 2)](../ch02_spin_systems_textbook_way/04_time_evolution_the_textbook_way.ipynb), where RK4 is stable only for $dt\,\|H\|\le2\sqrt2$ — a restriction that *tightens as the chain grows*, because
 # $\|H\|$ is extensive, and which has nothing to do with accuracy. For a product formula the step size is governed by accuracy alone, and the practical procedure is:
@@ -1056,7 +1056,7 @@ for scheme, dt_h in (("2", 0.1), ("2", 0.05), ("4", 0.2), ("4", 0.1)):
     assert 0.5 < estimate / true < 2.0
 
 # %% [markdown]
-# The estimate agrees with the true error to within a few percent — as long as both step sizes are in the asymptotic regime. This is the convergence test to use on large systems, ideally on the *observable of interest* rather than on the full state.
+# The estimate agrees with the true error to $2\%$ or better once both step sizes are in the asymptotic regime; for the fourth-order run with $dt=0.2$, where the larger step is not yet asymptotic, it is $8\%$ low. This is the convergence test to use on large systems, ideally on the *observable of interest* rather than on the full state.
 #
 # ### 11.2 Domain-wall melting at $N=18$ and the free-fermion solution
 #
@@ -1133,10 +1133,11 @@ plt.show()
 
 # %% [markdown]
 # * **Checkpoint:** for $\Delta=0$ the TEBD magnetisation profile of 18 spins agrees with the free-fermion solution to about $2\times10^{-5}$ at all sites and times — the size of the fourth-order Trotter error at $dt=0.1$ — an end-to-end test of gates, ordering, conventions and the scan,
-#   at a size where no dense reference exists. The magnetisation $M$ is conserved to round-off, as Section 8 taught us. (The energy deviation printed for $\Delta=0$ is *exactly* zero. This is not a sign of an unusually accurate run but a symmetry accident: for this real initial state the hopping energy
-#   $\langle\sigma^+_j\sigma^-_{j+1}+{\rm h.c.}\rangle$ vanishes identically at all times — only a current flows. A reminder that a diagnostic can be blind; for $\Delta=1$ the energy deviation has the expected small $O(dt^4)$ size.)
+#   at a size where no dense reference exists. The magnetisation $M$ is conserved to round-off, as Section 8 taught us. (The energy deviation printed for $\Delta=0$ is *exactly* zero, for a reason unrelated to accuracy. $Z$ on every second site flips the sign of each $XX+YY$ bond, so combined with complex conjugation it maps every gate $e^{-ih\,dt}$ onto itself and $H$ onto $-H$;
+#   the domain wall is invariant under this map, hence $\langle H\rangle=0$ after every step, whatever $dt$. A diagnostic can be blind; for $\Delta=1$ the energy deviation has the expected small $O(dt^4)$ size.)
 # * **Physics:** in the XX chain the wall melts **ballistically**: a light-cone with the maximal velocity $v_{\max}=4J$ (dashed) opens, and the transferred magnetisation grows linearly in time until the fronts hit the ends of the chain ($t\approx N/(2v_{\max})\approx2.2$) and reflect.
-#   At the Heisenberg point the same light-cone limits the spreading, but the $ZZ$ interaction slows the transport of magnetisation down markedly — the curve bends (in the infinite chain the melting of the fully polarised domain wall at $\Delta=1$ is compatible with diffusive spreading with slowly decaying corrections (Misguich, Mallick and Krapivsky 2017), while from weakly polarised, mixed initial states spin transport at $\Delta=1$ is superdiffusive with exponent close to $2/3$ (Ljubotina, Žnidarič and Prosen 2017); this is a topic of current research). More physics of quenches in closed systems in Polkovnikov *et al.* (2011) and in
+#   At the Heisenberg point the same light-cone limits the spreading, but the $ZZ$ interaction slows the transport of magnetisation down markedly and the curve bends. Eighteen spins up to $t=3$ cannot decide the asymptotic law. In the infinite chain the melting of the fully polarised domain wall at $\Delta=1$ is compatible with diffusive spreading with slowly decaying corrections (Misguich, Mallick and Krapivsky 2017),
+#   while from weakly polarised, mixed initial states spin transport at $\Delta=1$ is superdiffusive with exponent close to $2/3$ (Ljubotina, Žnidarič and Prosen 2017); the question is still under study. More physics of quenches in closed systems in Polkovnikov *et al.* (2011) and in
 #   [notebook 15 (Chapter 5)](15_quench_dynamics_spin_chains.ipynb).
 #
 # For $\Delta=1$ there is no free-fermion solution, and the step-halving test of Section 11.1 is the only convergence measure left. We apply it to both runs: for $\Delta=0$ we can compare the *estimated* error of the magnetisation profile with the *true* one (from free fermions) —
@@ -1169,8 +1170,8 @@ for Delta_big in (0.0, 1.0):
         print(f"\n              half-chain entanglement entropy at T = {T_big}: {float(entanglement_entropy(psi_half, range(N_big // 2))):.4f} bits")
 
 # %% [markdown]
-# For the XX chain the step-halving estimate of the profile error agrees with the true error known from free fermions — the estimator works at $N=18$ just as it did at $N=10$. For the Heisenberg chain it tells us that the state is converged to a few $10^{-4}$ and the
-# magnetisation profile to about $10^{-5}$ — far beyond plotting accuracy — *without any exact reference*. The entanglement entropy across the centre has grown from 0 to more than a bit: irrelevant for a state-vector simulation, but it will be the limiting
+# For the XX chain the step-halving estimate of the profile error agrees with the true error known from free fermions — the estimator works at $N=18$ just as it did at $N=10$. For the Heisenberg chain it tells us that the state is converged to about $2\times10^{-4}$ and the
+# magnetisation profile to about $2\times10^{-5}$ — far beyond plotting accuracy — *without any exact reference*. The entanglement entropy across the centre has grown from 0 to more than a bit: irrelevant for a state-vector simulation, but it will be the limiting
 # resource when we repeat such quenches with matrix product states.
 
 # %% [markdown]
@@ -1178,9 +1179,9 @@ for Delta_big in (0.0, 1.0):
 #
 # * For a single local term the gate $e^{-ih\,dt}$ is **exact**; Trotter error arises only from the non-commutativity of different terms, and its leading prefactor is an explicit commutator acting on the current state ($\tfrac{dt^2}{2}[A,B]$ for first order, the double commutators of Eq. (6) for second order).
 # * **Order $p$** means local error $O(dt^{p+1})$ and global error $O(t\,dt^p)$; errors accumulate at most linearly in time because all steps are unitary. We measured slopes $2/3/5$ (local) and $1/2/4$ (global). The error is also **extensive in $N$** in the worst case (commutator bound,
-#   Childs *et al.* 2021) and grows like $\sqrt N$ on the product states measured here, while the error of a *local* observable does not grow with $N$ at all.
+#   Childs *et al.* 2021) and grows like $\sqrt N$ on the Néel state measured here, while the error of a *local* observable does not grow with $N$ at all.
 # * **Symmetric** products (Strang) have only odd powers of $dt$ in their exponent — second order for free. Fourth order requires composing second-order steps with $\sum c_i=1,\ \sum c_i^3=0$, which forces negative sub-steps (Suzuki: 5 stages, small error constant; Forest–Ruth: 3 stages, large constant).
-#   Backward sub-steps are harmless for unitary evolution — they are unitary too — and fatal in imaginary time, where they amplify instead of damping.
+#   Backward sub-steps are harmless for unitary evolution, since they are unitary too. In imaginary time they amplify instead of damping, which a lattice model with bounded terms tolerates and a diffusion operator does not.
 # * A product formula has **no stability restriction**: it is exactly unitary for every $dt$, unlike explicit RK4 with its $dt\,\|H\|\le2\sqrt2$. The step size is set by accuracy alone, and a wrong result looks perfectly normalised.
 # * Even/odd (brick-wall) layers of commuting two-site gates, fields absorbed into bonds, and **gate fusion** minimise the number of einsums per step; second order then costs about as much as first order. With that, first order is hardly ever worth using.
 # * **Diagnostics:** norm and gate-level symmetries (magnetisation, parity) are conserved *exactly* for any $dt$ — they test the code, not the accuracy. The **energy** is conserved only up to a bounded $O(dt^p)$ oscillation (the scheme conserves a shadow Hamiltonian): monitor it. Without an exact
@@ -1233,8 +1234,8 @@ for Delta_big in (0.0, 1.0):
 # * E. Lieb, T. Schultz and D. Mattis, *Two soluble models of an antiferromagnetic chain*, Ann. Phys. **16**, 407 (1961).
 # * T. Antal, Z. Rácz, A. Rákos and G. M. Schütz, *Transport in the XX chain at zero temperature: Emergence of flat magnetization profiles*, Phys. Rev. E **59**, 4912 (1999).
 # * A. Polkovnikov, K. Sengupta, A. Silva and M. Vengalattore, *Colloquium: Nonequilibrium dynamics of closed interacting quantum systems*, Rev. Mod. Phys. **83**, 863 (2011).
-* G. Misguich, K. Mallick and P. L. Krapivsky, *Dynamics of the spin-1/2 Heisenberg chain initialized in a domain-wall state*, Phys. Rev. B **96**, 195151 (2017).
-* M. Ljubotina, M. Žnidarič and T. Prosen, *Spin diffusion from an inhomogeneous quench in an integrable system*, Nat. Commun. **8**, 16117 (2017).
-* T. Mori, T. Kuwahara and K. Saito, *Rigorous bound on energy absorption and generic relaxation in periodically driven quantum systems*, Phys. Rev. Lett. **116**, 120401 (2016).
-* D. Abanin, W. De Roeck, W. W. Ho and F. Huveneers, *A rigorous theory of many-body prethermalization for periodically driven and closed quantum systems*, Commun. Math. Phys. **354**, 809 (2017).
+# * G. Misguich, K. Mallick and P. L. Krapivsky, *Dynamics of the spin-1/2 Heisenberg chain initialized in a domain-wall state*, Phys. Rev. B **96**, 195151 (2017).
+# * M. Ljubotina, M. Žnidarič and T. Prosen, *Spin diffusion from an inhomogeneous quench in an integrable system*, Nat. Commun. **8**, 16117 (2017).
+# * T. Mori, T. Kuwahara and K. Saito, *Rigorous bound on energy absorption and generic relaxation in periodically driven quantum systems*, Phys. Rev. Lett. **116**, 120401 (2016).
+# * D. Abanin, W. De Roeck, W. W. Ho and F. Huveneers, *A rigorous theory of many-body prethermalization for periodically driven and closed quantum systems*, Commun. Math. Phys. **354**, 809 (2017).
 
