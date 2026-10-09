@@ -17,8 +17,9 @@
 # copies of the experiment. But think of *one* copy — a single trapped ion, say, driven by a laser and watched by a
 # photodetector. Its record is a sequence of clicks at random times. Between clicks the ion has a wave function that evolves
 # smoothly; at a click the wave function changes abruptly — a **quantum jump**. Such jumps are not a figure of speech:
-# they were observed directly in 1986 as the random switching on and off of the fluorescence of single trapped ions,
-# and in 2019 a superconducting-qubit experiment even caught a jump "mid-flight".
+# they were observed directly in 1986 as the random switching on and off of the fluorescence of single trapped ions
+# (Nagourney, Sandberg and Dehmelt; Sauter, Neuhauser, Blatt and Toschek; Bergquist, Hulet, Itano and Wineland), and in
+# 2019 a superconducting-qubit experiment caught a jump "mid-flight" (Minev *et al.*).
 #
 # The **Monte-Carlo wave function (MCWF)** method — also called the *quantum-jump* or *quantum-trajectory* method,
 # developed around 1992 by Dalibard, Castin and Mølmer, by Dum, Zoller and Ritsch, and by Carmichael — turns this picture into an algorithm:
@@ -44,6 +45,7 @@
 # * Section 7 looks at single trajectories of a many-body system — staircases of quantum jumps, click records, and entanglement that the ensemble average hides.
 # * Section 8 measures the memory/time trade-off against $N$ and finishes with an open chain of $N=16$ spins, where the density tensor
 #   would need 69 GB, checked against an exact analytic law.
+# * Section 9 uses trajectories for transport: dephasing turns the ballistic melting of a domain wall into diffusion.
 #
 # ### What you will learn
 #
@@ -804,7 +806,8 @@ assert sys_err < 2e-2
 # * *Columns (RK4 vs Trotter).* The two density-tensor curves lie on top of each other; their largest difference (printed) is of order
 #   $10^{-3}$–$10^{-2}$, the first-order splitting error at $dt=0.05$. It is *systematic*: it would shrink with $dt$, not with $M$.
 # * *Rows (density tensor vs trajectories).* The trajectory averages scatter around their density-tensor partners with the predicted standard error
-#   ($\approx0.002$–$0.01$ for $M=1000$): rms pull $\approx1$, about 95 % of all points within $2\,$SE. For the Trotter pair that is the whole story.
+#   ($\approx0.002$–$0.01$ for $M=1000$): rms pulls $0.97$ and $0.83$, and 98–99 % of the points within $2\,$SE (neighbouring time points come
+#   from the same trajectories, so such fractions scatter far more than the Gaussian 95 % suggests). For the Trotter pair that is the whole story.
 #   For the RK4 pair the test is *blind* to a bias smaller than an error bar, and the $O(dt)$ bias of the collective jump decision is exactly that
 #   size here — a pull of order one is consistent both with "no bias" and with "a bias comparable to SE". At this $M$ the statistical error is
 #   comparable to or larger than every systematic one, so there would be no point in reducing $dt$ without increasing $M$.
@@ -972,8 +975,8 @@ plt.tight_layout(); plt.show()
 #   staircases is the smooth exponential (6), within error bars.
 # * *Middle.* The click record — what a photodetector array would actually register. Clicks are dense at early times (rate $\gamma n$) and die out as the chain empties.
 # * *Right.* After the first click at site $j$ the chain contains one *hole*, initially localised at the known site $j$. The exchange term $X_iX_{i+1}+Y_iY_{i+1}$ makes it
-#   hop, the hole delocalises, and the two halves of the chain become **entangled**: the trajectory-averaged half-chain entropy peaks at $2.0$ bits around $t\approx5$
-#   (single runs exceed $3$ of the $4$ bits this cut can carry), and then falls back to zero as the chain empties into the product state $|0\dots0\rangle$ — the entropy
+#   hop, the hole delocalises, and the two halves of the chain become **entangled**: the trajectory-averaged half-chain entropy peaks at $2.0$ bits around $t\approx4$
+#   (single runs come close to $3$ of the $4$ bits this cut can carry), and then falls back to zero as the chain empties into the product state $|0\dots0\rangle$ — the entropy
 #   is largest when the excitations are neither all there nor all gone. The density matrix $\rho(t)$ of this very same process is an uncorrelated product state at all
 #   times. There is no contradiction: entanglement entropy is *nonlinear* in the state, so its trajectory average is not a property of
 #   $\rho$ (Section 2.5), and nothing forces the two to agree.
@@ -1088,7 +1091,7 @@ ax.legend(); ax.grid(alpha=.3, which="both"); plt.tight_layout(); plt.show()
 # **Interpretation.** (Absolute numbers depend on the machine and on its load; look at the trends.) For small $N$ both curves are flat — tiny arrays, the
 # time is per-operation overhead, and `vmap` amortises that overhead over the batch, which is why a single trajectory appears almost free. Once the arrays are large the
 # density-tensor step grows much faster with $N$ than the trajectory step — $4^N$ against $2^N$, exactly as the cost model says. The consequence is the fourth column: the break-even number of
-# trajectories climbs from a handful at $N=4$ to of order a hundred at $N=8$, in line with the rule $M_{\rm break\text{-}even}\sim2^N$. Do not read the individual entries literally, though:
+# trajectories climbs from about one at $N=4$ to about a hundred at $N=8$, in line with the rule $M_{\rm break\text{-}even}\sim2^N$. Do not read the individual entries literally, though:
 # at small $N$ both steps are dominated by fixed per-operation overheads, and these notes are executed on a shared CPU, so this benchmark can show the *trend* but not pin down the prefactor.
 #
 # The last column of the figure is an **extrapolation, not a measurement**: the density-tensor curve is continued beyond the largest $N$ we can
@@ -1171,9 +1174,10 @@ plt.tight_layout(); plt.show()
 # %% [markdown]
 # ## 9. Transport under dephasing: ballistic becomes diffusive
 #
-# This section uses everything above to ask a question that the master equation cannot answer at all.
+# This section uses everything above to ask a question that the density tensor cannot reach.
 #
-# In [notebook 18 (Chapter 7)](../ch07_tensor_networks/18_mps_tebd.ipynb) a domain wall
+# In [notebook 15 (Chapter 5), Section 7](../ch05_ground_states_and_unitary_dynamics/15_quench_dynamics_spin_chains.ipynb)
+# (and again with matrix product states in notebook 18 of Chapter 7) a domain wall
 # $|\!\uparrow\cdots\uparrow\downarrow\cdots\downarrow\rangle$ melted in the **XX chain** inside a sharp light cone: the
 # front moved at the maximal group velocity $4J$ and the melted region widened *linearly* in time. That is ballistic
 # transport, and it happens because the quasi-particles of the XX chain are free - nothing scatters them.
@@ -1202,7 +1206,9 @@ plt.tight_layout(); plt.show()
 #
 # with $x_0$ the position of the wall. Ballistic transport gives $\sigma\propto t$, diffusion gives
 # $\sigma=\sqrt{2Dt}$. A hopping amplitude $J$ with coherence destroyed at rate $\gamma$ suggests $D\sim J^2/\gamma$:
-# the harder the environment looks, the slower the spin travels - the Zeno effect, seen in transport.
+# the harder the environment looks, the slower the spin travels - the quantum Zeno effect of
+# [notebook 08 (Chapter 3), Section 13.1](../ch03_matrix_free_engine/08_measurements.ipynb) (frequent measurement freezes the
+# dynamics), seen in transport.
 
 # %%
 # ==============================================================================
@@ -1304,14 +1310,18 @@ plt.tight_layout(); plt.show()
 
 # %% [markdown]
 # **Interpretation.**
-# - *Left*: the closed chain reproduces the light cone of notebook 18 - a sharp front travelling at $4J$, with the
+# - *Left*: the closed chain reproduces the light cone of notebook 15 - a sharp front travelling at $4J$, with the
 #   region outside it untouched.
 # - *Centre left*: with dephasing the cone is gone. The profile spreads smoothly and much more slowly, and the edges
 #   are no longer sharp: the quasi-particles no longer propagate, they random-walk.
-# - *Centre right*: the widths on a log-log scale separate cleanly into slope $1$ (closed) and slope $1/2$ (dephased).
-#   The fitted exponents are printed above; the ballistic one is fitted only up to $t=1.5$, because at $t=2$ the front
+# - *Centre right*: the widths on a log-log scale separate into a steep closed-chain curve (fitted exponent $0.81$) and
+#   flatter dephased ones ($0.40$–$0.45$), near the reference slopes $1$ and $1/2$ but, on 16 sites, not equal to them.
+#   The ballistic exponent is fitted only up to $t=1.5$, because at $t=2$ the front
 #   reaches the end of a 16-site chain and the width saturates for a reason that has nothing to do with physics.
-# - *Right*: the diffusion constant falls with $\gamma$, close to the $1/\gamma$ of the estimate. **Watching harder
+# - *Right*: the diffusion constant falls with $\gamma$, but more slowly than the $1/\gamma$ of the estimate (fitted
+#   exponent $-0.47$): from $\gamma=1$ to $\gamma=4$ it drops by a factor $3$, near the predicted $4$, while from $0.25$ to $1$
+#   it hardly changes; the weakly dephased chain, whose width exponent ($0.40$) is also the lowest, is probably limited by the
+#   ends of the 16-site chain within the fit window. **Watching harder
 #   makes the system slower**: each measurement resets the phase, and the distance travelled coherently between
 #   measurements shrinks.
 #

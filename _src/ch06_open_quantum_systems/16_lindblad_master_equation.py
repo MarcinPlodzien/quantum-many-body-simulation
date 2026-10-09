@@ -106,7 +106,9 @@
 # $\rho_{\rm tot}(0)=\rho(0)\otimes\rho_E$, with the environment in a fixed reference state (thermal, or its ground
 # state at zero temperature). This is a real restriction: if the two start *correlated*, the later state of the system
 # depends on correlations that $\rho(0)$ does not record, and then no function of $\rho(0)$ alone can produce
-# $\rho(t)$ - Exercise 1 builds a two-line counterexample with a swap.
+# $\rho(t)$. Example with one environment qubit: the product state $\tfrac{\mathbb 1}2\otimes\tfrac{\mathbb 1}2$ and the Bell
+# state $(|00\rangle+|11\rangle)/\sqrt2$ have the same $\rho(0)=\mathbb 1/2$ and the same environment state, but after a CNOT
+# with the environment qubit as control the system holds $\mathbb 1/2$ in the first case and $|0\rangle\langle0|$ in the second.
 #
 # **(ii) A partial trace in the environment's own eigenbasis.** Evolve the pair unitarily and trace out the
 # environment, diagonalising the reference state as $\rho_E=\sum_\nu\lambda_\nu|\phi_\nu\rangle\langle\phi_\nu|$:
@@ -116,7 +118,8 @@
 #    M_{\mu\nu}=\langle\phi_\mu|U(t)|\phi_\nu\rangle . $$
 #
 # Each $M_{\mu\nu}$ acts on the system alone - it is what is left of the joint propagator once the environment bra and
-# ket have been contracted, exactly the kind of contraction notebook 03 performs. Absorbing $\sqrt{\lambda_\nu}$ and
+# ket have been contracted, the same kind of contraction as the partial trace of
+# [notebook 06 (Chapter 3)](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb). Absorbing $\sqrt{\lambda_\nu}$ and
 # writing a single label $k$,
 #
 # $$ \rho(t)=\sum_k A_k\,\rho(0)\,A_k^\dagger ,\qquad \sum_k A_k^\dagger A_k=\mathbb{1} , \tag{1}$$
@@ -124,7 +127,7 @@
 # where the second identity follows from $U^\dagger U=\mathbb{1}$ and completeness of the $|\phi_\mu\rangle$, and is
 # what makes $\mathrm{Tr}\,\rho(t)=\mathrm{Tr}\,\rho(0)$ at all times. **Equation (1) is exact**: any coupling
 # strength, any environment, no approximation. Its price is that the $A_k$ are as unknowable as the environment. (In
-# the language of notebook 07 this is the Kraus form of a quantum channel; nothing below needs that vocabulary.)
+# the language of notebook 07 this is the Kraus form of a quantum channel, with Kraus operators $A_k$.)
 #
 # > **The label $k$ is a record.** It says which state the environment was left in. Summing over it - not reading it -
 # > gives the master equation of this notebook. *Reading* it gives the quantum trajectories of notebook 17: the
@@ -217,7 +220,7 @@
 #
 # > **GKSL theorem** (Gorini, Kossakowski and Sudarshan; Lindblad; both 1976). Let $\{e^{\mathcal{L}t}\}_{t\ge0}$ be a
 # > one-parameter **semigroup** — $e^{\mathcal{L}(t+s)}=e^{\mathcal{L}t}e^{\mathcal{L}s}$, $e^{\mathcal{L}0}=\mathrm{id}$ —
-# > of completely positive, trace-preserving maps, continuous in $t$. On a finite-dimensional Hilbert space its generator
+# > of completely positive, trace-preserving (CPTP) maps, continuous in $t$. On a finite-dimensional Hilbert space its generator
 # > $\mathcal{L}$ **must** have the form (2), with $H=H^\dagger$ and finitely many $L_j$, $\gamma_j\ge0$. Gorini,
 # > Kossakowski and Sudarshan proved it for $N$-level systems; Lindblad proved it in infinite dimension for generators
 # > that are bounded in operator norm.
@@ -556,7 +559,7 @@ plt.tight_layout(); plt.show()
 # %% [markdown]
 # **Interpretation.** Weak drive ($\Omega\ll\gamma$): $\rho_{11}\approx(\Omega/\gamma)^2$, the qubit hardly leaves $|0\rangle$. Strong drive: the
 # population saturates at $1/2$ — the reason why an incoherently broadened two-level system can never be inverted by
-# a continuous resonant drive (and why lasers need three or four levels). The remaining deviation ($\lesssim10^{-7}$) is
+# a continuous resonant drive (and why lasers need three or four levels). The remaining deviation ($4\times10^{-9}$) is
 # dominated by the finite integration time, not by RK4.
 #
 # > **Numerical practice.** We now have a Lindblad solver that passes three analytic tests. It is *dense*: for $N$ spins
@@ -974,7 +977,7 @@ ax.legend(loc="lower right"); ax.grid(alpha=.3, which="both"); plt.tight_layout(
 # channels) and 4 (RK4). Two lessons:
 #
 # * *Order is not everything.* Euler and Trotter–Kraus are both first order, but at equal $dt$ the Trotter–Kraus error is
-#   one to two orders of magnitude smaller and it never explodes, because it treats the fast, purely oscillatory Hamiltonian part with
+#   one to two orders of magnitude smaller (more than two at the coarsest step) and it never explodes, because it treats the fast, purely oscillatory Hamiltonian part with
 #   unitary gates; only the (slow) dissipation and the splitting are handled to first order.
 # * For accuracy at fixed cost RK4 wins by a large margin on the density tensor. The Kraus-type steps win on
 #   *robustness* (next section) and they are the only ones that carry over to **pure-state trajectories**, where the memory drops from $4^N$ to $2^N$.
@@ -1223,12 +1226,14 @@ plt.tight_layout(); plt.show()
 #
 # This picture — one zero eigenvalue, everything else decaying — presupposes that the steady state is **unique**. It need
 # not be: a Lindbladian can have several zero eigenvalues (several steady states) or purely imaginary ones (persistent
-# oscillations). Spohn gave an algebraic sufficient condition for a self-adjoint set of jump operators; the general
-# criterion is Evans's: the semigroup is **irreducible** exactly when *the only operators that commute with $H$ and with
-# all the $L_j$ and $L_j^\dagger$ are multiples of $\mathbb 1$* (equivalently: $\{H, L_j, L_j^\dagger\}$ generates the
-# full matrix algebra). An irreducible semigroup has a unique steady state, of full rank, and in finite dimension every
-# initial state converges to it. Any conserved quantity that survives the dissipation — a symmetry, a dark state, a
-# decoherence-free subspace — breaks the condition and splits the state space into non-communicating sectors. In practice
+# oscillations). Spohn gave an algebraic sufficient condition for a self-adjoint set of jump operators. Frigerio's
+# criterion covers the case met in this notebook: if a full-rank steady state exists (such as $\mathbb 1/2^N$ under
+# unital noise), it is the only one when *the only operators that commute with $H$ and with all the $L_j$ and
+# $L_j^\dagger$ are multiples of $\mathbb 1$*. Without a full-rank steady state this commutant test is not sufficient:
+# decay alone has a unique but pure steady state (Section 8.4), and two decay channels from one level $\vert e\rangle$ into
+# two different levels $\vert a\rangle$, $\vert b\rangle$ have a trivial commutant and a whole family of steady states (Zhang and
+# Barthel give a general criterion). Any conserved quantity that survives the dissipation — a symmetry, a dark state, a
+# decoherence-free subspace — splits the state space into non-communicating sectors. In practice
 # one checks the condition numerically the way the cell below does: by counting how many singular values of
 # $\hat{\mathcal L}$ are zero. A single zero (and a healthy gap to the next one) means a unique steady state.
 #
@@ -1443,7 +1448,7 @@ plt.tight_layout(); plt.show()
 #
 # * For small $N$ both curves are far *shallower* than the $N\,4^N$ law (dotted): the arrays are tiny and the cost is per-operation
 #   overhead, not arithmetic. From $N\approx6$ on the RK4 step grows by a factor $\gtrsim4$ per added spin, as the cost model
-#   predicts, and by $N=8$ the RK4 curve has caught up with the dotted line.
+#   predicts. The dotted line is anchored at the RK4 point for $N=8$, so only its slope carries information.
 # * A Trotter–Kraus step is cheaper than an RK4 step — a factor $32/9\approx3.6$ by operation count ($\approx9N$ versus $32N$
 #   einsums). Do not read the measured ratio too closely: with three repetitions per point, on a machine that may be running
 #   other jobs, the table scatters by an order of magnitude from run to run (a non-monotonic entry in a column is noise, not
@@ -1473,7 +1478,7 @@ plt.tight_layout(); plt.show()
 # * **RK4**: fourth order, conserves trace and Hermiticity exactly, *not* positivity, and is unstable for $dt\gtrsim2\sqrt2/W$.
 #   **Trotter–Kraus**: first order (second order with Strang splitting and exact local channels), completely positive and unconditionally stable.
 # * Dephasing (unital noise) makes $\mathbb 1/2^N$ a fixed point; when it is the *only* one — which needs the only operators commuting with $H$ and all
-#   jump operators to be multiples of $\mathbb 1$ (Evans irreducibility) — the chain approaches the maximally mixed state for any rate. Decay plus drive
+#   jump operators to be multiples of $\mathbb 1$ (Frigerio's criterion, applicable because $\mathbb 1/2^N$ has full rank) — the chain approaches the maximally mixed state for any rate. Decay plus drive
 #   produces a structured steady state only when the decay can compete with the drive (here $\gamma\sim h_x$, not
 #   $\gamma=0.1$); relaxation at late times is governed by the Liouvillian gap.
 # * Always validate: analytic limits, the literal dense formula, the dense superoperator for $N\le4$, convergence orders,
@@ -1512,8 +1517,11 @@ plt.tight_layout(); plt.show()
 #
 # * G. Lindblad, *On the generators of quantum dynamical semigroups*, Commun. Math. Phys. **48**, 119 (1976).
 # * V. Gorini, A. Kossakowski, E. C. G. Sudarshan, *Completely positive dynamical semigroups of N-level systems*, J. Math. Phys. **17**, 821 (1976).
-# * H. Spohn, *An algebraic condition for the approach to equilibrium of an open N-level system*, Lett. Math. Phys. **2**, 33–38 (1977);
-#   D. E. Evans, *Irreducible quantum dynamical semigroups*, Commun. Math. Phys. **54**, 293–297 (1977) — a sufficient condition for approach to equilibrium (Spohn) and the irreducibility criterion behind the uniqueness of the steady state (Evans), Section 8.3.
+# * H. Spohn, *An algebraic condition for the approach to equilibrium of an open N-level system*, Lett. Math. Phys. **2**, 33–38 (1977) — a sufficient condition for approach to equilibrium, Section 8.3.
+# * A. Frigerio, *Quantum dynamical semigroups and approach to equilibrium*, Lett. Math. Phys. **2**, 79–87 (1977);
+#   A. Frigerio, *Stationary states of quantum dynamical semigroups*, Commun. Math. Phys. **63**, 269–276 (1978) — the commutant criterion for a unique steady state when a full-rank one exists, Section 8.3.
+# * D. E. Evans, *Irreducible quantum dynamical semigroups*, Commun. Math. Phys. **54**, 293–297 (1977) — conserved projections and irreducibility.
+# * Y. Zhang, T. Barthel, *Criteria for Davies irreducibility of Markovian quantum dynamics*, J. Phys. A **57**, 115301 (2024) — an algebraic irreducibility criterion that extends Frigerio's, and the distinction between Evans and Davies irreducibility (Section 8.3).
 # * H.-P. Breuer, F. Petruccione, *The Theory of Open Quantum Systems*, Oxford University Press (2002) — chapter 3 ("Quantum Master Equations"): the microscopic Born–Markov–secular derivation.
 # * D. Manzano, *A short introduction to the Lindblad master equation*, AIP Advances **10**, 025106 (2020) — a self-contained derivation at introductory level.
 # * M. A. Nielsen, I. L. Chuang, *Quantum Computation and Quantum Information*, Cambridge University Press (2000) — chapter 8 ("Quantum noise and quantum operations"): the operator-sum representation and, in §8.3, the amplitude-damping and phase-damping channels used here.
