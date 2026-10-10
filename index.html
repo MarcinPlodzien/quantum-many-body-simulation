@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.2.280">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Quantum Many-Body Simulation</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1.6em;
+  vertical-align: middle;
+}
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { color: #008000; } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { color: #008000; font-weight: bold; } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./chapters/ch01_computational_toolbox.html" rel="next">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-dark.css" rel="prefetch" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-dark.min.css" rel="prefetch" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit"
+  }
+}</script>
+
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+</head>
+
+<body class="nav-sidebar floating nav-fixed fullcontent">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">Quantum Many-Body Simulation</span>
+    </a>
+  </div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link active" href="./index.html" aria-current="page">
+ <span class="menu-text">Start here</span></a>
+  </li>  
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-chapters" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+ <span class="menu-text">Chapters</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-chapters">    
+        <li>
+    <a class="dropdown-item" href="./chapters/ch01_computational_toolbox.html">
+ <span class="dropdown-text">1 · Computational toolbox</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="./chapters/ch02_spin_systems_textbook_way.html">
+ <span class="dropdown-text">2 · Quantum many-body spin systems with dense matrices</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="./chapters/ch03_matrix_free_engine.html">
+ <span class="dropdown-text">3 · The matrix-free engine</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="./chapters/ch04_digital_quantum_circuits.html">
+ <span class="dropdown-text">4 · Digital quantum circuits</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="./chapters/ch05_ground_states_and_unitary_dynamics.html">
+ <span class="dropdown-text">5 · Ground states and unitary dynamics</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="./chapters/ch06_open_quantum_systems.html">
+ <span class="dropdown-text">6 · Open quantum systems</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="./chapters/ch07_tensor_networks.html">
+ <span class="dropdown-text">7 · Tensor networks</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="./chapters/ch08_quantum_information_protocols.html">
+ <span class="dropdown-text">8 · Quantum information protocols</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="./chapters/ch09_entanglement_and_complexity.html">
+ <span class="dropdown-text">9 · Entanglement and complexity diagnostics</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="./chapters/ch10_quantum_metrology_protocols.html">
+ <span class="dropdown-text">10 · Quantum metrology protocols</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="./chapters/ch11_variational_quantum_circuits.html">
+ <span class="dropdown-text">11 · Variational quantum circuits</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="./chapters/ch12_quantum_reservoir_computing.html">
+ <span class="dropdown-text">12 · Quantum reservoir computing</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="./chapters/ch13_quantum_phase_transitions.html">
+ <span class="dropdown-text">13 · Quantum phase transitions</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="./chapters/ch14_quantum_communication_and_cryptography.html">
+ <span class="dropdown-text">14 · Quantum communication and cryptography</span></a>
+  </li>  
+    </ul>
+  </li>
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-the-engine" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+ <span class="menu-text">The engine</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-the-engine">    
+        <li>
+    <a class="dropdown-item" href="./ch03_matrix_free_engine/08b_building_quantum_simulator_engine.html">
+ <span class="dropdown-text">Building the engine (notebook 08b)</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="./engine.html">
+ <span class="dropdown-text">Engine source code</span></a>
+  </li>  
+    </ul>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" href="./about.html">
+ <span class="menu-text">About</span></a>
+  </li>  
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/MarcinPlodzien"><i class="bi bi-github" role="img" aria-label="GitHub">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://chaos.if.uj.edu.pl/marcinplodzien/"><i class="bi bi-house" role="img" aria-label="Homepage">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+</ul>
+              <div class="quarto-toggle-container">
+                  <a href="" class="quarto-color-scheme-toggle nav-link" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
+              </div>
+              <div id="quarto-search" class="" title="Search"></div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+    <div class="container-fluid d-flex justify-content-between">
+      <h1 class="quarto-secondary-nav-title"></h1>
+      <button type="button" class="quarto-btn-toggle btn" aria-label="Show secondary navigation">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+      <a href="./index.html" class="sidebar-logo-link">
+      <img src="./assets/qusml_logo.svg" alt="" class="sidebar-logo py-0 d-lg-inline d-none">
+      </a>
+      </div>
+      <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+      </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link active">Start here</a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./chapters/ch01_computational_toolbox.html" class="sidebar-item-text sidebar-link">1 · Computational toolbox</a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="false">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch01_computational_toolbox/00a_free_particle_gaussian_wave_packet.html" class="sidebar-item-text sidebar-link">A first quantum simulation — a free Gaussian wave packet on a ring</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch01_computational_toolbox/00b_first_quantum_simulation_harmonic_oscillator.html" class="sidebar-item-text sidebar-link">A first quantum simulation — the 1D harmonic oscillator</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch01_computational_toolbox/00c_bright_soliton_imaginary_time_nonlinear_schroedinger.html" class="sidebar-item-text sidebar-link">Bright solitons — imaginary-time ground states and real-time dynamics of the nonlinear Schrödinger equation</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch01_computational_toolbox/00d_two_soliton_collisions.html" class="sidebar-item-text sidebar-link">Two-soliton collisions — particle-like scattering in the nonlinear Schrödinger equation</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch01_computational_toolbox/01_jax_from_scratch.html" class="sidebar-item-text sidebar-link">JAX — NumPy that compiles, batches and differentiates</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch01_computational_toolbox/02_einsum_from_scratch.html" class="sidebar-item-text sidebar-link">Index notation and einsum</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./lecture_notes_notebooks/49_single_excitation_on_a_lattice.html" class="sidebar-item-text sidebar-link">A single excitation on a lattice</a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./chapters/ch02_spin_systems_textbook_way.html" class="sidebar-item-text sidebar-link">2 · Quantum many-body spin systems with dense matrices</a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="false">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch02_spin_systems_textbook_way/03_quantum_many_body_spin_systems.html" class="sidebar-item-text sidebar-link">Quantum many-body spin systems — the textbook (dense-matrix) way</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch02_spin_systems_textbook_way/04_time_evolution_the_textbook_way.html" class="sidebar-item-text sidebar-link">Time evolution with dense matrices — propagators, ODE solvers and Trotterization</a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./chapters/ch03_matrix_free_engine.html" class="sidebar-item-text sidebar-link">3 · The matrix-free engine</a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="false">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch03_matrix_free_engine/05_matrix_free_operators.html" class="sidebar-item-text sidebar-link">Matrix-free operators — acting on a many-body state with einsum</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch03_matrix_free_engine/06_states_observables_entanglement.html" class="sidebar-item-text sidebar-link">States, observables and entanglement</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.html" class="sidebar-item-text sidebar-link">Density matrices and quantum channels</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch03_matrix_free_engine/08_measurements.html" class="sidebar-item-text sidebar-link">Measurements — Born rule, collapse, sampling and shot noise</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch03_matrix_free_engine/08b_building_quantum_simulator_engine.html" class="sidebar-item-text sidebar-link">Building the quantum simulator engine — every ingredient of the simulator with its mathematics</a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./chapters/ch04_digital_quantum_circuits.html" class="sidebar-item-text sidebar-link">4 · Digital quantum circuits</a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="false">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch04_digital_quantum_circuits/09_quantum_gates_and_circuits.html" class="sidebar-item-text sidebar-link">Quantum gates and circuits — the digital viewpoint</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.html" class="sidebar-item-text sidebar-link">Random unitaries and random circuits</a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./chapters/ch05_ground_states_and_unitary_dynamics.html" class="sidebar-item-text sidebar-link">5 · Ground states and unitary dynamics</a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="false">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.html" class="sidebar-item-text sidebar-link">Hamiltonians and ground states — from the power method to Lanczos</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.html" class="sidebar-item-text sidebar-link">Time evolution I — TEBD: Trotter–Suzuki evolution of a state vector</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch05_ground_states_and_unitary_dynamics/13_chebyshev_propagation.html" class="sidebar-item-text sidebar-link">Time evolution II — Chebyshev propagation</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch05_ground_states_and_unitary_dynamics/14_krylov_and_integrator_comparison.html" class="sidebar-item-text sidebar-link">Time evolution III — Krylov propagation and the integrator shoot-out</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch05_ground_states_and_unitary_dynamics/15_quench_dynamics_spin_chains.html" class="sidebar-item-text sidebar-link">Quench dynamics in spin chains — light cones, entanglement growth, relaxation</a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./chapters/ch06_open_quantum_systems.html" class="sidebar-item-text sidebar-link">6 · Open quantum systems</a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="false">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch06_open_quantum_systems/16_lindblad_master_equation.html" class="sidebar-item-text sidebar-link">Open quantum systems I — the Lindblad master equation on a density tensor</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch06_open_quantum_systems/17_monte_carlo_wave_function.html" class="sidebar-item-text sidebar-link">Open quantum systems II — quantum trajectories (Monte-Carlo wave function)</a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./chapters/ch07_tensor_networks.html" class="sidebar-item-text sidebar-link">7 · Tensor networks</a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" aria-expanded="false">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch07_tensor_networks/18_mps_tebd.html" class="sidebar-item-text sidebar-link">Beyond the state vector — matrix product states, DMRG and TEBD</a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./chapters/ch08_quantum_information_protocols.html" class="sidebar-item-text sidebar-link">8 · Quantum information protocols</a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" aria-expanded="false">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-8" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch08_quantum_information_protocols/19_bell_states_and_chsh.html" class="sidebar-item-text sidebar-link">Bell states and the CHSH inequality — violation of local realism in simulated measurements</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch08_quantum_information_protocols/20_quantum_teleportation.html" class="sidebar-item-text sidebar-link">Quantum teleportation — no-cloning, Bell measurement and classical feed-forward</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch08_quantum_information_protocols/21_entanglement_swapping_and_superdense_coding.html" class="sidebar-item-text sidebar-link">Entanglement swapping and superdense coding</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch08_quantum_information_protocols/22_ghz_states_and_decoherence.html" class="sidebar-item-text sidebar-link">GHZ states and decoherence — genuine multipartite entanglement and its fragility</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch08_quantum_information_protocols/23_quantum_state_tomography.html" class="sidebar-item-text sidebar-link">Quantum state tomography — linear inversion, least squares and maximum likelihood</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch08_quantum_information_protocols/24_classical_shadows.html" class="sidebar-item-text sidebar-link">Classical shadows — tomography without the <span class="math inline">\(4^N\)</span> wall</a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./chapters/ch09_entanglement_and_complexity.html" class="sidebar-item-text sidebar-link">9 · Entanglement and complexity diagnostics</a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-9" aria-expanded="false">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-9" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch09_entanglement_and_complexity/25_entanglement_negativity.html" class="sidebar-item-text sidebar-link">Entanglement negativity</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch09_entanglement_and_complexity/26_many_body_bell_correlators.html" class="sidebar-item-text sidebar-link">Many-body Bell correlators</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch09_entanglement_and_complexity/27_stabilizer_renyi_entropy.html" class="sidebar-item-text sidebar-link">Stabilizer Renyi entropy: measuring the magic of a quantum state</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch09_entanglement_and_complexity/28_quantum_circuit_complexity.html" class="sidebar-item-text sidebar-link">Quantum circuit complexity — entanglement, magic and spectral statistics of random circuits</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./lecture_notes_notebooks/48_quantifying_entanglement.html" class="sidebar-item-text sidebar-link">Quantifying entanglement of quantum states</a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./chapters/ch10_quantum_metrology_protocols.html" class="sidebar-item-text sidebar-link">10 · Quantum metrology protocols</a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-10" aria-expanded="false">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-10" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch10_quantum_metrology_protocols/29_quantum_fisher_information.html" class="sidebar-item-text sidebar-link">Quantum Fisher information — how fast a quantum state changes under a small parameter shift</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch10_quantum_metrology_protocols/30_qfi_from_the_sld_prepare_encode_estimate.html" class="sidebar-item-text sidebar-link">QFI from the symmetric logarithmic derivative — prepare, encode, estimate</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch10_quantum_metrology_protocols/31_ramsey_interferometry.html" class="sidebar-item-text sidebar-link">Ramsey interferometry — the standard quantum limit, simulated end to end</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch10_quantum_metrology_protocols/32_ghz_interferometry_heisenberg_limit.html" class="sidebar-item-text sidebar-link">GHZ interferometry and the Heisenberg limit — gain, ambiguity, fragility</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch10_quantum_metrology_protocols/33_spin_squeezing_one_axis_twisting.html" class="sidebar-item-text sidebar-link">Spin squeezing by one-axis twisting</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch10_quantum_metrology_protocols/34_oat_to_ghz_full_metrology_protocol.html" class="sidebar-item-text sidebar-link">From one-axis twisting to GHZ — the full metrology protocol</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch10_quantum_metrology_protocols/35_oat_plus_haar_scrambling.html" class="sidebar-item-text sidebar-link">Scrambling a metrological probe — entanglement is necessary but not sufficient</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch10_quantum_metrology_protocols/36_qfi_with_classical_shadows.html" class="sidebar-item-text sidebar-link">Measuring the quantum Fisher information with classical shadows</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch10_quantum_metrology_protocols/37_qfi_particle_loss_and_magic.html" class="sidebar-item-text sidebar-link">Particle loss, magic and encoded probes — the quantum Fisher information of the survivors</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch10_quantum_metrology_protocols/38_scramblers_and_qfi.html" class="sidebar-item-text sidebar-link">Scramblers and the locking of metrological information — analog, digital, and the Haar limit</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch10_quantum_metrology_protocols/39_qfi_spreading_in_spin_chains.html" class="sidebar-item-text sidebar-link">The spreading of metrological usefulness — quantum Fisher information in quenched spin chains</a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./chapters/ch11_variational_quantum_circuits.html" class="sidebar-item-text sidebar-link">11 · Variational quantum circuits</a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-11" aria-expanded="false">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-11" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-12" aria-expanded="false">Foundations: parametrised circuits, gradients, optimisers and noise</a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-12" aria-expanded="false">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-12" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch11_variational_quantum_circuits/40_parametrized_gates_and_gradients.html" class="sidebar-item-text sidebar-link">Parametrized gates and gradients — differentiating a quantum circuit four ways</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch11_variational_quantum_circuits/41_optimizers.html" class="sidebar-item-text sidebar-link">Optimisers for variational circuits — update rules and a benchmark on GHZ preparation and the Ising chain</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch11_variational_quantum_circuits/44_noisy_variational_circuits.html" class="sidebar-item-text sidebar-link">Noisy variational circuits — landscapes, plateaus, training and error mitigation</a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-13" aria-expanded="false">Variational quantum eigensolver</a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-13" aria-expanded="false">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-13" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch11_variational_quantum_circuits/42a_variational_quantum_eigensolver_hamiltonians_ansatze_training.html" class="sidebar-item-text sidebar-link">The variational quantum eigensolver — spin-chain Hamiltonians, circuit ansätze and training against exact diagonalisation</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch11_variational_quantum_circuits/42_variational_quantum_eigensolver.html" class="sidebar-item-text sidebar-link">The variational quantum eigensolver — ground states of spin chains from a trained circuit</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch11_variational_quantum_circuits/43_vqe_with_classical_shadows.html" class="sidebar-item-text sidebar-link">VQE with classical shadows — the measurement cost of a variational algorithm</a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-14" aria-expanded="false">Quantum autoencoder and unsupervised discovery of phase boundaries</a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-14" aria-expanded="false">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-14" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch11_variational_quantum_circuits/45_quantum_autoencoder.html" class="sidebar-item-text sidebar-link">The quantum autoencoder — compressing quantum data with a variational circuit</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch11_variational_quantum_circuits/45b_quantum_anomaly_detection_phase_boundaries.html" class="sidebar-item-text sidebar-link">Unsupervised discovery of phase boundaries with a quantum autoencoder</a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-15" aria-expanded="false">Variational quantum metrology</a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-15" aria-expanded="false">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-15" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch11_variational_quantum_circuits/44b_variational_quantum_metrology.html" class="sidebar-item-text sidebar-link">Variational quantum metrology — optimising probe states and measurements under noise with automatic differentiation</a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-16" aria-expanded="false">Quantum approximate optimisation</a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-16" aria-expanded="false">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-16" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch11_variational_quantum_circuits/45c_quantum_approximate_optimisation.html" class="sidebar-item-text sidebar-link">The quantum approximate optimisation algorithm — MaxCut and number partitioning on graphs of up to ten vertices</a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-17" aria-expanded="false">Quantum kernel methods</a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-17" aria-expanded="false">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-17" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch11_variational_quantum_circuits/45d_quantum_kernel_methods_classification.html" class="sidebar-item-text sidebar-link">Quantum kernel methods — classifying data with a quantum feature map and a support vector machine</a>
+  </div>
+</li>
+      </ul>
+  </li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./chapters/ch12_quantum_reservoir_computing.html" class="sidebar-item-text sidebar-link">12 · Quantum reservoir computing</a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-18" aria-expanded="false">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-18" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch12_quantum_reservoir_computing/46_quantum_reservoir_computing.html" class="sidebar-item-text sidebar-link">Quantum reservoir computing — many-body dynamics as a machine for time series</a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./chapters/ch13_quantum_phase_transitions.html" class="sidebar-item-text sidebar-link">13 · Quantum phase transitions</a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-19" aria-expanded="false">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-19" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch13_quantum_phase_transitions/47_quantum_phase_transitions.html" class="sidebar-item-text sidebar-link">Quantum phase transitions — mapping a phase diagram from finite chains</a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./chapters/ch14_quantum_communication_and_cryptography.html" class="sidebar-item-text sidebar-link">14 · Quantum communication and cryptography</a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-20" aria-expanded="false">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-20" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch14_quantum_communication_and_cryptography/50_information_entropy_and_noisy_channels.html" class="sidebar-item-text sidebar-link">Information and noisy channels — Shannon entropy, mutual information, channel capacity and error correction</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch14_quantum_communication_and_cryptography/51_secrecy_one_time_pad_and_authentication.html" class="sidebar-item-text sidebar-link">Secrecy — the one-time pad, the key-distribution problem, authentication and privacy amplification</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch14_quantum_communication_and_cryptography/52_quantum_rules_channels_and_capacities.html" class="sidebar-item-text sidebar-link">What quantum mechanics changes — distinguishability, no-cloning, information versus disturbance, monogamy, quantum channels and their capacities</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch14_quantum_communication_and_cryptography/53_quantum_key_distribution.html" class="sidebar-item-text sidebar-link">Quantum key distribution — BB84 end to end, entanglement-based protocols and the secret-key rate</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ch14_quantum_communication_and_cryptography/54_noisy_entanglement_distillation_repeaters_certification.html" class="sidebar-item-text sidebar-link">Noisy entanglement as a resource — Werner pairs, twirling, distillation, repeaters and certification</a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./engine.html" class="sidebar-item-text sidebar-link">Engine source code</a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<!-- margin-sidebar -->
+    
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+
+
+<div class="hero">
+<div class="hero-text">
+<h1 class="hero-title">
+From a Single Spin to Quantum Machine Learning
+</h1>
+<p class="hero-tagline">
+Hands-on lectures on simulating quantum systems in JAX, from scratch
+</p>
+<p class="hero-sub">
+Starting from an empty Python file, the lectures develop a matrix-free simulation engine and use it to study spin-1/2 systems, quantum circuits, unitary and dissipative dynamics, and quantum machine learning.
+</p>
+<p class="hero-author">
+<a href="https://chaos.if.uj.edu.pl/marcinplodzien/"><b>Marcin Płodzień</b></a> · Institute of Theoretical Physics, Jagiellonian University in Kraków
+</p>
+<p><a href="./ch01_computational_toolbox/00a_free_particle_gaussian_wave_packet.html" class="btn btn-primary">Start with notebook 00a</a> <a href="#chapters" class="btn btn-outline-primary">Browse the chapters</a> <a href="./ch03_matrix_free_engine/08b_building_quantum_simulator_engine.html" class="btn btn-outline-primary">The engine</a></p>
+</div>
+<div class="hero-image">
+<p><img src="assets/hero.png" class="img-fluid" alt="Light cone after a local quench, domain-wall melting computed with MPS-TEBD, the magic of single-qubit states, and Husimi functions of one-axis-twisted cat states"></p>
+</div>
+</div>
+<section id="preface" class="level2">
+<h2 class="anchored" data-anchor-id="preface">Preface</h2>
+<p>Quantum many-body physics and quantum computing share one computational object: the state of many interacting two-level systems. Whether the two levels are the spin of an electron, two internal states of a trapped ion or the qubit of a superconducting processor, the state of <span class="math inline">\(N\)</span> of them is a vector of <span class="math inline">\(2^N\)</span> complex amplitudes, and every simulation is a sequence of operations on that vector. These lectures build, starting from an empty Python file, a complete simulation engine for such systems, <strong>SmoQ.jax</strong>, a matrix-free JAX engine for quantum many-body systems, and then use it to study their physics.</p>
+<p>The simulator is written in <a href="https://docs.jax.dev">JAX</a> and grows chapter by chapter. It stores the state of <span class="math inline">\(N\)</span> spins-1/2 as a rank-<span class="math inline">\(N\)</span> tensor and applies every operator, whether a gate, a Hamiltonian term, a Kraus operator or a projector, through a single <code>einsum</code> contraction, so the <span class="math inline">\(2^N\times 2^N\)</span> matrix of textbook treatments is never formed. Because the whole simulator is differentiable, the same code that evolves a spin chain also trains a quantum circuit, which makes it a natural laboratory for quantum machine learning. On this one primitive the notes construct a fully functional toolbox:</p>
+<div class="feature-grid">
+<div class="feature">
+<p><strong>Spin-1/2 many-body physics</strong></p>
+<p>Hamiltonians on arbitrary graphs, exact diagonalisation and matrix-free Lanczos, symmetries, entanglement, phase diagrams and quantum phase transitions.</p>
+<p>Chapters: <a href="./chapters/ch02_spin_systems_textbook_way.html">2 · Quantum many-body spin systems with dense matrices</a> · <a href="./chapters/ch05_ground_states_and_unitary_dynamics.html">5 · Ground states and unitary dynamics</a> · <a href="./chapters/ch13_quantum_phase_transitions.html">13 · Quantum phase transitions</a></p>
+</div>
+<div class="feature">
+<p><strong>Unitary dynamics</strong></p>
+<p>Exact propagation, Runge–Kutta, Trotter–Suzuki, Chebyshev and Krylov integrators, compared on accuracy and cost, and applied to quantum quenches and light cones.</p>
+<p>Chapters: <a href="./chapters/ch05_ground_states_and_unitary_dynamics.html">5 · Ground states and unitary dynamics</a></p>
+</div>
+<div class="feature">
+<p><strong>Dissipative dynamics</strong></p>
+<p>The Lindblad master equation on the density tensor and its unravelling into quantum trajectories, with noise channels and decoherence of entangled states.</p>
+<p>Chapters: <a href="./chapters/ch06_open_quantum_systems.html">6 · Open quantum systems</a> · <a href="./chapters/ch03_matrix_free_engine.html">3 · The matrix-free engine</a></p>
+</div>
+<div class="feature">
+<p><strong>Quantum circuits</strong></p>
+<p>Gates as exponentials of Pauli operators, circuits as compiled lists of contractions, measurement, feed-forward, random circuits, and protocols such as teleportation.</p>
+<p>Chapters: <a href="./chapters/ch04_digital_quantum_circuits.html">4 · Digital quantum circuits</a> · <a href="./chapters/ch08_quantum_information_protocols.html">8 · Quantum information protocols</a></p>
+</div>
+<div class="feature">
+<p><strong>Quantum machine learning</strong></p>
+<p>Parametrised circuits trained with gradients from the parameter-shift rule and from automatic differentiation, optimisers, the variational eigensolver, quantum autoencoders, training under shot noise and gate noise, and quantum reservoir computing, where many-body dynamics processes time series.</p>
+<p>Chapters: <a href="./chapters/ch11_variational_quantum_circuits.html">11 · Variational quantum circuits</a> · <a href="./chapters/ch12_quantum_reservoir_computing.html">12 · Quantum reservoir computing</a></p>
+</div>
+<div class="feature">
+<p><strong>Quantum communication and cryptography</strong></p>
+<p>From Shannon entropy, channel capacity and the one-time pad to what quantum mechanics changes: no-cloning, information versus disturbance, quantum channels and their capacities, quantum key distribution simulated end to end, and noisy entanglement made useful by distillation, repeaters and certification.</p>
+<p>Chapters: <a href="./chapters/ch14_quantum_communication_and_cryptography.html">14 · Quantum communication and cryptography</a></p>
+</div>
+<div class="feature">
+<p><strong>Beyond the state vector</strong></p>
+<p>Matrix product states with DMRG and TEBD for chains far longer than a state vector can hold, and diagnostics of entanglement, magic and metrological usefulness.</p>
+<p>Chapters: <a href="./chapters/ch07_tensor_networks.html">7 · Tensor networks</a> · <a href="./chapters/ch09_entanglement_and_complexity.html">9 · Entanglement and complexity diagnostics</a> · <a href="./chapters/ch10_quantum_metrology_protocols.html">10 · Quantum metrology protocols</a></p>
+</div>
+</div>
+<p>On first contact, these methods are usually met as black boxes inside large libraries. Writing the simulator oneself shows what such a library takes care of: how the ordering of the qubits fixes every index, why a time step is stable or unstable, what an algorithm costs and where its error comes from. Every derivation in the notes is carried out explicitly, every algorithm is validated against an exact or independent result, and the code is written to be read, with documented functions and with the JAX tools introduced where they are first needed: compiled loops (<code>jit</code>, <code>lax.scan</code>), batching (<code>vmap</code>) and automatic differentiation (<code>grad</code>). The notes therefore teach three things together: the physics, the numerical methods, and the practice of writing scientific code that is both fast and correct.</p>
+</section>
+<section id="quantum-machine-learning" class="level2">
+<h2 class="anchored" data-anchor-id="quantum-machine-learning">Quantum machine learning</h2>
+<p>The differentiable simulator is used throughout Chapters 11 and 12 to build and train quantum machine-learning models, each derived, implemented and tested against exact results:</p>
+<ul>
+<li><a href="./ch11_variational_quantum_circuits/40_parametrized_gates_and_gradients.html">Parametrised quantum circuits and four ways to compute their gradients</a> (notebook 40)</li>
+<li><a href="./ch11_variational_quantum_circuits/41_optimizers.html">Optimisers for variational circuits, from gradient descent to the quantum natural gradient</a> (notebook 41)</li>
+<li><a href="./ch11_variational_quantum_circuits/42_variational_quantum_eigensolver.html">The variational quantum eigensolver for ground states of spin chains</a> (notebook 42)</li>
+<li><a href="./ch11_variational_quantum_circuits/43_vqe_with_classical_shadows.html">The measurement cost of a variational algorithm, with classical shadows in the training loop</a> (notebook 43)</li>
+<li><a href="./ch11_variational_quantum_circuits/44_noisy_variational_circuits.html">Training under gate noise: cost landscapes, noise-induced barren plateaus and error mitigation</a> (notebook 44)</li>
+<li><a href="./ch11_variational_quantum_circuits/45_quantum_autoencoder.html">The quantum autoencoder, compressing quantum data with a variational circuit</a> (notebook 45)</li>
+<li><a href="./ch12_quantum_reservoir_computing/46_quantum_reservoir_computing.html">Quantum reservoir computing, many-body dynamics as a machine for time-series prediction</a> (notebook 46)</li>
+</ul>
+</section>
+<section id="quantum-communication-and-cryptography" class="level2">
+<h2 class="anchored" data-anchor-id="quantum-communication-and-cryptography">Quantum communication and cryptography</h2>
+<p>Chapter 14 builds the classical toolbox of communication and secrecy first and then shows, step by step and in simulation, what quantum mechanics adds:</p>
+<ul>
+<li><a href="./ch14_quantum_communication_and_cryptography/50_information_entropy_and_noisy_channels.html">Information and noisy channels: entropy, capacity and error correction</a> (notebook 50)</li>
+<li><a href="./ch14_quantum_communication_and_cryptography/51_secrecy_one_time_pad_and_authentication.html">Secrecy: the one-time pad, key distribution, authentication and privacy amplification</a> (notebook 51)</li>
+<li><a href="./ch14_quantum_communication_and_cryptography/52_quantum_rules_channels_and_capacities.html">What quantum mechanics changes: no-cloning, disturbance, quantum channels and capacities</a> (notebook 52)</li>
+<li><a href="./ch14_quantum_communication_and_cryptography/53_quantum_key_distribution.html">Quantum key distribution: BB84 end to end and the secret-key rate</a> (notebook 53)</li>
+<li><a href="./ch14_quantum_communication_and_cryptography/54_noisy_entanglement_distillation_repeaters_certification.html">Noisy entanglement as a resource: distillation, repeaters and certification</a> (notebook 54)</li>
+</ul>
+</section>
+<section id="start-here" class="level2">
+<h2 class="anchored" data-anchor-id="start-here">Start here</h2>
+<p>The engine fits in one file, <a href="./engine.html"><code>quantum_engine.py</code></a>; notebook 08b, <a href="./ch03_matrix_free_engine/08b_building_quantum_simulator_engine.html">Building the quantum simulator engine</a>, explains every function in it with its mathematics and an independent check. Every capability above is a few lines of code on top of it. The snippet below prepares and samples a GHZ state, finds the ground state of a Heisenberg chain of sixteen spins, lets a Néel state melt under the same Hamiltonian, drives a decaying qubit with the Lindblad equation, and differentiates the energy of a variational circuit with respect to all its angles. It runs in about a minute or less on a laptop CPU (<code>python examples/starter.py</code>) and prints one labelled line per part; the notes explain every function it uses, starting from nothing.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax, jax.numpy <span class="im">as</span> jnp</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> quantum_engine <span class="im">import</span> <span class="op">*</span>        <span class="co"># the simulator built in the notes</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>key <span class="op">=</span> jax.random.PRNGKey(<span class="dv">0</span>)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Quantum circuit: a three-qubit GHZ state, sampled</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>psi <span class="op">=</span> zero_state(<span class="dv">3</span>)                 <span class="co"># rank-3 tensor of shape (2, 2, 2)</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>psi <span class="op">=</span> apply_gate(psi, H, (<span class="dv">0</span>,))</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>psi <span class="op">=</span> apply_gate(psi, CNOT, (<span class="dv">0</span>, <span class="dv">1</span>))</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>psi <span class="op">=</span> apply_gate(psi, CNOT, (<span class="dv">1</span>, <span class="dv">2</span>))</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>bits <span class="op">=</span> sample_bitstrings(key, psi, shots<span class="op">=</span><span class="dv">6</span>)</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"GHZ samples:"</span>, bits.tolist())     <span class="co"># only 000 and 111</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Many-body physics: Heisenberg chain of 16 spins, Lanczos</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>N <span class="op">=</span> <span class="dv">16</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>H_xxx <span class="op">=</span> heisenberg_terms(N)         <span class="co"># local terms, no 2^N x 2^N matrix</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>E0, gs <span class="op">=</span> lanczos_ground_state(H_xxx, N)</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>S_half <span class="op">=</span> entanglement_entropy(gs, <span class="bu">list</span>(<span class="bu">range</span>(N <span class="op">//</span> <span class="dv">2</span>)))</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"E0 = </span><span class="sc">{</span>E0<span class="sc">:.6f}</span><span class="ss">,  half-chain entropy = </span><span class="sc">{</span>S_half<span class="sc">:.4f}</span><span class="ss"> bits"</span>)</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Unitary dynamics: a Neel state melts (2nd-order TEBD)</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>neel <span class="op">=</span> product_state(<span class="st">"01"</span> <span class="op">*</span> (N <span class="op">//</span> <span class="dv">2</span>))</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>psi_t, z0 <span class="op">=</span> tebd_evolve(neel, H_xxx, dt<span class="op">=</span><span class="fl">0.05</span>, n_steps<span class="op">=</span><span class="dv">40</span>,</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>                        observe<span class="op">=</span><span class="kw">lambda</span> p: expect_local(p, Z, (<span class="dv">0</span>,)))</span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"&lt;Z_0&gt;(t) every 10 steps:"</span>, [<span class="bu">round</span>(<span class="bu">float</span>(z), <span class="dv">3</span>) <span class="cf">for</span> z <span class="kw">in</span> z0[::<span class="dv">10</span>]])</span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a><span class="co"># 4. Dissipative dynamics: driven, decaying qubit (Lindblad)</span></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>rho <span class="op">=</span> to_dm(zero_state(<span class="dv">1</span>))</span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>drive <span class="op">=</span> [((<span class="dv">0</span>,), <span class="fl">0.5</span> <span class="op">*</span> X)]</span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>decay <span class="op">=</span> [((<span class="dv">0</span>,), SP, <span class="fl">0.2</span>)]           <span class="co"># decay |1&gt; -&gt; |0&gt;: jump operator |0&gt;&lt;1| = sigma^+, rate 0.2</span></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">200</span>):</span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>    rho <span class="op">=</span> lindblad_rk4_step(rho, drive, decay, dt<span class="op">=</span><span class="fl">0.05</span>)</span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"excited population at t = 10: </span><span class="sc">{</span>dm_matrix(rho)[<span class="dv">1</span>, <span class="dv">1</span>]<span class="sc">.</span>real<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a><span class="co"># 5. Variational circuit: energy gradient by autodiff</span></span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>n, layers <span class="op">=</span> <span class="dv">4</span>, <span class="dv">2</span></span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>H4 <span class="op">=</span> heisenberg_terms(n)</span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a>cost <span class="op">=</span> <span class="kw">lambda</span> th: energy(H4, hardware_efficient_ansatz(th, n, layers))</span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>theta <span class="op">=</span> <span class="fl">0.1</span> <span class="op">*</span> jax.random.normal(key, (hea_num_params(n, layers),))</span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a>g <span class="op">=</span> jax.grad(cost)(theta)</span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"energy = </span><span class="sc">{</span>cost(theta)<span class="sc">:.4f}</span><span class="ss">, gradient has </span><span class="sc">{</span>g<span class="sc">.</span>size<span class="sc">}</span><span class="ss"> components"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><strong>Where to go next.</strong></p>
+<ul>
+<li><em>First contact with numerics:</em> notebooks 00a, 00b, 49, 01 and 02 (<a href="./chapters/ch01_computational_toolbox.html">Chapter 1</a>), then <a href="./chapters/ch02_spin_systems_textbook_way.html">Chapter 2</a>.</li>
+<li><em>Comfortable with quantum mechanics and Python:</em> start at <a href="./chapters/ch03_matrix_free_engine.html">Chapter 3</a>, where the engine is built, and continue in order.</li>
+<li><em>Interested in quantum information:</em> after Chapter 3, go to <a href="./chapters/ch04_digital_quantum_circuits.html">Chapter 4</a> and <a href="./chapters/ch08_quantum_information_protocols.html">Chapter 8</a>.</li>
+<li><em>Interested in quantum technologies:</em> <a href="./chapters/ch10_quantum_metrology_protocols.html">Chapter 10</a> on metrology and <a href="./chapters/ch11_variational_quantum_circuits.html">Chapter 11</a> on variational circuits build on Chapters 3–5.</li>
+<li><em>Interested in quantum machine learning:</em> after Chapters 3–5, <a href="./chapters/ch11_variational_quantum_circuits.html">Chapter 11</a> (variational circuits, the variational eigensolver, quantum autoencoders) and <a href="./chapters/ch12_quantum_reservoir_computing.html">Chapter 12</a> (quantum reservoir computing).</li>
+</ul>
+</section>
+<section id="chapters" class="level2">
+<h2 class="anchored" data-anchor-id="chapters">Chapters</h2>
+<p>14 chapters, each a short overview page followed by runnable notebooks (64 in total). The notebooks are numbered globally; each one carries the engine functions it uses in a folded <em>Engine recap</em> cell and ends with exercises, so any notebook also runs and can be studied on its own.</p>
+<div class="chapter-grid">
+<div class="chapter-card">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="./chapters/ch01_computational_toolbox.html"><img src="assets/thumbs/ch01.png" class="img-fluid figure-img" alt="Computational toolbox"></a></p>
+</figure>
+</div>
+<p><a href="./chapters/ch01_computational_toolbox.html">1 · Computational toolbox</a></p>
+<p>Simulate a single quantum particle on a grid and write fast, batched, differentiable array code.</p>
+<p><span class="nbcount">7 notebooks</span></p>
+</div>
+<div class="chapter-card">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="./chapters/ch02_spin_systems_textbook_way.html"><img src="assets/thumbs/ch02.png" class="img-fluid figure-img" alt="Quantum many-body spin systems with dense matrices"></a></p>
+</figure>
+</div>
+<p><a href="./chapters/ch02_spin_systems_textbook_way.html">2 · Quantum many-body spin systems with dense matrices</a></p>
+<p>Build spin-chain Hamiltonians as dense matrices, diagonalise them and evolve states in time.</p>
+<p><span class="nbcount">2 notebooks</span></p>
+</div>
+<div class="chapter-card">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="./chapters/ch03_matrix_free_engine.html"><img src="assets/thumbs/ch03.png" class="img-fluid figure-img" alt="The matrix-free engine"></a></p>
+</figure>
+</div>
+<p><a href="./chapters/ch03_matrix_free_engine.html">3 · The matrix-free engine</a></p>
+<p>Act on a many-body state with einsum, and compute observables, entanglement, channels and measurements.</p>
+<p><span class="nbcount">5 notebooks</span></p>
+</div>
+<div class="chapter-card">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="./chapters/ch04_digital_quantum_circuits.html"><img src="assets/thumbs/ch04.png" class="img-fluid figure-img" alt="Digital quantum circuits"></a></p>
+</figure>
+</div>
+<p><a href="./chapters/ch04_digital_quantum_circuits.html">4 · Digital quantum circuits</a></p>
+<p>Write quantum circuits as lists of einsum contractions and sample random unitaries and circuits.</p>
+<p><span class="nbcount">2 notebooks</span></p>
+</div>
+<div class="chapter-card">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="./chapters/ch05_ground_states_and_unitary_dynamics.html"><img src="assets/thumbs/ch05.png" class="img-fluid figure-img" alt="Ground states and unitary dynamics"></a></p>
+</figure>
+</div>
+<p><a href="./chapters/ch05_ground_states_and_unitary_dynamics.html">5 · Ground states and unitary dynamics</a></p>
+<p>Find ground states with Lanczos and propagate states with Trotter, Chebyshev and Krylov methods.</p>
+<p><span class="nbcount">5 notebooks</span></p>
+</div>
+<div class="chapter-card">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="./chapters/ch06_open_quantum_systems.html"><img src="assets/thumbs/ch06.png" class="img-fluid figure-img" alt="Open quantum systems"></a></p>
+</figure>
+</div>
+<p><a href="./chapters/ch06_open_quantum_systems.html">6 · Open quantum systems</a></p>
+<p>Simulate open quantum systems with the Lindblad equation and with quantum trajectories.</p>
+<p><span class="nbcount">2 notebooks</span></p>
+</div>
+<div class="chapter-card">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="./chapters/ch07_tensor_networks.html"><img src="assets/thumbs/ch07.png" class="img-fluid figure-img" alt="Tensor networks"></a></p>
+</figure>
+</div>
+<p><a href="./chapters/ch07_tensor_networks.html">7 · Tensor networks</a></p>
+<p>Represent one-dimensional states as matrix product states and run DMRG and TEBD on them.</p>
+<p><span class="nbcount">1 notebook</span></p>
+</div>
+<div class="chapter-card">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="./chapters/ch08_quantum_information_protocols.html"><img src="assets/thumbs/ch08.png" class="img-fluid figure-img" alt="Quantum information protocols"></a></p>
+</figure>
+</div>
+<p><a href="./chapters/ch08_quantum_information_protocols.html">8 · Quantum information protocols</a></p>
+<p>Simulate the standard quantum-information protocols end to end, with sampling and noise.</p>
+<p><span class="nbcount">6 notebooks</span></p>
+</div>
+<div class="chapter-card">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="./chapters/ch09_entanglement_and_complexity.html"><img src="assets/thumbs/ch09.png" class="img-fluid figure-img" alt="Entanglement and complexity diagnostics"></a></p>
+</figure>
+</div>
+<p><a href="./chapters/ch09_entanglement_and_complexity.html">9 · Entanglement and complexity diagnostics</a></p>
+<p>Quantify mixed-state entanglement, multipartite correlations, magic and circuit complexity.</p>
+<p><span class="nbcount">5 notebooks</span></p>
+</div>
+<div class="chapter-card">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="./chapters/ch10_quantum_metrology_protocols.html"><img src="assets/thumbs/ch10.png" class="img-fluid figure-img" alt="Quantum metrology protocols"></a></p>
+</figure>
+</div>
+<p><a href="./chapters/ch10_quantum_metrology_protocols.html">10 · Quantum metrology protocols</a></p>
+<p>Compute quantum Fisher information and simulate metrology protocols from preparation to estimation.</p>
+<p><span class="nbcount">11 notebooks</span></p>
+</div>
+<div class="chapter-card">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="./chapters/ch11_variational_quantum_circuits.html"><img src="assets/thumbs/ch11.png" class="img-fluid figure-img" alt="Variational quantum circuits"></a></p>
+</figure>
+</div>
+<p><a href="./chapters/ch11_variational_quantum_circuits.html">11 · Variational quantum circuits</a></p>
+<p>Train parametrised quantum circuits: gradients, optimisers, VQE, measurement cost and noise.</p>
+<p><span class="nbcount">11 notebooks</span></p>
+</div>
+<div class="chapter-card">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="./chapters/ch12_quantum_reservoir_computing.html"><img src="assets/thumbs/ch12.png" class="img-fluid figure-img" alt="Quantum reservoir computing"></a></p>
+</figure>
+</div>
+<p><a href="./chapters/ch12_quantum_reservoir_computing.html">12 · Quantum reservoir computing</a></p>
+<p>Use driven many-body dynamics as a trainable machine for time-series prediction.</p>
+<p><span class="nbcount">1 notebook</span></p>
+</div>
+<div class="chapter-card">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="./chapters/ch13_quantum_phase_transitions.html"><img src="assets/thumbs/ch13.png" class="img-fluid figure-img" alt="Quantum phase transitions"></a></p>
+</figure>
+</div>
+<p><a href="./chapters/ch13_quantum_phase_transitions.html">13 · Quantum phase transitions</a></p>
+<p>Locate a quantum phase transition numerically from finite chains and finite-size scaling.</p>
+<p><span class="nbcount">1 notebook</span></p>
+</div>
+<div class="chapter-card">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="./chapters/ch14_quantum_communication_and_cryptography.html"><img src="assets/thumbs/ch14.png" class="img-fluid figure-img" alt="Quantum communication and cryptography"></a></p>
+</figure>
+</div>
+<p><a href="./chapters/ch14_quantum_communication_and_cryptography.html">14 · Quantum communication and cryptography</a></p>
+<p>Simulate how information is sent reliably and kept secret, from Shannon’s noisy channels to quantum key distribution with noisy entanglement.</p>
+<p><span class="nbcount">5 notebooks</span></p>
+</div>
+</div>
+</section>
+<section id="getting-started" class="level2">
+<h2 class="anchored" data-anchor-id="getting-started">Getting started</h2>
+<div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install <span class="at">-r</span> requirements.txt          <span class="co"># jax, numpy, scipy, matplotlib, jupyter</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> examples/starter.py               <span class="co"># the snippet above</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="ex">jupyter</span> lab                              <span class="co"># open any notebook in the ch*/ folders</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>The configuration cell at the top of every notebook selects the device (CPU or GPU) and the precision (single or double). Everything runs on a laptop CPU.</p>
+</section>
+<section id="who-this-is-for" class="level2">
+<h2 class="anchored" data-anchor-id="who-this-is-for">Who this is for</h2>
+<p>Students who have taken one semester of quantum mechanics and a first Python course, and anyone who wants to learn how many-body quantum simulations are written in practice. Every derivation is carried out step by step, and every result is checked numerically.</p>
+</section>
+<section id="how-to-cite" class="level2">
+<h2 class="anchored" data-anchor-id="how-to-cite">How to cite</h2>
+<blockquote class="blockquote">
+<p>M. Płodzień, <em>Quantum Many-Body Simulation: from a single spin to quantum machine learning</em>, hands-on lectures in JAX with the SmoQ.jax engine (2026), https://marcinplodzien.github.io/quantum-many-body-simulation/</p>
+</blockquote>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const disableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'prefetch';
+    }
+  }
+  const enableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'stylesheet';
+    }
+  }
+  const manageTransitions = (selector, allowTransitions) => {
+    const els = window.document.querySelectorAll(selector);
+    for (let i=0; i < els.length; i++) {
+      const el = els[i];
+      if (allowTransitions) {
+        el.classList.remove('notransition');
+      } else {
+        el.classList.add('notransition');
+      }
+    }
+  }
+  const toggleColorMode = (alternate) => {
+    // Switch the stylesheets
+    const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+    manageTransitions('#quarto-margin-sidebar .nav-link', false);
+    if (alternate) {
+      enableStylesheet(alternateStylesheets);
+      for (const sheetNode of alternateStylesheets) {
+        if (sheetNode.id === "quarto-bootstrap") {
+          toggleBodyColorMode(sheetNode);
+        }
+      }
+    } else {
+      disableStylesheet(alternateStylesheets);
+      toggleBodyColorPrimary();
+    }
+    manageTransitions('#quarto-margin-sidebar .nav-link', true);
+    // Switch the toggles
+    const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+    for (let i=0; i < toggles.length; i++) {
+      const toggle = toggles[i];
+      if (toggle) {
+        if (alternate) {
+          toggle.classList.add("alternate");     
+        } else {
+          toggle.classList.remove("alternate");
+        }
+      }
+    }
+    // Hack to workaround the fact that safari doesn't
+    // properly recolor the scrollbar when toggling (#1455)
+    if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+      manageTransitions("body", false);
+      window.scrollTo(0, 1);
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+        manageTransitions("body", true);
+      }, 40);  
+    }
+  }
+  const isFileUrl = () => { 
+    return window.location.protocol === 'file:';
+  }
+  const hasAlternateSentinel = () => {  
+    let styleSentinel = getColorSchemeSentinel();
+    if (styleSentinel !== null) {
+      return styleSentinel === "alternate";
+    } else {
+      return false;
+    }
+  }
+  const setStyleSentinel = (alternate) => {
+    const value = alternate ? "alternate" : "default";
+    if (!isFileUrl()) {
+      window.localStorage.setItem("quarto-color-scheme", value);
+    } else {
+      localAlternateSentinel = value;
+    }
+  }
+  const getColorSchemeSentinel = () => {
+    if (!isFileUrl()) {
+      const storageValue = window.localStorage.getItem("quarto-color-scheme");
+      return storageValue != null ? storageValue : localAlternateSentinel;
+    } else {
+      return localAlternateSentinel;
+    }
+  }
+  let localAlternateSentinel = 'default';
+  // Dark / light mode switch
+  window.quartoToggleColorScheme = () => {
+    // Read the current dark / light value 
+    let toAlternate = !hasAlternateSentinel();
+    toggleColorMode(toAlternate);
+    setStyleSentinel(toAlternate);
+  };
+  // Ensure there is a toggle, if there isn't float one in the top right
+  if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+    const a = window.document.createElement('a');
+    a.classList.add('top-right');
+    a.classList.add('quarto-color-scheme-toggle');
+    a.href = "";
+    a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+    const i = window.document.createElement("i");
+    i.classList.add('bi');
+    a.appendChild(i);
+    window.document.body.appendChild(a);
+  }
+  // Switch to dark mode if need be
+  if (hasAlternateSentinel()) {
+    toggleColorMode(true);
+  } else {
+    toggleColorMode(false);
+  }
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./chapters/ch01_computational_toolbox.html" class="pagination-link">
+        <span class="nav-page-text">1 · Computational toolbox</span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">© 2026 Marcin Płodzień, PhD</div>   
+    <div class="nav-footer-right"><a href="https://chaos.if.uj.edu.pl/marcinplodzien/">Homepage</a> · <a href="mailto:mplodzien@gmail.com">Email</a> · <a href="https://orcid.org/0000-0002-0835-1644">ORCID</a> · <a href="https://scholar.google.com/citations?user=eC9nCmgAAAAJ&amp;hl=en">Scholar</a> · <a href="https://github.com/MarcinPlodzien">GitHub</a> · <a href="https://www.scopus.com/authid/detail.uri?authorId=55031869100">Scopus</a> · <a href="https://www.webofscience.com/wos/author/record/K-7326-2017">WoS</a></div>
+  </div>
+</footer>
+
+
+
+</body></html>
