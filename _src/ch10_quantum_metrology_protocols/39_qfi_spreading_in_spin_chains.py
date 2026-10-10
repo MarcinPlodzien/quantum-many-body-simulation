@@ -1635,7 +1635,7 @@ for l in (1, 2, 4, 7, 10, 13):
 # trend over four sizes is the measurement.) Compilation costs a fraction of a second
 # (a few tenths of a second) and is paid once per Hamiltonian, not once per step, because the time loop is a `lax.scan`.
 #
-# The block QFI takes a fraction of a millisecond for small blocks, peaks at a few milliseconds at the balanced cut $l=N/2=7$,
+# The block QFI takes a fraction of a millisecond for small blocks, peaks at about two milliseconds at the balanced cut $l=N/2=7$,
 # and falls again for large blocks — exactly the $O\!\left(8^{\min(l,N-l)}\right)$ of the QR-compressed algorithm. Without
 # the compression the $l=13$ entry would require diagonalising an $8192\times8192$ matrix that has rank at most $4$.
 # The light-cone maps of Sections 7 and 8 evaluate all $N$ cuts at $81$ times, so the mid-chain cuts dominate their

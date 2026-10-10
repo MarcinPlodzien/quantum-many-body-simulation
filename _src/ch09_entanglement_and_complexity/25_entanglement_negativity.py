@@ -795,8 +795,8 @@ def negativity_pure(psi, subsystem):
     IMPLEMENTATION  `schmidt_values` transposes the A axes to the front, reshapes to a matrix and takes its
            singular values -- the density matrix is never formed.
     COST   O(2^N) memory, O(2^{|A|} 2^N) for the SVD, against O(4^N) memory and O(8^N) time for the
-           brute-force partial transpose.  Measured in Section 11: the brute-force route needs about 40 s
-           (one thread) at N = 12, the SVD route is limited only by the 2^N state vector.
+           brute-force partial transpose.  Section 11 measures about half a second for the brute-force route
+           at N = 10 (x8 per extra qubit); the SVD route is limited only by the 2^N state vector.
     """
     lam = schmidt_values(psi, subsystem)
     s = jnp.sum(lam)
@@ -1881,9 +1881,9 @@ fig.tight_layout(); plt.show()
 #
 # * **Full density tensor.** $\rho$ has $4^N$ complex entries ($16\cdot4^N$ bytes in double precision: $17\,$MB at $N=10$,
 #   $4.3\,$GB at $N=14$), and the eigenvalues of its partial transpose cost $O(8^N)$: every extra qubit multiplies the time
-#   by $8$ and the memory by $4$. On one CPU thread the full negativity of a random $N$-qubit state takes about $0.7\,$s at
-#   $N=10$, $5\,$s at $N=11$ and $40\,$s at $N=12$ (compilation included), so $N=13$ costs minutes and $N=14$ needs
-#   $4.3\,$GB for the tensor alone. This is the route used in Sections 8 and 10.3.
+#   by $8$ and the memory by $4$. The full negativity of a random $N$-qubit state takes about half a second at $N=10$
+#   (the table of Section 11 prints the measured time), hence several seconds at $N=11$ and tens of seconds at $N=12$,
+#   so $N=13$ costs minutes and $N=14$ needs $4.3\,$GB for the tensor alone. This is the route used in Sections 8 and 10.3.
 # * **Pure state, small blocks.** The state is $2^N$ numbers. The reduced state of $A\cup B$ costs one einsum,
 #   $O(2^N2^{\vert A\vert+\vert B\vert})$, and its partial transpose costs $O(8^{\vert A\vert+\vert B\vert})$ — independent of
 #   $N$. For $\vert A\vert+\vert B\vert=4$ that second term is the diagonalisation of a $16\times16$ matrix, which is free. The
@@ -1944,8 +1944,8 @@ print(f"  the full density tensor of {N_big} spins would need {16*4**N_big/1e9:.
 # few hundred to about two thousand. Do not read a scaling exponent off three noisy ratios. What is solid is the cost
 # formula: the brute-force route touches $4^N$ numbers and diagonalises a $2^N\times2^N$ matrix at $O(8^N)$, the Schmidt
 # route touches $2^N$ numbers and takes one SVD. By $N=10$ that difference is worth at least two orders of magnitude. $N=12$
-# is skipped for the brute-force route only to keep this notebook fast: it needs $268\,$MB for the density tensor and about
-# $40\,$s on one thread for the diagonalisation.
+# is skipped for the brute-force route only to keep this notebook fast: it needs $268\,$MB for the density tensor and, at
+# a factor of about $8$ per qubit, tens of seconds for the diagonalisation.
 #
 # The last lines are the block route at $N=14$, where the density tensor would need $4.3\,$GB. Two adjacent two-spin blocks
 # of a cluster state have $\mathcal N=1/2$ exactly, one full ebit, computed in a fraction of a second; the same two blocks of

@@ -1211,7 +1211,7 @@ for b, (name, U) in enumerate(bases.items()):
 print(f"\n({len(bases) * len(M_SHOTS) * R_EXP} experiments: compilation of the sampler {t_compile:.2f} s (once), "
       f"sampling + estimation {t_run:.2f} s)\n")
 
-print(f"F_Q = {F_Q:.4f}   (quantum Cramer-Rao bound: Var >= 1/(M F_Q))\n")
+print(f"F_Q = {F_Q:.4f}   (quantum Cramér–Rao bound: Var >= 1/(M F_Q))\n")
 for name, (I_meas, b1, rows) in exp_results.items():
     print(f"  {name}:  I = {I_meas:.4f}  (I/F_Q = {I_meas / F_Q:.3f}),  first-order bias coefficient b_1 = {b1:+.4f}")
     print(f"    {'M':>6s} {'bias':>10s} {'+- se':>8s} {'b_1/M':>10s} | {'Var(theta^)':>11s} {'1/(M I)':>10s} "
@@ -1656,7 +1656,7 @@ fig.tight_layout(); plt.show()
 # is not yet in its asymptotic regime, and sub-millisecond timings move with machine load from one build to the next.
 # The dashed $8^N$ reference is therefore anchored at $N=5$ and is meant as an upper guide for the slope, not a fit; an
 # anchor at $N=2$ would compare a dispatch-bound call with an arithmetic-bound eigensolver. Compilation (the extra
-# column, in seconds) costs $0.06$–$0.2$ s per size, thousands of calls' worth at small $N$, and is excluded from the
+# column, in seconds) costs $0.06$–$0.4$ s per size, thousands of calls' worth at small $N$, and is excluded from the
 # timings. The pure-state shortcut of notebook 29 stays essentially flat over this range: it never leaves the
 # state-vector representation.
 #

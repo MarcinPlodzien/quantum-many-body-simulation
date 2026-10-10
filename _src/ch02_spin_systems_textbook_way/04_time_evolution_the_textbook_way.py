@@ -1634,11 +1634,11 @@ for hq in H_FIELDS:
 # COST 1: memory of a state vector versus a dense operator (CDTYPE: 16 bytes per number in double precision)
 # ==============================================================================
 def human(nbytes):
-    """Format a number of bytes with a binary unit."""
-    for unit in ("B", "KB", "MB", "GB", "TB", "PB"):
-        if nbytes < 1024:
+    """Format a number of bytes with a decimal unit (1 kB = 1000 B)."""
+    for unit in ("B", "kB", "MB", "GB", "TB", "PB"):
+        if nbytes < 1000:
             return f"{nbytes:7.1f} {unit}"
-        nbytes /= 1024
+        nbytes /= 1000
     return f"{nbytes:7.1f} EB"
 
 
@@ -1648,7 +1648,7 @@ for n in (8, 10, 12, 14, 16, 20, 24, 30):
     print(f"{n:>3} {2**n:>10} {human(itemsize * 2**n):>14} {human(itemsize * 4**n):>16}")
 
 # %% [markdown]
-# At $N=14$ a *single* dense operator needs 4 GB, and `eigh`/`expm` need several of them as workspace; $N=16$ asks for 64 GB per matrix. The state vector, by contrast, remains harmless far longer: 16 MB at $N=20$, 16 GB at $N=30$.
+# At $N=14$ a *single* dense operator needs 4.3 GB, and `eigh`/`expm` need several of them as workspace; $N=16$ asks for 69 GB per matrix. The state vector, by contrast, remains harmless far longer: 17 MB at $N=20$, 17 GB at $N=30$.
 # **The memory goes into the operators; the state itself stays small.**
 #
 # Now the time. We measure `eigh`, `expm`, and a single dense matrix–vector product for growing $N$. Each function is called once for warm-up/compilation and then timed; the largest sizes are timed once,
@@ -1711,7 +1711,7 @@ for n_ex in (12, 14, 16):
 # costs tens of microseconds of dispatch; once the matrices are large enough the asymptotic laws take over and each added spin must cost a factor of 8 for `eigh`/`expm` and
 # 4 for a dense matrix–vector product. Do not expect the measured ratio between two consecutive sizes to *be* 8. Matrices of a few thousand rows are still small for a multi-core CPU, which uses its cores
 # better the larger the problem gets, so the ratio comes out *below* 8 while fixed overheads still dominate and can overshoot 8 once they stop dominating; a machine shared with other jobs adds scatter on top. Only the trend over several sizes is meaningful.
-# The extrapolation is unambiguous all the same: whatever your machine, full diagonalisation passes from about a second at $N=10$ to an hour at $N\approx14$ and days at $N\approx16$, and well before that the memory table above has the last word. *Every* method of this notebook — eigendecomposition, `expm`, Euler, RK4, our dense Trotter — hits the same wall at $N\approx12$–$14$, because every one
+# The extrapolation is unambiguous all the same: whatever your machine, full diagonalisation passes from about half a second at $N=10$ to half an hour at $N\approx14$ and more than a day at $N\approx16$, and well before that the memory table above has the last word. *Every* method of this notebook — eigendecomposition, `expm`, Euler, RK4, our dense Trotter — hits the same wall at $N\approx12$–$14$, because every one
 # of them stores at least one $2^N\times2^N$ matrix. (Sparse matrices, the traditional remedy mentioned in notebook 03, reduce the $4^N$ to about $N2^N$ for $H$ itself, but the propagator and the eigenvector matrix are dense regardless.)
 #
 # ### What must change

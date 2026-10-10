@@ -1303,11 +1303,11 @@ IDX_BYTES = 4                                    # bytes per 32-bit column index
 
 
 def human(nbytes):
-    """Format a number of bytes with binary prefixes (1 kB = 1024 B)."""
+    """Format a number of bytes with decimal prefixes (1 kB = 1000 B)."""
     for unit in ("B", "kB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"):
-        if nbytes < 1024:
+        if nbytes < 1000:
             return f"{nbytes:7.1f} {unit:<2s}"
-        nbytes /= 1024
+        nbytes /= 1000
     return f"{nbytes:7.1e} YB"
 
 
@@ -1325,7 +1325,7 @@ for N in WALL_SIZES:
     gap = float(E[1] - E[0])
     wall.append((N, gap, t_build, t_first, t_run, nbytes, nnz))
     print(f" {N:2d} | {2 ** N:5d} | {gap:.10f} | {4 * np.sin(np.pi / (2 * (2 * N + 1))):.10f} |"
-          f" {t_build:11.3f} | {t_first:12.3f} | {t_run:12.3f} | {nbytes / 2 ** 20:8.2f} MB | {nnz:8d}")
+          f" {t_build:11.3f} | {t_first:12.3f} | {t_run:12.3f} | {nbytes / 1e6:8.2f} MB | {nnz:8d}")
     del Hr, V
 wall = np.array(wall)
 
@@ -1600,7 +1600,7 @@ ax.semilogy(Ns, nbytes, "o", color="C3", label="measured H.nbytes")
 ax.semilogy(N_ext, (BYTES + IDX_BYTES) * (N_ext + 1) * 2.0 ** N_ext, "-", color="C4",
             label=rf"sparse $H$ (TFIM): $\approx{BYTES + IDX_BYTES}\,(N+1)\,2^N$ bytes")
 ax.semilogy(N_ext, BYTES * 2.0 ** N_ext, "-", color="C0", label=rf"one state vector: ${BYTES}\cdot2^N$ bytes")
-for val, lab in ((16 * 2.0 ** 30, "16 GB laptop"), (2.0 ** 50, "1 PB")):
+for val, lab in ((16 * 2.0 ** 30, "16 GB laptop"), (1e15, "1 PB")):
     ax.axhline(val, color="0.4", lw=0.8, ls="--"); ax.text(2.2, val * 1.5, lab, fontsize=8, color="0.3")
 ax.set_xlabel(r"number of spins $N$"); ax.set_ylabel("memory [bytes]")
 ax.set_title("Memory"); ax.grid(alpha=0.3, which="both"); ax.legend(fontsize=8, loc="lower right")
@@ -1628,8 +1628,8 @@ for N_target in (14, 16, 20, 30):
 # shared with other jobs adds scatter that can exceed a factor of two in either direction. Only the slope
 # over *several* spins is meaningful. The absolute numbers depend on your machine and on how busy it is,
 # while the trend is the same everywhere. The extrapolation printed above is the point of the exercise: whatever the time for
-# $N=12$ is on your computer, $N=16$ takes $8^4=4096$ times longer and needs 64 GB just to store $H$; for
-# $N=20$ the matrix alone needs 16 TB. Buying a computer that is a thousand times faster and bigger gains
+# $N=12$ is on your computer, $N=16$ takes $8^4=4096$ times longer and needs 69 GB just to store $H$; for
+# $N=20$ the matrix alone needs 18 TB. Buying a computer that is a thousand times faster and bigger gains
 # $\log_8 1000\approx3$ spins in time, and 5 spins in memory. This is the **exponential wall**.
 #
 # ### 8.2 Where the memory goes
@@ -1657,7 +1657,7 @@ assert all(nnz_measured[N] == (N + 1) * 2 ** N for N in nnz_measured if N % 2 ==
 # Three very different growth laws (the numbers quoted below are for the default double precision, where a
 # complex number takes 16 bytes; with `PRECISION = "single"` every entry of the table is halved):
 #
-# * **dense $H$**: $16\cdot4^N$ bytes. 256 MB at $N=12$, a terabyte-scale object at $N=18$–$20$, more than all
+# * **dense $H$**: $16\cdot4^N$ bytes. 268 MB at $N=12$, a terabyte-scale object at $N=18$–$20$, more than all
 #   the storage on Earth long before $N=40$. And almost all of it is zeros: we *measured* (last column of the
 #   table in Section 7.3) that the TFIM matrix has at most $(N+1)\,2^N$ non-zero entries out of $4^N$ — $N$
 #   spin-flip partners per row (recall the figure in Section 4.2) plus one diagonal entry, the classical Ising
@@ -1667,7 +1667,7 @@ assert all(nnz_measured[N] == (N + 1) * 2 ** N for N in nnz_measured if N % 2 ==
 #   matrix) costs $\approx20(N+1)2^N$ bytes: $N=20$ fits in half a gigabyte, $N=30$ needs more than 600 GB.
 #   A *real* matrix — which is what all Hamiltonians of this notebook are — halves the 16 bytes of the value
 #   and gets away with about 12 bytes per entry, as the measurement in Section 8.3 confirms.
-# * **one state vector**: $16\cdot2^N$ bytes — 16 MB at $N=20$, 16 GB at $N=30$. This is the irreducible cost of
+# * **one state vector**: $16\cdot2^N$ bytes — 17 MB at $N=20$, 17 GB at $N=30$. This is the irreducible cost of
 #   storing a generic quantum state exactly. $N\approx45$–$50$ is the limit of the largest supercomputers.
 #
 # ### 8.3 The traditional remedy: sparse matrices and iterative eigensolvers
@@ -1679,7 +1679,7 @@ assert all(nnz_measured[N] == (N + 1) * 2 ** N for N in nnz_measured if N % 2 ==
 # [notebook 11 (Chapter 5)](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb).)
 #
 # As a glimpse, the next cell uses SciPy's sparse matrices and its Lanczos-type solver `eigsh` as a black box
-# to obtain the critical gap for $N=16$ — a size for which the dense matrix would need 64 GB. The construction
+# to obtain the critical gap for $N=16$ — a size for which the dense matrix would need 69 GB. The construction
 # is *identical* to `build_hamiltonian_dense`; only `jnp.kron` is replaced by `scipy.sparse.kron`.
 
 # %%
@@ -1689,7 +1689,7 @@ assert all(nnz_measured[N] == (N + 1) * 2 ** N for N in nnz_measured if N % 2 ==
 import scipy.sparse as sp
 from scipy.sparse.linalg import eigsh
 
-N_SPARSE = 16                                   # a dense complex H would need 16 * 4^16 bytes = 64 GB
+N_SPARSE = 16                                   # a dense complex H would need 16 * 4^16 bytes = 69 GB
 
 
 def kron_chain_sparse(ops):
@@ -1731,11 +1731,11 @@ print(f"         critical gap = {gap_sp:.10f}   Eq. (7): {gap_exact:.10f}")
 checkpoint(f"sparse Lanczos gap at N={N_SPARSE} == Eq. (7)", abs(gap_sp - gap_exact), tol=1e-8)
 
 # %% [markdown]
-# The sparse matrix with its $(N+1)2^N\approx1.1$ million non-zeros takes 13 MB (real entries: 8 bytes per value
-# plus 4 bytes per column index) instead of 64 GB, and the two lowest eigenvalues — in agreement with the exact
+# The sparse matrix with its $(N+1)2^N\approx1.1$ million non-zeros takes 14 MB (real entries: 8 bytes per value
+# plus 4 bytes per column index) instead of 69 GB, and the two lowest eigenvalues — in agreement with the exact
 # formula (7) to better than $10^{-8}$ — are obtained in the time printed above. Compare that with
 # the hours to days that the $8^N$ extrapolation of Section 8.1 predicts for a dense diagonalisation at $N=16$ — a run
-# that could not be started in the first place, for want of 64 GB of memory. Sparse exact diagonalisation
+# that could not be started in the first place, for want of 69 GB of memory. Sparse exact diagonalisation
 # (usually combined with the symmetry sectors of Section 6.2) is a mature technique and the workhorse of
 # computational quantum magnetism; record calculations reach $N\approx50$ spins.
 #

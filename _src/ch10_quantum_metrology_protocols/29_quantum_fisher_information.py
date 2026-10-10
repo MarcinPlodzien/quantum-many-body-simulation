@@ -687,7 +687,7 @@ for th in (0.1, 0.3, 0.5, 0.7, 0.9):
 
 # %%
 # ==============================================================================
-# STEP 3: maximum likelihood saturates the Cramer-Rao bound as M grows
+# STEP 3: maximum likelihood saturates the Cramér–Rao bound as M grows
 # ==============================================================================
 # PARAMETERS ------------------------------------------------------------------
 THETA_LIST = (np.pi / 2, np.pi / 3)   # symmetric working point (bias exactly 0) and an asymmetric one
@@ -754,7 +754,7 @@ assert abs(b10) > 8 * se10
 
 # %%
 # ==============================================================================
-# FIGURE: convergence of the maximum-likelihood estimator to the Cramer-Rao bound
+# FIGURE: convergence of the maximum-likelihood estimator to the Cramér–Rao bound
 # ==============================================================================
 fig, axes = plt.subplots(1, 2, figsize=(11.0, 4.0))
 Ms = np.array(M_GRID, dtype=float)
@@ -1885,7 +1885,7 @@ for i, N in enumerate(N_EST):
           f"{sd_g / sd_p:9.4f} {1 / np.sqrt(N):9.4f}")
     # CHECKPOINT: the sampled scatter agrees with the exact finite-M value within 4 standard errors
     assert abs(sd_p - np.sqrt(v_p)) < 4 * se_p and abs(sd_g - np.sqrt(v_g)) < 4 * se_g
-    # CHECKPOINT: at M = 400 the exact scatter is within 3% of the Cramer-Rao bound for both probes
+    # CHECKPOINT: at M = 400 the exact scatter is within 3% of the Cramér–Rao bound for both probes
     assert abs(np.sqrt(v_p * N * M_EST) - 1) < 0.03 and abs(np.sqrt(v_g) * N * np.sqrt(M_EST) - 1) < 0.03
 # WRONG CONTROL: "the GHZ probe only reaches the SQL", sd = 1/sqrt(N M), rejected at N = 16
 N_w, _, _, _, sd_w, se_w, _ = est_rows[-1]

@@ -523,7 +523,7 @@ print(f"{'N':>4s} | {'mu_opt':>8s} {'xi_R^2':>9s} {'F_Q at mu_opt':>14s} {'N/xi_
       f"{'F/N':>8s} {'F/N^2':>8s} | {'F_Q xi_R^2/N':>13s} {'Eq.(26a) of nb 33':>18s}")
 for N, m, x, F, b, ex in rows_grow:
     print(f"{N:4d} | {m:8.5f} {x:9.5f} {F:14.4f} {b:10.4f} {F / N:8.4f} {F / N ** 2:8.4f} | {F / b:13.6f} {ex:18.6f}")
-    assert F >= b * (1 - 1e-8)                      # F_Q >= N/xi_R^2 (quantum Cramer-Rao bound, notebook 33)
+    assert F >= b * (1 - 1e-8)                      # F_Q >= N/xi_R^2 (quantum Cramér–Rao bound, notebook 33)
     assert abs(F / b - ex) < 1e-8 * ex              # the gap is exactly the uncertainty-product excess
 Ng = np.array([r[0] for r in rows_grow], dtype=float)
 sl_F = np.polyfit(np.log(Ng), np.log([r[3] for r in rows_grow]), 1)[0]
