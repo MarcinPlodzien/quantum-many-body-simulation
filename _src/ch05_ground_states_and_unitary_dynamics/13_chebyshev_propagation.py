@@ -1188,7 +1188,7 @@ plt.show()
 #   advantages at $\varepsilon=10^{-4}$ (20-fold over TEBD-2, 4-fold over TEBD-4) survive comfortably.
 #   *Error measure:* the norm of the state error used here is the most demanding one there is; local observables are usually far more forgiving (we measure an example in §13).
 # * The wall-time panel tells the same story as the operation count: per $H$-equivalent the two methods cost about the same (compare the columns of the table; Chebyshev adds up terms and carries three vectors, TEBD applies unitary gates one after another),
-#   so the crossover does not move much. The zig-zag of the Chebyshev points in that panel is timing noise: the run times differ by less than a factor of three while $K$ changes by only a third.
+#   so the crossover does not move much. Any zig-zag of the Chebyshev points in that panel is timing noise: the run times stay within a factor of three of each other while $K$ changes by only a third.
 #
 # > **Numerical practice.** Absolute timings depend on the machine and on what else is running on it (these notes were executed on a shared CPU); ratios and slopes are robust. Always compare algorithms **at equal accuracy** —
 # > "method A needs 0.1 s, method B 1 s" means nothing if A delivers 3 digits and B 13. And always *measure* the error against a trusted reference rather than assuming the nominal order.
@@ -1339,8 +1339,8 @@ ax.legend(); ax.grid(alpha=0.3, which="both")
 plt.show()
 
 # %% [markdown]
-# **Interpretation.** For small $N$ the run time is dominated by fixed overheads (dispatch, tiny arrays) and the compile time dwarfs it; from $N\approx12$ on the curve follows the predicted $N^22^N$ law — a factor of four to five for every two additional spins — and the
-# time per elementary operation (last-but-one column) stops growing and, apart from timing noise, drifts slowly *downwards*, because larger arrays use the cache and the vector units better. Read that column for its trend only: its absolute value depends on the machine and on what else is running on it
+# **Interpretation.** For small $N$ the run time is dominated by fixed overheads (dispatch, tiny arrays) and the compile time dwarfs it; from $N\approx12$ on the curve follows the predicted $N^22^N$ law — a factor of about four to six for every two additional spins — and the
+# time per elementary operation (last-but-one column) stops falling and levels off, apart from timing noise, once the fixed overheads are spread over enough arithmetic. Read that column for its trend only: its absolute value depends on the machine and on what else is running on it
 # (these notes are executed on a shared CPU, and the same cell can differ by a factor of several between runs). The norm column confirms that the cruder $m=20$ bounds with a 5 % safety margin were sufficient at every size (had they not been, the norm would have exploded, §8).
 # A million-dimensional state ($N=20$) is propagated by $e^{-iH}$ to machine precision in well under a minute on a CPU; on a GPU the same code runs unchanged (set `DEVICE` in the configuration cell) and the large-$N$ end of the curve drops by a large factor.
 #

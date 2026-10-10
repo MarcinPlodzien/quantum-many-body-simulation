@@ -95,7 +95,7 @@
 # * [24 — classical shadows](../ch08_quantum_information_protocols/24_classical_shadows.ipynb): the randomised-measurement
 #   estimator used in Section 14;
 # * [29 — quantum Fisher information](./29_quantum_fisher_information.ipynb) and
-#   [30 — QFI from the SLD](./30_qfi_from_the_sld_prepare_encode_estimate.ipynb): Cramer-Rao bound, classical Fisher
+#   [30 — QFI from the SLD](./30_qfi_from_the_sld_prepare_encode_estimate.ipynb): Cramér–Rao bound, classical Fisher
 #   information, $F_Q=4\,\mathrm{Var}(G)$ for pure states and the SLD formula for mixed ones;
 # * [31 — Ramsey interferometry](./31_ramsey_interferometry.ipynb): the protocol we compare against, the standard quantum
 #   limit, and the optimal-interrogation-time argument we repeat here for an entangled probe;
@@ -155,7 +155,7 @@ def std_of_std(sigma, n):
 #
 # additive over independent repetitions.
 #
-# * **Cramer-Rao bound**: any unbiased estimator obeys $\Delta\varphi\ge1/\sqrt{MF_C(\varphi)}$, with $M$ the number of
+# * **Cramér–Rao bound**: any unbiased estimator obeys $\Delta\varphi\ge1/\sqrt{MF_C(\varphi)}$, with $M$ the number of
 #   repetitions; the maximum-likelihood estimator saturates it asymptotically.
 # * **Quantum Fisher information**: $F_Q=\max_{\text{measurements}}F_C$, giving $\Delta\varphi\ge1/\sqrt{MF_Q}$. For a pure
 #   state encoded as $e^{-i\varphi G}\vert\psi\rangle$,
@@ -169,7 +169,7 @@ def std_of_std(sigma, n):
 # From [31](./31_ramsey_interferometry.ipynb): the Ramsey protocol with a coherent spin state has $F_C=F_Q=N$ at every phase in
 # the open interval $0<\varphi<\pi$, so $\Delta\varphi=1/\sqrt{NM}$ — the **standard quantum limit** (SQL) — and it is
 # saturated by counting excited atoms. (At the two fringe extrema $\varphi=0,\pi$ the binomial likelihood is degenerate, the
-# closed form is $0/0$, and the regularity assumptions behind the Cramer-Rao bound fail; notebook 31 discusses this, and
+# closed form is $0/0$, and the regularity assumptions behind the Cramér–Rao bound fail; notebook 31 discusses this, and
 # Section 6.5 below repeats the argument for the GHZ fringe.)
 #
 # From [22](../ch08_quantum_information_protocols/22_ghz_states_and_decoherence.ipynb): the GHZ state is prepared by a
@@ -219,7 +219,7 @@ def std_of_std(sigma, n):
 #
 # This is the largest value $N$ qubits can reach: $J_z$ has spectral width $N$, and for any generator
 # $4\,\mathrm{Var}(G)\le(\lambda_{\max}-\lambda_{\min})^2$, with equality exactly for an equal superposition of the two
-# extreme eigenvectors. The Cramer-Rao bound for $M$ repetitions is
+# extreme eigenvectors. The Cramér–Rao bound for $M$ repetitions is
 #
 # $$\Delta\varphi\ \ge\ \frac{1}{N\sqrt M}, \tag{5}$$
 #
@@ -416,7 +416,7 @@ assert err_loc < 1e3 * TOL
 # zero and Eq. (11) is $0/0$; the value $N^2$ there is a *limit*. Taking $\varphi\to0$: $p_-=\sin^2(N\varphi/2)\simeq
 # N^2\varphi^2/4$ and $\partial_\varphi p_-\simeq N^2\varphi/2$, so the $p_-$ term contributes
 # $(N^2\varphi/2)^2/(N^2\varphi^2/4)=N^2$ while the $p_+$ term vanishes. The limit exists, but the standard regularity
-# assumptions behind the Cramer-Rao bound (a strictly positive likelihood, an asymptotically normal estimator) fail at that
+# assumptions behind the Cramér–Rao bound (a strictly positive likelihood, an asymptotically normal estimator) fail at that
 # point: the estimator (12) is pinned against the edge of its range, so its distribution is one-sided and no longer Gaussian.
 # Second, and more practically, the flat $F_C=N^2$ is a property of *unit* contrast only. With any $C<1$ the same algebra gives
 #
@@ -447,7 +447,7 @@ def cfi_parity(phi, N, contrast=1.0):
     """Classical Fisher information of ONE parity measurement with fringe contrast C.
     MATH  p_+- = (1 +- C cos(N phi))/2  ->  F = N^2 C^2 sin^2(N phi)/(1 - C^2 cos^2(N phi));  C=1 gives N^2.
     CAVEAT  at C = 1 and cos(N phi) = +-1 the expression is 0/0 and evaluates to nan: one outcome has
-            probability zero there.  The LIMIT is N^2 (Section 6.5), but the Cramer-Rao regularity
+            probability zero there.  The LIMIT is N^2 (Section 6.5), but the Cramér–Rao regularity
             assumptions fail, so the value is left as nan rather than silently filled in.
             For C < 1 the same points give F = 0 exactly -- a noisy fringe carries no information at its
             extrema, which is why every experiment below runs at N phi = pi/2."""
@@ -706,7 +706,7 @@ assert 0.9 < est_H.std(ddof=1) / crb_H < 1.12
 # Because $k$ is binomial, the exact moments of $\hat\varphi$ at any finite $M$ are a single sum over $k=0,\dots,M$ with the
 # binomial weights; `estimator_moments_exact` evaluates them with log-gamma weights, so that $M$ in the hundreds of
 # thousands (Section 13) causes no overflow. The cell compares, at $N\varphi=\pi/2$ and $N\varphi=\pi/3$, the sampled bias
-# and the sampled efficiency $MN^2\,\mathrm{Var}(\hat\varphi)$ (equal to $1$ when the Cramer-Rao bound is saturated), each
+# and the sampled efficiency $MN^2\,\mathrm{Var}(\hat\varphi)$ (equal to $1$ when the Cramér–Rao bound is saturated), each
 # with its standard error, against the exact sums and against Eq. (12a). Every row has its own key. The wrong control is the
 # claim "the estimator is unbiased", tested at $N\varphi=\pi/3$, $M=10$.
 
@@ -872,7 +872,7 @@ axes[1].hist(est_H * N_H, bins=np.sort(edges), density=True, color=PALETTE[1], a
 xx = np.linspace((est_H * N_H).min(), (est_H * N_H).max(), 300)
 axes[1].plot(xx, np.exp(-(xx - phi_true_H * N_H) ** 2 / (2 * (1 / np.sqrt(M_H)) ** 2))
              / np.sqrt(2 * np.pi / M_H), color="k", lw=1.8,
-             label=r"Cramer-Rao Gaussian, $\sigma=1/\sqrt{M}$")
+             label=r"Cramér–Rao Gaussian, $\sigma=1/\sqrt{M}$")
 axes[1].axvline(phi_true_H * N_H, color="k", ls="--", lw=1.2, label=r"$N\varphi_{\mathrm{true}}=\pi/2$")
 axes[1].set_xlabel(r"rescaled estimate $N\hat\varphi$"); axes[1].set_ylabel("probability density")
 axes[1].set_title(r"$K=%d$ experiments: the estimator saturates Eq. (5)" % K_H)
@@ -1011,7 +1011,7 @@ fig.tight_layout(); plt.show()
 # %% [markdown]
 # ### 9.1 Global estimation: the Bayesian posterior and a ladder of GHZ sizes
 #
-# Sections 6–8 are local: the Cramer-Rao bound (5) describes the scatter of the estimate inside one window and presumes
+# Sections 6–8 are local: the Cramér–Rao bound (5) describes the scatter of the estimate inside one window and presumes
 # that the window is known ([notebook 29](./29_quantum_fisher_information.ipynb), Section 4.7). Without that knowledge the
 # natural object is the Bayesian posterior over the whole circle. Let shot $s$ use a GHZ probe of $N_s$ atoms and a control
 # phase $\theta_s$, applied as $R_z(-\theta_s)$ on one atom before the readout; it shifts the relative phase of Eq. (3) from
@@ -2442,7 +2442,7 @@ for N in (4, 6, 8):
 #   uniform inside each parity class, so the parity is a sufficient statistic and the record collapses to one bit.
 # * **Parity is optimal for the ideal probe.** Its classical Fisher information is $N^2$ at every phase strictly inside a
 #   fringe, equal to $F_Q$, and error propagation gives $\Delta\varphi=1/N$ per repetition. At the fringe extrema the value
-#   $N^2$ is only a limit and the Cramer-Rao regularity fails; with contrast $C<1$ the information there is exactly zero.
+#   $N^2$ is only a limit and the Cramér–Rao regularity fails; with contrast $C<1$ the information there is exactly zero.
 #   Running the preparation circuit backwards and measuring one atom is an exactly equivalent readout,
 #   $p=\sin^2(N\varphi/2)$ — equivalent for the *ideal* probe.
 # * **Measured Heisenberg scaling.** Sweeping $N=2\dots16$ with $M=400$ and $K=8000$ experiments per point, the measured
@@ -2455,7 +2455,7 @@ for N in (4, 6, 8):
 #   the unambiguous window shrinks from $\pi$ to $\pi/N$, exactly the factor gained. Two phases differing by $2\pi/N$ produce
 #   statistically identical records. With a flat prior on the whole circle a single GHZ size $N=8$ leaves an RMSE of
 #   $1.80$–$1.85$ rad at every number of shots, as Eq. (12c) predicts, while a Bayesian ladder of sizes $1,2,4,8$ with $32$
-#   shots at $N=8$ comes within $8\%$ of its local Cramer-Rao bound and beats the standard quantum limit by
+#   shots at $N=8$ comes within $8\%$ of its local Cramér–Rao bound and beats the standard quantum limit by
 #   $2.21\pm0.05$ at $R\simeq512$ phase passes. Heisenberg scaling of the ladder, Eq. (12d), needs larger $K$.
 # * **Fragility is exponential in $N$.** Contrasts $(1-2p)^N$, $\lambda^N$, $(1-g)^{N/2}$, all verified against exact Kraus
 #   evolution to $4\cdot10^{-16}$. All three channels leave the state diagonal apart from the single coherence
@@ -2567,4 +2567,4 @@ for N in (4, 6, 8):
 #   states and GHZ interferometry with trapped ions, Section VII.A noise and decoherence.
 # * H.-Y. Huang, R. Kueng and J. Preskill, *Predicting many properties of a quantum system from very few measurements*,
 #   Nature Physics **16**, 1050 (2020) — the classical-shadow estimator of Section 14.
-# * C. W. Helstrom, *Quantum Detection and Estimation Theory* (Academic Press, 1976) — the quantum Cramer-Rao bound.
+# * C. W. Helstrom, *Quantum Detection and Estimation Theory* (Academic Press, 1976) — the quantum Cramér–Rao bound.

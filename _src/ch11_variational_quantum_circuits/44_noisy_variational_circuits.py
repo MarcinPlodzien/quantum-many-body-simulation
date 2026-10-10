@@ -1850,7 +1850,7 @@ for N in N_MC:
     dm = f"{t_dm[N] * 1e3:10.2f}" if N in t_dm else f"{'-':>10s}"
     dmc = f"{c_dm[N]:13.2f}" if N in c_dm else f"{'-':>13s}"
     mem = 16 * 4 ** N
-    mem_s = f"{mem / 1024:.1f} kB" if mem < 1024 ** 2 else f"{mem / 1024 ** 2:.1f} MB"
+    mem_s = f"{mem / 1e3:.1f} kB" if mem < 1e6 else f"{mem / 1e6:.1f} MB"           # decimal units
     ratio = f"{t_dm[N] / t_mc[N]:14.2f}" if N in t_dm else f"{'-':>14s}"
     print(f"{N:3d} {dm} {dmc} {mem_s:>12s} {t_mc[N] * 1e3:18.2f} {c_mc[N]:15.2f} {ratio}")
 
@@ -1873,9 +1873,9 @@ fig.tight_layout(); plt.show()
 # evaluates all Kraus branches on a small reduced density matrix, draws a random number and renormalises, while the
 # density tensor performs one contraction per Kraus operator on each side.
 #
-# Memory adds a second, harder limit. The density tensor is $1$ MB at $N=8$, $16$ MB at $N=10$ and $256$ MB at
+# Memory adds a second, harder limit. The density tensor is $1$ MB at $N=8$, $17$ MB at $N=10$ and $268$ MB at
 # $N=12$ — per intermediate array, in a graph that holds several of them and, under `jax.grad`, keeps many more. A
-# trajectory is $64$ kB at $N=12$, and two hundred of them run in about a second. The first calls in the table, which
+# trajectory is $66$ kB at $N=12$, and two hundred of them run in about a second. The first calls in the table, which
 # include compilation, take from a few tenths of a second to a few seconds and grow slowly with $N$: the traced graph has one operation per
 # gate and noise location, a number linear in $N$, while the arrays it acts on grow exponentially.
 #
@@ -1927,8 +1927,8 @@ fig.tight_layout(); plt.show()
 #   scaling as $p_2^m$ for $m=1,2,3$, at $57$ times the shots of an unmitigated estimate of equal statistical error; at
 #   $p_2=0.08$ it left an error of $0.34$, because the observable had already saturated.
 # * **The crossover between the two simulators lies near $2^N\approx M$.** With $M=200$ trajectories the density
-#   tensor is faster up to $N=8$ and slower from $N=9$; beyond that, memory ($256$ MB per array at $N=12$ against
-#   $64$ kB per trajectory) decides as well.
+#   tensor is faster up to $N=8$ and slower from $N=9$; beyond that, memory ($268$ MB per array at $N=12$ against
+#   $66$ kB per trajectory) decides as well.
 #
 # ## 15. Exercises
 #

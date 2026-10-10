@@ -622,7 +622,7 @@ for k in range(1, 26):
     g = grad_ghz(th_ours)
     th_ours, st_ours = upd_a(th_ours, st_ours, g, k)
     th_eng, st_eng = adam_update(th_eng, grad_ghz(th_eng), st_eng, lr=0.05)
-print(f"25 Adam steps, from-scratch vs engine: max |theta difference| = {max_abs(th_ours - th_eng):.2e}")
+print(f"25 Adam steps, own implementation vs engine: max |theta difference| = {max_abs(th_ours - th_eng):.2e}")
 assert max_abs(th_ours - th_eng) < TOL
 # wrong control: the same comparison with the counter off by one (bias correction applied for k+1) must fail
 th_w, st_w = theta_a, init_a(theta_a)

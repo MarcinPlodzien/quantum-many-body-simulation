@@ -1355,8 +1355,8 @@ plt.tight_layout(); plt.show()
 #   $N\,2^N$ law; here it varies by factors of two to three between neighbouring $N$, because these notes run on a shared CPU, where the absolute milliseconds move from run to run.
 #   The exponential growth in $N$ is the robust part of the table.
 # * Compile time stays below a few seconds across the whole range, while the run time grows exponentially: compilation is set by the size of the **program** (the number of gates, $\propto N$) and is independent
-#   of the size of the **data** ($2^N$); it is paid once per chain length. The individual compile times are measured on a machine that is doing other things and do not form a clean trend, but the
-#   run time of the 20 benchmarked steps overtakes them near $N=16$ and leaves them far behind afterwards.
+#   of the size of the **data** ($2^N$); it is paid once per chain length. The individual compile times scatter when the machine is doing other things, but the
+#   run time of the 20 benchmarked steps overtakes them near $N=16$–$18$ and leaves them far behind afterwards.
 # * Extrapolating with the cost model: $N=24$ ($\approx270$ MB state) costs roughly $100\times$ the $N=18$ step; $N\approx30$ is the practical end of the state-vector road on a workstation (17 GB per copy of the state). Beyond that, one needs
 #   either structure (low entanglement → [matrix product states](../ch07_tensor_networks/18_mps_tebd.ipynb)) or a quantum simulator.
 #

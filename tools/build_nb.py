@@ -159,7 +159,12 @@ class Engine:
         return header + "\n".join(out).strip("\n") + "\n"
 
     def config_cell(self):
-        return CONFIG_HEAD + self.preamble + CONFIG_TAIL
+        # CONFIG_HEAD already imports os; the engine's per-routine einsum-label budget (apply_gate_dm, apply_kraus_dm)
+        # belongs to the engine file, not to the cell that opens every notebook -> one short comment instead
+        pre = "\n".join(l for l in self.preamble.splitlines() if l.strip() != "import os")
+        pre = re.sub(r"^_LETTERS = string\.ascii_letters.*(?:\n[ \t]+#.*)*",
+                     "_LETTERS = string.ascii_letters  # the 52 einsum index labels a-z, A-Z", pre, flags=re.M)
+        return CONFIG_HEAD + pre + CONFIG_TAIL
 
 
 # ------------------------------------------------------------------------------

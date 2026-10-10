@@ -847,7 +847,7 @@ for c_i, (c, lr) in enumerate(cfg):
 # $\eta=0.1$; the step sizes $0.1$ and $0.3$ give nearly the same results.
 #
 # After 300 iterations the median global infidelity is about $1.5\times10^{-3}$: an order of magnitude below the
-# success threshold, but not zero. The compiled batch of 48 runs takes a few seconds to compile and about a millisecond
+# success threshold, but not zero. The compiled batch of 48 runs takes one to a few seconds to compile and about a millisecond
 # or less per run and iteration to execute.
 
 # %% [markdown]

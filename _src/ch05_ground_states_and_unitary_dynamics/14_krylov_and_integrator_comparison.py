@@ -872,7 +872,7 @@ plt.show()
 # * **Chebyshev and Krylov** have nearly vertical curves: a threshold cost of about $aT\approx90$ applications of $H$, after which additional digits are almost free. Chebyshev is the cheapest of all below $\sim10^{-4}$; Krylov with $m=30$ costs up to about twice as many $H$ applications (restart overhead: every step must again "fill" its
 #   subspace) and with $m=12$, whose steps are much shorter, up to nine times as many at the tightest tolerance — still far ahead of TEBD at high accuracy.
 # * In **wall time** Krylov pays additionally for re-orthogonalisation and for handling $m$ vectors, and Chebyshev, a single `scan` with no restarts, gains. At the roughest accuracy ($\gtrsim10^{-2}$) second-order TEBD is level with Chebyshev or faster; below that the ranking is the same as in the operation count.
-# * **Compilation** (last column of the table) costs between a fraction of a second and a second or two — comparable to, and for most entries larger than, the compiled run itself at $N=10$. At small $N$ compile time is what you wait for,
+# * **Compilation** (last column of the table) costs between a few hundredths of a second and about a second — comparable to, and for most entries larger than, the compiled run itself at $N=10$. At small $N$ compile time is what you wait for,
 #   and it matters only that we compile *once*. TEBD-4, whose step contains $10(2N-1)$ gates, produces the largest program to compile; the Krylov entries look cheap only because the identical program (same static $m$) was already
 #   compiled in §5.2 and comes straight from JAX's cache.
 

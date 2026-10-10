@@ -12,9 +12,9 @@
 # Exact diagonalisation answers the question for small systems and then stops, because a state of $N$ spins-$1/2$ has
 # $2^N$ amplitudes. [Notebook 11](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb)
 # measured this wall in its Section 14: with a matrix-free Lanczos solver one application of the Hamiltonian of a
-# critical Ising chain took $0.08$ ms at $N=10$ and $200$ ms at $N=20$, a Krylov basis of $80$ vectors needs
-# $1.3$ GB at $N=20$, where the dense Hamiltonian would need $17.6$ terabytes, and the $N=20$ ground state took
-# $43$ s of wall time. Every added spin doubles the memory, and from $N\approx14$ on it roughly doubles the time.
+# critical Ising chain took a fraction of a millisecond at $N=10$ and a few tenths of a second at $N=20$, a Krylov
+# basis of $80$ vectors needs $1.3$ GB at $N=20$, where the dense Hamiltonian would need $17.6$ terabytes, and the
+# $N=20$ ground state took between half a minute and a minute and a half of wall time, depending on the load of the machine. Every added spin doubles the memory, and from $N\approx14$ on it roughly doubles the time.
 #
 # Matrix product states push the limit much further for a large and important class of states.
 # [Notebook 18](../ch07_tensor_networks/18_mps_tebd.ipynb) builds them (Sections 2 and 3) and runs DMRG on chains of a

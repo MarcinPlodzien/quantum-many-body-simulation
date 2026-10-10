@@ -962,11 +962,10 @@ style = {"Euler": ("C3", "v"), "RK4": ("C0", "o"), "Trotter-Kraus": ("C1", "s"),
 for k, e in errs.items():
     ax.loglog(dts, e, marker=style[k][1], color=style[k][0], lw=1.5, label=k)
 for p, c, ref in [(1, "C1", errs["Trotter-Kraus"][-1]), (2, "C2", errs["Strang + exact channels"][-1]), (4, "C0", errs["RK4"][-1])]:
-    ax.loglog(dts, ref * (dts / dts[-1]) ** p, ":", color=c, lw=1)
-    # annotate each reference slope BELOW its own line, at an intermediate dt where the three are well separated
-    # (labelling at the right edge would push dt^2 and dt^4 on top of each other)
-    x_lab = dts[2]
-    ax.text(x_lab, 0.25 * ref * (x_lab / dts[-1]) ** p, rf"$\propto dt^{p}$", color=c, ha="center", va="top")
+    ref_line = (ref / 3) * (dts / dts[-1]) ** p     # a factor 3 below the smallest-dt point, so it does not hide the data
+    ax.loglog(dts, ref_line, ":", color=c, lw=1.2)
+    # label each reference slope under the left end of its own line, where the three lines are well separated
+    ax.text(dts[-1], 0.4 * ref_line[-1], rf"$\propto dt^{p}$", color=c, ha="left", va="top")
 ax.set_ylim(1e-12, 1e2)
 ax.set_xlabel(r"time step $dt$"); ax.set_ylabel(r"$\|\rho_{\rm num}(T)-e^{\hat{\mathcal{L}}T}\rho_0\|_F$")
 ax.set_title(rf"Convergence of four Lindblad integrators ($N={N3}$, $T={T_conv:g}$)")
@@ -1437,7 +1436,7 @@ fig, ax = plt.subplots(figsize=(6.5, 4))
 Nb = np.array(N_bench)
 ax.semilogy(Nb, 1e3 * bench["RK4"][:, 1], "o-", color="C0", label="RK4 step (run)")
 ax.semilogy(Nb, 1e3 * bench["Trotter-Kraus"][:, 1], "s-", color="C1", label="Trotter–Kraus step (run)")
-ref = 1e3 * bench["RK4"][-1, 1] * (Nb / Nb[-1]) * 4.0 ** (Nb - Nb[-1])
+ref = 1e3 * bench["RK4"][-1, 1] / 3 * (Nb / Nb[-1]) * 4.0 ** (Nb - Nb[-1])    # a factor 3 below the RK4 point at N = 8
 ax.semilogy(Nb, ref, "k:", label=r"$\propto N\,4^N$")
 ax.set_xlabel(r"number of spins $N$"); ax.set_ylabel("time per step [ms]")
 ax.set_title("Cost of one Lindblad step on the density tensor"); ax.legend(); ax.grid(alpha=.3, which="both")
@@ -1448,7 +1447,7 @@ plt.tight_layout(); plt.show()
 #
 # * For small $N$ both curves are far *shallower* than the $N\,4^N$ law (dotted): the arrays are tiny and the cost is per-operation
 #   overhead, not arithmetic. From $N\approx6$ on the RK4 step grows by a factor $\gtrsim4$ per added spin, as the cost model
-#   predicts. The dotted line is anchored at the RK4 point for $N=8$, so only its slope carries information.
+#   predicts. The dotted line is drawn a factor $3$ below the RK4 point for $N=8$, so only its slope carries information.
 # * A Trotter–Kraus step is cheaper than an RK4 step — a factor $32/9\approx3.6$ by operation count ($\approx9N$ versus $32N$
 #   einsums). Do not read the measured ratio too closely: with three repetitions per point, on a machine that may be running
 #   other jobs, the table scatters by an order of magnitude from run to run (a non-monotonic entry in a column is noise, not

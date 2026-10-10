@@ -1,6 +1,6 @@
 #@title: Ramsey interferometry — the standard quantum limit, simulated end to end
 #@part: Chapter 10 — Quantum metrology protocols
-#@description: The complete Ramsey protocol of an atomic clock — coherent spin state, phase encoding, second pulse, atom counting — with the signal and the projection noise derived, phase estimators built from sampled bit strings, the measured sensitivity checked against the Cramer-Rao bound, and dephasing during the interrogation fixing the optimal interrogation time.
+#@description: The complete Ramsey protocol of an atomic clock — coherent spin state, phase encoding, second pulse, atom counting — with the signal and the projection noise derived, phase estimators built from sampled bit strings, the measured sensitivity checked against the Cramér–Rao bound, and dephasing during the interrogation fixing the optimal interrogation time.
 
 # %% [markdown]
 # ## 1. Introduction and motivation
@@ -643,7 +643,7 @@ def cfi_binomial(phi, N, contrast=1.0):
            the extrema.
     CAUTION  at C = 1 and phi = 0 or pi the expression is 0/0 and this function returns nan.  That is not a
            numerical accident: the true value there is F = 0 (the outcome is deterministic), so the limit
-           and the value differ and the Cramer-Rao regularity conditions fail.  Evaluate strictly inside
+           and the value differ and the Cramér–Rao regularity conditions fail.  Evaluate strictly inside
            the fringe.
     """
     c = jnp.cos(phi)
@@ -658,7 +658,7 @@ for N in (2, 4, 8, 12):
         fc = float(cfi_binomial(phi, N))
         err_fi = max(err_fi, abs(fc - N), abs(fq - N))
         print(f"{N:4d} {phi:8.4f} {fc:13.9f} {fq:17.9f} {1 / np.sqrt(N):11.6f}")
-print(f"\nlargest deviation of F and F_Q from N: {err_fi:.2e}   -> the readout saturates the quantum Cramer-Rao bound")
+print(f"\nlargest deviation of F and F_Q from N: {err_fi:.2e}   -> the readout saturates the quantum Cramér–Rao bound")
 assert err_fi < 1e-9
 
 # %% [markdown]
@@ -942,7 +942,7 @@ print(f"N = {N_HIST}, M = {M_HIST}, K = {K_HIST} experiments, phi_true = {PHI_TR
 print(f"  mean estimate        = {phi_hist.mean():.6f}")
 print(f"  bias                 = {bias:+.2e}   +- {sigma / np.sqrt(K_HIST):.2e}  (statistical error of the mean)")
 print(f"  measured Delta phi   = {sigma:.6f}  +- {std_of_std(sigma, K_HIST):.6f}")
-print(f"  Cramer-Rao 1/sqrt(NM)= {crb:.6f}")
+print(f"  Cramér–Rao 1/sqrt(NM)= {crb:.6f}")
 print(f"  ratio measured / CRB = {sigma / crb:.4f}")
 assert abs(bias) < 5 * sigma / np.sqrt(K_HIST) + 1e-3
 assert 0.9 < sigma / crb < 1.15
@@ -978,7 +978,7 @@ axes[1].hist(phi_hist, bins=edges, density=True, color=PALETTE[0], alpha=0.75,
              label=rf"$\hat\varphi$, $K={K_HIST}$ experiments")
 xx = np.linspace(phi_hist.min(), phi_hist.max(), 300)
 axes[1].plot(xx, np.exp(-(xx - PHI_TRUE) ** 2 / (2 * crb ** 2)) / np.sqrt(2 * np.pi * crb ** 2),
-             color=PALETTE[1], lw=2.0, label=r"Cramer-Rao Gaussian, $\sigma=1/\sqrt{NM}$")
+             color=PALETTE[1], lw=2.0, label=r"Cramér–Rao Gaussian, $\sigma=1/\sqrt{NM}$")
 axes[1].axvline(PHI_TRUE, color="k", ls="--", lw=1.2, label=r"$\varphi_{\mathrm{true}}=\pi/2$")
 axes[1].set_xlabel(r"estimate $\hat\varphi$"); axes[1].set_ylabel("probability density")
 axes[1].set_title(rf"$N={N_HIST}$, $M={M_HIST}$:  measured $\Delta\varphi={sigma:.4f}$, CRB $={crb:.4f}$")
@@ -1172,7 +1172,7 @@ axes[0].errorbar(N_LIST, sig_N, yerr=err_N, fmt="o", color=PALETTE[0], ms=6, cap
                  label=rf"measured, $M={M_FIX}$, $K={K_SWEEP}$")
 nn = np.linspace(min(N_LIST), max(N_LIST), 100)
 axes[0].plot(nn, 1 / np.sqrt(nn * M_FIX), color=PALETTE[1], lw=2.0,
-             label=r"Cramer-Rao $1/\sqrt{NM}$")
+             label=r"Cramér–Rao $1/\sqrt{NM}$")
 axes[0].plot(nn, A_N * nn ** s_N, color=PALETTE[2], ls="--", lw=1.5,
              label=rf"fit: slope ${s_N:+.3f}$")
 axes[0].set_xscale("log"); axes[0].set_yscale("log")
@@ -1183,7 +1183,7 @@ axes[1].errorbar(M_LIST, sig_M, yerr=err_M, fmt="s", color=PALETTE[0], ms=6, cap
                  label=rf"measured, $N={N_FIX}$, $K={K_SWEEP}$")
 mm = np.linspace(min(M_LIST), max(M_LIST), 100)
 axes[1].plot(mm, 1 / np.sqrt(N_FIX * mm), color=PALETTE[1], lw=2.0,
-             label=r"Cramer-Rao $1/\sqrt{NM}$")
+             label=r"Cramér–Rao $1/\sqrt{NM}$")
 axes[1].plot(mm, A_M * mm ** s_M, color=PALETTE[2], ls="--", lw=1.5,
              label=rf"fit: slope ${s_M:+.3f}$")
 axes[1].set_xscale("log"); axes[1].set_yscale("log")
@@ -1280,7 +1280,7 @@ for C in CONTRASTS:
 
 # %%
 # ==============================================================================
-# STEP 9b: the sub-bound spread and the biased Cramer-Rao bound, Eq. (16)
+# STEP 9b: the sub-bound spread and the biased Cramér–Rao bound, Eq. (16)
 # ==============================================================================
 def bias_slope(phi, N, shots, contrast=1.0, h=1e-4):
     """d E[phi_hat] / d phi = 1 + b'(phi), by a central difference on the EXACT mean."""
@@ -1289,7 +1289,7 @@ def bias_slope(phi, N, shots, contrast=1.0, h=1e-4):
 
 
 # --- CHECKPOINT: Var(phi_hat) >= (1 + b')^2 / (M F) at EVERY scanned phase, both contrasts ----------
-print("Eq. (16): the biased Cramer-Rao bound, checked against the exact binomial moments\n")
+print("Eq. (16): the biased Cramér–Rao bound, checked against the exact binomial moments\n")
 print(f"{'C':>5s} {'phi':>8s} {'sd exact':>10s} {'sd sampled':>11s} {'1 + b prime':>12s} "
       f"{'bound Eq.(16)':>14s} {'sd / bound':>11s} {'sd / Eq.(11)':>13s}")
 worst_ratio, worst_z = np.inf, 0.0
@@ -1311,11 +1311,11 @@ for C in CONTRASTS:
             print(f"{C:5.1f} {phi:8.4f} {sd_x:10.6f} {scan[C][1][i]:11.6f} {slope:12.4f} "
                   f"{bound:14.6f} {sd_x / bound:11.4f} {sd_x / crb_phi[C][i]:13.4f}")
     exact[C] = (np.array(m_x_all), np.array(sd_x_all))
-print(f"\nsmallest  sd / (biased Cramer-Rao bound)  over all 31 phases and both contrasts: "
+print(f"\nsmallest  sd / (biased Cramér–Rao bound)  over all 31 phases and both contrasts: "
       f"{worst_ratio:.4f}   (must be >= 1)")
 print(f"largest |sampled mean - exact mean| / SE over all 62 scan points: {worst_z:.2f}")
 assert worst_z < 4.0, "the sampled response curve disagrees with the exact binomial sum"
-assert worst_ratio > 0.995, "the biased Cramer-Rao bound Eq. (16) is violated -- a bug, not physics"
+assert worst_ratio > 0.995, "the biased Cramér–Rao bound Eq. (16) is violated -- a bug, not physics"
 # power: the FLAT bound 1/sqrt(NM) is violated by the same numbers, which is the point of the test.
 flat_worst = min(float(jnp.sqrt(mom_moments_exact(float(PHI_SCAN[i]), N_SC, M_SC, 1.0)[1])) / crb_sc
                  for i in (0, 30))
@@ -1347,7 +1347,7 @@ for j, C in enumerate(CONTRASTS):
     mean_e, sig_e = scan[C]
     rms = np.sqrt((mean_e - PHI_SCAN) ** 2 + sig_e ** 2)
     axes[0].plot(PHI_SCAN, crb_phi[C], color=PALETTE[j], lw=2.0,
-                 label=rf"Cramer-Rao, Eq. (11), $C={C}$")
+                 label=rf"Cramér–Rao, Eq. (11), $C={C}$")
     axes[0].errorbar(PHI_SCAN, sig_e, yerr=std_of_std(sig_e, K_SC), fmt=MARKERS[j], color=PALETTE[j],
                      ms=5, capsize=2, ls="none", label=rf"measured $\Delta\hat\varphi$, $C={C}$")
     axes[0].plot(PHI_SCAN, rms, ls="--", lw=1.2, color=PALETTE[j + 2],
@@ -1925,7 +1925,7 @@ for N, M, K in ((4, 50, 400), (7, 50, 400), (10, 50, 200)):
 
 # %% [markdown]
 # The run times are the relevant comparison. The engine sampler is a few times slower at $N=4$ and about two orders of
-# magnitude slower at $N=10$ (speed-ups between $140$ and $160$ in successive builds of this notebook; the exact factor
+# magnitude slower at $N=10$ (speed-ups between $130$ and $160$ in successive builds of this notebook; the exact factor
 # depends on the load of the machine), and the last column shows why: its transient memory grows by a factor of two with every added
 # atom, while the coin sampler grows linearly in $N$. At the batch sizes of this table the memory is not yet a problem —
 # the largest entry, $10^7$ doubles, is $82$ MB — but the growth rate is: the $N$ sweep of Section 12 ($K=8000$, $M=100$,

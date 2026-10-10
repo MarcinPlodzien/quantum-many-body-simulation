@@ -508,7 +508,7 @@ assert err < 1e-6
 
 # %% [markdown]
 # All four propagators reproduce the exact state, with errors that drop dramatically with the order at the same $dt=0.01$, and all keep the norm at 1 to round-off. The first call of each
-# function includes compilation — seconds, growing with the number of gates in the step — the second call only runs. **Always separate the two when you benchmark JAX code.**
+# function includes compilation — a few tenths of a second, growing with the number of gates in the step — the second call only runs. **Always separate the two when you benchmark JAX code.**
 #
 # ### 6.2 The scan version with observables
 #

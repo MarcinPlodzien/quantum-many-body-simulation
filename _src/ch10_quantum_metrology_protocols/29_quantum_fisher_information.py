@@ -3446,8 +3446,8 @@ fig.tight_layout(); plt.show()
 # across several cores), while on a loaded machine the largest sizes compete for cores and the ratio can exceed $4.7$.
 # The lesson is the one every benchmark teaches: an $O(\cdot)$ is a statement about arithmetic, a timing is a statement
 # about one machine at one moment, and they coincide only in the window where neither dispatch nor parallelism dominates.
-# At $N=16$ (a $65\,536$-dimensional space) one QFI evaluation takes milliseconds (about $2$ ms on an idle machine; the
-# printed value depends on the load during the build), so a sweep over hundreds of parameters is a matter of seconds. Compare that with the dense alternative: a
+# At $N=16$ (a $65\,536$-dimensional space) one QFI evaluation takes milliseconds (about $2$ ms on an idle machine, and up to
+# tens of milliseconds when other jobs compete for the processor; the printed value depends on the load during the build), so a sweep over hundreds of parameters is a matter of seconds. Compare that with the dense alternative: a
 # $2^{16}\times2^{16}$ complex matrix
 # would need $69$ GB.
 #

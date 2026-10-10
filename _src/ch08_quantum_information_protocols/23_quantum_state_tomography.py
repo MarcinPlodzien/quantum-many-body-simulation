@@ -1834,7 +1834,7 @@ fig.tight_layout(); plt.show()
 
 # %%
 # ==============================================================================
-# EXPERIMENT: trace distance and fidelity vs shots, three estimators, 16 independent data sets per point
+# EXPERIMENT: trace distance and fidelity vs shots, three estimators, N_SETS = 64 independent data sets per point
 # ==============================================================================
 N, N_SETS, MLE_IT = 2, 64, 400
 SHOTS_SCAN = (20, 60, 200, 600, 2000, 6000)

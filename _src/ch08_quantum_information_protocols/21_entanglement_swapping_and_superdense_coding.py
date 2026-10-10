@@ -1558,7 +1558,7 @@ ax.plot(pfine, 2 - binary_entropy(pfine), "-", color=PALETTE[1], lw=1.8, label=r
 ax.plot(P_GRID, res["depolarising"][0], MARKERS[0], color=PALETTE[0], ms=6, label="depolarising (simulated)")
 ax.plot(P_GRID, res["dephasing"][0], MARKERS[1], color=PALETTE[1], ms=6, label="dephasing (simulated)")
 ax.axhline(1.0, color="0.35", ls="--", lw=1.3)
-ax.text(0.02, 1.04, "1 bit: a fresh qubit, no shared pair", fontsize=8, color="0.3")
+ax.text(0.48, 0.95, "1 bit: a fresh qubit,\nno shared pair", fontsize=8, color="0.3", ha="right", va="top")
 ax.set_xlabel("noise strength $p$ on Alice's half of the stored pair")
 ax.set_ylabel(r"$I(M:O)$  [bits per transmitted qubit]")
 ax.set_title("Rate of the dense-coding protocol"); ax.legend(fontsize=8); ax.set_ylim(0, 2.1)

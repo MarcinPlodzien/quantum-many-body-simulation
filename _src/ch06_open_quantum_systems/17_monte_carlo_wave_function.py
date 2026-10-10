@@ -1091,7 +1091,7 @@ ax.legend(); ax.grid(alpha=.3, which="both"); plt.tight_layout(); plt.show()
 # **Interpretation.** (Absolute numbers depend on the machine and on its load; look at the trends.) For small $N$ both curves are flat — tiny arrays, the
 # time is per-operation overhead, and `vmap` amortises that overhead over the batch, which is why a single trajectory appears almost free. Once the arrays are large the
 # density-tensor step grows much faster with $N$ than the trajectory step — $4^N$ against $2^N$, exactly as the cost model says. The consequence is the fourth column: the break-even number of
-# trajectories climbs from about one at $N=4$ to about a hundred at $N=8$, in line with the rule $M_{\rm break\text{-}even}\sim2^N$. Do not read the individual entries literally, though:
+# trajectories climbs from between one and ten at $N=4$ to between several tens and a hundred at $N=8$, in line with the rule $M_{\rm break\text{-}even}\sim2^N$. Do not read the individual entries literally, though:
 # at small $N$ both steps are dominated by fixed per-operation overheads, and these notes are executed on a shared CPU, so this benchmark can show the *trend* but not pin down the prefactor.
 #
 # The last column of the figure is an **extrapolation, not a measurement**: the density-tensor curve is continued beyond the largest $N$ we can
@@ -1226,7 +1226,7 @@ terms_D = heisenberg_terms(N_D, Jxx=1.0, Jyy=1.0)                      # XX chai
 psi0_D  = product_state("0" * (N_D // 2) + "1" * (N_D // 2))           # the domain wall
 
 
-def z_profile(psi):
+def wall_z_profile(psi):
     """<Z_j> for every site of a PURE state, from the probabilities alone.
     Z_j is diagonal, so summing |psi|^2 over all axes but j and dotting with (+1,-1) is enough: N sums over 2^N
     numbers, instead of N partial traces."""
@@ -1241,13 +1241,13 @@ def run_dephasing(gamma, M, key):
     JAX  vmap over trajectories, scan over time (Sec. 4); one compiled program per gamma."""
     jumps = [((q,), Z, gamma) for q in range(N_D)] if gamma > 0 else []
     _, step = make_steppers(terms_D, jumps, DT_D)                      # Trotter-Kraus stepper: positivity by construction
-    prof = jax.vmap(lambda k: run_trajectory(step, psi0_D, k, n_D, z_profile)[0])(jax.random.split(key, M))
+    prof = jax.vmap(lambda k: run_trajectory(step, psi0_D, k, n_D, wall_z_profile)[0])(jax.random.split(key, M))
     return np.asarray(jnp.mean(prof, axis=0))                          # (n_steps, N)
 
 
 def width(profiles):
     """sigma(t) of the CHANGE in the profile, Eq. above."""
-    w = np.abs(profiles - np.asarray(z_profile(psi0_D))[None, :])
+    w = np.abs(profiles - np.asarray(wall_z_profile(psi0_D))[None, :])
     j = np.arange(N_D)[None, :]
     return np.sqrt(np.sum(w * (j - x0_D) ** 2, axis=1) / np.maximum(np.sum(w, axis=1), 1e-12))
 
