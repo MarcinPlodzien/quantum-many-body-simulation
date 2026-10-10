@@ -40,8 +40,10 @@
 #    and the fidelity susceptibility, which needs no order parameter at all (Sec. 7).
 # 4. Finite-size scaling: pseudo-critical points, extrapolation to $N\to\infty$, and data collapse with the
 #    exponents $\nu$, $\beta$, $z$ (Sec. 8).
-# 5. A second universality class for free: the XX chain at $N=200$ from its correlation matrix, with $c=1$ (Sec. 9).
-# 6. A transition that finite-size scaling handles badly: the Kosterlitz-Thouless point of the XXZ chain (Sec. 10).
+# 5. The same analysis with DMRG at $N=32$, $64$ and $128$: order parameter, central charge and the correlation
+#    exponent $\eta$ (Sec. 9).
+# 6. A second universality class and a transition that finite-size scaling handles badly: the XX chain, checked
+#    against its free-fermion solution, with $c=1$, and the Kosterlitz-Thouless point of the XXZ chain (Sec. 10).
 # 7. Cost, limits, takeaways, exercises (Secs. 11-13).
 #
 # ### What you will learn
@@ -55,10 +57,15 @@
 # ### Prerequisites
 #
 # * Lanczos, restarts and symmetry sectors: [notebook 11 (Chapter 5)](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb),
-#   Secs. 5-10; its Sec. 10.3 derives the tunnelling splitting of the ordered phase used below.
+#   Secs. 5-11; its Sec. 10.3 derives the tunnelling splitting of the ordered phase used below, and its Sec. 11 takes
+#   a first look at this transition at $N=8,12,16$ together with the free-fermion solution quoted there.
 # * Entanglement entropy from Schmidt values: [notebook 06 (Chapter 3)](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb).
 # * Matrix product states, MPOs and DMRG: [notebook 18 (Chapter 7)](../ch07_tensor_networks/18_mps_tebd.ipynb), Sec. 6.
 # * `jax.jit` and traced arguments: [notebook 01 (Chapter 1)](../ch01_computational_toolbox/01_jax_from_scratch.ipynb).
+# * The Jordan-Wigner mapping to free fermions, quoted without proof:
+#   [notebook 15 (Chapter 5)](../ch05_ground_states_and_unitary_dynamics/15_quench_dynamics_spin_chains.ipynb), Sec. 7.2.
+# * Optional, for one remark in Sec. 7: the quantum Fisher information of a pure state,
+#   [notebook 29 (Chapter 10)](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb), Sec. 6.2.
 
 # %%
 #@engine: I2, X, Y, Z, XX, YY, ZZ, product_state, haar_state, apply_gate, heisenberg_terms, apply_hamiltonian, energy, dense_hamiltonian, lanczos, lanczos_ground_state, expect_local, schmidt_values, entanglement_entropy, fidelity_pure, xxz_mpo, mpo_to_dense, product_mps, dmrg, mps_entropies, mps_expect_sites, mps_correlator, mps_to_state
@@ -82,8 +89,10 @@
 #
 # flips every spin in the $Z$ basis. It commutes with $H$: $ZZ$ terms are even in the number of flips and $X$ commutes
 # with itself. It also squares to the identity, so its eigenvalues are $\pm1$ and the spectrum splits into two
-# **parity sectors**. Since $[H,P]=0$ and the finite-chain ground state is *unique* (Perron-Frobenius), that ground
-# state is an eigenvector of $P$, and therefore
+# **parity sectors**. Since $[H,P]=0$ and the finite-chain ground state is *unique*, that ground
+# state is an eigenvector of $P$. (Uniqueness follows from the Perron-Frobenius theorem: for $h>0$ every off-diagonal
+# element of $H$ in the $Z$ basis is $-h$ or zero, and single spin flips connect every configuration to every other.)
+# Therefore
 #
 # $$ \langle\psi_0|Z_j|\psi_0\rangle = \langle\psi_0|P^\dagger (PZ_jP^\dagger) P|\psi_0\rangle = -\langle\psi_0|Z_j|\psi_0\rangle = 0 \qquad (3) $$
 #
@@ -99,12 +108,14 @@
 #
 # ### 2.3 The exact results we will use as a grader
 #
-# The TFIM maps to free fermions by the Jordan-Wigner transformation. We quote three results (Pfeuty 1970;
+# The TFIM maps to free fermions by the Jordan-Wigner transformation (notebook 15, Sec. 7.2; notebook 11, Sec. 11.2). We quote three results (Pfeuty 1970;
 # Sachdev 2011) and use them only to *check* the numerics:
 #
 # $$ h_c = J, \qquad \Delta_\infty(h)=2|J-h|, \qquad m_\infty(h)=\big(1-(h/J)^2\big)^{1/8}\ \ (h<J) . \qquad (5) $$
 #
-# The exponents follow: $\Delta\sim|h-h_c|^{z\nu}$ with $z\nu=1$ and $z=1$, hence $\nu=1$; $m\sim(h_c-h)^\beta$ with
+# Near $h_c$ the correlation length diverges as $\xi\sim|h-h_c|^{-\nu}$, and the gap closes as $\Delta\sim\xi^{-z}$;
+# $\nu$ is the correlation-length exponent and $z$ the **dynamical exponent**. The exponents follow:
+# $\Delta\sim|h-h_c|^{z\nu}$ with $z\nu=1$ and $z=1$ (the dispersion below is linear at $h_c$), hence $\nu=1$; $m\sim(h_c-h)^\beta$ with
 # $\beta=1/8$. At the critical point the chain is described by a conformal field theory with **central charge**
 # $c=1/2$ (one Majorana fermion), which fixes the entanglement entropy - see Sec. 6. The task of Secs. 4-8 is to
 # recover $h_c=1$, $\nu=1$, $\beta=1/8$ and $c=1/2$ from chains of eight to sixteen spins.
@@ -260,7 +271,8 @@ for h_ in (0.5, 1.0, 1.5):
 # states carry exact parity, so nothing leaked.
 #
 # > **Numerical practice.** Enforcing a symmetry costs almost nothing and buys two things: a state with exact quantum
-# > numbers, and access to excited states without a deflation scheme. Whenever a Hamiltonian has an obvious symmetry,
+# > numbers, and access to excited states without a deflation scheme (projecting converged lower states out of every
+# > Krylov vector). Whenever a Hamiltonian has an obvious symmetry,
 # > use it before reaching for a more complicated eigensolver.
 
 # %% [markdown]
@@ -435,9 +447,11 @@ print(f"exact: m^2(0.5) = {tfim_exact_magnetisation(0.5) ** 2:.4f}, m^2(1.5) = 0
 # **Interpretation.**
 # - *Left*: $m^2$ is a smooth curve for every $N$. It does not jump; it does not vanish above $h_c$ (it decays as
 #   $1/N$ there: by Eq. (4), $Nm^2=\sum_r\langle Z_0Z_r\rangle$ summed over a finite correlation length, which the
-#   table shows settling near $2.3$ at $h=1.5$; $N$ uncorrelated spins would give exactly $1$); and below $h_c$ it sits **under** the
+#   table shows still rising slowly at $h=1.5$, from $2.08$ to $2.33$; $N$ uncorrelated spins would give exactly $1$); and below $h_c$ it sits **under** the
 #   exact $m_\infty^2$, because a finite chain cannot order completely. A transition is visible only as a steepening
-#   with $N$ - which is exactly what finite-size scaling will exploit in Sec. 8.
+#   with $N$ - which is exactly what finite-size scaling will exploit in Sec. 8. The curves cross near $h\approx0.87$
+#   and not at $h_c$: at $h_c$ itself $m^2$ falls as $N^{-2\beta/\nu}$, so only the rescaled $m^2N^{2\beta/\nu}$ of
+#   Sec. 8 has $N$-independent values there.
 # - *Centre* (logarithmic scale): the splitting of the two parity sectors behaves completely differently on the two
 #   sides. Above $h_c$ it converges to the bulk gap $2(h-J)$ and is finite. Below $h_c$ it collapses **exponentially
 #   with $N$** - at $h=0.5$ it falls from $6\times10^{-3}$ at $N=8$ to $2\times10^{-5}$ at $N=16$ - because there it
@@ -495,7 +509,7 @@ print(f"exact: m^2(0.5) = {tfim_exact_magnetisation(0.5) ** 2:.4f}, m^2(1.5) = 0
 # Two cautions come with Eq. (8). The formula is asymptotic, so short blocks and small chains carry corrections that
 # decay only slowly with $N$. And in some open chains - the XX and XXZ chains of Sec. 10 - the corrections
 # **alternate** with the parity of $\ell$, which is why `central_charge_fit` can restrict the fit to even cuts. The
-# Ising profile turns out to be smooth: the table below shows the all-cut and even-cut fits agreeing to $0.002$.
+# Ising profile turns out to be smooth: the table below shows the all-cut and even-cut fits agreeing to about $0.002$.
 
 # %%
 # ==============================================================================
@@ -563,11 +577,11 @@ plt.tight_layout(); plt.show()
 # %% [markdown]
 # **Interpretation.** At the critical point the profile is a smooth arch that grows with $N$ and falls close to a
 # straight line when plotted against the conformal coordinate of Eq. (8). The fitted slope gives $c_{\rm eff}=0.573$
-# at $N=8$ and $0.559$ at $N=16$, and the half-chain entropy against $\ln N$ gives $0.573$: about $12\,\%$ above
-# the Ising value $1/2$, drifting down slowly with $N$. That is enough to tell the Ising class from the $c=1$ class
+# at $N=8$ and $0.559$ at $N=16$ (the even-cut fit drawn in the figure gives $0.561$), and the half-chain entropy
+# against $\ln N$ gives $0.573$: $12$ to $15\,\%$ above the Ising value $1/2$, drifting down slowly with $N$. That is enough to tell the Ising class from the $c=1$ class
 # of Sec. 10, but it is not a measurement of $c$ to better than ten per cent; Sec. 9 repeats the fit at $N=128$. In
 # the gapped phase the same profile is nearly flat and does not grow with $N$ at all: the area law. All-cut and
-# even-cut fits agree to $0.002$, so the Ising profile carries no alternating correction worth removing.
+# even-cut fits agree to about $0.002$, so the Ising profile carries no alternating correction worth removing.
 #
 # > **Physics insight.** The central charge counts the massless degrees of freedom of the critical theory, and the
 # > entropy measures it without any knowledge of what the order parameter is. It therefore complements the
@@ -582,17 +596,24 @@ plt.tight_layout(); plt.show()
 #    \chi_F(h)=\lim_{\delta\to0}\frac{2\big(1-F(h,\delta)\big)}{\delta^2} . \qquad (9) $$
 #
 # The ground state changes slowly inside a phase and quickly where the state reorganises, so $\chi_F$ peaks at the
-# transition. Second-order perturbation theory makes this quantitative. With $H(h+\delta)=H(h)+\delta\,\partial_hH$
+# transition. First-order perturbation theory for the state makes this quantitative. With $H(h+\delta)=H(h)+\delta\,\partial_hH$
 # and $\partial_hH=-\sum_iX_i$ here,
 #
 # $$ |\psi_0(h+\delta)\rangle=|\psi_0\rangle+\delta\sum_{n\neq0}\frac{\langle n|\partial_hH|\psi_0\rangle}{E_0-E_n}|n\rangle+\mathcal O(\delta^2)
 #    \quad\Longrightarrow\quad
 #    \chi_F=\sum_{n\neq0}\frac{\big|\langle n|\partial_hH|\psi_0\rangle\big|^2}{(E_n-E_0)^2} . \qquad (10) $$
 #
-# The energy denominators explain everything: $\chi_F$ blows up where the gap closes, provided the perturbation
+# The step to $\chi_F$ is the normalisation. With $c_n$ the coefficient of $|n\rangle$ in the first-order correction,
+# the normalised state has the overlap $F=\big(1+\delta^2\sum_{n\neq0}|c_n|^2\big)^{-1/2}\approx1-\frac{\delta^2}2\sum_{n\neq0}|c_n|^2$
+# with $|\psi_0\rangle$, and Eq. (9) gives $\chi_F=\sum_{n\neq0}|c_n|^2$. The sum in Eq. (10) is the squared length of the part of
+# $\partial_h|\psi_0\rangle$ orthogonal to $|\psi_0\rangle$, so by Eq. (71) of
+# [notebook 29](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb) $\chi_F=F_Q/4$, a quarter of
+# the quantum Fisher information of the ground state for the parameter $h$.
+#
+# The energy denominators explain the peak: $\chi_F$ blows up where the gap closes, provided the perturbation
 # actually connects the ground state to the low-lying states. It is **extensive** inside a phase, so the quantity to
 # compare across sizes is $\chi_F/N$, and at a critical point it acquires the anomalous scaling
-# $\chi_F/N\sim N^{2/\nu-1}$, which for the Ising chain ($\nu=1$) means $\chi_F/N\propto N$.
+# $\chi_F/N\sim N^{2/\nu-1}$ (Campos Venuti and Zanardi 2007), which for the Ising chain ($\nu=1$) means $\chi_F/N\propto N$.
 #
 # In practice Eq. (9) is evaluated with a finite $\delta$ - here the spacing of the scan grid - which is why the
 # grid was chosen fine. No excited states and no operators are needed: two ground states and one inner product.
@@ -800,9 +821,9 @@ plt.tight_layout(); plt.show()
 #
 # > **Common pitfall.** A number that looks plausible is not yet a ground-state energy. The Néel product state has the
 # > *positive* energy $+(N-1)J$ for this ferromagnetic model, so every local problem of the first steps has a positive
-# > spectrum - and a solver with a spurious zero eigenvalue then returns $E=0$ exactly. An earlier version of `dmrg` did
-# > this at $N=24$: its bond bases contained zero-norm directions (notebook 18, Sec. 6.6), the state collapsed to the zero
-# > vector, and $E=0$ was printed for every sweep without an error. The engine now builds its bond bases from genuine
+# > spectrum - and a solver with a spurious zero eigenvalue then returns $E=0$ exactly. This happens when the bond
+# > bases contain zero-norm directions (notebook 18, Sec. 6.6): the state collapses to the zero vector, and $E=0$ is
+# > printed for every sweep without an error. The engine's `dmrg` therefore builds its bond bases from genuine
 # > block states only and raises an error if a local step or the final state loses its norm; from the Néel start, the
 # > all-up state and $|+\cdots+\rangle$ alike it reaches the exact energy at $N=24$ within two sweeps (to $2\times10^{-13}$,
 # > $1\times10^{-11}$ and $9\times10^{-14}$). The code below starts from $|+\cdots+\rangle$, the exact ground state for
@@ -874,15 +895,15 @@ assert abs(E64 - E_exact_64) / abs(E_exact_64) < 1e-8
 # $E_0=-\sum_n s_n$ with $s_n$ the singular values of the bidiagonal matrix of Sec. 2. The error falls with $\chi$
 # and tracks the discarded weight, as in notebook 18 (Chapter 7). *At the critical point* the Schmidt spectrum
 # decays more slowly than in a gapped phase - at $N=16$ and $\chi=32$ the discarded weight is $3\times10^{-22}$ at
-# $h_c$ against $3\times10^{-24}$ and $7\times10^{-26}$ at $h=0.6$ and $1.4$ - which is the price of the
+# $h_c$ against $2\times10^{-31}$ and $3\times10^{-31}$ at $h=0.6$ and $1.4$ - which is the price of the
 # logarithmic entropy.
 #
 # ### 9.2 The scan at $N=32$, $64$ and $128$
 #
 # Now the same field scan as in Sec. 4, but with chains that are no longer reachable by exact diagonalisation. The
 # grid is coarse, because each point is a full DMRG run: $2(N-1)=254$ local eigenvalue problems per sweep at
-# $N=128$. Three sweeps suffice: the energy of the critical $N=128$ run, printed after every sweep below, is converged
-# to $2\times10^{-12}$ after the third, and every energy of the scan is graded against the exact free-fermion values. Three
+# $N=128$. Three sweeps suffice: the energy of the critical $N=128$ run, printed after every sweep below, is within
+# $6\times10^{-10}$ of the exact value after the third (a relative error of $4\times10^{-12}$), and every energy of the scan is graded against the exact free-fermion values. Three
 # lengths, each twice the previous one, are used: a factor of two in $N$ is the unit in which $N^{-2\beta/\nu}$ and
 # $\tfrac c6\log_2N$ are read.
 
@@ -1001,7 +1022,7 @@ plt.tight_layout(); plt.show()
 #
 # $$ H=\sum_i\big(X_iX_{i+1}+Y_iY_{i+1}+\Delta\,Z_iZ_{i+1}\big) \qquad (13) $$
 #
-# is **critical for the whole range** $-1<\Delta\le1$ - a gapless line, not a point, with central charge $c=1$ - and
+# is **critical for the whole range** $-1<\Delta\le1$ - a gapless line of critical points with central charge $c=1$ - and
 # gapped with Néel order for $\Delta>1$. The transition at $\Delta=1$ is of the **Kosterlitz-Thouless** type: the
 # gap opens with an essential singularity. The exact result of des Cloizeaux and Gaudin (1966), with
 # $\Delta=\cosh\Psi$, is $\Delta_{\rm gap}=(\pi J_S\sinh\Psi/\Psi)\sum_{n=-\infty}^{\infty}1/\cosh[(2n+1)\pi^2/(2\Psi)]$
@@ -1085,7 +1106,7 @@ plt.tight_layout(); plt.show()
 # %% [markdown]
 # **Interpretation.** The critical phase is identified: $c_{\rm eff}=1.07$-$1.12$ for $\Delta\le1$, close to the
 # free-boson value $c=1$ and clearly distinct from the $c=1/2$ of the Ising chain. The excess over one is a
-# finite-size correction of Eq. (8), not a DMRG error: the exact free-fermion profile at $\Delta=0$ gives the same
+# finite-size correction of Eq. (8); DMRG adds nothing to it, since the exact free-fermion profile at $\Delta=0$ gives the same
 # $1.117$ at this $N$. Across $\Delta=1$ nothing happens. $c_{\rm eff}$ is $1.069$ at $\Delta=1$ and $1.071$ at
 # $\Delta=1.05$; it departs only somewhere between $\Delta=1.05$ and $1.5$, and then it *rises* ($1.22$, $1.33$)
 # rather than dropping towards zero as for a gapped chain. Eq. (8) has no meaning for a gapped state, and the fit
@@ -1178,7 +1199,8 @@ plt.tight_layout(); plt.show()
 #    $c$ to be right to one per cent, and how does that requirement grow with $N$?
 # 8. ★★★ **The other side of the KT point.** At $\Delta=1.5$ and $\Delta=2$ run DMRG at $N=128$, extract the
 #    correlation length from the exponential approach of the staggered $(-1)^r\langle Z_iZ_{i+r}\rangle$ to its
-#    plateau $m_{\rm st}^2$ (bulk sites only), and compare with Eq. (14). How far above $\Delta=1$ do you have to go
+#    plateau $m_{\rm st}^2$ (bulk sites only), and compare its growth between the two anisotropies with that of the
+#    inverse gap $1/\Delta_{\rm gap}$ from the des Cloizeaux-Gaudin sum above Eq. (14). How far above $\Delta=1$ do you have to go
 #    before $\xi$ fits inside a chain of 128 spins?
 #
 # ## 14. References
@@ -1201,6 +1223,9 @@ plt.tight_layout(); plt.show()
 #   (2006); W.-L. You, Y.-W. Li and S.-J. Gu, *Fidelity, dynamic structure factor, and susceptibility in critical
 #   phenomena*, Phys. Rev. E **76**, 022101 (2007). — the ground-state fidelity as a detector of quantum phase
 #   transitions, and the fidelity susceptibility.
+# * L. Campos Venuti and P. Zanardi, *Quantum critical scaling of the geometric tensors*, Phys. Rev. Lett. **99**,
+#   095701 (2007). — the scaling of the fidelity susceptibility at a critical point, $\chi_F/N\sim N^{2/\nu-1}$ in one
+#   dimension, and its extensive regular part.
 # * I. Peschel, *Calculation of reduced density matrices from correlation functions*, J. Phys. A **36**, L205
 #   (2003). — the free-fermion entropy used as a check.
 # * J. des Cloizeaux and M. Gaudin, *Anisotropic linear magnetic chain*, J. Math. Phys. **7**, 1384 (1966). — the
