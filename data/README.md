@@ -1,8 +1,8 @@
-# Image data files
+# Data files
 
 The notebooks read these files offline. `tools/make_ml_datasets.py` recreates them. It needs network access, is run by hand, and is never run during a notebook build.
 
-Both files are reduced from the originals in the same way. Each 28×28 grey-scale image becomes 14×14 by averaging every block of 2×2 pixels and rounding to an integer 0…255 (uint8). Labels are unchanged. Images keep their original order.
+Both image files are reduced from the originals in the same way. Each 28×28 grey-scale image becomes 14×14 by averaging every block of 2×2 pixels and rounding to an integer 0…255 (uint8). Labels are unchanged. Images keep their original order.
 
 Each `.npz` file contains the arrays `x_train` (M, 14, 14), `y_train` (M,), `x_test`, `y_test` and a short `info` string.
 
@@ -45,3 +45,22 @@ WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEM
 COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
 OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
+
+## `santafe.txt`
+
+- **Content:** the first 4000 points of data set A of the Santa Fe time-series competition, the intensity of a
+  far-infrared NH₃ laser in a chaotic state: the competition file `A.dat` (1000 points) followed by its continuation
+  `A.cont` (9093 points). Used by notebook 46.
+- **Source:** the competition page, http://www-psych.stanford.edu/~andreas/Time-Series/SantaFe.html, retrieved from
+  the Internet Archive (`http://web.archive.org/web/2001id_/http://www-psych.stanford.edu/~andreas/Time-Series/SantaFe/A.dat`
+  and `.../A.cont`).
+- **sha256 of the downloaded originals:**
+  - `A.dat`: `14faec41629ead4f45d9c055a4494269dd9122dd559594502c0c522dc98a9eb2`
+  - `A.cont`: `feebf2460cb8c945b87dde368cccde95a05ee06955827c4bec93f2043db6ec5e`
+- **Changes:** the 4000 values minus their mean, divided by their sample standard deviation, one value per line with
+  5 significant digits. The series in the `reservoirpy` package (`reservoirpy.datasets.santafe_laser`) equals `A.dat`
+  followed by `A.cont` point by point.
+- **Credit:** the data set was published with the competition proceedings, A. S. Weigend and N. A. Gershenfeld (eds.),
+  *Time Series Prediction: Forecasting the Future and Understanding the Past* (Addison-Wesley, 1994). It was
+  contributed by U. Hübner from data collected primarily by N. B. Abraham and C. O. Weiss. The competition page states
+  no licence; the data have been distributed freely for research since 1991.

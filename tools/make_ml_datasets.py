@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 """
-make_ml_datasets.py -- (re)create the image data files used by notebook 56 (Chapter 13):
+make_ml_datasets.py -- (re)create the data files used by notebooks 46 and 56 (Chapter 13):
 
     data/mnist_14x14.npz            first 20000 training and all 10000 test images of MNIST
     data/fashion_mnist_14x14.npz    first 10000 training and first 5000 test images of Fashion-MNIST
+    data/santafe.txt                first 4000 points of Santa Fe data set A (laser), standardised
 
-Each 28x28 image is reduced to 14x14 by averaging blocks of 2x2 pixels and rounding to uint8 (0..255); labels are kept.
+For the images, each 28x28 image is reduced to 14x14 by averaging blocks of 2x2 pixels and rounding to uint8 (0..255); labels are kept.
 Sources, checksums and licences are listed in data/README.md.
 
 This script needs network access and is run by hand, once.  The notebook build never runs it: notebooks only read
@@ -36,6 +37,11 @@ FASHION_FILES = {
     "train-labels-idx1-ubyte.gz": "a04f17134ac03560a47e3764e11b92fc97de4d1bfaf8ba1a3aa29af54cc90845",
     "t10k-images-idx3-ubyte.gz": "346e55b948d973a97e58d2351dde16a484bd415d4595297633bb08f03db6a073",
     "t10k-labels-idx1-ubyte.gz": "67da17c76eaffca5446c3361aaab5c3cd6d1c2608764d35dfb1850b086bf8dd5",
+}
+SANTAFE_BASE = "http://web.archive.org/web/2001id_/http://www-psych.stanford.edu/~andreas/Time-Series/SantaFe/"
+SANTAFE_FILES = {
+    "A.dat": "14faec41629ead4f45d9c055a4494269dd9122dd559594502c0c522dc98a9eb2",
+    "A.cont": "feebf2460cb8c945b87dde368cccde95a05ee06955827c4bec93f2043db6ec5e",
 }
 
 
@@ -94,6 +100,14 @@ def main():
                         x_test=reduce_14x14(f["t10k-images-idx3-ubyte.gz"][:5000]),
                         y_test=f["t10k-labels-idx1-ubyte.gz"][:5000], info=np.array(info))
     print(f"wrote {DATA / 'fashion_mnist_14x14.npz'}")
+
+    # Santa Fe data set A: A.dat (1000 points) followed by its continuation A.cont (9093 points); the first 4000
+    # points, minus their mean and divided by their sample standard deviation, written with 5 significant digits
+    a = np.concatenate([np.loadtxt(fetch(SANTAFE_BASE + name, cache / ("santafe-" + name), h))
+                        for name, h in SANTAFE_FILES.items()])[:4000]
+    z = (a - a.mean()) / a.std(ddof=1)
+    (DATA / "santafe.txt").write_text("".join(f"{v:.5g}\n" for v in z))
+    print(f"wrote {DATA / 'santafe.txt'}")
 
 
 if __name__ == "__main__":
