@@ -20,7 +20,7 @@ eigensolver as given, so read it after the eigensolver notebooks, although it is
 applications can then be read in any order: notebook 44b builds on notebook 44 and needs notebooks 29 to 34 and 37 of
 [Chapter 10](ch10_quantum_metrology_protocols.qmd); notebook 45 uses the noise models of notebook 44 in its Section
 12; notebook 45b builds on notebook 45, and its Sections 3.1 and 6.4 use the fidelity susceptibility and the
-Kosterlitz–Thouless point of notebook 47 in [Chapter 13](ch13_quantum_phase_transitions.qmd); notebook 45c needs
+Kosterlitz–Thouless point of notebook 47 in [Chapter 12](ch12_quantum_phase_transitions.qmd); notebook 45c needs
 notebooks 40 to 42; notebook 45d needs none of the chapter's earlier notebooks. Prerequisites are notebook 01 (JAX:
 `jit`, `vmap`, `grad`, `lax.scan`) of [Chapter 1](ch01_computational_toolbox.qmd); the state tensors, density tensors,
 channels and measurements of notebooks 05 to 08 in [Chapter 3](ch03_matrix_free_engine.qmd); the gates and random

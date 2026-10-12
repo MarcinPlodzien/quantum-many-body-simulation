@@ -1,9 +1,9 @@
 ---
-title: "13 · Quantum phase transitions"
+title: "12 · Quantum phase transitions"
 code-tools: false
 ---
 
-![](../assets/thumbs/ch13.png){width=60% fig-align=center fig-alt="Quantum phase transitions"}
+![](../assets/thumbs/ch12.png){width=60% fig-align=center fig-alt="Quantum phase transitions"}
 
 A quantum phase transition occurs in the ground state as a parameter of the Hamiltonian is varied. The notebook uses
 the transverse-field Ising chain, which has an exact solution, as a benchmark and locates its transition with four
@@ -23,7 +23,7 @@ information of notebook 29 in [Chapter 10](ch10_quantum_metrology_protocols.qmd)
 ## Notebooks in this chapter
 
 ::: {.nb-item}
-[Quantum phase transitions — mapping a phase diagram from finite chains](../ch13_quantum_phase_transitions/47_quantum_phase_transitions.ipynb)
+[Quantum phase transitions — mapping a phase diagram from finite chains](../ch12_quantum_phase_transitions/47_quantum_phase_transitions.ipynb)
 
 How a ground-state phase transition is located numerically: the transverse-field Ising chain as a benchmark with an exact solution, four independent signatures of the same transition (order parameter, gap, entanglement entropy and central charge, fidelity susceptibility), finite-size scaling and data collapse, a second universality class from free fermions, and a Kosterlitz-Thouless transition that finite-size scaling cannot pin down.
 :::

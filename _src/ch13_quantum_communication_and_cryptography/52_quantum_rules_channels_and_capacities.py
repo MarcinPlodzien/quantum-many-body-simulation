@@ -1,5 +1,5 @@
 #@title: What quantum mechanics changes — distinguishability, no-cloning, information versus disturbance, monogamy, quantum channels and their capacities
-#@part: Chapter 14 — Quantum communication and cryptography
+#@part: Chapter 13 — Quantum communication and cryptography
 #@description: The rules of quantum mechanics that matter for communication and secrecy, each derived and simulated with the engine: why nonorthogonal states cannot be told apart and the Helstrom bound, what no-cloning means for an eavesdropper, the theorem that information gain implies disturbance with a tunable probe attack on BB84 states, monogamy of entanglement checked on random extensions of a nearly perfect Bell pair, quantum channels (depolarising, dephasing, amplitude damping, erasure) on the Bloch ball, and the classical, quantum and entanglement-assisted capacities of these channels compared with Shannon's capacity.
 
 # %% [markdown]
@@ -74,10 +74,10 @@
 #
 # ### Prerequisites
 #
-# * [Notebook 50](../ch14_quantum_communication_and_cryptography/50_information_entropy_and_noisy_channels.ipynb):
+# * [Notebook 50](../ch13_quantum_communication_and_cryptography/50_information_entropy_and_noisy_channels.ipynb):
 #   entropy, the binary entropy $h(q)$, the mutual information, and the capacity of a classical channel (Section 5,
 #   in particular $C_{\rm BSC}=1-h(q)$ and $C_{\rm BEC}=1-e$, Eq. (16) there).
-# * [Notebook 51](../ch14_quantum_communication_and_cryptography/51_secrecy_one_time_pad_and_authentication.ipynb):
+# * [Notebook 51](../ch13_quantum_communication_and_cryptography/51_secrecy_one_time_pad_and_authentication.ipynb):
 #   the threat model and why Alice and Bob need a bound on Eve's knowledge (Sections 3 and 10 there).
 # * [Notebook 07](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb): density matrices, the
 #   Bloch ball, density tensors and the Kraus form of a channel.

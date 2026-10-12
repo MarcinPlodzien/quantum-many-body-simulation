@@ -85,7 +85,7 @@
 #   Lanczos and symmetry sectors.
 #
 # The ground-state fidelity and the Kosterlitz–Thouless point of the XXZ chain, both mentioned below, are treated in
-# [47 — quantum phase transitions](../ch13_quantum_phase_transitions/47_quantum_phase_transitions.ipynb), Sections 7
+# [47 — quantum phase transitions](../ch12_quantum_phase_transitions/47_quantum_phase_transitions.ipynb), Sections 7
 # and 10.
 
 # %% [markdown]
@@ -1183,7 +1183,7 @@ for name in ref_names:
 #
 # * The **fidelity susceptibility** of the ground state, written $\vert0\rangle$ here with excited levels $\vert m\rangle$
 #   (energy eigenstates, not qubit states), with respect to the field
-#   ([notebook 47, Section 7](../ch13_quantum_phase_transitions/47_quantum_phase_transitions.ipynb)),
+#   ([notebook 47, Section 7](../ch12_quantum_phase_transitions/47_quantum_phase_transitions.ipynb)),
 #
 #   $$\chi_F(h_x)=\Bigl\lVert\partial_{h_x}\psi_0\Bigr\rVert^2
 #     =\sum_{m\ne0}\frac{\vert\langle m\vert\sum_iX_i\vert0\rangle\vert^2}{(E_m-E_0)^2},\tag{11}$$
@@ -1196,7 +1196,7 @@ for name in ref_names:
 # * The **doublet splitting** $s_N=E_0^{P=-1}-E_0^{P=+1}$. In the ordered phase it is the tunnelling splitting of the
 #   two ferromagnetic states and vanishes exponentially with $N$; in the disordered phase it tends to a finite gap; at
 #   $h_c$ it falls as $1/N$ (dynamical exponent $z=1$). The curves $Ns_N$ for two sizes therefore cross near $h_c$,
-#   the locator of [notebook 47, Section 5](../ch13_quantum_phase_transitions/47_quantum_phase_transitions.ipynb).
+#   the locator of [notebook 47, Section 5](../ch12_quantum_phase_transitions/47_quantum_phase_transitions.ipynb).
 # * The **gap inside the even sector**, $E_1^{P=+1}-E_0^{P=+1}$, which has a minimum near the transition, and the
 #   **end-to-end correlator** $\langle Z_0Z_{N-1}\rangle$, a finite-chain stand-in for the squared order parameter.
 #

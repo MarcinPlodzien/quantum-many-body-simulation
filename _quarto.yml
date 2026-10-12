@@ -49,12 +49,12 @@ website:
             href: chapters/ch10_quantum_metrology_protocols.qmd
           - text: "11 · Variational quantum circuits"
             href: chapters/ch11_variational_quantum_circuits.qmd
-          - text: "12 · Quantum reservoir computing"
-            href: chapters/ch12_quantum_reservoir_computing.qmd
-          - text: "13 · Quantum phase transitions"
-            href: chapters/ch13_quantum_phase_transitions.qmd
-          - text: "14 · Quantum communication and cryptography"
-            href: chapters/ch14_quantum_communication_and_cryptography.qmd
+          - text: "12 · Quantum phase transitions"
+            href: chapters/ch12_quantum_phase_transitions.qmd
+          - text: "13 · Quantum communication and cryptography"
+            href: chapters/ch13_quantum_communication_and_cryptography.qmd
+          - text: "14 · Quantum machine learning protocols"
+            href: chapters/ch14_quantum_machine_learning_protocols.qmd
       - text: "The engine"
         menu:
           - text: "Building the engine (notebook 08b)"
@@ -237,29 +237,29 @@ website:
             contents:
               - href: ch11_variational_quantum_circuits/45d_quantum_kernel_methods_classification.ipynb
                 text: "Quantum kernel methods — classifying data with a quantum feature map and a support vector machine"
-      - section: "12 · Quantum reservoir computing"
-        href: chapters/ch12_quantum_reservoir_computing.qmd
+      - section: "12 · Quantum phase transitions"
+        href: chapters/ch12_quantum_phase_transitions.qmd
         contents:
-          - href: ch12_quantum_reservoir_computing/46_quantum_reservoir_computing.ipynb
-            text: "Quantum reservoir computing — many-body dynamics as a machine for time series"
-      - section: "13 · Quantum phase transitions"
-        href: chapters/ch13_quantum_phase_transitions.qmd
-        contents:
-          - href: ch13_quantum_phase_transitions/47_quantum_phase_transitions.ipynb
+          - href: ch12_quantum_phase_transitions/47_quantum_phase_transitions.ipynb
             text: "Quantum phase transitions — mapping a phase diagram from finite chains"
-      - section: "14 · Quantum communication and cryptography"
-        href: chapters/ch14_quantum_communication_and_cryptography.qmd
+      - section: "13 · Quantum communication and cryptography"
+        href: chapters/ch13_quantum_communication_and_cryptography.qmd
         contents:
-          - href: ch14_quantum_communication_and_cryptography/50_information_entropy_and_noisy_channels.ipynb
+          - href: ch13_quantum_communication_and_cryptography/50_information_entropy_and_noisy_channels.ipynb
             text: "Information and noisy channels — Shannon entropy, mutual information, channel capacity and error correction"
-          - href: ch14_quantum_communication_and_cryptography/51_secrecy_one_time_pad_and_authentication.ipynb
+          - href: ch13_quantum_communication_and_cryptography/51_secrecy_one_time_pad_and_authentication.ipynb
             text: "Secrecy — the one-time pad, the key-distribution problem, authentication and privacy amplification"
-          - href: ch14_quantum_communication_and_cryptography/52_quantum_rules_channels_and_capacities.ipynb
+          - href: ch13_quantum_communication_and_cryptography/52_quantum_rules_channels_and_capacities.ipynb
             text: "What quantum mechanics changes — distinguishability, no-cloning, information versus disturbance, monogamy, quantum channels and their capacities"
-          - href: ch14_quantum_communication_and_cryptography/53_quantum_key_distribution.ipynb
+          - href: ch13_quantum_communication_and_cryptography/53_quantum_key_distribution.ipynb
             text: "Quantum key distribution — BB84 end to end, entanglement-based protocols and the secret-key rate"
-          - href: ch14_quantum_communication_and_cryptography/54_noisy_entanglement_distillation_repeaters_certification.ipynb
+          - href: ch13_quantum_communication_and_cryptography/54_noisy_entanglement_distillation_repeaters_certification.ipynb
             text: "Noisy entanglement as a resource — Werner pairs, twirling, distillation, repeaters and certification"
+      - section: "14 · Quantum machine learning protocols"
+        href: chapters/ch14_quantum_machine_learning_protocols.qmd
+        contents:
+          - href: ch14_quantum_machine_learning_protocols/46_quantum_reservoir_computing.ipynb
+            text: "Quantum reservoir computing — many-body dynamics as a machine for time series"
       - text: "Engine source code"
         href: engine.qmd
   page-footer:

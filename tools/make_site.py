@@ -254,7 +254,7 @@ def main():
           "::: {.feature-grid}"]
     FEATURES = [
         ("Spin-1/2 many-body physics", "Hamiltonians on arbitrary graphs, exact diagonalisation and matrix-free Lanczos, "
-         "symmetries, entanglement, phase diagrams and quantum phase transitions.", ["ch02", "ch05", "ch13"]),
+         "symmetries, entanglement, phase diagrams and quantum phase transitions.", ["ch02", "ch05", "ch12"]),
         ("Unitary dynamics", "Exact propagation, Runge–Kutta, Trotter–Suzuki, Chebyshev and Krylov integrators, compared "
          "on accuracy and cost, and applied to quantum quenches and light cones.", ["ch05"]),
         ("Dissipative dynamics", "The Lindblad master equation on the density tensor and its unravelling into quantum "
@@ -264,11 +264,11 @@ def main():
         ("Quantum machine learning", "Parametrised circuits trained with gradients from the parameter-shift rule and "
          "from automatic differentiation, optimisers, the variational eigensolver, quantum autoencoders, training under "
          "shot noise and gate noise, and quantum reservoir computing, where many-body dynamics processes time series.",
-         ["ch11", "ch12"]),
+         ["ch11", "ch14"]),
         ("Quantum communication and cryptography", "From Shannon entropy, channel capacity and the one-time pad to "
          "what quantum mechanics changes: no-cloning, information versus disturbance, quantum channels and their "
          "capacities, quantum key distribution simulated end to end, and noisy entanglement made useful by "
-         "distillation, repeaters and certification.", ["ch14"]),
+         "distillation, repeaters and certification.", ["ch13"]),
         ("Beyond the state vector", "Matrix product states with DMRG and TEBD for chains far longer than a state vector "
          "can hold, and diagnostics of entanglement, magic and metrological usefulness.", ["ch07", "ch09", "ch10"]),
     ]
@@ -286,7 +286,7 @@ def main():
            "therefore teach three things together: the physics, the numerical methods, and the practice of writing "
            "scientific code that is both fast and correct.", "",
            "## Quantum machine learning", "",
-           "The differentiable simulator is used throughout Chapters 11 and 12 to build and train quantum "
+           "The differentiable simulator is used throughout Chapters 11 and 14 to build and train quantum "
            "machine-learning models, each derived, implemented and tested against exact results:", ""]
     QML = [("40", "parametrised quantum circuits and four ways to compute their gradients"),
            ("41", "optimisers for variational circuits, from gradient descent to the quantum natural gradient"),
@@ -307,7 +307,7 @@ def main():
             ("54", "noisy entanglement as a resource: distillation, repeaters and certification")]
     if any(nn in all_items for nn, _ in COMM):
         ix += ["", "## Quantum communication and cryptography", "",
-               "Chapter 14 builds the classical toolbox of communication and secrecy first and then shows, step by step "
+               "Chapter 13 builds the classical toolbox of communication and secrecy first and then shows, step by step "
                "and in simulation, what quantum mechanics adds:", ""]
         for nn, what in COMM:
             if nn in all_items:
@@ -335,7 +335,7 @@ def main():
            f"[Chapter 11]({by_prefix['ch11'][4]}) on variational circuits build on Chapters 3–5.",
            f"- *Interested in quantum machine learning:* after Chapters 3–5, [Chapter 11]({by_prefix['ch11'][4]}) "
            f"(variational circuits, the variational eigensolver, quantum autoencoders) and "
-           f"[Chapter 12]({by_prefix['ch12'][4]}) (quantum reservoir computing).", "",
+           f"[Chapter 14]({by_prefix['ch14'][4]}) (quantum reservoir computing).", "",
            "## Chapters {#chapters}", "",
            f"{len(chapters)} chapters, each a short overview page followed by runnable notebooks ({n_nb} in total). The "
            "notebooks are numbered globally; each one carries the engine functions it uses in a folded *Engine recap* cell "

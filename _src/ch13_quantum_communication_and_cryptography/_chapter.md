@@ -20,11 +20,11 @@ must trust him is part of the threat model.
 
 **Part I, the classical toolbox.** Quantum cryptography solves a classical problem, so the chapter starts with the
 classical language in which its results are stated. [Notebook
-50](../ch14_quantum_communication_and_cryptography/50_information_entropy_and_noisy_channels.ipynb) introduces Shannon's
+50](../ch13_quantum_communication_and_cryptography/50_information_entropy_and_noisy_channels.ipynb) introduces Shannon's
 entropy as the measure of information, conditional entropy and mutual information, channels and their capacity, and
 error correction by parity checks, including the public parity-check search with which Alice and Bob remove the errors
 from a shared key. [Notebook
-51](../ch14_quantum_communication_and_cryptography/51_secrecy_one_time_pad_and_authentication.ipynb) treats secrecy:
+51](../ch13_quantum_communication_and_cryptography/51_secrecy_one_time_pad_and_authentication.ipynb) treats secrecy:
 the one-time pad, which is perfectly secure but needs a secret random key as long as the message, the key-distribution
 problem that this creates, the idea of authentication (the public discussion between Alice and Bob must be protected
 against forgery, which requires a short key shared in advance), and privacy amplification, which removes Eve's partial
@@ -33,13 +33,13 @@ knowledge of a shared key.
 **Part II, the quantum part.** The second half asks what quantum mechanics changes. An unknown quantum state cannot be
 copied, and gaining information about it disturbs it; entangled pairs give correlations that no classical mechanism
 reproduces, yet carry no signal. [Notebook
-52](../ch14_quantum_communication_and_cryptography/52_quantum_rules_channels_and_capacities.ipynb) derives and
+52](../ch13_quantum_communication_and_cryptography/52_quantum_rules_channels_and_capacities.ipynb) derives and
 simulates these rules, together with quantum channels and their capacities for classical and quantum information.
-[Notebook 53](../ch14_quantum_communication_and_cryptography/53_quantum_key_distribution.ipynb) turns these rules
+[Notebook 53](../ch13_quantum_communication_and_cryptography/53_quantum_key_distribution.ipynb) turns these rules
 into protocols: quantum key distribution, prepare-and-measure (BB84) and entanglement-based, in which the error rate
 that Alice and Bob measure bounds what Eve can know and fixes how long a secret key they can distil. Real
 entanglement is noisy, and [notebook
-54](../ch14_quantum_communication_and_cryptography/54_noisy_entanglement_distillation_repeaters_certification.ipynb)
+54](../ch13_quantum_communication_and_cryptography/54_noisy_entanglement_distillation_repeaters_certification.ipynb)
 treats noisy pairs as a resource: teleportation through them, twirling, the key rate when Eve holds the noise of the
 pairs, distillation, quantum repeaters that carry
 them over long distances, and how to certify them before use. Every protocol is run as a

@@ -1,5 +1,5 @@
 #@title: Quantum reservoir computing — many-body dynamics as a machine for time series
-#@part: Chapter 12 — Quantum reservoir computing
+#@part: Chapter 14 — Quantum machine learning protocols
 #@description: A driven many-body spin system as a trainable machine: input injection by qubit reset (a replacement channel), Hamiltonian dynamics between injections as a feature map with fading memory, ridge-regression readout, memory capacity and its finite-data bias, NARMA and Santa Fe laser prediction against tuned classical baselines, density tensor versus trajectories, finite measurement statistics and decoherence.
 
 # %% [markdown]

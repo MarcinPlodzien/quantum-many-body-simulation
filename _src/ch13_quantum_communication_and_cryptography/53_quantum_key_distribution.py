@@ -1,18 +1,18 @@
 #@title: Quantum key distribution — BB84 end to end, entanglement-based protocols and the secret-key rate
-#@part: Chapter 14 — Quantum communication and cryptography
+#@part: Chapter 13 — Quantum communication and cryptography
 #@description: The BB84 protocol simulated round by round with the engine, from random bases and measurements through sifting, error-rate estimation, parity-check error correction and random-hash privacy amplification to a final key that Alice and Bob share; the intercept-resend attack and its 25 % error rate; BBM92 with the source-replacement picture and Ekert's CHSH test; bit and phase errors, the Devetak-Winter rate and the uncertainty relation with quantum memory, which give the key rate 1 - 2h(Q) and its 11 % threshold, compared with the key extracted by the simulated protocol; device-independent key distribution and the practical attacks on real devices.
 
 # %% [markdown]
 # ## 1. Introduction and motivation
 #
 # Alice and Bob want to encrypt their messages with the one-time pad of
-# [notebook 51](../ch14_quantum_communication_and_cryptography/51_secrecy_one_time_pad_and_authentication.ipynb), and
+# [notebook 51](../ch13_quantum_communication_and_cryptography/51_secrecy_one_time_pad_and_authentication.ipynb), and
 # for that they need a long secret key: a string of uniformly random bits that both of them hold and that nobody else
 # knows. They are far apart. Between them runs an optical fibre that Eve may tap, cut, or replace by equipment of her
 # own, and a public line on which they can talk but on which Eve hears every word. On classical signals this problem
 # has no solution without assumptions on Eve's computing power, because Eve can copy every bit in transit and nobody
 # would notice. The task of this notebook is to show how the rules of quantum mechanics derived in
-# [notebook 52](../ch14_quantum_communication_and_cryptography/52_quantum_rules_channels_and_capacities.ipynb) solve it:
+# [notebook 52](../ch13_quantum_communication_and_cryptography/52_quantum_rules_channels_and_capacities.ipynb) solve it:
 # how Alice and Bob grow a secret key over a channel that Eve controls.
 #
 # ![BB84 from end to end: Alice sends random states in random bases through a channel that Eve controls, Bob measures in random bases, and four public steps (sifting, parameter estimation, error correction, privacy amplification) turn the raw data into a shared secret key](figures/bb84.svg)
@@ -77,13 +77,13 @@
 #
 # ### Prerequisites
 #
-# * [Notebook 50](../ch14_quantum_communication_and_cryptography/50_information_entropy_and_noisy_channels.ipynb):
+# * [Notebook 50](../ch13_quantum_communication_and_cryptography/50_information_entropy_and_noisy_channels.ipynb):
 #   entropy, the binary entropy $h(q)$, conditional entropy and mutual information (Sections 3–4), and the parity-check
 #   reconciliation with its cost of about $h(Q)$ revealed bits per key bit (Section 6.3).
-# * [Notebook 51](../ch14_quantum_communication_and_cryptography/51_secrecy_one_time_pad_and_authentication.ipynb): the
+# * [Notebook 51](../ch13_quantum_communication_and_cryptography/51_secrecy_one_time_pad_and_authentication.ipynb): the
 #   threat model (Section 3), why the public channel must be authenticated (Section 8), and privacy amplification by
 #   random linear hashing (Section 9).
-# * [Notebook 52](../ch14_quantum_communication_and_cryptography/52_quantum_rules_channels_and_capacities.ipynb):
+# * [Notebook 52](../ch13_quantum_communication_and_cryptography/52_quantum_rules_channels_and_capacities.ipynb):
 #   nonorthogonal states and the Helstrom bound (Section 3), information gain implies disturbance with the probe attack
 #   (Section 5), and monogamy with the von Neumann entropy and the quantum mutual information (Section 6).
 # * [Notebook 19](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb): the Bell states, the CHSH

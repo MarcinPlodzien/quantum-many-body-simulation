@@ -1,5 +1,5 @@
 #@title: Secrecy — the one-time pad, the key-distribution problem, authentication and privacy amplification
-#@part: Chapter 14 — Quantum communication and cryptography
+#@part: Chapter 13 — Quantum communication and cryptography
 #@description: How a message is kept secret from an eavesdropper, with a simulation for every formula: the threat model and Kerckhoffs's principle, perfect secrecy as zero mutual information between message and ciphertext, the one-time pad and its proof, the two-time-pad attack on text, the leak of a biased key, Shannon's theorem that the key must be at least as long as the message, the key-distribution problem, computational against information-theoretic security, the man-in-the-middle attack and why quantum key distribution needs a short pre-shared authentication key, and privacy amplification by XOR and by random linear hashing.
 
 # %% [markdown]
@@ -11,7 +11,7 @@
 # from something that Bob knows and Eve does not. That something is a **secret key**. Three questions follow: how
 # much key secrecy requires, what goes wrong when the key is misused, and how the key reaches Bob in the first place.
 #
-# [Notebook 50](../ch14_quantum_communication_and_cryptography/50_information_entropy_and_noisy_channels.ipynb) gave
+# [Notebook 50](../ch13_quantum_communication_and_cryptography/50_information_entropy_and_noisy_channels.ipynb) gave
 # the language: entropy measures uncertainty, and the mutual information $I(X{:}Y)$ measures how much one variable
 # reveals about another. In 1949 Shannon used exactly this language to define what it means for a cipher to be
 # unbreakable, and he proved that a simple cipher, the **one-time pad**, achieves it (Shannon 1949).
@@ -73,7 +73,7 @@
 #
 # ### Prerequisites
 #
-# * [Notebook 50](../ch14_quantum_communication_and_cryptography/50_information_entropy_and_noisy_channels.ipynb),
+# * [Notebook 50](../ch13_quantum_communication_and_cryptography/50_information_entropy_and_noisy_channels.ipynb),
 #   Sections 3 and 4: entropy, the binary entropy $h(q)$, conditional entropy, the chain rule and the mutual
 #   information; Section 5.1, the binary symmetric channel; Section 6.3, the public parity checks that correct a shared
 #   key.
@@ -217,7 +217,7 @@ def bits_to_text(bits):
 # $$P(M=m\vert C=c)=P(M=m)\qquad\text{for all }m\text{ and all }c\text{ with }P(C=c)>0. \tag{1}$$
 #
 # Equation (1) says that $M$ and $C$ are statistically independent, so their mutual information
-# ([notebook 50](../ch14_quantum_communication_and_cryptography/50_information_entropy_and_noisy_channels.ipynb),
+# ([notebook 50](../ch13_quantum_communication_and_cryptography/50_information_entropy_and_noisy_channels.ipynb),
 # Eq. (10)) vanishes:
 #
 # $$I(M{:}C)=H(M)-H(M\vert C)=0. \tag{2}$$
@@ -857,7 +857,7 @@ assert (a1_rec, a2_rec) == a_true
 #
 # The last classical ingredient handles a key that is shared but not perfectly secret. After the public parity checks of
 # [notebook 50, Section
-# 6.3](../ch14_quantum_communication_and_cryptography/50_information_entropy_and_noisy_channels.ipynb) Alice and Bob
+# 6.3](../ch13_quantum_communication_and_cryptography/50_information_entropy_and_noisy_channels.ipynb) Alice and Bob
 # hold the same string $x$ of $n$ bits, but Eve has heard every announced parity, and in a quantum protocol she may also
 # have learned something by eavesdropping. **Privacy amplification** compresses $x$ into a shorter string $k=f(x)$ about
 # which Eve knows essentially nothing (Bennett, Brassard and Robert 1988).

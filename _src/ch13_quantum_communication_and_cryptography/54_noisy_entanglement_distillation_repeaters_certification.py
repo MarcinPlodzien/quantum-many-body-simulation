@@ -1,5 +1,5 @@
 #@title: Noisy entanglement as a resource — Werner pairs, twirling, distillation, repeaters and certification
-#@part: Chapter 14 — Quantum communication and cryptography
+#@part: Chapter 13 — Quantum communication and cryptography
 #@description: Noisy entangled pairs as the working resource of quantum communication, simulated with the engine: Werner pairs and the product rule for two noisy halves, teleportation through a Werner pair as a depolarising channel, twirling with the 24 Clifford gates, the purification held by Eve and her information about the key, the BBPSSW distillation step derived from the bilateral CNOT and run on density tensors and shot by shot, its iteration and cost, fibre loss and the repeaterless bound, a toy repeater chain of swapping and distillation, and the certification of delivered pairs from three local correlations with Hoeffding bounds, including an adversarial source and random sampling.
 
 # %% [markdown]
@@ -7,7 +7,7 @@
 #
 # Teleportation, entanglement swapping and entanglement-based key distribution all consume shared Bell pairs
 # $\vert\Phi^+\rangle=(\vert00\rangle+\vert11\rangle)/\sqrt2$, and every derivation in chapter 8 and in
-# [notebook 53](../ch14_quantum_communication_and_cryptography/53_quantum_key_distribution.ipynb) began with a perfect
+# [notebook 53](../ch13_quantum_communication_and_cryptography/53_quantum_key_distribution.ipynb) began with a perfect
 # one. Real pairs are never perfect. Photons that carry the two halves are absorbed in the fibre, the qubits decohere
 # while they wait in memories, the source is imperfect, and Eve may tamper with the pairs on their way. The pairs that
 # Alice and Bob actually hold are mixed states with a fidelity $F=\langle\Phi^+\vert\rho\vert\Phi^+\rangle$ below one.
@@ -83,10 +83,10 @@
 # * [Notebook 21](../ch08_quantum_information_protocols/21_entanglement_swapping_and_superdense_coding.ipynb): the Bell
 #   measurement (Section 3), Werner states as random Pauli errors and the swapping rule (Section 10), and the decay of a
 #   chain without distillation (Section 11).
-# * [Notebook 52](../ch14_quantum_communication_and_cryptography/52_quantum_rules_channels_and_capacities.ipynb):
+# * [Notebook 52](../ch13_quantum_communication_and_cryptography/52_quantum_rules_channels_and_capacities.ipynb):
 #   monogamy and purification (Section 6.2), the Holevo quantity (Section 9.1), and the depolarising channel
 #   (Section 8.2).
-# * [Notebook 53](../ch14_quantum_communication_and_cryptography/53_quantum_key_distribution.ipynb): bit and phase
+# * [Notebook 53](../ch13_quantum_communication_and_cryptography/53_quantum_key_distribution.ipynb): bit and phase
 #   errors, the conditional entropy with quantum side information and the key thresholds of Werner pairs
 #   (Sections 7.1–7.5).
 # * [Notebook 07](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb): density tensors, partial
@@ -1597,7 +1597,7 @@ plt.tight_layout(); plt.show()
 # fixed point is unstable: above it the fidelity grows with every level, below it the fidelity decays,
 # because the factor $2(2/3)^2=8/9$ of Eq. (21) holds only near $F=1$ and the map of a level is weaker at lower $F$.
 #
-# ## 12. Chapter 14 in one paragraph
+# ## 12. Chapter 13 in one paragraph
 #
 # The chapter began with Shannon's question of how much information a noisy channel carries (notebook 50) and with
 # the classical answer to secrecy, the one-time pad, which needs a secret key as long as the message (notebook 51).

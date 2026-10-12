@@ -1,5 +1,9 @@
 goal: Use driven many-body dynamics as a trainable machine for time-series prediction
 ---
+This chapter gathers quantum machine-learning protocols that complement the variational circuits of
+[Chapter 11](ch11_variational_quantum_circuits.qmd). It opens with quantum reservoir computing, in which a driven
+many-body system processes a time series.
+
 In quantum reservoir computing the many-body dynamics itself is left untrained: an input sequence is written into
 a spin system, the Hamiltonian evolution acts as a nonlinear feature map with fading memory, and only a linear
 readout is fitted by ridge regression. The notebook measures the memory capacity of the reservoir, applies it to

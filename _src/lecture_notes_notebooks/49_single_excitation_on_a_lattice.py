@@ -520,7 +520,7 @@ plt.show()
 # [notebook 06](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb) (Eqs. (13)-(14) there, this band with
 # $w=2J$) the ground state fills the negative levels, zero energy lies halfway between two levels, and the gap is half a
 # spacing, $\Delta_N=4J\sin[\pi/(2(N+1))]\simeq\pi v/(2(N+1))$ with $v=4J$. At the critical point of the transverse-field
-# Ising chain in [notebook 47](../ch13_quantum_phase_transitions/47_quantum_phase_transitions.ipynb), where the dispersion is
+# Ising chain in [notebook 47](../ch12_quantum_phase_transitions/47_quantum_phase_transitions.ipynb), where the dispersion is
 # linear rather than a cosine, the open-chain gap is likewise $\Delta\simeq\pi v/(2N)$. The scaling $v/N$ follows from
 # dimensional analysis alone (a velocity and a length are the only scales); the factor $\pi/2$ needs the boundary
 # condition.

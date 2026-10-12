@@ -1,5 +1,5 @@
 #@title: Quantum phase transitions — mapping a phase diagram from finite chains
-#@part: Chapter 13 — Quantum phase transitions
+#@part: Chapter 12 — Quantum phase transitions
 #@description: How a ground-state phase transition is located numerically: the transverse-field Ising chain as a benchmark with an exact solution, four independent signatures of the same transition (order parameter, gap, entanglement entropy and central charge, fidelity susceptibility), finite-size scaling and data collapse, a second universality class from free fermions, and a Kosterlitz-Thouless transition that finite-size scaling cannot pin down.
 
 # %% [markdown]

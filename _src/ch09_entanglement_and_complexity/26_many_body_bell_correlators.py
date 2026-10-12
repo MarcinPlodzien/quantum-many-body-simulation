@@ -1,6 +1,6 @@
 #@title: Many-body Bell correlators
 #@part: Chapter 9 — Entanglement and complexity diagnostics
-#@description: From CHSH to N parties: the many-body Bell correlator built from local lowering operators, its local-realistic and separability bounds derived from scratch, matrix-free evaluation with einsum, optimisation of the measurement directions with jax.grad and SPSA, noise sweeps on the density tensor and on quantum trajectories with a bias-corrected estimator, and the correlator along a one-axis-twisting evolution.
+#@description: From CHSH to N parties: the many-body Bell correlator built from local lowering operators, its local-realistic and separability bounds, matrix-free evaluation with einsum, optimisation of the measurement directions with jax.grad and SPSA, noise sweeps on the density tensor and on quantum trajectories with a bias-corrected estimator, and the correlator along a one-axis-twisting evolution.
 
 # %% [markdown]
 # ## 1. Introduction and motivation
@@ -9,7 +9,8 @@
 # already exist before the measurements are made, and that each party's outcome depends on that party's setting and on shared
 # information from the past, not on what the other parties chose. Any theory of this kind is called a **local hidden-variable
 # (LHV)** model. Quantum mechanics violates such bounds, which is why they matter: a violated Bell inequality is a
-# device-independent certificate — it says something about the physics without assuming anything about the apparatus.
+# device-independent certificate — it says something about the physics without assuming anything about the apparatus
+# (the cryptographic use of this property appears in [notebook 53](../ch13_quantum_communication_and_cryptography/53_quantum_key_distribution.ipynb)).
 #
 # [Notebook 19](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb) derived the archetype, the CHSH
 # inequality for two parties: the classical bound is $2$ and quantum mechanics reaches $2\sqrt2$. This notebook asks the same
@@ -98,7 +99,8 @@
 #   coherence and its fragility, which is what Section 9 measures again through a different quantity;
 # * [25 — entanglement negativity](25_entanglement_negativity.ipynb) is the companion diagnostic of this chapter: the
 #   negativity detects entanglement across one cut, the Bell correlator detects it in all parties at once;
-# * [41 — optimizers](../ch11_variational_quantum_circuits/41_optimizers.ipynb) for Adam and SPSA;
+# * [41 — optimizers](../ch11_variational_quantum_circuits/41_optimizers.ipynb) for Adam and SPSA in Section 7, and the two
+#   notebooks below for Section 11; they belong to later chapters and can be read when those sections are reached;
 # * [33 — spin squeezing and one-axis twisting](../ch10_quantum_metrology_protocols/33_spin_squeezing_one_axis_twisting.ipynb)
 #   and [34 — from OAT to GHZ](../ch10_quantum_metrology_protocols/34_oat_to_ghz_full_metrology_protocol.ipynb) for Section 11.
 #
@@ -306,22 +308,28 @@ print("sigma^- = |1><0| :\n", np.asarray(SM))
 #   between corresponding to multipartite EPR steering. Chwedenczuk (2022) derives the same bound by the Cauchy–Schwarz
 #   inequality applied directly to Eq. (4).
 # * $Q_{\rm B}=\log_2\mathcal E+N$ has the form of the quantity called $Q_N$ in Plodzien *et al.*, Phys. Rev. Research
-#   **6**, 023050 (2024), whose Eq. (3) defines $\mathcal E_N\equiv2^{Q_N-N}$ (there the local operators are taken along
-#   one fixed axis, whereas Eq. (2) maximises over them); $Q_{\rm E}=\tfrac12\log_2\mathcal E+N=\log_4(4^N\mathcal E)$ is
+#   **6**, 023050 (2024), whose Eq. (3) defines $\mathcal E_N\equiv2^{Q_N-N}$. That paper takes the local operators along
+#   the fixed $x$ axis, whereas Eq. (2) maximises over the local frames, so $Q_{\rm B}\ge Q_N$ for the same state.
+#   $Q_{\rm E}=\tfrac12\log_2\mathcal E+N=\log_4(4^N\mathcal E)$ is
 #   the quantity called $\mathcal Q$ in Eq. (7) of Plodzien *et al.*, Phys. Rev. A **110**, 032428 (2024). In that notation
 #   Eq. (10) reads $Q_{\rm E}\le N-m$ for $m$-separable states, which is Eq. (16) of the latter paper, and the biseparable
 #   case $Q_{\rm E}\le N-2$ is its Eq. (12).
-# * Several of these papers also give thresholds for the **depth** of entanglement or of Bell correlations that are
-#   derived for one specific family of partitions: one correlated group plus single qubits (for example Eqs. (18) and
-#   (20) of Plodzien *et al.*, Phys. Rev. Lett. **129**, 250402 (2022), and Eq. (13) of the Phys. Rev. A paper). Written in
-#   the rulers of Eq. (3), excluding a group of $k-1$ qubits plus $N-k+1$ single qubits gives the thresholds
-#   $Q_{\rm E}>k-2$ and $Q_{\rm B}>k-3$. Partitions into several groups of comparable size give a different bound, Eq. (10)
-#   with $m=\lceil N/k\rceil$; the Phys. Rev. A paper lists these too (its Eqs. (14)–(15), and $\mathcal Q\le4$ for two
-#   groups of three at $N=6$). The two families are not interchangeable. The state $\lvert\mathrm{GHZ}_3\rangle^{\otimes2}$
-#   at $N=6$ has $\mathcal E=1/16$, $Q_{\rm E}=4$ and $Q_{\rm B}=2$ (Exercise 3) and entanglement depth $3$. It saturates
-#   Eq. (10) for groups of at most three qubits, while it exceeds the one-group thresholds for every $k\le5$ ($Q_{\rm E}$)
-#   and every $k\le4$ ($Q_{\rm B}$). A depth statement that covers *every* $k$-producible state therefore has to use
-#   Eq. (10), and that is the only depth bound this notebook uses.
+# * Several of these papers also give thresholds for the **depth** of Bell correlations or of entanglement. They are the
+#   bounds for one correlated group plus single qubits, and they hold within that family of states: Eqs. (18) and (20) of
+#   Plodzien *et al.*, Phys. Rev. Lett. **129**, 250402 (2022), Eq. (6) of the Phys. Rev. Research paper, Appendix A of
+#   Niezgoda and Chwedenczuk, Phys. Rev. Lett. **126**, 210506 (2021) (the last two are derived by separating parties one
+#   at a time), and Eq. (13) of the Phys. Rev. A paper, which is stated for $n$ single qubits and one $(N-n)$-qubit
+#   entangled state. In the rulers of Eq. (3), excluding a group of $k-1$ qubits plus $N-k+1$ single qubits gives
+#   $Q_{\rm B}>k-3$ (Bell) and $Q_{\rm E}>k-2$ (entanglement). For several groups the bound is Eq. (10) with
+#   $m=\lceil N/k\rceil$, which the Phys. Rev. A paper also gives (its Eqs. (14)–(15), and $\mathcal Q\le4$ for two groups
+#   of three at $N=6$). Applied to states outside the one-group family, the one-group thresholds overestimate the depth.
+#   $\lvert\mathrm{GHZ}_3\rangle^{\otimes2}$ at $N=6$ has entanglement depth $3$, so at most three qubits share Bell
+#   correlations, yet $\mathcal E=1/16$, $Q_{\rm B}=2$ and $Q_{\rm E}=4$ pass the Bell threshold for every $k\le4$ and the
+#   entanglement threshold for every $k\le5$. $\lvert\Phi^+\rangle^{\otimes4}$ at $N=8$ has depth $2$ and
+#   $\mathcal E=4^{-4}=3.9\cdot10^{-3}$, sixteen times the value $\tfrac1{16}4^{-4}=2.4\cdot10^{-4}$ of Eq. (20) of the
+#   Phys. Rev. Lett. **129** paper for $k=4$. Both values are exact: for a product of blocks $\mathcal E$ is the product of
+#   the block maxima, $\tfrac14$ per GHZ block (Exercise 3). A depth statement that covers *every* $k$-producible state
+#   uses Eq. (10), and that is the only depth bound this notebook uses.
 #
 
 # %% [markdown]
@@ -548,7 +556,7 @@ assert abs(abs(b3) - abs(got_psi)) < 1e3 * TOL
 # * the **star graph state** (a central qubit connected by $CZ$ to every other) is a GHZ state up to Hadamards on the leaves,
 #   so $\mathcal E=1/4$;
 # * applying a $T$ gate to every qubit of any state cannot change $\mathcal E$, because $T$ is a local unitary. The
-#   "$T$-doped" star graph, which is *not* a stabilizer state and has non-zero magic (the subject of notebook 27), is
+#   "$T$-doped" star graph, which is *not* a stabilizer state and has non-zero magic (the subject of [notebook 27](27_stabilizer_renyi_entropy.ipynb)), is
 #   indistinguishable from the star graph by this correlator.
 #
 # The third point has a consequence: $\mathcal E$ is a local-unitary invariant, so it measures a property of the entanglement
@@ -1014,7 +1022,8 @@ for N in (4, 6, 8):
 # $Q_{\rm B}=N-2-2\lfloor2(N-2)/3\rfloor$ takes the values $+1,0,-1,0,-1,-2$. The three-qubit chain is a GHZ state in
 # disguise and violates the bound; $N=4$ and $N=6$ are the only two sizes in the range that land exactly *on* it; from
 # there $Q_{\rm B}$ drifts down by roughly one unit per three qubits. A one-dimensional cluster state is therefore a
-# textbook example of a state that is maximally useful for measurement-based computation and useless for this correlator,
+# textbook example of a state that is maximally useful for measurement-based computation (a computation driven only by single-qubit measurements on a
+# prepared entangled resource state) and useless for this correlator,
 # and the agreement with $2^{-N}$ at $N=4,6$ is a coincidence of those two sizes. (No proof of the $\lfloor
 # 2(N-2)/3\rfloor$ pattern is offered here; it is an observation over $3\le N\le8$.)
 #
@@ -1643,7 +1652,8 @@ fig.tight_layout(); plt.show()
 # diagonal in the computational basis, so `oat_evolve` applies it exactly with no Trotter error.
 #
 # Plodzien, Lewenstein, Witkowska and Chwedenczuk (2022) showed that this evolution is also a source of many-body Bell
-# correlations, and computed the time at which they appear: for large $N$ they find
+# correlations. They estimate the time at which these appear by replacing the binomial weights in the two sums that
+# define the correlator (their Eq. (10)) by a Gaussian (their Eq. (11)); for large $N$ this gives their Eq. (15),
 #
 # $$\chi t_{\rm crit}\simeq\frac{2}{N}\sqrt{\frac{\pi^2}{8\ln2}-1}\approx\frac{1.77}{N} ,$$
 #
@@ -1765,7 +1775,7 @@ fig.tight_layout(); plt.show()
 # definition: the fixed-plane correlator of the published calculation crosses the bound only at $\chi t=0.3728$, well
 # *after* the squeezing optimum (the violet curve in the figure). A statement about the ordering at large $N$ therefore
 # rests on how the two onset times scale with $N$, compared with $\chi t_{\rm s}\sim N^{-2/3}$; one size cannot decide
-# it. Exercise 9 asks you to measure both scalings.
+# it. The last cell of this section follows the fixed-plane onset up to $N=64$; Exercise 9 asks for the optimised one.
 #
 # After that, $Q_{\rm B}$ rises to a local maximum of $4.276$ near $\chi t=0.69$, dips to $3.59$ around $\chi t=1.0$, and then
 # climbs to exactly $N-2=6$ at the cat time $\chi t=\pi/2$, where the state is a GHZ state in a rotated frame and the
@@ -1781,6 +1791,57 @@ fig.tight_layout(); plt.show()
 # > algebraic maximum exactly at the cat time that
 # > [notebook 34](../ch10_quantum_metrology_protocols/34_oat_to_ghz_full_metrology_protocol.ipynb) uses for Heisenberg-limited
 # > interferometry. One interaction, three different resources, three different optimal times.
+#
+# The fixed-plane correlator does not need a state vector. In the basis of $J_z$ eigenstates it is Eq. (10) of the paper,
+#
+# $$\tilde{\mathcal E}=\bigl\vert\tilde C_{-N/2}\,\tilde C_{N/2}\bigr\vert^2,\qquad
+#   \tilde C_{-N/2}=\frac1{2^N}\sum_{n=-N/2}^{N/2}\binom{N}{n+\frac N2}e^{-i\chi t\,n^2},\qquad
+#   \tilde C_{N/2}=\frac1{2^N}\sum_{n=-N/2}^{N/2}\binom{N}{n+\frac N2}(-1)^n\,e^{-i\chi t\,n^2} .$$
+#
+# The cell below evaluates these sums in double precision, which suffices up to $N=64$: at the onset
+# $\vert\tilde C_{N/2}\vert$ is of order $2^{-N/2}\ge2\cdot10^{-10}$, far above the rounding error of a sum of terms of
+# order one. It locates $\tilde{\mathcal E}=2^{-N}$ for the exact sums and compares the result with the large-$N$ estimate of
+# Eq. (15).
+
+# %%
+# ==============================================================================
+# STEP 13b: the fixed-plane onset for larger N, from the two sums of PRL 129, Eq. (10)
+# ==============================================================================
+def fixed_plane_sums(tt, N):
+    """|C_{-N/2} C_{N/2}|^2 of PRL 129 Eq. (10) in double precision."""
+    n = np.arange(N + 1) - N / 2
+    w = np.array([comb(N, j) for j in range(N + 1)], dtype=float) / 2.0**N
+    w = w * np.exp(-1j * tt * n**2)
+    return abs(w.sum() * (w * np.cos(np.pi * n)).sum()) ** 2          # cos(pi n) = (-1)^n
+
+def onset(f, N):
+    """First chi t with f = 2^-N: scan (0, 8/N] on 400 points, then bisect the first bracket."""
+    g = lambda tt: np.log2(f(tt, N) + 1e-300) + N
+    grid = np.linspace(1e-6, 8.0 / N, 400)
+    i = int(np.argmax([g(x) > 0 for x in grid]))
+    lo, hi = grid[i - 1], grid[i]
+    for _ in range(50):
+        mid = 0.5 * (lo + hi)
+        lo, hi = (lo, mid) if g(mid) > 0 else (mid, hi)
+    return 0.5 * (lo + hi)
+
+pref15 = 2 * np.sqrt(np.pi**2 / (8 * np.log(2)) - 1)            # Eq. (15): N chi t_crit
+Ns_fp = [8, 16, 32, 64]
+rows = {N: N * onset(fixed_plane_sums, N) for N in Ns_fp}
+print("N chi t at the Bell onset of the fixed-plane correlator")
+print(f"{'N':>3s} {'exact, PRL (10)':>16s} {'PRL (15)':>9s}")
+for N, r in rows.items():
+    print(f"{N:3d} {r:16.4f} {pref15:9.4f}")
+print(f"N = 8: PRL (15) gives chi t = {pref15/8:.4f}; exact {rows[8]/8:.4f}; pi/8 = {np.pi/8:.4f}")
+assert abs(rows[8] / 8 - t_bell_fixed) < 1e-6                     # the sums reproduce the qubit-level bisection
+assert all(2.98 < rows[N] < 3.0 for N in Ns_fp)                   # exact onset close to 3/N
+
+# %% [markdown]
+# The exact onset is $N\chi t_{\rm B}=2.983$ at $N=8$ and grows slowly to $2.994$ at $N=64$; the same sums evaluated with
+# 60-digit arithmetic give $2.997$ at $N=256$. The large-$N$ estimate of Eq. (15) gives $1.77$. At $N=8$, Eq. (15) gives
+# $\chi t=0.221$; the value $\pi/8=0.393$ quoted for $N=8$ in the paper's discussion of its Fig. 2 is close to the exact
+# $0.373$. The exact onset also scales as $N^{-1}$, so the conclusion that fixed-plane Bell correlations appear before the
+# squeezing optimum at large $N$ is unchanged; the prefactor sets the size from which this holds (Exercise 9).
 
 # %% [markdown]
 # ## 12. Key takeaways
@@ -1830,7 +1891,8 @@ fig.tight_layout(); plt.show()
 #   $Q_{\rm B}=0$ at $\chi t=0.1526$ (bisection), best squeezing $\xi^2=0.3541$ only at $\chi t=0.2284$, and the algebraic
 #   maximum $Q_{\rm B}=N-2=6$ at the cat time $\chi t=\pi/2$, where $\xi^2$ has long since diverged. The ordering of the
 #   first two depends on the definition: with the measurement plane fixed as in the published calculation, $Q_{\rm B}$
-#   crosses zero only at $\chi t=0.3728$, after the squeezing optimum.
+#   crosses zero only at $\chi t=0.3728$, after the squeezing optimum. Evaluated exactly, that fixed-plane onset is
+#   $N\chi t_{\rm B}=2.98$–$2.99$ for $N=8$–$64$; the large-$N$ estimate of the paper, its Eq. (15), gives $1.77$.
 #
 # ## 13. Exercises
 #
@@ -1863,14 +1925,14 @@ fig.tight_layout(); plt.show()
 #    $0$ for odd $N$. Does the $p\to\tfrac12$ limit of the optimised dephasing curve reproduce that parity?
 # 8. ★★★ **Graph states beyond the star.** Compute $\mathcal E$ for the linear cluster state, the ring cluster state and the
 #    complete-graph state for $N=4,\dots,7$. Which graphs reach $\mathcal E=1/4$, and can you relate the answer to whether the
-#    graph is local-Clifford equivalent to a star? (Answer for the complete graph: it is, so $\mathcal E=1/4$ at every $N$.)
+#    graph is local-Clifford equivalent to a star (related to it by single-qubit Clifford gates)? (Answer for the complete graph: it is, so $\mathcal E=1/4$ at every $N$.)
 # 9. ★★★ **The two time scales of one-axis twisting.** Repeat Section 11 for $N=8,12,16$ and locate, for each, the time at
-#    which the optimised $Q_{\rm B}$ crosses zero, the time at which the fixed-plane $Q_{\rm B}$ crosses zero, and the time of
-#    minimal $\xi^2$. Fit the three to power laws in $N$ (the fixed-plane curve is cheap enough to follow up to $N=20$ on a
-#    state vector) and compare exponents and prefactors with each other, with $\chi t_{\rm s}\propto N^{-2/3}$ and with
-#    the large-$N$ estimate $\chi t_{\rm crit}\approx1.77/N$ quoted at the start of Section 11. At which $N$ does each
-#    onset move ahead of the squeezing optimum? (At $N=16$ and short times $\mathcal E$ is so small that Adam on
-#    $\mathcal E$ itself can stall at the seeded value $4^{-N}$; maximise $\log\mathcal E$ instead.)
+#    which the optimised $Q_{\rm B}$ crosses zero and the time of minimal $\xi^2$. Fit both to power laws in $N$ and
+#    compare exponents and prefactors with each other, with $\chi t_{\rm s}\propto N^{-2/3}$ and with the exact
+#    fixed-plane onset of Step 13b. At which $N$ does each onset move ahead of the squeezing optimum? (For the fixed-plane
+#    onset this needs $\xi^2$ beyond $N=20$; compute it in the $(N+1)$-dimensional basis of $J_z$ eigenstates. At $N=16$
+#    and short times $\mathcal E$ is so small that Adam on $\mathcal E$ itself can stall at the seeded value $4^{-N}$;
+#    maximise $\log\mathcal E$ instead.)
 #
 # ## 14. References
 #
@@ -1897,8 +1959,9 @@ fig.tight_layout(); plt.show()
 #   Phys. Rev. Lett. **126**, 210506 (2021), arXiv:2011.06612 — the same correlator, and the bound
 #   $F_Q>N^2/2^{n+1}$ on the quantum Fisher information when at least $N-n$ qubits are Bell correlated.
 # * M. Plodzien, M. Lewenstein, E. Witkowska and J. Chwedenczuk, *One-axis twisting as a method of generating many-body Bell
-#   correlations*, Phys. Rev. Lett. **129**, 250402 (2022), arXiv:2206.10542 — the physics of Section 11, including the
-#   onset time $\chi t_{\rm crit}\approx1.77/N$ and the value $\mathcal E=1/4$ at the cat time.
+#   correlations*, Phys. Rev. Lett. **129**, 250402 (2022), arXiv:2206.10542 — the physics of Section 11: the fixed-plane
+#   correlator (its Eq. (10)), the large-$N$ onset estimate $\chi t_{\rm crit}\approx1.77/N$ (its Eq. (15)) and the value
+#   $\mathcal E=1/4$ at the cat time.
 # * M. Plodzien, T. Wasak, E. Witkowska, M. Lewenstein and J. Chwedenczuk, *Generation of scalable many-body Bell
 #   correlations in spin chains with short-range two-body interactions*, Phys. Rev. Research **6**, 023050 (2024),
 #   arXiv:2306.06173 — the same correlator for short-range spin chains; its Eq. (3) defines the quantity written

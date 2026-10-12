@@ -1,5 +1,5 @@
 #@title: Information and noisy channels — Shannon entropy, mutual information, channel capacity and error correction
-#@part: Chapter 14 — Quantum communication and cryptography
+#@part: Chapter 13 — Quantum communication and cryptography
 #@description: The classical theory that quantum communication builds on, with a simulation for every formula: surprise and Shannon entropy, the binary entropy function, compression of a biased coin with Huffman block codes, joint and conditional entropy and mutual information, channels as transition matrices (noiseless, binary symmetric, erasure and Z-channel), capacity as the maximum mutual information computed by a scan over input distributions, the noisy-channel coding theorem, the repetition and Hamming(7,4) codes, and the parity-check binary search that corrects errors by public discussion and leaks about h(Q) bits per key bit.
 
 # %% [markdown]

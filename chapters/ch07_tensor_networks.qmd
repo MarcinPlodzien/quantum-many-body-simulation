@@ -21,7 +21,7 @@ einsum and tensor-leg diagrams) of [Chapter 1](ch01_computational_toolbox.qmd); 
 entanglement entropy and the area law of notebook 06 in [Chapter 3](ch03_matrix_free_engine.qmd); and, in
 [Chapter 5](ch05_ground_states_and_unitary_dynamics.qmd), the Lanczos algorithm of notebook 11 (for DMRG), the
 Trotter–Suzuki gates of notebook 12 (for TEBD) and, helpful for the physics of the quenches, notebook 15. DMRG returns
-for the critical Ising chain in [Chapter 13](ch13_quantum_phase_transitions.qmd).
+for the critical Ising chain in [Chapter 12](ch12_quantum_phase_transitions.qmd).
 
 ## Notebooks in this chapter
 
