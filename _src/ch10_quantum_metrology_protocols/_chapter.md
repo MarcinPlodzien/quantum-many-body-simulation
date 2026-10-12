@@ -22,7 +22,7 @@ measurements (classical shadows) and counts the measurements an entanglement cer
 **Many-body dynamics.** Notebook 39 follows how metrologically useful entanglement grows and spreads in quenched spin
 chains.
 
-**Variational optimisation.** Notebook 44b in [Chapter 11](ch11_variational_quantum_circuits.qmd) optimises probe
+**Variational optimisation.** Notebook 44b in [Chapter 13](ch13_quantum_machine_learning.qmd) optimises probe
 states and measurements under noise with automatic differentiation.
 
 Read notebooks 29 to 34 in order; they form the main thread, and every later notebook uses notebooks 29 and 30.

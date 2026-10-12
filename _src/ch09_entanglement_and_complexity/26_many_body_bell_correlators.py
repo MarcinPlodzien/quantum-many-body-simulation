@@ -10,7 +10,7 @@
 # information from the past, not on what the other parties chose. Any theory of this kind is called a **local hidden-variable
 # (LHV)** model. Quantum mechanics violates such bounds, which is why they matter: a violated Bell inequality is a
 # device-independent certificate — it says something about the physics without assuming anything about the apparatus
-# (the cryptographic use of this property appears in [notebook 53](../ch13_quantum_communication_and_cryptography/53_quantum_key_distribution.ipynb)).
+# (the cryptographic use of this property appears in [notebook 53](../ch12_quantum_communication_and_cryptography/53_quantum_key_distribution.ipynb)).
 #
 # [Notebook 19](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb) derived the archetype, the CHSH
 # inequality for two parties: the classical bound is $2$ and quantum mechanics reaches $2\sqrt2$. This notebook asks the same
@@ -99,7 +99,7 @@
 #   coherence and its fragility, which is what Section 9 measures again through a different quantity;
 # * [25 — entanglement negativity](25_entanglement_negativity.ipynb) is the companion diagnostic of this chapter: the
 #   negativity detects entanglement across one cut, the Bell correlator detects it in all parties at once;
-# * [41 — optimizers](../ch11_variational_quantum_circuits/41_optimizers.ipynb) for Adam and SPSA in Section 7, and the two
+# * [41 — optimizers](../ch13_quantum_machine_learning/41_optimizers.ipynb) for Adam and SPSA in Section 7, and the two
 #   notebooks below for Section 11; they belong to later chapters and can be read when those sections are reached;
 # * [33 — spin squeezing and one-axis twisting](../ch10_quantum_metrology_protocols/33_spin_squeezing_one_axis_twisting.ipynb)
 #   and [34 — from OAT to GHZ](../ch10_quantum_metrology_protocols/34_oat_to_ghz_full_metrology_protocol.ipynb) for Section 11.
@@ -622,7 +622,7 @@ for N in (3, 4, 5, 6, 7):
 # * `jax.vmap` runs many random restarts simultaneously, which is the practical answer to non-convexity.
 #
 # We use Adam (`adam_init`/`adam_update` from the engine, derived in
-# [notebook 41](../ch11_variational_quantum_circuits/41_optimizers.ipynb)) and *maximise* by feeding it $-\nabla\mathcal E$.
+# [notebook 41](../ch13_quantum_machine_learning/41_optimizers.ipynb)) and *maximise* by feeding it $-\nabla\mathcal E$.
 
 # %%
 # ==============================================================================
@@ -898,7 +898,7 @@ print(f"\nrun time after compilation [s]: " + "; ".join(
 # run of $32$ restarts at $200$ steps takes less than $0.15$ s for either method (last output line), so `jax.grad` wins on
 # accuracy at equal cost.
 # On hardware, where each evaluation costs thousands of shots and no gradient is available, the ranking reverses; that is the
-# regime [notebook 41](../ch11_variational_quantum_circuits/41_optimizers.ipynb) analyses.
+# regime [notebook 41](../ch13_quantum_machine_learning/41_optimizers.ipynb) analyses.
 
 
 # %% [markdown]

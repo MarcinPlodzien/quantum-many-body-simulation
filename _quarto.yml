@@ -47,14 +47,12 @@ website:
             href: chapters/ch09_entanglement_and_complexity.qmd
           - text: "10 · Quantum metrology protocols"
             href: chapters/ch10_quantum_metrology_protocols.qmd
-          - text: "11 · Variational quantum circuits"
-            href: chapters/ch11_variational_quantum_circuits.qmd
-          - text: "12 · Quantum phase transitions"
-            href: chapters/ch12_quantum_phase_transitions.qmd
-          - text: "13 · Quantum communication and cryptography"
-            href: chapters/ch13_quantum_communication_and_cryptography.qmd
-          - text: "14 · Quantum machine learning protocols"
-            href: chapters/ch14_quantum_machine_learning_protocols.qmd
+          - text: "11 · Quantum phase transitions"
+            href: chapters/ch11_quantum_phase_transitions.qmd
+          - text: "12 · Quantum communication and cryptography"
+            href: chapters/ch12_quantum_communication_and_cryptography.qmd
+          - text: "13 · Quantum machine learning"
+            href: chapters/ch13_quantum_machine_learning.qmd
       - text: "The engine"
         menu:
           - text: "Building the engine (notebook 08b)"
@@ -200,66 +198,65 @@ website:
             text: "Scramblers and the locking of metrological information — analog, digital, and the Haar limit"
           - href: ch10_quantum_metrology_protocols/39_qfi_spreading_in_spin_chains.ipynb
             text: "The spreading of metrological usefulness — quantum Fisher information in quenched spin chains"
-      - section: "11 · Variational quantum circuits"
-        href: chapters/ch11_variational_quantum_circuits.qmd
+      - section: "11 · Quantum phase transitions"
+        href: chapters/ch11_quantum_phase_transitions.qmd
+        contents:
+          - href: ch11_quantum_phase_transitions/47_quantum_phase_transitions.ipynb
+            text: "Quantum phase transitions — mapping a phase diagram from finite chains"
+      - section: "12 · Quantum communication and cryptography"
+        href: chapters/ch12_quantum_communication_and_cryptography.qmd
+        contents:
+          - href: ch12_quantum_communication_and_cryptography/50_information_entropy_and_noisy_channels.ipynb
+            text: "Information and noisy channels — Shannon entropy, mutual information, channel capacity and error correction"
+          - href: ch12_quantum_communication_and_cryptography/51_secrecy_one_time_pad_and_authentication.ipynb
+            text: "Secrecy — the one-time pad, the key-distribution problem, authentication and privacy amplification"
+          - href: ch12_quantum_communication_and_cryptography/52_quantum_rules_channels_and_capacities.ipynb
+            text: "What quantum mechanics changes — distinguishability, no-cloning, information versus disturbance, monogamy, quantum channels and their capacities"
+          - href: ch12_quantum_communication_and_cryptography/53_quantum_key_distribution.ipynb
+            text: "Quantum key distribution — BB84 end to end, entanglement-based protocols and the secret-key rate"
+          - href: ch12_quantum_communication_and_cryptography/54_noisy_entanglement_distillation_repeaters_certification.ipynb
+            text: "Noisy entanglement as a resource — Werner pairs, twirling, distillation, repeaters and certification"
+      - section: "13 · Quantum machine learning"
+        href: chapters/ch13_quantum_machine_learning.qmd
         contents:
           - section: "Foundations: parametrised circuits, gradients, optimisers and noise"
             contents:
-              - href: ch11_variational_quantum_circuits/40_parametrized_gates_and_gradients.ipynb
+              - href: ch13_quantum_machine_learning/40_parametrized_gates_and_gradients.ipynb
                 text: "Parametrized gates and gradients — differentiating a quantum circuit four ways"
-              - href: ch11_variational_quantum_circuits/41_optimizers.ipynb
+              - href: ch13_quantum_machine_learning/41_optimizers.ipynb
                 text: "Optimisers for variational circuits — update rules and a benchmark on GHZ preparation and the Ising chain"
-              - href: ch11_variational_quantum_circuits/44_noisy_variational_circuits.ipynb
+              - href: ch13_quantum_machine_learning/44_noisy_variational_circuits.ipynb
                 text: "Noisy variational circuits — landscapes, plateaus, training and error mitigation"
           - section: "Variational quantum eigensolver"
             contents:
-              - href: ch11_variational_quantum_circuits/42a_variational_quantum_eigensolver_hamiltonians_ansatze_training.ipynb
+              - href: ch13_quantum_machine_learning/42a_variational_quantum_eigensolver_hamiltonians_ansatze_training.ipynb
                 text: "The variational quantum eigensolver — spin-chain Hamiltonians, circuit ansätze and training against exact diagonalisation"
-              - href: ch11_variational_quantum_circuits/42_variational_quantum_eigensolver.ipynb
+              - href: ch13_quantum_machine_learning/42_variational_quantum_eigensolver.ipynb
                 text: "The variational quantum eigensolver — ground states of spin chains from a trained circuit"
-              - href: ch11_variational_quantum_circuits/43_vqe_with_classical_shadows.ipynb
+              - href: ch13_quantum_machine_learning/43_vqe_with_classical_shadows.ipynb
                 text: "VQE with classical shadows — the measurement cost of a variational algorithm"
           - section: "Quantum autoencoder and unsupervised discovery of phase boundaries"
             contents:
-              - href: ch11_variational_quantum_circuits/45_quantum_autoencoder.ipynb
+              - href: ch13_quantum_machine_learning/45_quantum_autoencoder.ipynb
                 text: "The quantum autoencoder — compressing quantum data with a variational circuit"
-              - href: ch11_variational_quantum_circuits/45b_quantum_anomaly_detection_phase_boundaries.ipynb
+              - href: ch13_quantum_machine_learning/45b_quantum_anomaly_detection_phase_boundaries.ipynb
                 text: "Unsupervised discovery of phase boundaries with a quantum autoencoder"
           - section: "Variational quantum metrology"
             contents:
-              - href: ch11_variational_quantum_circuits/44b_variational_quantum_metrology.ipynb
+              - href: ch13_quantum_machine_learning/44b_variational_quantum_metrology.ipynb
                 text: "Variational quantum metrology — optimising probe states and measurements under noise with automatic differentiation"
           - section: "Quantum approximate optimisation"
             contents:
-              - href: ch11_variational_quantum_circuits/45c_quantum_approximate_optimisation.ipynb
+              - href: ch13_quantum_machine_learning/45c_quantum_approximate_optimisation.ipynb
                 text: "The quantum approximate optimisation algorithm — MaxCut and number partitioning on graphs of up to ten vertices"
           - section: "Quantum kernel methods"
             contents:
-              - href: ch11_variational_quantum_circuits/45d_quantum_kernel_methods_classification.ipynb
+              - href: ch13_quantum_machine_learning/45d_quantum_kernel_methods_classification.ipynb
                 text: "Quantum kernel methods — classifying data with a quantum feature map and a support vector machine"
-      - section: "12 · Quantum phase transitions"
-        href: chapters/ch12_quantum_phase_transitions.qmd
-        contents:
-          - href: ch12_quantum_phase_transitions/47_quantum_phase_transitions.ipynb
-            text: "Quantum phase transitions — mapping a phase diagram from finite chains"
-      - section: "13 · Quantum communication and cryptography"
-        href: chapters/ch13_quantum_communication_and_cryptography.qmd
-        contents:
-          - href: ch13_quantum_communication_and_cryptography/50_information_entropy_and_noisy_channels.ipynb
-            text: "Information and noisy channels — Shannon entropy, mutual information, channel capacity and error correction"
-          - href: ch13_quantum_communication_and_cryptography/51_secrecy_one_time_pad_and_authentication.ipynb
-            text: "Secrecy — the one-time pad, the key-distribution problem, authentication and privacy amplification"
-          - href: ch13_quantum_communication_and_cryptography/52_quantum_rules_channels_and_capacities.ipynb
-            text: "What quantum mechanics changes — distinguishability, no-cloning, information versus disturbance, monogamy, quantum channels and their capacities"
-          - href: ch13_quantum_communication_and_cryptography/53_quantum_key_distribution.ipynb
-            text: "Quantum key distribution — BB84 end to end, entanglement-based protocols and the secret-key rate"
-          - href: ch13_quantum_communication_and_cryptography/54_noisy_entanglement_distillation_repeaters_certification.ipynb
-            text: "Noisy entanglement as a resource — Werner pairs, twirling, distillation, repeaters and certification"
-      - section: "14 · Quantum machine learning protocols"
-        href: chapters/ch14_quantum_machine_learning_protocols.qmd
-        contents:
-          - href: ch14_quantum_machine_learning_protocols/46_quantum_reservoir_computing.ipynb
-            text: "Quantum reservoir computing — many-body dynamics as a machine for time series"
+          - section: "Quantum reservoir computing"
+            contents:
+              - href: ch13_quantum_machine_learning/46_quantum_reservoir_computing.ipynb
+                text: "Quantum reservoir computing — many-body dynamics as a machine for time series"
       - text: "Engine source code"
         href: engine.qmd
   page-footer:

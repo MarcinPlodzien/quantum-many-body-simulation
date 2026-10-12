@@ -1503,7 +1503,7 @@ print(f"16 angles: Python loop over jitted sweeps {t_loop * 1e3:8.2f} ms | one v
 # ### 15.2 `grad`: the derivative of an einsum is an einsum
 #
 # A contraction is linear in each of its inputs, so its derivative is again a contraction. Example: $f(A)=\sum_{ij}x_iA_{ij}y_j$ has
-# $\partial f/\partial A_{ij}=x_iy_j$, an outer product. `jax.grad` finds this automatically -- the basis of the variational algorithms of Chapter 11.
+# $\partial f/\partial A_{ij}=x_iy_j$, an outer product. `jax.grad` finds this automatically -- the basis of the variational algorithms of Chapter 13.
 
 # %%
 # ==============================================================================

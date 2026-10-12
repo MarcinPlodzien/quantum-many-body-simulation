@@ -82,8 +82,8 @@
 # * helpful: [35 — one-axis twisting plus Haar scrambling](../ch10_quantum_metrology_protocols/35_oat_plus_haar_scrambling.ipynb)
 #   for the value a fully scrambled state settles at.
 #
-# **What comes next.** [44b — variational quantum metrology](../ch11_variational_quantum_circuits/44b_variational_quantum_metrology.ipynb)
-# (Chapter 11) optimises probe states and measurements under noise with automatic differentiation.
+# **What comes next.** [44b — variational quantum metrology](../ch13_quantum_machine_learning/44b_variational_quantum_metrology.ipynb)
+# (Chapter 13) optimises probe states and measurements under noise with automatic differentiation.
 #
 # **Conventions.** Qubit $q$ = tensor axis $q$ = chain site $q$; $\vert0\rangle$ is the $+1$ eigenstate of $Z$.
 # Hamiltonians are written in the Pauli convention, $H=\sum J_{aa}\sigma^a_i\sigma^a_{i+1}+\sum h_a\sigma^a_i$, while

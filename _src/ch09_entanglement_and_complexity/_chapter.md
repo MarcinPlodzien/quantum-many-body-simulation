@@ -19,6 +19,6 @@ light cone after a quench, notebooks 11, 12 and 15 in [Chapter 5](ch05_ground_st
 quantum trajectories of notebook 17 in [Chapter 6](ch06_open_quantum_systems.qmd), for the noisy Bell correlator; and
 CHSH, Werner states and GHZ decoherence from notebooks 19, 21 and 22 in
 [Chapter 8](ch08_quantum_information_protocols.qmd). Notebook 26 also uses material from later chapters: Adam and SPSA
-from notebook 41 of [Chapter 11](ch11_variational_quantum_circuits.qmd) in its Section 7, and one-axis twisting from
+from notebook 41 of [Chapter 13](ch13_quantum_machine_learning.qmd) in its Section 7, and one-axis twisting from
 notebooks 33 and 34 of [Chapter 10](ch10_quantum_metrology_protocols.qmd) in its Section 11. Magic returns in
 notebook 37 of Chapter 10, as a property of the probe states used in metrology.

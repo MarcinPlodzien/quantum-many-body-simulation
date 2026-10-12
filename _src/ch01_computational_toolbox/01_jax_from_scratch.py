@@ -1128,7 +1128,7 @@ print("gradient at x=0, double where:", jax.grad(safe)(zero))
 
 # %% [markdown]
 # ### 9.4 Minimising a function: the ground state of one spin by gradient descent
-# This is a *variational* calculation in its simplest form (the subject of Chapter 11, variational quantum circuits).
+# This is a *variational* calculation in its simplest form (the subject of the variational quantum circuits of Chapter 13).
 # Take one spin with the Hamiltonian
 #
 # $$H = \tfrac{\Delta}{2}\sigma_z + \tfrac{\Omega}{2}\sigma_x .$$
@@ -1211,7 +1211,7 @@ plt.show()
 # representation. The Bloch vector, a physical quantity, is the meaningful comparison.)
 #
 # > **Physics insight.** This is a *variational quantum eigensolver* in miniature: a parametrised state, an energy
-# > expectation value as cost function, a gradient-based optimiser. In Chapter 11 the state will be an $N$-qubit circuit
+# > expectation value as cost function, a gradient-based optimiser. In Chapter 13 the state will be an $N$-qubit circuit
 # > with hundreds of angles — and the code pattern `scan(value_and_grad(energy))` will be the same.
 
 # %% [markdown]
@@ -1823,7 +1823,7 @@ plt.show()
 # *slowest* direction converges at the rate $(1-\eta\lambda_{\min})$ per step. The ratio
 # $\lambda_{\max}/\lambda_{\min}$ (the condition number, here $\approx 14$) therefore dictates how many iterations plain
 # gradient descent needs, and it is the reason for the better optimisers of
-# [41 — optimisers](../ch11_variational_quantum_circuits/41_optimizers.ipynb).
+# [41 — optimisers](../ch13_quantum_machine_learning/41_optimizers.ipynb).
 #
 # > **Numerical practice.** A robust fitting workflow is *global, then local*: a coarse scan of the landscape (cheap
 # > with `vmap`) to find the right basin, then gradient-based refinement. Always compare the final loss with the noise

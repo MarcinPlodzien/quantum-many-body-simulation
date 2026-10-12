@@ -22,7 +22,7 @@ in single or double precision (configuration cell at the top of every notebook).
 
 | path | what |
 |---|---|
-| `ch01_computational_toolbox/` … `ch14_quantum_machine_learning_protocols/` | the executed notebooks (each one self-contained) |
+| `ch01_computational_toolbox/` … `ch13_quantum_machine_learning/` | the executed notebooks (each one self-contained) |
 | `quantum_engine.py` | the documented engine; the “Engine recap” cell of every notebook is copied from it |
 | `tests/test_core.py` | validation of every engine primitive against dense linear algebra |
 | `_src/<chapter>/` | notebook sources in percent format (edit these, never the `.ipynb`) |
@@ -36,7 +36,7 @@ pip install -r requirements.txt
 jupyter lab ch01_computational_toolbox/01_jax_from_scratch.ipynb
 ```
 
-The notebooks are numbered globally, `00a` to `54`; the chapter folders, `ch01` to `ch14`, group them by subject
+The notebooks are numbered globally, `00a` to `54`; the chapter folders, `ch01` to `ch13`, group them by subject
 and are meant to be read in that order. Every notebook opens with a configuration cell selecting CPU or GPU and single or double
 precision, and carries the simulator primitives it uses in a folded *Engine recap* cell, so any one of them runs
 on its own.

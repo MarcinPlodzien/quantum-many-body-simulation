@@ -1383,7 +1383,7 @@ assert abs(chi_bob - 2.0) < 1e-9 and abs(chi_eve) < 1e-9
 # Equation (11) turns the quantum problem into a classical one, so we can use classical information theory. The quantity to compute
 # is the mutual information $I(M{:}O)=H(O)-H(O\vert M)$ between the message and Bob's read-out, with $H$ the Shannon entropy in
 # bits; both, and the binary symmetric channel used below, are introduced in
-# [50 — information and noisy channels](../ch13_quantum_communication_and_cryptography/50_information_entropy_and_noisy_channels.ipynb). For an additive channel on a group the channel matrix
+# [50 — information and noisy channels](../ch12_quantum_communication_and_cryptography/50_information_entropy_and_noisy_channels.ipynb). For an additive channel on a group the channel matrix
 # $P(o\vert m)=q_{o\ominus m}$ is doubly stochastic and every row is a permutation of every other, so a uniform prior maximises
 # $H(O)$ (it makes $O$ uniform) while leaving $H(O\vert M)=H(q)$ untouched; the maximum is therefore
 #
@@ -1616,7 +1616,7 @@ assert abs(I_dph[i_min] - 1.0) < 1e-9 and np.max(np.abs(I_dph - (2 - binary_entr
 # evaluated there returns $1.000000$ bits: the analytic break-even point of Eq. (12) and the simulated device agree. At that same $p$
 # the entropic formula Eq. (13) also returns $1$ bit, which says the same thing in the language of states: $S(\rho_{AB})=S(\rho_B)$,
 # the shared pair has exactly as much global entropy as Bob's half alone, and its coherent information $S(\rho_B)-S(\rho_{AB})$
-# ([52](../ch13_quantum_communication_and_cryptography/52_quantum_rules_channels_and_capacities.ipynb), Section 9.2) has run out. Beyond that
+# ([52](../ch12_quantum_communication_and_cryptography/52_quantum_rules_channels_and_capacities.ipynb), Section 9.2) has run out. Beyond that
 # point using the pair costs information; Alice should discard it and send a fresh qubit, which is why the *capacity* stays at
 # $1$ bit or above while the rate of this fixed protocol keeps falling. The pair is still entangled at the break-even
 # point — depolarising noise leaves it entangled up to $p=1/2$ — so "entangled" and "useful for dense coding" are different
@@ -1810,7 +1810,7 @@ print("\n(The first call includes tracing and XLA compilation; it is paid once p
 #    Measure the success probability and the output state. It is Bell-diagonal but no longer isotropic, so define $v'$ from its
 #    fidelity, $v'=(4F'-1)/3$, or re-twirl it back to Werner form. Plot $v'$ versus $v$, identify the fixed point (you should find
 #    $F'=F$ at $F=1/2$, i.e. exactly at the entanglement threshold $v=1/3$), and use it to explain why purification $+$ swapping
-#    beats pure swapping over a long chain. [Notebook 54](../ch13_quantum_communication_and_cryptography/54_noisy_entanglement_distillation_repeaters_certification.ipynb),
+#    beats pure swapping over a long chain. [Notebook 54](../ch12_quantum_communication_and_cryptography/54_noisy_entanglement_distillation_repeaters_certification.ipynb),
 #    Section 7, derives this protocol and runs it in a repeater chain.
 # 8. ★★★ **Swapping with imperfect measurement (physics).** Model a relay whose Bell measurement occasionally reports the wrong
 #    outcome (probability $\varepsilon$ of a random other label). Derive the resulting end-to-end state, show that it is again

@@ -1,0 +1,59 @@
+goal: Train quantum circuits and quantum dynamics as learning machines: gradients, optimisers, VQE, noise, kernels and reservoir computing
+---
+Quantum machine learning uses a quantum system as a trainable model. Data enter through the preparation of a state or
+through the drive of a Hamiltonian, the output is read from expectation values or measurement statistics, and a
+classical optimiser adjusts the free parameters. The models differ in where the trainable parameters sit. In a
+variational quantum circuit they are the angles of the gates; in a quantum reservoir the quantum dynamics stays fixed
+and only a classical linear readout is trained; in a data re-uploading classifier the input itself is written into the
+circuit again and again, between trainable layers. Because the simulator is differentiable, all three are trained with
+the same code that evolves a spin chain.
+
+**Variational quantum circuits.** A variational quantum algorithm adjusts the angles of a parametrised circuit to
+minimise a cost function. Notebooks 40 to 42 derive four ways to obtain gradients (finite differences, the
+parameter-shift rule, SPSA and automatic differentiation), compare optimisers from plain gradient descent to the
+quantum natural gradient, and apply them in the variational quantum eigensolver to ground states of spin chains,
+checked against exact diagonalisation.
+
+The remaining variational notebooks address what a real device adds: the number of measurements a cost evaluation
+needs, including classical shadows inside the optimisation loop; gate noise and its effect on landscapes, training and
+error mitigation. The same machinery then optimises probe states for quantum metrology, compresses quantum data in
+the quantum autoencoder and uses its compression cost to locate phase boundaries without labels, and classifies data
+with quantum kernels. The quantum approximate optimisation algorithm turns it to classical problems: MaxCut and number
+partitioning become diagonal Ising Hamiltonians, and alternating cost and mixer layers are trained to sample their
+optimal bit strings.
+
+Read notebooks 40 and 41 first; every other variational notebook uses their gradients and optimisers. The eigensolver
+follows in the order 42a, 42, 43: notebook 42a introduces the Hamiltonians, the ansätze and the training, notebook 42
+the error relations, symmetries, excited states and shot noise, and notebook 43 the measurement cost. Notebook 44 takes
+the eigensolver as given, so read it after the eigensolver notebooks, although it is listed with the foundations. The
+applications can then be read in any order: notebook 44b builds on notebook 44 and needs notebooks 29 to 34 and 37 of
+[Chapter 10](ch10_quantum_metrology_protocols.qmd); notebook 45 uses the noise models of notebook 44 in its Section
+12; notebook 45b builds on notebook 45, and its Sections 3.1 and 6.4 use the fidelity susceptibility and the
+Kosterlitz–Thouless point of notebook 47 in [Chapter 11](ch11_quantum_phase_transitions.qmd); notebook 45c needs
+notebooks 40 to 42; notebook 45d needs none of the earlier notebooks of the chapter. Prerequisites are notebook 01
+(JAX: `jit`, `vmap`, `grad`, `lax.scan`) of [Chapter 1](ch01_computational_toolbox.qmd); the state tensors, density
+tensors, channels and measurements of notebooks 05 to 08 in [Chapter 3](ch03_matrix_free_engine.qmd); the gates and
+random circuits of notebooks 09 and 10 in [Chapter 4](ch04_digital_quantum_circuits.qmd); the Hamiltonians and Lanczos
+ground states of notebook 11, and the Trotter splitting of notebook 12 for notebook 45c, in
+[Chapter 5](ch05_ground_states_and_unitary_dynamics.qmd); and the classical shadows of notebook 24 in
+[Chapter 8](ch08_quantum_information_protocols.qmd) for notebook 43.
+
+**Quantum reservoir computing.** In quantum reservoir computing (notebook 46) the many-body dynamics itself is left
+untrained: an input sequence is written into a spin system, the Hamiltonian evolution acts as a nonlinear feature map
+with fading memory, and only a linear readout is fitted by ridge regression. The notebook measures the memory capacity
+of the reservoir, applies it to standard benchmark tasks against classical baselines tuned on the same validation
+data, and compares density-tensor and trajectory simulations under finite measurement statistics and decoherence. At
+equal feature count the four-qubit reservoir has a larger error than the tuned classical echo-state network on every
+task.
+
+Notebook 46 first introduces classical reservoir computing (the echo-state network, the ridge-regression readout,
+memory capacity and the benchmark tasks), so no machine-learning background is needed, and it does not depend on the
+variational notebooks. Its prerequisites are notebook 01 (`jit`, `vmap`, `lax.scan`, random keys) of
+[Chapter 1](ch01_computational_toolbox.qmd); density tensors, partial traces, Kraus channels and measurement with
+reset, notebooks 07 and 08 in [Chapter 3](ch03_matrix_free_engine.qmd); the Trotter–Suzuki gates of notebook 12 in
+[Chapter 5](ch05_ground_states_and_unitary_dynamics.qmd); and the Lindblad equation and quantum trajectories of
+notebooks 16 and 17 in [Chapter 6](ch06_open_quantum_systems.qmd), used in Sections 4.5 and 10.
+
+**Data re-uploading classifier.** A classifier built from a single qubit becomes expressive when the classical input
+is encoded into the circuit repeatedly, each encoding followed by a trainable rotation. Notebook 55, in preparation,
+develops this model on one qubit and on a few qubits.

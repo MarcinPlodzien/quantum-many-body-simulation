@@ -13,7 +13,7 @@ Usage
 -----
     python tools/build_tikz.py                                   # every figure whose .tex is newer than its .svg
     python tools/build_tikz.py --force                           # rebuild all
-    python tools/build_tikz.py _src/ch11_*/figures/qae.tex       # selected sources (always rebuilt)
+    python tools/build_tikz.py _src/ch13_*/figures/qae.tex       # selected sources (always rebuilt)
     python tools/build_tikz.py --png                             # also write <name>.png previews into the temp dir
 Requires pdflatex (TeX Live, with quantikz for circuit figures) and pdftocairo (poppler-utils).
 """

@@ -25,7 +25,7 @@
 # * *Digital quantum simulation*: present-day quantum processors (superconducting qubits, trapped ions, Rydberg-atom
 #   arrays) simulate spin models by running Trotter circuits. To understand those experiments, and their errors, you
 #   need to be able to count gates and to model noise.
-# * *State preparation*: GHZ states, cluster states, squeezed states, variational ansätze (Chapter 11) are
+# * *State preparation*: GHZ states, cluster states, squeezed states, variational ansätze (Chapter 13) are
 #   all defined by the circuits that prepare them.
 # * *Numerics*: thinking in gates is the natural way of organising fast simulation code. Every algorithm of this
 #   course - TEBD, quantum trajectories, classical shadows, variational eigensolvers - is "a loop over small einsums".
@@ -239,8 +239,8 @@ for K in (2, 4, 6, 8, 12, 16):
 # The closed form agrees with the generic matrix exponential to machine precision, and the power series converges
 # factorially fast to the same matrix (about 16 terms are needed for $\theta\approx1.2$ in double precision). The closed form is
 # preferable: it is exact, costs two trigonometric functions, and is differentiable with respect to $\theta$ - which is
-# what variational algorithms ([notebook 40](../ch11_variational_quantum_circuits/40_parametrized_gates_and_gradients.ipynb),
-# Chapter 11) need.
+# what variational algorithms ([notebook 40](../ch13_quantum_machine_learning/40_parametrized_gates_and_gradients.ipynb),
+# Chapter 13) need.
 #
 # The engine versions of the three rotations are the matrices of Eq. (3) written out explicitly. `theta` may be a
 # *traced* JAX scalar, so these functions can live inside `jit`, `vmap` and `grad`.
@@ -797,7 +797,7 @@ draw_circuit(cluster_circuit(N), N, title=f"cluster-state circuit, N={N} (depth 
 #   recompilation.
 #
 # The natural design is therefore a pure function `circuit(params, psi0) -> psi` with the structure written as ordinary
-# Python. As an example we take a layered parametrised circuit (the type used as a variational ansatz in Chapter 11): each
+# Python. As an example we take a layered parametrised circuit (the type used as a variational ansatz in Chapter 13): each
 # layer applies $R_y$ and $R_z$ with individual angles to every qubit and then a chain of CZ gates.
 
 # %%
@@ -1402,7 +1402,7 @@ for n in (4, 8, 16, 32, 64):
 # $$ \mathcal E_p(\rho) = (1-p)\rho+\frac p3\big(X\rho X+Y\rho Y+Z\rho Z\big), $$
 #
 # with error probability $p_1$ after single-qubit gates and $p_2>p_1$ after two-qubit gates (measured gate errors on
-# current processors, with their sources, are quoted in [notebook 44](../ch11_variational_quantum_circuits/44_noisy_variational_circuits.ipynb), Section 3.2). Noise of this kind limits the size of the
+# current processors, with their sources, are quoted in [notebook 44](../ch13_quantum_machine_learning/44_noisy_variational_circuits.ipynb), Section 3.2). Noise of this kind limits the size of the
 # circuits that such "noisy intermediate-scale quantum" (NISQ) devices can execute reliably (Preskill 2018).
 # The state is now mixed, so we simulate the
 # density tensor $\rho$ of rank $2N$ (notebook 07): a gate acts as $U$ on the ket axes and $U^*$ on the bra axes

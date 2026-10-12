@@ -20,7 +20,7 @@ Prerequisites are notebook 01 (JAX) of [Chapter 1](ch01_computational_toolbox.qm
 in [Chapter 2](ch02_spin_systems_textbook_way.qmd), and [Chapter 3](ch03_matrix_free_engine.qmd): `apply_gate` of
 notebook 05 above all, with entanglement entropy (06), Kraus channels and trajectories (07) and sampled bit strings
 (08). The Trotter circuits continue as TEBD in [Chapter 5](ch05_ground_states_and_unitary_dynamics.qmd), and the
-parametrised circuits as variational algorithms in [Chapter 11](ch11_variational_quantum_circuits.qmd).
+parametrised circuits as variational algorithms in [Chapter 13](ch13_quantum_machine_learning.qmd).
 
 ## Notebooks in this chapter
 

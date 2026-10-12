@@ -55,8 +55,10 @@ SITE_SECTION = {
     "44b": "Variational quantum metrology",
     "45c": "Quantum approximate optimisation",
     "45d": "Quantum kernel methods",
+    "46": "Quantum reservoir computing",
+    "55": "Data re-uploading classifier",   # placed here as soon as _src/ch13_quantum_machine_learning/55_*.py is committed
 }
-SITE_SECTION_DEFAULT = {"ch11_variational_quantum_circuits": "Foundations: parametrised circuits, gradients, optimisers and noise"}
+SITE_SECTION_DEFAULT = {"ch13_quantum_machine_learning": "Foundations: parametrised circuits, gradients, optimisers and noise"}
 # reading order inside a subsection where it differs from the file order (the introductory VQE notebook first)
 SITE_ORDER = {"42a": 0, "42": 1, "43": 2}
 
@@ -254,7 +256,7 @@ def main():
           "::: {.feature-grid}"]
     FEATURES = [
         ("Spin-1/2 many-body physics", "Hamiltonians on arbitrary graphs, exact diagonalisation and matrix-free Lanczos, "
-         "symmetries, entanglement, phase diagrams and quantum phase transitions.", ["ch02", "ch05", "ch12"]),
+         "symmetries, entanglement, phase diagrams and quantum phase transitions.", ["ch02", "ch05", "ch11"]),
         ("Unitary dynamics", "Exact propagation, Runge–Kutta, Trotter–Suzuki, Chebyshev and Krylov integrators, compared "
          "on accuracy and cost, and applied to quantum quenches and light cones.", ["ch05"]),
         ("Dissipative dynamics", "The Lindblad master equation on the density tensor and its unravelling into quantum "
@@ -264,11 +266,11 @@ def main():
         ("Quantum machine learning", "Parametrised circuits trained with gradients from the parameter-shift rule and "
          "from automatic differentiation, optimisers, the variational eigensolver, quantum autoencoders, training under "
          "shot noise and gate noise, and quantum reservoir computing, where many-body dynamics processes time series.",
-         ["ch11", "ch14"]),
+         ["ch13"]),
         ("Quantum communication and cryptography", "From Shannon entropy, channel capacity and the one-time pad to "
          "what quantum mechanics changes: no-cloning, information versus disturbance, quantum channels and their "
          "capacities, quantum key distribution simulated end to end, and noisy entanglement made useful by "
-         "distillation, repeaters and certification.", ["ch13"]),
+         "distillation, repeaters and certification.", ["ch12"]),
         ("Beyond the state vector", "Matrix product states with DMRG and TEBD for chains far longer than a state vector "
          "can hold, and diagnostics of entanglement, magic and metrological usefulness.", ["ch07", "ch09", "ch10"]),
     ]
@@ -286,7 +288,7 @@ def main():
            "therefore teach three things together: the physics, the numerical methods, and the practice of writing "
            "scientific code that is both fast and correct.", "",
            "## Quantum machine learning", "",
-           "The differentiable simulator is used throughout Chapters 11 and 14 to build and train quantum "
+           "The differentiable simulator is used throughout Chapter 13 to build and train quantum "
            "machine-learning models, each derived, implemented and tested against exact results:", ""]
     QML = [("40", "parametrised quantum circuits and four ways to compute their gradients"),
            ("41", "optimisers for variational circuits, from gradient descent to the quantum natural gradient"),
@@ -294,7 +296,8 @@ def main():
            ("43", "the measurement cost of a variational algorithm, with classical shadows in the training loop"),
            ("44", "training under gate noise: cost landscapes, noise-induced barren plateaus and error mitigation"),
            ("45", "the quantum autoencoder, compressing quantum data with a variational circuit"),
-           ("46", "quantum reservoir computing, many-body dynamics as a machine for time-series prediction")]
+           ("46", "quantum reservoir computing, many-body dynamics as a machine for time-series prediction"),
+           ("55", "the data re-uploading classifier, which encodes the input repeatedly into a trainable circuit")]
     all_items = {pathlib.Path(path).name.split("_")[0]: (path, title) for c in chapters for path, title, _ in c[5]}
     for nn, what in QML:
         if nn in all_items:
@@ -307,7 +310,7 @@ def main():
             ("54", "noisy entanglement as a resource: distillation, repeaters and certification")]
     if any(nn in all_items for nn, _ in COMM):
         ix += ["", "## Quantum communication and cryptography", "",
-               "Chapter 13 builds the classical toolbox of communication and secrecy first and then shows, step by step "
+               "Chapter 12 builds the classical toolbox of communication and secrecy first and then shows, step by step "
                "and in simulation, what quantum mechanics adds:", ""]
         for nn, what in COMM:
             if nn in all_items:
@@ -332,10 +335,9 @@ def main():
            f"- *Interested in quantum information:* after Chapter 3, go to [Chapter 4]({by_prefix['ch04'][4]}) and "
            f"[Chapter 8]({by_prefix['ch08'][4]}).",
            f"- *Interested in quantum technologies:* [Chapter 10]({by_prefix['ch10'][4]}) on metrology and "
-           f"[Chapter 11]({by_prefix['ch11'][4]}) on variational circuits build on Chapters 3–5.",
-           f"- *Interested in quantum machine learning:* after Chapters 3–5, [Chapter 11]({by_prefix['ch11'][4]}) "
-           f"(variational circuits, the variational eigensolver, quantum autoencoders) and "
-           f"[Chapter 14]({by_prefix['ch14'][4]}) (quantum reservoir computing).", "",
+           f"[Chapter 13]({by_prefix['ch13'][4]}) on variational circuits build on Chapters 3–5.",
+           f"- *Interested in quantum machine learning:* after Chapters 3–5, [Chapter 13]({by_prefix['ch13'][4]}) "
+           "(variational circuits, the variational eigensolver, quantum autoencoders and quantum reservoir computing).", "",
            "## Chapters {#chapters}", "",
            f"{len(chapters)} chapters, each a short overview page followed by runnable notebooks ({n_nb} in total). The "
            "notebooks are numbered globally; each one carries the engine functions it uses in a folded *Engine recap* cell "

@@ -1753,7 +1753,7 @@ fig.tight_layout(); plt.show()
 #    gradient turns into `NaN` after a few hundred steps. A remedy is to solve the Lyapunov equation (6) directly as a
 #    $4^N\times4^N$ linear system, $\tfrac12(\rho\otimes\mathbb 1+\mathbb 1\otimes\rho^{\mathsf T})\,\mathrm{vec}(L)=\mathrm{vec}(\partial_\theta\rho)$
 #    in row-major vectorisation, which is differentiable as long as $\rho$ has full rank (true here for $g>0$).
-#    [Notebook 44b](../ch11_variational_quantum_circuits/44b_variational_quantum_metrology.ipynb) carries out this optimisation in full.
+#    [Notebook 44b](../ch13_quantum_machine_learning/44b_variational_quantum_metrology.ipynb) carries out this optimisation in full.
 #
 # ## References
 #

@@ -34,7 +34,7 @@
 # Physics went to Aspect, Clauser and Zeilinger for this line of work. Today the same inequality is a *tool*: a CHSH violation
 # certifies that a device really produces entanglement, and it is the security foundation of device-independent quantum key
 # distribution, in which two parties establish a secret key without trusting the inner workings of their devices
-# ([53 — quantum key distribution](../ch13_quantum_communication_and_cryptography/53_quantum_key_distribution.ipynb)).
+# ([53 — quantum key distribution](../ch12_quantum_communication_and_cryptography/53_quantum_key_distribution.ipynb)).
 #
 # **What we will do.** Everything, from the state to the measured number and its error bar.
 #
