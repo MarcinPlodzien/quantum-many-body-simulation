@@ -60,4 +60,4 @@ quarto publish gh-pages                                         # publish to Git
 
 ## License
 
-Code and lecture material (notebooks, text and figures) are released under the MIT License, see [LICENSE](LICENSE).
+Code and lecture material (notebooks, text and figures) are released under the MIT License, see [LICENSE](LICENSE). The image data files in `data/` keep the licences of their original datasets (MNIST: CC BY-SA 3.0; Fashion-MNIST: MIT), see [data/README.md](data/README.md).

@@ -261,6 +261,10 @@ website:
             contents:
               - href: ch13_quantum_machine_learning/55_data_reuploading_classifier.ipynb
                 text: "Data re-uploading — a universal quantum classifier from a single qubit"
+          - section: "Physics-inspired machine-learning models"
+            contents:
+              - href: ch13_quantum_machine_learning/56_tensor_networks_for_machine_learning.ipynb
+                text: "Tensor networks as machine-learning models"
       - text: "Engine source code"
         href: engine.qmd
   page-footer:

@@ -95,6 +95,7 @@ The differentiable simulator is used throughout Chapter 13 to build and train qu
 - [The quantum autoencoder, compressing quantum data with a variational circuit](ch13_quantum_machine_learning/45_quantum_autoencoder.ipynb) (notebook 45)
 - [Quantum reservoir computing, many-body dynamics as a machine for time-series prediction](ch13_quantum_machine_learning/46_quantum_reservoir_computing.ipynb) (notebook 46)
 - [The data re-uploading classifier, which encodes the input repeatedly into a trainable circuit](ch13_quantum_machine_learning/55_data_reuploading_classifier.ipynb) (notebook 55)
+- [Tensor networks as machine-learning models: a matrix product state classifier trained by sweeps and by automatic differentiation](ch13_quantum_machine_learning/56_tensor_networks_for_machine_learning.ipynb) (notebook 56)
 
 ## Quantum communication and cryptography
 
@@ -164,7 +165,7 @@ print(f"energy = {cost(theta):.4f}, gradient has {g.size} components")
 
 ## Chapters {#chapters}
 
-13 chapters, each a short overview page followed by runnable notebooks (65 in total). The notebooks are numbered globally; each one carries the engine functions it uses in a folded *Engine recap* cell and ends with exercises, so any notebook also runs and can be studied on its own.
+13 chapters, each a short overview page followed by runnable notebooks (66 in total). The notebooks are numbered globally; each one carries the engine functions it uses in a folded *Engine recap* cell and ends with exercises, so any notebook also runs and can be studied on its own.
 
 ::: {.chapter-grid}
 ::: {.chapter-card}
@@ -280,9 +281,9 @@ Simulate how information is sent reliably and kept secret, from Shannon's noisy 
 
 [13 · Quantum machine learning](chapters/ch13_quantum_machine_learning.qmd)
 
-Train quantum circuits and quantum dynamics as learning machines: gradients, optimisers, VQE, noise, kernels, reservoir computing and data re-uploading.
+Train quantum circuits and quantum dynamics as learning machines: gradients, optimisers, VQE, noise, kernels, reservoir computing, data re-uploading and tensor-network models.
 
-<span class="nbcount">13 notebooks</span>
+<span class="nbcount">14 notebooks</span>
 :::
 :::
 

@@ -1,4 +1,4 @@
-goal: Train quantum circuits and quantum dynamics as learning machines: gradients, optimisers, VQE, noise, kernels, reservoir computing and data re-uploading
+goal: Train quantum circuits and quantum dynamics as learning machines: gradients, optimisers, VQE, noise, kernels, reservoir computing, data re-uploading and tensor-network models
 ---
 Quantum machine learning uses a quantum system as a trainable model. Data enter through the preparation of a state or
 through the drive of a Hamiltonian, the output is read from expectation values or measurement statistics, and a
@@ -61,3 +61,12 @@ the output a Fourier series of degree $L$ in the data. It needs the Adam optimis
 40 and 41, notebook 01 (`jit`, `vmap`, `grad`, `lax.scan`) of [Chapter 1](ch01_computational_toolbox.qmd), the Bloch
 vectors, fidelities and reduced density matrices of notebook 06 in [Chapter 3](ch03_matrix_free_engine.qmd), and the
 rotations and the CZ gate of notebook 09 in [Chapter 4](ch04_digital_quantum_circuits.qmd).
+
+**Physics-inspired machine-learning models.** The tools of many-body physics also build classical models. Notebook 56
+maps every image to a product state of one qubit per pixel and stores the weight tensor of a linear classifier on these
+$2^{196}$-dimensional states as a matrix product state with a label index. It trains the model on handwritten digits
+by DMRG-like sweeps and by automatic differentiation of the whole contraction, and compares the entanglement of the
+trained classifier with that of the superposition of its training images. It needs the matrix product states, the
+singular value decomposition and the Schmidt values of notebook 18 in [Chapter 7](ch07_tensor_networks.qmd), the Adam
+optimiser of notebook 41, the tensor-leg diagrams of notebook 02 and notebook 01 (`jit`, `vmap`, `grad`, `lax.scan`) of
+[Chapter 1](ch01_computational_toolbox.qmd).

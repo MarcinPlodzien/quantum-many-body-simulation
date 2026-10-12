@@ -67,6 +67,15 @@ the output a Fourier series of degree $L$ in the data. It needs the Adam optimis
 vectors, fidelities and reduced density matrices of notebook 06 in [Chapter 3](ch03_matrix_free_engine.qmd), and the
 rotations and the CZ gate of notebook 09 in [Chapter 4](ch04_digital_quantum_circuits.qmd).
 
+**Physics-inspired machine-learning models.** The tools of many-body physics also build classical models. Notebook 56
+maps every image to a product state of one qubit per pixel and stores the weight tensor of a linear classifier on these
+$2^{196}$-dimensional states as a matrix product state with a label index. It trains the model on handwritten digits
+by DMRG-like sweeps and by automatic differentiation of the whole contraction, and compares the entanglement of the
+trained classifier with that of the superposition of its training images. It needs the matrix product states, the
+singular value decomposition and the Schmidt values of notebook 18 in [Chapter 7](ch07_tensor_networks.qmd), the Adam
+optimiser of notebook 41, the tensor-leg diagrams of notebook 02 and notebook 01 (`jit`, `vmap`, `grad`, `lax.scan`) of
+[Chapter 1](ch01_computational_toolbox.qmd).
+
 ## Notebooks in this chapter
 
 ### Foundations: parametrised circuits, gradients, optimisers and noise
@@ -161,5 +170,13 @@ A driven many-body spin system as a trainable machine: input injection by qubit 
 [Data re-uploading — a universal quantum classifier from a single qubit](../ch13_quantum_machine_learning/55_data_reuploading_classifier.ipynb)
 
 A single qubit that receives the data once separates classes only by a plane through the Bloch sphere; uploading the data $L$ times between trainable rotations turns it into a classifier for curved and non-convex regions. The notebook builds the protocol piece by piece in JAX (rotation layers $U(\boldsymbol\theta_i+\mathbf w_i\circ\mathbf x)$, maximally orthogonal label states, the fidelity and weighted fidelity costs, Adam training with vmap over random starts), compares test accuracies with the published tables, extends the classifier to two and four qubits with and without CZ entanglers, and shows that $L$ uploads make the output a Fourier series with frequencies up to $L$.
+:::
+
+### Physics-inspired machine-learning models
+
+::: {.nb-item}
+[Tensor networks as machine-learning models](../ch13_quantum_machine_learning/56_tensor_networks_for_machine_learning.ipynb)
+
+A classical image classifier built from the tools of quantum many-body physics: every image becomes a product state of one qubit per pixel, and the weight tensor of a linear model on these $2^{196}$-dimensional states is stored as a matrix product state with a label index. The notebook trains it on MNIST in two ways, by DMRG-like sweeps with a gradient step on a two-site bond tensor and an SVD split, and by reverse-mode automatic differentiation of the whole contraction with Adam; it checks that the gradient of a contraction is its environment, measures accuracy against bond dimension and training-set size, compares with published results, and shows that the trained classifier is far less entangled than the superposition of its training images.
 :::
 
