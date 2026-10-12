@@ -1,0 +1,15 @@
+% Four-qubit re-uploading classifier with entanglement (Perez-Salinas et al., Quantum 4, 226 (2020), Fig. 5b).
+% Each layer: one compressed rotation U(theta_{q,l} + w_{q,l} o x) on every qubit, then CZ gates alternating between
+% the pairs (0,1),(2,3) after odd layers and (1,2),(0,3) after even layers; no CZ after the last layer.
+% Without entanglement the CZ gates are absent.
+\documentclass[tikz,border=4pt]{standalone}
+\usepackage{amsmath,amssymb}
+\usetikzlibrary{quantikz}
+\begin{document}
+\begin{quantikz}[row sep=0.28cm, column sep=0.3cm]
+\lstick{$q_0\colon\ \ket{0}$} & \gate{U_{0,1}}\gategroup[4,steps=2,style={dashed,rounded corners,inner xsep=2pt},background,label style={label position=above,anchor=south,yshift=0.05cm}]{layer $1$} & \ctrl{1} & \gate{U_{0,2}}\gategroup[4,steps=3,style={dashed,rounded corners,inner xsep=2pt},background,label style={label position=above,anchor=south,yshift=0.05cm}]{layer $2$} & \ctrl{3} & \qw & \ \cdots\ & \gate{U_{0,L}}\gategroup[4,steps=1,style={dashed,rounded corners,inner xsep=2pt},background,label style={label position=above,anchor=south,yshift=0.05cm}]{layer $L$} & \meter{} \rstick[wires=4]{$\rho_q(\mathbf x)\ \to\ F_{c,q}$} \\
+\lstick{$q_1\colon\ \ket{0}$} & \gate{U_{1,1}} & \control{} & \gate{U_{1,2}} & \qw & \ctrl{1} & \ \cdots\ & \gate{U_{1,L}} & \meter{} \\
+\lstick{$q_2\colon\ \ket{0}$} & \gate{U_{2,1}} & \ctrl{1} & \gate{U_{2,2}} & \qw & \control{} & \ \cdots\ & \gate{U_{2,L}} & \meter{} \\
+\lstick{$q_3\colon\ \ket{0}$} & \gate{U_{3,1}} & \control{} & \gate{U_{3,2}} & \control{} & \qw & \ \cdots\ & \gate{U_{3,L}} & \meter{}
+\end{quantikz}
+\end{document}

@@ -1,4 +1,4 @@
-goal: Train quantum circuits and quantum dynamics as learning machines: gradients, optimisers, VQE, noise, kernels and reservoir computing
+goal: Train quantum circuits and quantum dynamics as learning machines: gradients, optimisers, VQE, noise, kernels, reservoir computing and data re-uploading
 ---
 Quantum machine learning uses a quantum system as a trainable model. Data enter through the preparation of a state or
 through the drive of a Hamiltonian, the output is read from expectation values or measurement statistics, and a
@@ -55,5 +55,9 @@ reset, notebooks 07 and 08 in [Chapter 3](ch03_matrix_free_engine.qmd); the Trot
 notebooks 16 and 17 in [Chapter 6](ch06_open_quantum_systems.qmd), used in Sections 4.5 and 10.
 
 **Data re-uploading classifier.** A classifier built from a single qubit becomes expressive when the classical input
-is encoded into the circuit repeatedly, each encoding followed by a trainable rotation. Notebook 55, in preparation,
-develops this model on one qubit and on a few qubits.
+is encoded into the circuit repeatedly, each encoding followed by a trainable rotation. Notebook 55
+develops this model on one qubit and on a few qubits, with and without entanglement, and shows that $L$ encodings make
+the output a Fourier series of degree $L$ in the data. It needs the Adam optimiser and the training loop of notebooks
+40 and 41, notebook 01 (`jit`, `vmap`, `grad`, `lax.scan`) of [Chapter 1](ch01_computational_toolbox.qmd), the Bloch
+vectors, fidelities and reduced density matrices of notebook 06 in [Chapter 3](ch03_matrix_free_engine.qmd), and the
+rotations and the CZ gate of notebook 09 in [Chapter 4](ch04_digital_quantum_circuits.qmd).

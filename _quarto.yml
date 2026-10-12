@@ -257,6 +257,10 @@ website:
             contents:
               - href: ch13_quantum_machine_learning/46_quantum_reservoir_computing.ipynb
                 text: "Quantum reservoir computing — many-body dynamics as a machine for time series"
+          - section: "Data re-uploading classifier"
+            contents:
+              - href: ch13_quantum_machine_learning/55_data_reuploading_classifier.ipynb
+                text: "Data re-uploading — a universal quantum classifier from a single qubit"
       - text: "Engine source code"
         href: engine.qmd
   page-footer:

@@ -60,8 +60,12 @@ reset, notebooks 07 and 08 in [Chapter 3](ch03_matrix_free_engine.qmd); the Trot
 notebooks 16 and 17 in [Chapter 6](ch06_open_quantum_systems.qmd), used in Sections 4.5 and 10.
 
 **Data re-uploading classifier.** A classifier built from a single qubit becomes expressive when the classical input
-is encoded into the circuit repeatedly, each encoding followed by a trainable rotation. Notebook 55, in preparation,
-develops this model on one qubit and on a few qubits.
+is encoded into the circuit repeatedly, each encoding followed by a trainable rotation. Notebook 55
+develops this model on one qubit and on a few qubits, with and without entanglement, and shows that $L$ encodings make
+the output a Fourier series of degree $L$ in the data. It needs the Adam optimiser and the training loop of notebooks
+40 and 41, notebook 01 (`jit`, `vmap`, `grad`, `lax.scan`) of [Chapter 1](ch01_computational_toolbox.qmd), the Bloch
+vectors, fidelities and reduced density matrices of notebook 06 in [Chapter 3](ch03_matrix_free_engine.qmd), and the
+rotations and the CZ gate of notebook 09 in [Chapter 4](ch04_digital_quantum_circuits.qmd).
 
 ## Notebooks in this chapter
 
@@ -149,5 +153,13 @@ Two-dimensional data on concentric rings are encoded into up to ten qubits by a 
 [Quantum reservoir computing — many-body dynamics as a machine for time series](../ch13_quantum_machine_learning/46_quantum_reservoir_computing.ipynb)
 
 A driven many-body spin system as a trainable machine: input injection by qubit reset (a replacement channel), Hamiltonian dynamics between injections as a feature map with fading memory, ridge-regression readout, memory capacity and its finite-data bias, NARMA and Santa Fe laser prediction against tuned classical baselines, density tensor versus trajectories, finite measurement statistics and decoherence.
+:::
+
+### Data re-uploading classifier
+
+::: {.nb-item}
+[Data re-uploading — a universal quantum classifier from a single qubit](../ch13_quantum_machine_learning/55_data_reuploading_classifier.ipynb)
+
+A single qubit that receives the data once separates classes only by a plane through the Bloch sphere; uploading the data $L$ times between trainable rotations turns it into a classifier for curved and non-convex regions. The notebook builds the protocol of Pérez-Salinas et al. piece by piece in JAX (rotation layers $U(\boldsymbol\theta_i+\mathbf w_i\circ\mathbf x)$, maximally orthogonal label states, the fidelity and weighted fidelity costs, Adam training with vmap over random starts), compares test accuracies with the published tables, extends the classifier to two and four qubits with and without CZ entanglers, and shows that $L$ uploads make the output a Fourier series with frequencies up to $L$.
 :::
 
