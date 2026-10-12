@@ -3,7 +3,7 @@
 #@description: The BB84 protocol simulated round by round with the engine, from random bases and measurements through sifting, error-rate estimation, parity-check error correction and random-hash privacy amplification to a final key that Alice and Bob share; the intercept-resend attack and its 25 % error rate; BBM92 with the source-replacement picture and Ekert's CHSH test; bit and phase errors, the Devetak-Winter rate and the uncertainty relation with quantum memory, which give the key rate 1 - 2h(Q) and its 11 % threshold, compared with the key extracted by the simulated protocol; device-independent key distribution and the practical attacks on real devices.
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
 # Alice and Bob want to encrypt their messages with the one-time pad of
 # [notebook 51](../ch12_quantum_communication_and_cryptography/51_secrecy_one_time_pad_and_authentication.ipynb), and
@@ -232,8 +232,8 @@ KETP, KETM = product_state("+"), product_state("-")
 #
 # ### 4.1 Four states in two bases
 #
-# The first protocol of quantum key distribution was proposed by Bennett and Brassard in 1984 and is called BB84 after
-# them. It uses the four states of two bases,
+# The first protocol of quantum key distribution was introduced in 1984 [[1]](#ref-1) and is called BB84 after
+# the initials of its authors and its year. It uses the four states of two bases,
 #
 # $$\begin{aligned}
 # Z\ \text{basis:}&\quad\text{bit }0\to\vert0\rangle,\qquad\text{bit }1\to\vert1\rangle,\\
@@ -296,10 +296,10 @@ for a in (0, 1):
 # 4. **Parameter estimation.** They choose a random subset of the sifted rounds, announce those bits and compare them.
 #    The fraction of disagreements is the **quantum bit error rate** (QBER) $Q$. The announced bits are discarded.
 # 5. **Abort test.** If $Q$ exceeds a threshold, they abort.
-# 6. **Error correction.** Public parity checks remove the remaining errors (Brassard and Salvail 1994; notebook 50,
+# 6. **Error correction.** Public parity checks remove the remaining errors ([[2]](#ref-2); notebook 50,
 #    Section 6.3).
-# 7. **Privacy amplification.** A public random hash shortens the key and removes Eve's partial knowledge (Bennett,
-#    Brassard and Robert 1988; notebook 51, Section 9).
+# 7. **Privacy amplification.** A public random hash shortens the key and removes Eve's partial knowledge ([[3]](#ref-3);
+#    notebook 51, Section 9).
 #
 # The order of the steps matters. The bases are announced only after Bob has measured, so while the qubit is in
 # flight nobody except Alice knows its basis. If Eve knew the basis, she could measure in it, learn the bit, and
@@ -723,14 +723,14 @@ plt.tight_layout(); plt.show()
 # \vert{-}{-}\rangle\big), \tag{9}$$
 #
 # the outcomes are equal in the $X$ basis too. Each outcome by itself is uniformly random. This is the protocol of
-# Bennett, Brassard and Mermin (1992), called BBM92.
+# [[4]](#ref-4), called BBM92.
 #
 # Equation (9) says more. When Alice measures her half in the $Z$ basis and finds $a$, Bob's qubit is left in
 # $\vert a\rangle$; when she measures in the $X$ basis, Bob's qubit is left in $\vert+\rangle$ or $\vert-\rangle$. In
 # both cases each outcome has probability $1/2$. Alice's measurement therefore **prepares** exactly the four BB84
 # states, with a random bit in a basis of her choice, on Bob's side. A BB84 sender is equivalent to a source of
 # $\vert\Phi^+\rangle$ in Alice's own laboratory, followed by a measurement of her half: from outside the laboratory the
-# two cannot be told apart. This is the **source-replacement** picture. Bennett, Brassard and Mermin showed this
+# two cannot be told apart. This is the **source-replacement** picture. Ref. [[4]](#ref-4) showed this
 # equivalence, and its use is that security can be analysed for the entanglement-based protocol, where monogamy
 # (notebook 52, Section 6.2) is directly applicable, and then holds for prepare-and-measure BB84 as well.
 #
@@ -784,9 +784,10 @@ for x in (0, 1):
 #
 # ### 6.2 E91 and the CHSH test
 #
-# Ekert (1991) proposed the first entanglement-based protocol, in which the pairs are tested with a Bell inequality.
+# The first entanglement-based protocol, in which the pairs are tested with a Bell inequality, was introduced in
+# [[5]](#ref-5).
 # Alice measures $\pm1$-valued observables $A_0$ or $A_1$ and Bob $B_0$ or $B_1$, chosen at random, and from the rounds
-# with each pair of settings they estimate the combination introduced by Clauser, Horne, Shimony and Holt (1969),
+# with each pair of settings they estimate the combination introduced in [[6]](#ref-6),
 # derived in [notebook 19](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb),
 #
 # $$S=\langle A_0B_0\rangle+\langle A_0B_1\rangle+\langle A_1B_0\rangle-\langle A_1B_1\rangle . \tag{10}$$
@@ -798,7 +799,7 @@ for x in (0, 1):
 # $$A_0\otimes(B_0+B_1)+A_1\otimes(B_0-B_1)=\sqrt2\,\big(Z\otimes Z+X\otimes X\big), \tag{11}$$
 #
 # because $B_0+B_1=\sqrt2Z$ and $B_0-B_1=\sqrt2X$. For $\vert\Phi^+\rangle$, $\langle ZZ\rangle=\langle XX\rangle=1$
-# and $S=2\sqrt2$. For the Werner pair of visibility $v$ (Werner 1989),
+# and $S=2\sqrt2$. For the Werner pair of visibility $v$ [[7]](#ref-7),
 # $\rho_W(v)=v\,\vert\Phi^+\rangle\langle\Phi^+\vert+(1-v)\,\mathbb 1/4$ (notebook 19, Section 11), the noise term has
 # zero correlators, so $\langle ZZ\rangle=\langle XX\rangle=v$ and $S=2\sqrt2\,v$. The error rate in either basis is
 # the probability of unequal outcomes, $Q=(1-\langle ZZ\rangle)/2=(1-v)/2$, hence
@@ -941,7 +942,7 @@ assert worst < TOL
 # How many secret bits can Alice and Bob extract per key round, in the limit of many rounds? Consider the
 # entanglement-based picture, and assume that every round is independent and identical, so that Alice, Bob and Eve
 # share many copies of one state $\rho_{ABE}$; Section 7.6 comments on this assumption. Alice's key bit is her $Z$
-# outcome $Z_A$. Devetak and Winter (2005) proved that one-way error correction and privacy amplification, with
+# outcome $Z_A$. Ref. [[8]](#ref-8) proved that one-way error correction and privacy amplification, with
 # messages from Alice to Bob only, achieve the rate
 #
 # $$r=H(Z_A\vert E)-H(Z_A\vert B). \tag{15}$$
@@ -971,7 +972,7 @@ assert worst < TOL
 #
 # ### 7.3 The uncertainty relation with quantum memory
 #
-# Berta, Christandl, Colbeck, Renes and Renner (2010) proved an uncertainty relation that includes quantum memories.
+# Ref. [[9]](#ref-9) proved an uncertainty relation that includes quantum memories.
 # For a qubit of Alice measured either in $Z$ or in $X$, and for any state $\rho_{ABE}$, it reads
 #
 # $$H(Z_A\vert E)+H(X_A\vert B)\;\geq\;1. \tag{17}$$
@@ -1057,8 +1058,8 @@ assert abs(single) < 1e-9
 # $$r\;\geq\;1-h(Q_X)-h(Q_Z)\;\xrightarrow{\;Q_X=Q_Z=Q\;}\;1-2h(Q). \tag{19}$$
 #
 # The first $h$ is the price of Eve's possible knowledge, paid in privacy amplification, and the second is the price of
-# error correction. This chain of inequalities is the argument of Berta and coauthors (2010), and it recovers the rate
-# that Shor and Preskill (2000) proved for BB84 with a different argument based on quantum error-correcting codes. It
+# error correction. This chain of inequalities is the argument of [[9]](#ref-9), and it recovers the rate
+# proved in [[10]](#ref-10) for BB84 with a different argument based on quantum error-correcting codes. It
 # vanishes when $h(Q)=1/2$, at
 #
 # $$Q^\ast=11.0\,\% . \tag{20}$$
@@ -1122,8 +1123,8 @@ assert abs(Q_STAR - 0.110028) < 1e-5
 # Werner pairs are entangled for $v>1/3$ (notebook 19, Section 11) and violate the CHSH inequality for $v>1/\sqrt2$.
 # Pairs with $1/3<v<0.78$ are entangled but give no key with the post-processing used here. Other post-processing
 # tolerates more noise: if Alice flips each of her key bits at random before error correction, one-way
-# communication still gives a key up to $Q=12.4\,\%$ (Kraus, Gisin and Renner 2005), and the two-way protocol of
-# Gottesman and Lo (2003) tolerates $18.9\,\%$. The last part of this chapter returns to noisy pairs and
+# communication still gives a key up to $Q=12.4\,\%$ [[11]](#ref-11), and the two-way protocol of
+# [[12]](#ref-12) tolerates $18.9\,\%$. The last part of this chapter returns to noisy pairs and
 # to how they can be purified before use.
 
 # %%
@@ -1145,7 +1146,7 @@ assert 1 / 3 < 1 / np.sqrt(2) < v_star                                       # e
 #
 # ### 7.6 Efficient BB84 and the classes of attacks
 #
-# With equal basis probabilities, half of the rounds are lost in sifting. Lo, Chau and Ardehali (2005) showed that the
+# With equal basis probabilities, half of the rounds are lost in sifting. Ref. [[13]](#ref-13) showed that the
 # bases may be chosen with very different probabilities, $Z$ almost always and $X$ only rarely, if the error rate is
 # estimated separately for each basis; the fraction of sifted rounds then approaches one.
 #
@@ -1155,10 +1156,10 @@ assert 1 / 3 < 1 / np.sqrt(2) < v_star                                       # e
 # way, but stores all her probes in a quantum memory and measures them jointly at the end, after hearing all public
 # messages. In **coherent attacks** she does the most general thing quantum mechanics allows, entangling all qubits with
 # one large probe. The rate of Eq. (19) was derived above for collective attacks, where the rounds are independent and
-# identical; for BB84 it holds against coherent attacks as well, as Shor and Preskill (2000) proved with an argument
+# identical; for BB84 it holds against coherent attacks as well, as proved in [[10]](#ref-10) with an argument
 # based on quantum error-correcting codes. A route that works for many protocols uses symmetry: Alice and Bob may
 # permute their rounds at random, and a state that is symmetric under permutations of many subsystems is close to a
-# mixture of independent and identical ones (Renner 2007), so the general case reduces to the independent one at the
+# mixture of independent and identical ones [[14]](#ref-14), so the general case reduces to the independent one at the
 # price of finite-size corrections. A key that passes the full analysis is secure in a strong sense: it may be used
 # in any later
 # protocol, such as the one-time pad, as if it were a perfectly random key unknown to Eve, up to a failure probability
@@ -1226,7 +1227,7 @@ assert runs[0]["ell"] > 0 and runs[-1]["ell"] <= 0                           # k
 # pessimistic value $\hat Q+\mu$, with $\mu$ a few standard errors, into the term for Eve's knowledge; error correction
 # on finite blocks leaks more than $n\,h(Q)$, as in Section 7.7; and privacy amplification needs a margin $s$ that grows
 # with the required security level. For small numbers of rounds these corrections exceed the rate itself, and no key
-# can be extracted at all. Tight finite-key analyses of BB84 are given by Tomamichel, Lim, Gisin and Renner (2012). The
+# can be extracted at all. Tight finite-key analyses of BB84 are given in [[15]](#ref-15). The
 # next cell shows the first correction with the engine: one simulation of $8\times10^5$ rounds at $Q=5\,\%$ is cut
 # into many independent test samples of size $k$, and the spread of $\hat Q$ is compared with Eq. (4); the last column
 # shows the rate $1-2h$ evaluated at $\hat Q+3\sigma_{\hat Q}$ instead of $Q$.
@@ -1262,13 +1263,13 @@ for k in (100, 1_000, 10_000):
 #
 # Every argument above assumes that Alice's and Bob's devices measure exactly $Z$ and $X$ on qubits. Real devices
 # deviate from their models, and Section 9 shows that such deviations have been exploited. **Device-independent** key
-# distribution drops this assumption. The idea goes back to Mayers and Yao (1998), who proposed to test untrusted
-# apparatus through its EPR correlations, and to Barrett, Hardy and Kent (2005), who derived security from a Bell
+# distribution drops this assumption. The idea goes back to [[16]](#ref-16), which proposed to test untrusted
+# apparatus through its EPR correlations, and to [[17]](#ref-17), which derived security from a Bell
 # violation alone, against an eavesdropper limited only by the impossibility of signalling faster than light. The
 # devices are black boxes with a setting as input and a bit as output, and
 # security is derived from the observed CHSH value $S$ of Eq. (10) alone. A value above $2$ certifies that the outcomes
 # were not fixed in advance, and a value near $2\sqrt2$ certifies a nearly maximally entangled pair, whatever the
-# devices do inside. For collective attacks Acín, Brunner, Gisin, Massar, Pironio and Scarani (2007) derived the bound
+# devices do inside. For collective attacks Ref. [[18]](#ref-18) derived the bound
 # on Eve's information as a function of $S$, which gives the rate
 #
 # $$r_{\rm DI}\;\geq\;1-h(Q)-h\!\left(\frac{1+\sqrt{(S/2)^2-1}}{2}\right). \tag{22}$$
@@ -1277,10 +1278,10 @@ for k in (100, 1_000, 10_000):
 # replaces $h(Q_X)$ as the bound on Eve's knowledge. For $S=2\sqrt2$ the square root is one and the second term
 # vanishes; for $S=2$ it is $h(1/2)=1$ and no key is possible. For Werner pairs, $S=2\sqrt2(1-2Q)$ by Eq. (12), and the
 # rate vanishes at $Q\approx7.1\,\%$, lower than the $11\,\%$ of BB84: fewer assumptions cost noise tolerance.
-# Security against general attacks was proved by Vazirani and Vidick (2014). Device-independent protocols need Bell
+# Security against general attacks was proved in [[19]](#ref-19). Device-independent protocols need Bell
 # tests without loopholes over long distances, which makes them much harder to run than BB84.
 #
-# An intermediate option is **measurement-device-independent** key distribution (Lo, Curty and Qi 2012): Alice and Bob
+# An intermediate option is **measurement-device-independent** key distribution [[20]](#ref-20): Alice and Bob
 # send states to an untrusted relay in the middle, which performs Bell measurements, so that every attack on the
 # detectors is removed while the sources must still be trusted.
 #
@@ -1356,18 +1357,18 @@ plt.tight_layout(); plt.show()
 # number of photons, and occasionally two or more. Eve can then keep one photon and forward the others, and once the
 # basis is announced she measures her photon in the right basis, learning the bit without causing any error. On a
 # lossy line she can also block single-photon pulses, so that Bob's detection rate stays at its expected value. This is
-# the **photon-number-splitting** attack, with which Brassard, Lütkenhaus, Mor and Sanders (2000) showed that weak-pulse
-# systems over lossy lines can be totally insecure. The **decoy-state** method defeats it (Hwang 2003; Lo, Ma and Chen 2005; Wang
-# 2005). Alice varies the intensity of her pulses at random and reveals the intensities only afterwards. Eve cannot
+# the **photon-number-splitting** attack, with which Ref. [[21]](#ref-21) showed that weak-pulse
+# systems over lossy lines can be totally insecure. The **decoy-state** method defeats it [[22]](#ref-22), [[23]](#ref-23),
+# [[24]](#ref-24). Alice varies the intensity of her pulses at random and reveals the intensities only afterwards. Eve cannot
 # treat pulses differently without knowing their intensity, and from the detection rates at each intensity Alice and
 # Bob estimate how many detections came from single-photon pulses; only those enter the key-rate formula.
 #
 # **Imperfect detectors.** Detectors and modulators deviate from their models, and each deviation is a potential side
-# channel. Lydersen and coauthors (2010) blinded the single-photon detectors of two commercial systems with bright light
+# channel. The authors of [[25]](#ref-25) blinded the single-photon detectors of two commercial systems with bright light
 # and controlled their clicks remotely, which makes it possible to acquire the full key without leaving a trace. The
 # answer is either to model and patch every such side channel, or to remove the assumptions that the attack exploits:
 # the measurement-device-independent protocol removes all detector attacks, and device-independent protocols remove the
-# assumptions on the devices altogether. The review by Scarani and coauthors (2009) treats the security of practical
+# assumptions on the devices altogether. The review [[26]](#ref-26) treats the security of practical
 # systems in detail.
 #
 # ## 10. Key takeaways
@@ -1441,75 +1442,108 @@ plt.tight_layout(); plt.show()
 #
 # ## References
 #
-# * C. H. Bennett and G. Brassard, *Quantum cryptography: Public key distribution and coin tossing*, in Proceedings of
-#   the IEEE International Conference on Computers, Systems and Signal Processing (Bangalore, 1984), p. 175; reprinted
-#   in Theor. Comput. Sci. **560**, 7 (2014), doi:10.1016/j.tcs.2014.05.025 — the BB84 protocol.
-# * A. K. Ekert, *Quantum cryptography based on Bell's theorem*, Phys. Rev. Lett. **67**, 661 (1991),
-#   doi:10.1103/PhysRevLett.67.661 — key distribution with entangled pairs tested by a Bell inequality.
-# * C. H. Bennett, G. Brassard and N. D. Mermin, *Quantum cryptography without Bell's theorem*, Phys. Rev. Lett. **68**,
-#   557 (1992), doi:10.1103/PhysRevLett.68.557 — the entanglement-based protocol BBM92, proved secure without Bell's
-#   theorem, and its equivalence with BB84.
-# * G. Brassard and L. Salvail, *Secret-key reconciliation by public discussion*, in *Advances in Cryptology —
-#   EUROCRYPT '93*, Lecture Notes in Computer Science **765**, 410 (Springer, 1994), doi:10.1007/3-540-48285-7\_35 —
-#   reconciliation of a shared key by public parity checks.
-# * C. H. Bennett, G. Brassard and J.-M. Robert, *Privacy amplification by public discussion*, SIAM J. Comput. **17**,
-#   210 (1988), doi:10.1137/0217014 — privacy amplification.
-# * R. F. Werner, *Quantum states with Einstein-Podolsky-Rosen correlations admitting a hidden-variable model*,
-#   Phys. Rev. A **40**, 4277 (1989), doi:10.1103/PhysRevA.40.4277 — the Werner states.
-# * J. F. Clauser, M. A. Horne, A. Shimony and R. A. Holt, *Proposed experiment to test local hidden-variable
-#   theories*, Phys. Rev. Lett. **23**, 880 (1969), doi:10.1103/PhysRevLett.23.880 — the CHSH inequality.
-# * P. W. Shor and J. Preskill, *Simple proof of security of the BB84 quantum key distribution protocol*, Phys. Rev.
-#   Lett. **85**, 441 (2000), doi:10.1103/PhysRevLett.85.441 — security of BB84 against general attacks through
-#   entanglement purification and quantum error-correcting codes, with the rate $1-2h(Q)$.
-# * I. Devetak and A. Winter, *Distillation of secret key and entanglement from quantum states*, Proc. R. Soc. A
-#   **461**, 207 (2005), doi:10.1098/rspa.2004.1372 — the secret-key rate achievable with one-way public communication
-#   from correlations shared with an eavesdropper.
-# * M. Berta, M. Christandl, R. Colbeck, J. M. Renes and R. Renner, *The uncertainty principle in the presence of
-#   quantum memory*, Nat. Phys. **6**, 659 (2010), doi:10.1038/nphys1734 — the uncertainty relation with quantum memory
-#   and its application to quantum key distribution.
-# * R. Renner, *Symmetry of large physical systems implies independence of subsystems*, Nat. Phys. **3**, 645 (2007),
-#   doi:10.1038/nphys684 — permutation symmetry of a many-part state implies that almost all parts are nearly
-#   independent and identical, which justifies the reduction to independent rounds.
-# * B. Kraus, N. Gisin and R. Renner, *Lower and upper bounds on the secret-key rate for quantum key distribution
-#   protocols using one-way classical communication*, Phys. Rev. Lett. **95**, 080501 (2005),
-#   doi:10.1103/PhysRevLett.95.080501 — security against general attacks reduced to collective attacks for one-way
-#   protocols, and the improvement of the BB84 threshold to 12.4 % by adding noise before error correction.
-# * D. Gottesman and H.-K. Lo, *Proof of security of quantum key distribution with two-way classical communications*,
-#   IEEE Trans. Inf. Theory **49**, 457 (2003), doi:10.1109/TIT.2002.807289 — two-way post-processing that lets BB84
-#   tolerate a bit error rate of up to 18.9 %.
-# * H.-K. Lo, H. F. Chau and M. Ardehali, *Efficient quantum key distribution scheme and a proof of its unconditional
-#   security*, J. Cryptol. **18**, 133 (2005), doi:10.1007/s00145-004-0142-y — biased basis choice with separate
-#   error-rate estimation for each basis.
-# * M. Tomamichel, C. C. W. Lim, N. Gisin and R. Renner, *Tight finite-key analysis for quantum cryptography*, Nat.
-#   Commun. **3**, 634 (2012), doi:10.1038/ncomms1631 — security of BB84 for a finite number of signals.
-# * A. Acín, N. Brunner, N. Gisin, S. Massar, S. Pironio and V. Scarani, *Device-independent security of quantum
-#   cryptography against collective attacks*, Phys. Rev. Lett. **98**, 230501 (2007),
-#   doi:10.1103/PhysRevLett.98.230501 — the bound on Eve's information as a function of the CHSH violation, and the
-#   device-independent key rate.
-# * D. Mayers and A. Yao, *Quantum cryptography with imperfect apparatus*, in Proceedings of the 39th Annual Symposium
-#   on Foundations of Computer Science (IEEE, 1998), p. 503, doi:10.1109/SFCS.1998.743501 — self-checking sources:
-#   apparatus whose adequacy for key distribution is certified by tests of its EPR correlations.
-# * J. Barrett, L. Hardy and A. Kent, *No signaling and quantum key distribution*, Phys. Rev. Lett. **95**, 010503
-#   (2005), doi:10.1103/PhysRevLett.95.010503 — key distribution secure against an eavesdropper limited only by
-#   no-signalling, with security from the violation of a Bell inequality.
-# * U. Vazirani and T. Vidick, *Fully device-independent quantum key distribution*, Phys. Rev. Lett. **113**, 140501
-#   (2014), doi:10.1103/PhysRevLett.113.140501 — device-independent security against general attacks with noisy devices.
-# * H.-K. Lo, M. Curty and B. Qi, *Measurement-device-independent quantum key distribution*, Phys. Rev. Lett. **108**,
-#   130503 (2012), doi:10.1103/PhysRevLett.108.130503 — key distribution through an untrusted relay, which removes all
-#   detector side channels.
-# * G. Brassard, N. Lütkenhaus, T. Mor and B. C. Sanders, *Limitations on practical quantum cryptography*, Phys. Rev.
-#   Lett. **85**, 1330 (2000), doi:10.1103/PhysRevLett.85.1330 — the photon-number-splitting attack, which makes
-#   weak-pulse systems over lossy lines insecure.
-# * W.-Y. Hwang, *Quantum key distribution with high loss: toward global secure communication*, Phys. Rev. Lett.
-#   **91**, 057901 (2003), doi:10.1103/PhysRevLett.91.057901 — the decoy-state idea against the photon-number-splitting
-#   attack.
-# * H.-K. Lo, X. Ma and K. Chen, *Decoy state quantum key distribution*, Phys. Rev. Lett. **94**, 230504 (2005),
-#   doi:10.1103/PhysRevLett.94.230504 — decoy states as a practical method that makes weak-pulse systems secure.
-# * X.-B. Wang, *Beating the photon-number-splitting attack in practical quantum cryptography*, Phys. Rev. Lett.
-#   **94**, 230503 (2005), doi:10.1103/PhysRevLett.94.230503 — a decoy-state protocol with vacuum and two intensities.
-# * L. Lydersen, C. Wiechers, C. Wittmann, D. Elser, J. Skaar and V. Makarov, *Hacking commercial quantum cryptography
-#   systems by tailored bright illumination*, Nat. Photon. **4**, 686 (2010), doi:10.1038/nphoton.2010.214 — remote
-#   control of the detectors of two commercial systems by bright illumination.
-# * V. Scarani, H. Bechmann-Pasquinucci, N. J. Cerf, M. Dušek, N. Lütkenhaus and M. Peev, *The security of practical
-#   quantum key distribution*, Rev. Mod. Phys. **81**, 1301 (2009), doi:10.1103/RevModPhys.81.1301 — review of quantum
-#   key distribution and of the security of its experimental platforms.
+# <span id="ref-1">[1]</span> C. H. Bennett and G. Brassard, *Quantum cryptography: Public key distribution and coin
+# tossing*, in Proceedings of the IEEE International Conference on Computers, Systems and Signal Processing
+# (Bangalore, 1984), p. 175; reprinted in Theor. Comput. Sci. **560**, 7 (2014), doi:10.1016/j.tcs.2014.05.025 — the
+# BB84 protocol.
+#
+# <span id="ref-2">[2]</span> G. Brassard and L. Salvail, *Secret-key reconciliation by public discussion*, in
+# *Advances in Cryptology — EUROCRYPT '93*, Lecture Notes in Computer Science **765**, 410 (Springer, 1994),
+# doi:10.1007/3-540-48285-7\_35 — reconciliation of a shared key by public parity checks.
+#
+# <span id="ref-3">[3]</span> C. H. Bennett, G. Brassard and J.-M. Robert, *Privacy amplification by public
+# discussion*, SIAM J. Comput. **17**, 210 (1988), doi:10.1137/0217014 — privacy amplification.
+#
+# <span id="ref-4">[4]</span> C. H. Bennett, G. Brassard and N. D. Mermin, *Quantum cryptography without Bell's
+# theorem*, Phys. Rev. Lett. **68**, 557 (1992), doi:10.1103/PhysRevLett.68.557 — the entanglement-based protocol
+# BBM92, proved secure without Bell's theorem, and its equivalence with BB84.
+#
+# <span id="ref-5">[5]</span> A. K. Ekert, *Quantum cryptography based on Bell's theorem*, Phys. Rev. Lett. **67**,
+# 661 (1991), doi:10.1103/PhysRevLett.67.661 — key distribution with entangled pairs tested by a Bell inequality.
+#
+# <span id="ref-6">[6]</span> J. F. Clauser, M. A. Horne, A. Shimony and R. A. Holt, *Proposed experiment to test
+# local hidden-variable theories*, Phys. Rev. Lett. **23**, 880 (1969), doi:10.1103/PhysRevLett.23.880 — the CHSH
+# inequality.
+#
+# <span id="ref-7">[7]</span> R. F. Werner, *Quantum states with Einstein-Podolsky-Rosen correlations admitting a
+# hidden-variable model*, Phys. Rev. A **40**, 4277 (1989), doi:10.1103/PhysRevA.40.4277 — the Werner states.
+#
+# <span id="ref-8">[8]</span> I. Devetak and A. Winter, *Distillation of secret key and entanglement from quantum
+# states*, Proc. R. Soc. A **461**, 207 (2005), doi:10.1098/rspa.2004.1372 — the secret-key rate achievable with
+# one-way public communication from correlations shared with an eavesdropper.
+#
+# <span id="ref-9">[9]</span> M. Berta, M. Christandl, R. Colbeck, J. M. Renes and R. Renner, *The uncertainty
+# principle in the presence of quantum memory*, Nat. Phys. **6**, 659 (2010), doi:10.1038/nphys1734 — the uncertainty
+# relation with quantum memory and its application to quantum key distribution.
+#
+# <span id="ref-10">[10]</span> P. W. Shor and J. Preskill, *Simple proof of security of the BB84 quantum key
+# distribution protocol*, Phys. Rev. Lett. **85**, 441 (2000), doi:10.1103/PhysRevLett.85.441 — security of BB84
+# against general attacks through entanglement purification and quantum error-correcting codes, with the rate
+# $1-2h(Q)$.
+#
+# <span id="ref-11">[11]</span> B. Kraus, N. Gisin and R. Renner, *Lower and upper bounds on the secret-key rate for
+# quantum key distribution protocols using one-way classical communication*, Phys. Rev. Lett. **95**, 080501 (2005),
+# doi:10.1103/PhysRevLett.95.080501 — security against general attacks reduced to collective attacks for one-way
+# protocols, and the improvement of the BB84 threshold to 12.4 % by adding noise before error correction.
+#
+# <span id="ref-12">[12]</span> D. Gottesman and H.-K. Lo, *Proof of security of quantum key distribution with two-way
+# classical communications*, IEEE Trans. Inf. Theory **49**, 457 (2003), doi:10.1109/TIT.2002.807289 — two-way
+# post-processing that lets BB84 tolerate a bit error rate of up to 18.9 %.
+#
+# <span id="ref-13">[13]</span> H.-K. Lo, H. F. Chau and M. Ardehali, *Efficient quantum key distribution scheme and a
+# proof of its unconditional security*, J. Cryptol. **18**, 133 (2005), doi:10.1007/s00145-004-0142-y — biased basis
+# choice with separate error-rate estimation for each basis.
+#
+# <span id="ref-14">[14]</span> R. Renner, *Symmetry of large physical systems implies independence of subsystems*,
+# Nat. Phys. **3**, 645 (2007), doi:10.1038/nphys684 — permutation symmetry of a many-part state implies that almost
+# all parts are nearly independent and identical, which justifies the reduction to independent rounds.
+#
+# <span id="ref-15">[15]</span> M. Tomamichel, C. C. W. Lim, N. Gisin and R. Renner, *Tight finite-key analysis for
+# quantum cryptography*, Nat. Commun. **3**, 634 (2012), doi:10.1038/ncomms1631 — security of BB84 for a finite number
+# of signals.
+#
+# <span id="ref-16">[16]</span> D. Mayers and A. Yao, *Quantum cryptography with imperfect apparatus*, in Proceedings
+# of the 39th Annual Symposium on Foundations of Computer Science (IEEE, 1998), p. 503, doi:10.1109/SFCS.1998.743501 —
+# self-checking sources: apparatus whose adequacy for key distribution is certified by tests of its EPR correlations.
+#
+# <span id="ref-17">[17]</span> J. Barrett, L. Hardy and A. Kent, *No signaling and quantum key distribution*, Phys.
+# Rev. Lett. **95**, 010503 (2005), doi:10.1103/PhysRevLett.95.010503 — key distribution secure against an
+# eavesdropper limited only by no-signalling, with security from the violation of a Bell inequality.
+#
+# <span id="ref-18">[18]</span> A. Acín, N. Brunner, N. Gisin, S. Massar, S. Pironio and V. Scarani,
+# *Device-independent security of quantum cryptography against collective attacks*, Phys. Rev. Lett. **98**, 230501
+# (2007), doi:10.1103/PhysRevLett.98.230501 — the bound on Eve's information as a function of the CHSH violation, and
+# the device-independent key rate.
+#
+# <span id="ref-19">[19]</span> U. Vazirani and T. Vidick, *Fully device-independent quantum key distribution*, Phys.
+# Rev. Lett. **113**, 140501 (2014), doi:10.1103/PhysRevLett.113.140501 — device-independent security against general
+# attacks with noisy devices.
+#
+# <span id="ref-20">[20]</span> H.-K. Lo, M. Curty and B. Qi, *Measurement-device-independent quantum key
+# distribution*, Phys. Rev. Lett. **108**, 130503 (2012), doi:10.1103/PhysRevLett.108.130503 — key distribution
+# through an untrusted relay, which removes all detector side channels.
+#
+# <span id="ref-21">[21]</span> G. Brassard, N. Lütkenhaus, T. Mor and B. C. Sanders, *Limitations on practical
+# quantum cryptography*, Phys. Rev. Lett. **85**, 1330 (2000), doi:10.1103/PhysRevLett.85.1330 — the
+# photon-number-splitting attack, which makes weak-pulse systems over lossy lines insecure.
+#
+# <span id="ref-22">[22]</span> W.-Y. Hwang, *Quantum key distribution with high loss: toward global secure
+# communication*, Phys. Rev. Lett. **91**, 057901 (2003), doi:10.1103/PhysRevLett.91.057901 — the decoy-state idea
+# against the photon-number-splitting attack.
+#
+# <span id="ref-23">[23]</span> H.-K. Lo, X. Ma and K. Chen, *Decoy state quantum key distribution*, Phys. Rev. Lett.
+# **94**, 230504 (2005), doi:10.1103/PhysRevLett.94.230504 — decoy states as a practical method that makes weak-pulse
+# systems secure.
+#
+# <span id="ref-24">[24]</span> X.-B. Wang, *Beating the photon-number-splitting attack in practical quantum
+# cryptography*, Phys. Rev. Lett. **94**, 230503 (2005), doi:10.1103/PhysRevLett.94.230503 — a decoy-state protocol
+# with vacuum and two intensities.
+#
+# <span id="ref-25">[25]</span> L. Lydersen, C. Wiechers, C. Wittmann, D. Elser, J. Skaar and V. Makarov, *Hacking
+# commercial quantum cryptography systems by tailored bright illumination*, Nat. Photon. **4**, 686 (2010),
+# doi:10.1038/nphoton.2010.214 — remote control of the detectors of two commercial systems by bright illumination.
+#
+# <span id="ref-26">[26]</span> V. Scarani, H. Bechmann-Pasquinucci, N. J. Cerf, M. Dušek, N. Lütkenhaus and M. Peev,
+# *The security of practical quantum key distribution*, Rev. Mod. Phys. **81**, 1301 (2009),
+# doi:10.1103/RevModPhys.81.1301 — review of quantum key distribution and of the security of its experimental
+# platforms.

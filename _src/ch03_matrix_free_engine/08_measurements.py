@@ -3,7 +3,7 @@
 #@description: Projective measurements of single spins in any Pauli basis, jit/vmap-compatible stochastic code with explicit PRNG keys, sampling bit strings, shot-noise statistics with error bars, reset and mid-circuit measurements.
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
 # A simulator hands us the full wave function: $2^N$ complex amplitudes, to sixteen digits, which a laboratory never sees.
 # What an experiment on $N$ spins (trapped ions, superconducting qubits, Rydberg atoms, cold atoms under a quantum-gas
@@ -17,9 +17,9 @@
 #
 # * it is the only **non-unitary, random** element of quantum mechanics — the state *changes* (collapses) when we look;
 # * measuring *part* of an entangled system changes the state of the rest: this can **destroy** entanglement (a cat state dies
-#   when one spin is observed) or **create** it between distant spins (measurement-based quantum computing, Raussendorf and Briegel 2001; entanglement swapping, Żukowski *et al.* 1993);
-# * **mid-circuit measurements with feedback** are the core of teleportation (Bennett *et al.* 1993), quantum error correction (Shor 1995), qubit reset and reuse,
-#   quantum reservoir computing, and of measurement-induced phase transitions (Li, Chen and Fisher 2018; Skinner, Ruhman and Nahum 2019) — all topics of later chapters of these notes.
+#   when one spin is observed) or **create** it between distant spins (measurement-based quantum computing [[1]](#ref-1); entanglement swapping [[2]](#ref-2));
+# * **mid-circuit measurements with feedback** are the core of teleportation [[3]](#ref-3), quantum error correction [[4]](#ref-4), qubit reset and reuse,
+#   quantum reservoir computing, and of measurement-induced phase transitions [[5]](#ref-5), [[6]](#ref-6) — all topics of later chapters of these notes.
 #
 # **What we will do.** We derive the Born rule and the collapse for one spin out of $N$ directly on the state *tensor*
 # (Sections 3–4), turn them into a function `measure_qubit` that contains **no Python branching on random values** and can therefore
@@ -97,12 +97,12 @@ def bits_to_str(bits):
 # %% [markdown]
 # ## 3. Theory: the measurement postulate for one spin out of $N$
 #
-# **The postulate** (as in your quantum mechanics course; Nielsen & Chuang, Sec. 2.2; Sakurai and Napolitano, Ch. 1). An observable is a Hermitian operator with spectral decomposition
+# **The postulate** (as in your quantum mechanics course; [[7]](#ref-7), Sec. 2.2; [[8]](#ref-8), Ch. 1). An observable is a Hermitian operator with spectral decomposition
 # $O=\sum_m\lambda_m\Pi_m$, where $\Pi_m$ projects onto the eigenspace of the eigenvalue $\lambda_m$
 # ($\Pi_m\Pi_{m'}=\delta_{mm'}\Pi_m$, $\sum_m\Pi_m=\mathbb 1$). Measuring $O$ on the state $|\psi\rangle$
 #
-# 1. gives the result $\lambda_m$ with probability $p(m)=\langle\psi|\Pi_m|\psi\rangle=\|\Pi_m|\psi\rangle\|^2$ (**Born rule**, Born 1926);
-# 2. leaves the system in the state $|\psi_m\rangle=\Pi_m|\psi\rangle/\sqrt{p(m)}$ (**collapse**, the projection postulate of von Neumann 1932).
+# 1. gives the result $\lambda_m$ with probability $p(m)=\langle\psi|\Pi_m|\psi\rangle=\|\Pi_m|\psi\rangle\|^2$ (**Born rule** [[9]](#ref-9));
+# 2. leaves the system in the state $|\psi_m\rangle=\Pi_m|\psi\rangle/\sqrt{p(m)}$ (**collapse**, the projection postulate introduced in [[10]](#ref-10)).
 #
 # **One spin out of many.** We measure $Z_q$ on spin $q$ of an $N$-spin register. The eigenvalues are $\pm1=(-1)^m$ and the projectors are
 #
@@ -125,13 +125,13 @@ def bits_to_str(bits):
 # Three qualifications belong to the statement above; all three come back later in these notes.
 #
 # * **Projective measurements as a special case.** The postulate as written is the *projective* (von Neumann) case. The general measurement
-#   postulate (Davies and Lewis 1970; Kraus 1971) replaces the projectors by any family of operators $M_m$ with $\sum_mM_m^\dagger M_m=\mathbb 1$, giving
+#   postulate [[11]](#ref-11), [[12]](#ref-12) replaces the projectors by any family of operators $M_m$ with $\sum_mM_m^\dagger M_m=\mathbb 1$, giving
 #   $p(m)=\langle\psi\vert M_m^\dagger M_m\vert\psi\rangle$ and $\vert\psi_m\rangle=M_m\vert\psi\rangle/\sqrt{p(m)}$;
 #   projective measurements are the special case $M_m=\Pi_m$ with $\Pi_m^\dagger=\Pi_m=\Pi_m^2$. The $M_m$ are the Kraus
 #   operators of [notebook 07](07_density_matrices_and_quantum_channels.ipynb). A photodetector that absorbs the photon it
 #   counts is a measurement of this general kind and is *not* described by the projection rule above.
 # * **The post-measurement state is a second assumption.** For a degenerate eigenvalue, $\vert\psi_m\rangle\propto\Pi_m\vert\psi\rangle$
-#   is the *Lüders rule* (Lüders 1950): the state is disturbed as little as the outcome allows. It is what an ideal repeatable apparatus does —
+#   is the *Lüders rule* [[13]](#ref-13): the state is disturbed as little as the outcome allows. It is what an ideal repeatable apparatus does —
 #   measure twice in a row and get the same answer — and it is the rule we implement; a real apparatus can reproduce the Born
 #   probabilities and still leave a different state behind.
 # * **Selective versus non-selective.** The update is the state we assign *given* that the outcome $m$ has been read. If the
@@ -185,7 +185,7 @@ for m, P in enumerate((P0, P1)):
 #
 # **Drawing the outcome.** A two-outcome random variable with $P(m{=}0)=p_0$ is obtained from one uniform random number $u\in[0,1)$: set $m=0$ if $u<p_0$ and $m=1$ otherwise.
 #
-# **Randomness in JAX** (recap of notebook 01; JAX documentation, *Pseudorandom numbers*). There is no hidden global random state. Every random function takes an explicit **key**; the same key always produces the same number.
+# **Randomness in JAX** (recap of notebook 01; [[14]](#ref-14)). There is no hidden global random state. Every random function takes an explicit **key**; the same key always produces the same number.
 # To get independent numbers we `split` a key into new ones and *never reuse a key*. This discipline is what makes a stochastic simulation reproducible, parallelisable
 # (each shot gets its own key — no ordering issues) and compatible with `jit`.
 #
@@ -455,7 +455,7 @@ assert float(jnp.min(fid)) > 1 - 1e2 * TOL
 #
 # ### 9.1 GHZ versus W, $Z$ versus $X$
 #
-# Take $N=6$ spins, measure spin 0, and ask how much entanglement survives *among the remaining spins* (for three qubits Dür, Vidal and Cirac (2000) showed that the W state, unlike GHZ, keeps maximal bipartite entanglement when one qubit is traced out). We quantify it by the entanglement entropy of the block $A=\{1,2\}$ (after the measurement spin 0 is in a
+# Take $N=6$ spins, measure spin 0, and ask how much entanglement survives *among the remaining spins* (for three qubits Ref. [[15]](#ref-15) showed that the W state, unlike GHZ, keeps maximal bipartite entanglement when one qubit is traced out). We quantify it by the entanglement entropy of the block $A=\{1,2\}$ (after the measurement spin 0 is in a
 # product state with the rest, so this is the entanglement between $\{1,2\}$ and $\{3,4,5\}$). Pencil-and-paper expectations:
 #
 # * **GHZ, $Z$ basis**: collapse to $|0\dots0\rangle$ or $|1\dots1\rangle$ — a product state, $S=0$. All entanglement is destroyed.
@@ -512,7 +512,7 @@ assert results[("GHZ", "Z")][4] < 1e3 * TOL and abs(results[("GHZ", "X")][4] - 1
 # $$\rho'=\sum_mp(m)|\psi_m\rangle\langle\psi_m|=\sum_m\Pi_m\,|\psi\rangle\langle\psi|\,\Pi_m .$$
 #
 # The derivation is one line ($p(m)|\psi_m\rangle\langle\psi_m|=\Pi_m|\psi\rangle\langle\psi|\Pi_m$ by the collapse rule). In the density matrix this *deletes all matrix elements between the sectors $s_q=0$ and $s_q=1$* and leaves the rest untouched: complete
-# **dephasing** of spin $q$, one of the noise channels of notebook 07, so an unread measurement and decoherence by an environment are the same map. The same fact underlies the principle of implicit measurement (Nielsen & Chuang, Sec. 4.4): an unread measurement of one qubit does not change the reduced state of the others. We verify it by averaging projectors over shots; the exact channel is two `apply_gate` calls per term on the density *tensor*
+# **dephasing** of spin $q$, one of the noise channels of notebook 07, so an unread measurement and decoherence by an environment are the same map. The same fact underlies the principle of implicit measurement ([[7]](#ref-7), Sec. 4.4): an unread measurement of one qubit does not change the reduced state of the others. We verify it by averaging projectors over shots; the exact channel is two `apply_gate` calls per term on the density *tensor*
 # ($\Pi_m$ on the ket axis $q$, $\Pi_m^*$ on the bra axis $N+q$). The size of the statistical error is known exactly: every post-measurement state is pure, $\||\psi\rangle\langle\psi|\|_F=1$, so the
 # average $\bar\rho$ of $M$ of them satisfies $\mathbb E\|\bar\rho-\rho'\|_F^2=(1-\mathrm{Tr}\,\rho'^2)/M$.
 
@@ -579,7 +579,7 @@ print(f"\nlargest coherence between the sectors s_1=0 and s_1=1:  before {coh_be
 # $s_q=(i\gg(N-1-q))\,\&\,1$ (shift and mask; spin 0 is the most significant bit). No collapse bookkeeping — and no post-measurement state, which for a complete readout is just $|s\rangle$ anyway.
 # Other bases: rotate every spin first with its $U$ from Section 6 (a string like `"XZY"`).
 #
-# **How to draw from a discrete distribution in JAX.** `jax.random.categorical(key, logits, shape=(shots,))` takes *log*-probabilities and uses the Gumbel-max trick: it adds independent Gumbel noise (Gumbel 1958) $g_i$ to every
+# **How to draw from a discrete distribution in JAX.** `jax.random.categorical(key, logits, shape=(shots,))` takes *log*-probabilities and uses the Gumbel-max trick: it adds independent Gumbel noise [[16]](#ref-16) $g_i$ to every
 # $\log p_i$ and returns $\arg\max_i(\log p_i+g_i)$, which is distributed exactly according to $p$. It is simple and parallel, at a cost of **$2^N$ random numbers per shot**. We clip $p$ before the logarithm because $\log0=-\infty$.
 
 # %%
@@ -624,7 +624,7 @@ assert float(jnp.min(overlap)) > 1 - 1e2 * TOL
 
 # %% [markdown]
 # Both samplers return only `0000` and `1111`, roughly half and half, and the sequentially collapsed state is exactly the basis state named by the record. For a quantitative test we need a state with a non-trivial distribution and a
-# proper statistical criterion (Press *et al.* 2007, §14.3). For $M$ shots distributed over $K$ bins with expected counts $Mp_s$, the statistic of Pearson (1900)
+# proper statistical criterion ([[17]](#ref-17), §14.3). For $M$ shots distributed over $K$ bins with expected counts $Mp_s$, the statistic introduced in [[18]](#ref-18)
 #
 # $$\chi^2=\sum_s\frac{(n_s-Mp_s)^2}{Mp_s}$$
 #
@@ -684,7 +684,7 @@ fig.tight_layout(); plt.show()
 # ### 10.2 A cheaper sampler for many shots: the inverse CDF
 #
 # The Gumbel-max trick spends $2^N$ random numbers *per shot*: for $N=12$ and $10^4$ shots that is $4\times10^7$ numbers and as many logarithms, and the memory grows as shots $\times\,2^N$.
-# The classic alternative is **inverse-transform sampling** (Devroye 1986; Press *et al.* 2007, §7.3): compute the cumulative distribution $c_i=\sum_{j\le i}p_j$ once ($O(2^N)$), draw *one* uniform number $u$ per shot and find the first index with $c_i>u$
+# The classic alternative is **inverse-transform sampling** ([[19]](#ref-19); [[17]](#ref-17), §7.3): compute the cumulative distribution $c_i=\sum_{j\le i}p_j$ once ($O(2^N)$), draw *one* uniform number $u$ per shot and find the first index with $c_i>u$
 # by binary search (`jnp.searchsorted`, $O(N)$ per shot). Picture the interval $[0,1)$ cut into $2^N$ segments of lengths $p_i$: a uniformly thrown dart lands in segment $i$ with probability $p_i$.
 # We write it with an engine-style docstring and use it whenever we need very many shots.
 
@@ -887,7 +887,7 @@ fig.tight_layout(); plt.show()
 # %% [markdown]
 # ## 12. A Bell pair measured along different axes
 #
-# The cleanest demonstration that measurement outcomes on entangled spins are correlated *in every basis* — the raw material of Bell inequalities (Bell 1964; Clauser, Horne, Shimony and Holt 1969; textbook treatment: Sakurai and Napolitano, Ch. 3) and of entanglement-based quantum key distribution (Ekert 1991). For two spins define the correlation of outcomes
+# The cleanest demonstration that measurement outcomes on entangled spins are correlated *in every basis* — the raw material of Bell inequalities ([[20]](#ref-20), [[21]](#ref-21); textbook treatment: [[8]](#ref-8), Ch. 3) and of entanglement-based quantum key distribution [[22]](#ref-22). For two spins define the correlation of outcomes
 #
 # $$E(a,b)=\langle\sigma_a\otimes\sigma_b\rangle=P(\text{same})-P(\text{different}),$$
 #
@@ -988,7 +988,7 @@ fig.tight_layout(); plt.show()
 #
 # $$P_{\rm survive}(n)=\exp\Big(-\frac{\pi^2}{4n}+O(n^{-3})\Big)=1-\frac{\pi^2}{4n}+O(n^{-2})\;\longrightarrow\;1 .$$
 #
-# A watched spin does not flip: frequent measurement freezes the dynamics, and the deficit closes like $1/n$. This is the quantum Zeno effect, named by Misra and Sudarshan (1977) and observed with trapped ions by Itano, Heinzen, Bollinger and Wineland (1990). The reason is that for short times transition probabilities grow *quadratically*, $\sin^2(\epsilon/2)\approx\epsilon^2/4$,
+# A watched spin does not flip: frequent measurement freezes the dynamics, and the deficit closes like $1/n$. This is the quantum Zeno effect, named in [[23]](#ref-23) and observed with trapped ions in [[24]](#ref-24). The reason is that for short times transition probabilities grow *quadratically*, $\sin^2(\epsilon/2)\approx\epsilon^2/4$,
 # so $n$ interruptions cost only $n\cdot(\pi/2n)^2=\pi^2/4n\to0$ instead of the $O(1)$ they would cost if the probability grew linearly in time. Per unit of the swept angle the effective flip rate therefore vanishes as $1/n$.
 
 # %%
@@ -1038,7 +1038,7 @@ ax.set_title("Quantum Zeno effect"); ax.legend(fontsize=8); fig.tight_layout(); 
 #
 # ### 13.2 Entanglement *created* by measurement
 #
-# Section 9 showed measurements destroying entanglement. They can also **create** it between spins that never interacted directly. Take the 1D cluster state of notebook 06 ($|{+}\rangle^{\otimes N}$ followed by controlled-$Z$ on every bond; Briegel and Raussendorf 2001), the resource of the one-way quantum computer, in which single-spin measurements are the whole computation (Raussendorf and Briegel 2001). Its stabilisers
+# Section 9 showed measurements destroying entanglement. They can also **create** it between spins that never interacted directly. Take the 1D cluster state of notebook 06 ($|{+}\rangle^{\otimes N}$ followed by controlled-$Z$ on every bond; introduced in [[25]](#ref-25)), the resource of the one-way quantum computer, in which single-spin measurements are the whole computation [[1]](#ref-1). Its stabilisers
 # connect a site only to its neighbours, and in fact **no pair of its spins is entangled at all**: every two-spin reduced state is separable, either exactly $\mathbb 1/4$ in the bulk or, at the two ends of the open chain, the classically correlated
 # $\rho_{01}=(\mathbb 1+X_0Z_1)/4$ and $\rho_{N-2,N-1}=(\mathbb 1+Z_{N-2}X_{N-1})/4$ that the end stabilisers $X_0Z_1$ and $Z_{N-2}X_{N-1}$ produce. The entanglement of the cluster state is genuinely multipartite, which is exactly why measurements can
 # concentrate it into a pair. Its two end spins in particular are **not entangled with each other**: for $N\ge4$ their reduced state is $\mathbb 1/4$ (no correlations whatsoever), and for $N=3$ it is the classical mixture
@@ -1046,7 +1046,7 @@ ax.set_title("Quantum Zeno effect"); ax.legend(fontsize=8); fig.tight_layout(); 
 # (eigenvalue $+1$ each). The products $K_0K_2=X_0X_2$ and $K_1$ commute with the measured $X_1$, so they remain valid after the measurement, with $X_1$ replaced by its outcome $(-1)^m$:
 # the ends are left in the state with $X_0X_2=+1$ and $Z_0Z_2=(-1)^m$ — a Bell state, $|\Phi^+\rangle$ or $|\Psi^+\rangle$ depending on the outcome. For $N=7$ the same reasoning uses
 # $K_0K_2K_4K_6=X_0X_2X_4X_6$ and $K_1K_3K_5=Z_0X_1X_3X_5Z_6$, which give $X_0X_6=(-1)^{m_2+m_4}$ and $Z_0Z_6=(-1)^{m_1+m_3+m_5}$. Measuring the middle spin in $Z$ instead *cuts* the chain and leaves a product state.
-# This is the elementary step of measurement-based quantum computing and of entanglement swapping (Żukowski *et al.* 1993) in quantum repeaters (Briegel *et al.* 1998).
+# This is the elementary step of measurement-based quantum computing and of entanglement swapping [[2]](#ref-2) in quantum repeaters [[26]](#ref-26).
 
 # %%
 # ==============================================================================
@@ -1189,20 +1189,56 @@ for shots in (1000, 10000):
 #
 # ## References
 #
-# * M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information* (Cambridge University Press, 2000) — measurement postulate and projective measurements (Sec. 2.2), principle of deferred/implicit measurement (Sec. 4.4).
-# * M. Born, *Zur Quantenmechanik der Stoßvorgänge*, Z. Phys. **37**, 863 (1926); J. von Neumann, *Mathematische Grundlagen der Quantenmechanik* (Springer, Berlin, 1932); G. Lüders, *Über die Zustandsänderung durch den Meßprozeß*, Ann. Phys. **443**, 322 (1950).
-# * E. B. Davies and J. T. Lewis, *An operational approach to quantum probability*, Commun. Math. Phys. **17**, 239 (1970); K. Kraus, *General state changes in quantum theory*, Ann. Phys. **64**, 311 (1971).
-# * K. Pearson, *On the criterion that a given system of deviations from the probable in the case of a correlated system of variables is such that it can be reasonably supposed to have arisen from random sampling*, Phil. Mag. (5) **50**, 157 (1900).
-# * J. J. Sakurai and J. Napolitano, *Modern Quantum Mechanics*, 3rd ed. (Cambridge University Press, 2020) — measurement, spin-1/2 and Stern–Gerlach sequences (Ch. 1, *Fundamental Concepts*), spin correlation measurements and Bell's inequality (Ch. 3, *Theory of Angular Momentum*).
-# * J. S. Bell, *On the Einstein Podolsky Rosen paradox*, Physics **1**, 195 (1964); J. F. Clauser, M. A. Horne, A. Shimony, R. A. Holt, *Proposed experiment to test local hidden-variable theories*, Phys. Rev. Lett. **23**, 880 (1969); A. K. Ekert, *Quantum cryptography based on Bell's theorem*, Phys. Rev. Lett. **67**, 661 (1991).
-# * C. H. Bennett, G. Brassard, C. Crépeau, R. Jozsa, A. Peres, W. K. Wootters, *Teleporting an unknown quantum state via dual classical and Einstein-Podolsky-Rosen channels*, Phys. Rev. Lett. **70**, 1895 (1993); P. W. Shor, *Scheme for reducing decoherence in quantum computer memory*, Phys. Rev. A **52**, R2493 (1995).
-# * M. Żukowski, A. Zeilinger, M. A. Horne, A. K. Ekert, *"Event-ready-detectors" Bell experiment via entanglement swapping*, Phys. Rev. Lett. **71**, 4287 (1993); H.-J. Briegel, W. Dür, J. I. Cirac, P. Zoller, *Quantum repeaters: the role of imperfect local operations in quantum communication*, Phys. Rev. Lett. **81**, 5932 (1998).
-# * Y. Li, X. Chen, M. P. A. Fisher, *Quantum Zeno effect and the many-body entanglement transition*, Phys. Rev. B **98**, 205136 (2018); B. Skinner, J. Ruhman, A. Nahum, *Measurement-induced phase transitions in the dynamics of entanglement*, Phys. Rev. X **9**, 031009 (2019).
-# * B. Misra and E. C. G. Sudarshan, *The Zeno's paradox in quantum theory*, J. Math. Phys. **18**, 756 (1977); W. M. Itano, D. J. Heinzen, J. J. Bollinger, D. J. Wineland, *Quantum Zeno effect*, Phys. Rev. A **41**, 2295 (1990).
-# * W. Dür, G. Vidal, J. I. Cirac, *Three qubits can be entangled in two inequivalent ways*, Phys. Rev. A **62**, 062314 (2000) — robustness of W versus GHZ.
-# * H. J. Briegel and R. Raussendorf, *Persistent entanglement in arrays of interacting particles*, Phys. Rev. Lett. **86**, 910 (2001); R. Raussendorf and H. J. Briegel, *A one-way quantum computer*, Phys. Rev. Lett. **86**, 5188 (2001).
-# * E. J. Gumbel, *Statistics of Extremes* (Columbia University Press, 1958) — the distribution behind the Gumbel-max trick; L. Devroye, *Non-Uniform Random Variate Generation* (Springer, 1986) — inverse-transform sampling.
-# * W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes: The Art of Scientific Computing*, 3rd ed. (Cambridge University Press, 2007) — Section 7.3 (*Deviates from Other Distributions*: the transformation
+# <span id="ref-1">[1]</span> R. Raussendorf and H. J. Briegel, *A one-way quantum computer*, Phys. Rev. Lett. **86**, 5188 (2001).
+#
+# <span id="ref-2">[2]</span> M. Żukowski, A. Zeilinger, M. A. Horne, A. K. Ekert, *"Event-ready-detectors" Bell experiment via entanglement swapping*, Phys. Rev. Lett. **71**, 4287 (1993).
+#
+# <span id="ref-3">[3]</span> C. H. Bennett, G. Brassard, C. Crépeau, R. Jozsa, A. Peres, W. K. Wootters, *Teleporting an unknown quantum state via dual classical and Einstein-Podolsky-Rosen channels*, Phys. Rev. Lett. **70**, 1895 (1993).
+#
+# <span id="ref-4">[4]</span> P. W. Shor, *Scheme for reducing decoherence in quantum computer memory*, Phys. Rev. A **52**, R2493 (1995).
+#
+# <span id="ref-5">[5]</span> Y. Li, X. Chen, M. P. A. Fisher, *Quantum Zeno effect and the many-body entanglement transition*, Phys. Rev. B **98**, 205136 (2018).
+#
+# <span id="ref-6">[6]</span> B. Skinner, J. Ruhman, A. Nahum, *Measurement-induced phase transitions in the dynamics of entanglement*, Phys. Rev. X **9**, 031009 (2019).
+#
+# <span id="ref-7">[7]</span> M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information* (Cambridge University Press, 2000) — measurement postulate and projective measurements (Sec. 2.2), principle of deferred/implicit measurement (Sec. 4.4).
+#
+# <span id="ref-8">[8]</span> J. J. Sakurai and J. Napolitano, *Modern Quantum Mechanics*, 3rd ed. (Cambridge University Press, 2020) — measurement, spin-1/2 and Stern–Gerlach sequences (Ch. 1, *Fundamental Concepts*), spin correlation measurements and Bell's inequality (Ch. 3, *Theory of Angular Momentum*).
+#
+# <span id="ref-9">[9]</span> M. Born, *Zur Quantenmechanik der Stoßvorgänge*, Z. Phys. **37**, 863 (1926).
+#
+# <span id="ref-10">[10]</span> J. von Neumann, *Mathematische Grundlagen der Quantenmechanik* (Springer, Berlin, 1932).
+#
+# <span id="ref-11">[11]</span> E. B. Davies and J. T. Lewis, *An operational approach to quantum probability*, Commun. Math. Phys. **17**, 239 (1970).
+#
+# <span id="ref-12">[12]</span> K. Kraus, *General state changes in quantum theory*, Ann. Phys. **64**, 311 (1971).
+#
+# <span id="ref-13">[13]</span> G. Lüders, *Über die Zustandsänderung durch den Meßprozeß*, Ann. Phys. **443**, 322 (1950).
+#
+# <span id="ref-14">[14]</span> JAX documentation, *Pseudorandom numbers* (https://docs.jax.dev) — design of the explicit-key PRNG.
+#
+# <span id="ref-15">[15]</span> W. Dür, G. Vidal, J. I. Cirac, *Three qubits can be entangled in two inequivalent ways*, Phys. Rev. A **62**, 062314 (2000) — robustness of W versus GHZ.
+#
+# <span id="ref-16">[16]</span> E. J. Gumbel, *Statistics of Extremes* (Columbia University Press, 1958) — the distribution behind the Gumbel-max trick.
+#
+# <span id="ref-17">[17]</span> W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes: The Art of Scientific Computing*, 3rd ed. (Cambridge University Press, 2007) — Section 7.3 (*Deviates from Other Distributions*: the transformation
 #   and inverse-CDF methods used in Section 10.2) and Section 14.3 (*Are Two Distributions Different?*: the $\chi^2$ test and its degrees of freedom); the same algorithms in *Numerical Recipes in Fortran 90*, 2nd ed. (Cambridge University Press, 1996).
-# * JAX documentation, *Pseudorandom numbers* (https://docs.jax.dev) — design of the explicit-key PRNG.
+#
+# <span id="ref-18">[18]</span> K. Pearson, *On the criterion that a given system of deviations from the probable in the case of a correlated system of variables is such that it can be reasonably supposed to have arisen from random sampling*, Phil. Mag. (5) **50**, 157 (1900).
+#
+# <span id="ref-19">[19]</span> L. Devroye, *Non-Uniform Random Variate Generation* (Springer, 1986) — inverse-transform sampling.
+#
+# <span id="ref-20">[20]</span> J. S. Bell, *On the Einstein Podolsky Rosen paradox*, Physics **1**, 195 (1964).
+#
+# <span id="ref-21">[21]</span> J. F. Clauser, M. A. Horne, A. Shimony, R. A. Holt, *Proposed experiment to test local hidden-variable theories*, Phys. Rev. Lett. **23**, 880 (1969).
+#
+# <span id="ref-22">[22]</span> A. K. Ekert, *Quantum cryptography based on Bell's theorem*, Phys. Rev. Lett. **67**, 661 (1991).
+#
+# <span id="ref-23">[23]</span> B. Misra and E. C. G. Sudarshan, *The Zeno's paradox in quantum theory*, J. Math. Phys. **18**, 756 (1977).
+#
+# <span id="ref-24">[24]</span> W. M. Itano, D. J. Heinzen, J. J. Bollinger, D. J. Wineland, *Quantum Zeno effect*, Phys. Rev. A **41**, 2295 (1990).
+#
+# <span id="ref-25">[25]</span> H. J. Briegel and R. Raussendorf, *Persistent entanglement in arrays of interacting particles*, Phys. Rev. Lett. **86**, 910 (2001).
+#
+# <span id="ref-26">[26]</span> H.-J. Briegel, W. Dür, J. I. Cirac, P. Zoller, *Quantum repeaters: the role of imperfect local operations in quantum communication*, Phys. Rev. Lett. **81**, 5932 (1998).
 

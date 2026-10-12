@@ -3,7 +3,7 @@
 #@description: A mean-field argument turns the linear Schrödinger equation into the nonlinear Gross-Pitaevskii equation; we derive its bright-soliton solution in closed form, find it numerically by imaginary-time relaxation, and propagate it in real time with a split-step Fourier integrator — a wave packet that moves without spreading, with full error analysis and animations.
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
 # Quantum mechanics is linear. The superposition principle is one of its axioms: if
 # $\psi_1$ and $\psi_2$ solve the Schrödinger equation, so does $\alpha\psi_1 + \beta\psi_2$. Notebook
@@ -21,8 +21,8 @@
 # explains where such an equation comes from in a theory that is linear by construction. In short, Eq. (1)
 # describes **one orbital occupied by $N$ particles at once**, with the other $N-1$ particles acting on it as an
 # average field, and $\psi$ is that orbital rather than the wave function of the whole system. It is the
-# **Gross-Pitaevskii equation** of a Bose-Einstein condensate, introduced independently by Gross (1961) and
-# Pitaevskii (1961), and it is also, with different symbols, the
+# **Gross-Pitaevskii equation** of a Bose-Einstein condensate, introduced independently in [[1]](#ref-1) and
+# [[2]](#ref-2), and it is also, with different symbols, the
 # equation for the envelope of a light pulse in a glass fibre.
 #
 # The physics that motivates it is one specific phenomenon. In 00a we watched a Gaussian wave packet spread: the
@@ -30,7 +30,7 @@
 # because a localised packet necessarily contains a range of momenta and those momenta travel at different
 # speeds. When $g>0$ in Eq. (1) the particles **attract** each other, and the attraction can balance the
 # spreading exactly. The result is a **bright soliton**: a lump of matter that travels for ever at constant
-# velocity, with constant shape and constant width. Two laboratories produced one in 2002 out of a few thousand
+# velocity, with constant shape and constant width. Two laboratories produced one in 2002 [[3]](#ref-3), [[4]](#ref-4) out of a few thousand
 # lithium-7 atoms, and one of them watched it travel $1.1\,\mathrm{mm}$ without dispersing.
 #
 # Finding it on a computer needs a technique we have not used yet. In 00b the ground state came from
@@ -108,8 +108,8 @@
 #
 # The exact ground state of Eq. (2) is a function of $N$ variables. For $N = 10^4$ atoms that object cannot be
 # written down, stored, or computed: this is the many-body problem, and the rest of this course is about
-# attacking it with methods whose errors can be controlled. The **Hartree approximation**, introduced by Hartree
-# (1928) for many-electron atoms (Pethick and Smith, Chapter 6, and Pitaevskii and Stringari give the version for
+# attacking it with methods whose errors can be controlled. The **Hartree approximation**, introduced in [[5]](#ref-5)
+# for many-electron atoms ([[6]](#ref-6), Chapter 6, and [[7]](#ref-7) give the version for
 # bosons), cuts through it with one assumption — that every particle
 # occupies the *same* single-particle orbital $\varphi(X)$:
 #
@@ -117,8 +117,8 @@
 #    \int \vert\varphi(X)\vert^2\,dX = 1 . \tag{3} $$
 #
 # This is the definition of a Bose-Einstein condensate at the mean-field level: one orbital, occupied $N$ times.
-# (The condensation itself was predicted by Einstein (1925), building on Bose's counting of photon states
-# (Bose, 1924).)
+# (The condensation itself was predicted in [[8]](#ref-8), building on Bose's counting of photon states
+# [[9]](#ref-9).)
 # It is a *variational ansatz*, so we get the best $\varphi$ by minimising the energy. Evaluate
 # $\langle \Psi\vert\hat H\vert\Psi\rangle$ term by term. The one-body part gives $N$ identical contributions:
 #
@@ -139,8 +139,8 @@
 # For ultracold atoms the interatomic potential has a range of a few nanometres while the de Broglie wavelength
 # is hundreds of nanometres to micrometres. At such low energies only $s$-wave scattering survives, and the true
 # potential can be replaced by a **contact pseudopotential** that reproduces the same scattering length $a_s$,
-# introduced by Fermi (1936) and carried over to the many-body problem by Huang and Yang (1957) (Pethick and
-# Smith, Chapter 5):
+# introduced in [[10]](#ref-10) and carried over to the many-body problem in [[11]](#ref-11) ([[6]](#ref-6),
+# Chapter 5):
 #
 # $$ U(X-X') \;=\; g_{\rm 1D}\,\delta(X-X') . $$
 #
@@ -189,8 +189,8 @@
 # ### 2.4 The same equation for light in a fibre
 #
 # In a glass fibre the refractive index depends weakly on the intensity, $n = n_0 + n_2 I$ (the **optical Kerr
-# effect**). Hasegawa and Tappert (1973) showed that this nonlinearity can balance the group-velocity dispersion of
-# a fibre, and Mollenauer, Stolen and Gordon (1980) observed the resulting optical solitons. Writing the electric
+# effect**). Ref. [[12]](#ref-12) showed that this nonlinearity can balance the group-velocity dispersion of
+# a fibre, and Ref. [[13]](#ref-13) observed the resulting optical solitons. Writing the electric
 # field of a pulse as a slowly varying envelope $A(Z,T)$ on a carrier, expanding
 # the propagation constant to second order in frequency, and moving to a frame travelling at the group velocity
 # gives
@@ -209,20 +209,20 @@
 # The sign of $g_{\rm 1D}$ follows the sign of the $s$-wave scattering length $a_s$. For $a_s > 0$ the
 # interaction is repulsive, the condensate spreads out, and there is no localised state without a trap. For
 # $a_s < 0$ it is attractive. In three dimensions an attractive condensate is unstable above a critical atom
-# number — it implodes, an event observed by Donley *et al.* (2001; Section 6.2) and named the "Bosenova" — which
+# number — it implodes, an event observed in [[14]](#ref-14) (Section 6.2) and named the "Bosenova" — which
 # is why the experiments confine the
 # gas tightly in two directions and let it move only along the third.
 #
 # Two groups did exactly that in 2002, both with lithium-7, whose scattering length can be tuned through zero
-# with a magnetic Feshbach resonance (Feshbach, 1958; first observed in a condensate by Inouye *et al.*, 1998):
+# with a magnetic Feshbach resonance ([[15]](#ref-15); first observed in a condensate in [[16]](#ref-16)):
 #
-# * **Khaykovich et al.** (Science **296**, 1290 (2002)) released a cloud into a horizontal optical waveguide of
+# * **Ref. [[3]](#ref-3)** released a cloud into a horizontal optical waveguide of
 #   radial frequency $\omega_\perp/2\pi = 710\,$Hz, at a magnetic field where $a_s = -0.21\,$nm, and followed a
 #   single soliton over $1.1\,$mm with no measurable spreading. The atom number they measure in the soliton is
 #   $6(2)\times10^{3}$; the stability analysis in the same paper puts it between $4.2\times10^{3}$ and
 #   $5.2\times10^{3}$. The calculations below use $N = 4.5\times10^{3}$, and Section 6.8 says what the gap
 #   between the two numbers means;
-# * **Strecker et al.** (Nature **417**, 150 (2002)) produced a *train* of solitons with about $5000$ atoms per
+# * **Ref. [[4]](#ref-4)** produced a *train* of solitons with about $5000$ atoms per
 #   soliton at $a_s\approx-3a_0 = -0.16\,$nm. The solitons live in an optical waveguide whose radial
 #   confinement is matched to their magnetic trap, $\omega_\perp/2\pi = 800\,$Hz, and they oscillate in a
 #   shallow axial potential with a period of $310\,$ms for many periods.
@@ -242,9 +242,8 @@
 #
 # and the condition is that all the other energies in the problem stay far below $\hbar\omega_\perp$. Factorising
 # the 3D order parameter as $\Psi_{\rm 3D}(X,Y,Z) = \Psi(X)\,\chi_0(Y,Z)$ with $\chi_0$ the transverse ground
-# state and integrating out $Y,Z$ produces Eq. (6) with an effective one-dimensional coupling constant. Olshanii
-# computed it exactly, including the correction from the confinement-induced resonance
-# (Phys. Rev. Lett. **81**, 938 (1998)); to leading order in $a_s/a_\perp$,
+# state and integrating out $Y,Z$ produces Eq. (6) with an effective one-dimensional coupling constant. Ref. [[17]](#ref-17)
+# computed it exactly, including the correction from the confinement-induced resonance; to leading order in $a_s/a_\perp$,
 #
 # $$ g_{\rm 1D} \;=\; 2\hbar\,\omega_\perp\, a_s . \tag{7} $$
 #
@@ -252,11 +251,11 @@
 # of this course. Its structure is easy to remember: the three-dimensional coupling is
 # $g_{\rm 3D} = 4\pi\hbar^2 a_s/m$, and dividing by the transverse area $2\pi a_\perp^2$ occupied by the
 # Gaussian transverse mode gives $g_{\rm 3D}/(2\pi a_\perp^2) = 2\hbar^2 a_s/(m a_\perp^2) = 2\hbar\omega_\perp a_s$.
-# Olshanii's full result carries one extra factor,
+# The full result of [[17]](#ref-17) carries one extra factor,
 #
 # $$ g_{\rm 1D} \;=\; \frac{2\hbar\,\omega_\perp\,a_s}{1 - C\,a_s/(\sqrt2\,a_\perp)} , \qquad C = 1.4603\ldots , $$
 #
-# where the $\sqrt2$ appears because Olshanii's transverse length is built with the reduced mass $m/2$,
+# where the $\sqrt2$ appears because the transverse length of [[17]](#ref-17) is built with the reduced mass $m/2$,
 # $(\hbar/(\tfrac{m}{2}\omega_\perp))^{1/2} = \sqrt2\,a_\perp$. The vanishing denominator is the confinement-induced resonance. Equation (7) is the leading term in
 # $a_s/a_\perp$, and for the two experiments of Section 2.5 that ratio is $1.5\times10^{-4}$ and
 # $1.2\times10^{-4}$: the correction is four orders of magnitude below everything else in this notebook, and we
@@ -428,8 +427,8 @@ print("\ncheckpoint: x_0 = ell gives g = 2 for both experiments (to round-off)")
 # %% [markdown]
 # Both experiments end up with a soliton about $2.2\,\mu\mathrm{m}$ wide, a time unit of about half a
 # millisecond and an energy unit of $313$ and $284\,\mathrm{Hz}$ — the scales a cold-atom laboratory works
-# with. The velocity unit is $4\,\mathrm{mm/s}$, so the $1.1\,\mathrm{mm}$ of free propagation reported by
-# Khaykovich et al. is $1.1\,\mathrm{mm}/2.15\,\mu\mathrm{m} = 512$ length units, which at one unit of
+# with. The velocity unit is $4\,\mathrm{mm/s}$, so the $1.1\,\mathrm{mm}$ of free propagation reported in
+# [[3]](#ref-3) is $1.1\,\mathrm{mm}/2.15\,\mu\mathrm{m} = 512$ length units, which at one unit of
 # velocity would take $512$ time units, i.e. $0.26\,\mathrm{s}$. The last column is the one to watch:
 # $\kappa = a_\perp/\ell$ is $0.663$ and $0.596$, so the soliton is only $1.5$ to $1.7$ times wider than the
 # transverse ground state. These experiments are *quasi*-1D by a factor of order two, and Section 6.8 explains why they cannot simply increase $N$ to do better. Because
@@ -500,7 +499,7 @@ print("\ncheckpoint: x_0 = ell gives g = 2 for both experiments (to round-off)")
 # ### 4.4 Momentum
 #
 # The expectation value $\langle p\rangle = \int\psi^{*}(-i\partial_x)\psi\,dx = \int j\,dx$ is conserved for the
-# same reason as in 00a: Eq. (8) is invariant under translations. Ehrenfest's relation (Ehrenfest, 1927) also
+# same reason as in 00a: Eq. (8) is invariant under translations. Ehrenfest's relation [[18]](#ref-18) also
 # survives unchanged,
 #
 # $$ \frac{d\langle x\rangle}{dt} \;=\; \langle p\rangle . \tag{14} $$
@@ -1144,7 +1143,7 @@ print(f"overlap | <Gaussian(sigma*) | soliton> |  = {ovl:.6f}")
 #   condensate — separated by a barrier from the collapse at $w\to0$. Increasing $g$, i.e. increasing $N$,
 #   lowers the barrier; at a critical $N$ the local minimum and the barrier merge and disappear, and nothing
 #   stops the cloud from shrinking. The implosion, and the burst of atoms that escapes from it, was observed in
-#   $^{85}$Rb (Donley *et al.*, Nature **412**, 295 (2001)) and is called a **Bosenova**.
+#   $^{85}$Rb [[14]](#ref-14) and is called a **Bosenova**.
 #
 # This is the reason every bright-soliton experiment starts by squeezing the gas into a waveguide: one
 # dimension is the only dimension in which an attractive condensate has a ground state. Section 6.8 returns to
@@ -1258,8 +1257,8 @@ for n_frac in (0.5, 1.0, 2.0):
 #
 # The reason is Galilean invariance, and the reason *that* holds is that the nonlinearity depends only on
 # $\vert\psi\vert^{2}$, which no phase factor can touch. Adding an external potential breaks the invariance and
-# the soliton then accelerates like a particle in that potential, which is what Strecker et al. observed when
-# their solitons oscillated in a shallow axial trap (Exercise 1).
+# the soliton then accelerates like a particle in that potential, which is what Ref. [[4]](#ref-4) observed when
+# its solitons oscillated in a shallow axial trap (Exercise 1).
 #
 # ### 6.5 What the mean field hides: translational symmetry
 #
@@ -1274,10 +1273,10 @@ for n_frac in (0.5, 1.0, 2.0):
 # uniform. What is localised is the *relative* wave function; the centre of mass of the soliton is completely
 # delocalised, exactly as the centre of mass of a hydrogen atom in free space is. The Hartree product (3)
 # cannot represent "localised internal structure with a delocalised centre of mass", so it localises everything
-# and produces a density profile that the exact ground state does not have. Lai and Haus constructed the
-# corresponding exact quantum states (Phys. Rev. A **40**, 844 and 854 (1989)), by the Bethe ansatz (Bethe, 1931),
+# and produces a density profile that the exact ground state does not have. Ref. [[19]](#ref-19) constructed the
+# corresponding exact quantum states, by the Bethe ansatz [[20]](#ref-20),
 # for the quantum nonlinear Schrödinger model of solitons in optical fibres, which is the attractive
-# one-dimensional Bose gas whose $N$-particle bound state McGuire had found (1964): superposing their momentum eigenstates with a wave packet in the total momentum recovers a
+# one-dimensional Bose gas whose $N$-particle bound state had been found in [[21]](#ref-21): superposing their momentum eigenstates with a wave packet in the total momentum recovers a
 # localised density, which then spreads — a dispersive spreading of the centre of mass, as for a free
 # particle of mass $Nm$, that the Gross-Pitaevskii equation does not contain. Its size depends on the initial
 # centre-of-mass uncertainty $\Delta$, about which the mean field says nothing: the spread after a time $t$ is
@@ -1295,9 +1294,9 @@ for n_frac in (0.5, 1.0, 2.0):
 # conditions, in a system with no dissipation at all — the "dissipation" is radiation carrying the excess away
 # from the core. Section 9.4 measures this for a Gaussian whose overlap with the soliton is $0.9972$.
 #
-# The deeper reason is that Eq. (8) is **integrable**. Zakharov and Shabat showed in 1972 (Sov. Phys. JETP
-# **34**, 62) that the nonlinear Schrödinger equation can be solved exactly by inverse scattering, the method
-# Gardner, Greene, Kruskal and Miura (1967) had introduced for the Korteweg-de Vries equation: one maps the
+# The deeper reason is that Eq. (8) is **integrable**. Ref. [[22]](#ref-22) showed
+# that the nonlinear Schrödinger equation can be solved exactly by inverse scattering, the method
+# introduced in [[23]](#ref-23) for the Korteweg-de Vries equation: one maps the
 # initial condition to the scattering data of an auxiliary linear operator, evolves the scattering data
 # trivially, and maps back. The equation possesses infinitely many independent conserved quantities — the norm,
 # the momentum and the energy are only the first three — and its solutions decompose into solitons plus
@@ -1309,9 +1308,9 @@ for n_frac in (0.5, 1.0, 2.0):
 #
 # **Optical fibres.** Because Eq. (8) also governs a pulse envelope in a Kerr medium (Section 2.4), a light
 # pulse of the right shape and peak power propagates down a fibre without broadening. Soliton transmission was
-# proposed by Hasegawa and Tappert (1973) as the way to beat dispersion in long-haul communication, and soliton and
+# proposed in [[12]](#ref-12) as the way to beat dispersion in long-haul communication, and soliton and
 # dispersion-managed
-# soliton systems were built and deployed; Agrawal's *Nonlinear Fiber Optics* (Chapter 5) gives the account.
+# soliton systems were built and deployed; Ref. [[24]](#ref-24) (Chapter 5) gives the account.
 #
 # **Matter-wave interferometry.** A soliton is a self-trapped, dispersionless, coherent matter wave, which
 # makes it attractive as the moving arm of an atom interferometer: splitting, reflecting and recombining a
@@ -1319,12 +1318,11 @@ for n_frac in (0.5, 1.0, 2.0):
 # disperse. The stability of the soliton is doing work that a trap would otherwise have to do.
 #
 # **Soliton trains and modulational instability.** A uniform attractive condensate is unstable against
-# long-wavelength density modulations, the instability found by Benjamin and Feir (1967) for water waves: a small
+# long-wavelength density modulations, the instability found in [[25]](#ref-25) for water waves: a small
 # ripple grows because the region of higher density attracts more
-# atoms. The instability breaks the cloud into a regular array of solitons. Strecker et al. proposed it as the
-# origin of their train in 2002, and Nguyen, Luo and Hulet characterised its role in train formation in 2017
-# (Science **356**, 422). The same instability, with the same equation, turns a continuous-wave laser beam in a fibre
-# into a train of pulses (Tai, Hasegawa and Tomita, 1986).
+# atoms. The instability breaks the cloud into a regular array of solitons. Ref. [[4]](#ref-4) proposed it as the
+# origin of its train, and Ref. [[26]](#ref-26) characterised its role in train formation. The same instability, with the same equation, turns a continuous-wave laser beam in a fibre
+# into a train of pulses [[27]](#ref-27).
 #
 # ### 6.8 Limits of validity of the one-dimensional description
 #
@@ -1337,13 +1335,13 @@ for n_frac in (0.5, 1.0, 2.0):
 # 2. **No collapse.** The three-dimensional character reasserts itself when the soliton becomes narrow enough
 #    to feel the transverse degree of freedom, and then Section 6.2 applies: the cloud collapses. Numerical
 #    solutions of the full three-dimensional Gross-Pitaevskii equation in a waveguide put the threshold at
-#    $\kappa_c = 0.675\pm0.005$ (Parker, Cornish, Adams and Martin, J. Phys. B **40**, 3127 (2007)), in
-#    agreement with the analytic value $2/3$ that Salasnich, Parola and Reatto obtained (Phys. Rev. A **66**,
-#    043603 (2002)) from their non-polynomial Schrödinger equation (Phys. Rev. A **65**, 043614 (2002)). Both 2002 experiments therefore ran
+#    $\kappa_c = 0.675\pm0.005$ [[28]](#ref-28), in
+#    agreement with the analytic value $2/3$ obtained in [[29]](#ref-29) from the non-polynomial Schrödinger equation
+#    of [[30]](#ref-30). Both 2002 experiments therefore ran
 #    close to a genuine instability, which is why they could not simply increase $N$ to make the soliton more
 #    one-dimensional: that is the direction in which it collapses. How close is a question the experiments
 #    themselves cannot answer sharply, because $\kappa$ is linear in the atom number and $N$ is the least
-#    precisely known quantity in the table. Khaykovich et al. measure $N = 6(2)\times10^{3}$, whose central
+#    precisely known quantity in the table. Ref. [[3]](#ref-3) measures $N = 6(2)\times10^{3}$, whose central
 #    value gives $\kappa = 0.88$ — *above* $\kappa_c$ — while their own stability estimate,
 #    $4.2$–$5.2\times10^{3}$, gives $\kappa = 0.62$–$0.77$. The parameters used here, $N = 4.5\times10^{3}$,
 #    sit inside that window. The experiment therefore operated at $\kappa$ of order $\kappa_c$, and the
@@ -1391,8 +1389,8 @@ for N_try in (4200, 4500, 5200, 6000, 8000):
 #   chapters, where $M = 2^{20}$, it is impossible.
 #
 # What follows is the standard replacement, and it needs nothing but the ability to *apply* $\hat H$ to a state.
-# As a grid method for the Schrödinger equation it is the relaxation method of Kosloff and Tal-Ezer (1986); for
-# the Gross-Pitaevskii equation it was developed by Chiofalo, Succi and Tosi (2000).
+# As a grid method for the Schrödinger equation it is the relaxation method of [[31]](#ref-31); for
+# the Gross-Pitaevskii equation it was developed in [[32]](#ref-32).
 #
 # ### 7.2 The linear argument
 #
@@ -1449,7 +1447,7 @@ for N_try in (4200, 4500, 5200, 6000, 8000):
 #    \end{aligned} $$
 #
 # so the difference is $\tfrac{h^{2}}{2}[\hat T,\hat W]$: the naive product is accurate only to first order in
-# $h$ per step. The cure is to symmetrise. Define the **Strang** product, introduced by Strang (1968),
+# $h$ per step. The cure is to symmetrise. Define the **Strang** product, introduced in [[33]](#ref-33),
 #
 # $$ S(h) \;\equiv\; e^{-\hat Th/2}\;e^{-\hat Wh}\;e^{-\hat Th/2} . \tag{35} $$
 #
@@ -1468,7 +1466,7 @@ for N_try in (4200, 4500, 5200, 6000, 8000):
 # is separately unitary.
 #
 # In practice the three factors are three lines of code — the split-step Fourier method, introduced for the
-# Schrödinger equation by Feit, Fleck and Steiger (1982):
+# Schrödinger equation in [[34]](#ref-34):
 #
 # $$ \psi \;\to\; \mathrm{IFFT}\left[e^{-k^{2}h/4}\,\mathrm{FFT}[\psi]\right] \;\to\;
 #    \psi\,e^{\left(g\vert\psi\vert^{2}-V\right)h} \;\to\;
@@ -1780,8 +1778,7 @@ print("\nCHECKPOINT 7 passed: imaginary time + Gram-Schmidt reproduces E_n = n +
 # already amplitude, which is self-focusing in one line.
 #
 # **(b) The power method.** One step of Eq. (37) is multiplication by the fixed operator
-# $M = e^{-\hat H\Delta\tau}$ followed by renormalisation. That is the **power method** of von Mises and
-# Pollaczek-Geiringer (1929) for finding the
+# $M = e^{-\hat H\Delta\tau}$ followed by renormalisation. That is the **power method** of [[35]](#ref-35) for finding the
 # dominant eigenvector of a matrix. The eigenvalues of $M$ are $e^{-E_n\Delta\tau}$, and the *largest* of them
 # belongs to the *lowest* energy — the exponential turns "smallest eigenvalue of $\hat H$" into "largest
 # eigenvalue of $M$", which is what a power method can find. The convergence ratio per step is
@@ -1883,7 +1880,7 @@ print("\nCHECKPOINT 8 passed: imaginary time is normalised gradient flow, Eq. (4
 # What survives is viewpoint (c). Equations (39) and (40) never used linearity: they used only that $E[\psi]$ is
 # a real functional and that $\hat H_{\rm GP}\psi = \delta E/\delta\psi^{*}$. So for the Gross-Pitaevskii
 # equation, imaginary-time relaxation is **normalised gradient flow of the energy functional**, and it is
-# guaranteed to decrease $E$ until the residual vanishes. Bao and Du (SIAM J. Sci. Comput. **25**, 1674 (2004))
+# guaranteed to decrease $E$ until the residual vanishes. Ref. [[36]](#ref-36)
 # proved that this continuous normalised gradient flow conserves the norm and diminishes the energy, and analysed
 # discretisations of it in which the normalisation is applied after each step.
 #
@@ -2118,7 +2115,7 @@ plt.show()
 # $O(\Delta\tau^{2})$ in a direction the flow restores at a rate of order one — and the fixed point is
 # displaced by $O(\Delta\tau)$. The coefficient is proportional to $\mu g$, which is why the linear problem
 # ($g=0$) is clean. The same displacement is what separates the discrete-normalisation flow that is implemented
-# from the continuous normalised flow (39) that is analysed, the distinction Bao and Du make.
+# from the continuous normalised flow (39) that is analysed, the distinction made in [[36]](#ref-36).
 #
 # Two changes that look like the obvious fix do *not* repair it. The middle
 # factor of Eq. (37) evaluates $\vert\psi\vert^{2}$ after the first kinetic half-step, where the norm is
@@ -2223,7 +2220,7 @@ assert abs(E_rich + G ** 2 / 24) < 0.1 * abs(E_h[1] + G ** 2 / 24), "extrapolati
 # there the interaction term does not exist and the only error is the symmetric splitting (36), with the energy
 # gaining a further factor of two in the exponent from being stationary.
 #
-# Richardson extrapolation (Richardson, 1911) exploits the $\Delta\tau^{2}$ law directly: combining the runs at
+# Richardson extrapolation [[37]](#ref-37) exploits the $\Delta\tau^{2}$ law directly: combining the runs at
 # $\Delta\tau=0.02$
 # and $0.01$ as $(4E_{h/2}-E_h)/3$ cancels the leading term and reduces the energy error from
 # $5.4\times10^{-6}$ to $2.3\times10^{-7}$, a factor of $24$, at no extra cost.
@@ -2348,7 +2345,7 @@ plt.show()
 # recentring. What does *not* converge to a common value is the position: each run keeps the centre of its own
 # guess to better than $10^{-4}$. The physics is degenerate and the algorithm inherits the degeneracy.
 #
-# > **Physics insight.** The zero mode is the Goldstone mode of a broken symmetry (Nambu, 1960; Goldstone, 1961).
+# > **Physics insight.** The zero mode is the Goldstone mode of a broken symmetry [[38]](#ref-38), [[39]](#ref-39).
 # > The soliton breaks the
 # > continuous translational symmetry of Eq. (8), so moving it along $\partial_x\phi$ costs no energy. In an
 # > experiment that mode is the free motion of the centre of mass, whose kinetic energy is the $k_0^{2}/2$ of
@@ -2408,10 +2405,9 @@ plt.show()
 #
 # ### 9.1 The stability limit of Runge-Kutta
 #
-# Notebook 00b integrated the Schrödinger equation with the fourth-order Runge-Kutta scheme (Runge, 1895;
-# Kutta, 1901) and found a hard stability
-# limit (Press *et al.*, *Numerical Recipes*, Chapters 17 and 20, treat the stability of explicit schemes; the
-# Fortran 90 volume gives the corresponding array-based routines). The argument is worth repeating because it decides the choice of method here. Applying an explicit
+# Notebook 00b integrated the Schrödinger equation with the fourth-order Runge-Kutta scheme [[40]](#ref-40), [[41]](#ref-41) and found a hard stability
+# limit ([[42]](#ref-42), Chapters 17 and 20, treats the stability of explicit schemes; the
+# Fortran 90 volume [[43]](#ref-43) gives the corresponding array-based routines). The argument is worth repeating because it decides the choice of method here. Applying an explicit
 # integrator to $\dot y = \lambda y$ multiplies $y$ by an amplification factor $R(\lambda\Delta t)$; for RK4,
 #
 # $$ R(z) \;=\; 1 + z + \frac{z^{2}}{2} + \frac{z^{3}}{6} + \frac{z^{4}}{24} . $$
@@ -3186,7 +3182,7 @@ plt.show()
 # $g = 0.5, 1, 2, 4$. Plot the width against $g$ and identify the two limits: the harmonic ground state of
 # width $1/\sqrt{2\omega}$ when the trap dominates, and the free soliton width $\pi/(\sqrt3 g)$ when the
 # interaction does. Then displace the state and propagate it in real time: the centre oscillates at frequency
-# $\omega$ regardless of $g$ (Section 6.4 explains why), which is what Strecker et al. observed.
+# $\omega$ regardless of $g$ (Section 6.4 explains why), which is what Ref. [[4]](#ref-4) observed.
 #
 # **2. (★) Measure the convergence rate yourself.** Repeat the demonstration of Section 7.4 for a harmonic
 # trap of frequency $\omega \ne 1$ — the gap is then $\omega$ — and confirm that the fitted slope tracks it
@@ -3200,7 +3196,7 @@ plt.show()
 # for the state produced by imaginary time, and use it as an extra convergence monitor.
 #
 # **4. (★★) A dark soliton.** For $g<0$ the localised object is a density *notch* on a uniform background,
-# $\psi \propto \tanh(x/\xi)$, which carries a phase jump of $\pi$; Zakharov and Shabat (1973) solved the repulsive
+# $\psi \propto \tanh(x/\xi)$, which carries a phase jump of $\pi$; Ref. [[44]](#ref-44) solved the repulsive
 # equation, and with it the interaction of its dark solitons, by inverse scattering. Build it by imprinting the phase
 # $\pi\,\Theta(x)$ on the uniform state of Section 8.5 (smooth the step over a few grid points), propagate it,
 # and measure the depth and width of the notch (on the ring the step also jumps at the seam, so two notches
@@ -3210,7 +3206,7 @@ plt.show()
 #
 # **5. (★★) Fourth-order splitting.** The composition
 # $S(\gamma h)\,S((1-2\gamma)h)\,S(\gamma h)$ with $\gamma = 1/(2-2^{1/3})$ is fourth-order accurate
-# (the construction of Forest and Ruth (1990) and Yoshida (1990); note $1-2\gamma<0$, so one sub-step runs
+# (the construction of [[45]](#ref-45) and [[46]](#ref-46); note $1-2\gamma<0$, so one sub-step runs
 # backwards). Implement it for real time,
 # repeat the convergence study of Section 9.5, and check that the fitted slope is $4$. At which $\Delta t$ does
 # it become cheaper than the second-order method for a given accuracy?
@@ -3226,7 +3222,7 @@ plt.show()
 # $e^{-i(k_x^{2}+k_y^{2})\Delta t/4}$) and show numerically that in 2D the imaginary-time relaxation either
 # spreads without limit or contracts without limit depending on $g$, with no stable width in between — the
 # critical case of Section 6.2. Estimate the critical $g$ and compare with the known value for the Townes
-# soliton, the self-trapped beam of Chiao, Garmire and Townes (1964).
+# soliton, the self-trapped beam of [[47]](#ref-47).
 #
 # **8. (★★★) Beyond the mean field, cheaply.** The Bogoliubov spectrum of the bright soliton is obtained by
 # linearising Eq. (8) around $\phi$ and diagonalising the resulting $2\times2$ operator. Build it on the grid
@@ -3251,115 +3247,172 @@ plt.show()
 #
 # ### 11.4 References
 #
-# * L. P. Pitaevskii and S. Stringari, *Bose-Einstein Condensation*, Oxford University Press (2003) — the
-#   Gross-Pitaevskii theory of dilute condensates and its derivation from the many-body Hamiltonian.
-# * C. J. Pethick and H. Smith, *Bose-Einstein Condensation in Dilute Gases*, 2nd ed., Cambridge University
-#   Press (2008) — Chapter 5 (interactions between atoms, the contact interaction of Section 2.2) and Chapter 6
-#   (theory of the condensed state, the mean-field derivation of Section 2.1).
-# * M. Olshanii, *Atomic scattering in the presence of an external confinement and a gas of impenetrable
-#   bosons*, Phys. Rev. Lett. **81**, 938 (1998) — the one-dimensional coupling constant, Eq. (7).
-# * V. E. Zakharov and A. B. Shabat, *Exact theory of two-dimensional self-focusing and one-dimensional
-#   self-modulation of waves in nonlinear media*, Sov. Phys. JETP **34**, 62 (1972) — integrability of the
-#   nonlinear Schrödinger equation by inverse scattering.
-# * L. Khaykovich, F. Schreck, G. Ferrari, T. Bourdel, J. Cubizolles, L. D. Carr, Y. Castin and C. Salomon,
-#   *Formation of a matter-wave bright soliton*, Science **296**, 1290 (2002).
-# * K. E. Strecker, G. B. Partridge, A. G. Truscott and R. G. Hulet, *Formation and propagation of matter-wave
-#   soliton trains*, Nature **417**, 150 (2002).
-# * J. H. V. Nguyen, D. Luo and R. G. Hulet, *Formation of matter-wave soliton trains by modulational
-#   instability*, Science **356**, 422 (2017).
-# * W. Bao and Q. Du, *Computing the ground state solution of Bose-Einstein condensates by a normalized
-#   gradient flow*, SIAM J. Sci. Comput. **25**, 1674 (2004) — norm conservation and energy decrease of the
-#   normalised gradient flow, the result behind Section 7.8.
-# * N. G. Parker, S. L. Cornish, C. S. Adams and A. M. Martin, *Bright solitary waves and trapped solutions in
-#   Bose-Einstein condensates with attractive interactions*, J. Phys. B **40**, 3127 (2007) — the collapse
-#   threshold $\kappa_c = 0.675\pm0.005$ used in Section 6.8.
-# * E. A. Donley, N. R. Claussen, S. L. Cornish, J. L. Roberts, E. A. Cornell and C. E. Wieman, *Dynamics of
-#   collapsing and exploding Bose-Einstein condensates*, Nature **412**, 295 (2001) — the Bosenova of
-#   Section 6.2.
-# * L. Salasnich, A. Parola and L. Reatto, *Effective wave equations for the dynamics of cigar-shaped and
-#   disk-shaped Bose condensates*, Phys. Rev. A **65**, 043614 (2002) — the non-polynomial Schrödinger equation.
-# * L. Salasnich, A. Parola and L. Reatto, *Condensate bright solitons under transverse confinement*, Phys. Rev. A
-#   **66**, 043603 (2002) — the analytic collapse threshold $2/3$ of Section 6.8.
-# * Y. Lai and H. A. Haus, *Quantum theory of solitons in optical fibers. I. Time-dependent Hartree
-#   approximation*, Phys. Rev. A **40**, 844 (1989), and *II. Exact solution*, Phys. Rev. A **40**, 854
-#   (1989) — the quantum states behind the classical soliton, referred to in Section 6.5.
-# * G. P. Agrawal, *Nonlinear Fiber Optics*, 5th ed., Academic Press (2013) — Chapter 5 (*Optical
-#   Solitons*), the optical version of Eq. (8); the appendix *Numerical Code for the NLS Equation* gives the
-#   split-step Fourier method as it is used in photonics.
-# * W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes: The Art of
-#   Scientific Computing*, 3rd ed., Cambridge University Press (2007) — Chapter 12 (fast Fourier transform),
-#   Chapter 17 (integration of ordinary differential equations, including the Runge-Kutta stability of
-#   Section 9.1) and Chapter 20 (partial differential equations).
-# * W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes in Fortran 90: The
-#   Art of Parallel Scientific Computing*, 2nd ed. (Fortran Numerical Recipes, Volume 2), Cambridge University
-#   Press (1996) — the routines of the second edition rewritten as parallel, whole-array Fortran 90, including
-#   the FFT and the ODE integrators (the methods themselves are explained in the companion text).
+# <span id="ref-1">[1]</span> E. P. Gross, *Structure of a quantized vortex in boson systems*, Nuovo Cimento **20**, 454
+# (1961) — the Gross-Pitaevskii equation.
 #
-# **Original papers**
-# * E. P. Gross, *Structure of a quantized vortex in boson systems*, Nuovo Cimento **20**, 454 (1961);
-#   L. P. Pitaevskii, *Vortex lines in an imperfect Bose gas*, Sov. Phys. JETP **13**, 451 (1961) — the
-#   Gross-Pitaevskii equation.
-# * D. R. Hartree, *The wave mechanics of an atom with a non-Coulomb central field. Part I. Theory and methods*,
-#   Proc. Camb. Phil. Soc. **24**, 89 (1928) — the Hartree approximation.
-# * S. N. Bose, *Plancks Gesetz und Lichtquantenhypothese*, Z. Phys. **26**, 178 (1924); A. Einstein,
-#   *Quantentheorie des einatomigen idealen Gases. Zweite Abhandlung*, Sitzungsber. Preuss. Akad. Wiss.,
-#   Phys.-Math. Kl. (1925), reprinted in *Albert Einstein: Akademie-Vorträge*, Wiley-VCH (2005), p. 245 —
-#   Bose-Einstein condensation.
-# * E. Fermi, *Sul moto dei neutroni nelle sostanze idrogenate*, Ric. Sci. Progr. Tecn. Econom. Naz. **2**, 13
-#   (1936); K. Huang and
-#   C. N. Yang, *Quantum-mechanical many-body problem with hard-sphere interaction*, Phys. Rev. **105**, 767
-#   (1957) — the contact pseudopotential.
-# * A. Hasegawa and F. Tappert, *Transmission of stationary nonlinear optical pulses in dispersive dielectric
-#   fibers. I. Anomalous dispersion*, Appl. Phys. Lett. **23**, 142 (1973); L. F. Mollenauer, R. H. Stolen and
-#   J. P. Gordon, *Experimental observation of picosecond pulse narrowing and solitons in optical fibers*, Phys.
-#   Rev. Lett. **45**, 1095 (1980) — optical solitons.
-# * H. Feshbach, *Unified theory of nuclear reactions*, Ann. Phys. **5**, 357 (1958); S. Inouye, M. R. Andrews,
-#   J. Stenger, H.-J. Miesner, D. M. Stamper-Kurn and W. Ketterle, *Observation of Feshbach resonances in a
-#   Bose-Einstein condensate*, Nature **392**, 151 (1998).
-# * P. Ehrenfest, *Bemerkung über die angenäherte Gültigkeit der klassischen Mechanik innerhalb der
-#   Quantenmechanik*, Z. Phys. **45**, 455 (1927).
-# * C. S. Gardner, J. M. Greene, M. D. Kruskal and R. M. Miura, *Method for solving the Korteweg-deVries
-#   equation*, Phys. Rev. Lett. **19**, 1095 (1967) — the inverse scattering method.
-# * V. E. Zakharov and A. B. Shabat, *Interaction between solitons in a stable medium*, Sov. Phys. JETP **37**,
-#   823 (1973) — the repulsive equation and its dark solitons (Exercise 4).
-# * H. Bethe, *Zur Theorie der Metalle. I. Eigenwerte und Eigenfunktionen der linearen Atomkette*, Z. Phys. **71**,
-#   205 (1931) — the Bethe ansatz.
-# * J. B. McGuire, *Study of exactly soluble one-dimensional N-body problems*, J. Math. Phys. **5**, 622 (1964) —
-#   the bound state of $N$ bosons with attractive contact interaction, the quantum soliton.
-# * T. B. Benjamin and J. E. Feir, *The disintegration of wave trains on deep water. Part 1. Theory*, J. Fluid
-#   Mech. **27**, 417 (1967); K. Tai, A. Hasegawa and A. Tomita, *Observation of modulational instability in
-#   optical fibers*, Phys. Rev. Lett. **56**, 135 (1986) — modulational instability.
-# * R. Kosloff and H. Tal-Ezer, *A direct relaxation method for calculating eigenfunctions and eigenvalues of the
-#   Schrödinger equation on a grid*, Chem. Phys. Lett. **127**, 223 (1986); M. L. Chiofalo, S. Succi and
-#   M. P. Tosi, *Ground state of trapped interacting Bose-Einstein condensates by an explicit imaginary-time
-#   algorithm*, Phys. Rev. E **62**, 7438 (2000) — imaginary-time relaxation on a grid.
-# * G. Strang, *On the construction and comparison of difference schemes*, SIAM J. Numer. Anal. **5**, 506
-#   (1968) — the symmetric splitting of Eq. (35).
-# * M. D. Feit, J. A. Fleck Jr. and A. Steiger, *Solution of the Schrödinger equation by a spectral method*,
-#   J. Comput. Phys. **47**, 412 (1982) — the split-step Fourier method.
-# * R. von Mises and H. Pollaczek-Geiringer, *Praktische Verfahren der Gleichungsauflösung*, Z. Angew. Math.
-#   Mech. **9**, 58 and 152 (1929) — the power method.
-# * L. F. Richardson, *The approximate arithmetical solution by finite differences of physical problems involving
-#   differential equations, with an application to the stresses in a masonry dam*, Phil. Trans. R. Soc. A **210**,
-#   307 (1911) — Richardson extrapolation.
-# * Y. Nambu, *Quasi-particles and gauge invariance in the theory of superconductivity*, Phys. Rev. **117**, 648
-#   (1960); J. Goldstone, *Field theories with "superconductor" solutions*, Nuovo Cimento **19**, 154 (1961) —
-#   the gapless mode of a broken continuous symmetry.
-# * C. Runge, *Ueber die numerische Auflösung von Differentialgleichungen*, Math. Ann. **46**, 167 (1895);
-#   W. Kutta, *Beitrag zur näherungsweisen Integration totaler Differentialgleichungen*, Z. Math. Phys. **46**,
-#   435 (1901) — the Runge-Kutta methods.
-# * E. Forest and R. D. Ruth, *Fourth-order symplectic integration*, Physica D **43**, 105 (1990); H. Yoshida,
-#   *Construction of higher order symplectic integrators*, Phys. Lett. A **150**, 262 (1990) — the fourth-order
-#   composition of Exercise 5.
-# * R. Y. Chiao, E. Garmire and C. H. Townes, *Self-trapping of optical beams*, Phys. Rev. Lett. **13**, 479
-#   (1964) — the Townes soliton of Exercise 7.
+# <span id="ref-2">[2]</span> L. P. Pitaevskii, *Vortex lines in an imperfect Bose gas*, Sov. Phys. JETP **13**, 451 (1961) —
+# the Gross-Pitaevskii equation.
+#
+# <span id="ref-3">[3]</span> L. Khaykovich, F. Schreck, G. Ferrari, T. Bourdel, J. Cubizolles, L. D. Carr, Y. Castin and
+# C. Salomon, *Formation of a matter-wave bright soliton*, Science **296**, 1290 (2002).
+#
+# <span id="ref-4">[4]</span> K. E. Strecker, G. B. Partridge, A. G. Truscott and R. G. Hulet, *Formation and propagation of
+# matter-wave soliton trains*, Nature **417**, 150 (2002).
+#
+# <span id="ref-5">[5]</span> D. R. Hartree, *The wave mechanics of an atom with a non-Coulomb central field. Part I. Theory
+# and methods*, Proc. Camb. Phil. Soc. **24**, 89 (1928) — the Hartree approximation.
+#
+# <span id="ref-6">[6]</span> C. J. Pethick and H. Smith, *Bose-Einstein Condensation in Dilute Gases*, 2nd ed., Cambridge
+# University Press (2008) — Chapter 5 (interactions between atoms, the contact interaction of Section 2.2) and Chapter 6
+# (theory of the condensed state, the mean-field derivation of Section 2.1).
+#
+# <span id="ref-7">[7]</span> L. P. Pitaevskii and S. Stringari, *Bose-Einstein Condensation*, Oxford University Press
+# (2003) — the Gross-Pitaevskii theory of dilute condensates and its derivation from the many-body Hamiltonian.
+#
+# <span id="ref-8">[8]</span> A. Einstein, *Quantentheorie des einatomigen idealen Gases. Zweite Abhandlung*, Sitzungsber.
+# Preuss. Akad. Wiss., Phys.-Math. Kl. (1925), reprinted in *Albert Einstein: Akademie-Vorträge*, Wiley-VCH (2005),
+# p. 245 — Bose-Einstein condensation.
+#
+# <span id="ref-9">[9]</span> S. N. Bose, *Plancks Gesetz und Lichtquantenhypothese*, Z. Phys. **26**, 178 (1924) — the
+# counting of photon states behind Bose-Einstein statistics.
+#
+# <span id="ref-10">[10]</span> E. Fermi, *Sul moto dei neutroni nelle sostanze idrogenate*, Ric. Sci. Progr. Tecn. Econom.
+# Naz. **2**, 13 (1936) — the contact pseudopotential.
+#
+# <span id="ref-11">[11]</span> K. Huang and C. N. Yang, *Quantum-mechanical many-body problem with hard-sphere
+# interaction*, Phys. Rev. **105**, 767 (1957) — the contact pseudopotential in the many-body problem.
+#
+# <span id="ref-12">[12]</span> A. Hasegawa and F. Tappert, *Transmission of stationary nonlinear optical pulses in
+# dispersive dielectric fibers. I. Anomalous dispersion*, Appl. Phys. Lett. **23**, 142 (1973) — optical solitons.
+#
+# <span id="ref-13">[13]</span> L. F. Mollenauer, R. H. Stolen and J. P. Gordon, *Experimental observation of picosecond
+# pulse narrowing and solitons in optical fibers*, Phys. Rev. Lett. **45**, 1095 (1980) — optical solitons.
+#
+# <span id="ref-14">[14]</span> E. A. Donley, N. R. Claussen, S. L. Cornish, J. L. Roberts, E. A. Cornell and C. E. Wieman,
+# *Dynamics of collapsing and exploding Bose-Einstein condensates*, Nature **412**, 295 (2001) — the Bosenova of
+# Section 6.2.
+#
+# <span id="ref-15">[15]</span> H. Feshbach, *Unified theory of nuclear reactions*, Ann. Phys. **5**, 357 (1958).
+#
+# <span id="ref-16">[16]</span> S. Inouye, M. R. Andrews, J. Stenger, H.-J. Miesner, D. M. Stamper-Kurn and W. Ketterle,
+# *Observation of Feshbach resonances in a Bose-Einstein condensate*, Nature **392**, 151 (1998).
+#
+# <span id="ref-17">[17]</span> M. Olshanii, *Atomic scattering in the presence of an external confinement and a gas of
+# impenetrable bosons*, Phys. Rev. Lett. **81**, 938 (1998) — the one-dimensional coupling constant, Eq. (7).
+#
+# <span id="ref-18">[18]</span> P. Ehrenfest, *Bemerkung über die angenäherte Gültigkeit der klassischen Mechanik innerhalb
+# der Quantenmechanik*, Z. Phys. **45**, 455 (1927).
+#
+# <span id="ref-19">[19]</span> Y. Lai and H. A. Haus, *Quantum theory of solitons in optical fibers. I. Time-dependent
+# Hartree approximation*, Phys. Rev. A **40**, 844 (1989), and *II. Exact solution*, Phys. Rev. A **40**, 854 (1989) —
+# the quantum states behind the classical soliton, referred to in Section 6.5.
+#
+# <span id="ref-20">[20]</span> H. Bethe, *Zur Theorie der Metalle. I. Eigenwerte und Eigenfunktionen der linearen
+# Atomkette*, Z. Phys. **71**, 205 (1931) — the Bethe ansatz.
+#
+# <span id="ref-21">[21]</span> J. B. McGuire, *Study of exactly soluble one-dimensional N-body problems*, J. Math. Phys.
+# **5**, 622 (1964) — the bound state of $N$ bosons with attractive contact interaction, the quantum soliton.
+#
+# <span id="ref-22">[22]</span> V. E. Zakharov and A. B. Shabat, *Exact theory of two-dimensional self-focusing and
+# one-dimensional self-modulation of waves in nonlinear media*, Sov. Phys. JETP **34**, 62 (1972) — integrability of
+# the nonlinear Schrödinger equation by inverse scattering.
+#
+# <span id="ref-23">[23]</span> C. S. Gardner, J. M. Greene, M. D. Kruskal and R. M. Miura, *Method for solving the
+# Korteweg-deVries equation*, Phys. Rev. Lett. **19**, 1095 (1967) — the inverse scattering method.
+#
+# <span id="ref-24">[24]</span> G. P. Agrawal, *Nonlinear Fiber Optics*, 5th ed., Academic Press (2013) — Chapter 5
+# (*Optical Solitons*), the optical version of Eq. (8); the appendix *Numerical Code for the NLS Equation* gives the
+# split-step Fourier method as it is used in photonics.
+#
+# <span id="ref-25">[25]</span> T. B. Benjamin and J. E. Feir, *The disintegration of wave trains on deep water. Part 1.
+# Theory*, J. Fluid Mech. **27**, 417 (1967) — modulational instability.
+#
+# <span id="ref-26">[26]</span> J. H. V. Nguyen, D. Luo and R. G. Hulet, *Formation of matter-wave soliton trains by
+# modulational instability*, Science **356**, 422 (2017).
+#
+# <span id="ref-27">[27]</span> K. Tai, A. Hasegawa and A. Tomita, *Observation of modulational instability in optical
+# fibers*, Phys. Rev. Lett. **56**, 135 (1986) — modulational instability.
+#
+# <span id="ref-28">[28]</span> N. G. Parker, S. L. Cornish, C. S. Adams and A. M. Martin, *Bright solitary waves and
+# trapped solutions in Bose-Einstein condensates with attractive interactions*, J. Phys. B **40**, 3127 (2007) — the
+# collapse threshold $\kappa_c = 0.675\pm0.005$ used in Section 6.8.
+#
+# <span id="ref-29">[29]</span> L. Salasnich, A. Parola and L. Reatto, *Condensate bright solitons under transverse
+# confinement*, Phys. Rev. A **66**, 043603 (2002) — the analytic collapse threshold $2/3$ of Section 6.8.
+#
+# <span id="ref-30">[30]</span> L. Salasnich, A. Parola and L. Reatto, *Effective wave equations for the dynamics of
+# cigar-shaped and disk-shaped Bose condensates*, Phys. Rev. A **65**, 043614 (2002) — the non-polynomial Schrödinger
+# equation.
+#
+# <span id="ref-31">[31]</span> R. Kosloff and H. Tal-Ezer, *A direct relaxation method for calculating eigenfunctions and
+# eigenvalues of the Schrödinger equation on a grid*, Chem. Phys. Lett. **127**, 223 (1986) — imaginary-time relaxation
+# on a grid.
+#
+# <span id="ref-32">[32]</span> M. L. Chiofalo, S. Succi and M. P. Tosi, *Ground state of trapped interacting Bose-Einstein
+# condensates by an explicit imaginary-time algorithm*, Phys. Rev. E **62**, 7438 (2000) — imaginary-time relaxation for
+# the Gross-Pitaevskii equation.
+#
+# <span id="ref-33">[33]</span> G. Strang, *On the construction and comparison of difference schemes*, SIAM J. Numer. Anal.
+# **5**, 506 (1968) — the symmetric splitting of Eq. (35).
+#
+# <span id="ref-34">[34]</span> M. D. Feit, J. A. Fleck Jr. and A. Steiger, *Solution of the Schrödinger equation by a
+# spectral method*, J. Comput. Phys. **47**, 412 (1982) — the split-step Fourier method.
+#
+# <span id="ref-35">[35]</span> R. von Mises and H. Pollaczek-Geiringer, *Praktische Verfahren der Gleichungsauflösung*,
+# Z. Angew. Math. Mech. **9**, 58 and 152 (1929) — the power method.
+#
+# <span id="ref-36">[36]</span> W. Bao and Q. Du, *Computing the ground state solution of Bose-Einstein condensates by a
+# normalized gradient flow*, SIAM J. Sci. Comput. **25**, 1674 (2004) — norm conservation and energy decrease of the
+# normalised gradient flow, the result behind Section 7.8.
+#
+# <span id="ref-37">[37]</span> L. F. Richardson, *The approximate arithmetical solution by finite differences of physical
+# problems involving differential equations, with an application to the stresses in a masonry dam*, Phil. Trans. R.
+# Soc. A **210**, 307 (1911) — Richardson extrapolation.
+#
+# <span id="ref-38">[38]</span> Y. Nambu, *Quasi-particles and gauge invariance in the theory of superconductivity*, Phys.
+# Rev. **117**, 648 (1960) — the gapless mode of a broken continuous symmetry.
+#
+# <span id="ref-39">[39]</span> J. Goldstone, *Field theories with "superconductor" solutions*, Nuovo Cimento **19**, 154
+# (1961) — the gapless mode of a broken continuous symmetry.
+#
+# <span id="ref-40">[40]</span> C. Runge, *Ueber die numerische Auflösung von Differentialgleichungen*, Math. Ann. **46**,
+# 167 (1895) — the Runge-Kutta methods.
+#
+# <span id="ref-41">[41]</span> W. Kutta, *Beitrag zur näherungsweisen Integration totaler Differentialgleichungen*,
+# Z. Math. Phys. **46**, 435 (1901) — the Runge-Kutta methods.
+#
+# <span id="ref-42">[42]</span> W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes: The
+# Art of Scientific Computing*, 3rd ed., Cambridge University Press (2007) — Chapter 12 (fast Fourier transform),
+# Chapter 17 (integration of ordinary differential equations, including the Runge-Kutta stability of Section 9.1) and
+# Chapter 20 (partial differential equations).
+#
+# <span id="ref-43">[43]</span> W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes in
+# Fortran 90: The Art of Parallel Scientific Computing*, 2nd ed. (Fortran Numerical Recipes, Volume 2), Cambridge
+# University Press (1996) — the routines of the second edition rewritten as parallel, whole-array Fortran 90, including
+# the FFT and the ODE integrators (the methods themselves are explained in the companion text).
+#
+# <span id="ref-44">[44]</span> V. E. Zakharov and A. B. Shabat, *Interaction between solitons in a stable medium*, Sov.
+# Phys. JETP **37**, 823 (1973) — the repulsive equation and its dark solitons (Exercise 4).
+#
+# <span id="ref-45">[45]</span> E. Forest and R. D. Ruth, *Fourth-order symplectic integration*, Physica D **43**, 105
+# (1990) — the fourth-order composition of Exercise 5.
+#
+# <span id="ref-46">[46]</span> H. Yoshida, *Construction of higher order symplectic integrators*, Phys. Lett. A **150**, 262
+# (1990) — the fourth-order composition of Exercise 5.
+#
+# <span id="ref-47">[47]</span> R. Y. Chiao, E. Garmire and C. H. Townes, *Self-trapping of optical beams*, Phys. Rev. Lett.
+# **13**, 479 (1964) — the Townes soliton of Exercise 7.
+#
+# <span id="ref-48">[48]</span> J. H. V. Nguyen, P. Dyke, D. Luo, B. A. Malomed and R. G. Hulet, *Collisions of matter-wave
+# solitons*, Nature Physics **10**, 918 (2014), arXiv:1407.5087 — the dependence of soliton collisions on the relative
+# phase, observed in a lithium condensate (Section 11.5).
 #
 # ### 11.5 What comes next
 #
 # In [00d — two-soliton collisions](00d_two_soliton_collisions.ipynb) the same propagator launches two
 # solitons at each other. They pass straight through and emerge with their shapes intact and only a shift in
-# position and phase, the signature of integrability. What happens during the overlap depends on the relative phase, which Nguyen, Dyke, Luo, Malomed and
-# Hulet measured directly (Nature Physics **10**, 918 (2014)).
+# position and phase, the signature of integrability. What happens during the overlap depends on the relative phase, which Ref. [[48]](#ref-48)
+# measured directly.
 #
 # Then [01 — JAX](01_jax_from_scratch.ipynb) explains the three tools used here on trust —
 # `jit`, `lax.scan` and `grad` — together with `vmap` and the rest of the library.

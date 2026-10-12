@@ -3,7 +3,7 @@
 #@description: Randomised measurements turned into an unbiased classical description of a quantum state: the measurement channel and its inverse derived for random Pauli bases and for global Clifford ensembles, the single-snapshot estimator and its variance (the shadow norm), median of means, and many observables — correlators, an energy, a fidelity, a reconstructed density matrix — predicted from one data set.
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
 # The previous notebook, [23 — quantum state tomography](../ch08_quantum_information_protocols/23_quantum_state_tomography.ipynb),
 # ended at a wall. Full tomography needs $3^N$ measurement settings to pin down the $4^N-1$ real parameters of a density matrix,
@@ -15,12 +15,13 @@
 # witness, a few subsystem entropies: a list of $K$ numbers with $K$ in the tens or hundreds, far fewer than $4^N$.
 # Predicting $K$ numbers need not cost as much as reconstructing the whole state.
 #
-# In 2018 Scott Aaronson formulated the *shadow tomography* problem — predict $K$ observables of an unknown state
-# using a number of copies growing only **polylogarithmically** in $K$, i.e. like a power of $\log K$ — and proved it is possible
-# in principle.
+# The *shadow tomography* problem was introduced in [[1]](#ref-1): predict $K$ observables of an unknown state
+# using a number of copies growing only **polylogarithmically** in $K$, i.e. like a power of $\log K$. Ref. [[1]](#ref-1) also proved
+# that this is possible in principle.
 # Measurements in randomly chosen bases on single copies had already been used to estimate purities and Rényi entropies
-# (van Enk and Beenakker 2012; Elben, Vermersch, Dalmonte, Cirac and Zoller 2018), and in an experiment by Brydges and co-workers (2019).
-# In 2020 Huang, Kueng and Preskill turned the shadow-tomography idea into a concrete measurement protocol:
+# [[2]](#ref-2), [[3]](#ref-3), and in the experiment of [[4]](#ref-4).
+# The classical-shadow protocol, introduced in [[5]](#ref-5) and implemented in this notebook, turned the shadow-tomography idea into a
+# concrete measurement procedure:
 #
 # > Measure every qubit along a **randomly chosen** axis. Write down which axes you chose and which bits came out.
 # > Repeat $M$ times. That list of $2NM$ integers, the **classical shadow**, is enough to predict, after the fact,
@@ -661,7 +662,7 @@ fig.tight_layout(); plt.show()
 # ### 6.2 The shadow norm and the sample complexity
 #
 # For a general observable $O$ the relevant quantity is the worst-case single-snapshot second moment, called the **shadow norm**
-# (Huang, Kueng and Preskill 2020):
+# [[5]](#ref-5):
 #
 # $$\lVert O\rVert_{\rm shadow}^2=\max_{\sigma\ \text{state}}\ \mathbb E_{U}\sum_b\langle b\vert U\sigma U^\dagger\vert b\rangle\,
 #   \Big(\langle b\vert U\,\mathcal M^{-1}(O)\,U^\dagger\vert b\rangle\Big)^{2}\;\ge\;\mathrm{Var}(\hat o)+\langle O\rangle^2 .$$
@@ -678,8 +679,8 @@ fig.tight_layout(); plt.show()
 # | global Clifford group | any $O$ | $\lVert O_0\rVert^2_{\rm shadow}\le 3\,\mathrm{Tr}(O_0^2)$ (quoted) |
 #
 # The first line we derived: $\mathbb E[\hat o^{\,2}]=3^k$ holds for every state, so the maximum over states in the definition is
-# $3^k$ as well. It is Lemma 3 of Huang, Kueng and Preskill (2020). The second line is their
-# Proposition 3 and the third is their Proposition 1; we quote both without proof. Proposition 1 also gives a matching **lower**
+# $3^k$ as well. It is Lemma 3 of [[5]](#ref-5). The second line is Proposition 3 there and the third is
+# Proposition 1; we quote both without proof. Proposition 1 also gives a matching **lower**
 # bound for the global ensemble, $\mathrm{Tr}(O_0^2)\le\lVert O_0\rVert_{\rm shadow}^2$, so for global shadows the third line is
 # tight up to the factor $3$. Section 10.3 compares the global line with values computed in closed form for the ideal Clifford
 # ensemble and with measurements on the depth-$2N$ random circuits sampled throughout, which are guaranteed to reproduce only the
@@ -706,7 +707,7 @@ fig.tight_layout(); plt.show()
 #   \qquad\text{provided}\qquad \frac MG\ge\frac{4\sigma^2}{\varepsilon^2}.$$
 #
 # The median can only be wrong if at least half of the groups are wrong. The number $B$ of bad groups is binomial with success
-# probability $p\le1/4$, and Hoeffding's inequality (Hoeffding 1963) gives
+# probability $p\le1/4$, and Hoeffding's inequality [[6]](#ref-6) gives
 #
 # $$\Pr\left[B\ge\frac G2\right]\le\exp\left(-2G\left(\tfrac12-\tfrac14\right)^2\right)=e^{-G/8}.$$
 #
@@ -715,8 +716,8 @@ fig.tight_layout(); plt.show()
 #
 # $$\boxed{\ M\;\ge\;32\,\log\!\left(\frac K\delta\right)\,\frac{\max_i\lVert O_i\rVert^2_{\rm shadow}}{\varepsilon^2}\ } \tag{8}$$
 #
-# — **logarithmic in the number of observables**, which is Aaronson's shadow-tomography statement made into a runnable
-# algorithm. (Huang, Kueng and Preskill split the same budget as $G=2\log(2K/\delta)$ groups of $34\max_i\lVert O_i\rVert^2_{\rm shadow}/\varepsilon^2$
+# — **logarithmic in the number of observables**, which is the shadow-tomography statement of [[1]](#ref-1) made into a runnable
+# algorithm. (Ref. [[5]](#ref-5) splits the same budget as $G=2\log(2K/\delta)$ groups of $34\max_i\lVert O_i\rVert^2_{\rm shadow}/\varepsilon^2$
 # snapshots each, i.e. a total constant of $68$ where our bookkeeping gives $32$; only the scaling matters.)
 # Equation (8) is a *worst-case guarantee*, and its only input is the variance. A tail bound for the plain sample mean cannot
 # be obtained from the variance alone: Hoeffding's inequality applied to $\hat o$ needs its **range**, which for a weight-$k$
@@ -1088,8 +1089,8 @@ assert abs(z7_wrong) > 5
 #   \mathcal M^{-1}(A)=3A-\mathrm{Tr}(A)\mathbb 1 .$$
 #
 # A second derivation of the same statement, needed again in Section 10: the single-qubit Clifford group is a **unitary
-# 2-design** (for any number of qubits this was proved by Dankert, Cleve, Emerson and Livine (2009), extending DiVincenzo, Leung and
-# Terhal (2002); Webb 2016 and Zhu 2017 prove the much stronger statement that the multi-qubit Clifford group is a 3-design). Equation (1)
+# 2-design** (for any number of qubits this was proved in [[7]](#ref-7), extending [[8]](#ref-8);
+# Refs. [[9]](#ref-9), [[10]](#ref-10) prove the much stronger statement that the multi-qubit Clifford group is a 3-design). Equation (1)
 # involves the ensemble only through its second moments, so *any* 2-design on one qubit gives the same channel — and for $d=2$ the
 # general 2-design result of Section 10.1 reads $\mathcal M(A)=(A+\mathrm{Tr}(A)\mathbb 1)/(d+1)=(A+\mathrm{Tr}(A)\mathbb 1)/3$,
 # which is Eq. (3) again.
@@ -1188,7 +1189,7 @@ assert err_ry > 6 / np.sqrt(20000)
 # ### 10.2 The ensemble we actually sample
 #
 # Equation (9) holds for a 2-design. The uniform distribution on the $N$-qubit Clifford group is one — in fact it is a 3-design
-# (Webb 2016; Zhu 2017) — but sampling it *exactly and uniformly* requires the canonical-form algorithms of stabiliser theory,
+# [[9]](#ref-9), [[10]](#ref-10) — but sampling it *exactly and uniformly* requires the canonical-form algorithms of stabiliser theory,
 # which are beyond this notebook. We therefore sample a concrete, explicitly stated **random Clifford circuit** ensemble:
 #
 # > $L$ layers; each layer applies an independent uniformly random element of the $24$-element single-qubit Clifford group to
@@ -1202,8 +1203,8 @@ assert err_ry > 6 / np.sqrt(20000)
 #
 # > **Common pitfall.** A 2-design is enough for $\mathbb E[\hat\rho]=\rho$ and for nothing else. The *variance*
 # > $\mathbb E[\hat o^{\,2}]$ contains three factors of $U$ and three of $U^\dagger$, so it is a **third** moment of the ensemble;
-# > this is why Huang, Kueng and Preskill prove their global-Clifford variance bound using the fact that the Clifford group is a
-# > 3-design (Webb 2016; Zhu 2017 — see also notebook 10, where the single-qubit Clifford group is shown numerically to be a 3-design
+# > this is why Ref. [[5]](#ref-5) proves its global-Clifford variance bound using the fact that the Clifford group is a
+# > 3-design ([[9]](#ref-9), [[10]](#ref-10) — see also notebook 10, where the single-qubit Clifford group is shown numerically to be a 3-design
 # > and to fail as a 4-design). The channel test below therefore certifies the *unbiasedness* of the depth-$2N$ ensemble and says nothing about the
 # > variances measured in Section 10.3; Section 10.3 compares those with the ideal Clifford values and with a deeper circuit.
 
@@ -1529,9 +1530,9 @@ fig.tight_layout(); plt.show()
 #
 # The two ensembles are complementary, and the choice between them is a physical decision about what is to be learnt. In the
 # laboratory there is a third consideration: a uniformly random $N$-qubit Clifford unitary needs $O(N^2/\log N)$ gates
-# (Aaronson and Gottesman 2004) *before every single measurement*, whereas random Pauli bases need one single-qubit rotation per
+# [[11]](#ref-11) *before every single measurement*, whereas random Pauli bases need one single-qubit rotation per
 # qubit. Randomised-measurement experiments on qubit registers therefore use local rotations. The global variant has been realised
-# where a global unitary need not be compiled into an entangling gate sequence: Struchalin *et al.* (2021) prepare states of dimension $D=2,4,\dots,32$
+# where a global unitary need not be compiled into an entangling gate sequence: the authors of [[12]](#ref-12) prepare states of dimension $D=2,4,\dots,32$
 # (one to five qubits) in the spatial modes of photons and, because a spatial light modulator projects onto an arbitrary vector in
 # one step, they implement the **global** Clifford (stabiliser) ensemble directly, by drawing a random stabiliser state
 # $\vert\psi\rangle=U^\dagger\vert b\rangle$ instead of compiling a Clifford gate sequence. Their Fig. 1 shows the set-up and
@@ -1556,7 +1557,7 @@ fig.tight_layout(); plt.show()
 #
 # The cheap way to build it is via the **Pauli vector** of notebook 23: estimate all $4^N$ coordinates
 # $\hat r_P$ with Eq. (6) in one call of `snapshot_values`, then use $\rho=2^{-N}\sum_P\hat r_PP$. Exactly as in notebook 23, the
-# result has unit trace but is **not positive**, and the same Smolin–Gambetta–Smith projection repairs it.
+# result has unit trace but is **not positive**, and the same Smolin–Gambetta–Smith projection [[13]](#ref-13) repairs it.
 #
 # ### 11.2 The comparison, at an equal number of runs of the machine
 #
@@ -1958,45 +1959,69 @@ assert np.abs(z_e2_wrong).min() > 5.0
 #    Pauli strings in its own setting with an equal share of the runs and (b) measuring the two commuting groups, all $Z$ and all
 #    $X$, in two settings. Explain why shadows beat (a) by a factor that grows with $N$ and lose to (b) by a constant factor.
 # 8. ★★★ **Derandomised shadows (extend the code).** Instead of drawing the bases uniformly, greedily choose, for each new snapshot,
-#    the basis string that minimises a confidence bound for a *given* list of $K$ Pauli observables (Huang, Kueng and Preskill's
-#    "derandomisation", Phys. Rev. Lett. **127**, 030503 (2021)). Implement a simple greedy version for the $15$ Ising strings
+#    the basis string that minimises a confidence bound for a *given* list of $K$ Pauli observables (the
+#    "derandomisation" of [[14]](#ref-14)). Implement a simple greedy version for the $15$ Ising strings
 #    of Section 7 and measure how much of the $3^k$ variance you recover.
 #
 # ## References
 #
-# * S. Aaronson, *Shadow tomography of quantum states*, in Proceedings of the 50th Annual ACM SIGACT Symposium on Theory of
-#   Computing (STOC 2018), pp. 325–338 — the problem statement: predict $K$ observables with $\mathrm{poly}(\log K)$ copies.
-# * H.-Y. Huang, R. Kueng and J. Preskill, *Predicting many properties of a quantum system from very few measurements*,
-#   Nature Physics **16**, 1050 (2020) — classical shadows: the measurement channel, the shadow norm, the median-of-means bound
-#   (their Theorem 1), and the variance bounds quoted in Section 6.2 — $\lVert O\rVert^2_{\rm shadow}=3^k$ for a weight-$k$
-#   Pauli string (Lemma 3), $\le4^k\lVert O\rVert_\infty^2$ for a $k$-local observable (Proposition 3) and
-#   $\mathrm{Tr}(O_0^2)\le\lVert O_0\rVert^2_{\rm shadow}\le3\,\mathrm{Tr}(O_0^2)$ for global Clifford shadows (Proposition 1).
-# * H.-Y. Huang, R. Kueng and J. Preskill, *Efficient estimation of Pauli observables by derandomization*,
-#   Phys. Rev. Lett. **127**, 030503 (2021) — the derandomised variant of Exercise 8.
-# * S. J. van Enk and C. W. J. Beenakker, *Measuring $\mathrm{Tr}\,\rho^n$ on single copies of $\rho$ using random measurements*,
-#   Phys. Rev. Lett. **108**, 110503 (2012); A. Elben, B. Vermersch, M. Dalmonte, J. I. Cirac and P. Zoller, *Rényi entropies from
-#   random quenches in atomic Hubbard and spin models*, Phys. Rev. Lett. **120**, 050406 (2018) — randomised measurements on single
-#   copies before classical shadows.
-# * T. Brydges, A. Elben, P. Jurcevic, B. Vermersch, C. Maier, B. P. Lanyon, P. Zoller, R. Blatt and C. F. Roos, *Probing Rényi
-#   entanglement entropy via randomized measurements*, Science **364**, 260 (2019) — the experiment, on up to $10$ trapped-ion qubits.
-# * A. Elben, S. T. Flammia, H.-Y. Huang, R. Kueng, J. Preskill, B. Vermersch and P. Zoller, *The randomized measurement toolbox*,
-#   Nature Reviews Physics **5**, 9 (2023) — a review of randomised measurements, including purities, entropies and noise robustness.
-# * D. P. DiVincenzo, D. W. Leung and B. M. Terhal, *Quantum data hiding*, IEEE Trans. Inf. Theory **48**, 580 (2002) — the Clifford
-#   group as a substitute for Haar-random unitaries in twirling.
-# * C. Dankert, R. Cleve, J. Emerson and E. Livine, *Exact and approximate unitary 2-designs and their application to fidelity
-#   estimation*, Phys. Rev. A **80**, 012304 (2009) — unitary $t$-designs, and the proof that the Clifford group is a unitary 2-design
-#   (their Theorem 1), Sections 9 and 10.
-# * Z. Webb, *The Clifford group forms a unitary 3-design*, Quantum Information and Computation **16**, 1379 (2016);
-#   H. Zhu, *Multiqubit Clifford groups are unitary 3-designs*, Phys. Rev. A **96**, 062336 (2017) — the design property used in
-#   Sections 9 and 10.
-# * G. I. Struchalin, Ya. A. Zagorovskii, E. V. Kovlakov, S. S. Straupe and S. P. Kulik, *Experimental estimation of quantum state
-#   properties from classical shadows*, PRX Quantum **2**, 010307 (2021) — the protocol carried out in the laboratory, with the
-#   **global** (stabiliser) ensemble on spatial modes of photons, dimension up to $2^5$.
-# * S. Aaronson and D. Gottesman, *Improved simulation of stabilizer circuits*, Phys. Rev. A **70**, 052328 (2004) — every
-#   $N$-qubit Clifford unitary can be implemented with $O(N^2/\log N)$ gates (Section 10.3).
-# * J. A. Smolin, J. M. Gambetta and G. Smith, *Efficient method for computing the maximum-likelihood quantum state from
-#   measurements with additive Gaussian noise*, Phys. Rev. Lett. **108**, 070502 (2012) — the projection used in Section 11.
-# * W. Hoeffding, *Probability inequalities for sums of bounded random variables*, J. Amer. Statist. Assoc. **58**, 13 (1963) —
-#   the tail bound used for the median of means, Section 6.3.
-# * M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information* (Cambridge University Press, 2000) — density
-#   matrices, quantum channels, the Clifford group (Ch. 2, 8 and 10).
+# <span id="ref-1">[1]</span> S. Aaronson, *Shadow tomography of quantum states*, in Proceedings of the 50th Annual ACM
+# SIGACT Symposium on Theory of Computing (STOC 2018), pp. 325–338 — the problem statement: predict $K$ observables with
+# $\mathrm{poly}(\log K)$ copies.
+#
+# <span id="ref-2">[2]</span> S. J. van Enk and C. W. J. Beenakker, *Measuring $\mathrm{Tr}\,\rho^n$ on single copies of
+# $\rho$ using random measurements*, Phys. Rev. Lett. **108**, 110503 (2012) — randomised measurements on single copies
+# before classical shadows.
+#
+# <span id="ref-3">[3]</span> A. Elben, B. Vermersch, M. Dalmonte, J. I. Cirac and P. Zoller, *Rényi entropies from random
+# quenches in atomic Hubbard and spin models*, Phys. Rev. Lett. **120**, 050406 (2018) — randomised measurements on single
+# copies before classical shadows.
+#
+# <span id="ref-4">[4]</span> T. Brydges, A. Elben, P. Jurcevic, B. Vermersch, C. Maier, B. P. Lanyon, P. Zoller, R. Blatt
+# and C. F. Roos, *Probing Rényi entanglement entropy via randomized measurements*, Science **364**, 260 (2019) — the
+# experiment, on up to $10$ trapped-ion qubits.
+#
+# <span id="ref-5">[5]</span> H.-Y. Huang, R. Kueng and J. Preskill, *Predicting many properties of a quantum system from
+# very few measurements*, Nature Physics **16**, 1050 (2020) — classical shadows: the measurement channel, the shadow norm,
+# the median-of-means bound (their Theorem 1), and the variance bounds quoted in Section 6.2 —
+# $\lVert O\rVert^2_{\rm shadow}=3^k$ for a weight-$k$ Pauli string (Lemma 3), $\le4^k\lVert O\rVert_\infty^2$ for a
+# $k$-local observable (Proposition 3) and $\mathrm{Tr}(O_0^2)\le\lVert O_0\rVert^2_{\rm shadow}\le3\,\mathrm{Tr}(O_0^2)$
+# for global Clifford shadows (Proposition 1).
+#
+# <span id="ref-6">[6]</span> W. Hoeffding, *Probability inequalities for sums of bounded random variables*, J. Amer.
+# Statist. Assoc. **58**, 13 (1963) — the tail bound used for the median of means, Section 6.3.
+#
+# <span id="ref-7">[7]</span> C. Dankert, R. Cleve, J. Emerson and E. Livine, *Exact and approximate unitary 2-designs and
+# their application to fidelity estimation*, Phys. Rev. A **80**, 012304 (2009) — unitary $t$-designs, and the proof that
+# the Clifford group is a unitary 2-design (their Theorem 1), Sections 9 and 10.
+#
+# <span id="ref-8">[8]</span> D. P. DiVincenzo, D. W. Leung and B. M. Terhal, *Quantum data hiding*, IEEE Trans. Inf. Theory
+# **48**, 580 (2002) — the Clifford group as a substitute for Haar-random unitaries in twirling.
+#
+# <span id="ref-9">[9]</span> Z. Webb, *The Clifford group forms a unitary 3-design*, Quantum Information and Computation
+# **16**, 1379 (2016) — the design property used in Sections 9 and 10.
+#
+# <span id="ref-10">[10]</span> H. Zhu, *Multiqubit Clifford groups are unitary 3-designs*, Phys. Rev. A **96**, 062336
+# (2017) — the design property used in Sections 9 and 10.
+#
+# <span id="ref-11">[11]</span> S. Aaronson and D. Gottesman, *Improved simulation of stabilizer circuits*, Phys. Rev. A
+# **70**, 052328 (2004) — every $N$-qubit Clifford unitary can be implemented with $O(N^2/\log N)$ gates (Section 10.3).
+#
+# <span id="ref-12">[12]</span> G. I. Struchalin, Ya. A. Zagorovskii, E. V. Kovlakov, S. S. Straupe and S. P. Kulik,
+# *Experimental estimation of quantum state properties from classical shadows*, PRX Quantum **2**, 010307 (2021) — the
+# protocol carried out in the laboratory, with the **global** (stabiliser) ensemble on spatial modes of photons, dimension
+# up to $2^5$.
+#
+# <span id="ref-13">[13]</span> J. A. Smolin, J. M. Gambetta and G. Smith, *Efficient method for computing the
+# maximum-likelihood quantum state from measurements with additive Gaussian noise*, Phys. Rev. Lett. **108**, 070502 (2012)
+# — the projection used in Section 11.
+#
+# <span id="ref-14">[14]</span> H.-Y. Huang, R. Kueng and J. Preskill, *Efficient estimation of Pauli observables by
+# derandomization*, Phys. Rev. Lett. **127**, 030503 (2021) — the derandomised variant of Exercise 8.
+#
+# <span id="ref-15">[15]</span> A. Elben, S. T. Flammia, H.-Y. Huang, R. Kueng, J. Preskill, B. Vermersch and P. Zoller,
+# *The randomized measurement toolbox*, Nature Reviews Physics **5**, 9 (2023) — a review of randomised measurements,
+# including purities, entropies and noise robustness.
+#
+# <span id="ref-16">[16]</span> M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information* (Cambridge
+# University Press, 2000) — density matrices, quantum channels, the Clifford group (Ch. 2, 8 and 10).

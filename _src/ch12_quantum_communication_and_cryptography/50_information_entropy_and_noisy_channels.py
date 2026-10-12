@@ -3,16 +3,16 @@
 #@description: The classical theory that quantum communication builds on, with a simulation for every formula: surprise and Shannon entropy, the binary entropy function, compression of a biased coin with Huffman block codes, joint and conditional entropy and mutual information, channels as transition matrices (noiseless, binary symmetric, erasure and Z-channel), capacity as the maximum mutual information computed by a scan over input distributions, the noisy-channel coding theorem, the repetition and Hamming(7,4) codes, and the parity-check binary search that corrects errors by public discussion and leaks about h(Q) bits per key bit.
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
 # Every act of communication has the same structure. A sender, Alice, wants a receiver, Bob, to learn a message, and
 # the only connection between them is a physical channel: a copper wire, an optical fibre, a radio link, a letter in the
 # post. Real channels are noisy. A bit sent as $1$ sometimes arrives as $0$ because of thermal noise in an amplifier, a
 # scratch on a disc or a photon lost in a fibre. Two questions follow. How much does a message actually contain, so that
 # no channel use is wasted on redundant symbols? And how can Alice and Bob communicate reliably when the channel
-# corrupts a fixed fraction of the bits? In 1948 Claude Shannon answered both questions with a single quantity, the
-# **entropy**, and founded information theory. His answers set the limits that every modem, mobile phone and hard disk
-# works against today.
+# corrupts a fixed fraction of the bits? Both questions were answered in 1948 with a single quantity, the
+# **entropy**, in the work that founded information theory [[1]](#ref-1). Its answers set the limits that every modem, mobile
+# phone and hard disk works against today.
 #
 # Later in this chapter a third question joins the first two: how can Alice and Bob communicate *secretly*, when an
 # eavesdropper, Eve, may listen to the channel? The answer will need a shared secret key, and quantum mechanics will
@@ -247,12 +247,12 @@ plt.tight_layout(); plt.show()
 #
 # The entropy has an operational meaning that goes beyond "average surprise": it is the smallest number of bits per
 # symbol into which a long message from the source can be compressed without loss. This is the content of Shannon's
-# fundamental theorem for a noiseless channel (Shannon 1948, Theorem 9), the source coding theorem. We state it in the
+# fundamental theorem for a noiseless channel (Theorem 9 of [[1]](#ref-1)), the source coding theorem. We state it in the
 # form we can test.
 #
 # A **prefix code** assigns to every symbol (or block of symbols) a binary codeword such that no codeword is the
 # beginning of another; a string of concatenated codewords can then be cut back into codewords unambiguously, reading
-# from the left. For a known distribution, the **Huffman code** (Huffman 1952) has the smallest average length among all
+# from the left. For a known distribution, the **Huffman code** [[2]](#ref-2) has the smallest average length among all
 # prefix codes for the same symbols, or for the same blocks of symbols: repeatedly merge
 # the two least likely entries into one node of a binary tree, then read each codeword off the path from the root. If
 # we encode blocks of $k$ source symbols at a time, the average codeword length $\bar L_k$ per block satisfies
@@ -271,7 +271,7 @@ plt.tight_layout(); plt.show()
 #
 # $$-\frac1n\log_2p(x_1x_2\cdots x_n)\;\to\;H(X)\qquad(n\to\infty), \tag{7}$$
 #
-# a statement that Shannon gave as his Theorem 3. It is the law of large numbers: for independent symbols
+# a statement given as Theorem 3 of [[1]](#ref-1). It is the law of large numbers: for independent symbols
 # $-\log_2p(x_1\cdots x_n)=\sum_is(x_i)$ is a sum of $n$ independent surprises, whose mean tends to $H$. Since the typical strings carry nearly all the probability and each
 # has probability $\approx2^{-nH}$, there are about $2^{nH}$ of them, and numbering them takes $nH$ bits. For $n=1000$ tosses of the biased coin these are about
 # $2^{469}$ strings out of $2^{1000}$.
@@ -580,7 +580,7 @@ assert abs(I_bsc(0.5, 0.11) - 0.5) < 1e-3                 # at q = 0.11 half of 
 # The simulated error rates agree with $q$ within the binomial spread, and the mutual information estimated from the
 # counts agrees with Eqs. (12)–(14) to better than $0.01$ bits. For the BSC with uniform input, Eq. (12) reduces to
 # $I=1-h(q)$: $0.919$ bits per use at $q=0.01$, $0.500$ at $q=0.11$, $0.189$ at $q=1/4$, and nothing at $q=1/2$, where
-# the output is a fair coin independent of the input. Shannon's paper discusses the first case: a channel that sends
+# the output is a fair coin independent of the input. Ref. [[1]](#ref-1) discusses the first case: a channel that sends
 # $1000$ bits per second with $1\,\%$ errors transmits $919$ bits of information per second. Subtracting the ten wrong
 # bits would suggest $990$; the loss of $81$ bits is larger because Bob does not know *which* bits are wrong. The erasure channel with $e=0.3$ loses $30\,\%$ of the bits and transmits
 # $0.700$ bits per use, more than the BSC with $q=0.11$, which corrupts only $11\,\%$, because a known loss is cheaper than a
@@ -657,8 +657,8 @@ ax.legend(fontsize=8); plt.tight_layout(); plt.show()
 # Capacity would be a mere number if it did not have an operational meaning. Suppose Alice wants to send one of $2^k$
 # messages, $k$ bits, and is allowed $n$ uses of the channel; the **rate** of her code is $R=k/n$ bits per channel use.
 # Bob decodes the $n$ received symbols to a guess $\hat m$, and the code fails with probability
-# $P_{\rm err}=P(\hat m\neq m)$. Shannon's **noisy-channel coding theorem** (Shannon 1948, Theorem 11), in the form used
-# in textbooks today (Cover and Thomas 2006), states:
+# $P_{\rm err}=P(\hat m\neq m)$. Shannon's **noisy-channel coding theorem** (Theorem 11 of [[1]](#ref-1)), in the form used
+# in textbooks today [[3]](#ref-3), states:
 #
 # * for every rate $R<C$ there are codes whose error probability goes to zero as the block length $n$ grows;
 # * for every rate $R>C$ the error probability of every code stays bounded away from zero.
@@ -684,7 +684,7 @@ ax.legend(fontsize=8); plt.tight_layout(); plt.show()
 #
 # $$2^{nR}\,2^{-n(1-h(q))}=2^{-n(C-R)},$$
 #
-# which vanishes as $n$ grows whenever $R<C$ (Shannon 1948; Cover and Thomas 2006, Ch. 7). Above capacity the expected
+# which vanishes as $n$ grows whenever $R<C$ ([[1]](#ref-1); Ch. 7 of [[3]](#ref-3)). Above capacity the expected
 # number of wrong codewords inside the cloud grows like $2^{n(R-C)}$, and decoding fails more and more often. The next
 # cell tests this on the BSC with $q=0.11$, where $C=0.500$. For every block length it draws $10^4$ independent
 # codebooks, sends the first codeword and decodes by minimum distance, with ties broken at random. One rate lies below
@@ -750,10 +750,9 @@ ax.legend(fontsize=8); plt.tight_layout(); plt.show()
 # Random codes come close to the capacity, but they cannot be decoded efficiently: minimum-distance decoding compares
 # the received string with all $2^{nR}$ codewords, a number that grows exponentially with $n$. The search for codes that
 # approach the capacity *and* can be decoded fast took decades. Two families that do are low-density parity-check codes,
-# introduced by Gallager (1962) and brought close to the capacity in their irregular form by Richardson, Shokrollahi and
-# Urbanke (2001), and polar codes, introduced by Arıkan (2009), which provably reach the capacity of channels such as the
-# BSC; the 5G mobile standard encodes its data with the first and its control information with the second
-# (3GPP TS 38.212). Section 6 studies two simple codes and shows how far from $C$ they stay.
+# introduced in [[4]](#ref-4) and brought close to the capacity in their irregular form in [[5]](#ref-5), and polar codes,
+# introduced in [[6]](#ref-6), which provably reach the capacity of channels such as the BSC; the 5G mobile standard [[7]](#ref-7)
+# encodes its data with the first and its control information with the second. Section 6 studies two simple codes and shows how far from $C$ they stay.
 #
 # ## 6. Error correction
 #
@@ -822,7 +821,7 @@ assert abs(p_err_repetition(4, Q_REP) - p_err_repetition(3, Q_REP)) < TOL     # 
 #
 # ### 6.2 The Hamming(7,4) code
 #
-# Hamming (1950) found a far better trade-off for a single error per block. His code sends $4$ message bits in a block
+# The code introduced in [[8]](#ref-8) has a far better trade-off for a single error per block. It sends $4$ message bits in a block
 # of $7$, at rate $R=4/7\approx0.571$, and corrects any single error in the block. Number the positions $1,\dots,7$.
 # Positions $1$, $2$ and $4$ (the powers of two) carry parity bits and the others, $3,5,6,7$, the message. Each parity
 # bit is chosen so that a group of positions has an even number of ones:
@@ -976,16 +975,16 @@ assert q01[1] > 0.02                                 # ... and its residual erro
 # and Bob flips that bit. A block with an *even* number of errors has matching parities and hides its errors, so the
 # procedure is repeated in several passes, each time after a public random permutation of the positions, with blocks
 # twice as long as in the previous pass, because fewer errors remain. This is the binary-search primitive BINARY and the shuffled-pass structure
-# described by Brassard and Salvail (1994); their protocol Cascade adds a backtracking step that reuses old parities and
+# described in [[9]](#ref-9); the protocol Cascade of [[9]](#ref-9) adds a backtracking step that reuses old parities and
 # is omitted here. The first-pass block length is set to about $0.73/Q$, so that a block holds $0.73$ errors on
-# average and most blocks hold none or one; this is close to the values of their benchmark ($73$,
+# average and most blocks hold none or one; this is close to the values of the benchmark of [[9]](#ref-9) ($73$,
 # $14$ and $7$ bits at $Q=0.01$, $0.05$ and $0.1$).
 #
 # Every announced parity is at most one bit of information about the key, and a listener, later Eve, learns it too.
 # The minimum number of parities follows from Bob's uncertainty about Alice's string, the conditional entropy. For a
 # uniformly random string $\mathbf a$ and independent errors at rate $Q$ it is $H(\mathbf a\vert\mathbf b)=n\,h(Q)$,
-# $n$ times the noisy copy of Section 4. Shannon's Theorem 10 states that an extra channel that tells the receiver
-# which bits to correct must carry at least this much, and Brassard and Salvail (1994, Theorem 2) proved the same
+# $n$ times the noisy copy of Section 4. Theorem 10 of [[1]](#ref-1) states that an extra channel that tells the receiver
+# which bits to correct must carry at least this much, and Theorem 2 of [[9]](#ref-9) proves the same
 # bound for any reconciliation protocol, interactive ones included. For long strings every successful reconciliation
 # therefore reveals at least
 #
@@ -1086,8 +1085,7 @@ ax.legend(fontsize=8); plt.tight_layout(); plt.show()
 # four error rates, and the number of revealed parities was $f=1.19$ to $1.41$ times the minimum $n\,h(Q)$ of
 # Eq. (24), closer at low error rates. At $Q=0.1$ Alice and Bob reveal $0.66$ bits per key bit, so a listener who
 # hears only the parities still lacks at least $341$ bits of every thousand. Cascade, which reuses earlier parities to
-# find hidden pairs of errors, reaches $f\approx1.10$ to $1.16$ for $Q=0.01$ to $0.1$ in the benchmark of Brassard and
-# Salvail (1994), and long parity-check codes come closer still, but no protocol can go below $f=1$.
+# find hidden pairs of errors, reaches $f\approx1.10$ to $1.16$ for $Q=0.01$ to $0.1$ in the benchmark of [[9]](#ref-9), and long parity-check codes come closer still, but no protocol can go below $f=1$.
 #
 # ## 7. From reliable communication to secret communication
 #
@@ -1164,32 +1162,43 @@ ax.legend(fontsize=8); plt.tight_layout(); plt.show()
 #
 # ## References
 #
-# * C. E. Shannon, *A mathematical theory of communication*, Bell Syst. Tech. J. **27**, 379 and 623 (1948),
-#   doi:10.1002/j.1538-7305.1948.tb01338.x and doi:10.1002/j.1538-7305.1948.tb00917.x — entropy as the measure of
-#   information, typical sequences (Theorem 3), the source coding theorem (Theorem 9), the equivocation and the correction channel (Theorem 10), the
-#   capacity $C=\max\,[H(x)-H_y(x)]$ and the noisy-channel coding theorem (Theorem 11), and the example of $1000$ bits
-#   per second with $1\,\%$ errors carrying $919$ bits per second.
-# * D. A. Huffman, *A method for the construction of minimum-redundancy codes*, Proc. IRE **40**, 1098 (1952),
-#   doi:10.1109/JRPROC.1952.273898 — the optimal prefix code of Section 3.4.
-# * R. W. Hamming, *Error detecting and error correcting codes*, Bell Syst. Tech. J. **29**, 147 (1950),
-#   doi:10.1002/j.1538-7305.1950.tb00463.x — single-error-correcting codes with check positions $1,2,4,\dots$ whose
-#   "checking number" gives the position of the error; the seven-position code with four information positions.
-# * G. Brassard and L. Salvail, *Secret-key reconciliation by public discussion*, in *Advances in Cryptology —
-#   EUROCRYPT '93*, Lecture Notes in Computer Science **765**, 410 (Springer, 1994), doi:10.1007/3-540-48285-7\_35 —
-#   reconciliation over a binary symmetric channel, the lower bound $n\,h(p)$ on the leaked information (Theorem 2), the binary-search primitive
-#   BINARY, and the protocol Cascade with its first-pass block length and its benchmark of the leaked information.
-# * R. G. Gallager, *Low-density parity-check codes*, IRE Trans. Inf. Theory **8**, 21 (1962),
-#   doi:10.1109/TIT.1962.1057683 — codes defined by a sparse parity-check matrix with a fixed small number of ones per
-#   row and per column, and their iterative decoding from the channel probabilities.
-# * T. Richardson, A. Shokrollahi and R. Urbanke, *Design of capacity-approaching irregular low-density parity-check
-#   codes*, IEEE Trans. Inf. Theory **47**, 619 (2001), doi:10.1109/18.910578 — low-density parity-check codes that
-#   approach the capacity.
-# * E. Arıkan, *Channel polarization: a method for constructing capacity-achieving codes for symmetric binary-input
-#   memoryless channels*, IEEE Trans. Inf. Theory **55**, 3051 (2009), doi:10.1109/TIT.2009.2021379 — polar codes, which
-#   reach the symmetric capacity with encoding and decoding in $O(n\log n)$ operations.
-# * 3GPP TS 38.212, *NR; Multiplexing and channel coding* (3rd Generation Partnership Project, Release 15 onward),
-#   clauses 7.2.4 and 7.3.3 — the 5G standard: low-density parity-check coding of the downlink shared (data) channel and
-#   polar coding of the downlink control information.
-# * T. M. Cover and J. A. Thomas, *Elements of Information Theory*, 2nd ed. (Wiley, Hoboken, 2006),
-#   doi:10.1002/047174882X — textbook treatment of entropy, mutual information, data compression and channel capacity,
-#   including the binary symmetric and erasure channels and the modern statement of the noisy-channel coding theorem.
+# <span id="ref-1">[1]</span> C. E. Shannon, *A mathematical theory of communication*, Bell Syst. Tech. J. **27**, 379 and
+# 623 (1948), doi:10.1002/j.1538-7305.1948.tb01338.x and doi:10.1002/j.1538-7305.1948.tb00917.x — entropy as the measure
+# of information, typical sequences (Theorem 3), the source coding theorem (Theorem 9), the equivocation and the
+# correction channel (Theorem 10), the capacity $C=\max\,[H(x)-H_y(x)]$ and the noisy-channel coding theorem
+# (Theorem 11), and the example of $1000$ bits per second with $1\,\%$ errors carrying $919$ bits per second.
+#
+# <span id="ref-2">[2]</span> D. A. Huffman, *A method for the construction of minimum-redundancy codes*, Proc. IRE **40**,
+# 1098 (1952), doi:10.1109/JRPROC.1952.273898 — the optimal prefix code of Section 3.4.
+#
+# <span id="ref-3">[3]</span> T. M. Cover and J. A. Thomas, *Elements of Information Theory*, 2nd ed. (Wiley, Hoboken,
+# 2006), doi:10.1002/047174882X — textbook treatment of entropy, mutual information, data compression and channel
+# capacity, including the binary symmetric and erasure channels and the modern statement of the noisy-channel coding
+# theorem.
+#
+# <span id="ref-4">[4]</span> R. G. Gallager, *Low-density parity-check codes*, IRE Trans. Inf. Theory **8**, 21 (1962),
+# doi:10.1109/TIT.1962.1057683 — codes defined by a sparse parity-check matrix with a fixed small number of ones per
+# row and per column, and their iterative decoding from the channel probabilities.
+#
+# <span id="ref-5">[5]</span> T. Richardson, A. Shokrollahi and R. Urbanke, *Design of capacity-approaching irregular
+# low-density parity-check codes*, IEEE Trans. Inf. Theory **47**, 619 (2001), doi:10.1109/18.910578 — low-density
+# parity-check codes that approach the capacity.
+#
+# <span id="ref-6">[6]</span> E. Arıkan, *Channel polarization: a method for constructing capacity-achieving codes for
+# symmetric binary-input memoryless channels*, IEEE Trans. Inf. Theory **55**, 3051 (2009),
+# doi:10.1109/TIT.2009.2021379 — polar codes, which reach the symmetric capacity with encoding and decoding in
+# $O(n\log n)$ operations.
+#
+# <span id="ref-7">[7]</span> 3GPP TS 38.212, *NR; Multiplexing and channel coding* (3rd Generation Partnership Project,
+# Release 15 onward), clauses 7.2.4 and 7.3.3 — the 5G standard: low-density parity-check coding of the downlink shared
+# (data) channel and polar coding of the downlink control information.
+#
+# <span id="ref-8">[8]</span> R. W. Hamming, *Error detecting and error correcting codes*, Bell Syst. Tech. J. **29**, 147
+# (1950), doi:10.1002/j.1538-7305.1950.tb00463.x — single-error-correcting codes with check positions $1,2,4,\dots$
+# whose "checking number" gives the position of the error; the seven-position code with four information positions.
+#
+# <span id="ref-9">[9]</span> G. Brassard and L. Salvail, *Secret-key reconciliation by public discussion*, in *Advances in
+# Cryptology — EUROCRYPT '93*, Lecture Notes in Computer Science **765**, 410 (Springer, 1994),
+# doi:10.1007/3-540-48285-7\_35 — reconciliation over a binary symmetric channel, the lower bound $n\,h(p)$ on the
+# leaked information (Theorem 2), the binary-search primitive BINARY, and the protocol Cascade with its first-pass block
+# length and its benchmark of the leaked information.

@@ -3,7 +3,7 @@
 #@description: Parameter estimation and its quantum limit: estimators, score and classical Fisher information, the Cramér–Rao bound derived by Cauchy–Schwarz, the symmetric logarithmic derivative and the Braunstein–Caves inequality, the pure-state reduction $F_Q=4\,\mathrm{Var}(G)$ and the speed of a state, error propagation, product state versus GHZ (standard quantum limit and Heisenberg limit) and the fragility of the GHZ advantage, including superdecoherence, a zoo of many-body states, the $3\times3$ collective QFI matrix and its optimal direction, QFI as an entanglement witness, and QFI under noise and particle loss.
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
 # Optical atomic clocks, gravitational-wave interferometers and atomic magnetometers are among the most precise
 # instruments in physics. All three do the same thing:
@@ -317,7 +317,7 @@ for M in M_LIST:
 #
 # ### 4.2 The classical Fisher information, in two forms
 #
-# The **classical Fisher information**, introduced by Fisher (1922, 1925), is the mean square of the score,
+# The **classical Fisher information**, introduced in [[1]](#ref-1), [[2]](#ref-2), is the mean square of the score,
 #
 # $$F_C(\theta)=\mathbb{E}_\theta\!\left[s(x\vert\theta)^2\right]
 #   =\sum_x p(x\vert\theta)\left(\frac{\partial_\theta p(x\vert\theta)}{p(x\vert\theta)}\right)^2
@@ -537,7 +537,7 @@ for th in (0.1, 0.3, 0.5, 0.7, 0.9):
 # %% [markdown]
 # ### 4.5 The Cramér–Rao bound
 #
-# **Theorem (Cramér–Rao; Rao 1945, Cramér 1946).** Let $\hat\theta(x_1,\dots,x_M)$ be an estimator that is locally unbiased at $\theta$,
+# **Theorem (Cramér–Rao [[3]](#ref-3), [[4]](#ref-4)).** Let $\hat\theta(x_1,\dots,x_M)$ be an estimator that is locally unbiased at $\theta$,
 # Eq. (8), computed from $M$ independent readings of a regular model with Fisher information $F_C(\theta)>0$. Then
 #
 # $$\mathrm{Var}(\hat\theta)\;\ge\;\frac{1}{M\,F_C(\theta)} . \tag{23}$$
@@ -608,7 +608,7 @@ for th in (0.1, 0.3, 0.5, 0.7, 0.9):
 #
 # Distributions of this form are called an **exponential family**. So an efficient estimator exists at every $\theta$ only
 # when the model is an exponential family in which the estimator is the statistic that multiplies $a(\theta)$ and
-# $\theta$ is its mean (proved rigorously by Wijsman 1973; see also Lehmann and Casella 1998). Both of our meters are
+# $\theta$ is its mean (proved rigorously in [[5]](#ref-5); see also [[6]](#ref-6)). Both of our meters are
 # examples:
 #
 # * the **coin**: the score of $M$ flips is $s_M=k/\theta-(M-k)/(1-\theta)=(k-M\theta)/(\theta(1-\theta))$ and
@@ -653,7 +653,7 @@ for th in (0.1, 0.3, 0.5, 0.7, 0.9):
 # $F_C\,(\hat\theta(+)-\theta)$ with an estimator $\hat\theta(+)$ independent of $\theta$, so by Eq. (30) no
 # efficient estimator exists for this model.
 #
-# The general-purpose estimator is the **maximum-likelihood estimator** $\hat\theta_{\text{ML}}$ of Fisher (1922): the value of $\theta$
+# The general-purpose estimator is the **maximum-likelihood estimator** $\hat\theta_{\text{ML}}$ [[1]](#ref-1): the value of $\theta$
 # that maximises the log-likelihood of the observed data, i.e. the zero of the total score, Eq. (17). With $k$
 # outcomes "$+$" among $M$, the log-likelihood is $k\ln p_++(M-k)\ln p_-$, and setting its derivative to zero,
 #
@@ -678,7 +678,7 @@ for th in (0.1, 0.3, 0.5, 0.7, 0.9):
 # $\mathbb{E}[\hat\theta_{\text{ML}}]=\pi/2$. To see a bias at all we must work away from the symmetric point, so the
 # simulation uses two working points, $\theta=\pi/2$ and $\theta=\pi/3$.
 #
-# The general theorem, quoted here without proof (Cramér 1946; Lehmann and Casella 1998), states that for a regular
+# The general theorem, quoted here without proof ([[4]](#ref-4), [[6]](#ref-6)), states that for a regular
 # model the maximum-likelihood estimator is **consistent and asymptotically efficient**: its bias falls like $1/M$, and
 #
 # $$\lim_{M\to\infty}M\,\mathrm{Var}(\hat\theta_{\text{ML}})=\frac{1}{F_C(\theta)} . \tag{37}$$
@@ -853,8 +853,8 @@ fig.tight_layout(); plt.show()
 # The classical score is the logarithmic derivative of the distribution: by Eq. (11), $\partial_\theta p=p\,s$. The
 # quantum analogue would be an operator $L$ with "$\partial_\theta\rho=\rho L$". This cannot work as it stands, because
 # $\partial_\theta\rho$ is Hermitian while $\rho L$ is not Hermitian unless $\rho$ and $L$ commute. The product is
-# therefore replaced by its symmetrised form. The **symmetric logarithmic derivative** (SLD), introduced by Helstrom
-# (1967), is the Hermitian operator $L_\theta$ that solves
+# therefore replaced by its symmetrised form. The **symmetric logarithmic derivative** (SLD), introduced in
+# [[7]](#ref-7), is the Hermitian operator $L_\theta$ that solves
 #
 # $$\partial_\theta\rho_\theta=\frac12\left(L_\theta\,\rho_\theta+\rho_\theta\,L_\theta\right) . \tag{42}$$
 #
@@ -913,7 +913,7 @@ fig.tight_layout(); plt.show()
 # the formula implemented by the engine's `qfi_mixed`. It depends on the state and the generator, and on no measurement.
 # The next theorem shows why it deserves its name.
 #
-# **Theorem (Braunstein and Caves 1994).** For every POVM $\{E_x\}$,
+# **Theorem (Braunstein–Caves inequality [[8]](#ref-8)).** For every POVM $\{E_x\}$,
 #
 # $$F_C(\theta;\{E_x\})\;\le\;F_Q[\rho_\theta] , \tag{50}$$
 #
@@ -976,9 +976,9 @@ fig.tight_layout(); plt.show()
 #
 # $$F_Q[\rho_\theta]=\max_{\{E_x\}}F_C(\theta;\{E_x\}) . \tag{58}$$
 #
-# The SLD and the quantum Cramér–Rao bound were introduced by Helstrom (1967) and developed in his monograph (Helstrom 1976); the
-# inequality (50) for every POVM, with the proof given above, and its geometric interpretation are due to Braunstein and
-# Caves (1994). The
+# The SLD and the quantum Cramér–Rao bound were introduced in [[7]](#ref-7) and developed in the monograph [[9]](#ref-9); the
+# inequality (50) for every POVM, with the proof given above, and its geometric interpretation were introduced in
+# [[8]](#ref-8). The
 # optimal measurement is *local* in the parameter: $L_\theta$ depends on $\theta$, so the basis that reaches the bound at
 # one working point need not reach it at another. An experiment reaches $F_Q$ by using a rough estimate of $\theta$ to
 # choose the basis and then refining — adaptively, or by working at a fixed operating point as the interferometers of
@@ -1282,7 +1282,7 @@ assert res_wrong > 1e-2 and herm_wrong > 1e-2
 # So $\sqrt{F_Q}/2$ is the speed at which the state moves through the space of quantum states when $\theta$ changes. A
 # fast-moving state becomes distinguishable from its neighbours after a small change of $\theta$, which is why it allows a
 # precise estimate. This geometric reading, with the statistical distance between neighbouring states, is the subject of
-# Braunstein and Caves (1994). For mixed states the fidelity is replaced by the Bures (Uhlmann) fidelity $F_B$ (Uhlmann 1976; Jozsa 1994), and the
+# [[8]](#ref-8). For mixed states the fidelity is replaced by the Bures (Uhlmann) fidelity $F_B$ ([[10]](#ref-10), [[11]](#ref-11)), and the
 # relation becomes $F_Q=\lim_{\delta\to0}8\left(1-\sqrt{F_B(\rho_\theta,\rho_{\theta+\delta})}\right)/\delta^2$, which reduces
 # to Eq. (79) for pure states and is verified numerically in notebook 30 (Section 7.1).
 #
@@ -1527,7 +1527,7 @@ assert abs(fid_u[-1][1] - 0.5) > 0.4 and abs(fid_c[-1][1] - 0.5) > 0.4
 # The same argument works for any direction $\mathbf n$, since $(\mathbf n\cdot\vec\sigma)^2=\mathbb 1$ for a unit vector,
 # and equality needs every Bloch vector perpendicular to $\mathbf n$. The bound extends to every **separable** state,
 # pure or mixed, by the convexity of the quantum Fisher information (a mixture cannot have more QFI than the average of its
-# components; proved in notebook 30, Section 5.5), as Pezzè and Smerzi (2009) showed. With $M$ repetitions Eq. (61) gives the **standard quantum limit**
+# components; proved in notebook 30, Section 5.5), as shown in [[12]](#ref-12). With $M$ repetitions Eq. (61) gives the **standard quantum limit**
 # (SQL), also called the shot-noise limit,
 #
 # $$\Delta\theta_{\text{SQL}}=\frac{1}{\sqrt{N M}} . \tag{94}$$
@@ -1544,7 +1544,7 @@ assert abs(fid_u[-1][1] - 0.5) > 0.4 and abs(fid_c[-1][1] - 0.5) > 0.4
 # $$\Delta\theta=\frac{\tfrac{\sqrt N}{2}\vert\sin\theta\vert}{\sqrt M\,\tfrac N2\vert\sin\theta\vert}=\frac{1}{\sqrt{NM}} . \tag{96}$$
 #
 # The noise $\tfrac{\sqrt N}{2}\vert\sin\theta\vert$ is the **projection noise** of $N$ independent spins, analysed for
-# spectroscopy by Wineland *et al.* (1992) and measured by Itano *et al.* (1993). The signal has one
+# spectroscopy in [[13]](#ref-13) and measured in [[14]](#ref-14). The signal has one
 # fringe per $2\pi$ of phase whatever $N$ is; only its amplitude grows, by $N$, while the noise grows by $\sqrt N$. The
 # number of $+$ outcomes is binomially distributed with $N$ trials, its Fisher information is $N$ times that of
 # Eq. (33), i.e. $N$, so this measurement is optimal. This is the Ramsey protocol of
@@ -1554,7 +1554,7 @@ assert abs(fid_u[-1][1] - 0.5) > 0.4 and abs(fid_c[-1][1] - 0.5) > 0.4
 #
 # ### 7.4 The GHZ state: $F_Q=N^2$ and the Heisenberg limit
 #
-# The GHZ state of Greenberger, Horne and Zeilinger (1989), $\vert\mathrm{GHZ}\rangle=\left(\vert\bar0\rangle+\vert\bar1\rangle\right)/\sqrt2$, with
+# The GHZ state [[15]](#ref-15), $\vert\mathrm{GHZ}\rangle=\left(\vert\bar0\rangle+\vert\bar1\rangle\right)/\sqrt2$, with
 # $\vert\bar0\rangle=\vert0\cdots0\rangle$ and $\vert\bar1\rangle=\vert1\cdots1\rangle$, is a superposition of two
 # eigenvectors of $J_z$ with the two extreme eigenvalues. Since $Z_i\vert0\rangle=\vert0\rangle$ and $Z_i\vert1\rangle=-\vert1\rangle$,
 #
@@ -1581,7 +1581,7 @@ assert abs(fid_u[-1][1] - 0.5) > 0.4 and abs(fid_c[-1][1] - 0.5) > 0.4
 # $$\mathrm{Var}(A)=\mathbb E\!\left[(A-c)^2\right]-\left(\mathbb E[A]-c\right)^2\le\mathbb E\!\left[(A-c)^2\right]
 #   \le\left(\frac{a_{\max}-a_{\min}}{2}\right)^2 , \tag{101}$$
 #
-# because $\vert A-c\vert\le(a_{\max}-a_{\min})/2$ for every value (Popoviciu's inequality, Popoviciu 1935). The eigenvalues of $J_z$ lie in
+# because $\vert A-c\vert\le(a_{\max}-a_{\min})/2$ for every value (Popoviciu's inequality [[16]](#ref-16)). The eigenvalues of $J_z$ lie in
 # $[-N/2,N/2]$, so $\mathrm{Var}(J_z)\le N^2/4$ in every state, and
 #
 # $$F_Q\le N^2,\qquad \Delta\theta_{\text{HL}}=\frac{1}{N\sqrt M} , \tag{102}$$
@@ -1599,7 +1599,7 @@ assert abs(fid_u[-1][1] - 0.5) > 0.4 and abs(fid_c[-1][1] - 0.5) > 0.4
 # $\langle Z_iZ_j\rangle=1$, which the product state lacks, add another $N(N-1)/4$, and the variance becomes the square of
 # the half-width of the spectrum.
 #
-# Bollinger, Itano, Wineland and Heinzen (1996) showed that this maximally correlated state reaches the Heisenberg limit in
+# Ref. [[17]](#ref-17) showed that this maximally correlated state reaches the Heisenberg limit in
 # spectroscopy. A measurement that reaches it is the **parity** $\Pi=X^{\otimes N}=\prod_iX_i$, obtained by measuring
 # every spin along $x$ and multiplying the $N$ results. It exchanges the branches, $\Pi\vert\bar0\rangle=\vert\bar1\rangle$
 # and $\Pi\vert\bar1\rangle=\vert\bar0\rangle$, so in the state (98) only the cross terms survive:
@@ -1635,8 +1635,8 @@ assert abs(fid_u[-1][1] - 0.5) > 0.4 and abs(fid_c[-1][1] - 0.5) > 0.4
 # times, so the resource is $\nu=MN$ single-qubit phase imprints. The SQL is then $\Delta\theta=1/\sqrt{\nu}$ and the
 # Heisenberg limit $\Delta\theta=\sqrt M/\nu$. Neither the interrogation time, nor ancilla qubits that do not see the
 # phase, nor the cost of preparing the state enters the count; ancillas leave the spectral width of the generator, and
-# therefore the bound $F_Q\le N^2$, unchanged. Giovannetti, Lloyd and Maccone (2006) count resources in exactly this way,
-# as the number of times the system is sampled, and also discuss a sequential protocol in which a single probe passes
+# therefore the bound $F_Q\le N^2$, unchanged. Ref. [[18]](#ref-18) counts resources in exactly this way,
+# as the number of times the system is sampled, and also discusses a sequential protocol in which a single probe passes
 # through the phase shift $N$ times; it reaches the same $1/N$ scaling with the same number of uses and no entanglement
 # between probes.
 
@@ -2016,8 +2016,8 @@ fig.tight_layout(); plt.show()
 # The local rate grows like $N$; the collective rate grows like $N^2$, which is called **superdecoherence**. (Local
 # Gaussian phases are the dephasing channel of Section 10.2 with $1-2p=e^{-\sigma^2/2}$.) Collective noise has exactly the
 # form of the signal: it is a random rotation generated by the same $J_z$ that writes $\theta$ into the state. The $N$-fold
-# amplification of the phase that produces the Heisenberg gain amplifies the noise phase in the same way. Monz *et al.*
-# (2011) created GHZ states of up to $14$ trapped ions and observed, for up to $8$ ions, a decay of the GHZ coherence
+# amplification of the phase that produces the Heisenberg gain amplifies the noise phase in the same way. The experiment
+# of [[19]](#ref-19) created GHZ states of up to $14$ trapped ions and observed, for up to $8$ ions, a decay of the GHZ coherence
 # proportional to the square of the number of qubits, in agreement with a model of correlated Gaussian phase noise.
 #
 # The quantum Fisher information follows from the same two-level formula (110) with $\omega=N$ and
@@ -2102,12 +2102,12 @@ fig.tight_layout(); plt.show()
 # * **Dynamic range.** The parity $\cos(N\theta)$ determines $\theta$ only modulo $2\pi/N$. A GHZ interferometer needs prior
 #   knowledge of $\theta$ to that precision, or a combination of probes of different sizes (notebook 32, Section 9).
 # * **Noise during the interrogation.** When dephasing acts continuously while the phase is accumulated, at a rate $\gamma$
-#   per qubit, the interrogation time itself must be optimised. Huelga *et al.* (1997) showed that for frequency
+#   per qubit, the interrogation time itself must be optimised. Ref. [[20]](#ref-20) showed that for frequency
 #   estimation under such Markovian dephasing, optimal measurements on maximally entangled states give the same resolution
 #   as standard Ramsey spectroscopy on uncorrelated atoms, and that the best resolution is reached with partially entangled
 #   preparations. Notebook 32 (Section 13) derives the GHZ result and states the later theorem that no probe beats
-#   uncorrelated atoms by more than a constant factor ($\sqrt e$ for this noise model; Demkowicz-Dobrzański, Kołodyński
-#   and Guţă 2012), so the Heisenberg scaling is lost.
+#   uncorrelated atoms by more than a constant factor ($\sqrt e$ for this noise model;
+#   [[21]](#ref-21)), so the Heisenberg scaling is lost.
 #
 # The notebooks that follow develop these points: [32 — GHZ interferometry](../ch10_quantum_metrology_protocols/32_ghz_interferometry_heisenberg_limit.ipynb)
 # (decoherence in Section 10, fragility against the atom number in Section 11, the loss of one atom in Section 12),
@@ -2450,20 +2450,20 @@ fig.tight_layout(); plt.show()
 # generator that suits it, and compare against $N$ and $N^2$. Beyond the two extremes we already know, four entries deserve a
 # prediction before we look:
 #
-# * **W state** $\vert W\rangle=\vert D_N^1\rangle$ (one excitation shared by all qubits; Dür, Vidal and Cirac 2000). It is an eigenstate of $J_z$
+# * **W state** $\vert W\rangle=\vert D_N^1\rangle$ (one excitation shared by all qubits; [[22]](#ref-22)). It is an eigenstate of $J_z$
 #   (eigenvalue $N/2-1$), so $F_Q=0$ for $G=J_z$ — a perfect illustration that the generator matters as much as the state.
 #   For $G=J_x$ we use the angular-momentum identity $\langle J_x^2\rangle=\tfrac12\left(\langle\mathbf J^2\rangle-\langle J_z^2\rangle\right)$
 #   valid in the symmetric sector (where $\langle J_x^2\rangle=\langle J_y^2\rangle$), with $j=N/2$, $m=N/2-1$:
 #
 #   $$F_Q=4\cdot\tfrac12\left[\tfrac N2\left(\tfrac N2+1\right)-\left(\tfrac N2-1\right)^2\right]=3N-2 .$$
 #
-# * **Dicke state at half filling** $\vert D_N^{N/2}\rangle$ ($m=0$, $N$ even; Dicke 1954). The same identity gives
+# * **Dicke state at half filling** $\vert D_N^{N/2}\rangle$ ($m=0$, $N$ even; [[23]](#ref-23)). The same identity gives
 #
 #   $$F_Q=4\cdot\tfrac12\cdot\tfrac N2\left(\tfrac N2+1\right)=\frac{N(N+2)}{2},$$
 #
 #   i.e. Heisenberg *scaling* (asymptotically $N^2/2$). Section 15 shows that, unlike GHZ, this state keeps a sizeable
 #   part of its QFI when a particle is lost.
-# * **Cluster (graph) state** (Briegel and Raussendorf 2001). A genuinely multipartite entangled stabiliser state, yet all its $\langle\sigma^a_q\rangle$ and most
+# * **Cluster (graph) state** [[24]](#ref-24). A genuinely multipartite entangled stabiliser state, yet all its $\langle\sigma^a_q\rangle$ and most
 #   two-body correlators vanish — we will see what that does to $F_Q$.
 # * **Haar-random pure state.** For a random $\vert\psi\rangle$ the standard unitary-averaging identities
 #   $\mathbb{E}\langle A\rangle=\mathrm{Tr}A/d$ and $\mathbb{E}\langle A\rangle^2=\left[(\mathrm{Tr}A)^2+\mathrm{Tr}A^2\right]/[d(d+1)]$
@@ -2471,7 +2471,7 @@ fig.tight_layout(); plt.show()
 #
 #   $$\mathbb{E}\left[F_Q\right]=4\left(\frac N4-\frac{N}{4(d+1)}\right)=N\,\frac{d}{d+1}\;\xrightarrow[N\to\infty]{}\;N .$$
 #
-#   A typical state of the Hilbert space is nearly maximally entangled (its half-chain entropy is close to the Page value, the Haar average obtained by Page in 1993; see
+#   A typical state of the Hilbert space is nearly maximally entangled (its half-chain entropy is close to the Page value, the Haar average obtained in [[25]](#ref-25); see
 #   [10 — random unitaries](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb), Section 6.3)
 #   and yet, on average, worth slightly *less* than a product state.
 
@@ -2558,7 +2558,7 @@ fig.tight_layout(); plt.show()
 #
 # * $\vert+\rangle^{\otimes N}$ with $G=J_y$ sits exactly on the SQL line: the best an unentangled state can do.
 # * The **cluster state** also sits exactly on $N$, even though it is a genuinely multipartite entangled stabiliser state —
-#   the standard resource for measurement-based quantum computation (Raussendorf and Briegel 2001). Its collective fluctuations are precisely those of independent
+#   the standard resource for measurement-based quantum computation [[26]](#ref-26). Its collective fluctuations are precisely those of independent
 #   qubits, because all one-body expectation values and all same-Pauli two-body correlators vanish. **Entanglement is
 #   necessary but far from sufficient for metrological gain.** (Section 12 finds a tilted direction where the
 #   cluster state does a little better than $N$; the excess is a boundary term of size $2$ that does not change the scaling.)
@@ -2578,7 +2578,7 @@ fig.tight_layout(); plt.show()
 # ### 11.1 Ground states as a metrological resource
 #
 # Many-body ground states are states a laboratory can reach by preparing the lowest-energy state of a tunable Hamiltonian
-# (for instance by an adiabatic ramp of a field) rather than by circuit engineering, which makes them attractive resources. Take the transverse-field Ising chain (Pfeuty 1970; our Pauli convention, see
+# (for instance by an adiabatic ramp of a field) rather than by circuit engineering, which makes them attractive resources. Take the transverse-field Ising chain ([[27]](#ref-27); our Pauli convention, see
 # [11 — Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb)):
 #
 # $$H(h)=-\sum_{q=0}^{N-2}Z_qZ_{q+1}-h\sum_{q=0}^{N-1}X_q .$$
@@ -2814,12 +2814,12 @@ fig.tight_layout(); plt.show()
 # experimental many-body physics, because it is *operational*: a violation certifies entanglement that is strong enough to beat the
 # shot-noise limit in an interferometer.
 #
-# **Criterion 1 (Pezzè and Smerzi 2009).** For every separable state of $N$ qubits and every collective generator
+# **Criterion 1 [[12]](#ref-12).** For every separable state of $N$ qubits and every collective generator
 # $G=\mathbf n\cdot\mathbf J$,
 #
 # $$F_Q[\rho,G]\le N;\qquad\text{therefore}\quad F_Q>N\;\Longrightarrow\;\rho\text{ is entangled.} \tag{121}$$
 #
-# **Criterion 2 (Hyllus et al. 2012; Tóth 2012).** Call a state **$k$-producible** if it is a mixture of products of blocks of
+# **Criterion 2 [[28]](#ref-28), [[29]](#ref-29).** Call a state **$k$-producible** if it is a mixture of products of blocks of
 # at most $k$ qubits (so $k=1$ means separable). Writing $N=sk+r$ with $s=\lfloor N/k\rfloor$ and $0\le r<k$, every
 # $k$-producible state obeys
 #
@@ -2830,7 +2830,7 @@ fig.tight_layout(); plt.show()
 # expression, never the weaker $kN$ — for $N=8$, $k=3$ the two differ by $2$, and that difference decides the verdict for
 # the W state below.
 #
-# Criterion 1 is the case $k=1$ of Criterion 2, and the proof of Criterion 2 (Hyllus *et al.* 2012; Tóth 2012) takes
+# Criterion 1 is the case $k=1$ of Criterion 2, and the proof of Criterion 2 ([[28]](#ref-28), [[29]](#ref-29)) takes
 # four steps. Start from a pure $k$-producible state $\vert\psi\rangle=\bigotimes_b\vert\psi_b\rangle$, where block $b$
 # holds $N_b\le k$ qubits and $\sum_bN_b=N$. The generator splits into block generators, $G=\sum_bG_b$, and operators
 # acting on different factors of a product state are uncorrelated, so the variances add as in Eq. (93). The eigenvalues
@@ -2932,11 +2932,11 @@ for name, psi, n, gname in wit_states:
 #   depth after a quench. The criterion certifies a depth close to $N$ for GHZ and Dicke states, but only depth $2$ for
 #   the cluster and Haar-random states of Section 13.
 # * **Wineland squeezing** ([33](../ch10_quantum_metrology_protocols/33_spin_squeezing_one_axis_twisting.ipynb),
-#   Sections 8.2 and 8.4). The parameter $\xi_R^2=NV_{\min}/\vert\langle\mathbf J\rangle\vert^2$ of Wineland *et al.*
-#   (1992, 1994) certifies entanglement when $\xi_R^2<1$ (Sørensen
-#   *et al.* 2001) and needs only the mean collective spin and one transverse variance, without single-particle
+#   Sections 8.2 and 8.4). The parameter $\xi_R^2=NV_{\min}/\vert\langle\mathbf J\rangle\vert^2$ of [[13]](#ref-13), [[30]](#ref-30)
+#   certifies entanglement when $\xi_R^2<1$ [[31]](#ref-31)
+#   and needs only the mean collective spin and one transverse variance, without single-particle
 #   resolution. Notebook 33, Eq. (26), shows $F_Q\ge N/\xi_R^2$, so every squeezed state is also detected by the QFI,
-#   and $N/\xi_R^2>sk^2+r^2$ certifies depth from the two moments alone. Sørensen and Mølmer (2001) turned the same two
+#   and $N/\xi_R^2>sk^2+r^2$ certifies depth from the two moments alone. Ref. [[32]](#ref-32) turned the same two
 #   moments into a sharper depth criterion, by computing the smallest variance a spin $j=k/2$ can have at a given mean
 #   spin. The converse fails: GHZ and Dicke states have $\langle\mathbf J\rangle=0$, so $\xi_R^2$ is undefined (infinite),
 #   although their $F_Q$ is of order $N^2$.
@@ -2948,15 +2948,15 @@ for name, psi, n, gname in wit_states:
 #   ($Q_{\rm E}=\log_2N$, Section 6.3 there), but the W state violates the local-realism bound only at $N=3$, and the
 #   linear cluster state and typical Haar-random states lose the local-realism violation as $N$ grows (Section 8.1 there).
 # * **Negativity** ([25](../ch09_entanglement_and_complexity/25_entanglement_negativity.ipynb), Sections 5–6). A negative
-#   eigenvalue of the partial transpose certifies entanglement across one chosen bipartition (Peres 1996; the negativity
-#   is the measure of Vidal and Werner 2002). It needs the density matrix
+#   eigenvalue of the partial transpose certifies entanglement across one chosen bipartition ([[33]](#ref-33); the negativity
+#   is the measure introduced in [[34]](#ref-34)). It needs the density matrix
 #   of the two parts together, in practice from tomography, and it says nothing about depth. It detects the GHZ state on
 #   every cut with $\mathcal N=1/2$ and the locally dephased GHZ state at every dephasing probability $p<1/2$ (Sections
 #   7.4 and 8.1 there), and it misses bound entanglement (Section 5.4 there).
 #
 # The cell below evaluates the QFI and squeezing criteria on five states at $N=6$. The quantum Fisher information is
 # taken in the optimal collective direction, $\lambda_{\max}$ of the matrix of Section 12, and the certified depth comes
-# from `entanglement_depth`. The squeezed state is the one-axis-twisted state of Kitagawa and Ueda (1993), $e^{-i\mu J_z^2}\vert+\rangle^{\otimes N}$
+# from `entanglement_depth`. The squeezed state is the one-axis-twisted state of [[35]](#ref-35), $e^{-i\mu J_z^2}\vert+\rangle^{\otimes N}$
 # at the twisting angle that minimises the closed form of $\xi_R^2$ in notebook 33, Eq. (23). Every number is asserted
 # against a closed form: $N$, $N^2$, $3N-2$ and $N(N+2)/2$ for the QFI (Section 11), and for the W state
 # $\xi_R^2=N(3N-2)/(N-2)^2$, which follows from $\vert\langle\mathbf J\rangle\vert=N/2-1$ and
@@ -3034,8 +3034,8 @@ for name, psi, F_ana, xi_ana in cert_states:
 # always: $\rho=\tfrac12(\vert00\rangle\langle00\vert+\vert11\rangle\langle11\vert)$ with $G=\tfrac12X_1$ has
 # $F_Q=4\mathrm{Var}(G)=1$, because the two components rotate in orthogonal subspaces and stay perfectly distinguishable.
 # So $4\,\mathrm{Var}(G)$ never *under*-estimates the quantum Fisher information: it is the right answer for pure states
-# and an upper bound for mixed ones. Notebook 30 shows the gap numerically (the inequality is stated in Tóth and
-# Apellaniz 2014, Section 4.2), and notebook 36 measures how large it becomes for noisy states. Since the spectrum
+# and an upper bound for mixed ones. Notebook 30 shows the gap numerically (the inequality is stated in
+# Section 4.2 of [[36]](#ref-36)), and notebook 36 measures how large it becomes for noisy states. Since the spectrum
 # of $J_z$ has width $N$, Eqs. (123) and (101) extend the Heisenberg bound $F_Q\le N^2$ to mixed states.
 #
 # Section 10.2 derived the quantum Fisher information of the dephased GHZ state exactly, Eq. (111), and checked it in
@@ -3550,9 +3550,9 @@ fig.tight_layout(); plt.show()
 #    eigenvalues coincide. Starting from a random complex vector of amplitudes the gradient is finite, but a symmetric
 #    starting point such as GHZ sits exactly on a degeneracy and returns `nan`; start away from it, and check
 #    `jnp.isfinite` on the gradient before feeding it to the optimiser.
-# 9. ★★★ **Entanglement depth from two collective moments (extend the code).** Sørensen and Mølmer (2001) define, for a
+# 9. ★★★ **Entanglement depth from two collective moments (extend the code).** Ref. [[32]](#ref-32) defines, for a
 #    single spin $j$, the curve $F_j(x)$ as the smallest value of $\mathrm{Var}(j_z)/j$ compatible with $\langle j_x\rangle=jx$,
-#    and show that a state whose entangled blocks contain at most $k$ qubits obeys
+#    and shows that a state whose entangled blocks contain at most $k$ qubits obeys
 #    $V_{\min}/(N/2)\ge F_{k/2}\big(\vert\langle\mathbf J\rangle\vert/(N/2)\big)$, with $V_{\min}$ the smallest variance
 #    perpendicular to the mean spin. For integer $j$ the minimiser has $\langle j_y\rangle=\langle j_z\rangle=0$ and is the
 #    ground state of $j_z^2-\lambda j_x$ for some $\lambda\ge0$. Build $j_x$ and $j_z$ as $(2j+1)\times(2j+1)$ matrices,
@@ -3568,85 +3568,143 @@ fig.tight_layout(); plt.show()
 #
 # ## References
 #
-# * C. W. Helstrom, *Quantum Detection and Estimation Theory* (Academic Press, New York, 1976) — the monograph that
-#   collects Helstrom's estimation theory, begun in C. W. Helstrom, *Minimum mean-squared error of estimates in quantum
-#   statistics*, Phys. Lett. A **25**, 101 (1967): the symmetric logarithmic derivative and the quantum Cramér–Rao bound.
-# * R. A. Fisher, *On the mathematical foundations of theoretical statistics*, Phil. Trans. R. Soc. Lond. A **222**, 309
-#   (1922), and *Theory of statistical estimation*, Proc. Camb. Phil. Soc. **22**, 700 (1925) — the Fisher information of
-#   Section 4.2 and maximum likelihood (Section 4.8).
-# * C. R. Rao, *Information and the accuracy attainable in the estimation of statistical parameters*, Bull. Calcutta
-#   Math. Soc. **37**, 81 (1945), reprinted in *Breakthroughs in Statistics*, eds. S. Kotz and N. L. Johnson (Springer,
-#   New York, 1992), p. 235 — the information inequality of Section 4.5 (with Cramér 1946, below).
-# * R. A. Wijsman, *On the attainment of the Cramér–Rao lower bound*, Ann. Statist. **1**, 538 (1973) — an unbiased
-#   estimator attains the bound only in a one-parameter exponential family (Section 4.6).
-# * A. Uhlmann, *The "transition probability" in the state space of a $*$-algebra*, Rep. Math. Phys. **9**, 273 (1976),
-#   and R. Jozsa, *Fidelity for mixed quantum states*, J. Mod. Opt. **41**, 2315 (1994) — the mixed-state fidelity of
-#   Section 6.4.
-# * D. J. Wineland, J. J. Bollinger, W. M. Itano, F. L. Moore and D. J. Heinzen, *Spin squeezing and reduced quantum noise
-#   in spectroscopy*, Phys. Rev. A **46**, R6797 (1992), and D. J. Wineland, J. J. Bollinger, W. M. Itano and
-#   D. J. Heinzen, *Squeezed atomic states and projection noise in spectroscopy*, Phys. Rev. A **50**, 67 (1994) —
-#   projection noise of uncorrelated atoms (Section 7.3) and the squeezing parameter $\xi_R^2$ (Section 13.1).
-# * W. M. Itano, J. C. Bergquist, J. J. Bollinger, J. M. Gilligan, D. J. Heinzen, F. L. Moore, M. G. Raizen and
-#   D. J. Wineland, *Quantum projection noise: population fluctuations in two-level systems*, Phys. Rev. A **47**, 3554
-#   (1993) — projection noise measured (Section 7.3).
-# * D. M. Greenberger, M. A. Horne and A. Zeilinger, *Going beyond Bell's theorem*, in *Bell's Theorem, Quantum Theory,
-#   and Conceptions of the Universe*, ed. M. Kafatos (Kluwer, Dordrecht, 1989), p. 69, arXiv:0712.0921 — the GHZ state.
-# * J. J. Bollinger, W. M. Itano, D. J. Wineland and D. J. Heinzen, *Optimal frequency measurements with maximally
-#   correlated states*, Phys. Rev. A **54**, R4649 (1996) — maximally correlated (GHZ) states reach the Heisenberg limit
-#   $1/N$ (Section 7.4).
-# * R. Demkowicz-Dobrzański, J. Kołodyński and M. Guţă, *The elusive Heisenberg limit in quantum-enhanced metrology*,
-#   Nat. Commun. **3**, 1063 (2012) — under decoherence the quantum gain reduces to a constant factor (Section 10.4).
-# * R. H. Dicke, *Coherence in spontaneous radiation processes*, Phys. Rev. **93**, 99 (1954) — Dicke states.
-# * W. Dür, G. Vidal and J. I. Cirac, *Three qubits can be entangled in two inequivalent ways*, Phys. Rev. A **62**,
-#   062314 (2000) — the W state.
-# * H. J. Briegel and R. Raussendorf, *Persistent entanglement in arrays of interacting particles*, Phys. Rev. Lett.
-#   **86**, 910 (2001), and R. Raussendorf and H. J. Briegel, *A one-way quantum computer*, Phys. Rev. Lett. **86**, 5188
-#   (2001) — cluster states and measurement-based quantum computation.
-# * D. N. Page, *Average entropy of a subsystem*, Phys. Rev. Lett. **71**, 1291 (1993) — the Page value (Section 11).
-# * P. Pfeuty, *The one-dimensional Ising model with a transverse field*, Ann. Phys. **57**, 79 (1970) — the Ising chain of
-#   Section 11.1.
-# * M. Kitagawa and M. Ueda, *Squeezed spin states*, Phys. Rev. A **47**, 5138 (1993) — one-axis twisting (Section 13.1).
-# * A. Peres, *Separability criterion for density matrices*, Phys. Rev. Lett. **77**, 1413 (1996), and G. Vidal and
-#   R. F. Werner, *Computable measure of entanglement*, Phys. Rev. A **65**, 032314 (2002) — the partial-transpose
-#   criterion and the negativity (Section 13.1).
-# * S. L. Braunstein and C. M. Caves, *Statistical distance and the geometry of quantum states*,
-#   Phys. Rev. Lett. **72**, 3439 (1994) — the inequality of Section 5.3: the classical Fisher information of every
-#   measurement is bounded by the quantum Fisher information, attained in the eigenbasis of the SLD; the geometric
-#   (statistical-distance) reading of Section 6.4.
-# * V. Giovannetti, S. Lloyd and L. Maccone, *Quantum-enhanced measurements: beating the standard quantum limit*,
-#   Science **306**, 1330 (2004), and *Quantum metrology*, Phys. Rev. Lett. **96**, 010401 (2006) — the standard quantum
-#   limit versus the Heisenberg limit.
-# * L. Pezzè and A. Smerzi, *Entanglement, nonlinear dynamics, and the Heisenberg limit*,
-#   Phys. Rev. Lett. **102**, 100401 (2009) — Eq. (121): $F_Q>N$ witnesses entanglement.
-# * P. Hyllus, W. Laskowski, R. Krischek, C. Schwemmer, W. Wieczorek, H. Weinfurter, L. Pezzè and A. Smerzi,
-#   *Fisher information and multiparticle entanglement*, Phys. Rev. A **85**, 022321 (2012), and
-#   G. Tóth, *Multipartite entanglement and high-precision metrology*, Phys. Rev. A **85**, 022322 (2012) — Eq. (122),
-#   the entanglement-depth bound for $k$-producible states and its proof from block-wise variance bounds and convexity.
-# * T. Popoviciu, *Sur les équations algébriques ayant toutes leurs racines réelles*, Mathematica (Cluj) **9**, 129–145
-#   (1935) — the smallest interval containing all the real roots of a polynomial with given first two coefficients, i.e.
-#   $\mathrm{Var}\le(a_{\max}-a_{\min})^2/4$ for $n$ equally weighted values; Eq. (101) states it for any distribution.
-# * M. G. A. Paris, *Quantum estimation for quantum technology*, Int. J. Quantum Inf. **7**, 125–137 (2009) — a compact,
-#   readable review of local quantum estimation theory (Sections 4–6): the classical and quantum Cramér–Rao bounds, the SLD
-#   and its eigenbasis form, the optimal measurement, and the Bures-metric reading.
-# * L. Pezzè, A. Smerzi, M. K. Oberthaler, R. Schmied and P. Treutlein, *Quantum metrology with nonclassical states of
-#   atomic ensembles*, Rev. Mod. Phys. **90**, 035005 (2018) — the standard modern review; collective spins, Dicke states,
-#   squeezing, experiments.
-# * A. Sørensen, L.-M. Duan, J. I. Cirac and P. Zoller, *Many-particle entanglement with Bose–Einstein condensates*,
-#   Nature **409**, 63 (2001) — spin-squeezed states from collisions in a condensate; $\xi_R^2<1$ implies entanglement
-#   (Section 13.1).
-# * A. Sørensen and K. Mølmer, *Entanglement and extreme spin squeezing*, Phys. Rev. Lett. **86**, 4431 (2001) — the
-#   smallest transverse variance of a spin $j$ at a given mean spin, and its use to certify entanglement depth from
-#   collective-spin measurements (Section 13.1).
-# * G. Tóth and I. Apellaniz, *Quantum metrology from a quantum information science perspective*,
-#   J. Phys. A **47**, 424006 (2014) — the entanglement-witness side of the QFI: convexity, $F_Q\le4\mathrm{Var}(G)$, the
-#   separable bound $F_Q\le N$ derived from convexity, and the $k$-producibility bounds of Hyllus et al. and Tóth.
-# * H. Cramér, *Mathematical Methods of Statistics* (Princeton University Press, 1946) — the classical Cramér–Rao bound and
-#   the asymptotic theory of maximum likelihood.
-# * E. L. Lehmann and G. Casella, *Theory of Point Estimation*, 2nd ed. (Springer, New York, 1998) — the information
-#   inequality, efficient estimators and exponential families, and the asymptotic efficiency of maximum likelihood.
-# * S. F. Huelga, C. Macchiavello, T. Pellizzari, A. K. Ekert, M. B. Plenio and J. I. Cirac, *Improvement of frequency
-#   standards with quantum entanglement*, Phys. Rev. Lett. **79**, 3865 (1997) — under Markovian dephasing during the
-#   interrogation, maximally entangled states give the same resolution as uncorrelated atoms (Section 10.4).
-# * T. Monz, P. Schindler, J. T. Barreiro, M. Chwalla, D. Nigg, W. A. Coish, M. Harlander, W. Hänsel, M. Hennrich and
-#   R. Blatt, *14-qubit entanglement: creation and coherence*, Phys. Rev. Lett. **106**, 130506 (2011) — GHZ coherence
-#   decaying with the square of the number of qubits under correlated phase noise (Section 10.3).
+# <span id="ref-1">[1]</span> R. A. Fisher, *On the mathematical foundations of theoretical statistics*, Phil. Trans. R.
+# Soc. Lond. A **222**, 309 (1922) — the Fisher information of Section 4.2 and maximum likelihood (Section 4.8).
+#
+# <span id="ref-2">[2]</span> R. A. Fisher, *Theory of statistical estimation*, Proc. Camb. Phil. Soc. **22**, 700
+# (1925) — the Fisher information of Section 4.2.
+#
+# <span id="ref-3">[3]</span> C. R. Rao, *Information and the accuracy attainable in the estimation of statistical
+# parameters*, Bull. Calcutta Math. Soc. **37**, 81 (1945), reprinted in *Breakthroughs in Statistics*, eds. S. Kotz and
+# N. L. Johnson (Springer, New York, 1992), p. 235 — the information inequality of Section 4.5 (with [4]).
+#
+# <span id="ref-4">[4]</span> H. Cramér, *Mathematical Methods of Statistics* (Princeton University Press, 1946) — the
+# classical Cramér–Rao bound and the asymptotic theory of maximum likelihood.
+#
+# <span id="ref-5">[5]</span> R. A. Wijsman, *On the attainment of the Cramér–Rao lower bound*, Ann. Statist. **1**, 538
+# (1973) — an unbiased estimator attains the bound only in a one-parameter exponential family (Section 4.6).
+#
+# <span id="ref-6">[6]</span> E. L. Lehmann and G. Casella, *Theory of Point Estimation*, 2nd ed. (Springer, New York,
+# 1998) — the information inequality, efficient estimators and exponential families, and the asymptotic efficiency of
+# maximum likelihood.
+#
+# <span id="ref-7">[7]</span> C. W. Helstrom, *Minimum mean-squared error of estimates in quantum statistics*, Phys.
+# Lett. A **25**, 101 (1967) — the symmetric logarithmic derivative and the quantum Cramér–Rao bound.
+#
+# <span id="ref-8">[8]</span> S. L. Braunstein and C. M. Caves, *Statistical distance and the geometry of quantum
+# states*, Phys. Rev. Lett. **72**, 3439 (1994) — the inequality of Section 5.3: the classical Fisher information of
+# every measurement is bounded by the quantum Fisher information, attained in the eigenbasis of the SLD; the geometric
+# (statistical-distance) reading of Section 6.4.
+#
+# <span id="ref-9">[9]</span> C. W. Helstrom, *Quantum Detection and Estimation Theory* (Academic Press, New York, 1976)
+# — the monograph that collects the estimation theory begun in [7].
+#
+# <span id="ref-10">[10]</span> A. Uhlmann, *The "transition probability" in the state space of a $*$-algebra*, Rep.
+# Math. Phys. **9**, 273 (1976) — the mixed-state fidelity of Section 6.4.
+#
+# <span id="ref-11">[11]</span> R. Jozsa, *Fidelity for mixed quantum states*, J. Mod. Opt. **41**, 2315 (1994) — the
+# mixed-state fidelity of Section 6.4.
+#
+# <span id="ref-12">[12]</span> L. Pezzè and A. Smerzi, *Entanglement, nonlinear dynamics, and the Heisenberg limit*,
+# Phys. Rev. Lett. **102**, 100401 (2009) — Eq. (121): $F_Q>N$ witnesses entanglement.
+#
+# <span id="ref-13">[13]</span> D. J. Wineland, J. J. Bollinger, W. M. Itano, F. L. Moore and D. J. Heinzen, *Spin
+# squeezing and reduced quantum noise in spectroscopy*, Phys. Rev. A **46**, R6797 (1992) — projection noise of
+# uncorrelated atoms (Section 7.3) and the squeezing parameter $\xi_R^2$ (Section 13.1).
+#
+# <span id="ref-14">[14]</span> W. M. Itano, J. C. Bergquist, J. J. Bollinger, J. M. Gilligan, D. J. Heinzen, F. L.
+# Moore, M. G. Raizen and D. J. Wineland, *Quantum projection noise: population fluctuations in two-level systems*,
+# Phys. Rev. A **47**, 3554 (1993) — projection noise measured (Section 7.3).
+#
+# <span id="ref-15">[15]</span> D. M. Greenberger, M. A. Horne and A. Zeilinger, *Going beyond Bell's theorem*, in
+# *Bell's Theorem, Quantum Theory, and Conceptions of the Universe*, ed. M. Kafatos (Kluwer, Dordrecht, 1989), p. 69,
+# arXiv:0712.0921 — the GHZ state.
+#
+# <span id="ref-16">[16]</span> T. Popoviciu, *Sur les équations algébriques ayant toutes leurs racines réelles*,
+# Mathematica (Cluj) **9**, 129–145 (1935) — the smallest interval containing all the real roots of a polynomial with
+# given first two coefficients, i.e. $\mathrm{Var}\le(a_{\max}-a_{\min})^2/4$ for $n$ equally weighted values; Eq. (101)
+# states it for any distribution.
+#
+# <span id="ref-17">[17]</span> J. J. Bollinger, W. M. Itano, D. J. Wineland and D. J. Heinzen, *Optimal frequency
+# measurements with maximally correlated states*, Phys. Rev. A **54**, R4649 (1996) — maximally correlated (GHZ) states
+# reach the Heisenberg limit $1/N$ (Section 7.4).
+#
+# <span id="ref-18">[18]</span> V. Giovannetti, S. Lloyd and L. Maccone, *Quantum metrology*, Phys. Rev. Lett. **96**,
+# 010401 (2006) — the standard quantum limit versus the Heisenberg limit.
+#
+# <span id="ref-19">[19]</span> T. Monz, P. Schindler, J. T. Barreiro, M. Chwalla, D. Nigg, W. A. Coish, M. Harlander,
+# W. Hänsel, M. Hennrich and R. Blatt, *14-qubit entanglement: creation and coherence*, Phys. Rev. Lett. **106**, 130506
+# (2011) — GHZ coherence decaying with the square of the number of qubits under correlated phase noise (Section 10.3).
+#
+# <span id="ref-20">[20]</span> S. F. Huelga, C. Macchiavello, T. Pellizzari, A. K. Ekert, M. B. Plenio and J. I. Cirac,
+# *Improvement of frequency standards with quantum entanglement*, Phys. Rev. Lett. **79**, 3865 (1997) — under Markovian
+# dephasing during the interrogation, maximally entangled states give the same resolution as uncorrelated atoms (Section
+# 10.4).
+#
+# <span id="ref-21">[21]</span> R. Demkowicz-Dobrzański, J. Kołodyński and M. Guţă, *The elusive Heisenberg limit in
+# quantum-enhanced metrology*, Nat. Commun. **3**, 1063 (2012) — under decoherence the quantum gain reduces to a
+# constant factor (Section 10.4).
+#
+# <span id="ref-22">[22]</span> W. Dür, G. Vidal and J. I. Cirac, *Three qubits can be entangled in two inequivalent
+# ways*, Phys. Rev. A **62**, 062314 (2000) — the W state.
+#
+# <span id="ref-23">[23]</span> R. H. Dicke, *Coherence in spontaneous radiation processes*, Phys. Rev. **93**, 99
+# (1954) — Dicke states.
+#
+# <span id="ref-24">[24]</span> H. J. Briegel and R. Raussendorf, *Persistent entanglement in arrays of interacting
+# particles*, Phys. Rev. Lett. **86**, 910 (2001) — cluster states.
+#
+# <span id="ref-25">[25]</span> D. N. Page, *Average entropy of a subsystem*, Phys. Rev. Lett. **71**, 1291 (1993) — the
+# Page value (Section 11).
+#
+# <span id="ref-26">[26]</span> R. Raussendorf and H. J. Briegel, *A one-way quantum computer*, Phys. Rev. Lett. **86**,
+# 5188 (2001) — measurement-based quantum computation with cluster states.
+#
+# <span id="ref-27">[27]</span> P. Pfeuty, *The one-dimensional Ising model with a transverse field*, Ann. Phys. **57**,
+# 79 (1970) — the Ising chain of Section 11.1.
+#
+# <span id="ref-28">[28]</span> P. Hyllus, W. Laskowski, R. Krischek, C. Schwemmer, W. Wieczorek, H. Weinfurter, L.
+# Pezzè and A. Smerzi, *Fisher information and multiparticle entanglement*, Phys. Rev. A **85**, 022321 (2012) — Eq.
+# (122), the entanglement-depth bound for $k$-producible states and its proof from block-wise variance bounds and
+# convexity.
+#
+# <span id="ref-29">[29]</span> G. Tóth, *Multipartite entanglement and high-precision metrology*, Phys. Rev. A **85**,
+# 022322 (2012) — Eq. (122), the entanglement-depth bound for $k$-producible states and its proof from block-wise
+# variance bounds and convexity.
+#
+# <span id="ref-30">[30]</span> D. J. Wineland, J. J. Bollinger, W. M. Itano and D. J. Heinzen, *Squeezed atomic states
+# and projection noise in spectroscopy*, Phys. Rev. A **50**, 67 (1994) — projection noise and the squeezing parameter
+# $\xi_R^2$ (Section 13.1).
+#
+# <span id="ref-31">[31]</span> A. Sørensen, L.-M. Duan, J. I. Cirac and P. Zoller, *Many-particle entanglement with
+# Bose–Einstein condensates*, Nature **409**, 63 (2001) — spin-squeezed states from collisions in a condensate;
+# $\xi_R^2<1$ implies entanglement (Section 13.1).
+#
+# <span id="ref-32">[32]</span> A. Sørensen and K. Mølmer, *Entanglement and extreme spin squeezing*, Phys. Rev. Lett.
+# **86**, 4431 (2001) — the smallest transverse variance of a spin $j$ at a given mean spin, and its use to certify
+# entanglement depth from collective-spin measurements (Section 13.1).
+#
+# <span id="ref-33">[33]</span> A. Peres, *Separability criterion for density matrices*, Phys. Rev. Lett. **77**, 1413
+# (1996) — the partial-transpose criterion (Section 13.1).
+#
+# <span id="ref-34">[34]</span> G. Vidal and R. F. Werner, *Computable measure of entanglement*, Phys. Rev. A **65**,
+# 032314 (2002) — the negativity (Section 13.1).
+#
+# <span id="ref-35">[35]</span> M. Kitagawa and M. Ueda, *Squeezed spin states*, Phys. Rev. A **47**, 5138 (1993) —
+# one-axis twisting (Section 13.1).
+#
+# <span id="ref-36">[36]</span> G. Tóth and I. Apellaniz, *Quantum metrology from a quantum information science
+# perspective*, J. Phys. A **47**, 424006 (2014) — the entanglement-witness side of the QFI: convexity,
+# $F_Q\le4\mathrm{Var}(G)$, the separable bound $F_Q\le N$ derived from convexity, and the $k$-producibility bounds of
+# [28] and [29].
+#
+# <span id="ref-37">[37]</span> V. Giovannetti, S. Lloyd and L. Maccone, *Quantum-enhanced measurements: beating the
+# standard quantum limit*, Science **306**, 1330 (2004) — the standard quantum limit versus the Heisenberg limit.
+#
+# <span id="ref-38">[38]</span> M. G. A. Paris, *Quantum estimation for quantum technology*, Int. J. Quantum Inf. **7**,
+# 125–137 (2009) — a compact, readable review of local quantum estimation theory (Sections 4–6): the classical and
+# quantum Cramér–Rao bounds, the SLD and its eigenbasis form, the optimal measurement, and the Bures-metric reading.
+#
+# <span id="ref-39">[39]</span> L. Pezzè, A. Smerzi, M. K. Oberthaler, R. Schmied and P. Treutlein, *Quantum metrology
+# with nonclassical states of atomic ensembles*, Rev. Mod. Phys. **90**, 035005 (2018) — the standard modern review;
+# collective spins, Dicke states, squeezing, experiments.

@@ -3,7 +3,7 @@
 #@description: Two protocols that turn entanglement into a resource: swapping entanglement between particles that never met (with the complete four-qubit algebra, mid-circuit Bell measurement, feed-forward, noisy Werner links and the repeater chain), and sending two classical bits down one qubit, with decoding statistics, the Holevo bound, and the rate and capacity of a noisy shared pair.
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
 # Teleportation ([notebook 20](../ch08_quantum_information_protocols/20_quantum_teleportation.ipynb)) showed that one shared Bell
 # pair, one **ebit**, together with two classical bits can stand in for one transmitted qubit. This notebook follows that
@@ -16,8 +16,8 @@
 # relay and qubit $3$ at Bob's. Qubits $0$ and $3$ have never interacted and are described by a state that contains no correlation
 # whatsoever. Charlie then performs a **Bell measurement**, a joint measurement in the basis of the four Bell states, on qubits $1$
 # and $2$ — and afterwards $0$ and $3$ are in a maximally entangled state. Nothing travelled between the two outer qubits except a
-# two-bit classical message saying which of four outcomes occurred. The idea is due to Żukowski, Zeilinger, Horne and Ekert (1993),
-# was demonstrated with photons by Pan and co-workers (1998), and is the elementary step of a **quantum repeater** (Briegel, Dür, Cirac and Zoller 1998), the standard
+# two-bit classical message saying which of four outcomes occurred. The idea was introduced in [[1]](#ref-1),
+# was demonstrated with photons in [[2]](#ref-2), and is the elementary step of a **quantum repeater** [[3]](#ref-3), the standard
 # proposal for distributing entanglement through optical fibre over distances much larger than its attenuation length (the distance over
 # which the transmission of the fibre falls by a factor $e$).
 #
@@ -25,8 +25,7 @@
 # applies one of four Pauli gates to *her half of the pair*, physically sends that one qubit to Bob, and Bob, with a Bell
 # measurement on the two qubits, recovers both bits with certainty. One qubit carried two bits. Without the shared pair this is
 # impossible: the Holevo bound says a $d$-dimensional quantum system carries at most $\log_2 d$ bits, so one qubit alone carries at
-# most one. The protocol is due to Bennett and Wiesner (1992) and was realised with photons by Mattle, Weinfurter, Kwiat and
-# Zeilinger (1996).
+# most one. The protocol was introduced in [[4]](#ref-4) and was realised with photons in [[5]](#ref-5).
 #
 # In resource language the two transmission protocols are mirror images: teleportation turns $1$ ebit $+$ $2$ classical bits into
 # $1$ transmitted qubit, superdense coding turns $1$ ebit $+$ $1$ transmitted qubit into $2$ classical bits, and swapping turns two
@@ -541,8 +540,8 @@ for lab, (o1, o2) in zip(BELL_LABELS, BELL_BITS):
 #
 # Two standard measures quantify the entanglement of a two-qubit **mixed** state.
 #
-# **Negativity** (Vidal and Werner, 2002) uses the positive-partial-transpose criterion of Peres (1996) and
-# M. Horodecki, P. Horodecki and R. Horodecki (1996): transpose the state on one subsystem only,
+# **Negativity** [[6]](#ref-6) uses the positive-partial-transpose criterion of [[7]](#ref-7) and
+# [[8]](#ref-8): transpose the state on one subsystem only,
 #
 # $$\big(\rho^{T_A}\big)_{i\alpha,\,j\beta}=\rho_{j\alpha,\,i\beta},$$
 #
@@ -556,7 +555,7 @@ for lab, (o1, o2) in zip(BELL_LABELS, BELL_BITS):
 # $N+q$, one `jnp.transpose` (see `partial_transpose` in the engine recap). Notebook
 # [25 — entanglement negativity](../ch09_entanglement_and_complexity/25_entanglement_negativity.ipynb) develops this in depth.
 #
-# **Concurrence** (Wootters, 1998) is built from the spin-flipped state $\tilde\rho=(Y\otimes Y)\rho^*(Y\otimes Y)$:
+# **Concurrence** [[9]](#ref-9) is built from the spin-flipped state $\tilde\rho=(Y\otimes Y)\rho^*(Y\otimes Y)$:
 # with $\lambda_1\ge\lambda_2\ge\lambda_3\ge\lambda_4$ the square roots of the eigenvalues of $\rho\tilde\rho$,
 #
 # $$C(\rho)=\max\big(0,\;\lambda_1-\lambda_2-\lambda_3-\lambda_4\big),$$
@@ -868,7 +867,7 @@ fig.tight_layout(); plt.show()
 # ## 10. Noisy links: Werner states and the product rule $v_{\text{out}}=v_1v_2$
 #
 # Real links are not Bell pairs. A fibre, a memory or an imperfect source produces a mixed state, and the standard one-parameter
-# model is the **Werner (isotropic) state** (Werner 1989)
+# model is the **Werner (isotropic) state** [[10]](#ref-10)
 #
 # $$\rho_W(v)=v\,\vert\Phi^+\rangle\langle\Phi^+\vert+(1-v)\,\frac{\mathbb 1_4}{4},\qquad 0\le v\le1, \tag{7}$$
 #
@@ -951,7 +950,7 @@ fig.tight_layout(); plt.show()
 # $$\mathcal N(\rho_W)=\max\Big(0,\ \frac{3v-1}{4}\Big),\qquad C(\rho_W)=\max\Big(0,\ \frac{3v-1}{2}\Big),$$
 #
 # and the state is **entangled if and only if $v>1/3$**: the partial transpose of this family turns negative exactly there
-# (Peres, 1996), and for two qubits a positive partial transpose implies separability (M. Horodecki, P. Horodecki and R. Horodecki, 1996). We check all of this
+# [[7]](#ref-7), and for two qubits a positive partial transpose implies separability [[8]](#ref-8). We check all of this
 # numerically now, on the density tensor.
 
 # %%
@@ -1124,10 +1123,10 @@ assert max_abs(rho_g - werner_matrix(werner_parameter(rho_g))) > 0.01  # but not
 # links. For $v=0.95$ that is about $21$ links; for $v=0.9$ about $10$. Every link and every Bell measurement was assumed to
 # succeed, so photon loss plays no role here: the decay is caused by error accumulation alone.
 #
-# The remedy, built into the quantum repeater by Briegel, Dür, Cirac and Zoller (1998), is **entanglement purification**,
-# introduced by Bennett, Brassard, Popescu, Schumacher, Smolin and Wootters (1996): take two noisy pairs of visibility $v$, perform local operations and classical communication, and
+# The remedy, built into the quantum repeater of [[3]](#ref-3), is **entanglement purification**,
+# introduced in [[11]](#ref-11): take two noisy pairs of visibility $v$, perform local operations and classical communication, and
 # with some probability obtain *one* pair with a **higher** $v$. Interleaving purification with swapping keeps the working fidelity
-# above threshold at every nesting level. In the scheme of Briegel, Dür, Cirac and Zoller the channel is cut into $N$ segments and
+# above threshold at every nesting level. In the scheme of [[3]](#ref-3) the channel is cut into $N$ segments and
 # purification alternates with swapping over $\log_L N$ nesting levels; the total number of elementary pairs consumed then scales as
 # $N^{\log_LM+1}$ — **polynomially** in the distance rather than exponentially — and in their refined version each repeater station
 # has to control only $O(\log N)$ qubits at a time, at the price of a polynomially longer total run time. Their analysis requires the
@@ -1301,7 +1300,7 @@ print(f"\ndecoding error probability = {1 - np.mean(np.diag(conf_ideal)):.2e}   
 # %% [markdown]
 # ## 13. Why two bits is the maximum: the Holevo bound
 #
-# Without shared entanglement, how many classical bits can one qubit carry? The answer is the **Holevo bound** (Holevo, 1973).
+# Without shared entanglement, how many classical bits can one qubit carry? The answer is the **Holevo bound** [[12]](#ref-12).
 # Suppose Alice encodes a message $i$ with probability $p_i$ into a quantum state $\rho_i$ of a system of dimension $d$. Whatever
 # measurement Bob performs, the mutual information between the message and his result satisfies
 #
@@ -1409,7 +1408,7 @@ assert abs(chi_bob - 2.0) < 1e-9 and abs(chi_eve) < 1e-9
 # Equation (12) is the capacity of the *classical* channel that this particular encode-and-decode scheme induces. That is not
 # automatically the same as the **dense-coding capacity of the shared state**, which is the maximum over all encodings Alice could
 # apply to her qubit and all decoding measurements Bob could perform. For a shared state $\rho_{AB}$ and unitary encodings on a
-# system $A$ of dimension $d_A$ that maximum is known in closed form (Hiroshima 2001; Bowen 2001; Bruß et al. 2004):
+# system $A$ of dimension $d_A$ that maximum is known in closed form [[13]](#ref-13), [[14]](#ref-14), [[15]](#ref-15):
 #
 # $$C_{\text{dc}}(\rho_{AB})=\log_2 d_A+S(\rho_B)-S(\rho_{AB}) . \tag{13}$$
 #
@@ -1421,11 +1420,11 @@ assert abs(chi_bob - 2.0) < 1e-9 and abs(chi_eve) < 1e-9
 # itself is noiseless, Alice's encodings are unitary, and the rate is reached asymptotically, with block codes and collective
 # measurements over many uses (the Holevo quantity is achievable in that limit). The formula is additive over copies, so encoding
 # unitarily on many pairs at once does not help either. If Alice and Bob may consume an unlimited number of noisy pairs per
-# transmitted qubit, the question changes and so does the answer (Horodecki, Horodecki, Horodecki, Leung and Terhal 2001).
+# transmitted qubit, the question changes and so does the answer [[16]](#ref-16).
 #
 # Alice is, however, not restricted to unitaries. She can discard the pair and send a freshly prepared qubit, which carries
 # $\log_2 d_A=1$ bit, or more generally apply any channel $\Lambda$ to her half before a unitary encoding. For such general encodings
-# Horodecki and Piani (2012) give the single-copy capacity as
+# Ref. [[17]](#ref-17) gives the single-copy capacity as
 #
 # $$C^{(1)}_{\text{dc}}(\rho_{AB})=\log_2 d_A+S(\rho_B)-\min_{\Lambda}S\big((\Lambda\otimes\mathbb 1)\rho_{AB}\big) . \tag{14}$$
 #
@@ -1435,7 +1434,7 @@ assert abs(chi_bob - 2.0) < 1e-9 and abs(chi_eve) < 1e-9
 # below one bit. A numerical minimisation over qubit channels (Exercise 9) finds no $\Lambda$ that lowers the entropy below
 # $\min\big(1,H(q)\big)$ for the depolarised and dephased pairs of this section, so for these states the bound appears to be an
 # equality; this is a numerical observation, for which we know no general proof. Whether general encodings acting jointly on many
-# pairs can exceed the single-copy value is an additivity question (Winter 2002) that Eq. (14) leaves open. The curve we are about
+# pairs can exceed the single-copy value is an additivity question [[18]](#ref-18) that Eq. (14) leaves open. The curve we are about
 # to plot is therefore the rate of *this* protocol: above $1$ bit it equals the unitary-encoding capacity, and below $1$ bit Alice does better by discarding the pair.
 #
 # We now measure the full $4\times4$ confusion matrix on the density tensor, extract the empirical mutual information, and compare it
@@ -1805,7 +1804,7 @@ print("\n(The first call includes tracing and XLA compilation; it is paid once p
 #    why the additive structure survives even though the channel is not a Pauli channel. (Hint: conjugating amplitude damping by
 #    $X$ turns it into amplitude *raising*, which has the same Bell populations.) Then compute $I$ for several non-uniform priors
 #    and decide whether any of them beats the uniform one — this is the question the Blahut–Arimoto algorithm answers in general.
-# 7. ★★★ **Purification (extend the code).** Implement one round of the recurrence purification protocol of Bennett et al. (1996): take two copies of a
+# 7. ★★★ **Purification (extend the code).** Implement one round of the recurrence purification protocol of [[11]](#ref-11): take two copies of a
 #    Werner state with visibility $v$ (four qubits), apply a bilateral $\mathrm{CNOT}$ (each party from their half of the first pair
 #    to their half of the second), measure the target pair in the $Z$ basis, keep the source pair only if the two results agree.
 #    Measure the success probability and the output state. It is Bell-diagonal but no longer isotropic, so define $v'$ from its
@@ -1825,44 +1824,68 @@ print("\n(The first call includes tracing and XLA compilation; it is paid once p
 #
 # ## References
 #
-# * M. Żukowski, A. Zeilinger, M. A. Horne and A. K. Ekert, *"Event-ready-detectors" Bell experiment via entanglement swapping*,
-#   Phys. Rev. Lett. **71**, 4287 (1993) — the original entanglement-swapping proposal.
-# * J.-W. Pan, D. Bouwmeester, H. Weinfurter and A. Zeilinger, *Experimental entanglement swapping: entangling photons that never
-#   interacted*, Phys. Rev. Lett. **80**, 3891 (1998) — the experiment.
-# * C. H. Bennett and S. J. Wiesner, *Communication via one- and two-particle operators on Einstein-Podolsky-Rosen states*,
-#   Phys. Rev. Lett. **69**, 2881 (1992) — superdense coding.
-# * K. Mattle, H. Weinfurter, P. G. Kwiat and A. Zeilinger, *Dense coding in experimental quantum communication*,
-#   Phys. Rev. Lett. **76**, 4656 (1996) — the experimental demonstration.
-# * C. H. Bennett, G. Brassard, C. Crépeau, R. Jozsa, A. Peres and W. K. Wootters, *Teleporting an unknown quantum state via dual
-#   classical and Einstein-Podolsky-Rosen channels*, Phys. Rev. Lett. **70**, 1895 (1993) — the dual protocol of Section 12.3.
-# * H.-J. Briegel, W. Dür, J. I. Cirac and P. Zoller, *Quantum repeaters: the role of imperfect local operations in quantum
-#   communication*, Phys. Rev. Lett. **81**, 5932 (1998) — nested swapping and purification, Section 11.
-# * C. H. Bennett, G. Brassard, S. Popescu, B. Schumacher, J. A. Smolin and W. K. Wootters, *Purification of noisy entanglement and
-#   faithful teleportation via noisy channels*, Phys. Rev. Lett. **76**, 722 (1996) — entanglement purification with the bilateral
-#   CNOT, Section 11 and Exercise 7.
-# * A. S. Holevo, *Bounds for the quantity of information transmitted by a quantum communication channel*, Problems of Information
-#   Transmission **9**(3), 177–183 (1973) — the bound of Section 13.
-# * T. Hiroshima, *Optimal dense coding with mixed state entanglement*, J. Phys. A: Math. Gen. **34**, 6907 (2001);
-#   G. Bowen, *Classical information capacity of superdense coding*, Phys. Rev. A **63**, 022302 (2001) — the dense-coding capacity
-#   $\log_2d_A+S(\rho_B)-S(\rho_{AB})$ for unitary encodings, Eq. (13).
-# * D. Bruß, G. M. D'Ariano, M. Lewenstein, C. Macchiavello, A. Sen(De) and U. Sen, *Distributed quantum dense coding*,
-#   Phys. Rev. Lett. **93**, 210501 (2004) — the same formula for $d_A\ne d_B$ and for several senders.
-# * M. Horodecki, P. Horodecki, R. Horodecki, D. Leung and B. Terhal, *Classical capacity of a noiseless quantum channel assisted by
-#   noisy entanglement*, Quantum Inf. Comput. **1**(3), 70 (2001) — the capacity when an arbitrary amount of noisy entanglement may
-#   be used per channel use.
-# * M. Horodecki and M. Piani, *On quantum advantage in dense coding*, J. Phys. A: Math. Theor. **45**, 105306 (2012) — general
-#   encoding operations; the single-copy capacity Eq. (14), with the minimisation over Alice's pre-processing channel.
-# * A. Winter, *Scalable programmable quantum gates and a new aspect of the additivity problem for the classical capacity of quantum
-#   channels*, J. Math. Phys. **43**, 4341 (2002) — noisy dense coding with general encodings and the associated additivity
-#   problem.
-# * R. F. Werner, *Quantum states with Einstein-Podolsky-Rosen correlations admitting a hidden-variable model*,
-#   Phys. Rev. A **40**, 4277 (1989) — Werner states.
-# * A. Peres, *Separability criterion for density matrices*, Phys. Rev. Lett. **77**, 1413 (1996); M. Horodecki, P. Horodecki and
-#   R. Horodecki, *Separability of mixed states: necessary and sufficient conditions*, Phys. Lett. A **223**, 1 (1996) — the PPT
-#   criterion behind the negativity.
-# * G. Vidal and R. F. Werner, *Computable measure of entanglement*, Phys. Rev. A **65**, 032314 (2002) — negativity and logarithmic
-#   negativity.
-# * W. K. Wootters, *Entanglement of formation of an arbitrary state of two qubits*, Phys. Rev. Lett. **80**, 2245 (1998) —
-#   concurrence.
-# * M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information* (Cambridge University Press, 2000) —
-#   Chapters 2, 8 and 12 cover Bell measurements, channels, the Holevo bound and both protocols.
+# <span id="ref-1">[1]</span> M. Żukowski, A. Zeilinger, M. A. Horne and A. K. Ekert, *"Event-ready-detectors" Bell
+# experiment via entanglement swapping*, Phys. Rev. Lett. **71**, 4287 (1993) — the original entanglement-swapping proposal.
+#
+# <span id="ref-2">[2]</span> J.-W. Pan, D. Bouwmeester, H. Weinfurter and A. Zeilinger, *Experimental entanglement
+# swapping: entangling photons that never interacted*, Phys. Rev. Lett. **80**, 3891 (1998) — the experiment.
+#
+# <span id="ref-3">[3]</span> H.-J. Briegel, W. Dür, J. I. Cirac and P. Zoller, *Quantum repeaters: the role of imperfect
+# local operations in quantum communication*, Phys. Rev. Lett. **81**, 5932 (1998) — nested swapping and purification,
+# Section 11.
+#
+# <span id="ref-4">[4]</span> C. H. Bennett and S. J. Wiesner, *Communication via one- and two-particle operators on
+# Einstein-Podolsky-Rosen states*, Phys. Rev. Lett. **69**, 2881 (1992) — superdense coding.
+#
+# <span id="ref-5">[5]</span> K. Mattle, H. Weinfurter, P. G. Kwiat and A. Zeilinger, *Dense coding in experimental quantum
+# communication*, Phys. Rev. Lett. **76**, 4656 (1996) — the experimental demonstration.
+#
+# <span id="ref-6">[6]</span> G. Vidal and R. F. Werner, *Computable measure of entanglement*, Phys. Rev. A **65**, 032314
+# (2002) — negativity and logarithmic negativity.
+#
+# <span id="ref-7">[7]</span> A. Peres, *Separability criterion for density matrices*, Phys. Rev. Lett. **77**, 1413 (1996)
+# — the PPT criterion behind the negativity.
+#
+# <span id="ref-8">[8]</span> M. Horodecki, P. Horodecki and R. Horodecki, *Separability of mixed states: necessary and
+# sufficient conditions*, Phys. Lett. A **223**, 1 (1996) — sufficiency of the PPT criterion for two qubits.
+#
+# <span id="ref-9">[9]</span> W. K. Wootters, *Entanglement of formation of an arbitrary state of two qubits*, Phys. Rev.
+# Lett. **80**, 2245 (1998) — concurrence.
+#
+# <span id="ref-10">[10]</span> R. F. Werner, *Quantum states with Einstein-Podolsky-Rosen correlations admitting a
+# hidden-variable model*, Phys. Rev. A **40**, 4277 (1989) — Werner states.
+#
+# <span id="ref-11">[11]</span> C. H. Bennett, G. Brassard, S. Popescu, B. Schumacher, J. A. Smolin and W. K. Wootters,
+# *Purification of noisy entanglement and faithful teleportation via noisy channels*, Phys. Rev. Lett. **76**, 722 (1996) —
+# entanglement purification with the bilateral CNOT, Section 11 and Exercise 7.
+#
+# <span id="ref-12">[12]</span> A. S. Holevo, *Bounds for the quantity of information transmitted by a quantum communication
+# channel*, Problems of Information Transmission **9**(3), 177–183 (1973) — the bound of Section 13.
+#
+# <span id="ref-13">[13]</span> T. Hiroshima, *Optimal dense coding with mixed state entanglement*, J. Phys. A: Math. Gen.
+# **34**, 6907 (2001) — the dense-coding capacity $\log_2d_A+S(\rho_B)-S(\rho_{AB})$ for unitary encodings, Eq. (13).
+#
+# <span id="ref-14">[14]</span> G. Bowen, *Classical information capacity of superdense coding*, Phys. Rev. A **63**, 022302
+# (2001) — the dense-coding capacity of Eq. (13).
+#
+# <span id="ref-15">[15]</span> D. Bruß, G. M. D'Ariano, M. Lewenstein, C. Macchiavello, A. Sen(De) and U. Sen, *Distributed
+# quantum dense coding*, Phys. Rev. Lett. **93**, 210501 (2004) — the same formula for $d_A\ne d_B$ and for several senders.
+#
+# <span id="ref-16">[16]</span> M. Horodecki, P. Horodecki, R. Horodecki, D. Leung and B. Terhal, *Classical capacity of a
+# noiseless quantum channel assisted by noisy entanglement*, Quantum Inf. Comput. **1**(3), 70 (2001) — the capacity when an
+# arbitrary amount of noisy entanglement may be used per channel use.
+#
+# <span id="ref-17">[17]</span> M. Horodecki and M. Piani, *On quantum advantage in dense coding*, J. Phys. A: Math. Theor.
+# **45**, 105306 (2012) — general encoding operations; the single-copy capacity Eq. (14), with the minimisation over Alice's
+# pre-processing channel.
+#
+# <span id="ref-18">[18]</span> A. Winter, *Scalable programmable quantum gates and a new aspect of the additivity problem
+# for the classical capacity of quantum channels*, J. Math. Phys. **43**, 4341 (2002) — noisy dense coding with general
+# encodings and the associated additivity problem.
+#
+# <span id="ref-19">[19]</span> C. H. Bennett, G. Brassard, C. Crépeau, R. Jozsa, A. Peres and W. K. Wootters, *Teleporting
+# an unknown quantum state via dual classical and Einstein-Podolsky-Rosen channels*, Phys. Rev. Lett. **70**, 1895 (1993) —
+# the dual protocol of Section 12.3.
+#
+# <span id="ref-20">[20]</span> M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information* (Cambridge
+# University Press, 2000) — Chapters 2, 8 and 12 cover Bell measurements, channels, the Holevo bound and both protocols.

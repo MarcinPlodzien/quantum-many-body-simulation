@@ -152,14 +152,13 @@
 # ### 2.1 The free Schrödinger equation in SI units
 #
 # A particle of mass $m$ moving in one dimension with no forces acting on it is described by a wave function
-# $\Psi(X,T)$ obeying the time-dependent Schrödinger equation, introduced by Schrödinger in his 1926 papers on
-# wave mechanics,
+# $\Psi(X,T)$ obeying the time-dependent Schrödinger equation, introduced in [[1]](#ref-1),
 #
 # $$ i\hbar \frac{\partial \Psi(X,T)}{\partial T} \;=\; -\frac{\hbar^2}{2m}\frac{\partial^2 \Psi(X,T)}{\partial X^2} . \tag{1} $$
 #
 # Capital $X$ and $T$ are a position in metres and a time in seconds. The right-hand side is the kinetic-energy
 # operator $\hat p^2/2m$ with $\hat p = -i\hbar\,\partial_X$; there is no potential term, which is exactly what
-# "free" means. The physical content of $\Psi$ is the Born rule, proposed by Born (1926):
+# "free" means. The physical content of $\Psi$ is the Born rule, introduced in [[2]](#ref-2):
 # $\vert\Psi(X,T)\vert^2\,dX$ is the probability of
 # finding the particle in $[X, X+dX]$, and
 #
@@ -316,8 +315,8 @@ for name, mass, x0 in cases:
 # ## 3. The exact solution of the free Schrödinger equation
 #
 # Before we compute anything we solve the problem on paper. This is our reference: every number the computer
-# produces will be compared with a formula from this section. The calculation is the textbook one (Griffiths and
-# Schroeter, §2.4; Sakurai and Napolitano, §1.7; Tannor, Chapters 2–3).
+# produces will be compared with a formula from this section. The calculation is the textbook one ([[3]](#ref-3), §2.4;
+# [[4]](#ref-4), §1.7; [[5]](#ref-5), Chapters 2–3).
 #
 # ### 3.1 The initial state
 #
@@ -459,7 +458,7 @@ for name, mass, x0 in cases:
 #    \sigma(t) = \sigma_0\sqrt{1+\tau^{2}} = \sigma_0\sqrt{1 + \left(\frac{t}{2\sigma_0^{2}}\right)^{2}} . \tag{8} $$
 #
 # The centre moves with constant velocity $k_0$ — in SI units $\hbar k_0/m = p_0/m$, precisely the classical
-# velocity (this is Ehrenfest's theorem (Ehrenfest, 1927) for a free particle). The width grows: slowly at
+# velocity (this is Ehrenfest's theorem [[6]](#ref-6) for a free particle). The width grows: slowly at
 # first ($\sigma \approx \sigma_0(1+\tau^2/2)$, quadratically in $t$), then linearly,
 # $\sigma(t)\to \sigma_0 \tau = t/(2\sigma_0)= \sigma_k t$, which is nothing but "the packet expands at the spread
 # of its own velocities". The cross-over happens at $\tau = 1$, i.e. at the **spreading time**
@@ -489,8 +488,8 @@ for name, mass, x0 in cases:
 # $$ \sigma_x(t)\,\sigma_k = \frac12\sqrt{1+\tau^{2}} \;\ge\; \frac12 , $$
 #
 # with equality only at $t=0$. A free packet is a minimum-uncertainty state for one instant and never again.
-# The bound itself is Heisenberg's uncertainty relation (Heisenberg, 1927); the inequality
-# $\sigma_x\sigma_p \ge \hbar/2$ in this standard-deviation form was proved by Kennard (1927).
+# The bound itself is Heisenberg's uncertainty relation [[7]](#ref-7); the inequality
+# $\sigma_x\sigma_p \ge \hbar/2$ in this standard-deviation form was proved in [[8]](#ref-8).
 #
 # **(d) Phase velocity versus group velocity.** A single plane wave $e^{i(kx-\omega t)}$ with $\omega = k^2/2$ has
 #
@@ -499,7 +498,7 @@ for name, mass, x0 in cases:
 # The **envelope** travels at $k_0$; the **ripples inside it** travel at only $k_0/2$, so in an animation of
 # $\mathrm{Re}\,\psi$ the individual crests continuously fall behind the lump and disappear at its rear edge.
 # For light in vacuum the two velocities coincide; for matter waves they differ by a factor of two. The particle
-# velocity of a de Broglie matter wave (de Broglie, 1924) is the group velocity, the one that carries the
+# velocity of a de Broglie matter wave [[9]](#ref-9) is the group velocity, the one that carries the
 # probability.
 #
 # > **Physics insight.** Everything above came from one fact: $\omega(k)$ is *not* linear in $k$. A linear
@@ -545,8 +544,8 @@ for name, mass, x0 in cases:
 #    \;\to\; \Delta x \sum_j (x_j - \langle x\rangle)^{2}\,\vert\psi_j\vert^{2} . $$
 #
 # For a *periodic and smooth* function this approximation is spectacularly good — the error decreases faster than
-# any power of $\Delta x$ (this is the trapezoidal rule's superpower on periodic functions; see Trefethen and
-# Weideman, SIAM Rev. **56**, 385 (2014)). We will verify it numerically in a moment.
+# any power of $\Delta x$ (this is the trapezoidal rule's superpower on periodic functions; see
+# [[10]](#ref-10)). We will verify it numerically in a moment.
 #
 # ### 4.3 Periodic boundary conditions: the particle lives on a ring
 #
@@ -576,7 +575,7 @@ for name, mass, x0 in cases:
 #
 # $$ k_{\max} = \frac{\pi}{\Delta x} \qquad \text{(the Nyquist wave number)} , $$
 #
-# which is the **sampling theorem** proved by Shannon (1949), the critical rate being named after Nyquist (1928):
+# which is the **sampling theorem** proved in [[11]](#ref-11), the critical rate being named after Nyquist [[12]](#ref-12):
 # you need at least two grid points per wavelength. Two practical rules follow,
 # and violating either of them is a common mistake:
 #
@@ -590,7 +589,7 @@ for name, mass, x0 in cases:
 #
 # ### 4.5 `fftfreq`: the order the wave numbers come in
 #
-# NumPy's `fft`, an implementation of the fast Fourier transform algorithm of Cooley and Tukey (1965), returns
+# NumPy's `fft`, an implementation of the fast Fourier transform algorithm introduced in [[13]](#ref-13), returns
 # the coefficients in the order $n = 0, 1, \ldots, N_x/2-1, -N_x/2, \ldots, -1$ — the
 # non-negative frequencies first, then the negative ones ("wrapped" order). Rather than remembering that, call
 # `np.fft.fftfreq(N_x, d=dx)`, which returns $n/(N_x\Delta x) = n/L$ in exactly the matching order; multiply by
@@ -1114,9 +1113,8 @@ plt.show()
 # * it costs $O(N_x\log N_x)$ per application, thanks to the Fast Fourier Transform, versus $O(N_x^2)$ for a dense
 #   matrix-vector product and $O(N_x^3)$ for building a matrix exponential.
 #
-# Fourier grid methods for wave-packet dynamics were developed by Feit, Fleck and Steiger (J. Comput. Phys. **47**,
-# 412 (1982)) and by Kosloff and Kosloff (J. Comput. Phys. **52**, 35 (1983)); Trefethen's *Spectral Methods in MATLAB*
-# (Chapters 3–4) explains the exponential accuracy, Press *et al.*, *Numerical Recipes*, Chapter 12, the FFT itself.
+# Fourier grid methods for wave-packet dynamics were introduced in [[14]](#ref-14) and [[15]](#ref-15); Ref. [[16]](#ref-16)
+# (Chapters 3–4) explains the exponential accuracy, and Ref. [[17]](#ref-17), Chapter 12, the FFT itself.
 #
 # Everything rests on periodicity: the FFT *assumes* the array is one period of a periodic function. That is
 # exactly the ring, so we pay nothing.
@@ -1275,7 +1273,7 @@ print("\nCHECKPOINT passed: both methods move at exactly the speed their own dis
 #
 # ### 8.2 Ehrenfest's theorem for the free particle
 #
-# How does $\langle x\rangle$ change in time? (Sakurai and Napolitano, §2.2.4, treat the general case.) Differentiate under the integral and use Eq. (2) in the form
+# How does $\langle x\rangle$ change in time? ([[4]](#ref-4), §2.2.4, treats the general case.) Differentiate under the integral and use Eq. (2) in the form
 # $\partial_t\psi = \tfrac{i}{2}\partial_x^2\psi$ (and its complex conjugate
 # $\partial_t\psi^{*} = -\tfrac{i}{2}\partial_x^2\psi^{*}$):
 #
@@ -2348,7 +2346,7 @@ plt.show()
 # > by $\Delta = nL$ produce fringes of period $2\pi/(\Delta/t) = 2\pi t/(nL)$, exactly like a double slit whose
 # > "slit separation" is $nL$. This is the same mathematics as the interference of two expanding cold-atom
 # > clouds, which is how the relative phase of two Bose-Einstein condensates is measured; such fringes were
-# > first observed by Andrews *et al.* (1997).
+# > first observed in [[18]](#ref-18).
 #
 # ### 11.2 Exact revivals on a ring
 #
@@ -2365,13 +2363,13 @@ plt.show()
 # $\psi(x, T_{\rm rev}) = \psi(x, 0)$ **exactly, for any initial state whatsoever**. The wave function reassembles
 # itself out of what looked like structureless mush. This is a *quantum revival*. A classical swarm with the same
 # spread of velocities never re-forms: each particle is periodic, but with its own period $L/v$, and the swarm
-# spreads uniformly over the ring. Revivals were observed with Rydberg wave packets by Yeazell, Mallalieu and
-# Stroud (1990), and have since been seen with cold atoms (see the review by Robinett, Phys. Rep. **392**, 1 (2004)).
+# spreads uniformly over the ring. Revivals were observed with Rydberg wave packets in [[19]](#ref-19), and have
+# since been seen with cold atoms (see the review [[20]](#ref-20)).
 #
 # A bonus: at $T_{\rm rev}/2$ the phases are $e^{-i\pi n^2} = (-1)^{n^2} = (-1)^n$, which is precisely the Fourier
 # multiplier of a **translation by $L/2$**. So at half the revival time the packet reappears on the opposite side
 # of the ring. At other rational fractions of $T_{\rm rev}$ one finds several smaller copies — the "fractional
-# revivals" analysed by Averbukh and Perelman (1989) — and plotting $\vert\psi(x,t)\vert^2$ over a full revival
+# revivals" analysed in [[21]](#ref-21) — and plotting $\vert\psi(x,t)\vert^2$ over a full revival
 # period produces a **quantum carpet**.
 
 # %%
@@ -2513,14 +2511,14 @@ plt.show()
 # 6. (★★) **Revivals on your own ring.** Change $L$ and verify $T_{\rm rev}=L^2/\pi$ numerically. What happens at
 #    $t = T_{\rm rev}/3$? Plot it. (These are *fractional revivals*: three copies of the packet.)
 # 7. (★★★) **A potential step.** A free particle is boring in the end; the interesting physics is scattering. The
-#    split-step recipe of Feit, Fleck and Steiger (1982) extends `propagate` to a Hamiltonian
+#    split-step recipe of [[14]](#ref-14) extends `propagate` to a Hamiltonian
 #    $H = \hat p^2/2 + V(x)$: apply
 #    $e^{-iV\Delta t/2}$ in position space, then $e^{-ik^2\Delta t/2}$ in Fourier space, then
 #    $e^{-iV\Delta t/2}$ again. Implement it, send a packet of energy $E=k_0^2/2$ at a step $V(x)=V_0$ for
 #    $x>L/2$, and measure the transmitted probability for $V_0/E \in \{0.5, 0.9, 1.0, 1.1, 2\}$. Compare with the
 #    textbook plane-wave transmission coefficient. Why is the agreement imperfect? (Notebook 00b builds the
 #    machinery for potentials properly.)
-# 8. (★★★) **The Wigner function**, introduced by Wigner (1932). Compute
+# 8. (★★★) **The Wigner function**, introduced in [[22]](#ref-22). Compute
 #    $W(x,p) = \frac{1}{\pi}\int \psi^{*}(x+y)\,\psi(x-y)\,e^{2ipy}\,dy$ on the grid and animate it. For the free
 #    particle it should simply shear: $W(x,p,t) = W(x-pt, p, 0)$ — the exact classical Liouville flow. Verify
 #    that, and explain why the free particle is the one case where quantum and classical phase-space dynamics
@@ -2528,52 +2526,75 @@ plt.show()
 #
 # ### References
 #
-# * D. J. Griffiths and D. F. Schroeter, *Introduction to Quantum Mechanics*, 3rd ed., Cambridge University Press
-#   (2018) — Chapter 2, §2.4: the free particle and its wave packets.
-# * J. J. Sakurai and J. Napolitano, *Modern Quantum Mechanics*, 3rd ed., Cambridge University Press (2020) —
-#   §1.7.4 (Gaussian wave packets and minimum-uncertainty states) and §2.2.4 (free particles, Ehrenfest's theorem).
-# * D. J. Tannor, *Introduction to Quantum Mechanics: A Time-Dependent Perspective*, University Science Books
-#   (2007) — wave-packet dynamics and grid methods: Chapters 2–3 (the free-particle and the Gaussian wave packet)
-#   and Chapter 11 (numerical methods).
-# * M. D. Feit, J. A. Fleck Jr. and A. Steiger, *Solution of the Schrödinger equation by a spectral method*,
-#   J. Comput. Phys. **47**, 412–433 (1982) — the split-operator Fourier method.
-# * D. Kosloff and R. Kosloff, *A Fourier method solution for the time dependent Schrödinger equation as a tool in
-#   molecular dynamics*, J. Comput. Phys. **52**, 35–53 (1983) — the Fourier grid method used in Section 7.
-# * W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes*, 3rd ed., Cambridge
-#   University Press (2007) — Chapter 12 for the FFT, Chapter 20 for partial differential equations.
-# * L. N. Trefethen, *Spectral Methods in MATLAB*, SIAM (2000) — Chapters 3–4: periodic grids, the DFT and FFT,
-#   and why spectral differentiation of smooth functions converges exponentially.
-# * L. N. Trefethen and J. A. C. Weideman, *The exponentially convergent trapezoidal rule*, SIAM Rev. **56**,
-#   385–458 (2014) — why trapezoidal sums of smooth periodic functions converge exponentially (Section 4.2).
-# * R. W. Robinett, *Quantum wave packet revivals*, Phys. Rep. **392**, 1 (2004) — revivals, fractional revivals
-#   and quantum carpets.
+# <span id="ref-1">[1]</span> E. Schrödinger, *Quantisierung als Eigenwertproblem*, Ann. Phys. **384** (4th series **79**),
+# 361 (1926) and Ann. Phys. **386** (4th series **81**), 109 (1926) — the first and the fourth communication on wave
+# mechanics; the fourth contains the time-dependent equation, Eq. (1).
 #
-# **Original papers**
-# * E. Schrödinger, *Quantisierung als Eigenwertproblem*, Ann. Phys. **384** (4th series **79**), 361 (1926) and
-#   Ann. Phys. **386** (4th series **81**), 109 (1926) — the first and the fourth communication on wave mechanics; the fourth contains the
-#   time-dependent equation, Eq. (1).
-# * M. Born, *Zur Quantenmechanik der Stoßvorgänge*, Z. Phys. **37**, 863 (1926) — the probability
-#   interpretation of the wave function.
-# * W. Heisenberg, *Über den anschaulichen Inhalt der quantentheoretischen Kinematik und Mechanik*, Z. Phys.
-#   **43**, 172 (1927) — the uncertainty relation.
-# * E. H. Kennard, *Zur Quantenmechanik einfacher Bewegungstypen*, Z. Phys. **44**, 326 (1927) — the inequality
-#   $\sigma_x\sigma_p \ge \hbar/2$.
-# * P. Ehrenfest, *Bemerkung über die angenäherte Gültigkeit der klassischen Mechanik innerhalb der
-#   Quantenmechanik*, Z. Phys. **45**, 455 (1927) — Ehrenfest's theorem, Section 8.2.
-# * L. de Broglie, *Recherches sur la théorie des quanta*, Ann. Phys. (Paris) **10**, 22 (1925) — the thesis of
-#   1924 that introduced matter waves.
-# * H. Nyquist, *Certain topics in telegraph transmission theory*, Trans. AIEE **47**, 617 (1928); C. E. Shannon,
-#   *Communication in the presence of noise*, Proc. IRE **37**, 10 (1949) — the sampling theorem of Section 4.4.
-# * J. W. Cooley and J. W. Tukey, *An algorithm for the machine calculation of complex Fourier series*, Math.
-#   Comp. **19**, 297 (1965) — the fast Fourier transform.
-# * M. R. Andrews, C. G. Townsend, H.-J. Miesner, D. S. Durfee, D. M. Kurn and W. Ketterle, *Observation of
-#   interference between two Bose condensates*, Science **275**, 637 (1997).
-# * I. Sh. Averbukh and N. F. Perelman, *Fractional revivals: universality in the long-term evolution of quantum
-#   wave packets beyond the correspondence principle dynamics*, Phys. Lett. A **139**, 449 (1989).
-# * J. A. Yeazell, M. Mallalieu and C. R. Stroud, *Observation of the collapse and revival of a Rydberg electronic
-#   wave packet*, Phys. Rev. Lett. **64**, 2007 (1990).
-# * E. Wigner, *On the quantum correction for thermodynamic equilibrium*, Phys. Rev. **40**, 749 (1932) — the
-#   Wigner function of Exercise 8.
+# <span id="ref-2">[2]</span> M. Born, *Zur Quantenmechanik der Stoßvorgänge*, Z. Phys. **37**, 863 (1926) — the
+# probability interpretation of the wave function.
+#
+# <span id="ref-3">[3]</span> D. J. Griffiths and D. F. Schroeter, *Introduction to Quantum Mechanics*, 3rd ed., Cambridge
+# University Press (2018) — Chapter 2, §2.4: the free particle and its wave packets.
+#
+# <span id="ref-4">[4]</span> J. J. Sakurai and J. Napolitano, *Modern Quantum Mechanics*, 3rd ed., Cambridge University
+# Press (2020) — §1.7.4 (Gaussian wave packets and minimum-uncertainty states) and §2.2.4 (free particles, Ehrenfest's
+# theorem).
+#
+# <span id="ref-5">[5]</span> D. J. Tannor, *Introduction to Quantum Mechanics: A Time-Dependent Perspective*, University
+# Science Books (2007) — wave-packet dynamics and grid methods: Chapters 2–3 (the free-particle and the Gaussian wave
+# packet) and Chapter 11 (numerical methods).
+#
+# <span id="ref-6">[6]</span> P. Ehrenfest, *Bemerkung über die angenäherte Gültigkeit der klassischen Mechanik innerhalb
+# der Quantenmechanik*, Z. Phys. **45**, 455 (1927) — Ehrenfest's theorem, Section 8.2.
+#
+# <span id="ref-7">[7]</span> W. Heisenberg, *Über den anschaulichen Inhalt der quantentheoretischen Kinematik und
+# Mechanik*, Z. Phys. **43**, 172 (1927) — the uncertainty relation.
+#
+# <span id="ref-8">[8]</span> E. H. Kennard, *Zur Quantenmechanik einfacher Bewegungstypen*, Z. Phys. **44**, 326 (1927) —
+# the inequality $\sigma_x\sigma_p \ge \hbar/2$.
+#
+# <span id="ref-9">[9]</span> L. de Broglie, *Recherches sur la théorie des quanta*, Ann. Phys. (Paris) **10**, 22 (1925) —
+# the thesis of 1924 that introduced matter waves.
+#
+# <span id="ref-10">[10]</span> L. N. Trefethen and J. A. C. Weideman, *The exponentially convergent trapezoidal rule*, SIAM
+# Rev. **56**, 385–458 (2014) — why trapezoidal sums of smooth periodic functions converge exponentially (Section 4.2).
+#
+# <span id="ref-11">[11]</span> C. E. Shannon, *Communication in the presence of noise*, Proc. IRE **37**, 10 (1949) — the
+# sampling theorem of Section 4.4.
+#
+# <span id="ref-12">[12]</span> H. Nyquist, *Certain topics in telegraph transmission theory*, Trans. AIEE **47**, 617
+# (1928) — the critical sampling rate of Section 4.4.
+#
+# <span id="ref-13">[13]</span> J. W. Cooley and J. W. Tukey, *An algorithm for the machine calculation of complex Fourier
+# series*, Math. Comp. **19**, 297 (1965) — the fast Fourier transform.
+#
+# <span id="ref-14">[14]</span> M. D. Feit, J. A. Fleck Jr. and A. Steiger, *Solution of the Schrödinger equation by a
+# spectral method*, J. Comput. Phys. **47**, 412–433 (1982) — the split-operator Fourier method.
+#
+# <span id="ref-15">[15]</span> D. Kosloff and R. Kosloff, *A Fourier method solution for the time dependent Schrödinger
+# equation as a tool in molecular dynamics*, J. Comput. Phys. **52**, 35–53 (1983) — the Fourier grid method used in
+# Section 7.
+#
+# <span id="ref-16">[16]</span> L. N. Trefethen, *Spectral Methods in MATLAB*, SIAM (2000) — Chapters 3–4: periodic grids,
+# the DFT and FFT, and why spectral differentiation of smooth functions converges exponentially.
+#
+# <span id="ref-17">[17]</span> W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes*, 3rd
+# ed., Cambridge University Press (2007) — Chapter 12 for the FFT, Chapter 20 for partial differential equations.
+#
+# <span id="ref-18">[18]</span> M. R. Andrews, C. G. Townsend, H.-J. Miesner, D. S. Durfee, D. M. Kurn and W. Ketterle,
+# *Observation of interference between two Bose condensates*, Science **275**, 637 (1997).
+#
+# <span id="ref-19">[19]</span> J. A. Yeazell, M. Mallalieu and C. R. Stroud, *Observation of the collapse and revival of a
+# Rydberg electronic wave packet*, Phys. Rev. Lett. **64**, 2007 (1990).
+#
+# <span id="ref-20">[20]</span> R. W. Robinett, *Quantum wave packet revivals*, Phys. Rep. **392**, 1 (2004) — revivals,
+# fractional revivals and quantum carpets.
+#
+# <span id="ref-21">[21]</span> I. Sh. Averbukh and N. F. Perelman, *Fractional revivals: universality in the long-term
+# evolution of quantum wave packets beyond the correspondence principle dynamics*, Phys. Lett. A **139**, 449 (1989).
+#
+# <span id="ref-22">[22]</span> E. Wigner, *On the quantum correction for thermodynamic equilibrium*, Phys. Rev. **40**, 749
+# (1932) — the Wigner function of Exercise 8.
 #
 # ### What comes next
 #

@@ -3,7 +3,7 @@
 #@description: From one spin-1/2 to interacting spin chains: tensor products, Kronecker-product operators, model Hamiltonians, exact diagonalisation of the transverse-field Ising and Heisenberg chains, and the exponential wall.
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
 # A single spin-1/2 is the simplest quantum system there is: two basis states, three Pauli matrices, and
 # everything can be solved with pen and paper. A **quantum many-body spin system** is what you get when you put
@@ -18,8 +18,7 @@
 # * **Quantum simulators.** Chains and arrays of trapped ions, neutral atoms excited to Rydberg states,
 #   ultracold atoms in optical lattices and superconducting circuits all realise, to an excellent approximation,
 #   spin-1/2 Hamiltonians whose couplings the experimentalist can *program*. Experiments with 50–256 spins exist
-#   today (Bernien *et al.* 2017: 51 Rydberg atoms; Zhang *et al.* 2017: 53 trapped ions; Ebadi *et al.* 2021:
-#   256 Rydberg atoms — all in the references).
+#   today (51 Rydberg atoms [[1]](#ref-1); 53 trapped ions [[2]](#ref-2); 256 Rydberg atoms [[3]](#ref-3)).
 # * **Quantum computers.** A qubit *is* a spin-1/2. A quantum processor with $N$ qubits is an interacting spin
 #   system whose Hamiltonian is switched on and off in time. Everything you learn here about $N$ spins is, word
 #   for word, the mathematics of $N$ qubits.
@@ -29,7 +28,7 @@
 #
 # The catch is the size of the problem. One spin needs 2 complex numbers, two spins need 4, and $N$ spins need
 # $2^N$. This exponential growth is the reason why classical computers struggle with quantum matter and why
-# Feynman proposed quantum simulators in the first place. The aim is to push a classical computer as far as it
+# quantum simulators were proposed in the first place [[4]](#ref-4). The aim is to push a classical computer as far as it
 # can go, and to understand exactly where and why it stops.
 #
 # We start with the most direct method, the
@@ -91,7 +90,7 @@
 #
 # ### 2.1 States and Pauli matrices
 #
-# The state of a spin-1/2 (Sakurai and Napolitano, Ch. 1; Nielsen and Chuang, Ch. 1) is a normalised vector in the two-dimensional complex vector space
+# The state of a spin-1/2 ([[5]](#ref-5), Ch. 1; [[6]](#ref-6), Ch. 1) is a normalised vector in the two-dimensional complex vector space
 # $\mathbb{C}^2$. We choose once and for all the basis of eigenstates of the $z$ component of the spin and
 # write
 #
@@ -100,8 +99,8 @@
 #    |\psi\rangle = a\,|0\rangle + b\,|1\rangle,\quad |a|^2+|b|^2=1 . $$
 #
 # The labels $0$ and $1$ are the quantum-information names of "up" and "down"; we will use both. The spin
-# operator is $\hat{\mathbf S} = \frac{\hbar}{2}\boldsymbol\sigma$ with the three **Pauli matrices** (introduced by
-# Pauli in 1927)
+# operator is $\hat{\mathbf S} = \frac{\hbar}{2}\boldsymbol\sigma$ with the three **Pauli matrices** (introduced in
+# [[7]](#ref-7))
 #
 # $$ X \equiv \sigma^x = \begin{pmatrix}0&1\\1&0\end{pmatrix},\qquad
 #    Y \equiv \sigma^y = \begin{pmatrix}0&-i\\i&0\end{pmatrix},\qquad
@@ -189,7 +188,7 @@ checkpoint("X|0> = |1>   (X flips the spin)", jnp.abs(X @ up - down).max())
 #
 # with $a=\cos\frac\theta2$, $b=e^{i\varphi}\sin\frac\theta2$. The vector
 # $\mathbf r=(\langle X\rangle,\langle Y\rangle,\langle Z\rangle)$ is the **Bloch vector**, named after F. Bloch,
-# whose 1946 theory of nuclear induction describes spin dynamics by such a vector; for a pure state it
+# whose theory of nuclear induction [[8]](#ref-8) describes spin dynamics by such a vector; for a pure state it
 # is the unit vector with polar angle $\theta$ and azimuth $\varphi$. The north pole is $|0\rangle$ (spin up),
 # the south pole $|1\rangle$, and the points on the equator are equal-weight superpositions such as
 # $|{+}\rangle=(|0\rangle+|1\rangle)/\sqrt2$, the $+1$ eigenstate of $X$. *The state of one spin-1/2 is fully
@@ -200,7 +199,7 @@ checkpoint("X|0> = |1>   (X flips the spin)", jnp.abs(X @ up - down).max())
 # `jnp.vdot`, which complex-conjugates its first argument. To evaluate the Bloch vector for many angles at once
 # we do not write a loop: `jax.vmap` turns the function written for one $\theta$ into a function for a whole
 # array of $\theta$'s (see [notebook 01](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)). Writing numerical code as operations on whole
-# arrays rather than loops over components is also the style adopted in Press *et al.*, *Numerical Recipes in Fortran 90*.
+# arrays rather than loops over components is also the style adopted in [[9]](#ref-9).
 
 # %%
 # ==============================================================================
@@ -266,7 +265,7 @@ plt.tight_layout(); plt.show()
 # Expectation values are averages over many measurements. A *single* measurement of the spin along a unit
 # vector $\mathbf n$ (the observable $\mathbf n\cdot\boldsymbol\sigma = n_xX+n_yY+n_zZ$) can only give one of
 # the eigenvalues, $+1$ or $-1$. If $|{\pm}\mathbf n\rangle$ are the corresponding eigenvectors, the **Born
-# rule**, formulated by Born (1926), states
+# rule**, formulated in [[10]](#ref-10), states
 #
 # $$ p(\pm1) = |\langle \pm\mathbf n|\psi\rangle|^2,\qquad
 #    \langle \mathbf n\cdot\boldsymbol\sigma\rangle = (+1)\,p(+1) + (-1)\,p(-1) = \mathbf n\cdot\mathbf r . $$
@@ -307,7 +306,7 @@ checkpoint("<n.sigma> = n . r   (Bloch vector)", jnp.abs(expval(psi, n_sigma) - 
 # Take two spins, labelled 0 and 1 (we count from zero, as Python does). If spin 0 is in state
 # $|a\rangle=(a_0,a_1)^T$ and spin 1 in state $|b\rangle=(b_0,b_1)^T$, the pair is in the **product state**
 # $|a\rangle\otimes|b\rangle$. Quantum mechanics postulates that the state space of the pair is the **tensor
-# product** $\mathbb C^2\otimes\mathbb C^2=\mathbb C^4$ (Nielsen and Chuang, Ch. 2; Sakurai and Napolitano, Ch. 3): the vector space spanned by the four products of basis
+# product** $\mathbb C^2\otimes\mathbb C^2=\mathbb C^4$ ([[6]](#ref-6), Ch. 2; [[5]](#ref-5), Ch. 3): the vector space spanned by the four products of basis
 # states
 #
 # $$ |00\rangle,\; |01\rangle,\; |10\rangle,\; |11\rangle, \qquad |s_0s_1\rangle \equiv |s_0\rangle\otimes|s_1\rangle , $$
@@ -469,8 +468,8 @@ checkpoint("Z_0 Z_1 = Z (x) Z", jnp.abs(Z0 @ Z1 - jnp.kron(Z, Z)).max())
 # $$ |\psi\rangle \text{ is a product state} \iff \det\begin{pmatrix}\psi_{00}&\psi_{01}\\ \psi_{10}&\psi_{11}\end{pmatrix} = 0 . $$
 #
 # For the singlet $\det\psi = 0\cdot0-\frac{1}{\sqrt2}\cdot\left(-\frac{1}{\sqrt2}\right)=\frac12\neq0$: it is
-# **entangled**, in the term coined by Schrödinger (1935). (The quantity $2|\det\psi|\in[0,1]$ is known as the
-# *concurrence*, introduced by Hill and Wootters (1997) and Wootters (1998); the systematic tool for
+# **entangled**, in the term coined in [[11]](#ref-11). (The quantity $2|\det\psi|\in[0,1]$ is known as the
+# *concurrence*, introduced in [[12]](#ref-12), [[13]](#ref-13); the systematic tool for
 # more than two spins, the Schmidt decomposition, is the subject of
 # [notebook 06](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb).)
 #
@@ -518,7 +517,7 @@ checkpoint("<P_0 P_1> = -1 for P = X, Y, Z", sum(jnp.abs(expval(singlet, jnp.kro
 # ### 3.5 Our first interacting Hamiltonian
 #
 # A singlet is produced by interactions. The exchange interaction between two electron spins has
-# the **Heisenberg** form, proposed by Heisenberg (1928) as the origin of ferromagnetism,
+# the **Heisenberg** form, proposed in [[14]](#ref-14) as the origin of ferromagnetism,
 #
 # $$ H_2 = J\,\boldsymbol\sigma_0\cdot\boldsymbol\sigma_1 = J\,(X\otimes X + Y\otimes Y + Z\otimes Z). $$
 #
@@ -793,8 +792,8 @@ assert list(counts) == [comb(N, k) for k in range(N, -1, -1)] and counts.sum() =
 # | **XXZ** | $J_{xx}=J_{yy}=J,\ J_{zz}=J\Delta$ | $H=J\sum_j\big(X_jX_{j+1}+Y_jY_{j+1}+\Delta Z_jZ_{j+1}\big)$ |
 # | **XY / XX** | $J_{zz}=0$ | $H=J\sum_j\big(X_jX_{j+1}+Y_jY_{j+1}\big)$ |
 #
-# **The transverse-field Ising model.** The Ising chain is named after Ising (1925), who solved its classical version
-# in one dimension; the transverse field was introduced by de Gennes (1963) to describe tunnelling
+# **The transverse-field Ising model.** The Ising chain is named after Ising, who solved its classical version
+# in one dimension [[15]](#ref-15); the transverse field was introduced in [[16]](#ref-16) to describe tunnelling
 # protons in hydrogen-bonded ferroelectrics. The term $-JZ_jZ_{j+1}$ with $J>0$ is *ferromagnetic*: it gives energy
 # $-J$ to parallel neighbours and $+J$ to antiparallel ones, and on its own it has two ground states,
 # $|{\uparrow\uparrow\cdots\uparrow}\rangle$ and $|{\downarrow\downarrow\cdots\downarrow}\rangle$. The field
@@ -804,17 +803,17 @@ assert list(counts) == [comb(N, k) for k in range(N, -1, -1)] and counts.sum() =
 # (**paramagnetic phase**). In the limit $N\to\infty$ the two regimes are separated by a **quantum phase
 # transition** at exactly $h=J$ — a change of the ground state as $h$ is tuned, caused by the competition
 # between the ordering coupling $ZZ$ and the spin flips caused by $X_j$. The TFIM is *the* textbook model of
-# quantum criticality (Sachdev's book devotes a chapter to it), and the chain can be solved exactly by mapping it to free
-# fermions (Pfeuty 1970), which gives us analytic results to test our numerics against. In the laboratory it
-# describes the Ising magnet CoNb$_2$O$_6$ in a transverse magnetic field (Coldea *et al.* 2010). Two quantum
-# simulators realise close relatives of it. In a **Rydberg-atom array** (Browaeys and Lahaye 2020) the two spin
+# quantum criticality ([[17]](#ref-17) devotes a chapter to it), and the chain can be solved exactly by mapping it to free
+# fermions [[18]](#ref-18), which gives us analytic results to test our numerics against. In the laboratory it
+# describes the Ising magnet CoNb$_2$O$_6$ in a transverse magnetic field [[19]](#ref-19). Two quantum
+# simulators realise close relatives of it. In a **Rydberg-atom array** [[20]](#ref-20) the two spin
 # states are the ground state and a Rydberg state; the driving laser of Rabi frequency $\Omega$ and detuning
 # $\delta$ contributes $\frac{\Omega}{2}\sum_jX_j-\delta\sum_jn_j$ with $n_j=(1-Z_j)/2$, and the van der Waals
 # repulsion between two excited atoms contributes $\sum_{i<j}(C_6/r_{ij}^6)\,n_in_j$. Rewriting $n_j$ in terms
 # of $Z_j$ turns this into an Ising model with transverse field $h=\Omega/2$, so the *transverse* field is half
 # the Rabi frequency — but the couplings are antiferromagnetic and fall off as $1/r^6$ instead of stopping at
 # nearest neighbours, and the detuning acts as an extra *longitudinal* field $h_z$, which the TFIM of Eq. (4)
-# does not have (Exercise 4 adds it). **Trapped-ion simulators** (e.g. Zhang *et al.* 2017) implement $\sum_{i<j}J_{ij}X_iX_j+B\sum_jZ_j$
+# does not have (Exercise 4 adds it). **Trapped-ion simulators** (e.g. [[2]](#ref-2)) implement $\sum_{i<j}J_{ij}X_iX_j+B\sum_jZ_j$
 # with $J_{ij}\propto|i-j|^{-\alpha}$, $0<\alpha<3$: the same competition between one Ising and one transverse
 # term, again with long-range couplings.
 #
@@ -831,21 +830,20 @@ assert list(counts) == [comb(N, k) for k in range(N, -1, -1)] and counts.sum() =
 # and nearest-neighbour interaction $4J\Delta$ (from $Z_iZ_j=(1-2n_i)(1-2n_j)$). Ultracold atoms in a deep optical lattice realise the two ends of
 # this correspondence in different ways: bosons in the hard-core limit give the free-particle chain
 # $\Delta=0$ directly, while a two-component Mott insulator at unit filling has an effective
-# *superexchange* Hamiltonian of Heisenberg (or, with unequal tunnelling amplitudes, XXZ) form (Duan, Demler and
-# Lukin 2003). In
+# *superexchange* Hamiltonian of Heisenberg (or, with unequal tunnelling amplitudes, XXZ) form [[21]](#ref-21). In
 # superconducting-qubit processors the same hopping term arises from the capacitive coupling between
 # neighbouring qubits. The anisotropy $\Delta$ interpolates
-# between the XY chain ($\Delta=0$, free fermions after the transformation of Jordan and Wigner (1928); Lieb, Schultz and Mattis 1961), the isotropic Heisenberg point ($\Delta=1$) and the
-# Ising-like antiferromagnet ($\Delta\gg1$). The chain was solved by Bethe in 1931 with the ansatz that bears his name; its
-# ground-state energy per site in the thermodynamic limit (Hulthén 1938) is, in our Pauli convention,
+# between the XY chain ($\Delta=0$, free fermions after the Jordan–Wigner transformation [[22]](#ref-22), [[23]](#ref-23)), the isotropic Heisenberg point ($\Delta=1$) and the
+# Ising-like antiferromagnet ($\Delta\gg1$). The chain was solved in [[24]](#ref-24) with the Bethe ansatz; its
+# ground-state energy per site in the thermodynamic limit [[25]](#ref-25) is, in our Pauli convention,
 # $E_0/N = J\,(1-4\ln2)\approx-1.7726\,J$.
 #
 # > **Physics insight.** In all these models the interesting physics comes from terms that **do not commute**.
 # > If all terms of $H$ were diagonal in the basis of bit strings (e.g. $h=0$ in the TFIM), the basis states
 # > would be eigenstates, and there would be nothing to compute. Non-commuting terms force the eigenstates to
 # > be superpositions of exponentially many basis states — generically highly entangled ones. (Commutation
-# > alone is not the criterion: the terms $Z_{j-1}X_jZ_{j+1}$ of the Hamiltonian of the cluster state of Briegel
-# > and Raussendorf (2001) all commute,
+# > alone is not the criterion: the terms $Z_{j-1}X_jZ_{j+1}$ of the Hamiltonian of the cluster state [[26]](#ref-26)
+# > all commute,
 # > yet its ground state is entangled.)
 #
 # ## 6. Building the Hamiltonian matrix
@@ -929,7 +927,7 @@ checkpoint("TFIM at h=0 is diagonal with the classical Ising energies",
 # > A dense matrix product of two $2^N\times2^N$ matrices costs $(2^N)^3=8^N$ operations, while the Kronecker
 # > chain of `two_site_operator` costs $4^N$. At $N=10$ that is a factor of a thousand.
 #
-# A stronger test uses exact results. For the **periodic** TFIM the free-fermion solution (Pfeuty 1970), with the
+# A stronger test uses exact results. For the **periodic** TFIM the free-fermion solution [[18]](#ref-18), with the
 # boundary condition of the even-fermion-parity sector kept exactly at finite $N$ (quoted without proof), gives the
 # ground-state energy for $h>0$ and even $N$ as
 #
@@ -1052,8 +1050,8 @@ print(f"non-zero entries: {np.count_nonzero(H_sorted)} of {H_sorted.size}  ({100
 # the red diagonal blocks of sizes $\binom{6}{k}=1,6,15,20,15,6,1$; no matrix element connects different
 # sectors. Instead of one $64\times64$ problem we could solve seven small ones, the largest being
 # $20\times20$. For large $N$ the biggest sector still grows like $2^N/\sqrt N$, so symmetries *postpone* the
-# exponential wall by a few spins but do not remove it (exact diagonalisation within symmetry sectors is described by
-# Sandvik 2010 and by Weiße and Fehske 2008). In this notebook we keep the full matrix for simplicity
+# exponential wall by a few spins but do not remove it (exact diagonalisation within symmetry sectors is described in
+# [[27]](#ref-27), [[28]](#ref-28)). In this notebook we keep the full matrix for simplicity
 # (exercise 6 asks you to diagonalise a single sector). The matrix is also almost empty: only about 5 % of
 # the entries are non-zero already at $N=6$.
 #
@@ -1062,10 +1060,10 @@ print(f"non-zero entries: {np.count_nonzero(H_sorted)} of {H_sorted.size}  ({100
 # ### 7.1 The eigenvalue problem and how to check it
 #
 # The stationary Schrödinger equation $H|\phi_n\rangle=E_n|\phi_n\rangle$ is a matrix eigenvalue problem. For a
-# Hermitian matrix the standard dense algorithm (Press *et al.*, *Numerical Recipes*, §11.3–11.4) first reduces $H$ to
-# tridiagonal form by a sequence of reflections introduced by Householder (1958), then diagonalises the tridiagonal matrix (by the QR iteration of
-# Francis (1961) and Kublanovskaya (1962) or by the divide-and-conquer
-# recursion of Cuppen (1980); the latter is what LAPACK's `?syevd` — the routine behind `jnp.linalg.eigh` — uses). It returns
+# Hermitian matrix the standard dense algorithm ([[29]](#ref-29), §11.3–11.4) first reduces $H$ to
+# tridiagonal form by a sequence of reflections introduced in [[30]](#ref-30), then diagonalises the tridiagonal matrix (by the QR iteration of
+# [[31]](#ref-31), [[32]](#ref-32) or by the divide-and-conquer
+# recursion of [[33]](#ref-33); the latter is what LAPACK's `?syevd` — the routine behind `jnp.linalg.eigh` — uses). It returns
 # **all** $2^N$ eigenvalues and eigenvectors, at a cost of $O(d^3)$ operations and $O(d^2)$ memory for a
 # $d\times d$ matrix. With $d=2^N$ that is
 #
@@ -1080,7 +1078,7 @@ print(f"non-zero entries: {np.count_nonzero(H_sorted)} of {H_sorted.size}  ({100
 #
 # The phrase "to machine precision" needs a practical rule attached to it. A backward-stable symmetric
 # eigensolver returns the *exact* eigenvalues of a perturbed matrix $H+\delta H$ with
-# $\lVert\delta H\rVert=O(\varepsilon)\lVert H\rVert$, and Weyl's inequality (Weyl 1912) then bounds each eigenvalue error
+# $\lVert\delta H\rVert=O(\varepsilon)\lVert H\rVert$, and Weyl's inequality [[34]](#ref-34) then bounds each eigenvalue error
 # by $\lVert\delta H\rVert$. The error is therefore **absolute**: it is set by the largest energy scale of
 # $H$ and does not shrink with the eigenvalue itself,
 #
@@ -1382,7 +1380,7 @@ plt.tight_layout(); plt.show()
 # which is blind to the overall sign: it equals 1 in both $|{\Uparrow}\rangle$ and $|{\Downarrow}\rangle$ and
 # in their superpositions. In the paramagnet only $O(N)$ of the $N^2$ terms of the double sum are appreciable
 # (those with $|i-j|$ smaller than the correlation length), hence $m_z^2\sim1/N\to0$. For the infinite chain
-# the exact result (Pfeuty 1970, quoted) is the spontaneous magnetisation $m_z=(1-h^2/J^2)^{1/8}$ for $h<J$
+# the exact result ([[18]](#ref-18), quoted) is the spontaneous magnetisation $m_z=(1-h^2/J^2)^{1/8}$ for $h<J$
 # and $m_z=0$ for $h\ge J$. The transverse magnetisation $m_x=\langle M_x\rangle/N$ is not an order parameter
 # (it is non-zero in both phases) but shows how the spins follow the field. Both observables were already
 # computed by `tfim_sweep`; since $M_z^2$ is diagonal, its expectation value is
@@ -1418,7 +1416,7 @@ for N in SWEEP_SIZES:
 # decreasing with $N$ (asymptotically as $1/\sqrt N$; compare the printed values at $h/J=1.5$). The curves for
 # different $N$ cross and fan out on the way to $h=J$ and become steeper with increasing $N$ — the finite-size
 # rounding of the singular infinite-chain curve (dashed). Locating a critical point from such data is the
-# subject of *finite-size scaling* (Fisher and Barber 1972). *Right:* $m_x$ grows linearly for small fields (second-order perturbation theory
+# subject of *finite-size scaling* [[35]](#ref-35). *Right:* $m_x$ grows linearly for small fields (second-order perturbation theory
 # around $|{\Uparrow}\rangle$, where each flipped spin in the bulk costs $4J$, gives $m_x\to h/2J$ for
 # $N\to\infty$; the open chains lie above that slope because a flip at either end costs only $2J$), bends
 # over around $h=J$ and saturates towards 1. Unlike $m_z$ it stays continuous through the transition even for
@@ -1496,9 +1494,9 @@ checkpoint("ground-state energy == Eq. (5)", abs(float(E0) - tfim_ring_energy_ex
 # For comparison we diagonalise the antiferromagnetic Heisenberg ring, $H=J\sum_j\boldsymbol\sigma_j\cdot\boldsymbol\sigma_{j+1}$
 # with $J=1$, for even $N$ up to 12. Three exact statements are known for its ground state:
 #
-# * it is a **total-spin singlet**, $\mathbf S_{\rm tot}^2|\phi_0\rangle=0$ (theorem of Lieb and Mattis, 1962),
+# * it is a **total-spin singlet**, $\mathbf S_{\rm tot}^2|\phi_0\rangle=0$ (Lieb–Mattis theorem [[36]](#ref-36)),
 #   in particular $M_z|\phi_0\rangle=0$ — a many-spin generalisation of the two-spin singlet of Section 3.4;
-# * its energy per site converges to the Bethe-ansatz value $1-4\ln2=-1.772589\ldots$ (Hulthén 1938);
+# * its energy per site converges to the Bethe-ansatz value $1-4\ln2=-1.772589\ldots$ [[25]](#ref-25);
 # * its correlations are antiferromagnetic, $C(r)\propto(-1)^r$, and decay as a power law, $\sim(-1)^r/r$ (up
 #   to logarithmic corrections): in one dimension quantum fluctuations destroy the classical Néel order
 #   $\uparrow\downarrow\uparrow\downarrow$, leaving a *critical* state.
@@ -1680,14 +1678,14 @@ assert all(nnz_measured[N] == (N + 1) * 2 ** N for N in nnz_measured if N % 2 ==
 #
 # ### 8.3 The traditional remedy: sparse matrices and iterative eigensolvers
 #
-# The classical answer to the wall has two ingredients. (i) Store $H$ in a **sparse format** (*Numerical Recipes*, §2.7). (ii) Do not ask
+# The classical answer to the wall has two ingredients. (i) Store $H$ in a **sparse format** ([[29]](#ref-29), §2.7). (ii) Do not ask
 # for all $2^N$ eigenpairs; ask for the ground state and a few excited states, which **iterative (Krylov)
-# methods** such as the algorithm of Lanczos (1950) deliver using nothing but matrix–vector products $H|\psi\rangle$, each
+# methods** such as the Lanczos algorithm [[37]](#ref-37) deliver using nothing but matrix–vector products $H|\psi\rangle$, each
 # costing $O(N2^N)$ instead of $O(8^N)$. (Lanczos is derived in
 # [notebook 11 (Chapter 5)](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb).)
 #
-# As a glimpse, the next cell uses SciPy's sparse matrices (Virtanen *et al.* 2020) and its Lanczos-type solver
-# `eigsh`, which calls the implicitly restarted Lanczos method of ARPACK (Sorensen 1992), as a black box
+# As a glimpse, the next cell uses SciPy's sparse matrices [[38]](#ref-38) and its Lanczos-type solver
+# `eigsh`, which calls the implicitly restarted Lanczos method of ARPACK [[39]](#ref-39), as a black box
 # to obtain the critical gap for $N=16$ — a size for which the dense matrix would need 69 GB. The construction
 # is *identical* to `build_hamiltonian_dense`; only `jnp.kron` is replaced by `scipy.sparse.kron`.
 
@@ -1746,7 +1744,7 @@ checkpoint(f"sparse Lanczos gap at N={N_SPARSE} == Eq. (7)", abs(gap_sp - gap_ex
 # the hours to days that the $8^N$ extrapolation of Section 8.1 predicts for a dense diagonalisation at $N=16$ — a run
 # that could not be started in the first place, for want of 69 GB of memory. Sparse exact diagonalisation
 # (usually combined with the symmetry sectors of Section 6.2) is a mature technique and the workhorse of
-# computational quantum magnetism; record calculations reach $N\approx50$ spins (Wietek and Läuchli 2018).
+# computational quantum magnetism; record calculations reach $N\approx50$ spins [[40]](#ref-40).
 #
 # ### 8.4 The remedy of this course: never build the matrix at all
 #
@@ -1831,102 +1829,136 @@ checkpoint(f"sparse Lanczos gap at N={N_SPARSE} == Eq. (7)", abs(gap_sp - gap_ex
 #
 # ## 11. References
 #
-# *Textbooks and lecture notes*
-# * J. J. Sakurai and J. Napolitano, *Modern Quantum Mechanics*, 3rd ed. (Cambridge University Press, 2020),
-#   ISBN 978-1-108-47322-4, DOI 10.1017/9781108587280 — spin-1/2 and the Stern-Gerlach experiment (Ch. 1),
-#   tensor products of state spaces and addition of angular momenta (Ch. 3).
-# * M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information* (Cambridge University Press,
-#   2000) — tensor products, qubits, the Bloch sphere, entanglement.
-# * S. Sachdev, *Quantum Phase Transitions*, 2nd ed. (Cambridge University Press, 2011),
-#   ISBN 978-0-521-51468-2 — the transverse-field Ising model as the paradigm of quantum criticality; the
-#   chapter *The Ising chain in a transverse field*, pp. 135–170, derives everything we only quote here.
-# * A. W. Sandvik, *Computational studies of quantum spin systems*, AIP Conf. Proc. **1297**, 135–338 (2010),
-#   DOI 10.1063/1.3518900 — a very readable introduction to exact diagonalisation with symmetries.
-# * A. Weiße and H. Fehske, *Exact diagonalization techniques*, in *Computational Many-Particle Physics*,
-#   Lecture Notes in Physics **739**, 529–544 (Springer, 2008), DOI 10.1007/978-3-540-74686-7_18.
-# * W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes: The Art of
-#   Scientific Computing*, 3rd ed. (Cambridge University Press, 2007), ISBN 978-0-521-88068-8 — Ch. 11
-#   (*Eigensystems*): Householder reduction to tridiagonal form (§11.3) and the QL iteration for the tridiagonal
-#   matrix (§11.4), the classical algorithms behind `eigh`; §2.7 (*Sparse Linear Systems*) for sparse storage.
-# * W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes in Fortran 90: The
-#   Art of Parallel Scientific Computing*, Vol. 2 of *Fortran Numerical Recipes*, 2nd ed. (Cambridge
-#   University Press, 1996), ISBN 978-0-521-57439-6 — numerical routines written as whole-array operations, the
-#   style of `jnp`/`vmap` code.
+# <span id="ref-1">[1]</span> H. Bernien *et al.*, *Probing many-body dynamics on a 51-atom quantum simulator*, Nature **551**, 579–584
+# (2017), DOI 10.1038/nature24622 — Rydberg-atom arrays.
 #
-# *Original papers*
-# * R. P. Feynman, *Simulating physics with computers*, Int. J. Theor. Phys. **21**, 467–488 (1982),
-#   DOI 10.1007/BF02650179 — the exponential cost of classical simulation and the proposal of Section 1.
-# * M. Born, *Zur Quantenmechanik der Stoßvorgänge*, Z. Phys. **37**, 863–867 (1926), DOI 10.1007/BF01397477 —
-#   the probability interpretation of the wave function (the Born rule).
-# * W. Pauli, *Zur Quantenmechanik des magnetischen Elektrons*, Z. Phys. **43**, 601–623 (1927),
-#   DOI 10.1007/BF01397326 — the Pauli matrices.
-# * F. Bloch, *Nuclear induction*, Phys. Rev. **70**, 460–474 (1946), DOI 10.1103/PhysRev.70.460.
-# * E. Schrödinger, *Discussion of probability relations between separated systems*, Math. Proc. Cambridge Philos.
-#   Soc. **31**, 555–563 (1935), DOI 10.1017/S0305004100013554 — entanglement.
-# * S. Hill and W. K. Wootters, *Entanglement of a pair of quantum bits*, Phys. Rev. Lett. **78**, 5022 (1997),
-#   DOI 10.1103/PhysRevLett.78.5022; W. K. Wootters, *Entanglement of formation of an arbitrary state of two
-#   qubits*, Phys. Rev. Lett. **80**, 2245 (1998), DOI 10.1103/PhysRevLett.80.2245 — the concurrence.
-# * W. Heisenberg, *Zur Theorie des Ferromagnetismus*, Z. Phys. **49**, 619–636 (1928), DOI 10.1007/BF01328601 —
-#   the Heisenberg exchange Hamiltonian.
-# * E. Ising, *Beitrag zur Theorie des Ferromagnetismus*, Z. Phys. **31**, 253–258 (1925), DOI 10.1007/BF02980577.
-# * P. G. de Gennes, *Collective motions of hydrogen bonds*, Solid State Commun. **1**, 132–137 (1963),
-#   DOI 10.1016/0038-1098(63)90212-6 — the Ising model in a transverse field.
-# * P. Jordan and E. Wigner, *Über das Paulische Äquivalenzverbot*, Z. Phys. **47**, 631–651 (1928),
-#   DOI 10.1007/BF01331938 — the Jordan–Wigner transformation.
-# * H. Bethe, *Zur Theorie der Metalle. I. Eigenwerte und Eigenfunktionen der linearen Atomkette*,
-#   Z. Phys. **71**, 205 (1931) — exact solution of the Heisenberg chain.
-# * L. Hulthén, *Über das Austauschproblem eines Kristalles*, Ark. Mat. Astron. Fys. **26A**, 1–106 (1938) —
-#   ground-state energy of the antiferromagnetic chain.
-# * E. Lieb, T. Schultz and D. Mattis, *Two soluble models of an antiferromagnetic chain*, Ann. Phys. **16**,
-#   407 (1961) — free-fermion solution of XY-type chains.
-# * E. Lieb and D. Mattis, *Ordering of energy levels of interacting spin systems*, J. Math. Phys. **3**, 749
-#   (1962) — the ground state of bipartite antiferromagnets is a singlet.
-# * P. Pfeuty, *The one-dimensional Ising model with a transverse field*, Ann. Phys. **57**, 79 (1970) — exact
-#   spectrum, magnetisation and correlations of the TFIM chain.
-# * C. K. Majumdar and D. K. Ghosh, *On next-nearest-neighbor interaction in linear chain. I*, J. Math. Phys.
-#   **10**, 1388 (1969), and *On next-nearest-neighbor interaction in linear chain. II*, J. Math. Phys. **10**, 1399
-#   (1969) — the exactly solvable point of Exercise 7.
-# * H. J. Briegel and R. Raussendorf, *Persistent entanglement in arrays of interacting particles*, Phys. Rev.
-#   Lett. **86**, 910 (2001), DOI 10.1103/PhysRevLett.86.910 — the cluster state.
-# * L.-M. Duan, E. Demler and M. D. Lukin, *Controlling spin exchange interactions of ultracold atoms in optical
-#   lattices*, Phys. Rev. Lett. **91**, 090402 (2003), DOI 10.1103/PhysRevLett.91.090402 — superexchange spin
-#   Hamiltonians of two-component atoms.
-# * M. E. Fisher and M. N. Barber, *Scaling theory for finite-size effects in the critical region*, Phys. Rev.
-#   Lett. **28**, 1516 (1972), DOI 10.1103/PhysRevLett.28.1516.
-# * A. Wietek and A. M. Läuchli, *Sublattice coding algorithm and distributed memory parallelization for
-#   large-scale exact diagonalizations of quantum many-body systems*, Phys. Rev. E **98**, 033309 (2018),
-#   DOI 10.1103/PhysRevE.98.033309 — exact diagonalisation of up to 50 spins.
+# <span id="ref-2">[2]</span> J. Zhang *et al.*, *Observation of a many-body dynamical phase transition with a 53-qubit quantum
+# simulator*, Nature **551**, 601–604 (2017), DOI 10.1038/nature24654 — trapped ions with long-range
+# Ising couplings $J_{ij}\propto|i-j|^{-\alpha}$.
 #
-# *Numerical linear algebra*
-# * A. S. Householder, *Unitary triangularization of a nonsymmetric matrix*, J. ACM **5**, 339–342 (1958),
-#   DOI 10.1145/320941.320947 — Householder reflections.
-# * J. G. F. Francis, *The QR transformation: a unitary analogue to the LR transformation*, Parts 1 and 2,
-#   Comput. J. **4**, 265–271 (1961) and 332–345 (1962), DOI 10.1093/comjnl/4.3.265, 10.1093/comjnl/4.4.332;
-#   V. N. Kublanovskaya, *On some algorithms for the solution of the complete eigenvalue problem*, USSR Comput.
-#   Math. Math. Phys. **1**, 637–657 (1962), DOI 10.1016/0041-5553(63)90168-X — the QR algorithm.
-# * J. J. M. Cuppen, *A divide and conquer method for the symmetric tridiagonal eigenproblem*, Numer. Math.
-#   **36**, 177–195 (1980), DOI 10.1007/BF01396757.
-# * H. Weyl, *Das asymptotische Verteilungsgesetz der Eigenwerte linearer partieller Differentialgleichungen*,
-#   Math. Ann. **71**, 441–479 (1912), DOI 10.1007/BF01456804 — Weyl's eigenvalue inequalities.
-# * C. Lanczos, *An iteration method for the solution of the eigenvalue problem of linear differential and integral
-#   operators*, J. Res. Natl. Bur. Stand. **45**, 255 (1950), DOI 10.6028/jres.045.026.
-# * D. C. Sorensen, *Implicit application of polynomial filters in a k-step Arnoldi method*, SIAM J. Matrix Anal.
-#   Appl. **13**, 357–385 (1992), DOI 10.1137/0613025 — the implicitly restarted Arnoldi/Lanczos method of ARPACK.
-# * P. Virtanen *et al.*, *SciPy 1.0: fundamental algorithms for scientific computing in Python*, Nature Methods
-#   **17**, 261–272 (2020), DOI 10.1038/s41592-019-0686-2.
+# <span id="ref-3">[3]</span> S. Ebadi *et al.*, *Quantum phases of matter on a 256-atom programmable quantum simulator*, Nature **595**,
+# 227–232 (2021), DOI 10.1038/s41586-021-03582-4 — the upper end of the "50–256 spins" of Section 1.
 #
-# *Experiments and quantum simulators*
-# * R. Coldea *et al.*, *Quantum criticality in an Ising chain: experimental evidence for emergent E8
-#   symmetry*, Science **327**, 177–180 (2010), DOI 10.1126/science.1180085 — CoNb$_2$O$_6$ in a transverse
-#   field.
-# * A. Browaeys and T. Lahaye, *Many-body physics with individually controlled Rydberg atoms*, Nature Physics
-#   **16**, 132–142 (2020), DOI 10.1038/s41567-019-0733-z — the Rydberg Ising Hamiltonian of Section 5, with
-#   its detuning term and $1/r^6$ couplings.
-# * H. Bernien *et al.*, *Probing many-body dynamics on a 51-atom quantum simulator*, Nature **551**, 579–584
-#   (2017), DOI 10.1038/nature24622 — Rydberg-atom arrays.
-# * S. Ebadi *et al.*, *Quantum phases of matter on a 256-atom programmable quantum simulator*, Nature **595**,
-#   227–232 (2021), DOI 10.1038/s41586-021-03582-4 — the upper end of the "50–256 spins" of Section 1.
-# * J. Zhang *et al.*, *Observation of a many-body dynamical phase transition with a 53-qubit quantum
-#   simulator*, Nature **551**, 601–604 (2017), DOI 10.1038/nature24654 — trapped ions with long-range
-#   Ising couplings $J_{ij}\propto|i-j|^{-\alpha}$.
+# <span id="ref-4">[4]</span> R. P. Feynman, *Simulating physics with computers*, Int. J. Theor. Phys. **21**, 467–488 (1982),
+# DOI 10.1007/BF02650179 — the exponential cost of classical simulation and the proposal of Section 1.
+#
+# <span id="ref-5">[5]</span> J. J. Sakurai and J. Napolitano, *Modern Quantum Mechanics*, 3rd ed. (Cambridge University Press, 2020),
+# ISBN 978-1-108-47322-4, DOI 10.1017/9781108587280 — spin-1/2 and the Stern-Gerlach experiment (Ch. 1),
+# tensor products of state spaces and addition of angular momenta (Ch. 3).
+#
+# <span id="ref-6">[6]</span> M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information* (Cambridge University Press,
+# 2000) — tensor products, qubits, the Bloch sphere, entanglement.
+#
+# <span id="ref-7">[7]</span> W. Pauli, *Zur Quantenmechanik des magnetischen Elektrons*, Z. Phys. **43**, 601–623 (1927),
+# DOI 10.1007/BF01397326 — the Pauli matrices.
+#
+# <span id="ref-8">[8]</span> F. Bloch, *Nuclear induction*, Phys. Rev. **70**, 460–474 (1946), DOI 10.1103/PhysRev.70.460.
+#
+# <span id="ref-9">[9]</span> W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes in Fortran 90: The
+# Art of Parallel Scientific Computing*, Vol. 2 of *Fortran Numerical Recipes*, 2nd ed. (Cambridge
+# University Press, 1996), ISBN 978-0-521-57439-6 — numerical routines written as whole-array operations, the
+# style of `jnp`/`vmap` code.
+#
+# <span id="ref-10">[10]</span> M. Born, *Zur Quantenmechanik der Stoßvorgänge*, Z. Phys. **37**, 863–867 (1926), DOI 10.1007/BF01397477 —
+# the probability interpretation of the wave function (the Born rule).
+#
+# <span id="ref-11">[11]</span> E. Schrödinger, *Discussion of probability relations between separated systems*, Math. Proc. Cambridge Philos.
+# Soc. **31**, 555–563 (1935), DOI 10.1017/S0305004100013554 — entanglement.
+#
+# <span id="ref-12">[12]</span> S. Hill and W. K. Wootters, *Entanglement of a pair of quantum bits*, Phys. Rev. Lett. **78**, 5022 (1997),
+# DOI 10.1103/PhysRevLett.78.5022 — the concurrence.
+#
+# <span id="ref-13">[13]</span> W. K. Wootters, *Entanglement of formation of an arbitrary state of two
+# qubits*, Phys. Rev. Lett. **80**, 2245 (1998), DOI 10.1103/PhysRevLett.80.2245 — the concurrence.
+#
+# <span id="ref-14">[14]</span> W. Heisenberg, *Zur Theorie des Ferromagnetismus*, Z. Phys. **49**, 619–636 (1928), DOI 10.1007/BF01328601 —
+# the Heisenberg exchange Hamiltonian.
+#
+# <span id="ref-15">[15]</span> E. Ising, *Beitrag zur Theorie des Ferromagnetismus*, Z. Phys. **31**, 253–258 (1925), DOI 10.1007/BF02980577.
+#
+# <span id="ref-16">[16]</span> P. G. de Gennes, *Collective motions of hydrogen bonds*, Solid State Commun. **1**, 132–137 (1963),
+# DOI 10.1016/0038-1098(63)90212-6 — the Ising model in a transverse field.
+#
+# <span id="ref-17">[17]</span> S. Sachdev, *Quantum Phase Transitions*, 2nd ed. (Cambridge University Press, 2011),
+# ISBN 978-0-521-51468-2 — the transverse-field Ising model as the paradigm of quantum criticality; the
+# chapter *The Ising chain in a transverse field*, pp. 135–170, derives everything we only quote here.
+#
+# <span id="ref-18">[18]</span> P. Pfeuty, *The one-dimensional Ising model with a transverse field*, Ann. Phys. **57**, 79 (1970) — exact
+# spectrum, magnetisation and correlations of the TFIM chain.
+#
+# <span id="ref-19">[19]</span> R. Coldea *et al.*, *Quantum criticality in an Ising chain: experimental evidence for emergent E8
+# symmetry*, Science **327**, 177–180 (2010), DOI 10.1126/science.1180085 — CoNb$_2$O$_6$ in a transverse
+# field.
+#
+# <span id="ref-20">[20]</span> A. Browaeys and T. Lahaye, *Many-body physics with individually controlled Rydberg atoms*, Nature Physics
+# **16**, 132–142 (2020), DOI 10.1038/s41567-019-0733-z — the Rydberg Ising Hamiltonian of Section 5, with
+# its detuning term and $1/r^6$ couplings.
+#
+# <span id="ref-21">[21]</span> L.-M. Duan, E. Demler and M. D. Lukin, *Controlling spin exchange interactions of ultracold atoms in optical
+# lattices*, Phys. Rev. Lett. **91**, 090402 (2003), DOI 10.1103/PhysRevLett.91.090402 — superexchange spin
+# Hamiltonians of two-component atoms.
+#
+# <span id="ref-22">[22]</span> P. Jordan and E. Wigner, *Über das Paulische Äquivalenzverbot*, Z. Phys. **47**, 631–651 (1928),
+# DOI 10.1007/BF01331938 — the Jordan–Wigner transformation.
+#
+# <span id="ref-23">[23]</span> E. Lieb, T. Schultz and D. Mattis, *Two soluble models of an antiferromagnetic chain*, Ann. Phys. **16**,
+# 407 (1961) — free-fermion solution of XY-type chains.
+#
+# <span id="ref-24">[24]</span> H. Bethe, *Zur Theorie der Metalle. I. Eigenwerte und Eigenfunktionen der linearen Atomkette*,
+# Z. Phys. **71**, 205 (1931) — exact solution of the Heisenberg chain.
+#
+# <span id="ref-25">[25]</span> L. Hulthén, *Über das Austauschproblem eines Kristalles*, Ark. Mat. Astron. Fys. **26A**, 1–106 (1938) —
+# ground-state energy of the antiferromagnetic chain.
+#
+# <span id="ref-26">[26]</span> H. J. Briegel and R. Raussendorf, *Persistent entanglement in arrays of interacting particles*, Phys. Rev.
+# Lett. **86**, 910 (2001), DOI 10.1103/PhysRevLett.86.910 — the cluster state.
+#
+# <span id="ref-27">[27]</span> A. W. Sandvik, *Computational studies of quantum spin systems*, AIP Conf. Proc. **1297**, 135–338 (2010),
+# DOI 10.1063/1.3518900 — a very readable introduction to exact diagonalisation with symmetries.
+#
+# <span id="ref-28">[28]</span> A. Weiße and H. Fehske, *Exact diagonalization techniques*, in *Computational Many-Particle Physics*,
+# Lecture Notes in Physics **739**, 529–544 (Springer, 2008), DOI 10.1007/978-3-540-74686-7_18.
+#
+# <span id="ref-29">[29]</span> W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes: The Art of
+# Scientific Computing*, 3rd ed. (Cambridge University Press, 2007), ISBN 978-0-521-88068-8 — Ch. 11
+# (*Eigensystems*): Householder reduction to tridiagonal form (§11.3) and the QL iteration for the tridiagonal
+# matrix (§11.4), the classical algorithms behind `eigh`; §2.7 (*Sparse Linear Systems*) for sparse storage.
+#
+# <span id="ref-30">[30]</span> A. S. Householder, *Unitary triangularization of a nonsymmetric matrix*, J. ACM **5**, 339–342 (1958),
+# DOI 10.1145/320941.320947 — Householder reflections.
+#
+# <span id="ref-31">[31]</span> J. G. F. Francis, *The QR transformation: a unitary analogue to the LR transformation*, Parts 1 and 2,
+# Comput. J. **4**, 265–271 (1961) and 332–345 (1962), DOI 10.1093/comjnl/4.3.265, 10.1093/comjnl/4.4.332 — the QR algorithm.
+#
+# <span id="ref-32">[32]</span> V. N. Kublanovskaya, *On some algorithms for the solution of the complete eigenvalue problem*, USSR Comput.
+# Math. Math. Phys. **1**, 637–657 (1962), DOI 10.1016/0041-5553(63)90168-X — the QR algorithm.
+#
+# <span id="ref-33">[33]</span> J. J. M. Cuppen, *A divide and conquer method for the symmetric tridiagonal eigenproblem*, Numer. Math.
+# **36**, 177–195 (1980), DOI 10.1007/BF01396757.
+#
+# <span id="ref-34">[34]</span> H. Weyl, *Das asymptotische Verteilungsgesetz der Eigenwerte linearer partieller Differentialgleichungen*,
+# Math. Ann. **71**, 441–479 (1912), DOI 10.1007/BF01456804 — Weyl's eigenvalue inequalities.
+#
+# <span id="ref-35">[35]</span> M. E. Fisher and M. N. Barber, *Scaling theory for finite-size effects in the critical region*, Phys. Rev.
+# Lett. **28**, 1516 (1972), DOI 10.1103/PhysRevLett.28.1516.
+#
+# <span id="ref-36">[36]</span> E. Lieb and D. Mattis, *Ordering of energy levels of interacting spin systems*, J. Math. Phys. **3**, 749
+# (1962) — the ground state of bipartite antiferromagnets is a singlet.
+#
+# <span id="ref-37">[37]</span> C. Lanczos, *An iteration method for the solution of the eigenvalue problem of linear differential and integral
+# operators*, J. Res. Natl. Bur. Stand. **45**, 255 (1950), DOI 10.6028/jres.045.026.
+#
+# <span id="ref-38">[38]</span> P. Virtanen *et al.*, *SciPy 1.0: fundamental algorithms for scientific computing in Python*, Nature Methods
+# **17**, 261–272 (2020), DOI 10.1038/s41592-019-0686-2.
+#
+# <span id="ref-39">[39]</span> D. C. Sorensen, *Implicit application of polynomial filters in a k-step Arnoldi method*, SIAM J. Matrix Anal.
+# Appl. **13**, 357–385 (1992), DOI 10.1137/0613025 — the implicitly restarted Arnoldi/Lanczos method of ARPACK.
+#
+# <span id="ref-40">[40]</span> A. Wietek and A. M. Läuchli, *Sublattice coding algorithm and distributed memory parallelization for
+# large-scale exact diagonalizations of quantum many-body systems*, Phys. Rev. E **98**, 033309 (2018),
+# DOI 10.1103/PhysRevE.98.033309 — exact diagonalisation of up to 50 spins.
+#
+# <span id="ref-41">[41]</span> C. K. Majumdar and D. K. Ghosh, *On next-nearest-neighbor interaction in linear chain. I*, J. Math. Phys.
+# **10**, 1388 (1969), and *On next-nearest-neighbor interaction in linear chain. II*, J. Math. Phys. **10**, 1399
+# (1969) — the exactly solvable point of Exercise 7.
 

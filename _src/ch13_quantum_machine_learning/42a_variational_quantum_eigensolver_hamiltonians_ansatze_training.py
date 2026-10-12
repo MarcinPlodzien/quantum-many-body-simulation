@@ -3,7 +3,7 @@
 #@description: The transverse-field Ising and XXZ chains as sums of Pauli strings measured in two or three bases, their exact ground states by diagonalisation, four circuit ansätze (hardware-efficient, Hamiltonian-variational, and staircase and brick-wall circuits of general two-qubit blocks), Adam training with energy, fidelity, entanglement, magnetisations and correlators recorded against the exact values during training, the gradient variance of the energy over random angles from two to ten qubits and the shot count it implies, and warm-started scans across both phase diagrams.
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
 # Finding the ground state of a Hamiltonian, and its energy, is one of the most frequent tasks of many-body physics
 # and quantum chemistry. The ground state decides whether a magnet orders, whether a molecule binds and where a phase
@@ -19,20 +19,20 @@
 # Matrix product states push the limit much further for a large and important class of states.
 # [Notebook 18](../ch07_tensor_networks/18_mps_tebd.ipynb) builds them (Sections 2 and 3) and runs DMRG on chains of a
 # hundred spins (Section 6.9). They work because ground states of gapped one-dimensional Hamiltonians obey an area law:
-# the entanglement entropy across a cut stays bounded as the chain grows, as proved by Hastings (2007) and reviewed by
-# Eisert, Cramer and Plenio (2010), so a modest bond dimension suffices. The cost rises whenever the entanglement grows.
-# At a critical point the entropy grows logarithmically with the system size (Holzhey, Larsen and Wilczek, 1994;
-# Calabrese and Cardy, 2004), which is still manageable in one dimension; after a global quench it grows linearly in
-# time (Calabrese and Cardy, 2005), volume-law states cannot be compressed at all, and a two-dimensional lattice snaked into a chain
+# the entanglement entropy across a cut stays bounded as the chain grows, as proved in [[1]](#ref-1) and reviewed in
+# [[2]](#ref-2), so a modest bond dimension suffices. The cost rises whenever the entanglement grows.
+# At a critical point the entropy grows logarithmically with the system size [[3]](#ref-3),
+# [[4]](#ref-4), which is still manageable in one dimension; after a global quench it grows linearly in
+# time [[5]](#ref-5), volume-law states cannot be compressed at all, and a two-dimensional lattice snaked into a chain
 # needs a bond dimension exponential in its width (notebook 18, Section 12).
 #
-# The variational quantum eigensolver (VQE), introduced by Peruzzo *et al.* (2014), uses a representation of a different
+# The variational quantum eigensolver (VQE), introduced in [[6]](#ref-6), uses a representation of a different
 # kind. A parametrised quantum circuit
 # $U(\boldsymbol\theta)$ prepares a trial state $\vert\psi(\boldsymbol\theta)\rangle=U(\boldsymbol\theta)
 # \vert0\rangle^{\otimes N}$ on a quantum device, so the state exists physically and is never stored as a list of
 # amplitudes. Its energy is estimated from repeated measurements, and a classical optimiser adjusts the angles
-# $\boldsymbol\theta$ to lower it. Reviews of the method and its variants are given by
-# Cerezo *et al.* (2021, *Nat. Rev. Phys.*) and Tilly *et al.* (2022). On the classical simulator of this course we pay
+# $\boldsymbol\theta$ to lower it. Reviews of the method and its variants are given in
+# [[7]](#ref-7) and [[8]](#ref-8). On the classical simulator of this course we pay
 # the $2^N$ cost ourselves, which is why every chain in this notebook has at most ten spins; the method is meant for hardware on
 # which the circuit runs natively. What the simulator gives in return is the exact answer next to every variational
 # one, and with it the possibility to see what the algorithm gets right and what it misses. Figure 1 shows the whole
@@ -214,13 +214,13 @@ def var_with_error(g):
 #   $Z_iZ_{i+1}$ because it anticommutes with each of the two factors. It flips every spin along $z$, so it maps the two
 #   classical ground states onto each other.
 # * **Phases.** In the thermodynamic limit the chain is a ferromagnet along $z$ for $h<J$ and a paramagnet polarised
-#   along $x$ for $h>J$, with a continuous transition at $h=J$ (Pfeuty, 1970). The ferromagnet breaks the parity
+#   along $x$ for $h>J$, with a continuous transition at $h=J$ [[9]](#ref-9). The ferromagnet breaks the parity
 #   symmetry. A *finite* chain cannot break it: its ground state in the ordered regime is the even superposition of the
 #   two ordered states, a cat state with one bit of entanglement across any cut, and its odd partner lies above it by a
 #   splitting that shrinks exponentially with $N$.
 #
-# **Gap.** Pfeuty (1970) solved the model by mapping it to free fermions with the transformation of Jordan and Wigner
-# (1928). In the Pauli convention of
+# **Gap.** The model was solved in [[9]](#ref-9) by mapping it to free fermions with the Jordan-Wigner transformation [[10]](#ref-10).
+# In the Pauli convention of
 # Eq. (4) the single-fermion energies of the infinite chain are $2\sqrt{J^2+h^2-2Jh\cos k}$, whose minimum gives the
 # bulk gap
 #
@@ -565,8 +565,8 @@ assert abs(-dE - sum_x) < 1e-6
 # it prepares is a matrix product state of bond dimension two, with at most one bit of entanglement across any cut.
 # A brick wall of $L$ two-fold layers crosses each cut $L$ times but has a **light cone**: a qubit influences only
 # qubits within $2L$ sites of itself, so a shallow brick wall cannot correlate the two ends of the chain. Circuits
-# shaped like matrix product states are compared with other circuit architectures by Haghshenas *et al.* (2022), and
-# tree-shaped (hierarchical) circuits were used as classifiers by Grant *et al.* (2018).
+# shaped like matrix product states are compared with other circuit architectures in [[11]](#ref-11), and
+# tree-shaped (hierarchical) circuits were used as classifiers in [[12]](#ref-12).
 #
 # ### 5.2 Block decompositions
 #
@@ -584,7 +584,7 @@ assert abs(-dE - sum_x) < 1e-6
 # the canonical (Cartan or "KAK") decomposition of $SU(4)$. The count is $4\times3+3=15$ angles, which equals the
 # dimension of $SU(4)$, $4^2-1=15$. Because $XX$, $YY$ and $ZZ$ commute with each other, the middle factor is the product
 # $R_{XX}(\phi_7)R_{YY}(\phi_8)R_{ZZ}(\phi_9)$ of the engine's gates. A practical consequence is that any two-qubit
-# gate needs at most three $CNOT$ gates plus single-qubit rotations (Vatan and Williams, 2004). We do not prove Eq. (10)
+# gate needs at most three $CNOT$ gates plus single-qubit rotations [[13]](#ref-13). We do not prove Eq. (10)
 # here; the checkpoint below tests it by fitting Eq. (10) to Haar-random two-qubit unitaries.
 #
 # **The recursion of Figure 4(c) does not give a general three-qubit unitary.** Counting parameters settles it: three
@@ -678,8 +678,8 @@ assert max(ov3[:2]) < 0.99 and ov3[2] > 1 - 1e-6
 # The hardware-efficient ansatz of
 # [notebook 40, Section 4.1](../ch13_quantum_machine_learning/40_parametrized_gates_and_gradients.ipynb) is the
 # alternating-layer structure built from the cheap block of Figure 4(b): $R_y$ and $R_z$ on every qubit, then a ladder
-# of $CZ$ gates, repeated $L$ times, with a final rotation block (Kandala *et al.*, 2017, introduced the approach with
-# trial states tailored to the native interactions of their processor). It has
+# of $CZ$ gates, repeated $L$ times, with a final rotation block (the approach was introduced in [[14]](#ref-14), with
+# trial states tailored to the native interactions of the processor used there). It has
 #
 # $$n_{\mathrm{HEA}}=2N(L+1) \tag{11}$$
 #
@@ -696,7 +696,7 @@ assert max(ov3[:2]) < 0.99 and ov3[2] > 1 - 1e-6
 # The opposite design builds the circuit from the Hamiltonian. Split $H=H_A+H_B$ into parts whose terms commute among
 # themselves, start in the ground state of one part, and alternate evolutions under the two parts with free durations.
 # This is a Trotterised adiabatic path with the step lengths left to the optimiser, the **Hamiltonian-variational
-# ansatz** (HVA) of Wecker, Hastings and Troyer (2015).
+# ansatz** (HVA) of [[15]](#ref-15).
 #
 # **TFIM.** With $H_X=-h\sum_qX_q$ and $H_{ZZ}=-J\sum_qZ_qZ_{q+1}$, the start is $\vert+\rangle^{\otimes N}$, the ground
 # state of $H_X$, and
@@ -713,7 +713,7 @@ assert max(ov3[:2]) < 0.99 and ov3[2] > 1 - 1e-6
 # **Figure 6.** The TFIM Hamiltonian-variational ansatz of notebook 40, drawn for $N=4$. Here the reference is
 # $\vert+\rangle^{\otimes N}$ ($R_y(+\pi/2)$, the case $h<0$ of the code), and we use $L=8$ layers, $16$ angles.
 #
-# **XXZ.** For the XXZ chain we follow the construction studied by Wiersema *et al.* (2020): the start is a product of
+# **XXZ.** For the XXZ chain we follow the construction studied in [[16]](#ref-16): the start is a product of
 # singlets $(\vert01\rangle-\vert10\rangle)/\sqrt2$ on the bonds $(0,1),(2,3),\dots$, the ground state of the even-bond
 # part of the Heisenberg chain, and every layer applies, first on the odd bonds and then on the even bonds, a $Z_iZ_{i+1}$
 # rotation and an exchange rotation, each with its own angle per layer:
@@ -1406,9 +1406,9 @@ for t, col in (("TFIM, h=1", 0), ("XXZ, Delta=1", 1)):
 # [notebook 40, Section 13](../ch13_quantum_machine_learning/40_parametrized_gates_and_gradients.ipynb): the
 # mean of every gradient component over uniform angles is zero by periodicity, so its size is measured by the variance
 # $\mathrm{Var}_{\boldsymbol\theta}[\partial_kE]$; for circuits deep enough to act as unitary 2-designs the variance
-# decays exponentially (McClean *et al.*, 2018); and for shallow circuits the locality of the cost decides, with
-# global costs decaying exponentially and local ones at worst polynomially for depths logarithmic in $N$ (Cerezo
-# *et al.*, 2021, *Nat. Commun.*).
+# decays exponentially [[17]](#ref-17); and for shallow circuits the locality of the cost decides, with
+# global costs decaying exponentially and local ones at worst polynomially for depths logarithmic in $N$
+# [[18]](#ref-18).
 # Noise produces plateaus of its own ([notebook 44, Section 8](../ch13_quantum_machine_learning/44_noisy_variational_circuits.ipynb)).
 # Here we measure the variance for the cost of this notebook, the TFIM energy at $h=J=1$, a sum of $2N-1$ local terms.
 #
@@ -1572,7 +1572,7 @@ fig.tight_layout(); plt.show()
 #   fixed $CZ$ ladder, which spreads information by one site per layer and is far from a 2-design at these depths,
 #   consistent with the local-cost, $L=N$ measurement of notebook 40.
 # * **The Hamiltonian-variational variance grows with $N$** (from $7.5$ to $54$), because each of its angles is shared
-#   by all $N-1$ bond rotations of a layer, so one angle moves the whole energy. Wiersema *et al.* (2020) report mild or
+#   by all $N-1$ bond rotations of a layer, so one angle moves the whole energy. Ref. [[16]](#ref-16) reports mild or
 #   entirely absent barren plateaus for this ansatz family, with VQE experiments on the TFIM and XXZ chains.
 #
 # **What a plateau costs.** On hardware a gradient component is estimated with the parameter-shift rule,
@@ -1856,44 +1856,61 @@ print(f"total wall time of the notebook so far: {time.perf_counter() - T_START:.
 #
 # ## References
 #
-# * A. Peruzzo, J. McClean, P. Shadbolt, M.-H. Yung, X.-Q. Zhou, P. J. Love, A. Aspuru-Guzik and J. L. O'Brien,
-#   *A variational eigenvalue solver on a photonic quantum processor*, Nat. Commun. **5**, 4213 (2014) — the first VQE,
-#   on a photonic processor, for the ground-state energy of HeH$^+$.
-# * A. Kandala, A. Mezzacapo, K. Temme, M. Takita, M. Brink, J. M. Chow and J. M. Gambetta, *Hardware-efficient
-#   variational quantum eigensolver for small molecules and quantum magnets*, Nature **549**, 242 (2017) — the
-#   hardware-efficient ansatz, on up to six superconducting qubits.
-# * D. Wecker, M. B. Hastings and M. Troyer, *Progress towards practical quantum variational algorithms*, Phys. Rev. A
-#   **92**, 042303 (2015) — the ansatz motivated by adiabatic state preparation (Hamiltonian-variational ansatz).
-# * R. Wiersema, C. Zhou, Y. de Sereville, J. F. Carrasquilla, Y. B. Kim and H. Yuen, *Exploring entanglement and
-#   optimization within the Hamiltonian variational ansatz*, PRX Quantum **1**, 020319 (2020) — the ansatz for the TFIM
-#   and XXZ chains, its gradient statistics and trainability.
-# * F. Vatan and C. Williams, *Optimal quantum circuits for general two-qubit gates*, Phys. Rev. A **69**, 032315
-#   (2004) — any two-qubit gate with at most three CNOTs and single-qubit gates.
-# * R. Haghshenas, J. Gray, A. C. Potter and G. K.-L. Chan, *Variational power of quantum circuit tensor networks*,
-#   Phys. Rev. X **12**, 011047 (2022) — circuits shaped like matrix product states and MERA, compared with other
-#   architectures.
-# * E. Grant, M. Benedetti, S. Cao, A. Hallam, J. Lockhart, V. Stojevic, A. G. Green and S. Severini, *Hierarchical
-#   quantum classifiers*, npj Quantum Inf. **4**, 65 (2018) — tree-shaped circuits.
-# * J. R. McClean, S. Boixo, V. N. Smelyanskiy, R. Babbush and H. Neven, *Barren plateaus in quantum neural network
-#   training landscapes*, Nat. Commun. **9**, 4812 (2018) — exponentially vanishing gradients of random circuits.
-# * M. Cerezo, A. Sone, T. Volkoff, L. Cincio and P. J. Coles, *Cost function dependent barren plateaus in shallow
-#   parametrized quantum circuits*, Nat. Commun. **12**, 1791 (2021) — global against local costs.
-# * M. Cerezo, A. Arrasmith, R. Babbush, S. C. Benjamin, S. Endo, K. Fujii, J. R. McClean, K. Mitarai, X. Yuan,
-#   L. Cincio and P. J. Coles, *Variational quantum algorithms*, Nat. Rev. Phys. **3**, 625 (2021) — review.
-# * J. Tilly, H. Chen, S. Cao, D. Picozzi, K. Setia, Y. Li, E. Grant, L. Wossnig, I. Rungger, G. H. Booth and
-#   J. Tennyson, *The variational quantum eigensolver: a review of methods and best practices*, Phys. Rep. **986**, 1
-#   (2022) — review of the VQE.
-# * P. Pfeuty, *The one-dimensional Ising model with a transverse field*, Ann. Phys. **57**, 79 (1970) — the exact
-#   solution of the transverse-field Ising chain.
-# * J. Eisert, M. Cramer and M. B. Plenio, *Colloquium: Area laws for the entanglement entropy*, Rev. Mod. Phys. **82**,
-#   277 (2010).
-# * M. B. Hastings, *An area law for one-dimensional quantum systems*, J. Stat. Mech. **2007**, P08024 (2007) — the proof
-#   of the area law for gapped one-dimensional Hamiltonians.
-# * C. Holzhey, F. Larsen and F. Wilczek, *Geometric and renormalized entropy in conformal field theory*, Nucl. Phys. B
-#   **424**, 443 (1994) — the logarithmic entanglement entropy of a critical system.
-# * P. Calabrese and J. Cardy, *Entanglement entropy and quantum field theory*, J. Stat. Mech. **2004**, P06002 (2004) —
-#   the logarithm with prefactor $c/3$ for an interval of a critical chain, and its extensions.
-# * P. Calabrese and J. Cardy, *Evolution of entanglement entropy in one-dimensional systems*, J. Stat. Mech. **2005**,
-#   P04010 (2005) — linear growth of the entanglement entropy after a global quench.
-# * P. Jordan and E. Wigner, *Über das Paulische Äquivalenzverbot*, Z. Phys. **47**, 631 (1928) — the transformation from
-#   spins to fermions.
+# <span id="ref-1">[1]</span> M. B. Hastings, *An area law for one-dimensional quantum systems*, J. Stat. Mech. **2007**, P08024 (2007) — the proof
+# of the area law for gapped one-dimensional Hamiltonians.
+#
+# <span id="ref-2">[2]</span> J. Eisert, M. Cramer and M. B. Plenio, *Colloquium: Area laws for the entanglement entropy*, Rev. Mod. Phys. **82**,
+# 277 (2010).
+#
+# <span id="ref-3">[3]</span> C. Holzhey, F. Larsen and F. Wilczek, *Geometric and renormalized entropy in conformal field theory*, Nucl. Phys. B
+# **424**, 443 (1994) — the logarithmic entanglement entropy of a critical system.
+#
+# <span id="ref-4">[4]</span> P. Calabrese and J. Cardy, *Entanglement entropy and quantum field theory*, J. Stat. Mech. **2004**, P06002 (2004) —
+# the logarithm with prefactor $c/3$ for an interval of a critical chain, and its extensions.
+#
+# <span id="ref-5">[5]</span> P. Calabrese and J. Cardy, *Evolution of entanglement entropy in one-dimensional systems*, J. Stat. Mech. **2005**,
+# P04010 (2005) — linear growth of the entanglement entropy after a global quench.
+#
+# <span id="ref-6">[6]</span> A. Peruzzo, J. McClean, P. Shadbolt, M.-H. Yung, X.-Q. Zhou, P. J. Love, A. Aspuru-Guzik and J. L. O'Brien,
+# *A variational eigenvalue solver on a photonic quantum processor*, Nat. Commun. **5**, 4213 (2014) — the first VQE,
+# on a photonic processor, for the ground-state energy of HeH$^+$.
+#
+# <span id="ref-7">[7]</span> M. Cerezo, A. Arrasmith, R. Babbush, S. C. Benjamin, S. Endo, K. Fujii, J. R. McClean, K. Mitarai, X. Yuan,
+# L. Cincio and P. J. Coles, *Variational quantum algorithms*, Nat. Rev. Phys. **3**, 625 (2021) — review.
+#
+# <span id="ref-8">[8]</span> J. Tilly, H. Chen, S. Cao, D. Picozzi, K. Setia, Y. Li, E. Grant, L. Wossnig, I. Rungger, G. H. Booth and
+# J. Tennyson, *The variational quantum eigensolver: a review of methods and best practices*, Phys. Rep. **986**, 1
+# (2022) — review of the VQE.
+#
+# <span id="ref-9">[9]</span> P. Pfeuty, *The one-dimensional Ising model with a transverse field*, Ann. Phys. **57**, 79 (1970) — the exact
+# solution of the transverse-field Ising chain.
+#
+# <span id="ref-10">[10]</span> P. Jordan and E. Wigner, *Über das Paulische Äquivalenzverbot*, Z. Phys. **47**, 631 (1928) — the transformation from
+# spins to fermions.
+#
+# <span id="ref-11">[11]</span> R. Haghshenas, J. Gray, A. C. Potter and G. K.-L. Chan, *Variational power of quantum circuit tensor networks*,
+# Phys. Rev. X **12**, 011047 (2022) — circuits shaped like matrix product states and MERA, compared with other
+# architectures.
+#
+# <span id="ref-12">[12]</span> E. Grant, M. Benedetti, S. Cao, A. Hallam, J. Lockhart, V. Stojevic, A. G. Green and S. Severini, *Hierarchical
+# quantum classifiers*, npj Quantum Inf. **4**, 65 (2018) — tree-shaped circuits.
+#
+# <span id="ref-13">[13]</span> F. Vatan and C. Williams, *Optimal quantum circuits for general two-qubit gates*, Phys. Rev. A **69**, 032315
+# (2004) — any two-qubit gate with at most three CNOTs and single-qubit gates.
+#
+# <span id="ref-14">[14]</span> A. Kandala, A. Mezzacapo, K. Temme, M. Takita, M. Brink, J. M. Chow and J. M. Gambetta, *Hardware-efficient
+# variational quantum eigensolver for small molecules and quantum magnets*, Nature **549**, 242 (2017) — the
+# hardware-efficient ansatz, on up to six superconducting qubits.
+#
+# <span id="ref-15">[15]</span> D. Wecker, M. B. Hastings and M. Troyer, *Progress towards practical quantum variational algorithms*, Phys. Rev. A
+# **92**, 042303 (2015) — the ansatz motivated by adiabatic state preparation (Hamiltonian-variational ansatz).
+#
+# <span id="ref-16">[16]</span> R. Wiersema, C. Zhou, Y. de Sereville, J. F. Carrasquilla, Y. B. Kim and H. Yuen, *Exploring entanglement and
+# optimization within the Hamiltonian variational ansatz*, PRX Quantum **1**, 020319 (2020) — the ansatz for the TFIM
+# and XXZ chains, its gradient statistics and trainability.
+#
+# <span id="ref-17">[17]</span> J. R. McClean, S. Boixo, V. N. Smelyanskiy, R. Babbush and H. Neven, *Barren plateaus in quantum neural network
+# training landscapes*, Nat. Commun. **9**, 4812 (2018) — exponentially vanishing gradients of random circuits.
+#
+# <span id="ref-18">[18]</span> M. Cerezo, A. Sone, T. Volkoff, L. Cincio and P. J. Coles, *Cost function dependent barren plateaus in shallow
+# parametrized quantum circuits*, Nat. Commun. **12**, 1791 (2021) — global against local costs.

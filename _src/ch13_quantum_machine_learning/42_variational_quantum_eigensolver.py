@@ -3,7 +3,7 @@
 #@description: The Rayleigh-Ritz principle proved, the error relations a practitioner needs (energy error second order in the state error, and bounded below by the gap times the infidelity), and the full VQE loop applied to XXZ, XY and transverse-field Ising chains: energy, fidelity, entanglement, magnetisations and bond correlators against Lanczos, depth and symmetry studies, the phase diagram, an excited state by deflation, and a shot-noise comparison at equal measurement budget.
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
 # The central computational problem of quantum many-body physics is the **ground state**: the eigenvector of the
 # Hamiltonian with the lowest eigenvalue. Magnetic order, superconductivity, the binding energy of a molecule and the
@@ -23,9 +23,9 @@
 #                        +------------- classical optimiser <-----------------+
 # ```
 #
-# The algorithm was introduced by Peruzzo *et al.* (2014), who demonstrated it on a photonic chip; it was run on up to six
-# superconducting qubits for small molecules and a quantum magnet with a hardware-efficient circuit (Kandala *et al.*,
-# 2017), and is one of the most studied applications of noisy intermediate-scale devices (Tilly *et al.*, 2022).
+# The algorithm was introduced in [[1]](#ref-1), where it was demonstrated on a photonic chip; it was run on up to six
+# superconducting qubits for small molecules and a quantum magnet with a hardware-efficient circuit [[2]](#ref-2),
+# and is one of the most studied applications of noisy intermediate-scale devices [[3]](#ref-3).
 #
 # **What this notebook does.** We run the complete algorithm on a simulator, where the exact answer is available from
 # Lanczos, and we ask the questions that only a simulator can answer:
@@ -1042,7 +1042,7 @@ assert all(np.median(cont[0.1][i][:, -1, 0]) < 0.5 * np.median(cont[LR_BEST][i][
 #
 # ### 9.2 A problem-inspired ansatz that respects the symmetry by construction
 #
-# The **Hamiltonian-variational ansatz** (Wecker, Hastings and Troyer, 2015) of
+# The **Hamiltonian-variational ansatz** [[4]](#ref-4) of
 # [40 — parametrized gates](../ch13_quantum_machine_learning/40_parametrized_gates_and_gradients.ipynb) is built
 # from the Hamiltonian's own terms. For the transverse-field Ising model,
 #
@@ -1050,7 +1050,7 @@ assert all(np.median(cont[0.1][i][:, -1, 0]) < 0.5 * np.median(cont[LR_BEST][i][
 #   \Bigl[\prod_qR_x(2h\beta_l)\Bigr]\Bigl[\prod_{\langle qq'\rangle}R_{ZZ}(2J\gamma_l)\Bigr]\,
 #   \vert-\rangle^{\otimes N},\qquad n_{\text{params}}=2L , \tag{13}$$
 #
-# with $J=J_{zz}=-1$ and $h=h_x=+1$: a Trotterised adiabatic path with the angles left free. Ho and Hsieh (2019) found
+# with $J=J_{zz}=-1$ and $h=h_x=+1$: a Trotterised adiabatic path with the angles left free. Ref. [[5]](#ref-5) found
 # numerically that on a periodic chain at the critical point $N/2$ such layers reach the ground state exactly. The
 # path must start in the ground state of the field term alone, and for $h_x=+1$ that is $\vert-\rangle^{\otimes N}$,
 # $X\vert-\rangle=-\vert-\rangle$.
@@ -1219,7 +1219,7 @@ fig.tight_layout(); plt.show()
 # The second constraint is dimensional. A general $N$-qubit pure state has $2\cdot2^N-2$ real parameters (complex
 # amplitudes minus normalisation and global phase); for $N=6$ that is $126$, while the ansatz has $n=2N(L+1)=12(L+1)$,
 # so $n\ge126$ requires $L\ge10$. Notebook 41 measured, for a Haar-random target state at $N=4$, that the success rate rises
-# sharply where $n$ crosses $2\cdot2^N-2=30$, the overparametrisation threshold (Larocca *et al.*, 2023). A ground
+# sharply where $n$ crosses $2\cdot2^N-2=30$, the overparametrisation threshold [[6]](#ref-6). A ground
 # state is not a random state: it is weakly entangled, symmetric and structured, so the relevant count may be far
 # smaller. The depth scan below measures which of the two constraints binds.
 
@@ -1432,9 +1432,8 @@ fig.tight_layout(); plt.show()
 # * $h\to\infty$: the field wins, and the unique ground state is the product state
 #   $\vert-\rangle^{\otimes N}$ with $\langle X_q\rangle=-1$ — the **paramagnetic** phase.
 #
-# In the thermodynamic limit these are separated by a quantum critical point at $\lvert h\rvert=1$ (Pfeuty, 1970), where
-# the gap closes as $1/N$ and the half-chain entanglement grows logarithmically with $N$ (Holzhey, Larsen and Wilczek,
-# 1994). On a finite open chain there is no
+# In the thermodynamic limit these are separated by a quantum critical point at $\lvert h\rvert=1$ [[7]](#ref-7), where
+# the gap closes as $1/N$ and the half-chain entanglement grows logarithmically with $N$ [[8]](#ref-8). On a finite open chain there is no
 # true degeneracy: tunnelling between the two ordered configurations splits the doublet by an amount that vanishes
 # **exponentially** in $N$, and the two lowest eigenvectors are, deep in the ordered phase, close to the symmetric and
 # antisymmetric combinations
@@ -1607,7 +1606,7 @@ fig.tight_layout(); plt.show()
 # from $1.00$ bit deep in the ordered phase to $0.13$ at $h=2$, and the critical value $0.47$ is in between. The
 # ordered phase of a finite open chain has a cat-state ground state whose entanglement approaches one bit
 # **independently of $N$**, while the critical entropy of an open chain grows like $\tfrac{c}{6}\log_2N$ with central
-# charge $c=\tfrac12$, i.e. $\tfrac1{12}\log_2N$ (Calabrese and Cardy, 2004): $1/12$ of a bit per doubling of $N$,
+# charge $c=\tfrac12$, i.e. $\tfrac1{12}\log_2N$ [[9]](#ref-9): $1/12$ of a bit per doubling of $N$,
 # so the critical value overtakes the cat-state bit only for very long chains. What distinguishes the
 # critical point is the scaling with $N$ of both the entropy and the gap, which closes as $1/N$ there and
 # exponentially in the ordered phase; a single size $N=6$ cannot show either.
@@ -1621,7 +1620,7 @@ fig.tight_layout(); plt.show()
 # ## 12. An excited state: variational quantum deflation
 #
 # VQE minimises. To get the *first excited* state one changes the cost so that its minimum is the first excited state.
-# **Variational quantum deflation** (Higgott, Wang and Brierley, 2019) adds an orthogonality penalty: having found an
+# **Variational quantum deflation** [[10]](#ref-10) adds an orthogonality penalty: having found an
 # approximation $\vert\psi_\star\rangle$ to the ground state, minimise
 #
 # $$C_1(\boldsymbol\theta)=\langle\psi(\boldsymbol\theta)\vert H\vert\psi(\boldsymbol\theta)\rangle
@@ -1977,8 +1976,8 @@ fig.tight_layout(); plt.show()
 # local cost at fixed depth. An energy is a sum of $O(N)$ local terms, so it is on the favourable side: notebook 42a,
 # Section 9, finds no decay at fixed depth, but a circuit whose depth grows with $N$ approaches the exponential
 # 2-design value, and a gradient that is exponentially small must be resolved above shot noise that falls only as
-# $M^{-1/2}$. The remedy has to change the ansatz or the cost; a better optimiser does not help (McClean *et al.*, 2018; Cerezo
-# *et al.*, 2021). The random-angle initialisation used throughout this notebook is precisely the distribution the
+# $M^{-1/2}$. The remedy has to change the ansatz or the cost; a better optimiser does not help [[11]](#ref-11),
+# [[12]](#ref-12). The random-angle initialisation used throughout this notebook is precisely the distribution the
 # plateau theorems assume.
 #
 # **Measurement cost.** Every energy evaluation here was exact and free. On hardware, an accuracy $\varepsilon$ on
@@ -2083,41 +2082,56 @@ fig.tight_layout(); plt.show()
 #
 # ## References
 #
-# * A. Peruzzo, J. McClean, P. Shadbolt, M.-H. Yung, X.-Q. Zhou, P. J. Love, A. Aspuru-Guzik and J. L. O'Brien,
-#   *A variational eigenvalue solver on a photonic quantum processor*, Nat. Commun. **5**, 4213 (2014) — the first VQE
-#   experiment.
-# * J. R. McClean, J. Romero, R. Babbush and A. Aspuru-Guzik, *The theory of variational hybrid quantum-classical
-#   algorithms*, New J. Phys. **18**, 023023 (2016) — the general framework, and the variational principle in this
-#   setting.
-# * A. Kandala, A. Mezzacapo, K. Temme, M. Takita, M. Brink, J. M. Chow and J. M. Gambetta, *Hardware-efficient
-#   variational quantum eigensolver for small molecules and quantum magnets*, Nature **549**, 242 (2017) — the
-#   hardware-efficient ansatz family (layers of single-qubit Euler rotations and a fixed entangler); the circuit used
-#   here is a variant with $R_yR_z$ rotations and $CZ$ entanglers.
-# * D. Wecker, M. B. Hastings and M. Troyer, *Progress towards practical quantum variational algorithms*, Phys. Rev. A
-#   **92**, 042303 (2015) — the Hamiltonian-variational ansatz.
-# * W. W. Ho and T. H. Hsieh, *Efficient variational simulation of non-trivial quantum states*, SciPost Phys. **6**, 029
-#   (2019) — alternating Ising and field evolutions, the ansatz family of Eq. (13), prepare the GHZ state and the
-#   critical transverse-field Ising ground state of an $N$-site ring exactly with $N/2$ layers.
-# * O. Higgott, D. Wang and S. Brierley, *Variational quantum computation of excited states*, Quantum **3**, 156 (2019)
-#   — variational quantum deflation: the penalised cost of our Eq. (11) (their Eq. (2)) and the sufficient condition
-#   $\beta_i>E_k-E_i$ on the penalty weights, our Eq. (12).
-# * J. Tilly, H. Chen, S. Cao, D. Picozzi, K. Setia, Y. Li, E. Grant, L. Wossnig, I. Rungger, G. H. Booth and
-#   J. Tennyson, *The variational quantum eigensolver: a review of methods and best practices*, Phys. Rep. **986**, 1
-#   (2022) — the comprehensive review.
-# * M. Cerezo, A. Arrasmith, R. Babbush, S. C. Benjamin, S. Endo, K. Fujii, J. R. McClean, K. Mitarai, X. Yuan,
-#   L. Cincio and P. J. Coles, *Variational quantum algorithms*, Nat. Rev. Phys. **3**, 625 (2021) — ansatz design,
-#   trainability and barren plateaus.
-# * J. R. McClean, S. Boixo, V. N. Smelyanskiy, R. Babbush and H. Neven, *Barren plateaus in quantum neural network
-#   training landscapes*, Nat. Commun. **9**, 4812 (2018) — the exponential concentration of gradients.
-# * M. Larocca, N. Ju, D. García-Martín, P. J. Coles and M. Cerezo, *Theory of overparametrization in quantum neural
-#   networks*, Nat. Comput. Sci. **3**, 542 (2023) — overparametrisation sets in when the rank of the quantum Fisher
-#   information saturates, at most at the dimension of the dynamical Lie algebra and, for a pure state, at
-#   $2\cdot2^N-2$; the threshold used in Section 10.2.
-# * P. Pfeuty, *The one-dimensional Ising model with a transverse field*, Ann. Phys. **57**, 79 (1970) — the exact
-#   solution of the transverse-field Ising chain and its critical point.
-# * C. Holzhey, F. Larsen and F. Wilczek, *Geometric and renormalized entropy in conformal field theory*, Nucl. Phys. B
-#   **424**, 443 (1994) — the logarithmic entanglement entropy of a critical system.
-# * S. Sachdev, *Quantum Phase Transitions*, 2nd ed., Cambridge University Press (2011) — the transverse-field Ising
-#   chain, its critical point and the symmetry-broken doublet of Section 11.
-# * P. Calabrese and J. Cardy, *Entanglement entropy and quantum field theory*, J. Stat. Mech. (2004) P06002 — the
-#   logarithmic growth of the entanglement entropy at a critical point, $(c/6)\log$ for an open chain.
+# <span id="ref-1">[1]</span> A. Peruzzo, J. McClean, P. Shadbolt, M.-H. Yung, X.-Q. Zhou, P. J. Love, A. Aspuru-Guzik
+# and J. L. O'Brien, *A variational eigenvalue solver on a photonic quantum processor*, Nat. Commun. **5**, 4213 (2014)
+# — the first VQE experiment.
+#
+# <span id="ref-2">[2]</span> A. Kandala, A. Mezzacapo, K. Temme, M. Takita, M. Brink, J. M. Chow and J. M. Gambetta,
+# *Hardware-efficient variational quantum eigensolver for small molecules and quantum magnets*, Nature **549**, 242
+# (2017) — the hardware-efficient ansatz family (layers of single-qubit Euler rotations and a fixed entangler); the
+# circuit used here is a variant with $R_yR_z$ rotations and $CZ$ entanglers.
+#
+# <span id="ref-3">[3]</span> J. Tilly, H. Chen, S. Cao, D. Picozzi, K. Setia, Y. Li, E. Grant, L. Wossnig, I. Rungger,
+# G. H. Booth and J. Tennyson, *The variational quantum eigensolver: a review of methods and best practices*, Phys. Rep.
+# **986**, 1 (2022) — the comprehensive review.
+#
+# <span id="ref-4">[4]</span> D. Wecker, M. B. Hastings and M. Troyer, *Progress towards practical quantum variational
+# algorithms*, Phys. Rev. A **92**, 042303 (2015) — the Hamiltonian-variational ansatz.
+#
+# <span id="ref-5">[5]</span> W. W. Ho and T. H. Hsieh, *Efficient variational simulation of non-trivial quantum
+# states*, SciPost Phys. **6**, 029 (2019) — alternating Ising and field evolutions, the ansatz family of Eq. (13),
+# prepare the GHZ state and the critical transverse-field Ising ground state of an $N$-site ring exactly with $N/2$
+# layers.
+#
+# <span id="ref-6">[6]</span> M. Larocca, N. Ju, D. García-Martín, P. J. Coles and M. Cerezo, *Theory of
+# overparametrization in quantum neural networks*, Nat. Comput. Sci. **3**, 542 (2023) — overparametrisation sets in
+# when the rank of the quantum Fisher information saturates, at most at the dimension of the dynamical Lie algebra and,
+# for a pure state, at $2\cdot2^N-2$; the threshold used in Section 10.2.
+#
+# <span id="ref-7">[7]</span> P. Pfeuty, *The one-dimensional Ising model with a transverse field*, Ann. Phys. **57**,
+# 79 (1970) — the exact solution of the transverse-field Ising chain and its critical point.
+#
+# <span id="ref-8">[8]</span> C. Holzhey, F. Larsen and F. Wilczek, *Geometric and renormalized entropy in conformal
+# field theory*, Nucl. Phys. B **424**, 443 (1994) — the logarithmic entanglement entropy of a critical system.
+#
+# <span id="ref-9">[9]</span> P. Calabrese and J. Cardy, *Entanglement entropy and quantum field theory*, J. Stat. Mech.
+# (2004) P06002 — the logarithmic growth of the entanglement entropy at a critical point, $(c/6)\log$ for an open chain.
+#
+# <span id="ref-10">[10]</span> O. Higgott, D. Wang and S. Brierley, *Variational quantum computation of excited
+# states*, Quantum **3**, 156 (2019) — variational quantum deflation: the penalised cost of our Eq. (11) (their Eq. (2))
+# and the sufficient condition $\beta_i>E_k-E_i$ on the penalty weights, our Eq. (12).
+#
+# <span id="ref-11">[11]</span> J. R. McClean, S. Boixo, V. N. Smelyanskiy, R. Babbush and H. Neven, *Barren plateaus in
+# quantum neural network training landscapes*, Nat. Commun. **9**, 4812 (2018) — the exponential concentration of
+# gradients.
+#
+# <span id="ref-12">[12]</span> M. Cerezo, A. Arrasmith, R. Babbush, S. C. Benjamin, S. Endo, K. Fujii, J. R. McClean,
+# K. Mitarai, X. Yuan, L. Cincio and P. J. Coles, *Variational quantum algorithms*, Nat. Rev. Phys. **3**, 625 (2021) —
+# ansatz design, trainability and barren plateaus.
+#
+# <span id="ref-13">[13]</span> J. R. McClean, J. Romero, R. Babbush and A. Aspuru-Guzik, *The theory of variational
+# hybrid quantum-classical algorithms*, New J. Phys. **18**, 023023 (2016) — the general framework, and the variational
+# principle in this setting.
+#
+# <span id="ref-14">[14]</span> S. Sachdev, *Quantum Phase Transitions*, 2nd ed., Cambridge University Press (2011) —
+# the transverse-field Ising chain, its critical point and the symmetry-broken doublet of Section 11.

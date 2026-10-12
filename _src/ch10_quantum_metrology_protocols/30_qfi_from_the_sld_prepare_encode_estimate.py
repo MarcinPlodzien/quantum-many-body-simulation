@@ -3,7 +3,7 @@
 #@description: The complete metrology pipeline for mixed states: encode a parameter unitarily on a density tensor, get the derivative three ways (commutator, finite differences, jax.jacfwd), solve the Lyapunov equation for the symmetric logarithmic derivative, evaluate the quantum Fisher information and cross-check it against 4 Var(G), the engine, and the Bures fidelity susceptibility, build the optimal measurement from the eigenbasis of the SLD and verify by simulated maximum-likelihood experiments that it saturates the quantum Cramér–Rao bound while a convenient fixed readout does not, with the finite-sample bias of the estimator predicted and measured.
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
 # The previous notebook,
 # [29 — quantum Fisher information: how fast a quantum state changes under a small parameter shift](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb),
@@ -142,7 +142,7 @@ def maximally_mixed(N):
 # $p(x\vert\theta)=\mathrm{Tr}(\rho_\theta E_x)$.
 #
 # **Estimate.** From $M$ outcomes we compute $\hat\theta$, and the Cramér–Rao chain of notebook 29 bounds its error (the
-# classical bound of Rao 1945 and Cramér 1946, the quantum bound of Helstrom 1967 and Braunstein and Caves 1994), with
+# classical bound of [[1]](#ref-1), [[2]](#ref-2), the quantum bound of [[3]](#ref-3), [[4]](#ref-4)), with
 # $I(\theta;\{E_x\})$ the classical Fisher information of the measurement (written $F_C$ in notebook 29):
 #
 # $$\Delta\theta\;\ge\;\frac{1}{\sqrt{M\,I(\theta;\{E_x\})}}\;\ge\;\frac{1}{\sqrt{M\,F_Q[\rho_\theta]}}. \tag{2}$$
@@ -410,7 +410,7 @@ assert tr_abs < 1e3 * TOL and max_abs(dm - dm.conj().T) < 1e3 * TOL
 #
 # ### 5.1 Definition (recap)
 #
-# Notebook 29, Section 5.2, motivated and defined the **symmetric logarithmic derivative** (SLD), introduced by Helstrom (1967): the Hermitian operator
+# Notebook 29, Section 5.2, motivated and defined the **symmetric logarithmic derivative** (SLD), introduced in [[3]](#ref-3): the Hermitian operator
 # $L_\theta$ solving
 #
 # $$\partial_\theta\rho_\theta=\frac{1}{2}\left(L_\theta\,\rho_\theta+\rho_\theta\,L_\theta\right). \tag{6}$$
@@ -460,8 +460,8 @@ assert tr_abs < 1e3 * TOL and max_abs(dm - dm.conj().T) < 1e3 * TOL
 # example is $\rho_\theta=\mathrm{diag}(1-\theta^2,\theta^2)$, for which Eq. (11) gives
 # $F_Q=4+4\theta^2/(1-\theta^2)\to4$ as $\theta\to0$ but $F_Q=0$ at $\theta=0$, where $\partial_\theta\rho$ vanishes.
 # At such a point the classical and quantum Cramér–Rao theorems do not hold and the bound built from $F_Q$ can be
-# violated (Seveso, Albarelli, Genoni and Paris 2020), while the Bures metric gives the continuous extension, i.e. the
-# limiting value (Šafránek 2017). The noise sweeps of Section 10 do **not** hit this: there the
+# violated [[5]](#ref-5), while the Bures metric gives the continuous extension, i.e. the
+# limiting value [[6]](#ref-6). The noise sweeps of Section 10 do **not** hit this: there the
 # rank changes as a function of the *noise strength*, not of $\theta$, and $F_Q$ is continuous there — as $p\to0$ the
 # dephased and depolarised GHZ states return smoothly to the pure-state value $N^2=16$.
 #
@@ -518,7 +518,7 @@ assert tr_abs < 1e3 * TOL and max_abs(dm - dm.conj().T) < 1e3 * TOL
 # likewise for $\partial_\theta p_x$. The function $f(a,b)=a^2/b$ is jointly convex for $b>0$ (its Hessian is
 # $\tfrac{2}{b^3}\begin{pmatrix}b^2&-ab\\-ab&a^2\end{pmatrix}\succeq0$), so
 # $I[\text{mixture}]=\sum_xf(\partial_\theta p_x,p_x)\le\sum_ip_i\,I[\rho_i]\le\sum_ip_iF_Q[\rho_i,G]$. Maximising the
-# left-hand side over the POVM gives the claim (see also Tóth and Apellaniz 2014). We *verify it numerically* in
+# left-hand side over the POVM gives the claim (see also [[7]](#ref-7)). We *verify it numerically* in
 # Section 7. Physically: **classical uncertainty about which state was prepared can only reduce the information
 # you can extract.** It is also the step that notebook 29 quoted when it extended the standard quantum limit
 # $F_Q\le N$ from pure product states to all separable mixed states.
@@ -728,14 +728,14 @@ assert abs(f_x - var4_x) < 1e4 * TOL
 #   \qquad\Longleftrightarrow\qquad
 #   F_Q=\lim_{d\theta\to0}\frac{8\left(1-\sqrt{F(\rho_\theta,\rho_{\theta+d\theta})}\right)}{d\theta^2}, \tag{13}$$
 #
-# where $F(\rho,\sigma)=\left(\mathrm{Tr}\sqrt{\sqrt\rho\,\sigma\sqrt\rho}\right)^2$ is the fidelity of Uhlmann (1976) and Jozsa (1994), **squared**,
+# where $F(\rho,\sigma)=\left(\mathrm{Tr}\sqrt{\sqrt\rho\,\sigma\sqrt\rho}\right)^2$ is the fidelity of [[8]](#ref-8), [[9]](#ref-9), **squared**,
 # which is what the engine's `fidelity_dm` returns; squaring Eq. (13) gives the equivalent statement
 # $F=1-\tfrac{F_Q}{4}d\theta^2+O(d\theta^4)$ for the squared quantity. Conventions differ from book to book, and the
 # factor $8$ versus $4$ is exactly the difference between them — always check which one your fidelity routine computes.
 # For pure states the squared form is immediate:
 # $F=\vert\langle\psi_\theta\vert\psi_{\theta+d\theta}\rangle\vert^2=1-\mathrm{Var}(G)\,d\theta^2+O(d\theta^4)$ and
 # $F_Q=4\mathrm{Var}(G)$ (notebook 29, Section 6.4); for mixed states Eq. (13) is the statistical-distance
-# result of Braunstein and Caves (1994), which we now *test* rather than prove.
+# result of [[4]](#ref-4), which we now *test* rather than prove.
 #
 # This gives a completely independent estimator of $F_Q$: no SLD, no eigen-decomposition of $\partial_\theta\rho$, only two
 # encoded states and a fidelity. It is also a textbook illustration of the two competing errors in any finite-difference
@@ -1020,7 +1020,7 @@ fig.tight_layout(); plt.show()
 #
 # $$\log\mathcal{L}(\theta)=\sum_x n_x\log p(x\vert\theta), \tag{14}$$
 #
-# and the maximum-likelihood estimate (Fisher 1922) is $\hat\theta=\arg\max_\theta\log\mathcal{L}(\theta)$. We maximise on a fine grid,
+# and the maximum-likelihood estimate [[10]](#ref-10) is $\hat\theta=\arg\max_\theta\log\mathcal{L}(\theta)$. We maximise on a fine grid,
 # which is robust, trivially `vmap`-able, and makes the **phase ambiguity** explicit: $p(x\vert\theta)$ for a GHZ-like state
 # oscillates with period $2\pi/N$ in $\theta$, so a search over the whole circle would let the estimator lock onto a
 # neighbouring fringe. We take the window $\theta_0\pm\pi/(2N)$ — a quarter of a period on each side, i.e. the width
@@ -1758,40 +1758,62 @@ fig.tight_layout(); plt.show()
 #
 # ## References
 #
-# * C. W. Helstrom, *Quantum Detection and Estimation Theory*, Mathematics in Science and Engineering vol. 123
-#   (Academic Press, New York, 1976) — the symmetric logarithmic derivative, Eq. (6), and the quantum Cramér–Rao bound.
-# * C. W. Helstrom, *Minimum mean-squared error of estimates in quantum statistics*, Phys. Lett. A **25**, 101 (1967) —
-#   the paper that introduced the symmetric logarithmic derivative and the quantum Cramér–Rao bound.
-# * C. R. Rao, *Information and the accuracy attainable in the estimation of statistical parameters*, Bull. Calcutta
-#   Math. Soc. **37**, 81 (1945), reprinted in *Breakthroughs in Statistics*, eds. S. Kotz and N. L. Johnson (Springer,
-#   New York, 1992), p. 235, and H. Cramér, *Mathematical Methods of Statistics* (Princeton University Press, 1946) — the
-#   classical Cramér–Rao bound of Eq. (2).
-# * R. A. Fisher, *On the mathematical foundations of theoretical statistics*, Phil. Trans. R. Soc. Lond. A **222**, 309
-#   (1922) — maximum likelihood, Section 9.1.
-# * A. Uhlmann, *The "transition probability" in the state space of a $*$-algebra*, Rep. Math. Phys. **9**, 273 (1976),
-#   and R. Jozsa, *Fidelity for mixed quantum states*, J. Mod. Opt. **41**, 2315 (1994) — the fidelity of Eq. (13).
-# * A. S. Holevo, *Probabilistic and Statistical Aspects of Quantum Theory* (North-Holland, Amsterdam, 1982; 2nd ed.,
-#   Edizioni della Normale, Pisa, 2011) — the other classic monograph of quantum estimation theory, formulated
-#   throughout with general measurements (resolutions of the identity, the POVMs of Section 8).
-# * S. L. Braunstein and C. M. Caves, *Statistical distance and the geometry of quantum states*,
-#   Phys. Rev. Lett. **72**, 3439 (1994) — the theorem of Section 8: the classical Fisher information of any POVM is bounded
-#   by $\mathrm{Tr}(\rho L^2)$, with equality in the eigenbasis of $L$; also the Bures-metric interpretation, Eq. (13).
-# * M. G. A. Paris, *Quantum estimation for quantum technology*, Int. J. Quantum Inf. **7**, 125–137 (2009) — a very
-#   readable derivation of the SLD formalism, the eigenbasis solution of Eq. (8) and the treatment of the kernel.
-# * D. Šafránek, *Discontinuities of the quantum Fisher information and the Bures metric*, Phys. Rev. A **95**, 052320
-#   (2017), and L. Seveso, F. Albarelli, M. G. Genoni and M. G. A. Paris, *On the discontinuity of the quantum Fisher
-#   information for quantum statistical models with parameter dependent rank*, J. Phys. A **53**, 02LT01 (2020) — what
-#   goes wrong at a rank change, and why the caveat of Section 5.3 matters outside the unitary-encoding case.
-# * J. Liu, H. Yuan, X.-M. Lu and X. Wang, *Quantum Fisher information matrix and multiparameter estimation*,
-#   J. Phys. A **53**, 023001 (2020) — a comprehensive review of the SLD, its computation and its multiparameter
-#   generalisation, including the Bures and fidelity-susceptibility forms of Eq. (13).
-# * G. Tóth and I. Apellaniz, *Quantum metrology from a quantum information science perspective*,
-#   J. Phys. A **47**, 424006 (2014) — convexity of the QFI, the bound $F_Q\le4\mathrm{Var}(G)$, and the entanglement
-#   criteria used in notebook 29.
-# * L. Pezzè, A. Smerzi, M. K. Oberthaler, R. Schmied and P. Treutlein, *Quantum metrology with nonclassical states of
-#   atomic ensembles*, Rev. Mod. Phys. **90**, 035005 (2018) — the standard modern review, including noisy
-#   states and the role of the optimal measurement.
-# * V. Giovannetti, S. Lloyd and L. Maccone, *Quantum metrology*, Phys. Rev. Lett. **96**, 010401 (2006) — the SQL and
-#   Heisenberg scalings the pipeline is built to compare.
-# * M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information* (Cambridge University Press, 2000),
-#   Chapter 9 — fidelity, trace distance and the Uhlmann theorem behind Eq. (13).
+# <span id="ref-1">[1]</span> C. R. Rao, *Information and the accuracy attainable in the estimation of statistical
+# parameters*, Bull. Calcutta Math. Soc. **37**, 81 (1945), reprinted in *Breakthroughs in Statistics*, eds. S. Kotz and N.
+# L. Johnson (Springer, New York, 1992), p. 235 — the classical Cramér–Rao bound of Eq. (2).
+#
+# <span id="ref-2">[2]</span> H. Cramér, *Mathematical Methods of Statistics* (Princeton University Press, 1946) — the
+# classical Cramér–Rao bound of Eq. (2).
+#
+# <span id="ref-3">[3]</span> C. W. Helstrom, *Minimum mean-squared error of estimates in quantum statistics*, Phys. Lett. A
+# **25**, 101 (1967) — the paper that introduced the symmetric logarithmic derivative and the quantum Cramér–Rao bound.
+#
+# <span id="ref-4">[4]</span> S. L. Braunstein and C. M. Caves, *Statistical distance and the geometry of quantum states*,
+# Phys. Rev. Lett. **72**, 3439 (1994) — the theorem of Section 8: the classical Fisher information of any POVM is bounded
+# by $\mathrm{Tr}(\rho L^2)$, with equality in the eigenbasis of $L$; also the Bures-metric interpretation, Eq. (13).
+#
+# <span id="ref-5">[5]</span> L. Seveso, F. Albarelli, M. G. Genoni and M. G. A. Paris, *On the discontinuity of the quantum
+# Fisher information for quantum statistical models with parameter dependent rank*, J. Phys. A **53**, 02LT01 (2020) — what
+# goes wrong at a rank change, and why the caveat of Section 5.3 matters outside the unitary-encoding case.
+#
+# <span id="ref-6">[6]</span> D. Šafránek, *Discontinuities of the quantum Fisher information and the Bures metric*, Phys.
+# Rev. A **95**, 052320 (2017) — the Bures metric as the continuous extension at a rank change.
+#
+# <span id="ref-7">[7]</span> G. Tóth and I. Apellaniz, *Quantum metrology from a quantum information science perspective*,
+# J. Phys. A **47**, 424006 (2014) — convexity of the QFI, the bound $F_Q\le4\mathrm{Var}(G)$, and the entanglement criteria
+# used in notebook 29.
+#
+# <span id="ref-8">[8]</span> A. Uhlmann, *The "transition probability" in the state space of a $*$-algebra*, Rep. Math.
+# Phys. **9**, 273 (1976) — the fidelity of Eq. (13).
+#
+# <span id="ref-9">[9]</span> R. Jozsa, *Fidelity for mixed quantum states*, J. Mod. Opt. **41**, 2315 (1994) — the fidelity
+# of Eq. (13).
+#
+# <span id="ref-10">[10]</span> R. A. Fisher, *On the mathematical foundations of theoretical statistics*, Phil. Trans. R.
+# Soc. Lond. A **222**, 309 (1922) — maximum likelihood, Section 9.1.
+#
+# <span id="ref-11">[11]</span> C. W. Helstrom, *Quantum Detection and Estimation Theory*, Mathematics in Science and
+# Engineering vol. 123 (Academic Press, New York, 1976) — the symmetric logarithmic derivative, Eq. (6), and the quantum
+# Cramér–Rao bound.
+#
+# <span id="ref-12">[12]</span> A. S. Holevo, *Probabilistic and Statistical Aspects of Quantum Theory* (North-Holland,
+# Amsterdam, 1982; 2nd ed., Edizioni della Normale, Pisa, 2011) — the other classic monograph of quantum estimation theory,
+# formulated throughout with general measurements (resolutions of the identity, the POVMs of Section 8).
+#
+# <span id="ref-13">[13]</span> M. G. A. Paris, *Quantum estimation for quantum technology*, Int. J. Quantum Inf. **7**,
+# 125–137 (2009) — a very readable derivation of the SLD formalism, the eigenbasis solution of Eq. (8) and the treatment of
+# the kernel.
+#
+# <span id="ref-14">[14]</span> J. Liu, H. Yuan, X.-M. Lu and X. Wang, *Quantum Fisher information matrix and multiparameter
+# estimation*, J. Phys. A **53**, 023001 (2020) — a comprehensive review of the SLD, its computation and its multiparameter
+# generalisation, including the Bures and fidelity-susceptibility forms of Eq. (13).
+#
+# <span id="ref-15">[15]</span> L. Pezzè, A. Smerzi, M. K. Oberthaler, R. Schmied and P. Treutlein, *Quantum metrology with
+# nonclassical states of atomic ensembles*, Rev. Mod. Phys. **90**, 035005 (2018) — the standard modern review, including
+# noisy states and the role of the optimal measurement.
+#
+# <span id="ref-16">[16]</span> V. Giovannetti, S. Lloyd and L. Maccone, *Quantum metrology*, Phys. Rev. Lett. **96**,
+# 010401 (2006) — the SQL and Heisenberg scalings the pipeline is built to compare.
+#
+# <span id="ref-17">[17]</span> M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information* (Cambridge
+# University Press, 2000), Chapter 9 — fidelity, trace distance and the Uhlmann theorem behind Eq. (13).

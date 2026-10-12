@@ -3,7 +3,7 @@
 #@description: Non-stabilizerness ("magic") as the resource that entanglement misses: the Pauli group and the symplectic product, stabilizer states and the Gottesman-Knill theorem, the characteristic Pauli distribution, stabilizer Renyi entropies with proofs of their properties, the brute-force $4^N$ algorithm and the fast Walsh–Hadamard algorithm, and magic in T-doped circuits, in Ising ground states and after a quench.
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
 # A quantum computer is supposed to be hard to simulate on a classical one. The first explanation a student meets is
 # **entanglement**: a general state of $N$ qubits needs $2^N$ complex amplitudes, an entangled state cannot be written as a
@@ -13,7 +13,7 @@
 # Consider the $N$-qubit GHZ state $(\vert0\cdots0\rangle+\vert1\cdots1\rangle)/\sqrt2$, or the cluster state used as a
 # resource for measurement-based quantum computation, or the output of a random circuit built only from Hadamard, phase and
 # CNOT gates. All of them can be maximally entangled across any cut. All of them are also **classically simulable in
-# polynomial time**: the Gottesman-Knill theorem (stated by Gottesman in 1999, who credits Knill; Section 4.3) says that a
+# polynomial time**: the Gottesman-Knill theorem (stated in [[1]](#ref-1), which credits Knill; Section 4.3) says that a
 # circuit made of those gates, applied to $\vert0\cdots0\rangle$
 # and followed by measurements in the computational basis, can be tracked on a laptop for thousands of qubits. Entanglement
 # is necessary for quantum advantage, but it is very far from sufficient.
@@ -27,14 +27,14 @@
 # The distinction has a direct cost in fault-tolerant quantum computing. In the standard error-correcting codes the
 # Clifford gates can be implemented fault-tolerantly at modest cost (transversally in many codes, by code deformation or
 # lattice surgery in the surface code), while the $T$ gate is expensive: it is implemented with the help of
-# **magic-state distillation** (Bravyi and Kitaev 2005), a protocol that consumes many noisy copies of a magic state such
+# **magic-state distillation** [[2]](#ref-2), a protocol that consumes many noisy copies of a magic state such
 # as $T\vert+\rangle$ to produce fewer, cleaner ones. Resource estimates for useful algorithms therefore count
-# non-Clifford gates first: factoring a 2048-bit RSA integer with the construction of Gidney and Ekerå (2021) takes
+# non-Clifford gates first: factoring a 2048-bit RSA integer with the construction of [[3]](#ref-3) takes
 # $0.3n^3+0.0005n^3\log_2n\approx2.6\times10^{9}$ Toffoli gates at $n=2048$, each of which costs several $T$ gates or
 # one distilled three-qubit magic state. A quantity that measures the magic of a state therefore measures something with
 # a price tag attached.
 #
-# The quantity this notebook is about is the **stabilizer Renyi entropy** $M_\alpha$ of Leone, Oliviero and Hamma (2022).
+# The quantity this notebook is about is the **stabilizer Renyi entropy** $M_\alpha$, introduced in [[4]](#ref-4).
 # Its construction takes three lines. For a pure state, the squared Pauli expectation values
 # $\langle P\rangle^2$, divided by $2^N$, form a probability distribution over the $4^N$ Pauli strings. Stabilizer states are
 # exactly the states for which that distribution is *flat on $2^N$ strings and zero elsewhere*. Measure how far the
@@ -302,7 +302,7 @@ print("  " + "  ".join(f"({a},{b}):{pauli_letters(a, b, 2)}" for a in range(4) f
 #
 # ### 4.1 Definition
 #
-# The stabilizer formalism was developed by Gottesman in his 1997 thesis on quantum error-correcting codes.
+# The stabilizer formalism was developed in a thesis on quantum error-correcting codes [[5]](#ref-5).
 # A **stabilizer group** $\mathcal S$ is an abelian subgroup of the Pauli group that does not contain $-\mathbb 1$ and has
 # $2^N$ elements. The condition "$-\mathbb 1\notin\mathcal S$" guarantees that all elements can be simultaneously
 # diagonalised with eigenvalue $+1$ on a common eigenvector, and the size $2^N$ makes that eigenvector unique. The state
@@ -339,9 +339,9 @@ print("  " + "  ".join(f"({a},{b}):{pauli_letters(a, b, 2)}" for a in range(4) f
 #
 # In words: a Clifford unitary maps Pauli strings to Pauli strings under conjugation. It therefore maps stabilizer groups to
 # stabilizer groups, and stabilizer states to stabilizer states. The group is generated — this is quoted, not proved here —
-# by the Hadamard $H$, the phase gate $S=\mathrm{diag}(1,i)$ and CNOT (Gottesman 1999); modulo phases it is finite, with $24$ elements for
+# by the Hadamard $H$, the phase gate $S=\mathrm{diag}(1,i)$ and CNOT [[1]](#ref-1); modulo phases it is finite, with $24$ elements for
 # $N=1$ (enumerated in [notebook 10](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb)) and
-# $2^{N^2+2N}\prod_{k=1}^N(4^k-1)$ elements in general (Calderbank, Rains, Shor and Sloane 1998; in this form Koenig and Smolin 2014) — $24$ at $N=1$ and $11520$ at $N=2$.
+# $2^{N^2+2N}\prod_{k=1}^N(4^k-1)$ elements in general ([[6]](#ref-6); in this form [[7]](#ref-7)) — $24$ at $N=1$ and $11520$ at $N=2$.
 #
 # ### 4.3 The Gottesman-Knill theorem
 #
@@ -353,13 +353,13 @@ print("  " + "  ".join(f"({a},{b}):{pauli_letters(a, b, 2)}" for a in range(4) f
 #
 # "Perfectly" means that the classical algorithm produces measurement records distributed exactly as the quantum
 # computation's, with no approximation; the theorem is a statement about sampling the outcomes. This is the form given
-# by Gottesman in *The Heisenberg representation of quantum computers* (1999), who attributes the theorem to Knill.
+# in [[1]](#ref-1), which attributes the theorem to Knill.
 # Starting from any stabilizer state given by its generators changes nothing, since such a state is prepared from
 # $\vert0\cdots0\rangle$ by a Clifford circuit.
 #
 # The mechanism is the symplectic structure of Section 3.3: instead of carrying $2^N$ amplitudes one carries the $N$
 # generators of the stabilizer group as $2N$-bit vectors plus a sign, and a Clifford gate is a fixed linear map on those
-# bits. In the reference implementation (Aaronson and Gottesman 2004) a Clifford gate costs $O(N)$ and a measurement in
+# bits. In the reference implementation [[8]](#ref-8) a Clifford gate costs $O(N)$ and a measurement in
 # the computational basis $O(N^2)$ — the measurement is the expensive half, and speeding it up from $O(N^3)$ to $O(N^2)$
 # is what that paper is about. Adaptive measurements,
 # classical feed-forward and the whole apparatus of stabilizer error correction all stay inside the theorem.
@@ -572,7 +572,7 @@ plt.show()
 #
 # * $\alpha=2$, the case used almost everywhere, $\;M_2=-\log_2\!\big(\sum_P\langle P\rangle^4\big)+N$;
 # * the **linear** stabilizer entropy $M_{\rm lin}=1-2^N\sum_P\Xi_P^2$, which is not a logarithm at all but is the quantity
-#   with the cleanest analytic properties (Section 7.3) and is a strong monotone (Leone and Bittel 2024).
+#   with the cleanest analytic properties (Section 7.3) and is a strong monotone [[9]](#ref-9).
 #
 # **Write the absolute value.** Equation (9) contains $\vert\langle P\rangle\vert^{2\alpha}$, with the modulus.
 # It equals $\langle P\rangle^{2\alpha}$ when $2\alpha$ is an even integer, i.e. for $\alpha=1,2,3,\dots$, and differs otherwise — at $\alpha=3/2$ the
@@ -604,7 +604,7 @@ plt.show()
 #
 # $$ M_\alpha(\vert\psi\rangle)=0 \quad\Longleftrightarrow\quad \vert\psi\rangle \text{ is a stabilizer state}. $$
 #
-# $\blacksquare$ (Leone, Oliviero and Hamma 2022.) Both halves are checked numerically throughout the notebook.
+# $\blacksquare$ ([[4]](#ref-4).) Both halves are checked numerically throughout the notebook.
 #
 # ### 6.3 Invariance under Clifford unitaries — proved
 #
@@ -669,11 +669,11 @@ plt.show()
 # unitaries, computational-basis measurements, discarding qubits and adding fresh stabilizer states. Section 6.3 disposes of
 # the Clifford part for all $\alpha$; measurements are the hard case, and the literature settled it only recently.
 #
-# * Haug and Piroli (Quantum 2023) construct explicit counterexamples showing that for Renyi index $0\le\alpha<2$ the
+# * Ref. [[10]](#ref-10) constructs explicit counterexamples showing that for Renyi index $0\le\alpha<2$ the
 #   stabilizer entropies are **not** monotones under stabilizer protocols that include computational-basis
 #   measurements — not even restricted to pure states — and that for **every** $\alpha$ they fail a *strong*
 #   monotonicity condition (monotonicity of the average over measurement outcomes).
-# * Leone and Bittel (2024) close the remaining case: for $\alpha\ge2$ the stabilizer entropies **are** monotones of the
+# * Ref. [[9]](#ref-9) closes the remaining case: for $\alpha\ge2$ the stabilizer entropies **are** monotones of the
 #   magic-state resource theory restricted to pure states; the linear stabilizer entropy is in addition a strong monotone;
 #   and a convex-roof construction extends them to mixed states as monotones.
 #
@@ -685,19 +685,17 @@ plt.show()
 # $$ M_{\rm lin}=1-2^{-M_2}, $$
 #
 # a concave increasing function of $M_2$. So $M_{\rm lin}$ can satisfy the averaged inequality where $M_2$ fails it,
-# exactly as Haug and Piroli (for all $\alpha$) and Leone and Bittel (again for $\alpha\ge2$, with an explicit
+# exactly as [[10]](#ref-10) (for all $\alpha$) and [[9]](#ref-9) (again for $\alpha\ge2$, with an explicit
 # counterexample) both find. The summary: $M_\alpha$ with $\alpha\ge2$ is a monotone but not a strong monotone;
 # $M_{\rm lin}$ is both.
 #
 # This is why $\alpha=2$, and not the more familiar $\alpha\to1$ Shannon limit, is the standard choice. A related monotone
 # that is easier to interpret is the **stabilizer nullity** $\nu=N-\log_2\vert\mathcal S_\psi\vert$,
-# where $\mathcal S_\psi$ is the group of Pauli operators that stabilise $\vert\psi\rangle$ (Beverland, Campbell, Howard and
-# Kliuchnikov 2020). It is an integer; it vanishes exactly on stabilizer states, since $\nu=0$ forces
+# where $\mathcal S_\psi$ is the group of Pauli operators that stabilise $\vert\psi\rangle$ [[11]](#ref-11). It is an integer; it vanishes exactly on stabilizer states, since $\nu=0$ forces
 # $\vert\mathcal S_\psi\vert=2^N$; and because it is a monotone that equals $1$ on $T\vert+\rangle$ it lower-bounds the
-# number of $T$ gates needed to build the state. Leone, Oliviero and Hamma prove $M_\alpha\le\nu$, which is the cleanest
+# number of $T$ gates needed to build the state. Ref. [[4]](#ref-4) proves $M_\alpha\le\nu$, which is the cleanest
 # available statement of "magic costs $T$ gates": a state produced by $k$ $T$ gates has $M_\alpha\le k$ bits.
-# Other magic measures in use are the **relative entropy of magic** and the **mana** (Veitch, Mousavian, Gottesman and
-# Emerson 2014) and the **robustness of magic** (Howard and Campbell 2017). The relative entropy and the robustness
+# Other magic measures in use are the **relative entropy of magic** and the **mana** [[12]](#ref-12) and the **robustness of magic** [[13]](#ref-13). The relative entropy and the robustness
 # require an optimisation over the stabilizer states and are therefore restricted to very small $N$; the mana is cheap
 # but is defined through a discrete Wigner function that exists only in odd prime dimensions (Section 11). Avoiding both
 # limitations is precisely the practical advantage of $M_\alpha$.
@@ -737,7 +735,7 @@ plt.show()
 # operators $(\pm X\pm Y+Z)/\sqrt3$ — each of them an axis of an order-three Clifford rotation that cyclically permutes
 # the three Pauli axes up to signs; the twelve $H$-type directions, one of which carries $T\vert+\rangle$, are the
 # $\pm1$ eigenvectors of the six face-diagonal operators such as $(X+Z)/\sqrt2$, the Hadamard. Both families are the
-# standard resources of magic-state distillation, and the names are Bravyi and Kitaev's (2005), who define
+# standard resources of magic-state distillation, and the names are those of [[2]](#ref-2), which defines
 # $\vert T\rangle\langle T\vert=\tfrac12\big[\mathbb 1+\tfrac1{\sqrt3}(X+Y+Z)\big]$ and
 # $\vert H\rangle\langle H\vert=\tfrac12\big[\mathbb 1+\tfrac1{\sqrt2}(X+Z)\big]$ and call the Clifford orbits of those
 # two states the $T$-type and $H$-type magic states. The value of $M_2$ is not the only figure of merit there, but it
@@ -745,7 +743,7 @@ plt.show()
 #
 # > **Common pitfall.** The letter $T$ has two unrelated meanings in this subject. The **$T$ gate** is
 # > $\mathrm{diag}(1,e^{i\pi/4})$, a non-Clifford gate. A **$T$-type magic state** is named after a different operator:
-# > Bravyi and Kitaev's order-three *Clifford* rotation about a body diagonal, which cyclically permutes the three Pauli
+# > the order-three *Clifford* rotation of [[2]](#ref-2) about a body diagonal, which cyclically permutes the three Pauli
 # > axes. $T\vert+\rangle$ is an $H$-type state, and the collision of the two names is an accident of notation.
 
 # %%
@@ -904,7 +902,7 @@ assert abs(m_a + m_b - m_ab) < 1e3 * TOL
 #
 # $$ \mathbb E[\zeta]=1+\frac{3(d^2-1)}{(d+1)(d+3)}=1+\frac{3(d-1)}{d+3}=\frac{4d}{d+3} \qquad\Longrightarrow\qquad \boxed{\ \mathbb E\big[M_{\rm lin}\big]=1-\frac{4}{2^N+3}\ } \tag{15} $$
 #
-# — an exact identity, and exactly the result quoted by Leone, Oliviero and Hamma (2022). For $M_2$ itself the average of a
+# — an exact identity, and exactly the result quoted in [[4]](#ref-4). For $M_2$ itself the average of a
 # logarithm is not the logarithm of the average; since $-\log_2$ is convex, Jensen's inequality gives only a bound,
 #
 # $$ \mathbb E\big[M_2\big] \;\ge\; -\log_2\frac{\mathbb E[\zeta]}{d} \;=\; \log_2\frac{2^N+3}{4}. \tag{16} $$
@@ -988,8 +986,8 @@ for N in (2, 3):
 #
 # ### 9.1 The derivation
 #
-# This algorithm was introduced by Sierant, Vallès-Muns and Garcia-Saez (2026), who computed stabilizer Renyi entropies of
-# state vectors with the fast Hadamard transform at cost $O(N4^N)$.
+# This algorithm was introduced in [[14]](#ref-14), where stabilizer Renyi entropies of
+# state vectors were computed with the fast Hadamard transform at cost $O(N4^N)$.
 # The waste in Algorithm 1 is that each of the $4^N$ expectation values is computed from scratch. The $(a,b)$ encoding of
 # Eq. (1) exposes the structure that makes almost all of that work redundant.
 #
@@ -1670,10 +1668,10 @@ print(f"distinct M_2 values at k = 4 (rounded to 1e-6): {k4_values} "
 # $k=2N$, $5.21$ bit ($87\%$) at $k=3N$ and $5.81$ bit ($97\%$) at $k=5N$. The last two points, $k=40$ and $k=48$, agree
 # within their error bars, so the curve has flattened there.
 #
-# **The published growth law.** Leone, Oliviero and Hamma (2022) compute the average linear stabilizer entropy of a
+# **The published growth law.** Ref. [[4]](#ref-4) computes the average linear stabilizer entropy of a
 # *$k$-doped random Clifford circuit* $C_kKC_{k-1}K\cdots KC_0$, in which every $C_j$ is an independent, uniformly random
 # element of the full $N$-qubit Clifford group and every $K$ is the single-qubit phase gate $\mathrm{diag}(1,e^{i\theta})$
-# acting on one qubit. For the output state $C_kK\cdots KC_0\vert0\cdots0\rangle$, averaged over the Cliffords, their
+# acting on one qubit. For the output state $C_kK\cdots KC_0\vert0\cdots0\rangle$, averaged over the Cliffords, the
 # result reads, with $d=2^N$,
 #
 # $$ \mathbb E\big[M_{\rm lin}\big]=1-\frac{4+(d-1)\,f^{\,k}}{d+3},\qquad f=\frac{7d^2-3d+d(d+3)\cos4\theta-8}{8(d^2-1)} . \tag{19} $$
@@ -1824,7 +1822,7 @@ plt.show()
 #
 # The slow saturation in the brick-wall data is therefore a property of the circuit, a $T$ count crowded into a fixed,
 # shallow depth, and $M_2$ itself is not slow. For the ensemble of Eq. (19), $M_{\rm lin}$ reaches its Haar value
-# at $k=\Theta(N)$ (Leone, Oliviero and Hamma 2022), the same scaling that Leone, Oliviero, Zhou and Hamma (2021) found
+# at $k=\Theta(N)$ [[4]](#ref-4), the same scaling that was found in [[15]](#ref-15)
 # for the eight-point out-of-time-order correlator and the fluctuations of the subsystem purity; Eq. (20) supplies the
 # constant, $2.41$ $T$ gates per qubit, for $M_2$.
 
@@ -2085,7 +2083,7 @@ plt.show()
 # slope $\alpha(h)$ of $M_2=\alpha N+\beta$, which is the magic *density* in the thermodynamic limit as far as three sizes
 # can determine it, also peaks at $h=1.00$ with $\alpha(1)=0.4417$.
 #
-# **Comparison with the literature, with the conventions written out.** Oliviero, Leone and Hamma (2022) study the same
+# **Comparison with the literature, with the conventions written out.** The authors of [[16]](#ref-16) study the same
 # quantity and report $\alpha(1)\approx0.44$. The conventions match where it matters: they use $M_2$, logarithms base
 # $2$, and the same linear fit $M_2=\alpha(\lambda)N+\beta(\lambda)$ whose slope is what $0.44$ refers to. Their
 # Hamiltonian is written $H=-\sum_i(X_iX_{i+1}+\lambda Z_i)$ rather than our $-\sum Z_iZ_j-h\sum X_i$, which is a global
@@ -2107,12 +2105,12 @@ plt.show()
 # depends on the boundary conditions**, and the ring, which has no boundary, is the geometry from which a bulk property
 # can be read off at $N\le10$.
 #
-# **A caveat the literature insists on.** Haug and Piroli (Phys. Rev. B 2023), using matrix-product states at much larger
+# **A caveat the literature insists on.** The authors of [[17]](#ref-17), using matrix-product states at much larger
 # $N$, find that the stabilizer Renyi entropy is in general *not* maximal at the critical point and that where it peaks
 # depends on the choice of local computational basis. Our measurement is consistent with theirs in the sense that we,
 # too, find a peak whose position moves with a seemingly innocent change of setup (boundary conditions here, basis there). What $M_2$
 # certainly does at criticality is reach an $O(N)$ value with the largest density in the accessible window; it does
-# *not* diverge, and at $N\le10$ its behaviour in $h$ is smooth, as the figure shows. Haug and Piroli locate the
+# *not* diverge, and at $N\le10$ its behaviour in $h$ is smooth, as the figure shows. The same authors locate the
 # signature of the transition elsewhere: writing $M_2=D_NN+c_N$, the subleading term $c_N$ appears to develop a
 # discontinuity at $h=1$ in every local basis they examine, a feature that sizes this small cannot resolve.
 #
@@ -2260,26 +2258,26 @@ print(f"\nN = {N_m}: the maximally mixed state is reported as having M_2 = {N_m}
 # two stabilizer states in the last row is reported as carrying magic although it lies inside the convex hull of the
 # stabilizer states, where any magic measure must vanish by definition.
 #
-# **What to use instead.** The failure is one of *faithfulness*, and it is the reason Haug and Piroli (Quantum 2023)
-# restrict their analysis of the stabilizer entropies to pure states: if mixed stabilizer states are defined as the convex hull of
+# **What to use instead.** The failure is one of *faithfulness*, and it is the reason [[10]](#ref-10)
+# restricts its analysis of the stabilizer entropies to pure states: if mixed stabilizer states are defined as the convex hull of
 # pure stabilizer states, the property "$M_\alpha=0$ if and only if the state is a stabilizer state" is lost. Three
 # routes out, all quoted:
 #
 # * **Convex roof.** $M_\alpha^{\rm roof}(\rho)=\min\sum_kp_kM_\alpha(\vert\psi_k\rangle)$ over all pure-state
-#   decompositions. Leone and Bittel (2024) prove that this is a monotone for $\alpha\ge2$. It is also a minimisation over
+#   decompositions. Ref. [[9]](#ref-9) proves that this is a monotone for $\alpha\ge2$. It is also a minimisation over
 #   an unbounded set and is not computable beyond tiny systems.
-# * **Robustness of magic** (Howard and Campbell 2017): the minimal $\ell_1$-weight of a quasi-probability decomposition
+# * **Robustness of magic** [[13]](#ref-13): the minimal $\ell_1$-weight of a quasi-probability decomposition
 #   over stabilizer states. Faithful and operationally meaningful (it controls the cost of classical simulation), but it is
 #   a linear program over the stabilizer polytope, whose size grows as $2^{O(N^2)}$.
-# * **Mana** (Veitch, Mousavian, Gottesman and Emerson 2014): $\mathcal M(\rho)=\log\sum_u\vert W_\rho(u)\vert$, the
+# * **Mana** [[12]](#ref-12): $\mathcal M(\rho)=\log\sum_u\vert W_\rho(u)\vert$, the
 #   logarithm of the $\ell_1$-norm of the discrete Wigner function (equivalently $\log(2\,\mathrm{sn}(\rho)+1)$ with
 #   $\mathrm{sn}$ the sum of the negative entries). Computationally cheap and additive, but defined only in odd prime
 #   dimensions, so it does not apply to qubits at all.
 #
 # For qubit systems and pure states — which is the setting of essentially all many-body applications — $M_\alpha$ with
 # $\alpha\ge2$ is the magic monotone of choice: it can be evaluated at $N\sim10$ exactly and, with tensor-network or
-# sampling methods (Haug and Piroli, Phys. Rev. B 2023; Tarabunga, Tirrito, Chanda and Dalmonte 2023), at $N\sim100$; on a quantum
-# computer it can be measured efficiently from Bell measurements on copies of the state (Haug, Lee and Kim 2024).
+# sampling methods [[17]](#ref-17), [[18]](#ref-18), at $N\sim100$; on a quantum
+# computer it can be measured efficiently from Bell measurements on copies of the state [[19]](#ref-19).
 
 # %% [markdown]
 # ## 12. Cost summary
@@ -2295,9 +2293,8 @@ print(f"\nN = {N_m}: the maximally mixed state is reported as having M_2 = {N_m}
 #
 # The Walsh-Hadamard algorithm is exact — it reorganises the same $4^N$-term sum without approximation — and it
 # buys a factor $2^N$ in arithmetic, which is $8192$ at $N=13$. Going substantially beyond $N\approx15$ on a single core needs a
-# different idea: either sampling the Pauli distribution by Monte Carlo on a tensor-network state (Tarabunga, Tirrito,
-# Chanda and Dalmonte 2023) or representing the state as a matrix product state and contracting the replicated network
-# (Haug and Piroli, Phys. Rev. B 2023), both of which reach $N\sim100$ at the price of a statistical or a truncation error.
+# different idea: either sampling the Pauli distribution by Monte Carlo on a tensor-network state [[18]](#ref-18) or representing the state as a matrix product state and contracting the replicated network
+# [[17]](#ref-17), both of which reach $N\sim100$ at the price of a statistical or a truncation error.
 #
 # ## 13. Key takeaways
 #
@@ -2310,8 +2307,8 @@ print(f"\nN = {N_m}: the maximally mixed state is reported as having M_2 = {N_m}
 # * **$M_\alpha$ is the Renyi entropy of that distribution, offset by $N$ bits.** It vanishes on stabilizer states, is
 #   invariant under every Clifford unitary (proved from the normaliser property), is additive on product states, and is
 #   bounded by $\log_2\frac{2^N+1}{2}$ — a bound saturated at $N=1$ by the $T$-type states $(\pm1,\pm1,\pm1)/\sqrt3$ with
-#   $\log_2\frac32=0.585$ bit. Monotonicity under stabilizer protocols holds for $\alpha\ge2$ (Leone and Bittel 2024) and
-#   fails for $\alpha<2$ (Haug and Piroli, Quantum 2023).
+#   $\log_2\frac32=0.585$ bit. Monotonicity under stabilizer protocols holds for $\alpha\ge2$ [[9]](#ref-9) and
+#   fails for $\alpha<2$ [[10]](#ref-10).
 # * **The standard magic state is not the most magical one.** $T\vert+\rangle$ has $\log_2\frac43=0.415$ bit, below the
 #   single-qubit maximum $\log_2\frac32=0.585$ bit.
 # * **A typical state is almost maximally magical.** The Haar average of the linear stabilizer entropy is exactly
@@ -2322,8 +2319,8 @@ print(f"\nN = {N_m}: the maximally mixed state is reported as having M_2 = {N_m}
 #   $\begin{pmatrix}1&1\\1&-1\end{pmatrix}$ applied to every tensor axis. Cost $O(N4^N)$ instead of $O(N8^N)$; measured
 #   agreement with brute force to $10^{-14}$ on every state family, and $N=13$ inside a notebook cell.
 # * **Physics.** When the Clifford gates between consecutive $T$ gates scramble the state, the first $T$ gates each add
-#   $\log_2\frac43$ (or, rarely, nothing), and the average magic follows the closed form Eq. (19) of Leone, Oliviero and
-#   Hamma, approaching the Haar value by a factor of about $\frac34$ per $T$ gate, with the crossover at
+#   $\log_2\frac43$ (or, rarely, nothing), and the average magic follows the closed form Eq. (19) of [[4]](#ref-4),
+#   approaching the Haar value by a factor of about $\frac34$ per $T$ gate, with the crossover at
 #   $k_\times\approx2.41(N-2)$, Eq. (20). Crowding the same $T$ gates into a shallow brick wall slows the approach
 #   considerably, which is a property of that circuit. In the Ising ring the magic density peaks at $h=1$ (within the grid spacing
 #   $\Delta h=0.1$) with $\alpha(1)=0.4417$, while
@@ -2397,61 +2394,81 @@ print(f"\nN = {N_m}: the maximally mixed state is reported as having M_2 = {N_m}
 #
 # ## 15. References
 #
-# * C. Gidney and M. Ekerå, *How to factor 2048 bit RSA integers in 8 hours using 20 million noisy qubits*,
-#   Quantum **5**, 433 (2021) — the Toffoli count quoted in Section 1.
-# * D. Gottesman, *Stabilizer codes and quantum error correction*, Ph.D. thesis, California Institute of Technology (1997);
-#   arXiv:quant-ph/9705052 — the stabilizer formalism, Section 4.1.
-# * D. Gottesman, *The Heisenberg representation of quantum computers*, in *Group22: Proceedings of the XXII International
-#   Colloquium on Group Theoretical Methods in Physics*, edited by S. P. Corney, R. Delbourgo and P. D. Jarvis
-#   (International Press, Cambridge MA, 1999), pp. 32-43; arXiv:quant-ph/9807006 — the Gottesman-Knill theorem,
-#   Section 4.3.
-# * S. Aaronson and D. Gottesman, *Improved simulation of stabilizer circuits*, Phys. Rev. A **70**, 052328 (2004) —
-#   the tableau algorithm quoted in Section 4.3: $O(N)$ per Clifford gate, $O(N^2)$ per computational-basis measurement.
-# * A. R. Calderbank, E. M. Rains, P. W. Shor and N. J. A. Sloane, *Quantum error correction via codes over GF(4)*,
-#   IEEE Trans. Inf. Theory **44**, 1369 (1998) — the order of the Clifford group, Section 4.2.
-# * R. Koenig and J. A. Smolin, *How to efficiently select an arbitrary Clifford group element*,
-#   J. Math. Phys. **55**, 122202 (2014) — the order $2^{N^2+2N}\prod_k(4^k-1)$ of the Clifford group modulo phases,
-#   Section 4.2.
-# * S. Bravyi and A. Kitaev, *Universal quantum computation with ideal Clifford gates and noisy ancillas*,
-#   Phys. Rev. A **71**, 022316 (2005) — magic-state distillation; Definition 1 of that paper fixes the $T$-type and
-#   $H$-type states used in Section 7.1.
-# * V. Veitch, C. Ferrie, D. Gross and J. Emerson, *Negative quasi-probability as a resource for quantum computation*,
-#   New J. Phys. **14**, 113011 (2012) — Wigner negativity as a resource.
-# * V. Veitch, S. A. H. Mousavian, D. Gottesman and J. Emerson, *The resource theory of stabilizer quantum computation*,
-#   New J. Phys. **16**, 013009 (2014) — the resource theory, the relative entropy of magic and the mana, Sections 6.6 and 11.
-# * M. Howard and E. T. Campbell, *Application of a resource theory for magic states to fault-tolerant quantum computing*,
-#   Phys. Rev. Lett. **118**, 090501 (2017) — the robustness of magic, Sections 6.6 and 11.
-# * M. Beverland, E. Campbell, M. Howard and V. Kliuchnikov, *Lower bounds on the non-Clifford resources for quantum
-#   computations*, Quantum Sci. Technol. **5**, 035009 (2020) — the stabilizer nullity, Section 6.6.
-# * L. Leone, S. F. E. Oliviero and A. Hamma, *Stabilizer Renyi entropy*, Phys. Rev. Lett. **128**, 050402 (2022) —
-#   the definition of $M_\alpha$, its properties, the bound $\log_2\frac{2^N+1}{2}$, the nullity bound
-#   $M_\alpha\le\nu$ of Section 6.6, the Haar average $\mathbb E[M_{\rm lin}]=1-4/(2^N+3)$ of Section 7.3, and the
-#   average linear stabilizer entropy of $k$-doped random Clifford circuits, Eq. (19) of Section 10.1 (Eq. (13) of the
-#   paper).
-# * L. Leone, S. F. E. Oliviero, Y. Zhou and A. Hamma, *Quantum chaos is quantum*, Quantum **5**, 453 (2021) —
-#   $k=\Theta(N)$ non-Clifford gates are necessary and sufficient for the eight-point out-of-time-order correlator and
-#   the fluctuations of the subsystem purity of a doped Clifford circuit to reach their Haar values, quoted in
-#   Section 10.1. That paper studies no magic monotone; the comparison in Section 10.1 is between different diagnostics.
-# * S. F. E. Oliviero, L. Leone and A. Hamma, *Magic-state resource theory for the ground state of the transverse-field
-#   Ising model*, Phys. Rev. A **106**, 042426 (2022) — the magic density $\alpha(\lambda)$ of Section 10.3, defined
-#   as the slope of $M_2=\alpha N+\beta$ fitted over $N\in[5,12]$ and peaking at $\lambda=1$ with
-#   $\alpha(1)\approx0.44$; their Hamiltonian is $-\sum_i(X_iX_{i+1}+\lambda Z_i)$, a global Hadamard from ours.
-# * T. Haug and L. Piroli, *Quantifying nonstabilizerness of matrix product states*, Phys. Rev. B **107**, 035148 (2023) —
-#   matrix-product-state evaluation of $M_\alpha$, and the finding that it is in general not maximal at a critical point
-#   and depends on the local computational basis (Section 10.3).
-# * T. Haug and L. Piroli, *Stabilizer entropies and nonstabilizerness monotones*, Quantum **7**, 1092 (2023) —
-#   counterexamples to monotonicity for $0\le\alpha<2$ and failure of strong monotonicity for every $\alpha$
-#   (Section 6.6); the paper restricts itself to pure states because $M_\alpha$ is not faithful on the convex hull of
-#   the stabilizer states (Section 11).
-# * L. Leone and L. Bittel, *Stabilizer entropies are monotones for magic-state resource theory*,
-#   Phys. Rev. A **110**, L040403 (2024) — monotonicity for $\alpha\ge2$ on pure states, strong monotonicity of the linear
-#   stabilizer entropy, and the convex-roof extension to mixed states (Sections 6.6 and 11).
-# * P. Sierant, J. Vallès-Muns and A. Garcia-Saez, *Computing quantum magic of state vectors*, Quantum **10**, 2059 (2026);
-#   arXiv:2601.07824 — the $O(N4^N)$ fast-Hadamard-transform algorithm for $M_\alpha$ of Section 9.
-# * T. Haug, S. Lee and M. S. Kim, *Efficient quantum algorithms for stabilizer entropies*,
-#   Phys. Rev. Lett. **132**, 240602 (2024) — measurement of $M_\alpha$ on a quantum computer by Bell measurements,
-#   Section 11.
-# * P. S. Tarabunga, E. Tirrito, T. Chanda and M. Dalmonte, *Many-body magic via Pauli-Markov chains - from criticality to
-#   gauge theories*, PRX Quantum **4**, 040317 (2023) — Monte Carlo sampling of the Pauli distribution, Section 12.
-# * M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information*, 10th anniversary edition
-#   (Cambridge University Press, 2010), Section 10.5 — the stabilizer formalism as a textbook chapter.
+# <span id="ref-1">[1]</span> D. Gottesman, *The Heisenberg representation of quantum computers*, in *Group22: Proceedings of the XXII International
+# Colloquium on Group Theoretical Methods in Physics*, edited by S. P. Corney, R. Delbourgo and P. D. Jarvis
+# (International Press, Cambridge MA, 1999), pp. 32-43; arXiv:quant-ph/9807006 — the Gottesman-Knill theorem,
+# Section 4.3.
+#
+# <span id="ref-2">[2]</span> S. Bravyi and A. Kitaev, *Universal quantum computation with ideal Clifford gates and noisy ancillas*,
+# Phys. Rev. A **71**, 022316 (2005) — magic-state distillation; Definition 1 of that paper fixes the $T$-type and
+# $H$-type states used in Section 7.1.
+#
+# <span id="ref-3">[3]</span> C. Gidney and M. Ekerå, *How to factor 2048 bit RSA integers in 8 hours using 20 million noisy qubits*,
+# Quantum **5**, 433 (2021) — the Toffoli count quoted in Section 1.
+#
+# <span id="ref-4">[4]</span> L. Leone, S. F. E. Oliviero and A. Hamma, *Stabilizer Renyi entropy*, Phys. Rev. Lett. **128**, 050402 (2022) —
+# the definition of $M_\alpha$, its properties, the bound $\log_2\frac{2^N+1}{2}$, the nullity bound
+# $M_\alpha\le\nu$ of Section 6.6, the Haar average $\mathbb E[M_{\rm lin}]=1-4/(2^N+3)$ of Section 7.3, and the
+# average linear stabilizer entropy of $k$-doped random Clifford circuits, Eq. (19) of Section 10.1 (Eq. (13) of the
+# paper).
+#
+# <span id="ref-5">[5]</span> D. Gottesman, *Stabilizer codes and quantum error correction*, Ph.D. thesis, California Institute of Technology (1997);
+# arXiv:quant-ph/9705052 — the stabilizer formalism, Section 4.1.
+#
+# <span id="ref-6">[6]</span> A. R. Calderbank, E. M. Rains, P. W. Shor and N. J. A. Sloane, *Quantum error correction via codes over GF(4)*,
+# IEEE Trans. Inf. Theory **44**, 1369 (1998) — the order of the Clifford group, Section 4.2.
+#
+# <span id="ref-7">[7]</span> R. Koenig and J. A. Smolin, *How to efficiently select an arbitrary Clifford group element*,
+# J. Math. Phys. **55**, 122202 (2014) — the order $2^{N^2+2N}\prod_k(4^k-1)$ of the Clifford group modulo phases,
+# Section 4.2.
+#
+# <span id="ref-8">[8]</span> S. Aaronson and D. Gottesman, *Improved simulation of stabilizer circuits*, Phys. Rev. A **70**, 052328 (2004) —
+# the tableau algorithm quoted in Section 4.3: $O(N)$ per Clifford gate, $O(N^2)$ per computational-basis measurement.
+#
+# <span id="ref-9">[9]</span> L. Leone and L. Bittel, *Stabilizer entropies are monotones for magic-state resource theory*,
+# Phys. Rev. A **110**, L040403 (2024) — monotonicity for $\alpha\ge2$ on pure states, strong monotonicity of the linear
+# stabilizer entropy, and the convex-roof extension to mixed states (Sections 6.6 and 11).
+#
+# <span id="ref-10">[10]</span> T. Haug and L. Piroli, *Stabilizer entropies and nonstabilizerness monotones*, Quantum **7**, 1092 (2023) —
+# counterexamples to monotonicity for $0\le\alpha<2$ and failure of strong monotonicity for every $\alpha$
+# (Section 6.6); the paper restricts itself to pure states because $M_\alpha$ is not faithful on the convex hull of
+# the stabilizer states (Section 11).
+#
+# <span id="ref-11">[11]</span> M. Beverland, E. Campbell, M. Howard and V. Kliuchnikov, *Lower bounds on the non-Clifford resources for quantum
+# computations*, Quantum Sci. Technol. **5**, 035009 (2020) — the stabilizer nullity, Section 6.6.
+#
+# <span id="ref-12">[12]</span> V. Veitch, S. A. H. Mousavian, D. Gottesman and J. Emerson, *The resource theory of stabilizer quantum computation*,
+# New J. Phys. **16**, 013009 (2014) — the resource theory, the relative entropy of magic and the mana, Sections 6.6 and 11.
+#
+# <span id="ref-13">[13]</span> M. Howard and E. T. Campbell, *Application of a resource theory for magic states to fault-tolerant quantum computing*,
+# Phys. Rev. Lett. **118**, 090501 (2017) — the robustness of magic, Sections 6.6 and 11.
+#
+# <span id="ref-14">[14]</span> P. Sierant, J. Vallès-Muns and A. Garcia-Saez, *Computing quantum magic of state vectors*, Quantum **10**, 2059 (2026);
+# arXiv:2601.07824 — the $O(N4^N)$ fast-Hadamard-transform algorithm for $M_\alpha$ of Section 9.
+#
+# <span id="ref-15">[15]</span> L. Leone, S. F. E. Oliviero, Y. Zhou and A. Hamma, *Quantum chaos is quantum*, Quantum **5**, 453 (2021) —
+# $k=\Theta(N)$ non-Clifford gates are necessary and sufficient for the eight-point out-of-time-order correlator and
+# the fluctuations of the subsystem purity of a doped Clifford circuit to reach their Haar values, quoted in
+# Section 10.1. That paper studies no magic monotone; the comparison in Section 10.1 is between different diagnostics.
+#
+# <span id="ref-16">[16]</span> S. F. E. Oliviero, L. Leone and A. Hamma, *Magic-state resource theory for the ground state of the transverse-field
+# Ising model*, Phys. Rev. A **106**, 042426 (2022) — the magic density $\alpha(\lambda)$ of Section 10.3, defined
+# as the slope of $M_2=\alpha N+\beta$ fitted over $N\in[5,12]$ and peaking at $\lambda=1$ with
+# $\alpha(1)\approx0.44$; their Hamiltonian is $-\sum_i(X_iX_{i+1}+\lambda Z_i)$, a global Hadamard from ours.
+#
+# <span id="ref-17">[17]</span> T. Haug and L. Piroli, *Quantifying nonstabilizerness of matrix product states*, Phys. Rev. B **107**, 035148 (2023) —
+# matrix-product-state evaluation of $M_\alpha$, and the finding that it is in general not maximal at a critical point
+# and depends on the local computational basis (Section 10.3).
+#
+# <span id="ref-18">[18]</span> P. S. Tarabunga, E. Tirrito, T. Chanda and M. Dalmonte, *Many-body magic via Pauli-Markov chains - from criticality to
+# gauge theories*, PRX Quantum **4**, 040317 (2023) — Monte Carlo sampling of the Pauli distribution, Section 12.
+#
+# <span id="ref-19">[19]</span> T. Haug, S. Lee and M. S. Kim, *Efficient quantum algorithms for stabilizer entropies*,
+# Phys. Rev. Lett. **132**, 240602 (2024) — measurement of $M_\alpha$ on a quantum computer by Bell measurements,
+# Section 11.
+#
+# <span id="ref-20">[20]</span> V. Veitch, C. Ferrie, D. Gross and J. Emerson, *Negative quasi-probability as a resource for quantum computation*,
+# New J. Phys. **14**, 113011 (2012) — Wigner negativity as a resource.
+#
+# <span id="ref-21">[21]</span> M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information*, 10th anniversary edition
+# (Cambridge University Press, 2010), Section 10.5 — the stabilizer formalism as a textbook chapter.

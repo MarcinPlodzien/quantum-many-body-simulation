@@ -3,24 +3,24 @@
 #@description: A probe-preparation circuit trained by gradient ascent on the quantum Fisher information of its noisy output: an eigendecomposition-free gradient of the mixed-state QFI derived from a variational formula, the Heisenberg limit recovered without noise, optimised probes under local dephasing, amplitude damping and particle loss compared with fairly tuned GHZ, product and one-axis-twisted probes, the anatomy of the optimal states, and readout circuits trained on the classical Fisher information of the measured bit strings.
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
 # The notebooks of Chapter 10 built the quantum Fisher information (QFI) $F_Q$ and the protocols that reach its two
 # landmarks. For $N$ two-level atoms (qubits) whose phase $\theta$ is imprinted by the collective rotation
 # $e^{-i\theta J_z}$, with $J_z=\tfrac12\sum_q Z_q$, an unentangled probe reaches at best $F_Q=N$, the standard quantum
-# limit, and the GHZ state $(\vert0\cdots0\rangle+\vert1\cdots1\rangle)/\sqrt2$ of Greenberger, Horne and Zeilinger (1989)
-# reaches $F_Q=N^2$, the Heisenberg limit, as Bollinger *et al.* (1996) showed for spectroscopy. The quantum Cramér–Rao
-# bound $\Delta\theta\ge1/\sqrt{MF_Q}$ for $M$ repetitions (Helstrom 1967; Braunstein and Caves 1994) turns these numbers into error bars
+# limit, and the GHZ state $(\vert0\cdots0\rangle+\vert1\cdots1\rangle)/\sqrt2$ [[1]](#ref-1)
+# reaches $F_Q=N^2$, the Heisenberg limit, as shown for spectroscopy in [[2]](#ref-2). The quantum Cramér–Rao
+# bound $\Delta\theta\ge1/\sqrt{MF_Q}$ for $M$ repetitions [[3]](#ref-3), [[4]](#ref-4) turns these numbers into error bars
 # ([notebook 29](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb)).
 #
 # [Notebook 32](../ch10_quantum_metrology_protocols/32_ghz_interferometry_heisenberg_limit.ipynb) showed how fragile the
 # second landmark is. Under independent dephasing of every atom the QFI of the GHZ state falls as $N^2(1-2p)^{2N}$, and
 # for large enough $N$ this is smaller than the value $N(1-2p)^2$ of the unentangled probe. Once noise is present, the
-# GHZ state is in general no longer the best probe, and which probe is best depends on the noise. Huelga *et al.* (1997) found for
+# GHZ state is in general no longer the best probe, and which probe is best depends on the noise. Ref. [[5]](#ref-5) found for
 # dephasing that maximally entangled and uncorrelated atoms give the same frequency resolution and that partially
-# entangled states do better. Escher, de Matos Filho and Davidovich (2011) showed for photon loss and for dephasing, and
-# Demkowicz-Dobrzański, Kołodyński and Guţă (2012) for generic uncorrelated noise, that the quantum gain at large $N$
-# shrinks to a constant factor (the review of Pezzè *et al.* (2018) collects these results for atomic ensembles). These
+# entangled states do better. Ref. [[6]](#ref-6) showed for photon loss and for dephasing, and
+# Ref. [[7]](#ref-7) for generic uncorrelated noise, that the quantum gain at large $N$
+# shrinks to a constant factor (the review [[8]](#ref-8) collects these results for atomic ensembles). These
 # results bound what is possible; at a given $N$ and noise strength they do not hand us the state that achieves the
 # best value.
 #
@@ -33,12 +33,12 @@
 #
 # for a fixed encoding generator $J_z$ and a fixed noise channel $\mathcal E$. This is the variational eigensolver of
 # [notebook 42](../ch13_quantum_machine_learning/42_variational_quantum_eigensolver.ipynb) with the energy replaced by
-# the QFI. Numerical optimisation of the input state over the whole state space came first: Demkowicz-Dobrzański *et al.*
-# (2009) found the optimal two-mode states of a lossy optical interferometer, and Macieszczak (2013) gave an alternating
-# algorithm for the best input of a noisy channel. Parametrised circuits as the search space were proposed by Kaubruegger
-# *et al.* (2019, 2021) for programmable atomic sensors and by Koczor, Endo, Jones, Matsuzaki and Benjamin (2020), who
-# named the approach *variational-state quantum metrology*; Meyer, Borregaard and Eisert (2021) extended it to several
-# parameters, and Marciniak *et al.* (2022) ran it on a trapped-ion sensor.
+# the QFI. Numerical optimisation of the input state over the whole state space came first: Ref. [[9]](#ref-9)
+# found the optimal two-mode states of a lossy optical interferometer, and Ref. [[10]](#ref-10) gave an alternating
+# algorithm for the best input of a noisy channel. Parametrised circuits as the search space were proposed in
+# [[11]](#ref-11), [[12]](#ref-12) for programmable atomic sensors and in [[13]](#ref-13), which
+# named the approach *variational-state quantum metrology*; Ref. [[14]](#ref-14) extended it to several
+# parameters, and Ref. [[15]](#ref-15) ran it on a trapped-ion sensor.
 #
 # Two technical points make the problem different from the eigensolver. First, the cost is a nonlinear function of the
 # density matrix, computed from its eigendecomposition, and differentiating through that eigendecomposition fails at
@@ -167,7 +167,7 @@ def run_timed(compiled, *args):
 # Every experiment below has four stages.
 #
 # 1. **Prepare.** A circuit $U(\boldsymbol\varphi)$ acts on $\vert0\cdots0\rangle$. We use the hardware-efficient ansatz
-#    (Kandala *et al.* 2017) of
+#    [[16]](#ref-16) of
 #    [notebook 40](../ch13_quantum_machine_learning/40_parametrized_gates_and_gradients.ipynb): $L$ layers, each a
 #    rotation $R_z R_y$ on every qubit followed by a chain of CZ gates, and a final rotation layer, $2N(L+1)$ angles in
 #    total. Unless stated otherwise $L=N$.
@@ -293,7 +293,7 @@ def run_timed(compiled, *args):
 # decay moves into $\vert0\cdots0\rangle$. Under dephasing and loss the analogous calculation gives $4s(1-s)$ times Eq. (5a) or (5c), so
 # the balanced GHZ state is the best of its family there.
 #
-# **One-axis-twisted probes.** The third family is that of notebooks 33 and 34 (Kitagawa and Ueda 1993),
+# **One-axis-twisted probes.** The third family is that of notebooks 33 and 34 [[17]](#ref-17),
 # $\vert\psi_{\rm OAT}(\mu,a,b)\rangle=e^{-ibJ_y}e^{-iaJ_x}e^{-i\mu J_z^2}\vert+\rangle^{\otimes N}$. Small twisting
 # strengths $\mu$ give spin-squeezed states, and at $\mu=\pi/2$ the twisting produces a cat state, which the two rotations
 # can turn into a GHZ state along $z$ (notebook 34, Section 4). The family has no closed form under noise; we tune
@@ -419,7 +419,7 @@ for N in N_LIST:
 #
 # $$f(X)\le F_Q[\sigma]\quad\text{for every Hermitian }X,\qquad f(L)=F_Q[\sigma]. \tag{10}$$
 #
-# This variational characterisation of the QFI is given, with an iterative algorithm built on it, by Macieszczak (2013).
+# This variational characterisation of the QFI is given, with an iterative algorithm built on it, in [[10]](#ref-10).
 # For the unitary encoding $\partial_\theta\sigma=-i[J_z,\sigma]$, cyclicity of the trace gives
 # $\mathrm{Tr}(X\partial_\theta\sigma)=-i\,\mathrm{Tr}(XJ_z\sigma-X\sigma J_z)=-i\,\mathrm{Tr}\big(\sigma[X,J_z]\big)=i\,\mathrm{Tr}\big(\sigma[J_z,X]\big)$,
 # so $f$ is the expectation value of a Hermitian observable:
@@ -708,12 +708,12 @@ print(f"condition number of the Lyapunov matrix: pure probe {float(jnp.linalg.co
 #
 # ### 5.2 Training loop and success criterion
 #
-# `ascend` runs Adam (Kingma and Ba 2014; [notebook 41](../ch13_quantum_machine_learning/41_optimizers.ipynb),
+# `ascend` runs Adam [[18]](#ref-18) ([notebook 41](../ch13_quantum_machine_learning/41_optimizers.ipynb),
 # Section 6) inside a `lax.scan`, and `jax.vmap` runs 32 random starts in one compiled program. The step size shrinks
 # geometrically from $\alpha_0=0.1$ to $0.01$ over the run. Adam divides the gradient by a running average of its own
 # magnitude, so its step does not shrink as the gradient goes to zero; with a constant step size the iterate keeps moving
 # around the maximum, which Section 9.2 measures. A run counts as a success if its final $F_Q$ exceeds $N^2-10^{-3}$.
-# The success probability is reported with the 95% score interval of Wilson (1927), used in notebook 41: for $k$
+# The success probability is reported with the 95% Wilson score interval [[19]](#ref-19), used in notebook 41: for $k$
 # successes in $n$ runs and $\hat p=k/n$, $z=1.96$,
 #
 # $$\hat p_\pm=\frac{\hat p+z^2/2n\pm z\sqrt{\hat p(1-\hat p)/n+z^2/4n^2}}{1+z^2/n},$$
@@ -1080,9 +1080,9 @@ for N in N_LIST:
 # population of $\vert0\cdots0\rangle$ equals $s^\ast$ to four digits, so the whole gain over the three families comes from
 # unbalancing the GHZ state. At $N=6$ the hypothesis fails: the variational value exceeds $F^\ast$ by $0.108$ ($0.7\%$), a
 # hundred times the spread of the four best starts, and the state has only $0.90$ overlap with the closest GHZ state.
-# Koczor *et al.* (2020) report a similar observation, ansatz states for amplitude damping that are not permutation
+# Ref. [[13]](#ref-13) reports a similar observation, ansatz states for amplitude damping that are not permutation
 # symmetric from $N=5$ on and beat GHZ and all symmetric states, in a setting where the sensing time is optimised as
-# well; they explain the advantage by a passive correction of single decay events.
+# well; the authors explain the advantage by a passive correction of single decay events.
 #
 # ### 6.4 The circuit optimum against an optimum over all states
 #
@@ -1091,7 +1091,7 @@ for N in N_LIST:
 # $\psi=(\mathbf v_{\rm re}+i\mathbf v_{\rm im})/\Vert\mathbf v\Vert$, and the same cost, Eq. (2) or Eq. (3), is maximised
 # over $\mathbf v$ with the same `qfi_dm` gradient and Adam (step size $0.05$, 1000 steps, 4 starts). Every normalised
 # state is reachable, so the result is the best value over all probes, up to the usual caveat of a local optimiser. This
-# is the problem that the alternating algorithm of Macieszczak (2013) solves; the circuit is what a device can prepare.
+# is the problem that the alternating algorithm of [[10]](#ref-10) solves; the circuit is what a device can prepare.
 
 # %%
 # ==============================================================================
@@ -1258,7 +1258,7 @@ print(f"loss optimum, Eq. (3) split: all particles survive {f_all:.4f}, some los
 #   were lost, zero for GHZ (Eq. 5c), make up the difference and more.
 #
 # The even-$k$ structure under damping is not analysed here; the data establish only that the best of the 8 starts has
-# it. Koczor *et al.* (2020) relate the non-symmetric optimal states under damping to a passive correction of single
+# it. Ref. [[13]](#ref-13) relates the non-symmetric optimal states under damping to a passive correction of single
 # decay events, and Exercise 7 asks how much of the gain survives a restriction to symmetric states.
 
 # %% [markdown]
@@ -1270,7 +1270,7 @@ print(f"loss optimum, Eq. (3) split: all particles survive {f_all:.4f}, some los
 #
 # $$F_C(\theta)=\sum_x\frac{\big(\partial_\theta p_x(\theta)\big)^2}{p_x(\theta)},\qquad p_x(\theta)=\langle x\vert V\rho_\theta V^\dagger\vert x\rangle. \tag{14}$$
 #
-# Braunstein and Caves (1994) showed $F_C\le F_Q$ for every measurement, with equality for the projective measurement in
+# Ref. [[4]](#ref-4) showed $F_C\le F_Q$ for every measurement, with equality for the projective measurement in
 # the eigenbasis of the SLD (proved in notebook 29, Section 5.3, and constructed in notebook 30, Section 8). Every
 # projective measurement is a computational-basis measurement after some unitary $V$; the question is how deep $V$ must be.
 #
@@ -1670,7 +1670,7 @@ for name, psi in rows.items():
 # 6. ★★★ **Frequency estimation and the interrogation time (physics).** If the phase is $\theta=\omega t$ and the
 #    dephasing comes from a rate $\gamma$, then $1-2p=e^{-\gamma t}$, and with a total time $T$ split into $T/t$
 #    repetitions the precision is $(\Delta\omega)^{-2}=T\,t\,F_Q(t)$. Show that the product state and the GHZ state both
-#    give $\max_t t\,F_Q=N/(2e\gamma)$ (the result of Huelga *et al.*). Then maximise $t\,F_Q(t)$ jointly over the probe
+#    give $\max_t t\,F_Q=N/(2e\gamma)$ (the result of [[5]](#ref-5)). Then maximise $t\,F_Q(t)$ jointly over the probe
 #    angles and $\log t$ at $N=4$, $\gamma=1$, and report the gain over $N/(2e)$ and the optimal $t$.
 # 7. ★★★ **Symmetric probes under damping (extend the code).** Parametrise a permutation-symmetric probe at $N=6$ as
 #    $\sum_kc_k\vert D_6^k\rangle$ with seven complex coefficients, maximise its QFI under damping $g=0.2$, and compare with
@@ -1685,49 +1685,74 @@ for name, psi in rows.items():
 # %% [markdown]
 # ## References
 #
-# * S. F. Huelga, C. Macchiavello, T. Pellizzari, A. K. Ekert, M. B. Plenio and J. I. Cirac, *Improvement of frequency
-#   standards with quantum entanglement*, Phys. Rev. Lett. **79**, 3865 (1997) — under dephasing, maximally entangled and
-#   uncorrelated atoms give the same resolution, partially entangled states do better (Exercise 6).
-# * B. M. Escher, R. L. de Matos Filho and L. Davidovich, *General framework for estimating the ultimate precision limit in
-#   noisy quantum-enhanced metrology*, Nat. Phys. **7**, 406 (2011) — bounds for lossy interferometry and dephased
-#   spectroscopy; loss of the Heisenberg scaling at large $N$.
-# * R. Demkowicz-Dobrzański, J. Kołodyński and M. Guţă, *The elusive Heisenberg limit in quantum-enhanced metrology*,
-#   Nat. Commun. **3**, 1063 (2012) — for generic uncorrelated noise the quantum gain is asymptotically a constant factor.
-# * R. Demkowicz-Dobrzański, U. Dorner, B. J. Smith, J. S. Lundeen, W. Wasilewski, K. Banaszek and I. A. Walmsley,
-#   *Quantum phase estimation with lossy interferometers*, Phys. Rev. A **80**, 013825 (2009) — optimal two-mode optical
-#   states under photon loss, found numerically.
-# * B. Koczor, S. Endo, T. Jones, Y. Matsuzaki and S. C. Benjamin, *Variational-state quantum metrology*, New J. Phys.
-#   **22**, 083038 (2020) — variational probe circuits under dephasing, amplitude damping and other noise; non-symmetric
-#   optimal states under damping.
-# * R. Kaubruegger, P. Silvi, C. Kokail, R. van Bijnen, A. M. Rey, J. Ye, A. M. Kaufman and P. Zoller, *Variational
-#   spin-squeezing algorithms on programmable quantum sensors*, Phys. Rev. Lett. **123**, 260505 (2019) — variational
-#   circuits that prepare spin-squeezed states on atom-tweezer arrays used as programmable sensors.
-# * R. Kaubruegger, D. V. Vasilyev, M. Schulte, K. Hammerer and P. Zoller, *Quantum variational optimization of Ramsey
-#   interferometry and atomic clocks*, Phys. Rev. X **11**, 041045 (2021) — variational entangling and decoding circuits
-#   for a Bayesian cost.
-# * C. D. Marciniak, T. Feldker, I. Pogorelov, R. Kaubruegger, D. V. Vasilyev, R. van Bijnen, P. Schindler, P. Zoller,
-#   R. Blatt and T. Monz, *Optimal metrology with programmable quantum sensors*, Nature **603**, 604 (2022) — variational
-#   input states and measurements on a 26-ion device.
-# * J. J. Meyer, J. Borregaard and J. Eisert, *A variational toolbox for quantum multi-parameter estimation*,
-#   npj Quantum Inf. **7**, 89 (2021) — variational probes and measurements, and a parameter-shift rule for noisy
-#   evolutions.
-# * K. Macieszczak, *Quantum Fisher information: variational principle and simple iterative algorithm for its efficient
-#   computation*, arXiv:1312.1356 (2013) — the variational formula of Eqs. (10)–(11) and an alternating algorithm built on
-#   it.
-# * C. W. Helstrom, *Minimum mean-squared error of estimates in quantum statistics*, Phys. Lett. A **25**, 101 (1967) —
-#   the symmetric logarithmic derivative and the quantum Cramér–Rao bound.
-# * D. M. Greenberger, M. A. Horne and A. Zeilinger, *Going beyond Bell's theorem*, in *Bell's Theorem, Quantum Theory,
-#   and Conceptions of the Universe*, ed. M. Kafatos (Kluwer, Dordrecht, 1989), p. 69 — the GHZ state.
-# * J. J. Bollinger, W. M. Itano, D. J. Wineland and D. J. Heinzen, *Optimal frequency measurements with maximally
-#   correlated states*, Phys. Rev. A **54**, R4649 (1996) — the GHZ state reaches the Heisenberg limit in spectroscopy.
-# * A. Kandala, A. Mezzacapo, K. Temme, M. Takita, M. Brink, J. M. Chow and J. M. Gambetta, *Hardware-efficient
-#   variational quantum eigensolver for small molecules and quantum magnets*, Nature **549**, 242 (2017) — the
-#   hardware-efficient ansatz.
-# * S. L. Braunstein and C. M. Caves, *Statistical distance and the geometry of quantum states*, Phys. Rev. Lett. **72**,
-#   3439 (1994) — $F_C\le F_Q$ and its saturation, Section 8.
-# * M. Kitagawa and M. Ueda, *Squeezed spin states*, Phys. Rev. A **47**, 5138 (1993) — one-axis twisting.
-# * L. Pezzè, A. Smerzi, M. K. Oberthaler, R. Schmied and P. Treutlein, *Quantum metrology with nonclassical states of
-#   atomic ensembles*, Rev. Mod. Phys. **90**, 035005 (2018) — review of entanglement-enhanced metrology with atoms.
-# * E. B. Wilson, *Probable inference, the law of succession, and statistical inference*, J. Am. Stat. Assoc. **22**,
-#   209 (1927) — the score interval used for success rates.
-# * D. P. Kingma and J. Ba, *Adam: a method for stochastic optimization*, arXiv:1412.6980 (2014), ICLR 2015.
+# <span id="ref-1">[1]</span> D. M. Greenberger, M. A. Horne and A. Zeilinger, *Going beyond Bell's theorem*, in *Bell's
+# Theorem, Quantum Theory, and Conceptions of the Universe*, ed. M. Kafatos (Kluwer, Dordrecht, 1989), p. 69 — the GHZ
+# state.
+#
+# <span id="ref-2">[2]</span> J. J. Bollinger, W. M. Itano, D. J. Wineland and D. J. Heinzen, *Optimal frequency
+# measurements with maximally correlated states*, Phys. Rev. A **54**, R4649 (1996) — the GHZ state reaches the
+# Heisenberg limit in spectroscopy.
+#
+# <span id="ref-3">[3]</span> C. W. Helstrom, *Minimum mean-squared error of estimates in quantum statistics*, Phys.
+# Lett. A **25**, 101 (1967) — the symmetric logarithmic derivative and the quantum Cramér–Rao bound.
+#
+# <span id="ref-4">[4]</span> S. L. Braunstein and C. M. Caves, *Statistical distance and the geometry of quantum
+# states*, Phys. Rev. Lett. **72**, 3439 (1994) — $F_C\le F_Q$ and its saturation, Section 8.
+#
+# <span id="ref-5">[5]</span> S. F. Huelga, C. Macchiavello, T. Pellizzari, A. K. Ekert, M. B. Plenio and J. I. Cirac,
+# *Improvement of frequency standards with quantum entanglement*, Phys. Rev. Lett. **79**, 3865 (1997) — under
+# dephasing, maximally entangled and uncorrelated atoms give the same resolution, partially entangled states do better
+# (Exercise 6).
+#
+# <span id="ref-6">[6]</span> B. M. Escher, R. L. de Matos Filho and L. Davidovich, *General framework for estimating
+# the ultimate precision limit in noisy quantum-enhanced metrology*, Nat. Phys. **7**, 406 (2011) — bounds for lossy
+# interferometry and dephased spectroscopy; loss of the Heisenberg scaling at large $N$.
+#
+# <span id="ref-7">[7]</span> R. Demkowicz-Dobrzański, J. Kołodyński and M. Guţă, *The elusive Heisenberg limit in
+# quantum-enhanced metrology*, Nat. Commun. **3**, 1063 (2012) — for generic uncorrelated noise the quantum gain is
+# asymptotically a constant factor.
+#
+# <span id="ref-8">[8]</span> L. Pezzè, A. Smerzi, M. K. Oberthaler, R. Schmied and P. Treutlein, *Quantum metrology
+# with nonclassical states of atomic ensembles*, Rev. Mod. Phys. **90**, 035005 (2018) — review of entanglement-enhanced
+# metrology with atoms.
+#
+# <span id="ref-9">[9]</span> R. Demkowicz-Dobrzański, U. Dorner, B. J. Smith, J. S. Lundeen, W. Wasilewski, K. Banaszek
+# and I. A. Walmsley, *Quantum phase estimation with lossy interferometers*, Phys. Rev. A **80**, 013825 (2009) —
+# optimal two-mode optical states under photon loss, found numerically.
+#
+# <span id="ref-10">[10]</span> K. Macieszczak, *Quantum Fisher information: variational principle and simple iterative
+# algorithm for its efficient computation*, arXiv:1312.1356 (2013) — the variational formula of Eqs. (10)–(11) and an
+# alternating algorithm built on it.
+#
+# <span id="ref-11">[11]</span> R. Kaubruegger, P. Silvi, C. Kokail, R. van Bijnen, A. M. Rey, J. Ye, A. M. Kaufman and
+# P. Zoller, *Variational spin-squeezing algorithms on programmable quantum sensors*, Phys. Rev. Lett. **123**, 260505
+# (2019) — variational circuits that prepare spin-squeezed states on atom-tweezer arrays used as programmable sensors.
+#
+# <span id="ref-12">[12]</span> R. Kaubruegger, D. V. Vasilyev, M. Schulte, K. Hammerer and P. Zoller, *Quantum
+# variational optimization of Ramsey interferometry and atomic clocks*, Phys. Rev. X **11**, 041045 (2021) — variational
+# entangling and decoding circuits for a Bayesian cost.
+#
+# <span id="ref-13">[13]</span> B. Koczor, S. Endo, T. Jones, Y. Matsuzaki and S. C. Benjamin, *Variational-state
+# quantum metrology*, New J. Phys. **22**, 083038 (2020) — variational probe circuits under dephasing, amplitude damping
+# and other noise; non-symmetric optimal states under damping.
+#
+# <span id="ref-14">[14]</span> J. J. Meyer, J. Borregaard and J. Eisert, *A variational toolbox for quantum
+# multi-parameter estimation*, npj Quantum Inf. **7**, 89 (2021) — variational probes and measurements, and a
+# parameter-shift rule for noisy evolutions.
+#
+# <span id="ref-15">[15]</span> C. D. Marciniak, T. Feldker, I. Pogorelov, R. Kaubruegger, D. V. Vasilyev, R. van
+# Bijnen, P. Schindler, P. Zoller, R. Blatt and T. Monz, *Optimal metrology with programmable quantum sensors*, Nature
+# **603**, 604 (2022) — variational input states and measurements on a 26-ion device.
+#
+# <span id="ref-16">[16]</span> A. Kandala, A. Mezzacapo, K. Temme, M. Takita, M. Brink, J. M. Chow and J. M. Gambetta,
+# *Hardware-efficient variational quantum eigensolver for small molecules and quantum magnets*, Nature **549**, 242
+# (2017) — the hardware-efficient ansatz.
+#
+# <span id="ref-17">[17]</span> M. Kitagawa and M. Ueda, *Squeezed spin states*, Phys. Rev. A **47**, 5138 (1993) —
+# one-axis twisting.
+#
+# <span id="ref-18">[18]</span> D. P. Kingma and J. Ba, *Adam: a method for stochastic optimization*, arXiv:1412.6980
+# (2014), ICLR 2015.
+#
+# <span id="ref-19">[19]</span> E. B. Wilson, *Probable inference, the law of succession, and statistical inference*, J.
+# Am. Stat. Assoc. **22**, 209 (1927) — the score interval used for success rates.

@@ -3,7 +3,7 @@
 #@description: A zoo of many-body states as tensors, reduced density matrices by einsum, correlators and Pauli strings, Schmidt decomposition, entanglement entropies, the Page value, area law versus volume law, and a first phase diagram of the XXZ chain in a transverse field.
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
 # A state of $N$ spins-1/2 is a list of $2^N$ complex numbers. For $N=14$ that is $16\,384$ amplitudes, for $N=30$ a billion.
 # Such a list cannot be read directly, and a laboratory never returns it either: it returns a magnetisation, a correlation
@@ -15,16 +15,16 @@
 #    a small group of spins $A$ can ever reveal is contained in a small matrix, the **reduced density matrix** $\rho_A$,
 #    and that $\rho_A$ is *one einsum* away from the state tensor.
 # 2. **Entanglement measures** — numbers that quantify how strongly a part $A$ of the system is quantum-correlated with
-#    the rest $B$. The central object is the **Schmidt decomposition** (introduced by Schmidt in 1907 for integral kernels), which is the singular value
-#    decomposition (SVD) of the state tensor reshaped into a matrix; from it we get the **entanglement entropy**, the von Neumann entropy (von Neumann 1927)
-#    of a part of a pure state, proposed as the measure of pure-state entanglement by Bennett, Bernstein, Popescu and Schumacher (1996) (review: Horodecki *et al.* 2009).
+#    the rest $B$. The central object is the **Schmidt decomposition** (introduced in [[1]](#ref-1) for integral kernels), which is the singular value
+#    decomposition (SVD) of the state tensor reshaped into a matrix; from it we get the **entanglement entropy**, the von Neumann entropy [[2]](#ref-2)
+#    of a part of a pure state, proposed as the measure of pure-state entanglement in [[3]](#ref-3) (review: [[4]](#ref-4)).
 #
 # Entanglement entropy matters for three reasons.
 #
 # * It is *the* resource of quantum technologies: quantum-enhanced sensors, teleportation and quantum computers are
 #   useless without it (Chapters 8–10 and 13 of these notes).
 # * It decides **what can be simulated classically**. Ground states of local Hamiltonians carry very little entanglement
-#   (the *area law*, reviewed by Eisert, Cramer and Plenio 2010) — this is the reason why matrix-product-state methods (DMRG, introduced by White 1992; TEBD, introduced by Vidal 2003; review: Schollwöck 2011;
+#   (the *area law*, reviewed in [[5]](#ref-5)) — this is the reason why matrix-product-state methods (DMRG, introduced in [[6]](#ref-6); TEBD, introduced in [[7]](#ref-7); review: [[8]](#ref-8);
 #   [notebook 18 (Chapter 7)](../ch07_tensor_networks/18_mps_tebd.ipynb)) handle hundreds of spins. A typical (random) state
 #   carries almost the maximum possible amount (the *volume law*, Page's value) — and no classical compression helps.
 # * It is a modern diagnostic of physics: quantum phase transitions, the dynamics of isolated many-body systems, even
@@ -149,10 +149,10 @@ assert err < TOL
 #
 # | state | definition | what it is famous for |
 # |---|---|---|
-# | Bell $\Phi^\pm,\Psi^\pm$ | $(\vert 00\rangle\pm\vert 11\rangle)/\sqrt2$, $(\vert 01\rangle\pm\vert 10\rangle)/\sqrt2$ | maximally entangled pairs; teleportation (Bennett *et al.* 1993), Bell inequalities (Bell 1964) |
-# | GHZ$_N$ (Greenberger, Horne and Zeilinger 1989) | $(\vert 00\dots0\rangle+\vert 11\dots1\rangle)/\sqrt2$ | "Schrödinger cat"; Heisenberg-limited sensing; fragile |
-# | W$_N$ (Dür, Vidal and Cirac 2000) | $(\vert 10\dots0\rangle+\vert 01\dots0\rangle+\dots+\vert 0\dots01\rangle)/\sqrt N$ | one delocalised excitation (a spin wave); robust against particle loss |
-# | Dicke $D_N^k$ (Dicke 1954) | equal superposition of all basis states with exactly $k$ ones | superradiance; eigenstates of the total spin; $W_N=D_N^1$ |
+# | Bell $\Phi^\pm,\Psi^\pm$ | $(\vert 00\rangle\pm\vert 11\rangle)/\sqrt2$, $(\vert 01\rangle\pm\vert 10\rangle)/\sqrt2$ | maximally entangled pairs; teleportation [[9]](#ref-9), Bell inequalities [[10]](#ref-10) |
+# | GHZ$_N$ [[11]](#ref-11) | $(\vert 00\dots0\rangle+\vert 11\dots1\rangle)/\sqrt2$ | "Schrödinger cat"; Heisenberg-limited sensing; fragile |
+# | W$_N$ [[12]](#ref-12) | $(\vert 10\dots0\rangle+\vert 01\dots0\rangle+\dots+\vert 0\dots01\rangle)/\sqrt N$ | one delocalised excitation (a spin wave); robust against particle loss |
+# | Dicke $D_N^k$ [[13]](#ref-13) | equal superposition of all basis states with exactly $k$ ones | superradiance; eigenstates of the total spin; $W_N=D_N^1$ |
 #
 # **JAX detail.** JAX arrays are immutable, so `psi[0,0,0] = x` does not exist; `psi.at[idx].set(x)` returns an updated
 # *copy* (notebook 01). For the Dicke state we need "the number of ones in the bit string" *as a tensor*
@@ -200,7 +200,7 @@ for name, psi, ref in (("GHZ_4", psi_ghz, ref_ghz), ("W_4", psi_w, ref_w), ("Dic
 # %% [markdown]
 # ### 2.3 The cluster state: a sign pattern
 #
-# The one-dimensional **cluster state** (Briegel and Raussendorf 2001) is the resource of measurement-based quantum computing (Raussendorf and Briegel 2001) and the simplest example of
+# The one-dimensional **cluster state** [[14]](#ref-14) is the resource of measurement-based quantum computing [[15]](#ref-15) and the simplest example of
 # a *graph state*. Its usual definition is operational: put every spin in $|+\rangle$, then apply the controlled-$Z$
 # operation $CZ=\mathrm{diag}(1,1,1,-1)$ on every bond $(q,q+1)$. $CZ$ is diagonal: it multiplies the amplitude by $-1$
 # when **both** spins are $1$ and does nothing otherwise, i.e. by $(-1)^{s_q s_{q+1}}$. Starting from the uniform
@@ -233,7 +233,7 @@ assert err < TOL
 # ### 2.4 Haar-random states
 #
 # What does a *typical* state of the Hilbert space look like? "Typical" needs a probability measure, and the only
-# measure that does not prefer any basis is the one invariant under all unitaries — the **Haar measure** (Haar 1933). Sampling
+# measure that does not prefer any basis is the one invariant under all unitaries — the **Haar measure** [[16]](#ref-16). Sampling
 # from it is easy: draw the real and imaginary part of every amplitude from a normal distribution and normalise.
 #
 # *Why this works.* The probability density of a complex Gaussian vector $g$ whose $2D$ real components are independent
@@ -662,7 +662,7 @@ for label, O, qubits, dense in tests:
 # $$\rho_q=\tfrac12\big(\mathbb 1+r_xX+r_yY+r_zZ\big),\qquad r_\alpha=\langle\sigma^\alpha_q\rangle=\mathrm{Tr}(\rho_q\sigma^\alpha),$$
 #
 # because the Pauli matrices together with $\mathbb 1$ form a basis of Hermitian $2\times2$ matrices and
-# $\mathrm{Tr}(\sigma^\alpha\sigma^\beta)=2\delta_{\alpha\beta}$. The **Bloch vector** $\vec r$ (Bloch 1946) has length $|\vec r|\le1$; the
+# $\mathrm{Tr}(\sigma^\alpha\sigma^\beta)=2\delta_{\alpha\beta}$. The **Bloch vector** $\vec r$ [[17]](#ref-17) has length $|\vec r|\le1$; the
 # eigenvalues of $\rho_q$ are $(1\pm|\vec r|)/2$. So $|\vec r|=1$ means the spin is in a pure state — *not entangled with
 # anything* — while $|\vec r|<1$ means it is mixed, and for a globally pure state the only possible reason is entanglement
 # with the other spins. One RDM serves all three components: one einsum, three tiny traces.
@@ -897,9 +897,9 @@ for string in ("XZYIII", "IZIIZI", "XXXXXX", "YIXZIY"):
 #
 # * For GHZ the operator $X^{\otimes N}$ flips all spins, $|0\dots0\rangle\leftrightarrow|1\dots1\rangle$, so $\langle X^{\otimes N}\rangle=+1$: a *genuine
 #   $N$-body* correlation. Replacing two $X$ by $Y$ gives $-1$ (since $Y|0\rangle=i|1\rangle$, $Y|1\rangle=-i|0\rangle$, two $Y$'s contribute $i^2=-1$) —
-#   the combination used in Mermin's $N$-spin Bell inequality (Mermin 1990).
+#   the combination used in Mermin's $N$-spin Bell inequality [[18]](#ref-18).
 # * For the cluster state the operators $K_q=Z_{q-1}X_qZ_{q+1}$ (with the obvious truncation at the ends of the chain) all have $\langle K_q\rangle=+1$: the state is
-#   the common eigenstate of these $N$ commuting **stabilisers** (the stabiliser formalism of Gottesman 1997), and it is completely defined by them. (*Why:* $|{+}\rangle^{\otimes N}$ is stabilised by $X_q$;
+#   the common eigenstate of these $N$ commuting **stabilisers** (the stabiliser formalism of [[19]](#ref-19)), and it is completely defined by them. (*Why:* $|{+}\rangle^{\otimes N}$ is stabilised by $X_q$;
 #   conjugating $X_q$ with the $CZ$ gates on the two bonds touching $q$ gives $Z_{q-1}X_qZ_{q+1}$.)
 
 # %%
@@ -944,14 +944,14 @@ assert abs(float(expect_pauli_string(ghz, 'X' * N)) - 1) < TOL and max(abs(np.ar
 # state $\mathbb 1/d$. For one spin, inserting the Bloch form gives $\gamma=(1+|\vec r|^2)/2$ (check it against the table of Section 4.2).
 #
 # **Fidelity** measures how similar two states are. For pure states $F=|\langle\psi|\phi\rangle|^2$, the probability that $|\phi\rangle$ passes the test
-# "are you $|\psi\rangle$?". For mixed states the generalisation is the *Uhlmann fidelity* (Uhlmann 1976; Jozsa 1994)
-# $F(\rho,\sigma)=\big(\mathrm{Tr}\sqrt{\sqrt\rho\,\sigma\sqrt\rho}\big)^2$ (its properties are quoted without proof, see Nielsen & Chuang, Sec. 9.2); it reduces to the overlap
+# "are you $|\psi\rangle$?". For mixed states the generalisation is the *Uhlmann fidelity* [[20]](#ref-20), [[21]](#ref-21)
+# $F(\rho,\sigma)=\big(\mathrm{Tr}\sqrt{\sqrt\rho\,\sigma\sqrt\rho}\big)^2$ (its properties are quoted without proof, see [[22]](#ref-22), Sec. 9.2); it reduces to the overlap
 # formula when both states are pure. Numerically the square root of a positive matrix comes from its eigendecomposition, $\sqrt\rho=V\sqrt{w}V^\dagger$.
 #
 # **Trace distance** $D(\rho,\sigma)=\tfrac12\mathrm{Tr}|\rho-\sigma|=\tfrac12\sum_i|\mu_i|$, with $\mu_i$ the eigenvalues of the Hermitian matrix
-# $\rho-\sigma$. Operational meaning: the best possible single measurement distinguishes the two states with success probability $(1+D)/2$ (Helstrom 1969).
+# $\rho-\sigma$. Operational meaning: the best possible single measurement distinguishes the two states with success probability $(1+D)/2$ [[23]](#ref-23).
 # The two notions are tied together by the Fuchs–van de Graaf inequalities $1-\sqrt F\le D\le\sqrt{1-F}$, valid for $F$ defined *with*
-# the square, as above. Books differ on that square: Nielsen & Chuang call $F_1=\mathrm{Tr}\sqrt{\sqrt\rho\,\sigma\sqrt\rho}=\sqrt F$ "the
+# the square, as above. Books differ on that square: Ref. [[22]](#ref-22) calls $F_1=\mathrm{Tr}\sqrt{\sqrt\rho\,\sigma\sqrt\rho}=\sqrt F$ "the
 # fidelity", and the same two inequalities then read $1-F_1\le D\le\sqrt{1-F_1^2}$. Check which convention a quoted bound uses.
 
 # %%
@@ -1024,8 +1024,8 @@ assert 1 - np.sqrt(F) <= D + TOL and D <= np.sqrt(1 - F) + TOL
 # * Maximum: $S_A=\log_2\min(d_A,d_B)=\min(|A|,|B|)$ bits, reached when all $p_k$ are equal. One Bell pair shared across the cut = 1 bit; this is the unit of entanglement ("ebit").
 # * $S_A$ does not change under *local* unitaries $U_A\otimes U_B$ (they rotate $|u_k\rangle,|v_k\rangle$ but leave the $\lambda_k$ alone): entanglement cannot be created by acting on the parts separately.
 #
-# A close relative is the **Rényi-2 entropy** (Rényi 1961) $S_2=-\log_2\mathrm{Tr}\rho_A^2=-\log_2\sum_kp_k^2$, minus the logarithm of the purity. It satisfies $S_2\le S_A$ with equality for
-# flat spectra, and it matters in practice because the purity — unlike $S_A$ — can be measured in experiments (by interfering two copies of the system, Islam *et al.* 2015, or from randomised measurements, Brydges *et al.* 2019).
+# A close relative is the **Rényi-2 entropy** [[24]](#ref-24) $S_2=-\log_2\mathrm{Tr}\rho_A^2=-\log_2\sum_kp_k^2$, minus the logarithm of the purity. It satisfies $S_2\le S_A$ with equality for
+# flat spectra, and it matters in practice because the purity — unlike $S_A$ — can be measured in experiments (by interfering two copies of the system, [[25]](#ref-25), or from randomised measurements, [[26]](#ref-26)).
 #
 # ### 6.3 From formula to code
 #
@@ -1104,7 +1104,7 @@ assert max_abs(rebuilt - M) < TOL
 #
 # > **Numerical practice — SVD versus `eigh(rho_A)`.** The cost is the same: both routes are $O(d_A^2d_B)$ for $d_A\le d_B$ (forming
 # > $MM^\dagger$ costs $d_A^2d_B$ and the subsequent `eigh` only $d_A^3$), so the two are of the same order and differ at most by a constant factor.
-# > The reason is **accuracy** (Golub and Van Loan 2013; Press *et al.* 2007, Sec. 2.6 and Ch. 11). Both LAPACK routines are backward stable, which means an error of order $\varepsilon$ times the *largest* quantity
+# > The reason is **accuracy** ([[27]](#ref-27); [[28]](#ref-28), Sec. 2.6 and Ch. 11). Both LAPACK routines are backward stable, which means an error of order $\varepsilon$ times the *largest* quantity
 # > in the problem — but the two routes measure different quantities. `eigh(rho_A)` returns $p_k=\lambda_k^2$ with an absolute error
 # > $\sim\varepsilon\,p_1\approx10^{-16}$, so it resolves $\lambda_k$ only down to $\sqrt{10^{-16}}=10^{-8}$; everything below that is rounding
 # > noise. The SVD returns $\lambda_k$ itself with an absolute error $\sim\varepsilon\,\lambda_1\approx10^{-16}$, eight orders of magnitude deeper.
@@ -1259,7 +1259,7 @@ assert abs(float(entanglement_entropy(ghz_x, A_half)) - 1) < 1e3 * TOL
 # %% [markdown]
 # ## 8. Random states and the Page value
 #
-# The random state in the last figure almost saturated the bound. How entangled is a typical state *on average*? Page (1993) conjectured, and Foong and Kanno (1994) proved, a closed formula for the mean entanglement entropy
+# The random state in the last figure almost saturated the bound. How entangled is a typical state *on average*? Ref. [[29]](#ref-29) conjectured, and Ref. [[30]](#ref-30) proved, a closed formula for the mean entanglement entropy
 # of Haar-random states in a Hilbert space of dimensions $d_A\le d_B$ (quoted without proof; in nats):
 #
 # $$\langle S_A\rangle=\sum_{k=d_B+1}^{d_Ad_B}\frac1k-\frac{d_A-1}{2d_B}\;\;\approx\;\;\ln d_A-\frac{d_A}{2d_B}\quad(d_A,d_B\gg1).$$
@@ -1316,18 +1316,18 @@ print(f"half-chain deficit  N/2 - <S> = {N / 2 - mean[N // 2 - 1]:.4f} bits    (
 # All nine cuts are evaluated on the same 400 states, so the nine deviations are correlated, which is why most of them share one sign. Two more lessons hide in the table:
 #
 # * The **sample standard deviation is tiny** (the error bars in the plot are smaller than the markers): *every single* random state has almost exactly the Page entropy. This "typicality" is a
-#   concentration-of-measure effect of high-dimensional spaces (Popescu, Short and Winter 2006; Goldstein *et al.* 2006); it is the reason why a single random state is a fair representative of the whole ensemble.
+#   concentration-of-measure effect of high-dimensional spaces [[31]](#ref-31), [[32]](#ref-32); it is the reason why a single random state is a fair representative of the whole ensemble.
 # * The half-chain deficit is already within about $10^{-3}$ bit of the asymptotic constant $1/(2\ln2)$ at $N=10$.
 #
 # > **Physics insight.** A subsystem of a random pure state is, to exponential accuracy, *maximally mixed*: no measurement on the subsystem alone can tell it apart from $\mathbb 1/2^{\ell}$, although the global state is pure.
-# > All the information sits in the correlations between the subsystem and the rest. In a companion paper Page used this result to follow the information carried by Hawking radiation (Page 1993, *Information in black hole radiation*).
+# > All the information sits in the correlations between the subsystem and the rest. A companion paper [[33]](#ref-33) uses this result to follow the information carried by Hawking radiation.
 
 # %% [markdown]
 # ## 9. Area law versus volume law: ground states are special
 #
 # Random states are the overwhelming majority of the Hilbert space, but they are not the lowest-energy states of physical Hamiltonians. **Ground states of local Hamiltonians are extremely atypical.**
-# For a gapped one-dimensional Hamiltonian with short-range interactions, Hastings proved (2007) that the entanglement entropy of a block is bounded by a constant independent of its length —
-# the **area law** (in 1D the "area" of the boundary of a block is just a point or two). At a quantum critical point the gap closes and the entropy grows logarithmically, as found for critical spin chains by Vidal, Latorre, Rico and Kitaev (2003); conformal field theory (Holzhey, Larsen and Wilczek 1994; Calabrese and Cardy 2004) gives the form of this mild violation; for an open chain
+# For a gapped one-dimensional Hamiltonian with short-range interactions, it was proved in [[34]](#ref-34) that the entanglement entropy of a block is bounded by a constant independent of its length —
+# the **area law** (in 1D the "area" of the boundary of a block is just a point or two). At a quantum critical point the gap closes and the entropy grows logarithmically, as found for critical spin chains in [[35]](#ref-35); conformal field theory ([[36]](#ref-36), [[37]](#ref-37)) gives the form of this mild violation; for an open chain
 #
 # $$S(\ell)=\frac c6\,\ln\!\Big[\frac{2N}{\pi}\sin\frac{\pi\ell}{N}\Big]+\text{const}\qquad\text{(nats)},$$
 #
@@ -1342,7 +1342,7 @@ print(f"half-chain deficit  N/2 - <S> = {N / 2 - mean[N // 2 - 1]:.4f} bits    (
 #
 # $$H=-J\sum_{i}Z_iZ_{i+1}-h\sum_iX_i,\qquad J=1,$$
 #
-# in the gapped paramagnetic phase ($h=1.5$) and at the critical point ($h=1$, where $c=1/2$). The ground state comes from the **Lanczos method** (Lanczos 1950), a matrix-free eigensolver that
+# in the gapped paramagnetic phase ($h=1.5$) and at the critical point ($h=1$, where $c=1/2$). The ground state comes from the **Lanczos method** [[38]](#ref-38), a matrix-free eigensolver that
 # needs nothing but the action $H|\psi\rangle$ (sum of local `apply_gate` contractions, notebook 05); it is derived in detail in
 # [notebook 11 (Chapter 5)](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb). Here we use the engine version as a black box and check it: we compare the energy
 # against dense diagonalisation for a small chain, and for every $N$ we monitor the residual $\|H\psi-E\psi\|$, which vanishes only for a true eigenstate.
@@ -1453,7 +1453,7 @@ for label, p in spectra.items():
 # That 12 % is a systematic **bias**: the Calabrese–Cardy formula is the leading term of a large-$N$ expansion, and the subleading corrections
 # — the non-universal boundary constant, the finite-size corrections to it, and an oscillating term that alternates with the parity of $\ell$
 # in the open Ising chain — are all absorbed into the fitted slope. The bias is positive and shrinks only logarithmically: solving the same
-# model exactly by free fermions (Pfeuty 1970) and fitting in exactly the same way gives $c=0.562$ at $N=14$, $0.554$ at $N=20$, $0.544$ at $N=32$, $0.532$ at
+# model exactly by free fermions [[39]](#ref-39) and fitting in exactly the same way gives $c=0.562$ at $N=14$, $0.554$ at $N=20$, $0.544$ at $N=32$, $0.532$ at
 # $N=64$, $0.522$ at $N=128$ and still $0.515$ at $N=256$. A 14-spin fit that lands within 15 % of $1/2$ is therefore what the method *should*
 # deliver; a fit that landed on $0.500$ would be a coincidence. Quoting a central charge from short chains without such an extrapolation — or
 # without fitting the subleading terms as well — is the standard way to overstate it.
@@ -1514,18 +1514,18 @@ for label, p in spectra.items():
 #    \frac{A_{21}}{A_{12}}=-\frac{1+e^{i(k_1+k_2)}-2\Delta e^{ik_2}}{1+e^{i(k_1+k_2)}-2\Delta e^{ik_1}} , \tag{10}$$
 #
 # a pure phase for real momenta: the scattering phase of two magnons. Periodicity, $a(n_1,n_2)=a(n_2,n_1+N)$, requires $e^{ik_1N}=A_{12}/A_{21}$.
-# Bethe's insight (1931) was that with $M$ magnons every collision factorises into such two-body scatterings, which gives $M$ coupled
+# The insight of [[40]](#ref-40) was that with $M$ magnons every collision factorises into such two-body scatterings, which gives $M$ coupled
 # **Bethe equations** (quoted for general $M$; for $M=2$ they are the condition just derived)
 #
 # $$ e^{ik_jN}=\prod_{l\neq j}\Big(-\frac{1+e^{i(k_j+k_l)}-2\Delta e^{ik_j}}{1+e^{i(k_j+k_l)}-2\Delta e^{ik_l}}\Big),\qquad j=1,\dots,M . \tag{11}$$
 #
-# Their solutions give the exact spectrum. Bethe solved $\Delta=1$; Yang and Yang (1966) proved the ansatz for the ground state and analysed all
-# $\Delta$. The ground-state phases in the thermodynamic limit are (quoted; see Takahashi 1999 and Giamarchi 2003):
+# Their solutions give the exact spectrum. The case $\Delta=1$ was solved in [[40]](#ref-40); Ref. [[41]](#ref-41) proved the ansatz for the ground state and analysed all
+# $\Delta$. The ground-state phases in the thermodynamic limit are (quoted; see [[42]](#ref-42) and [[43]](#ref-43)):
 #
 # | anisotropy | phase | ground state |
 # |---|---|---|
 # | $\Delta<-1$ | ferromagnet (Ising-like along $z$) | all spins up or all down; gapped |
-# | $-1<\Delta\le1$ | critical ("XY phase", a Luttinger liquid, Haldane 1981) | no long-range order; gapless; power-law correlations |
+# | $-1<\Delta\le1$ | critical ("XY phase", a Luttinger liquid [[44]](#ref-44)) | no long-range order; gapless; power-law correlations |
 # | $\Delta>1$ | Néel antiferromagnet along $z$ | alternating $\uparrow\downarrow\uparrow\downarrow$ order; gapped, but the gap opens exponentially slowly above $\Delta=1$ |
 #
 # The cell below checks Eq. (9): the eigenvalues of $H$ restricted to the $N$ states with one flipped spin must be $E_{\rm ref}+\varepsilon(2\pi m/N)$.
@@ -1567,11 +1567,11 @@ for Delta_ring in (0.5, -2.0):
 #
 # **Symmetries and order.** The ferromagnet spontaneously breaks the spin flip $P$ (all up versus all down); the Néel state breaks $P$ and the
 # translation by one site. In the critical phase nothing is broken: a *continuous* symmetry like $U(1)$ is not broken spontaneously in the
-# ground state of a one-dimensional quantum chain (the field-theory statement in 1+1 dimensions is Coleman's theorem, Coleman 1973; the ferromagnet,
+# ground state of a one-dimensional quantum chain (the field-theory statement in 1+1 dimensions is Coleman's theorem [[45]](#ref-45); the ferromagnet,
 # whose order parameter commutes with $H$, is the exception), and its place is taken by power-law correlations ("quasi-long-range order"). Once the field has removed the
 # $U(1)$, only the $\mathbb Z_2$ symmetry $P$ remains, and it can be broken; the literature finds that the field opens a gap in the critical
 # phase and induces antiferromagnetic order along $y$, the direction perpendicular to both the anisotropy axis and the field
-# (Dmitriev, Krivnov and Ovchinnikov 2002). We test this below.
+# [[46]](#ref-46). We test this below.
 #
 # **Order in a finite chain is read from correlations.** A finite chain has no spontaneous symmetry breaking: its ground state in a symmetry
 # sector is symmetric, so $\langle Z_i\rangle=\langle Y_i\rangle=0$ exactly, even deep in an ordered phase (the ferromagnetic ground state is the
@@ -1602,7 +1602,7 @@ for Delta_ring in (0.5, -2.0):
 # a sign of criticality; the physical gap is the one to the next level in the same sector, and it stays finite. This is why we compute the gap within a sector.
 #
 # **An exact example of a closing gap.** At $\Delta=0$, $h_x=0$ the chain is the XX chain. With $\sigma^\pm=(X\pm iY)/2$, so that $\sigma^-=|1\rangle\langle0|$ lowers spin up $|0\rangle$ to spin down $|1\rangle$ and $\sigma^+=|0\rangle\langle1|$ raises it, one has
-# $X_iX_{i+1}+Y_iY_{i+1}=2(\sigma^+_i\sigma^-_{i+1}+\sigma^-_i\sigma^+_{i+1})$, and the Jordan–Wigner transformation (Jordan and Wigner 1928; applied to this chain by Lieb, Schultz and Mattis 1961; quoted here) turns every
+# $X_iX_{i+1}+Y_iY_{i+1}=2(\sigma^+_i\sigma^-_{i+1}+\sigma^-_i\sigma^+_{i+1})$, and the Jordan–Wigner transformation ([[47]](#ref-47); applied to this chain in [[48]](#ref-48); quoted here) turns every
 # $\sigma^+_i\sigma^-_{i+1}$ into a fermion hopping $c_i^\dagger c_{i+1}$. The Hamiltonian becomes a free-fermion hopping problem,
 #
 # $$ H=2\sum_{i=0}^{N-2}\big(c_i^\dagger c_{i+1}+c_{i+1}^\dagger c_i\big),\qquad
@@ -2050,41 +2050,100 @@ ax.legend(fontsize=8); fig.tight_layout(); plt.show()
 #
 # ## References
 #
-# * M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information* (Cambridge University Press, 2000) — reduced density matrices and Schmidt decomposition (Sec. 2.4–2.5), fidelity and trace distance (Ch. 9).
-# * E. Schmidt, *Zur Theorie der linearen und nichtlinearen Integralgleichungen*, Math. Ann. **63**, 433–476 (1907) — the expansion of a kernel in pairs of orthonormal functions, the Schmidt decomposition.
-# * J. von Neumann, *Thermodynamik quantenmechanischer Gesamtheiten*, Nachr. Ges. Wiss. Göttingen, Math.-Phys. Kl. (1927) — the entropy $-\mathrm{Tr}\,\rho\ln\rho$.
-# * C. H. Bennett, H. J. Bernstein, S. Popescu and B. Schumacher, *Concentrating partial entanglement by local operations*, Phys. Rev. A **53**, 2046 (1996) — the entropy of a subsystem as the measure of pure-state entanglement.
-# * A. Rényi, *On measures of entropy and information*, in *Proc. 4th Berkeley Symp. Math. Stat. Probab.*, Vol. 1, pp. 547–561 (University of California Press, 1961).
-# * A. Uhlmann, *The "transition probability" in the state space of a \*-algebra*, Rep. Math. Phys. **9**, 273 (1976); R. Jozsa, *Fidelity for mixed quantum states*, J. Mod. Opt. **41**, 2315 (1994).
-# * C. W. Helstrom, *Quantum detection and estimation theory*, J. Stat. Phys. **1**, 231 (1969) — the optimal measurement for distinguishing two states.
-# * F. Bloch, *Nuclear induction*, Phys. Rev. **70**, 460 (1946).
-# * A. Haar, *Der Massbegriff in der Theorie der kontinuierlichen Gruppen*, Ann. Math. **34**, 147 (1933).
-# * J. S. Bell, *On the Einstein Podolsky Rosen paradox*, Physics **1**, 195 (1964); C. H. Bennett, G. Brassard, C. Crépeau, R. Jozsa, A. Peres and W. K. Wootters, *Teleporting an unknown quantum state via dual classical and Einstein-Podolsky-Rosen channels*, Phys. Rev. Lett. **70**, 1895 (1993).
-# * R. Horodecki, P. Horodecki, M. Horodecki, K. Horodecki, *Quantum entanglement*, Rev. Mod. Phys. **81**, 865 (2009).
-# * D. M. Greenberger, M. A. Horne, A. Zeilinger, *Going beyond Bell's theorem*, in *Bell's Theorem, Quantum Theory and Conceptions of the Universe*, ed. M. Kafatos (Kluwer, 1989), pp. 69–72; N. D. Mermin, *Extreme quantum entanglement in a superposition of macroscopically distinct states*, Phys. Rev. Lett. **65**, 1838–1840 (1990).
-# * W. Dür, G. Vidal, J. I. Cirac, *Three qubits can be entangled in two inequivalent ways*, Phys. Rev. A **62**, 062314 (2000) — GHZ versus W.
-# * R. H. Dicke, *Coherence in spontaneous radiation processes*, Phys. Rev. **93**, 99 (1954).
-# * H. J. Briegel and R. Raussendorf, *Persistent entanglement in arrays of interacting particles*, Phys. Rev. Lett. **86**, 910 (2001) — cluster states; R. Raussendorf and H. J. Briegel, *A one-way quantum computer*, Phys. Rev. Lett. **86**, 5188 (2001).
-# * D. Gottesman, *Stabilizer codes and quantum error correction*, PhD thesis, California Institute of Technology (1997), arXiv:quant-ph/9705052.
-# * C. A. Fuchs and J. van de Graaf, *Cryptographic distinguishability measures for quantum-mechanical states*, IEEE Trans. Inf. Theory **45**, 1216 (1999).
-# * D. N. Page, *Average entropy of a subsystem*, Phys. Rev. Lett. **71**, 1291 (1993); D. N. Page, *Information in black hole radiation*, Phys. Rev. Lett. **71**, 3743 (1993); proof: S. K. Foong and S. Kanno, *Proof of Page's conjecture on the average entropy of a subsystem*, Phys. Rev. Lett. **72**, 1148–1151 (1994).
-# * S. Popescu, A. J. Short and A. Winter, *Entanglement and the foundations of statistical mechanics*, Nat. Phys. **2**, 754 (2006); S. Goldstein, J. L. Lebowitz, R. Tumulka and N. Zanghì, *Canonical typicality*, Phys. Rev. Lett. **96**, 050403 (2006).
-# * R. Islam, R. Ma, P. M. Preiss, M. E. Tai, A. Lukin, M. Rispoli and M. Greiner, *Measuring entanglement entropy in a quantum many-body system*, Nature **528**, 77 (2015); T. Brydges, A. Elben, P. Jurcevic, B. Vermersch, C. Maier, B. P. Lanyon, P. Zoller, R. Blatt and C. F. Roos, *Probing Rényi entanglement entropy via randomized measurements*, Science **364**, 260 (2019).
-# * M. B. Hastings, *An area law for one-dimensional quantum systems*, J. Stat. Mech. **2007**, P08024 (2007); J. Eisert, M. Cramer, M. B. Plenio, *Colloquium: Area laws for the entanglement entropy*, Rev. Mod. Phys. **82**, 277 (2010).
-# * C. Holzhey, F. Larsen and F. Wilczek, *Geometric and renormalized entropy in conformal field theory*, Nucl. Phys. B **424**, 443 (1994) — the logarithm and the central charge.
-# * P. Calabrese and J. Cardy, *Entanglement entropy and quantum field theory*, J. Stat. Mech. **2004**, P06002 (2004) — the $\tfrac c6\ln[(N/\pi)\sin(\pi\ell/N)]+\text{const}$ formula for an open chain (their Eq. 2; the form with $2N/\pi$ used in Section 9 differs only in the constant) and its $\tfrac c3$ counterpart for a ring.
-# * S. R. White, *Density matrix formulation for quantum renormalization groups*, Phys. Rev. Lett. **69**, 2863 (1992); G. Vidal, *Efficient classical simulation of slightly entangled quantum computations*, Phys. Rev. Lett. **91**, 147902 (2003).
-# * U. Schollwöck, *The density-matrix renormalization group in the age of matrix product states*, Ann. Phys. **326**, 96 (2011).
-# * C. Lanczos, *An iteration method for the solution of the eigenvalue problem of linear differential and integral operators*, J. Res. Natl. Bur. Stand. **45**, 255 (1950).
-# * P. Pfeuty, *The one-dimensional Ising model with a transverse field*, Ann. Phys. **57**, 79 (1970).
-# * G. H. Golub and C. F. Van Loan, *Matrix Computations*, 4th ed. (Johns Hopkins University Press, 2013) — SVD, its backward stability and the error bounds quoted in Section 6.3.
-# * W. H. Press, S. A. Teukolsky, W. T. Vetterling, B. P. Flannery, *Numerical Recipes: The Art of Scientific Computing*, 3rd ed. (Cambridge University Press, 2007) — Ch. 2.6 (singular value decomposition) and Ch. 11 (eigensystems); the parallel volume *Numerical Recipes in Fortran 90*, 2nd ed. (Cambridge University Press, 1996).
-# * H. Bethe, *Zur Theorie der Metalle. I. Eigenwerte und Eigenfunktionen der linearen Atomkette*, Z. Phys. **71**, 205–226 (1931) — the Bethe ansatz.
-# * C. N. Yang and C. P. Yang, *One-dimensional chain of anisotropic spin-spin interactions. I. Proof of Bethe's hypothesis for ground state in a finite system*, Phys. Rev. **150**, 321–327 (1966); *II. Properties of the ground-state energy per lattice site for an infinite system*, Phys. Rev. **150**, 327–339 (1966) — the XXZ chain for all $\Delta$.
-# * M. Takahashi, *Thermodynamics of One-Dimensional Solvable Models* (Cambridge University Press, 1999) — Bethe-ansatz solution of the XXZ chain.
-# * D. V. Dmitriev, V. Ya. Krivnov and A. A. Ovchinnikov, *Gap generation in the XXZ model in a transverse magnetic field*, Phys. Rev. B **65**, 172409 (2002).
-# * P. Jordan and E. Wigner, *Über das Paulische Äquivalenzverbot*, Z. Phys. **47**, 631–651 (1928); E. Lieb, T. Schultz and D. Mattis, *Two soluble models of an antiferromagnetic chain*, Ann. Phys. **16**, 407–466 (1961) — the XX chain as free fermions.
-# * F. D. M. Haldane, *'Luttinger liquid theory' of one-dimensional quantum fluids. I. Properties of the Luttinger model and their extension to the general 1D interacting spinless Fermi gas*, J. Phys. C **14**, 2585 (1981).
-# * T. Giamarchi, *Quantum Physics in One Dimension* (Oxford University Press, 2003) — Luttinger liquids and the critical phase of the XXZ chain.
-# * S. Coleman, *There are no Goldstone bosons in two dimensions*, Commun. Math. Phys. **31**, 259–264 (1973) — no spontaneous breaking of a continuous symmetry in a quantum field theory in two space-time dimensions.
-# * G. Vidal, J. I. Latorre, E. Rico and A. Kitaev, *Entanglement in quantum critical phenomena*, Phys. Rev. Lett. **90**, 227902 (2003).
+# <span id="ref-1">[1]</span> E. Schmidt, *Zur Theorie der linearen und nichtlinearen Integralgleichungen*, Math. Ann. **63**, 433–476 (1907) — the expansion of a kernel in pairs of orthonormal functions, the Schmidt decomposition.
+#
+# <span id="ref-2">[2]</span> J. von Neumann, *Thermodynamik quantenmechanischer Gesamtheiten*, Nachr. Ges. Wiss. Göttingen, Math.-Phys. Kl. (1927) — the entropy $-\mathrm{Tr}\,\rho\ln\rho$.
+#
+# <span id="ref-3">[3]</span> C. H. Bennett, H. J. Bernstein, S. Popescu and B. Schumacher, *Concentrating partial entanglement by local operations*, Phys. Rev. A **53**, 2046 (1996) — the entropy of a subsystem as the measure of pure-state entanglement.
+#
+# <span id="ref-4">[4]</span> R. Horodecki, P. Horodecki, M. Horodecki, K. Horodecki, *Quantum entanglement*, Rev. Mod. Phys. **81**, 865 (2009).
+#
+# <span id="ref-5">[5]</span> J. Eisert, M. Cramer, M. B. Plenio, *Colloquium: Area laws for the entanglement entropy*, Rev. Mod. Phys. **82**, 277 (2010).
+#
+# <span id="ref-6">[6]</span> S. R. White, *Density matrix formulation for quantum renormalization groups*, Phys. Rev. Lett. **69**, 2863 (1992).
+#
+# <span id="ref-7">[7]</span> G. Vidal, *Efficient classical simulation of slightly entangled quantum computations*, Phys. Rev. Lett. **91**, 147902 (2003).
+#
+# <span id="ref-8">[8]</span> U. Schollwöck, *The density-matrix renormalization group in the age of matrix product states*, Ann. Phys. **326**, 96 (2011).
+#
+# <span id="ref-9">[9]</span> C. H. Bennett, G. Brassard, C. Crépeau, R. Jozsa, A. Peres and W. K. Wootters, *Teleporting an unknown quantum state via dual classical and Einstein-Podolsky-Rosen channels*, Phys. Rev. Lett. **70**, 1895 (1993).
+#
+# <span id="ref-10">[10]</span> J. S. Bell, *On the Einstein Podolsky Rosen paradox*, Physics **1**, 195 (1964).
+#
+# <span id="ref-11">[11]</span> D. M. Greenberger, M. A. Horne, A. Zeilinger, *Going beyond Bell's theorem*, in *Bell's Theorem, Quantum Theory and Conceptions of the Universe*, ed. M. Kafatos (Kluwer, 1989), pp. 69–72.
+#
+# <span id="ref-12">[12]</span> W. Dür, G. Vidal, J. I. Cirac, *Three qubits can be entangled in two inequivalent ways*, Phys. Rev. A **62**, 062314 (2000) — GHZ versus W.
+#
+# <span id="ref-13">[13]</span> R. H. Dicke, *Coherence in spontaneous radiation processes*, Phys. Rev. **93**, 99 (1954).
+#
+# <span id="ref-14">[14]</span> H. J. Briegel and R. Raussendorf, *Persistent entanglement in arrays of interacting particles*, Phys. Rev. Lett. **86**, 910 (2001) — cluster states.
+#
+# <span id="ref-15">[15]</span> R. Raussendorf and H. J. Briegel, *A one-way quantum computer*, Phys. Rev. Lett. **86**, 5188 (2001).
+#
+# <span id="ref-16">[16]</span> A. Haar, *Der Massbegriff in der Theorie der kontinuierlichen Gruppen*, Ann. Math. **34**, 147 (1933).
+#
+# <span id="ref-17">[17]</span> F. Bloch, *Nuclear induction*, Phys. Rev. **70**, 460 (1946).
+#
+# <span id="ref-18">[18]</span> N. D. Mermin, *Extreme quantum entanglement in a superposition of macroscopically distinct states*, Phys. Rev. Lett. **65**, 1838–1840 (1990).
+#
+# <span id="ref-19">[19]</span> D. Gottesman, *Stabilizer codes and quantum error correction*, PhD thesis, California Institute of Technology (1997), arXiv:quant-ph/9705052.
+#
+# <span id="ref-20">[20]</span> A. Uhlmann, *The "transition probability" in the state space of a \*-algebra*, Rep. Math. Phys. **9**, 273 (1976).
+#
+# <span id="ref-21">[21]</span> R. Jozsa, *Fidelity for mixed quantum states*, J. Mod. Opt. **41**, 2315 (1994).
+#
+# <span id="ref-22">[22]</span> M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information* (Cambridge University Press, 2000) — reduced density matrices and Schmidt decomposition (Sec. 2.4–2.5), fidelity and trace distance (Ch. 9).
+#
+# <span id="ref-23">[23]</span> C. W. Helstrom, *Quantum detection and estimation theory*, J. Stat. Phys. **1**, 231 (1969) — the optimal measurement for distinguishing two states.
+#
+# <span id="ref-24">[24]</span> A. Rényi, *On measures of entropy and information*, in *Proc. 4th Berkeley Symp. Math. Stat. Probab.*, Vol. 1, pp. 547–561 (University of California Press, 1961).
+#
+# <span id="ref-25">[25]</span> R. Islam, R. Ma, P. M. Preiss, M. E. Tai, A. Lukin, M. Rispoli and M. Greiner, *Measuring entanglement entropy in a quantum many-body system*, Nature **528**, 77 (2015).
+#
+# <span id="ref-26">[26]</span> T. Brydges, A. Elben, P. Jurcevic, B. Vermersch, C. Maier, B. P. Lanyon, P. Zoller, R. Blatt and C. F. Roos, *Probing Rényi entanglement entropy via randomized measurements*, Science **364**, 260 (2019).
+#
+# <span id="ref-27">[27]</span> G. H. Golub and C. F. Van Loan, *Matrix Computations*, 4th ed. (Johns Hopkins University Press, 2013) — SVD, its backward stability and the error bounds quoted in Section 6.3.
+#
+# <span id="ref-28">[28]</span> W. H. Press, S. A. Teukolsky, W. T. Vetterling, B. P. Flannery, *Numerical Recipes: The Art of Scientific Computing*, 3rd ed. (Cambridge University Press, 2007) — Ch. 2.6 (singular value decomposition) and Ch. 11 (eigensystems); the parallel volume *Numerical Recipes in Fortran 90*, 2nd ed. (Cambridge University Press, 1996).
+#
+# <span id="ref-29">[29]</span> D. N. Page, *Average entropy of a subsystem*, Phys. Rev. Lett. **71**, 1291 (1993).
+#
+# <span id="ref-30">[30]</span> S. K. Foong and S. Kanno, *Proof of Page's conjecture on the average entropy of a subsystem*, Phys. Rev. Lett. **72**, 1148–1151 (1994).
+#
+# <span id="ref-31">[31]</span> S. Popescu, A. J. Short and A. Winter, *Entanglement and the foundations of statistical mechanics*, Nat. Phys. **2**, 754 (2006).
+#
+# <span id="ref-32">[32]</span> S. Goldstein, J. L. Lebowitz, R. Tumulka and N. Zanghì, *Canonical typicality*, Phys. Rev. Lett. **96**, 050403 (2006).
+#
+# <span id="ref-33">[33]</span> D. N. Page, *Information in black hole radiation*, Phys. Rev. Lett. **71**, 3743 (1993).
+#
+# <span id="ref-34">[34]</span> M. B. Hastings, *An area law for one-dimensional quantum systems*, J. Stat. Mech. **2007**, P08024 (2007).
+#
+# <span id="ref-35">[35]</span> G. Vidal, J. I. Latorre, E. Rico and A. Kitaev, *Entanglement in quantum critical phenomena*, Phys. Rev. Lett. **90**, 227902 (2003).
+#
+# <span id="ref-36">[36]</span> C. Holzhey, F. Larsen and F. Wilczek, *Geometric and renormalized entropy in conformal field theory*, Nucl. Phys. B **424**, 443 (1994) — the logarithm and the central charge.
+#
+# <span id="ref-37">[37]</span> P. Calabrese and J. Cardy, *Entanglement entropy and quantum field theory*, J. Stat. Mech. **2004**, P06002 (2004) — the $\tfrac c6\ln[(N/\pi)\sin(\pi\ell/N)]+\text{const}$ formula for an open chain (their Eq. 2; the form with $2N/\pi$ used in Section 9 differs only in the constant) and its $\tfrac c3$ counterpart for a ring.
+#
+# <span id="ref-38">[38]</span> C. Lanczos, *An iteration method for the solution of the eigenvalue problem of linear differential and integral operators*, J. Res. Natl. Bur. Stand. **45**, 255 (1950).
+#
+# <span id="ref-39">[39]</span> P. Pfeuty, *The one-dimensional Ising model with a transverse field*, Ann. Phys. **57**, 79 (1970).
+#
+# <span id="ref-40">[40]</span> H. Bethe, *Zur Theorie der Metalle. I. Eigenwerte und Eigenfunktionen der linearen Atomkette*, Z. Phys. **71**, 205–226 (1931) — the Bethe ansatz.
+#
+# <span id="ref-41">[41]</span> C. N. Yang and C. P. Yang, *One-dimensional chain of anisotropic spin-spin interactions. I. Proof of Bethe's hypothesis for ground state in a finite system*, Phys. Rev. **150**, 321–327 (1966); *II. Properties of the ground-state energy per lattice site for an infinite system*, Phys. Rev. **150**, 327–339 (1966) — the XXZ chain for all $\Delta$.
+#
+# <span id="ref-42">[42]</span> M. Takahashi, *Thermodynamics of One-Dimensional Solvable Models* (Cambridge University Press, 1999) — Bethe-ansatz solution of the XXZ chain.
+#
+# <span id="ref-43">[43]</span> T. Giamarchi, *Quantum Physics in One Dimension* (Oxford University Press, 2003) — Luttinger liquids and the critical phase of the XXZ chain.
+#
+# <span id="ref-44">[44]</span> F. D. M. Haldane, *'Luttinger liquid theory' of one-dimensional quantum fluids. I. Properties of the Luttinger model and their extension to the general 1D interacting spinless Fermi gas*, J. Phys. C **14**, 2585 (1981).
+#
+# <span id="ref-45">[45]</span> S. Coleman, *There are no Goldstone bosons in two dimensions*, Commun. Math. Phys. **31**, 259–264 (1973) — no spontaneous breaking of a continuous symmetry in a quantum field theory in two space-time dimensions.
+#
+# <span id="ref-46">[46]</span> D. V. Dmitriev, V. Ya. Krivnov and A. A. Ovchinnikov, *Gap generation in the XXZ model in a transverse magnetic field*, Phys. Rev. B **65**, 172409 (2002).
+#
+# <span id="ref-47">[47]</span> P. Jordan and E. Wigner, *Über das Paulische Äquivalenzverbot*, Z. Phys. **47**, 631–651 (1928) — the XX chain as free fermions.
+#
+# <span id="ref-48">[48]</span> E. Lieb, T. Schultz and D. Mattis, *Two soluble models of an antiferromagnetic chain*, Ann. Phys. **16**, 407–466 (1961) — the XX chain as free fermions.
+#
+# <span id="ref-49">[49]</span> C. A. Fuchs and J. van de Graaf, *Cryptographic distinguishability measures for quantum-mechanical states*, IEEE Trans. Inf. Theory **45**, 1216 (1999).

@@ -3,7 +3,7 @@
 #@description: What a variational quantum algorithm is, how parametrized gates and ansätze are built from Pauli exponentials, why the cost along one angle is a pure sinusoid, and four ways to get its gradient — finite differences, the parameter-shift rule, SPSA and reverse-mode automatic differentiation — with measured accuracy, cost, shot-noise behaviour and the barren-plateau variance scaling.
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
 # Everything so far in this course has been a *simulation of a fixed physical process*: a Hamiltonian was given, a circuit
 # was given, and we computed what the state does. This chapter inverts the question. We fix a **family** of circuits
@@ -24,12 +24,12 @@
 #
 # **Why people study this.** A quantum computer running Shor's or the phase-estimation algorithm on a problem of practical
 # size needs quantum error correction and far more physical qubits than any existing device. The devices that exist now
-# are noisy intermediate-scale quantum (NISQ) machines (Preskill, 2018): their qubits are not error-corrected, and their
+# are noisy intermediate-scale quantum (NISQ) machines [[1]](#ref-1): their qubits are not error-corrected, and their
 # circuits decohere after a limited depth. A variational algorithm is designed for exactly that regime: the
 # quantum part is a *short* circuit, everything expensive and iterative is pushed onto the classical optimiser, and the
 # free angles can absorb part of the hardware's systematic errors. The first experiment of this kind solved a two-qubit
-# chemistry problem on a photonic chip (Peruzzo *et al.*, 2014); the framework was formalised shortly afterwards (McClean
-# *et al.*, 2016) and scaled to six superconducting qubits (Kandala *et al.*, 2017). The same loop is behind the
+# chemistry problem on a photonic chip [[2]](#ref-2); the framework was formalised shortly afterwards [[3]](#ref-3)
+# and scaled to six superconducting qubits [[4]](#ref-4). The same loop is behind the
 # variational quantum eigensolver, quantum machine learning, and variational state compression.
 #
 # **What is simulated here.** Nothing in this notebook is a quantum computer: the states are the rank-$N$ tensors of our
@@ -291,8 +291,8 @@ for name, G in [("X/2  (single-qubit rotation)", 0.5 * X),
 #
 # ### 4.1 The hardware-efficient ansatz
 #
-# Build the circuit from whatever the machine does natively, without using the structure of the problem. Kandala *et al.*
-# (2017) interleaved single-qubit Euler rotations $Z\,X\,Z$ with the entangling gates native to their superconducting chip
+# Build the circuit from whatever the machine does natively, without using the structure of the problem. Ref. [[4]](#ref-4)
+# interleaved single-qubit Euler rotations $Z\,X\,Z$ with the entangling gates native to the superconducting chip used there
 # (cross-resonance gates). The variant used throughout this chapter alternates
 #
 # * a **rotation block**: on every qubit, $R_z(\theta)R_y(\theta')$ — two angles per qubit;
@@ -335,7 +335,7 @@ for name, G in [("X/2  (single-qubit rotation)", 0.5 * X),
 # time-dependent Hamiltonian and Trotterising each small step (see
 # [12 — TEBD](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb)) gives a product of factors
 # $e^{-i\gamma H_{ZZ}}e^{-i\beta H_X}$ with *prescribed* small angles. The **Hamiltonian-variational ansatz**, introduced
-# by Wecker, Hastings and Troyer (2015) as a class of states motivated by adiabatic state preparation, keeps the
+# in [[5]](#ref-5) as a class of states motivated by adiabatic state preparation, keeps the
 # structure and throws away the prescription: let the angles be free.
 #
 # $$\vert\psi(\boldsymbol\gamma,\boldsymbol\beta)\rangle=\prod_{l=L}^{1}
@@ -820,7 +820,7 @@ fig.tight_layout(); plt.show()
 # $$\boxed{\;\partial_kC(\boldsymbol\theta)=\frac{C(\boldsymbol\theta+s\,\mathbf e_k)-C(\boldsymbol\theta-s\,\mathbf e_k)}
 #   {2\sin s}\;}\tag{17}$$
 #
-# This arbitrary-shift form is given by Mari, Bromley and Killoran (2021). The canonical choice $s=\pi/2$ makes the
+# This arbitrary-shift form is given in [[6]](#ref-6). The canonical choice $s=\pi/2$ makes the
 # denominator $2$:
 #
 # $$\partial_kC=\tfrac12\bigl[C(\boldsymbol\theta+\tfrac\pi2\mathbf e_k)-C(\boldsymbol\theta-\tfrac\pi2\mathbf e_k)\bigr].
@@ -831,8 +831,8 @@ fig.tight_layout(); plt.show()
 # 1. **Equation (18) is exact.** It has no truncation error, because the function it differentiates is exactly a
 #    sinusoid; the large step $\pi/2$ costs nothing in accuracy.
 # 2. **The shifted circuits are ordinary circuits.** They need no access to amplitudes and no extra hardware: the same
-#    device is run with one angle changed by $\pi/2$. Mitarai *et al.* (2018) introduced the rule of Eq. (18) for this
-#    reason, to train circuits on hardware by gradient descent. Schuld *et al.* (2019) extended it to every gate $e^{-i\theta G}$ whose generator has two eigenvalues
+#    device is run with one angle changed by $\pi/2$. The rule of Eq. (18) was introduced in [[7]](#ref-7) for this
+#    reason, to train circuits on hardware by gradient descent. Ref. [[8]](#ref-8) extended it to every gate $e^{-i\theta G}$ whose generator has two eigenvalues
 #    $\pm r$, with shift $\pi/(4r)$ and prefactor $r$, and treated other gates with one ancilla qubit.
 # 3. **The cost is $2n$ circuit evaluations** for $n$ parameters. This is the method's weakness, and Sections 9 and 10
 #    describe the two alternatives.
@@ -901,9 +901,9 @@ fig.tight_layout(); plt.show()
 # $$\boxed{\;\partial_kC=\frac{\sqrt2+1}{4\sqrt2}\,\Delta_1-\frac{\sqrt2-1}{4\sqrt2}\,\Delta_2\;}\tag{19}$$
 #
 # with $\Delta_1=C(\theta+\tfrac\pi2)-C(\theta-\tfrac\pi2)$ and $\Delta_2=C(\theta+\tfrac{3\pi}{2})-C(\theta-\tfrac{3\pi}{2})$.
-# This is the **four-term shift rule** of Anselmetti *et al.* (2021). Wierichs *et al.* (2022) derive it again as a
+# This is the **four-term shift rule** of [[9]](#ref-9). Ref. [[10]](#ref-10) derives it again as a
 # special case of a general rule: for a cost with $R$ equidistant frequencies, $2R$ evaluations at evenly spaced shifts give
-# the exact derivative (they also treat arbitrary spectra). We verify Eq. (19), and the failure of the two-term rule,
+# the exact derivative (arbitrary spectra are treated there as well). We verify Eq. (19), and the failure of the two-term rule,
 # numerically.
 
 # %%
@@ -998,7 +998,7 @@ fig.tight_layout(); plt.show()
 # %% [markdown]
 # ## 9. Gradient method 3: SPSA
 #
-# Parameter shift costs $2n$ circuits. **Simultaneous perturbation stochastic approximation** (Spall, 1992) costs $2$,
+# Parameter shift costs $2n$ circuits. **Simultaneous perturbation stochastic approximation** [[11]](#ref-11) costs $2$,
 # independently of $n$ — at the price of returning a random vector whose *mean* is the gradient.
 #
 # ### 9.1 The estimator
@@ -1193,7 +1193,7 @@ assert abs(z_var) < 4 and abs(z_var_wrong) > 4
 # The forward sweep as described stores $n_g$ states: memory $O(n_g\cdot2^N)$ against the $O(2^N)$ of a parameter-shift
 # evaluation. For $N=20$ and $n_g=200$ that is $200\times16.8\,\text{MB}\approx3.4\,\text{GB}$, which limits the method.
 #
-# The **adjoint-differentiation** method, derived for state-vector simulators by Jones and Gacon (2020), removes this
+# The **adjoint-differentiation** method, derived for state-vector simulators in [[12]](#ref-12), removes this
 # memory. Quantum gates are unitary, so
 # $\vert\psi_{l-1}\rangle=U_l^\dagger\vert\psi_l\rangle$: the forward states can be *recomputed backwards* instead of
 # stored. The backward sweep then carries exactly two state vectors, $\vert\psi\rangle$ and $\vert\lambda\rangle$, both
@@ -1713,10 +1713,10 @@ fig.tight_layout(); plt.show()
 # $\theta_k$. A zero mean is therefore no sign of a plateau. Second, the **variance** $\mathrm{Var}_{\boldsymbol\theta}
 # [\partial_kC]$ measures how large the gradient typically is, and this is what can vanish exponentially with $N$.
 #
-# The phenomenon was identified by McClean *et al.* (2018), who computed the variance for random circuits in which the
+# The phenomenon was identified in [[13]](#ref-13), which computed the variance for random circuits in which the
 # part before or after the differentiated gate (or both) forms a unitary 2-design, i.e. reproduces the first two moments of Haar-random unitaries
 # ([10 — random unitaries](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb)). For a circuit
-# $\cdots e^{-i\theta_kV}\cdots$ with both parts 2-designs, an observable $H$ and a pure input state, their result reads
+# $\cdots e^{-i\theta_kV}\cdots$ with both parts 2-designs, an observable $H$ and a pure input state, the result there reads
 #
 # $$\mathrm{Var}[\partial_kC]=2\,\mathrm{Tr}(H^2)\Bigl(\frac{\mathrm{Tr}(V^2)}{2^{3N}}-\frac{(\mathrm{Tr}V)^2}{2^{4N}}\Bigr).$$
 #
@@ -1727,13 +1727,13 @@ fig.tight_layout(); plt.show()
 # above the shot noise, so an exponentially small gradient needs exponentially many shots (Exercise 8 makes this
 # quantitative, and finds a twist for the global cost).
 #
-# Cerezo *et al.* (2021) showed that the *locality of the cost observable* matters as much as the depth. Their circuits
+# Ref. [[14]](#ref-14) showed that the *locality of the cost observable* matters as much as the depth. The circuits there
 # are alternating layered ansätze whose blocks form local 2-designs. For a **global** cost such as Eq. (9) the variance
-# vanishes exponentially in $N$ already for shallow circuits (their bound covers depths up to $O(\mathrm{poly}\log N)$,
+# vanishes exponentially in $N$ already for shallow circuits (the bound there covers depths up to $O(\mathrm{poly}\log N)$,
 # and in particular depth $O(1)$). For a **local** cost such as Eq. (10) it vanishes at worst polynomially, as
 # $\Omega(1/\mathrm{poly}(N))$, as long as the depth is $O(\log N)$; for depth $O(\mathrm{poly}(N))$ the circuit
 # approaches a 2-design and the exponential decay returns for local costs too. The hardware-efficient ansatz of this
-# notebook ($R_yR_z$ rotations and a $CZ$ ladder) is not of their block form, so their theorems do not apply to it
+# notebook ($R_yR_z$ rotations and a $CZ$ ladder) is not of that block form, so those theorems do not apply to it
 # literally; the measurement below tests whether it behaves the same way.
 #
 # For the local cost at fixed depth there is a simple argument for the expected scaling. $\theta_0$ rotates qubit $0$ in
@@ -1856,7 +1856,7 @@ print(f"\nVar(local)/Var(global) at N = {N_LIST[-1]}:  L=2: {res['l2'][-1] / res
 #   observable, and the variance falls by more than four orders of magnitude from $N=2$ to $N=10$.
 # * **Global cost, $L=2$.** The variance falls almost as fast, with local slopes $1.6$–$1.8$ up to $N=8$ (the last slope,
 #   $1.2$, rests on the $N=10$ point, whose standard error is $50\,\%$ because a few draws dominate the variance). A shallow
-#   circuit does not protect a global cost: this is the behaviour Cerezo *et al.* prove for their layered circuits, and
+#   circuit does not protect a global cost: this is the behaviour proved in [[14]](#ref-14) for the layered circuits there, and
 #   our different ansatz shows it too.
 # * **Local cost, $L=2$.** This curve is not exponential (the dotted $N^{-2}$ reference line lies on its points). Its local slope falls from $1.1$ to $0.3$ per qubit, and
 #   $N^2\,\mathrm{Var}$ is constant for $N\ge6$ (the checkpoint: $\chi^2=0.3$ for $2$ degrees of freedom, while the wrong
@@ -1867,7 +1867,7 @@ print(f"\nVar(local)/Var(global) at N = {N_LIST[-1]}:  L=2: {res['l2'][-1] / res
 # * **Local cost, $L=N$.** Deepening the circuit with $N$ steepens the decay (local slopes $1.3$, $0.9$, $0.65$, $0.45$),
 #   but over $N\le10$ the curve is not yet a clean exponential either; the light cone of a $CZ$ ladder grows by one site per
 #   layer, so at $L=N$ the circuit has only just reached the far end of the chain. Where the circuit approaches a 2-design,
-#   Cerezo *et al.* predict exponential decay for local costs too; these sizes cannot establish the asymptotic rate.
+#   Ref. [[14]](#ref-14) predicts exponential decay for local costs too; these sizes cannot establish the asymptotic rate.
 #
 # At $N=10$ the local cost has a gradient variance $160$ times larger than the global cost of the same circuit at the same
 # random angles for $L=2$, and $260$ times larger for $L=N$.
@@ -1882,16 +1882,16 @@ print(f"\nVar(local)/Var(global) at N = {N_LIST[-1]}:  L=2: {res['l2'][-1] / res
 #
 # * **Use a local cost.** Demonstrated above: at $L=2$ the local cost of Eq. (10) decays as $N^{-2}$, the global cost of
 #   Eq. (9) exponentially, for the same circuit and the same random angles. Both have the same minimiser (Section 5.3).
-#   (Cerezo *et al.*, 2021.)
-# * **Keep the circuit shallow.** Demonstrated above for the local cost: at $L=N$ it decays faster than at $L=2$. Cerezo
-#   *et al.* prove that for local costs a depth $O(\log N)$ keeps the variance at worst polynomially small. For the global
+#   See [[14]](#ref-14).
+# * **Keep the circuit shallow.** Demonstrated above for the local cost: at $L=N$ it decays faster than at $L=2$. Ref.
+#   [[14]](#ref-14) proves that for local costs a depth $O(\log N)$ keeps the variance at worst polynomially small. For the global
 #   cost, depth does not help much: $L=2$ is already close to $L=N$.
 # * **Use a problem-inspired ansatz.** Not measured here (Exercise 7 does it). The Hamiltonian-variational ansatz of
 #   Section 4.2 has $2L$ shared parameters and a structure tied to the target; ansatz design as a mitigation is reviewed
-#   in Cerezo *et al.* (2021, *Nature Reviews Physics*).
+#   in [[15]](#ref-15).
 # * **Initialise with structure rather than uniformly.** Not measured here. The variance above was taken over the
 #   *uniform* distribution on $[-\pi,\pi]^n$. Initialisations that start near the identity, or that grow the circuit layer
-#   by layer, sample a different distribution; this is reviewed in Cerezo *et al.* (2021, *Nature Reviews Physics*).
+#   by layer, sample a different distribution; this is reviewed in [[15]](#ref-15).
 #
 # > **Common pitfall.** A barren plateau cannot be fixed by a better optimiser. On hardware every method of this notebook
 # > has to resolve $\partial_kC$ above the shot noise, and an exponentially small quantity requires exponentially many
@@ -1933,7 +1933,7 @@ print(f"\nVar(local)/Var(global) at N = {N_LIST[-1]}:  L=2: {res['l2'][-1] / res
 # * **Barren plateaus are measurable.** Over uniformly random angles, the variance of one gradient component of the global
 #   cost falls by a factor of three to four per added qubit, already at $L=2$, and close to the 2-design value $2^{-2N-1}$ at
 #   $L=N$. The local cost at $L=2$ falls only as $N^{-2}$, as the light-cone argument predicts: the cost-locality effect
-#   of Cerezo *et al.*, measured rather than quoted. The mean gradient is zero in every case, as periodicity requires.
+#   of [[14]](#ref-14), measured rather than quoted. The mean gradient is zero in every case, as periodicity requires.
 #
 # ## 15. Exercises
 #
@@ -1957,7 +1957,7 @@ print(f"\nVar(local)/Var(global) at N = {N_LIST[-1]}:  L=2: {res['l2'][-1] / res
 #    Gaussian one and use $1/\Delta_k$ in Eq. (20). Show analytically that $\mathbb E[\lvert1/\Delta_k\rvert]$ and
 #    $\mathbb E[1/\Delta_k^2]$ diverge, measure what that does to the sample mean and the sample variance of the estimator
 #    as the number of samples grows, and explain why the finite-inverse-moment condition on the perturbation distribution
-#    in Spall's convergence theory excludes the Gaussian (Spall, 1998).
+#    in the SPSA convergence theory excludes the Gaussian [[16]](#ref-16).
 # 6. ★★ **Cost of the adjoint method (extend the code).** Instrument `adjoint_gradient` to count gate applications, and
 #    verify the count $3n_g+n$ (plus one Hamiltonian application) of Sections 10.1 and 10.2 for the circuit of Section 10. Then jit
 #    it, compare its run time and its compile time with `jax.grad` for $N=4,6,8,10,12$ at fixed $L$, and comment.
@@ -1976,45 +1976,60 @@ print(f"\nVar(local)/Var(global) at N = {N_LIST[-1]}:  L=2: {res['l2'][-1] / res
 #
 # ## References
 #
-# * J. Preskill, *Quantum computing in the NISQ era and beyond*, Quantum **2**, 79 (2018) — the noisy
-#   intermediate-scale regime of Section 1.
-# * A. Peruzzo, J. McClean, P. Shadbolt, M.-H. Yung, X.-Q. Zhou, P. J. Love, A. Aspuru-Guzik and J. L. O'Brien,
-#   *A variational eigenvalue solver on a photonic quantum processor*, Nat. Commun. **5**, 4213 (2014) — the first
-#   variational quantum eigensolver experiment (two qubits, HeH$^+$).
-# * J. R. McClean, J. Romero, R. Babbush and A. Aspuru-Guzik, *The theory of variational hybrid quantum-classical
-#   algorithms*, New J. Phys. **18**, 023023 (2016) — the general framework of the hybrid loop of Section 1.
-# * A. Kandala, A. Mezzacapo, K. Temme, M. Takita, M. Brink, J. M. Chow and J. M. Gambetta, *Hardware-efficient
-#   variational quantum eigensolver for small molecules and quantum magnets*, Nature **549**, 242 (2017) — the
-#   hardware-efficient ansatz of Section 4.1 (Euler rotations and native cross-resonance entanglers).
-# * D. Wecker, M. B. Hastings and M. Troyer, *Progress towards practical quantum variational algorithms*, Phys. Rev. A
-#   **92**, 042303 (2015) — the Hamiltonian-variational ansatz of Section 4.2, motivated by adiabatic state preparation.
-# * K. Mitarai, M. Negoro, M. Kitagawa and K. Fujii, *Quantum circuit learning*, Phys. Rev. A **98**, 032309 (2018) —
-#   the parameter-shift rule for Pauli-generated gates.
-# * M. Schuld, V. Bergholm, C. Gogolin, J. Izaac and N. Killoran, *Evaluating analytic gradients on quantum hardware*,
-#   Phys. Rev. A **99**, 032331 (2019) — the shift rule for every generator with two eigenvalues $\pm r$, and an
-#   ancilla-based method for other gates.
-# * A. Mari, T. R. Bromley and N. Killoran, *Estimating the gradient and higher-order derivatives on quantum hardware*,
-#   Phys. Rev. A **103**, 012405 (2021) — the arbitrary-shift rule of Eq. (17), and the shot-noise comparison of parameter
-#   shift with finite differences.
-# * G.-L. R. Anselmetti, D. Wierichs, C. Gogolin and R. M. Parrish, *Local, expressive, quantum-number-preserving VQE
-#   ansätze for fermionic systems*, New J. Phys. **23**, 113010 (2021) — the four-term shift rule of Eq. (19), with the
-#   shifts $\pi/2$, $3\pi/2$ and the coefficients $(\sqrt2\pm1)/(4\sqrt2)$ (Appendix F of the paper).
-# * D. Wierichs, J. Izaac, C. Wang and C. Y.-Y. Lin, *General parameter-shift rules for quantum gradients*,
-#   Quantum **6**, 677 (2022) — the general rule with $2R$ evaluations for $R$ frequencies, which contains Eq. (19) as
-#   the case $R=2$.
-# * J. C. Spall, *Multivariate stochastic approximation using a simultaneous perturbation gradient approximation*,
-#   IEEE Trans. Autom. Control **37**, 332 (1992) — SPSA, the $O(c^2)$ bias of its gradient estimate and its convergence
-#   theory.
-# * J. C. Spall, *An overview of the simultaneous perturbation method for efficient optimization*, Johns Hopkins APL
-#   Tech. Dig. **19**, 482 (1998) — the conditions on the perturbation distribution, and why Gaussian and uniform
-#   perturbations are excluded.
-# * T. Jones and J. Gacon, *Efficient calculation of gradients in classical simulations of variational quantum
-#   algorithms*, arXiv:2009.02823 (2020) — a derivation of the adjoint-differentiation method of Section 10.2 for
-#   state-vector simulators, in $O(n)$ time for $n$ parameters and with $O(1)$ state vectors.
-# * J. R. McClean, S. Boixo, V. N. Smelyanskiy, R. Babbush and H. Neven, *Barren plateaus in quantum neural network
-#   training landscapes*, Nat. Commun. **9**, 4812 (2018) — the 2-design variance formula of Section 13.1.
-# * M. Cerezo, A. Sone, T. Volkoff, L. Cincio and P. J. Coles, *Cost function dependent barren plateaus in shallow
-#   parametrized quantum circuits*, Nat. Commun. **12**, 1791 (2021) — global versus local cost functions.
-# * M. Cerezo, A. Arrasmith, R. Babbush, S. C. Benjamin, S. Endo, K. Fujii, J. R. McClean, K. Mitarai, X. Yuan,
-#   L. Cincio and P. J. Coles, *Variational quantum algorithms*, Nat. Rev. Phys. **3**, 625 (2021) — the review of the
-#   whole field, including ansatz design and plateau mitigation.
+# <span id="ref-1">[1]</span> J. Preskill, *Quantum computing in the NISQ era and beyond*, Quantum **2**, 79 (2018) — the noisy
+# intermediate-scale regime of Section 1.
+#
+# <span id="ref-2">[2]</span> A. Peruzzo, J. McClean, P. Shadbolt, M.-H. Yung, X.-Q. Zhou, P. J. Love, A. Aspuru-Guzik and J. L. O'Brien,
+# *A variational eigenvalue solver on a photonic quantum processor*, Nat. Commun. **5**, 4213 (2014) — the first
+# variational quantum eigensolver experiment (two qubits, HeH$^+$).
+#
+# <span id="ref-3">[3]</span> J. R. McClean, J. Romero, R. Babbush and A. Aspuru-Guzik, *The theory of variational hybrid quantum-classical
+# algorithms*, New J. Phys. **18**, 023023 (2016) — the general framework of the hybrid loop of Section 1.
+#
+# <span id="ref-4">[4]</span> A. Kandala, A. Mezzacapo, K. Temme, M. Takita, M. Brink, J. M. Chow and J. M. Gambetta, *Hardware-efficient
+# variational quantum eigensolver for small molecules and quantum magnets*, Nature **549**, 242 (2017) — the
+# hardware-efficient ansatz of Section 4.1 (Euler rotations and native cross-resonance entanglers).
+#
+# <span id="ref-5">[5]</span> D. Wecker, M. B. Hastings and M. Troyer, *Progress towards practical quantum variational algorithms*, Phys. Rev. A
+# **92**, 042303 (2015) — the Hamiltonian-variational ansatz of Section 4.2, motivated by adiabatic state preparation.
+#
+# <span id="ref-6">[6]</span> A. Mari, T. R. Bromley and N. Killoran, *Estimating the gradient and higher-order derivatives on quantum hardware*,
+# Phys. Rev. A **103**, 012405 (2021) — the arbitrary-shift rule of Eq. (17), and the shot-noise comparison of parameter
+# shift with finite differences.
+#
+# <span id="ref-7">[7]</span> K. Mitarai, M. Negoro, M. Kitagawa and K. Fujii, *Quantum circuit learning*, Phys. Rev. A **98**, 032309 (2018) —
+# the parameter-shift rule for Pauli-generated gates.
+#
+# <span id="ref-8">[8]</span> M. Schuld, V. Bergholm, C. Gogolin, J. Izaac and N. Killoran, *Evaluating analytic gradients on quantum hardware*,
+# Phys. Rev. A **99**, 032331 (2019) — the shift rule for every generator with two eigenvalues $\pm r$, and an
+# ancilla-based method for other gates.
+#
+# <span id="ref-9">[9]</span> G.-L. R. Anselmetti, D. Wierichs, C. Gogolin and R. M. Parrish, *Local, expressive, quantum-number-preserving VQE
+# ansätze for fermionic systems*, New J. Phys. **23**, 113010 (2021) — the four-term shift rule of Eq. (19), with the
+# shifts $\pi/2$, $3\pi/2$ and the coefficients $(\sqrt2\pm1)/(4\sqrt2)$ (Appendix F of the paper).
+#
+# <span id="ref-10">[10]</span> D. Wierichs, J. Izaac, C. Wang and C. Y.-Y. Lin, *General parameter-shift rules for quantum gradients*,
+# Quantum **6**, 677 (2022) — the general rule with $2R$ evaluations for $R$ frequencies, which contains Eq. (19) as
+# the case $R=2$.
+#
+# <span id="ref-11">[11]</span> J. C. Spall, *Multivariate stochastic approximation using a simultaneous perturbation gradient approximation*,
+# IEEE Trans. Autom. Control **37**, 332 (1992) — SPSA, the $O(c^2)$ bias of its gradient estimate and its convergence
+# theory.
+#
+# <span id="ref-12">[12]</span> T. Jones and J. Gacon, *Efficient calculation of gradients in classical simulations of variational quantum
+# algorithms*, arXiv:2009.02823 (2020) — a derivation of the adjoint-differentiation method of Section 10.2 for
+# state-vector simulators, in $O(n)$ time for $n$ parameters and with $O(1)$ state vectors.
+#
+# <span id="ref-13">[13]</span> J. R. McClean, S. Boixo, V. N. Smelyanskiy, R. Babbush and H. Neven, *Barren plateaus in quantum neural network
+# training landscapes*, Nat. Commun. **9**, 4812 (2018) — the 2-design variance formula of Section 13.1.
+#
+# <span id="ref-14">[14]</span> M. Cerezo, A. Sone, T. Volkoff, L. Cincio and P. J. Coles, *Cost function dependent barren plateaus in shallow
+# parametrized quantum circuits*, Nat. Commun. **12**, 1791 (2021) — global versus local cost functions.
+#
+# <span id="ref-15">[15]</span> M. Cerezo, A. Arrasmith, R. Babbush, S. C. Benjamin, S. Endo, K. Fujii, J. R. McClean, K. Mitarai, X. Yuan,
+# L. Cincio and P. J. Coles, *Variational quantum algorithms*, Nat. Rev. Phys. **3**, 625 (2021) — the review of the
+# whole field, including ansatz design and plateau mitigation.
+#
+# <span id="ref-16">[16]</span> J. C. Spall, *An overview of the simultaneous perturbation method for efficient optimization*, Johns Hopkins APL
+# Tech. Dig. **19**, 482 (1998) — the conditions on the perturbation distribution, and why Gaussian and uniform
+# perturbations are excluded.

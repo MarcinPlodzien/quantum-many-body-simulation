@@ -3,7 +3,7 @@
 #@description: How a message is kept secret from an eavesdropper, with a simulation for every formula: the threat model and Kerckhoffs's principle, perfect secrecy as zero mutual information between message and ciphertext, the one-time pad and its proof, the two-time-pad attack on text, the leak of a biased key, Shannon's theorem that the key must be at least as long as the message, the key-distribution problem, computational against information-theoretic security, the man-in-the-middle attack and why quantum key distribution needs a short pre-shared authentication key, and privacy amplification by XOR and by random linear hashing.
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
 # Alice wants to tell Bob something that nobody else may read: a bank transfer, a medical record, the time of a
 # meeting. The only connection between them is a public channel, a radio link or a fibre that an eavesdropper, Eve, can
@@ -13,8 +13,8 @@
 #
 # [Notebook 50](../ch12_quantum_communication_and_cryptography/50_information_entropy_and_noisy_channels.ipynb) gave
 # the language: entropy measures uncertainty, and the mutual information $I(X{:}Y)$ measures how much one variable
-# reveals about another. In 1949 Shannon used exactly this language to define what it means for a cipher to be
-# unbreakable, and he proved that a simple cipher, the **one-time pad**, achieves it (Shannon 1949).
+# reveals about another. In 1949 exactly this language was used to define what it means for a cipher to be
+# unbreakable, together with a proof that a simple cipher, the **one-time pad**, achieves it [[1]](#ref-1).
 #
 # ![The one-time pad: Alice adds the key to the message, the ciphertext crosses a public channel read by Eve, Bob adds the same key, and the key itself has to reach both in advance](figures/one_time_pad.svg)
 #
@@ -192,12 +192,12 @@ def bits_to_text(bits):
 # the key from Bob's desk. A quantum key distribution system guarantees the secrecy of the key it produces, but Eve can
 # always cut the fibre, and then no key is produced; availability is not part of the promise.
 #
-# One rule is part of every threat model. In 1883 Auguste Kerckhoffs listed the requirements of a military cipher, and
+# One rule is part of every threat model. A list of the requirements of a military cipher was published in 1883 [[2]](#ref-2), and
 # the second of them reads, in translation, that the system *must not require secrecy, and it must be able to fall into
-# the hands of the enemy without inconvenience* (Kerckhoffs 1883). **Kerckhoffs's principle** therefore says that Eve
-# knows the protocol, every algorithm and every device; only the key is secret. Shannon made the same assumption the
-# starting point of his theory: the enemy knows the system being used, including the probabilities with which keys are
-# chosen (Shannon 1949). A cipher whose security rests on a secret design is broken for good once the design leaks,
+# the hands of the enemy without inconvenience*. **Kerckhoffs's principle** therefore says that Eve
+# knows the protocol, every algorithm and every device; only the key is secret. The same assumption is the
+# starting point of the theory of [[1]](#ref-1): the enemy knows the system being used, including the probabilities with which
+# keys are chosen. A cipher whose security rests on a secret design is broken for good once the design leaks,
 # while a compromised key can simply be replaced.
 
 # %% [markdown]
@@ -210,9 +210,9 @@ def bits_to_text(bits):
 # $m=D_k(c)$. The key is chosen independently of the message.
 #
 # Eve intercepts $c$. Before seeing it, her knowledge of the message is the prior $P(M=m)$; afterwards, by Bayes' rule,
-# it is the posterior $P(M=m\vert C=c)$. Shannon called a system **perfectly secret** when intercepting the ciphertext
+# it is the posterior $P(M=m\vert C=c)$. Ref. [[1]](#ref-1) calls a system **perfectly secret** when intercepting the ciphertext
 # gives the cryptanalyst no information, that is when the posterior equals the prior for every message and every
-# ciphertext (Shannon 1949, Section 10),
+# ciphertext (Section 10 there),
 #
 # $$P(M=m\vert C=c)=P(M=m)\qquad\text{for all }m\text{ and all }c\text{ with }P(C=c)>0. \tag{1}$$
 #
@@ -228,8 +228,8 @@ def bits_to_text(bits):
 #
 # $$P(C=c\vert M=m)=P(C=c)\qquad\text{for all }m\text{ with }P(M=m)>0\text{ and all }c, \tag{3}$$
 #
-# so that the probability of seeing a given ciphertext is the same whichever message was sent. This is Shannon's
-# Theorem 6. The definition asks for a lot and assumes little about Eve: she may know the cipher, the prior and every
+# so that the probability of seeing a given ciphertext is the same whichever message was sent. This is Theorem 6 of
+# [[1]](#ref-1). The definition asks for a lot and assumes little about Eve: she may know the cipher, the prior and every
 # key probability, and her computing power is unlimited. Seeing $c$ simply does not help her.
 #
 # The next cell builds the exact joint table $P(m,c)=\sum_kP(m)P(k)\,[E_k(m)=c]$ for any small cipher by enumerating
@@ -295,8 +295,8 @@ assert d1 > 0.1 and d3 > 0.1 and I_weak > 1.0                          # wrong c
 #
 # Decryption works because $k\oplus k=0$ for every bit, so $c\oplus k=m\oplus k\oplus k=m$. For the four-bit example
 # of Figure 1, $m=1011$ and $k=0110$ give $c=1101$, and $1101\oplus0110=1011$ returns the message. The scheme is called
-# the one-time pad, or the Vernam cipher: Vernam (1926) described a teleprinter cipher built for the U.S. Army Signal
-# Corps, and Shannon (1949) identified a never-repeating random key added letter by letter as "the Vernam system" and
+# the one-time pad, or the Vernam cipher: Ref. [[3]](#ref-3) described a teleprinter cipher built for the U.S. Army Signal
+# Corps, and Ref. [[1]](#ref-1) identified a never-repeating random key added letter by letter as "the Vernam system" and
 # proved it perfectly secret.
 #
 # **Proof of perfect secrecy.** Fix any message $m$. The ciphertext equals $c$ exactly when the key equals
@@ -558,8 +558,8 @@ plt.tight_layout(); plt.show()
 #
 # ### 6.3 A key shorter than the message: Shannon's theorem
 #
-# The last requirement is length. Shannon proved that no cipher, however clever, can be perfectly secret with fewer
-# keys than messages (Shannon 1949, Section 10).
+# The last requirement is length. Section 10 of [[1]](#ref-1) proves that no cipher, however clever, can be perfectly secret
+# with fewer keys than messages.
 #
 # **Counting proof.** Fix a ciphertext $c$ that occurs. By Eq. (1) every message $m$ with $P(m)>0$ is still possible
 # after seeing $c$, so for each such message some key $k_m$ encrypts it into $c$. Two different messages need two
@@ -581,7 +581,7 @@ plt.tight_layout(); plt.show()
 #
 # Every bit by which the key falls short of the message entropy is a bit that Eve learns. For an $n$-bit message the
 # one-time pad uses $n$ key bits; if the message is redundant, as text is, it can first be compressed to about $H(M)$
-# bits (notebook 50, Section 3.4) and then needs only that many key bits, which Shannon also pointed out. The next cell
+# bits (notebook 50, Section 3.4) and then needs only that many key bits, as [[1]](#ref-1) also points out. The next cell
 # checks Eqs. (9)–(11) by exact enumeration. The cipher adds an $\ell$-bit key, repeated as often as needed, to an
 # $8$-bit message, for $\ell=1,2,4,8$. For a uniform message Eq. (11) predicts a leak of at least $8-\ell$ bits; the
 # cell also tests random non-uniform priors.
@@ -638,12 +638,12 @@ for ell in (1, 2, 4, 8):
 #
 # ### 7.2 Computational and information-theoretic security
 #
-# Encrypted internet traffic avoids the problem differently. **Public-key cryptography**, introduced by Diffie and
-# Hellman (1976) and by Rivest, Shamir and Adleman (1978), lets two parties who have never met agree on a key over a
+# Encrypted internet traffic avoids the problem differently. **Public-key cryptography**, introduced in [[4]](#ref-4) and
+# [[5]](#ref-5), lets two parties who have never met agree on a key over a
 # public channel, without a courier. The key is then used in a fast cipher with a short key, which, by Eq. (11), is not
 # perfectly secret. The security of both steps rests on the belief that certain mathematical problems are hard:
-# computing discrete logarithms in the scheme of Diffie and Hellman, and, in part, factoring the product of two large
-# primes in the scheme of Rivest, Shamir and Adleman. No fast classical algorithm for these problems is known, but
+# computing discrete logarithms in the scheme of [[4]](#ref-4), and, in part, factoring the product of two large
+# primes in the scheme of [[5]](#ref-5). No fast classical algorithm for these problems is known, but
 # nobody has proved that none exists. This kind of guarantee is called **computational security**: it holds against an
 # adversary with limited computing power, and only under an unproven assumption.
 #
@@ -698,13 +698,13 @@ assert bits_to_text(otp(c_bits, k_other)) == other
 # ### 7.3 Store now, decrypt later
 #
 # Computational security has an expiry date that nobody knows. Factoring and discrete logarithms, the problems behind
-# the public-key schemes above, can be solved efficiently on a quantum computer (Shor 1997). The quantum computers built
+# the public-key schemes above, can be solved efficiently on a quantum computer [[6]](#ref-6). The quantum computers built
 # so far are far too small to attack keys of practical size, but Eve can record encrypted traffic now and decrypt it
 # once a large enough machine exists. This threat is known as
 # **store now, decrypt later**, and it matters for any secret that must stay secret for decades, such as medical,
 # diplomatic or industrial records. Two answers exist. *Post-quantum cryptography* replaces factoring and discrete
 # logarithms with other mathematical problems believed to be hard even for quantum computers; the key-encapsulation
-# mechanism ML-KEM of the U.S. National Institute of Standards and Technology is an example (NIST FIPS 203, 2024). Its
+# mechanism ML-KEM of the U.S. National Institute of Standards and Technology is an example [[7]](#ref-7). Its
 # security is still computational. *Quantum key distribution* removes the computational assumption from the key
 # agreement altogether and replaces it with the laws of physics plus a threat model about the devices.
 #
@@ -801,7 +801,7 @@ print(f"Alice's and Bob's keys agree on {np.mean(k_alice == k_bob):.2f} of the b
 #
 # $$t=f_a(m). \tag{13}$$
 #
-# Eve, who does not know $a$, must guess the tag of any message she wants to insert or change. Wegman and Carter (1981)
+# Eve, who does not know $a$, must guess the tag of any message she wants to insert or change. Ref. [[8]](#ref-8)
 # showed that such tags can be made secure against an adversary with unlimited computing power, using a key that grows
 # only logarithmically with the length of the message. The next cell uses a simple tag for short numerical messages,
 # $t=(a_1m+a_2)\bmod p$ with a prime $p$ and a key pair $(a_1,a_2)$, and counts, over all $p^2$ keys, how often a forged
@@ -860,7 +860,7 @@ assert (a1_rec, a2_rec) == a_true
 # 6.3](../ch12_quantum_communication_and_cryptography/50_information_entropy_and_noisy_channels.ipynb) Alice and Bob
 # hold the same string $x$ of $n$ bits, but Eve has heard every announced parity, and in a quantum protocol she may also
 # have learned something by eavesdropping. **Privacy amplification** compresses $x$ into a shorter string $k=f(x)$ about
-# which Eve knows essentially nothing (Bennett, Brassard and Robert 1988).
+# which Eve knows essentially nothing [[9]](#ref-9).
 #
 # The smallest example has two bits. Suppose Eve knows $x_1$, while $x_2$ is uniformly random and independent of
 # everything she knows. Alice and Bob keep only $k=x_1\oplus x_2$. For every value of $x_1$, the bit $k$ is $x_2$ or its
@@ -1042,7 +1042,7 @@ ax.legend(fontsize=8, loc="upper left"); plt.tight_layout(); plt.show()
 # $48/128=37.5\,\%$ of Eve's bits, and keeping $64$ of them hands her about $24$.
 #
 # Real eavesdroppers are not restricted to linear knowledge, and in quantum key distribution Eve may even hold quantum
-# systems. Bennett, Brassard, Crépeau and Maurer (1995) showed that random hashing still works when only a suitable
+# systems. Ref. [[10]](#ref-10) showed that random hashing still works when only a suitable
 # bound on Eve's knowledge is known, and the security proofs of quantum key distribution extend this to quantum
 # adversaries. The rule of thumb survives in every case: subtract an upper bound on Eve's knowledge and a safety margin
 # from the length of the reconciled key.
@@ -1073,9 +1073,9 @@ ax.legend(fontsize=8, loc="upper left"); plt.tight_layout(); plt.show()
 #   level of the estimator bias.
 # * **Every misuse of the key leaks.** A reused key gives $c_1\oplus c_2=m_1\oplus m_2$ and broke two sentences; a key
 #   with bias $\kappa$ leaks $1-h(\kappa)$ bits per bit, $0.531$ at $\kappa=0.1$; a key shorter than the message leaks
-#   at least $H(M)-H(K)$, and perfect secrecy needs $H(K)\geq H(M)$ (Shannon).
+#   at least $H(M)-H(K)$, and perfect secrecy needs $H(K)\geq H(M)$ [[1]](#ref-1).
 # * **Computational security can expire.** Public-key methods rest on factoring and discrete logarithms, which a large
-#   quantum computer solves (Shor); recorded traffic can be decrypted later. Information-theoretic security does not
+#   quantum computer solves [[6]](#ref-6); recorded traffic can be decrypted later. Information-theoretic security does not
 #   depend on Eve's computing power.
 # * **Secrecy does not imply authenticity.** A one-time-pad ciphertext can be altered without the key, and an
 #   unauthenticated key agreement falls to the man in the middle. Authentication tags need a short pre-shared key, so
@@ -1123,33 +1123,42 @@ ax.legend(fontsize=8, loc="upper left"); plt.tight_layout(); plt.show()
 #
 # ## References
 #
-# * C. E. Shannon, *Communication theory of secrecy systems*, Bell Syst. Tech. J. **28**, 656 (1949),
-#   doi:10.1002/j.1538-7305.1949.tb00928.x — the assumption that the enemy knows the system, perfect secrecy as equality
-#   of a posteriori and a priori probabilities, Theorem 6, the bound on the number of keys, the key uncertainty needed
-#   to conceal the message, the Vernam system as a perfect system, and compression before encryption.
-# * G. S. Vernam, *Cipher printing telegraph systems for secret wire and radio telegraphic communications*, J. Am. Inst.
-#   Electr. Eng. **45**, 109 (1926), doi:10.1109/JAIEE.1926.6534724 — the teleprinter cipher of the U.S. Army Signal
-#   Corps to which the one-time pad goes back.
-# * A. Kerckhoffs, *La cryptographie militaire*, Journal des sciences militaires **9**, 5 and 161 (1883) — the six
-#   requirements of a military cipher, the second of which is Kerckhoffs's principle.
-# * W. Diffie and M. E. Hellman, *New directions in cryptography*, IEEE Trans. Inf. Theory **22**, 644 (1976),
-#   doi:10.1109/TIT.1976.1055638 — public key distribution whose security rests on the difficulty of computing
-#   logarithms modulo a prime.
-# * R. L. Rivest, A. Shamir and L. Adleman, *A method for obtaining digital signatures and public-key cryptosystems*,
-#   Commun. ACM **21**, 120 (1978), doi:10.1145/359340.359342 — the RSA cryptosystem, whose security rests in part on
-#   the difficulty of factoring.
-# * P. W. Shor, *Polynomial-time algorithms for prime factorization and discrete logarithms on a quantum computer*, SIAM
-#   J. Comput. **26**, 1484 (1997), doi:10.1137/S0097539795293172 — efficient quantum algorithms for the two problems
-#   behind these cryptosystems.
-# * National Institute of Standards and Technology, *Module-lattice-based key-encapsulation mechanism standard*, FIPS
-#   203 (2024), doi:10.6028/NIST.FIPS.203 — the post-quantum key-encapsulation mechanism ML-KEM, believed secure against
-#   adversaries with a quantum computer.
-# * M. N. Wegman and J. L. Carter, *New hash functions and their use in authentication and set equality*, J. Comput.
-#   Syst. Sci. **22**, 265 (1981), doi:10.1016/0022-0000(81)90033-7 — authentication that an enemy with unlimited
-#   computing power cannot forge, with a key that grows logarithmically with the message length.
-# * C. H. Bennett, G. Brassard and J.-M. Robert, *Privacy amplification by public discussion*, SIAM J. Comput. **17**,
-#   210 (1988), doi:10.1137/0217014 — distilling, by public discussion, a shorter string about which Eve has nearly no
-#   information from a string about which she has partial information.
-# * C. H. Bennett, G. Brassard, C. Crépeau and U. M. Maurer, *Generalized privacy amplification*, IEEE Trans. Inf.
-#   Theory **41**, 1915 (1995), doi:10.1109/18.476316 — privacy amplification by random hashing when only a bound on
-#   Eve's knowledge is known.
+# <span id="ref-1">[1]</span> C. E. Shannon, *Communication theory of secrecy systems*, Bell Syst. Tech. J. **28**,
+# 656 (1949), doi:10.1002/j.1538-7305.1949.tb00928.x — the assumption that the enemy knows the system, perfect secrecy
+# as equality of a posteriori and a priori probabilities, Theorem 6, the bound on the number of keys, the key
+# uncertainty needed to conceal the message, the Vernam system as a perfect system, and compression before encryption.
+#
+# <span id="ref-2">[2]</span> A. Kerckhoffs, *La cryptographie militaire*, Journal des sciences militaires **9**, 5
+# and 161 (1883) — the six requirements of a military cipher, the second of which is Kerckhoffs's principle.
+#
+# <span id="ref-3">[3]</span> G. S. Vernam, *Cipher printing telegraph systems for secret wire and radio telegraphic
+# communications*, J. Am. Inst. Electr. Eng. **45**, 109 (1926), doi:10.1109/JAIEE.1926.6534724 — the teleprinter
+# cipher of the U.S. Army Signal Corps to which the one-time pad goes back.
+#
+# <span id="ref-4">[4]</span> W. Diffie and M. E. Hellman, *New directions in cryptography*, IEEE Trans. Inf. Theory
+# **22**, 644 (1976), doi:10.1109/TIT.1976.1055638 — public key distribution whose security rests on the difficulty of
+# computing logarithms modulo a prime.
+#
+# <span id="ref-5">[5]</span> R. L. Rivest, A. Shamir and L. Adleman, *A method for obtaining digital signatures and
+# public-key cryptosystems*, Commun. ACM **21**, 120 (1978), doi:10.1145/359340.359342 — the RSA cryptosystem, whose
+# security rests in part on the difficulty of factoring.
+#
+# <span id="ref-6">[6]</span> P. W. Shor, *Polynomial-time algorithms for prime factorization and discrete logarithms
+# on a quantum computer*, SIAM J. Comput. **26**, 1484 (1997), doi:10.1137/S0097539795293172 — efficient quantum
+# algorithms for the two problems behind these cryptosystems.
+#
+# <span id="ref-7">[7]</span> National Institute of Standards and Technology, *Module-lattice-based key-encapsulation
+# mechanism standard*, FIPS 203 (2024), doi:10.6028/NIST.FIPS.203 — the post-quantum key-encapsulation mechanism
+# ML-KEM, believed secure against adversaries with a quantum computer.
+#
+# <span id="ref-8">[8]</span> M. N. Wegman and J. L. Carter, *New hash functions and their use in authentication and
+# set equality*, J. Comput. Syst. Sci. **22**, 265 (1981), doi:10.1016/0022-0000(81)90033-7 — authentication that an
+# enemy with unlimited computing power cannot forge, with a key that grows logarithmically with the message length.
+#
+# <span id="ref-9">[9]</span> C. H. Bennett, G. Brassard and J.-M. Robert, *Privacy amplification by public
+# discussion*, SIAM J. Comput. **17**, 210 (1988), doi:10.1137/0217014 — distilling, by public discussion, a shorter
+# string about which Eve has nearly no information from a string about which she has partial information.
+#
+# <span id="ref-10">[10]</span> C. H. Bennett, G. Brassard, C. Crépeau and U. M. Maurer, *Generalized privacy
+# amplification*, IEEE Trans. Inf. Theory **41**, 1915 (1995), doi:10.1109/18.476316 — privacy amplification by random
+# hashing when only a bound on Eve's knowledge is known.

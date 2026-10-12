@@ -3,7 +3,7 @@
 #@description: How a scrambler redistributes the phase information of a metrological probe: the locking curve of the quantum Fisher information of a subsystem, derived for Haar-random states (exponential suppression below half the register, the Marchenko-Pastur value 0.198 at the threshold, the standard-quantum-limit share above it) and contrasted with the Hayden-Preskill step of the rotated generator; a chaotic spin chain as an analog scrambler and brick-wall circuits of Haar, Clifford and T-doped Clifford layers as digital ones; the Clifford average equal to Haar with integer-valued realisations; and the volume law as the mechanism, F_k = k ln2 (k - S_k), block by block.
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
 # A metrological probe stores information about a parameter $\theta$ in correlations between its particles.
 # Notebook 34 built the best possible one: $N$ atoms twisted into a Schrodinger-cat state whose quantum Fisher

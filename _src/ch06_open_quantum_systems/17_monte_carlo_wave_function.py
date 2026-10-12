@@ -3,7 +3,7 @@
 #@description: Quantum trajectories: effective non-Hermitian Hamiltonian, quantum jumps, proof that the ensemble average obeys the Lindblad equation, scan-over-time and vmap-over-trajectories implementation, $1/\sqrt M$ error bars, the $2\times2$ comparison density matrix vs trajectories and RK4 vs Trotter, and a 16-spin open chain that no density matrix could hold.
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
 # The [previous notebook](16_lindblad_master_equation.ipynb) solved the Lindblad master equation
 #
@@ -17,12 +17,12 @@
 # copies of the experiment. But think of *one* copy — a single trapped ion, say, driven by a laser and watched by a
 # photodetector. Its record is a sequence of clicks at random times. Between clicks the ion has a wave function that evolves
 # smoothly; at a click the wave function changes abruptly — a **quantum jump**. Such jumps are not a figure of speech:
-# they were observed directly in 1986 as the random switching on and off of the fluorescence of single trapped ions
-# (Nagourney, Sandberg and Dehmelt; Sauter, Neuhauser, Blatt and Toschek; Bergquist, Hulet, Itano and Wineland), and in
-# 2019 a superconducting-qubit experiment caught a jump "mid-flight" (Minev *et al.*).
+# they were observed directly as the random switching on and off of the fluorescence of single trapped ions
+# [[1]](#ref-1), [[2]](#ref-2), [[3]](#ref-3), and
+# a superconducting-qubit experiment caught a jump "mid-flight" [[4]](#ref-4).
 #
 # The **Monte-Carlo wave function (MCWF)** method — also called the *quantum-jump* or *quantum-trajectory* method,
-# developed around 1992 by Dalibard, Castin and Mølmer, by Dum, Zoller and Ritsch, and by Carmichael — turns this picture into an algorithm:
+# developed in [[5]](#ref-5), [[6]](#ref-6), [[7]](#ref-7) — turns this picture into an algorithm:
 #
 # 1. simulate a **pure state** $|\psi(t)\rangle$ that evolves smoothly under a non-Hermitian *effective Hamiltonian* and, at
 #    random times, jumps: $|\psi\rangle\to L_j|\psi\rangle$;
@@ -190,7 +190,7 @@
 #   legitimate measurement of the environment. Mixing the no-jump operator $K_0$ into the jump operators with a large amplitude
 #   (physically: interfering the emitted light with a strong local oscillator before the detector — *homodyne detection*) turns the
 #   rare large jumps into a continuous small-noise diffusion — a **diffusive** unravelling, of which the quantum-state-diffusion
-#   equation of Gisin and Percival is the best-known example.
+#   equation of [[8]](#ref-8) is the best-known example.
 #   Anything *linear* in $|\psi\rangle\langle\psi|$ (expectation values, and fidelities with a fixed pure state) is
 #   unravelling-independent, because it is a property of $\rho$ alone; nonlinear functionals of the state averaged over trajectories
 #   (the entanglement entropy of $|\psi\rangle$, the purity of a subsystem) are **not** properties of $\rho$ and change when the detection
@@ -247,8 +247,8 @@
 # > $\gamma_jdt\le1$, so that $K_0=\sqrt{\mathbb 1-\gamma_jdt\,L_j^\dagger L_j}$ exists. That is why Section 8.3 can run $N=16$ sites at
 # > $\delta p\approx0.16$ with the Trotter stepper, a value that would be too large for stepper A.
 #
-# **The waiting-time (delay-function) algorithm.** The scheme of Section 2.2 is the one of Dalibard, Castin and Mølmer; the scheme of
-# Dum, Zoller and Ritsch, who draw each decay time from the photon-count distribution of the driven atom, avoids the per-step Bernoulli
+# **The waiting-time (delay-function) algorithm.** The scheme of Section 2.2 is the one of [[5]](#ref-5); the scheme of
+# [[6]](#ref-6), which draws each decay time from the photon-count distribution of the driven atom, avoids the per-step Bernoulli
 # draw altogether. Draw a single uniform random number $r\in(0,1)$, propagate the **unnormalised** state under $H_{\rm eff}$ without
 # renormalising, and wait until its squared norm has fallen to $r$:
 #
@@ -985,17 +985,17 @@ plt.tight_layout(); plt.show()
 #
 # 1. The number plotted is $\overline{S(|\psi_i\rangle)}$, the average over the *photon-counting* unravelling. A different measurement of the
 #    environment (homodyne, Section 2.5) produces different trajectories with the same $\rho(t)$ and, in general, a different curve. The
-#    curve is a property of the measurement scheme, not of the open system alone; Nha and Carmichael (2004) introduced a
+#    curve is a property of the measurement scheme, not of the open system alone; Ref. [[9]](#ref-9) introduced a
 #    measure of entanglement built on exactly this dependence on the unravelling.
 # 2. It is an **upper bound**, not an estimate of the entanglement of $\rho$. Any unravelling realises $\rho(t)$ as an ensemble of pure states
 #    $\{p_i,|\psi_i\rangle\}$, and the entanglement of formation of $\rho$ is by definition the *minimum* of $\sum_ip_iS(|\psi_i\rangle)$ over all
-#    such decompositions (Bennett, DiVincenzo, Smolin and Wootters). Hence
+#    such decompositions [[10]](#ref-10). Hence
 #    $E_F(\rho)\le\overline{S(|\psi_i\rangle)}$ for every unravelling. Here $\rho$ is a product state, $E_F=0$, and the bound $2.0$ bits is
 #    as far from tight as it can be — which is precisely the lesson.
 # 3. What the curve *does* measure is the entanglement of the monitored system, conditioned on a detection record. That is a physical
 #    quantity for an experiment that records the clicks, and the competition between the entangling Hamiltonian and the disentangling
 #    measurements is the subject of the **measurement-induced entanglement transitions** found in random circuits with projective
-#    measurements by Li, Chen and Fisher (2018) and by Skinner, Ruhman and Nahum (2019).
+#    measurements in [[11]](#ref-11) and [[12]](#ref-12).
 
 # %% [markdown]
 # ## 8. Memory and time: the break-even point
@@ -1162,7 +1162,7 @@ plt.tight_layout(); plt.show()
 # %% [markdown]
 # **Interpretation.** *Left/middle:* the sharp domain wall between excited (blue, $\langle Z\rangle=-1$) and unexcited (red) spins melts: excitations
 # spread into the empty half — for the closed XXZ chain at $\Delta<1$ this melting is known to be *ballistic*, the magnetisation profile becoming a
-# function of $q/t$ (Gobert, Kollath, Schollwöck and Schütz); here dissipation drains the excitations everywhere at the same time, so the blue
+# function of $q/t$ [[13]](#ref-13); here dissipation drains the excitations everywhere at the same time, so the blue
 # region fades as a whole and the observed window is far too short to extract a front velocity.
 # With only a few dozen trajectories the profile is already smooth enough to read off the physics, thanks to the modest trajectory-to-trajectory fluctuations
 # of local magnetisations. *Right:* the total excitation number agrees with the exact law (6) within its error band. (There is also a small *systematic* bias: the Trotter–Kraus
@@ -1188,7 +1188,7 @@ plt.tight_layout(); plt.show()
 # exchanges no energy with the chain and it conserves $\sum_i Z_i$ exactly, so the amount of magnetisation is
 # untouched; what it destroys is the phase coherence between neighbouring sites that ballistic propagation relies on.
 # The quasi-particles scatter, the light cone dissolves, and the wall spreads as $\sqrt t$ instead of $t$: the
-# transport becomes **diffusive** (Žnidarič 2010).
+# transport becomes **diffusive** [[14]](#ref-14).
 #
 # Two numbers say why this section belongs here and not in notebook 16. To tell $\sqrt t$ from $t$ the chain must be
 # long enough that the front does not reach the ends: $N=16$ at least. A density tensor for 16 spins holds
@@ -1383,28 +1383,45 @@ plt.tight_layout(); plt.show()
 #
 # ## 12. References
 #
-# * J. Dalibard, Y. Castin, K. Mølmer, *Wave-function approach to dissipative processes in quantum optics*, Phys. Rev. Lett. **68**, 580 (1992).
-# * K. Mølmer, Y. Castin, J. Dalibard, *Monte Carlo wave-function method in quantum optics*, J. Opt. Soc. Am. B **10**, 524 (1993) — the detailed account of the algorithm used here.
-# * R. Dum, P. Zoller, H. Ritsch, *Monte Carlo simulation of the atomic master equation for spontaneous emission*, Phys. Rev. A **45**, 4879 (1992).
-# * H. J. Carmichael, *An Open Systems Approach to Quantum Optics*, Lecture Notes in Physics m18, Springer (1993) — "quantum trajectories".
-# * M. B. Plenio, P. L. Knight, *The quantum-jump approach to dissipative dynamics in quantum optics*, Rev. Mod. Phys. **70**, 101 (1998).
-# * A. J. Daley, *Quantum trajectories and open many-body quantum systems*, Adv. Phys. **63**, 77 (2014) — many-body applications, higher-order schemes.
-# * N. Gisin, I. C. Percival, *The quantum-state diffusion model applied to open systems*, J. Phys. A **25**, 5677 (1992) — the diffusive
+# <span id="ref-1">[1]</span> W. Nagourney, J. Sandberg, H. Dehmelt, *Shelved optical electron amplifier: observation of quantum jumps*, Phys. Rev. Lett. **56**, 2797 (1986).
+#
+# <span id="ref-2">[2]</span> Th. Sauter, W. Neuhauser, R. Blatt, P. E. Toschek, *Observation of quantum jumps*, Phys. Rev. Lett. **57**, 1696 (1986).
+#
+# <span id="ref-3">[3]</span> J. C. Bergquist, R. G. Hulet, W. M. Itano, D. J. Wineland, *Observation of quantum jumps in a single atom*, Phys. Rev. Lett. **57**, 1699 (1986).
+#
+# <span id="ref-4">[4]</span> Z. K. Minev *et al.*, *To catch and reverse a quantum jump mid-flight*, Nature **570**, 200 (2019).
+#
+# <span id="ref-5">[5]</span> J. Dalibard, Y. Castin, K. Mølmer, *Wave-function approach to dissipative processes in quantum optics*, Phys. Rev. Lett. **68**, 580 (1992).
+#
+# <span id="ref-6">[6]</span> R. Dum, P. Zoller, H. Ritsch, *Monte Carlo simulation of the atomic master equation for spontaneous emission*, Phys. Rev. A **45**, 4879 (1992).
+#
+# <span id="ref-7">[7]</span> H. J. Carmichael, *An Open Systems Approach to Quantum Optics*, Lecture Notes in Physics m18, Springer (1993) — "quantum trajectories".
+#
+# <span id="ref-8">[8]</span> N. Gisin, I. C. Percival, *The quantum-state diffusion model applied to open systems*, J. Phys. A **25**, 5677 (1992) — the diffusive
 #   unravelling (continuous noise instead of jumps), a different stochastic process with the same $\rho(t)$.
-# * H. Nha, H. J. Carmichael, *Entanglement within the quantum trajectory description of open quantum systems*, Phys. Rev. Lett. **93**, 120408 (2004)
+#
+# <span id="ref-9">[9]</span> H. Nha, H. J. Carmichael, *Entanglement within the quantum trajectory description of open quantum systems*, Phys. Rev. Lett. **93**, 120408 (2004)
 #   — trajectory entanglement depends on the unravelling.
-# * C. H. Bennett, D. P. DiVincenzo, J. A. Smolin, W. K. Wootters, *Mixed-state entanglement and quantum error correction*,
+#
+# <span id="ref-10">[10]</span> C. H. Bennett, D. P. DiVincenzo, J. A. Smolin, W. K. Wootters, *Mixed-state entanglement and quantum error correction*,
 #   Phys. Rev. A **54**, 3824 (1996) — entanglement of formation as the minimum over pure-state decompositions, hence the bound of Section 7.
-# * Y. Li, X. Chen, M. P. A. Fisher, *Quantum Zeno effect and the many-body entanglement transition*, Phys. Rev. B **98**, 205136 (2018);
-#   B. Skinner, J. Ruhman, A. Nahum, *Measurement-induced phase transitions in the dynamics of entanglement*, Phys. Rev. X **9**, 031009 (2019).
-# * D. Gobert, C. Kollath, U. Schollwöck, G. Schütz, *Real-time dynamics in spin-1/2 chains with adaptive time-dependent density matrix
+#
+# <span id="ref-11">[11]</span> Y. Li, X. Chen, M. P. A. Fisher, *Quantum Zeno effect and the many-body entanglement transition*, Phys. Rev. B **98**, 205136 (2018).
+#
+# <span id="ref-12">[12]</span> B. Skinner, J. Ruhman, A. Nahum, *Measurement-induced phase transitions in the dynamics of entanglement*, Phys. Rev. X **9**, 031009 (2019).
+#
+# <span id="ref-13">[13]</span> D. Gobert, C. Kollath, U. Schollwöck, G. Schütz, *Real-time dynamics in spin-1/2 chains with adaptive time-dependent density matrix
 #   renormalization group*, Phys. Rev. E **71**, 036102 (2005) — ballistic melting of a domain wall in the XXZ chain for $\Delta<1$.
-# * M. Žnidarič, *Dephasing-induced diffusive transport in the anisotropic Heisenberg model*, New J. Phys. **12**, 043001 (2010)
+#
+# <span id="ref-14">[14]</span> M. Žnidarič, *Dephasing-induced diffusive transport in the anisotropic Heisenberg model*, New J. Phys. **12**, 043001 (2010)
 #   — dephasing turns ballistic spin transport into diffusion (Section 9).
-# * W. H. Press, S. A. Teukolsky, W. T. Vetterling, B. P. Flannery, *Numerical Recipes: The Art of Scientific Computing*, 3rd ed.,
+#
+# <span id="ref-15">[15]</span> K. Mølmer, Y. Castin, J. Dalibard, *Monte Carlo wave-function method in quantum optics*, J. Opt. Soc. Am. B **10**, 524 (1993) — the detailed account of the algorithm used here.
+#
+# <span id="ref-16">[16]</span> M. B. Plenio, P. L. Knight, *The quantum-jump approach to dissipative dynamics in quantum optics*, Rev. Mod. Phys. **70**, 101 (1998).
+#
+# <span id="ref-17">[17]</span> A. J. Daley, *Quantum trajectories and open many-body quantum systems*, Adv. Phys. **63**, 77 (2014) — many-body applications, higher-order schemes.
+#
+# <span id="ref-18">[18]</span> W. H. Press, S. A. Teukolsky, W. T. Vetterling, B. P. Flannery, *Numerical Recipes: The Art of Scientific Computing*, 3rd ed.,
 #   Cambridge University Press (2007) — Chapter 7: random-number generation and the $1/\sqrt M$ error of Monte-Carlo estimators.
-# * W. Nagourney, J. Sandberg, H. Dehmelt, *Shelved optical electron amplifier: observation of quantum jumps*, Phys. Rev. Lett. **56**, 2797 (1986).
-# * Th. Sauter, W. Neuhauser, R. Blatt, P. E. Toschek, *Observation of quantum jumps*, Phys. Rev. Lett. **57**, 1696 (1986).
-# * J. C. Bergquist, R. G. Hulet, W. M. Itano, D. J. Wineland, *Observation of quantum jumps in a single atom*, Phys. Rev. Lett. **57**, 1699 (1986).
-# * Z. K. Minev *et al.*, *To catch and reverse a quantum jump mid-flight*, Nature **570**, 200 (2019).
 

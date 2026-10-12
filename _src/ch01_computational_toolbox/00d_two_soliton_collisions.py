@@ -3,7 +3,7 @@
 #@description: Two bright solitons are launched at each other in the Gross-Pitaevskii equation; they pass through one another and re-emerge with their shapes, norms and velocities intact, leaving behind only a position shift and a phase shift that we measure and compare with the inverse-scattering prediction, and we then break integrability and watch the collisions turn inelastic.
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
 # Two small ripples crossing a harbour pass through each other and come out unchanged, because at small
 # amplitude the equation for water waves is *linear*. If $\psi_1$ and $\psi_2$ both solve a linear wave equation,
@@ -25,24 +25,21 @@
 # has exactly the shape, the norm and the velocity it had before. Nothing is radiated away, to the $10^{-5}$
 # resolution of the measurements below. The only record of the encounter is that each soliton is displaced from
 # where free motion would have put it, and that its internal phase has jumped. This is the property that gave
-# the objects their name: Zabusky and Kruskal, integrating numerically the Korteweg-de Vries equation (derived by
-# Korteweg and de Vries in 1895 for shallow-water waves) in 1965,
-# found solitary waves that survived collisions like particles and coined the word *soliton* for them
-# (Phys. Rev. Lett. **15**, 240 (1965)). Zakharov and Shabat proved in 1972 that Eq. (1) has the same structure:
-# it is integrable, solvable by the inverse scattering method that Gardner, Greene, Kruskal and Miura (1967) had
-# introduced for the Korteweg-de Vries equation, and its solitons scatter elastically for ever
-# (Sov. Phys. JETP **34**, 62 (1972)).
+# the objects their name: Ref. [[1]](#ref-1), integrating numerically the Korteweg-de Vries equation (derived in
+# [[2]](#ref-2) for shallow-water waves),
+# found solitary waves that survived collisions like particles and coined the word *soliton* for them.
+# Ref. [[3]](#ref-3) proved that Eq. (1) has the same structure:
+# it is integrable, solvable by the inverse scattering method introduced in [[4]](#ref-4) for the Korteweg-de Vries
+# equation, and its solitons scatter elastically for ever.
 #
 # The experiments are real. In an optical fibre the same equation governs a light pulse (Section 2.4 of 00c;
-# Agrawal, *Nonlinear Fiber Optics*, Chapter 5), and
+# [[5]](#ref-5), Chapter 5), and
 # soliton collisions in fibres are a design constraint for long-haul transmission: neighbouring pulses in a bit
-# stream attract or repel depending on their relative phase, which is precisely what Gordon computed in 1983
-# (Opt. Lett. **8**, 596 (1983)). With atoms, Nguyen, Dyke, Luo, Malomed and Hulet collided matter-wave solitons
-# made of lithium-7 with a controlled *relative phase*, which is what decides what happens at the moment of
-# overlap: in-phase solitons build a density spike, out-of-phase solitons keep a node between them and never touch
-# (Nature Physics **10**, 918 (2014)). In three dimensions that spike matters, because a dense enough attractive
-# condensate collapses, so a collision that is elastic in the integrable one-dimensional model can destroy both
-# solitons in the laboratory. Section 9 reproduces that mechanism in one dimension by adding a term that breaks
+# stream attract or repel depending on their relative phase, which is precisely what was computed in [[6]](#ref-6).
+# With atoms, matter-wave solitons made of lithium-7 were collided in [[7]](#ref-7) with a controlled *relative phase*, which is what decides what happens at the moment of
+# overlap: in-phase solitons build a density spike, out-of-phase solitons keep a node between them and never touch.
+# In three dimensions that spike matters, because a dense enough attractive condensate collapses, so a collision
+# that is elastic in the integrable one-dimensional model can destroy both solitons in the laboratory. Section 9 reproduces that mechanism in one dimension by adding a term that breaks
 # integrability.
 #
 # ### Road map
@@ -203,10 +200,10 @@ print("extra imports OK")
 # The next cell is bookkeeping: the grid, the exact one-soliton solution, the energy functional, the
 # observables and the split-step propagator, all copied verbatim from
 # [00c](00c_bright_soliton_imaginary_time_nonlinear_schroedinger.ipynb), each with a one-line pointer to where
-# it was derived. The propagator is the split-step Fourier method of Feit, Fleck and Steiger (1982) with the
-# symmetric splitting of Strang (1968); the FFT is the algorithm of Cooley and Tukey (1965). Press *et al.*,
-# *Numerical Recipes*, Chapters 12 and 20, treat the FFT and operator splitting, with array-based Fortran 90
-# routines in the companion volume.
+# it was derived. The propagator is the split-step Fourier method introduced in [[8]](#ref-8) with the
+# symmetric splitting of [[9]](#ref-9); the FFT is the algorithm of [[10]](#ref-10). Chapters 12 and 20 of [[11]](#ref-11)
+# treat the FFT and operator splitting, with array-based Fortran 90
+# routines in the companion volume [[12]](#ref-12).
 #
 # > **JAX practice.** `jax.jit` compiles a Python function once, for the shapes of its arguments, into a single
 # > fused program, and `lax.scan(body, init, xs, length=n)` is a compiled `for` loop that carries a state
@@ -799,7 +796,7 @@ print("\nCHECKPOINT 3 passed: nothing about either soliton changed except where 
 #
 # ### 5.2 The inverse-scattering prediction
 #
-# Zakharov and Shabat (Sov. Phys. JETP **34**, 62 (1972)) showed that Eq. (1) is solved by inverse scattering:
+# Ref. [[3]](#ref-3) showed that Eq. (1) is solved by inverse scattering:
 # the initial condition is mapped to the spectral data of an auxiliary linear problem, the spectral data evolve
 # trivially, and the map is inverted. Each soliton corresponds to one discrete eigenvalue
 # $\zeta_j = \xi_j + i\eta_j$ of that problem; the eigenvalues are constants of the motion, which is *why*
@@ -1244,7 +1241,7 @@ plt.show()
 # > attractive condensate collapses. Equation (1) has no collapse (00c, Section 6.2), so in it the density spike
 # > does nothing that survives the collision. A laboratory soliton is only *quasi*-one-dimensional: it keeps a
 # > transverse degree of freedom on which the spike can act, which is why a phase-resolved collision experiment
-# > such as that of Nguyen *et al.* (Nature Physics **10**, 918 (2014)) can see an outcome that Eq. (1) forbids.
+# > such as that of [[7]](#ref-7) can see an outcome that Eq. (1) forbids.
 # > Section 9 adds a term that lets the spike do something here too.
 
 # %% [markdown]
@@ -1264,8 +1261,8 @@ plt.show()
 # with the $\cos\Delta\phi$ because the cross terms carry the relative phase as
 # $\psi_1^{*}\psi_2 + \psi_2^{*}\psi_1 = 2\mathrm{Re}(\psi_1^{*}\psi_2)$ and both profiles are real up to that
 # phase. Differentiating, the force is also $\propto e^{-\kappa r}\cos\Delta\phi$: **exponential in the
-# separation, sinusoidal in the relative phase**, which is exactly what Gordon reported for optical solitons in
-# 1983 (Opt. Lett. **8**, 596 (1983)) and what makes neighbouring pulses in a fibre bit stream attract or repel.
+# separation, sinusoidal in the relative phase**, which is exactly what [[6]](#ref-6) reported for optical solitons
+# and what makes neighbouring pulses in a fibre bit stream attract or repel.
 #
 # The rate of the exponential is not a fitted parameter: it is $\kappa$, the *amplitude* decay rate of the
 # soliton, because the interaction is linear in each tail amplitude and not in each tail density. The overall
@@ -1366,8 +1363,8 @@ print("CHECKPOINT 7 passed: the force is exponential with rate kappa, and attrac
 # $d^{2}\rho/d\tau^{2} = -8e^{-\rho}\cos\Delta\phi$.
 #
 # The prefactor $8$ is not only measured; it follows from the perturbation theory for two weakly overlapping
-# solitons of Karpman and Solov'ev (Physica D **3**, 487 (1981)), which gives the exponential, phase-dependent force
-# that Gordon obtained from the exact two-soliton solution, once the conventions are converted as carefully as in
+# solitons of [[13]](#ref-13), which gives the exponential, phase-dependent force
+# that [[6]](#ref-6) obtained from the exact two-soliton solution, once the conventions are converted as carefully as in
 # Section 5.2. That theory
 # is quoted in the optical normalisation
 #
@@ -1778,12 +1775,12 @@ plt.show()
 #   ones rise by $2.4$ to $4.1$ orders of magnitude and are strongly phase-dependent: in phase the collision
 #   radiates $4.0\%$ ($g_5=2$) and $16.1\%$ ($g_5=4$), out of phase only $0.29\%$ and $0.66\%$.
 #
-# > **Physics insight.** This is the one-dimensional caricature of what Parker, Martin, Cornish and Adams
-# > computed in the full three-dimensional Gross-Pitaevskii equation (J. Phys. B **41**, 045303 (2008)): in-phase
+# > **Physics insight.** This is the one-dimensional caricature of what [[14]](#ref-14)
+# > computed in the full three-dimensional Gross-Pitaevskii equation: in-phase
 # > collisions of bright solitary waves drive the density up at the crossing point, and if the density stays
 # > high for longer than the collapse time the pair is destroyed, while out-of-phase collisions keep a node
-# > between the waves and survive. Nguyen, Dyke, Luo, Malomed and Hulet saw the phase dependence in the
-# > laboratory (Nature Physics **10**, 918 (2014)). The mechanism here is not collapse — one dimension with a
+# > between the waves and survive. Ref. [[7]](#ref-7) saw the phase dependence in the
+# > laboratory. The mechanism here is not collapse — one dimension with a
 # > cubic nonlinearity has none — but the quintic term stands in for the transverse degree of freedom that makes
 # > collapse possible, and the phase selectivity is the same.
 
@@ -2270,9 +2267,9 @@ print(f"   central lump at the end (g5 = 4): peak density {np.max(np.abs(FR_Q[10
 # **3. (★★) The higher-order soliton and its period.** The initial condition $\psi(x,0) = 2\phi_1(x)$, i.e. the
 # unit-norm soliton of 00c with its amplitude doubled (its norm is then $4$, not $1$: doubling the amplitude of
 # a fixed profile quadruples the norm, so this one experiment leaves the unit-norm convention of the notebook),
-# is not a soliton: Satsuma and Yajima showed that
+# is not a soliton: Ref. [[15]](#ref-15) showed that
 # $A\,\mathrm{sech}$ with $A$ an integer multiple of the fundamental amplitude is an $N$-soliton *bound state*
-# which breathes periodically (Prog. Theor. Phys. Suppl. **55**, 284 (1974)). Its period is set by the
+# which breathes periodically. Its period is set by the
 # difference of the two chemical potentials of the bound eigenvalues. Propagate it, measure the period of the
 # peak density, and compare with the value you get by identifying the two discrete eigenvalues from the
 # amplitudes of the two constituent solitons at the moment of maximum separation. The textbook quotes the
@@ -2299,7 +2296,7 @@ print(f"   central lump at the end (g5 = 4): peak density {np.max(np.abs(FR_Q[10
 #
 # **7. (★★★) Solitons in a trap.** Add $V(x) = \tfrac12\omega^{2}x^{2}$ with $\omega = 0.03$ and release two
 # in-phase solitons at rest at $\pm 20$. They fall towards each other, collide, separate, and come back. (In the
-# soliton trains of Strecker *et al.*, Nature **417**, 150 (2002), neighbouring solitons oscillating in a shallow
+# soliton trains of [[16]](#ref-16), neighbouring solitons oscillating in a shallow
 # trap did *not* pass through each other, which the authors read as a repulsion from alternating phases; repeat
 # the run with $\Delta\phi = \pi$ to see that case.) The trap breaks
 # translation invariance, so the collisions are no longer exactly elastic. Measure the norm radiated per
@@ -2307,58 +2304,76 @@ print(f"   central lump at the end (g5 = 4): peak density {np.max(np.abs(FR_Q[10
 # $2\pi/\omega$ and explain the difference using the shift of Eq. (11), as Section 10.3 did for the ring.
 #
 # **8. (★★★) The two-soliton solution in closed form.** Look up or construct the exact two-soliton solution of
-# Eq. (1) by the bilinear method that Hirota introduced for the Korteweg-de Vries equation (1971) and applied to
-# the nonlinear Schrödinger equation (1973), evaluate it on the grid, and compare with the numerical propagation
+# Eq. (1) by the bilinear method introduced in [[17]](#ref-17) for the Korteweg-de Vries equation and applied in [[18]](#ref-18) to
+# the nonlinear Schrödinger equation, evaluate it on the grid, and compare with the numerical propagation
 # during the overlap, where this notebook has no analytic reference at all. Then read the shifts of Eq. (11)
 # directly off its asymptotics instead of measuring them.
 #
 # ### 12.3 References
 #
-# * N. J. Zabusky and M. D. Kruskal, *Interaction of "solitons" in a collisionless plasma and the recurrence of
-#   initial states*, Phys. Rev. Lett. **15**, 240 (1965) — the numerical experiment that found solitary waves
-#   surviving collisions, and named them.
-# * V. E. Zakharov and A. B. Shabat, *Exact theory of two-dimensional self-focusing and one-dimensional
-#   self-modulation of waves in nonlinear media*, Sov. Phys. JETP **34**, 62 (1972) — integrability of Eq. (1)
-#   by inverse scattering, and the multi-soliton solutions behind Eqs. (10)-(13).
-# * J. Satsuma and N. Yajima, *Initial value problems of one-dimensional self-modulation of nonlinear waves in
-#   dispersive media*, Prog. Theor. Phys. Suppl. **55**, 284 (1974) — how an arbitrary initial condition
-#   decomposes into solitons plus radiation, and the higher-order breathing solitons of Exercise 3.
-# * V. I. Karpman and V. V. Solov'ev, *A perturbational approach to the two-soliton systems*, Physica D **3**,
-#   487 (1981) — the perturbation theory for two overlapping solitons from which the half-separation form
-#   converted in Section 7.2 comes.
-# * J. P. Gordon, *Interaction forces among solitons in optical fibers*, Opt. Lett. **8**, 596 (1983) — the
-#   force between neighbouring solitons: exponential in their separation, sinusoidal in their relative phase.
-# * J. H. V. Nguyen, P. Dyke, D. Luo, B. A. Malomed and R. G. Hulet, *Collisions of matter-wave solitons*,
-#   Nature Physics **10**, 918 (2014) — collisions of lithium-7 solitons resolved by relative phase.
-# * K. E. Strecker, G. B. Partridge, A. G. Truscott and R. G. Hulet, *Formation and propagation of matter-wave
-#   soliton trains*, Nature **417**, 150 (2002) — a soliton train oscillating in a shallow trap, whose neighbours repel because
-#   of alternating relative phases (Exercise 7).
-# * N. G. Parker, A. M. Martin, S. L. Cornish and C. S. Adams, *Collisions of bright solitary matter waves*,
-#   J. Phys. B **41**, 045303 (2008) — the three-dimensional Gross-Pitaevskii calculation in which in-phase
-#   collisions trigger collapse and out-of-phase collisions do not.
-# * G. P. Agrawal, *Nonlinear Fiber Optics*, 5th ed., Academic Press (2013) — Chapter 5 (*Optical Solitons*)
-#   for the optical form of Eq. (1), its inverse-scattering solution and higher-order solitons; the appendix
-#   *Numerical Code for the NLS Equation* gives the split-step Fourier method as photonics uses it.
-# * D. J. Korteweg and G. de Vries, *On the change of form of long waves advancing in a rectangular canal, and on a
-#   new type of long stationary waves*, Phil. Mag. **39**, 422 (1895) — the Korteweg-de Vries equation.
-# * C. S. Gardner, J. M. Greene, M. D. Kruskal and R. M. Miura, *Method for solving the Korteweg-deVries
-#   equation*, Phys. Rev. Lett. **19**, 1095 (1967) — the inverse scattering method.
-# * R. Hirota, *Exact solution of the Korteweg-de Vries equation for multiple collisions of solitons*, Phys. Rev.
-#   Lett. **27**, 1192 (1971); R. Hirota, *Exact envelope-soliton solutions of a nonlinear wave equation*,
-#   J. Math. Phys. **14**, 805 (1973) — the bilinear method and the $N$-soliton solutions of Eq. (1)
-#   (Exercise 8).
-# * M. D. Feit, J. A. Fleck Jr. and A. Steiger, *Solution of the Schrödinger equation by a spectral method*,
-#   J. Comput. Phys. **47**, 412 (1982); G. Strang, *On the construction and comparison of difference schemes*,
-#   SIAM J. Numer. Anal. **5**, 506 (1968) — the split-step Fourier propagator and its symmetric splitting.
-# * J. W. Cooley and J. W. Tukey, *An algorithm for the machine calculation of complex Fourier series*, Math.
-#   Comp. **19**, 297 (1965) — the fast Fourier transform.
-# * W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes: The Art of Scientific
-#   Computing*, 3rd ed., Cambridge University Press (2007) — Chapter 12 (fast Fourier transform) and Chapter 20
-#   (partial differential equations, including operator splitting).
-# * W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes in Fortran 90: The
-#   Art of Parallel Scientific Computing*, 2nd ed. (Fortran Numerical Recipes, Volume 2), Cambridge University
-#   Press (1996) — the same material with parallel implementations of the FFT, which is the only operation
-#   this notebook performs in quantity.
+# <span id="ref-1">[1]</span> N. J. Zabusky and M. D. Kruskal, *Interaction of "solitons" in a collisionless plasma and the recurrence of
+# initial states*, Phys. Rev. Lett. **15**, 240 (1965) — the numerical experiment that found solitary waves
+# surviving collisions, and named them.
+#
+# <span id="ref-2">[2]</span> D. J. Korteweg and G. de Vries, *On the change of form of long waves advancing in a rectangular canal, and on a
+# new type of long stationary waves*, Phil. Mag. **39**, 422 (1895) — the Korteweg-de Vries equation.
+#
+# <span id="ref-3">[3]</span> V. E. Zakharov and A. B. Shabat, *Exact theory of two-dimensional self-focusing and one-dimensional
+# self-modulation of waves in nonlinear media*, Sov. Phys. JETP **34**, 62 (1972) — integrability of Eq. (1)
+# by inverse scattering, and the multi-soliton solutions behind Eqs. (10)-(13).
+#
+# <span id="ref-4">[4]</span> C. S. Gardner, J. M. Greene, M. D. Kruskal and R. M. Miura, *Method for solving the Korteweg-deVries
+# equation*, Phys. Rev. Lett. **19**, 1095 (1967) — the inverse scattering method.
+#
+# <span id="ref-5">[5]</span> G. P. Agrawal, *Nonlinear Fiber Optics*, 5th ed., Academic Press (2013) — Chapter 5 (*Optical Solitons*)
+# for the optical form of Eq. (1), its inverse-scattering solution and higher-order solitons; the appendix
+# *Numerical Code for the NLS Equation* gives the split-step Fourier method as photonics uses it.
+#
+# <span id="ref-6">[6]</span> J. P. Gordon, *Interaction forces among solitons in optical fibers*, Opt. Lett. **8**, 596 (1983) — the
+# force between neighbouring solitons: exponential in their separation, sinusoidal in their relative phase.
+#
+# <span id="ref-7">[7]</span> J. H. V. Nguyen, P. Dyke, D. Luo, B. A. Malomed and R. G. Hulet, *Collisions of matter-wave solitons*,
+# Nature Physics **10**, 918 (2014) — collisions of lithium-7 solitons resolved by relative phase.
+#
+# <span id="ref-8">[8]</span> M. D. Feit, J. A. Fleck Jr. and A. Steiger, *Solution of the Schrödinger equation by a spectral method*,
+# J. Comput. Phys. **47**, 412 (1982) — the split-step Fourier propagator.
+#
+# <span id="ref-9">[9]</span> G. Strang, *On the construction and comparison of difference schemes*, SIAM J. Numer. Anal. **5**, 506 (1968)
+# — the symmetric splitting of the split-step propagator.
+#
+# <span id="ref-10">[10]</span> J. W. Cooley and J. W. Tukey, *An algorithm for the machine calculation of complex Fourier series*, Math.
+# Comp. **19**, 297 (1965) — the fast Fourier transform.
+#
+# <span id="ref-11">[11]</span> W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes: The Art of Scientific
+# Computing*, 3rd ed., Cambridge University Press (2007) — Chapter 12 (fast Fourier transform) and Chapter 20
+# (partial differential equations, including operator splitting).
+#
+# <span id="ref-12">[12]</span> W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes in Fortran 90: The
+# Art of Parallel Scientific Computing*, 2nd ed. (Fortran Numerical Recipes, Volume 2), Cambridge University
+# Press (1996) — the same material with parallel implementations of the FFT, which is the only operation
+# this notebook performs in quantity.
+#
+# <span id="ref-13">[13]</span> V. I. Karpman and V. V. Solov'ev, *A perturbational approach to the two-soliton systems*, Physica D **3**,
+# 487 (1981) — the perturbation theory for two overlapping solitons from which the half-separation form
+# converted in Section 7.2 comes.
+#
+# <span id="ref-14">[14]</span> N. G. Parker, A. M. Martin, S. L. Cornish and C. S. Adams, *Collisions of bright solitary matter waves*,
+# J. Phys. B **41**, 045303 (2008) — the three-dimensional Gross-Pitaevskii calculation in which in-phase
+# collisions trigger collapse and out-of-phase collisions do not.
+#
+# <span id="ref-15">[15]</span> J. Satsuma and N. Yajima, *Initial value problems of one-dimensional self-modulation of nonlinear waves in
+# dispersive media*, Prog. Theor. Phys. Suppl. **55**, 284 (1974) — how an arbitrary initial condition
+# decomposes into solitons plus radiation, and the higher-order breathing solitons of Exercise 3.
+#
+# <span id="ref-16">[16]</span> K. E. Strecker, G. B. Partridge, A. G. Truscott and R. G. Hulet, *Formation and propagation of matter-wave
+# soliton trains*, Nature **417**, 150 (2002) — a soliton train oscillating in a shallow trap, whose neighbours repel because
+# of alternating relative phases (Exercise 7).
+#
+# <span id="ref-17">[17]</span> R. Hirota, *Exact solution of the Korteweg-de Vries equation for multiple collisions of solitons*, Phys. Rev.
+# Lett. **27**, 1192 (1971) — the bilinear method (Exercise 8).
+#
+# <span id="ref-18">[18]</span> R. Hirota, *Exact envelope-soliton solutions of a nonlinear wave equation*, J. Math. Phys. **14**, 805 (1973)
+# — the bilinear method applied to Eq. (1), and its $N$-soliton solutions (Exercise 8).
 #
 # ### 12.4 What comes next
 #

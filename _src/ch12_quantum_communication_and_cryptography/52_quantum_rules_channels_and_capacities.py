@@ -3,7 +3,7 @@
 #@description: The rules of quantum mechanics that matter for communication and secrecy, each derived and simulated with the engine: why nonorthogonal states cannot be told apart and the Helstrom bound, what no-cloning means for an eavesdropper, the theorem that information gain implies disturbance with a tunable probe attack on BB84 states, monogamy of entanglement checked on random extensions of a nearly perfect Bell pair, quantum channels (depolarising, dephasing, amplitude damping, erasure) on the Bloch ball, and the classical, quantum and entanglement-assisted capacities of these channels compared with Shannon's capacity.
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
 # The first two notebooks of this chapter treated communication with classical signals. Bits sent through a noisy
 # channel can be protected by error correction, and a message can be made perfectly secret with a one-time pad, but only
@@ -194,7 +194,7 @@ BB84 = {"0": (KET0, "Z"), "1": (KET1, "Z"), "+": (KETP, "X"), "-": (KETM, "X")} 
 #
 # A measurement that never errs on $\vert\psi\rangle$ must err on $\vert\varphi\rangle$ with probability at least
 # $\vert\langle\psi\vert\varphi\rangle\vert^2$. One copy of a quantum state therefore does not reveal which of several
-# nonorthogonal states it is. The BB84 protocol, proposed by Bennett and Brassard (1984) and the subject of the next
+# nonorthogonal states it is. The BB84 protocol, introduced in [[1]](#ref-1) and the subject of the next
 # notebook of this chapter, sends exactly such states:
 # $\vert0\rangle$, $\vert1\rangle$, $\vert+\rangle$ and $\vert-\rangle$, where every state of one basis has overlap
 # $\vert\langle0\vert+\rangle\vert^2=1/2$ with both states of the other.
@@ -216,7 +216,7 @@ BB84 = {"0": (KET0, "Z"), "1": (KET1, "Z"), "+": (KETP, "X"), "-": (KETM, "X")} 
 # i\rangle\leq1$ the sum is largest when $\Pi$ projects onto the eigenvectors with positive $\lambda_i$. The maximum is
 # the sum of the positive eigenvalues, which equals $\tfrac12\sum_i\vert\lambda_i\vert$ because ${\rm
 # Tr}(\rho-\sigma)=0$. That number is the **trace distance** $D(\rho,\sigma)$ of notebook 06, Section 5, so the best
-# probability of success is the **Helstrom bound** (Helstrom 1976)
+# probability of success is the **Helstrom bound** [[2]](#ref-2)
 #
 # $$P_{\rm succ}^{\max}=\frac{1+D(\rho,\sigma)}2,\qquad D(\rho,\sigma)=\tfrac12\sum_i\vert\lambda_i\vert. \tag{3}$$
 #
@@ -301,7 +301,7 @@ assert abs(P_Z - 0.75) < TOL and P_Z < P_helstrom - 0.1
 # ## 4. No-cloning and its consequences for communication
 #
 # **The theorem.** No unitary $U$ and no blank state $\vert e\rangle$ satisfy $U\vert\psi\rangle\vert e\rangle=
-# \vert\psi\rangle\vert\psi\rangle$ for every $\vert\psi\rangle$ (Wootters and Zurek 1982; Dieks 1982). Unitaries
+# \vert\psi\rangle\vert\psi\rangle$ for every $\vert\psi\rangle$ [[3]](#ref-3), [[4]](#ref-4). Unitaries
 # preserve inner products, so cloning two states would require $\langle\psi\vert\varphi\rangle=\langle\psi\vert
 # \varphi\rangle^2$, which allows only orthogonal or identical states.
 # [Notebook 20](../ch08_quantum_information_protocols/20_quantum_teleportation.ipynb), Section 3, proves the theorem by
@@ -414,9 +414,9 @@ assert abs(F_y - 0.5) < TOL
 # The proof is the same calculation as the inner-product proof of no-cloning, applied to a probe that is allowed to end
 # in any state. For orthogonal states, $\langle\psi\vert\varphi\rangle=0$, the argument gives nothing, and indeed Eve
 # can then read the signal completely without changing it. This is why quantum key distribution uses nonorthogonal
-# states; Bennett (1992) showed that any two of them suffice. The theorem is qualitative: zero disturbance means zero
-# information. The quantitative question, how much information a given disturbance allows, was studied by Fuchs and
-# Peres (1996), who found the optimal trade-off for two equiprobable nonorthogonal states. The rest of this section
+# states; Ref. [[5]](#ref-5) showed that any two of them suffice. The theorem is qualitative: zero disturbance means zero
+# information. The quantitative question, how much information a given disturbance allows, was studied in
+# [[6]](#ref-6), which found the optimal trade-off for two equiprobable nonorthogonal states. The rest of this section
 # computes the trade-off for one concrete family of attacks on the four BB84 states.
 #
 # ### 5.2 A probe attack of tunable strength
@@ -628,7 +628,7 @@ plt.tight_layout(); plt.show()
 # distributed by sending quantum systems, and that protocols such as teleportation use up.
 #
 # **No-signalling.** Whatever Alice does to her half, a channel with Kraus operators $K_k$ or a measurement whose
-# outcome Bob does not learn, Bob's reduced state is unchanged, as Ghirardi, Rimini and Weber (1980) showed for any
+# outcome Bob does not learn, Bob's reduced state is unchanged, as shown in [[7]](#ref-7) for any
 # measurement process:
 #
 # $$\textstyle\sum_k{\rm Tr}_A\big[(K_k\otimes\mathbb 1)\rho_{AB}(K_k^\dagger\otimes\mathbb 1)\big]
@@ -668,8 +668,8 @@ plt.tight_layout(); plt.show()
 # $$I(A{:}E)\;\leq\;I(AB{:}E)=2S(AB)\;\leq\;2\big[h(F)+(1-F)\log_23\big], \tag{11}$$
 #
 # where the first inequality says that discarding $B$ cannot increase the correlations with $E$. The bound vanishes as
-# $F\to1$. A finer, entanglement-based version of monogamy for three qubits is the inequality of Coffman, Kundu and
-# Wootters (2000). The next cell builds random extensions: a four-qubit pure state of $A$, $B$ and a two-qubit Eve
+# $F\to1$. A finer, entanglement-based version of monogamy for three qubits is the inequality of
+# [[8]](#ref-8). The next cell builds random extensions: a four-qubit pure state of $A$, $B$ and a two-qubit Eve
 # (enough to purify any two-qubit state), $\vert\Omega\rangle\propto\cos t\,\vert\Phi^+\rangle_{AB}\vert00\rangle_E+
 # \sin t\,\vert\xi\rangle$ with a Haar-random $\vert\xi\rangle$, for $40$ random $\vert\xi\rangle$ and $25$ values of
 # $t$. The wrong control is the GHZ state $(\vert000\rangle+\vert111\rangle)/\sqrt2$ with Eve holding the third qubit:
@@ -746,8 +746,8 @@ plt.tight_layout(); plt.show()
 #
 # ## 7. Resource accounting
 #
-# Teleportation, introduced by Bennett, Brassard, Crépeau, Jozsa, Peres and Wootters (1993), sends an unknown qubit
-# with one ebit and two classical bits, and superdense coding, introduced by Bennett and Wiesner (1992), sends two
+# Teleportation, introduced in [[9]](#ref-9), sends an unknown qubit
+# with one ebit and two classical bits, and superdense coding, introduced in [[10]](#ref-10), sends two
 # classical bits with one ebit and one qubit. Written as resource inequalities, "the left side can simulate the right
 # side",
 #
@@ -768,7 +768,7 @@ plt.tight_layout(); plt.show()
 # A classical channel (notebook 50, Section 5.1) is a matrix of transition probabilities that maps input distributions
 # to output distributions. A **quantum channel** maps density matrices to density matrices: a linear map
 # $\rho\mapsto\mathcal E(\rho)$ that keeps every state a state, including when it acts on one half of an entangled
-# pair. Every such map can be written with **Kraus operators** $K_k$ (Kraus 1983),
+# pair. Every such map can be written with **Kraus operators** $K_k$ [[11]](#ref-11),
 #
 # $$\mathcal E(\rho)=\sum_kK_k\,\rho\,K_k^\dagger,\qquad\sum_kK_k^\dagger K_k=\mathbb 1 . \tag{13}$$
 #
@@ -795,7 +795,7 @@ plt.tight_layout(); plt.show()
 #   $\vert1\rangle$ to $\vert0\rangle$; these are the same operators as the engine's `kraus_amplitude_damping` of
 #   [notebook 07](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb). The ball shrinks and moves towards the north pole,
 #   $(r_x,r_y,r_z)\to(\sqrt{1-\gamma}\,r_x,\sqrt{1-\gamma}\,r_y,\gamma+(1-\gamma)r_z)$.
-# * **Erasure**, the channel studied by Grassl, Beth and Pellizzari (1997): with probability $e$ the qubit is lost, and
+# * **Erasure**, the channel studied in [[12]](#ref-12): with probability $e$ the qubit is lost, and
 #   the receiver is told so. The output lives in a larger
 #   space, the qubit plus an orthogonal "erased" flag:
 #
@@ -917,7 +917,7 @@ plt.tight_layout(); plt.show()
 # ### 9.1 Classical capacity and the Holevo bound
 #
 # To send a classical message, Alice encodes the letter $i$, chosen with probability $p_i$, into a state $\rho_i$ and
-# sends it through the channel; Bob receives $\mathcal E(\rho_i)$ and measures. Holevo (1973) proved that the mutual
+# sends it through the channel; Bob receives $\mathcal E(\rho_i)$ and measures. Ref. [[13]](#ref-13) proved that the mutual
 # information between Alice's letter and any measurement result of Bob is bounded by the **Holevo quantity** of the
 # received ensemble,
 #
@@ -929,7 +929,7 @@ plt.tight_layout(); plt.show()
 # introduces this bound for superdense coding. For a qubit $d=2$, so **one qubit carries at most one classical bit**.
 # The Holevo quantity is also achievable: if Alice uses product states over many channel uses and Bob measures the whole
 # block collectively, the maximum of $\chi$ over ensembles is an achievable rate, the Holevo–Schumacher–Westmoreland
-# theorem (Holevo 1998; Schumacher and Westmoreland 1997). In general the classical capacity requires a further
+# theorem [[14]](#ref-14), [[15]](#ref-15). In general the classical capacity requires a further
 # maximisation over entangled inputs across many uses; for the channels below the single-use value is already the
 # answer.
 #
@@ -943,11 +943,11 @@ plt.tight_layout(); plt.show()
 # $$\chi^\ast_{\rm depol}=1-h\big(\tfrac{2p}3\big). \tag{16}$$
 #
 # This is the capacity of a binary symmetric channel with flip probability $2p/3$: sending $\vert0\rangle$ or
-# $\vert1\rangle$ and measuring $Z$, the bit flips when the error is $X$ or $Y$. King (2003) proved that no entangled
+# $\vert1\rangle$ and measuring $Z$, the bit flips when the error is $X$ or $Y$. Ref. [[16]](#ref-16) proved that no entangled
 # input and no collective measurement does better, so Eq. (16) is the classical capacity of the depolarising channel.
 # For the dephasing channel $\chi^\ast=1$ at every $p$, the largest value Eq. (15) allows, since $\vert0\rangle$ and
 # $\vert1\rangle$ pass unchanged. For the erasure channel the inputs $\vert0\rangle$, $\vert1\rangle$ give $\chi=1-e$,
-# the capacity of the classical erasure channel, and Bennett, DiVincenzo and Smolin (1997) showed that this is the
+# the capacity of the classical erasure channel, and Ref. [[17]](#ref-17) showed that this is the
 # classical capacity. The next cell
 # computes $\chi$ with the engine for pairs of pure input states at every angle and weight, and for $500$ random
 # ensembles of four mixed states, and checks Eqs. (15)–(16). The wrong control is a pair of nonorthogonal inputs,
@@ -1018,9 +1018,8 @@ for p in (0.1, 0.3, 0.5):
 # Whether a channel preserves unknown states is tested best with entanglement. Alice prepares a pure state
 # $\vert\psi\rangle_{RA}$ of the signal $A$ and a reference qubit $R$ that never leaves her laboratory, and sends $A$
 # through the channel to Bob, who receives $B$. If $R$ and $B$ are still entangled, the pair can carry a qubit by
-# teleportation (Eq. (12)); the classical messages that teleportation needs do not raise the quantum capacity (Bennett,
-# DiVincenzo, Smolin and Wootters 1996). The amount of quantum information that survives is measured by the
-# **coherent information** (Schumacher and Nielsen 1996),
+# teleportation (Eq. (12)); the classical messages that teleportation needs do not raise the quantum capacity [[18]](#ref-18). The amount of quantum information that survives is measured by the
+# **coherent information** [[19]](#ref-19),
 #
 # $$I_c(\rho_A,\mathcal E)=S(B)-S(RB). \tag{17}$$
 #
@@ -1032,9 +1031,9 @@ for p in (0.1, 0.3, 0.5):
 #
 # The quantum capacity is the largest coherent information per channel use. In general the inputs must be allowed to
 # be entangled across $n$ uses of the channel, so that $Q_{\rm cap}=\lim_{n\to\infty}\frac1n\max_\rho I_c(\rho,
-# \mathcal E^{\otimes n})$ (Lloyd 1997; Shor 2002; Devetak 2005). One use gives a lower bound, $Q_{\rm cap}\geq
-# \max_{\rho_A}I_c(\rho_A,\mathcal E)$, and for two of our channels this bound is already the capacity: Bennett,
-# DiVincenzo and Smolin (1997) found the erasure capacity, and Devetak and Shor (2005) showed that for dephasing the
+# \mathcal E^{\otimes n})$ [[20]](#ref-20), [[21]](#ref-21), [[22]](#ref-22). One use gives a lower bound, $Q_{\rm cap}\geq
+# \max_{\rho_A}I_c(\rho_A,\mathcal E)$, and for two of our channels this bound is already the capacity: Ref.
+# [[17]](#ref-17) found the erasure capacity, and Ref. [[23]](#ref-23) showed that for dephasing the
 # formula reduces to a single use. A capacity cannot be negative, while $I_c$ can, hence the $\max(0,\cdot)$:
 #
 # $$Q_{\rm cap}({\rm erasure})=\max(0,\,1-2e),\qquad Q_{\rm cap}({\rm dephasing})=1-h(p). \tag{18}$$
@@ -1051,15 +1050,14 @@ for p in (0.1, 0.3, 0.5):
 # the environment could recover it too, by the same procedure, and two copies of an unknown state would exist.
 #
 # For the **depolarising channel** the quantum capacity is not known. The Bell-pair input gives a lower bound, the
-# **hashing bound** (Bennett, DiVincenzo, Smolin and Wootters 1996). A Pauli error on one half of $\vert\Phi^+\rangle$
+# **hashing bound** [[18]](#ref-18). A Pauli error on one half of $\vert\Phi^+\rangle$
 # turns it into another Bell state (notebook 21, Section 3.1), so $\rho_{RB}$ is a mixture of the four Bell states with
 # weights $(1-p,p/3,p/3,p/3)$, and
 #
 # $$Q_{\rm cap}({\rm depolarising})\;\geq\;1-H\big(1-p,\tfrac p3,\tfrac p3,\tfrac p3\big), \tag{19}$$
 #
 # with $H$ the Shannon entropy of the four weights. It vanishes at $p\approx0.189$. The bound is not the capacity:
-# codes that use the channel many times at once keep a positive rate slightly beyond this point (DiVincenzo, Shor and
-# Smolin 1998), which is why the maximisation over $n$ uses cannot be dropped. The next cell computes the coherent
+# codes that use the channel many times at once keep a positive rate slightly beyond this point [[24]](#ref-24), which is why the maximisation over $n$ uses cannot be dropped. The next cell computes the coherent
 # information with the engine: the input is $\sqrt{1-a}\,\vert00\rangle+\sqrt a\,\vert11\rangle$ on $R$ and $A$, the
 # channel acts on $A$ (with a flag qubit for erasure), and the entropies come from `rdm_dm`. It scans the input
 # weight $a$ to check that the Bell pair, $a=1/2$, is the best single-use input for these channels, and compares with
@@ -1124,8 +1122,8 @@ assert abs(lo - 0.18929) < 1e-4
 # ### 9.3 Entanglement-assisted classical capacity
 #
 # If Alice and Bob share unlimited ebits in advance, the classical capacity grows. Superdense coding already shows this
-# for a noiseless qubit: two bits per qubit instead of one, the second inequality of Eq. (12). Bennett, Shor, Smolin and
-# Thapliyal (1999; 2002) proved that the **entanglement-assisted capacity** is given by a single-use formula, the
+# for a noiseless qubit: two bits per qubit instead of one, the second inequality of Eq. (12). Refs. [[25]](#ref-25)
+# and [[26]](#ref-26) proved that the **entanglement-assisted capacity** is given by a single-use formula, the
 # quantum mutual information between the reference and the output, maximised over inputs:
 #
 # $$C_E=\max_{\rho_A}\big[S(R)+S(B)-S(RB)\big],\qquad C_{E,\rm depol}=2-H\big(1-p,\tfrac p3,\tfrac p3,\tfrac p3\big).
@@ -1224,7 +1222,7 @@ plt.tight_layout(); plt.show()
 #   fidelity $F$ to a Bell state gives Eve at most $2[h(F)+(1-F)\log_23]$ bits of mutual information.
 # * **Quantum channels have Kraus operators and Bloch pictures.** Depolarising, dephasing, amplitude damping and
 #   erasure shrink, squeeze, shift or delete the Bloch ball.
-# * **One qubit carries at most one classical bit** (Holevo); the depolarising channel carries $1-h(2p/3)$ bits per use.
+# * **One qubit carries at most one classical bit** [[13]](#ref-13); the depolarising channel carries $1-h(2p/3)$ bits per use.
 #   Shared entanglement raises this, up to two bits for a noiseless qubit.
 # * **Quantum capacities are smaller.** They are given by the coherent information $S(B)-S(RB)$: $1-2e$ for erasure,
 #   $1-h(p)$ for dephasing, and only bounds for the depolarising channel.
@@ -1270,72 +1268,106 @@ plt.tight_layout(); plt.show()
 #
 # ## References
 #
-# * C. W. Helstrom, *Quantum Detection and Estimation Theory* (Academic Press, New York, 1976) — the optimal measurement
-#   for discriminating two quantum states and its success probability.
-# * C. H. Bennett and G. Brassard, *Quantum cryptography: Public key distribution and coin tossing*, in Proceedings of
-#   the IEEE International Conference on Computers, Systems and Signal Processing (Bangalore, 1984), p. 175; reprinted
-#   in Theor. Comput. Sci. **560**, 7 (2014), doi:10.1016/j.tcs.2014.05.025 — the BB84 protocol.
-# * W. K. Wootters and W. H. Zurek, *A single quantum cannot be cloned*, Nature **299**, 802 (1982),
-#   doi:10.1038/299802a0 — the no-cloning theorem.
-# * D. Dieks, *Communication by EPR devices*, Phys. Lett. A **92**, 271 (1982), doi:10.1016/0375-9601(82)90084-6 — the
-#   no-cloning theorem, found independently.
-# * C. H. Bennett, *Quantum cryptography using any two nonorthogonal states*, Phys. Rev. Lett. **68**, 3121 (1992),
-#   doi:10.1103/PhysRevLett.68.3121 — any two nonorthogonal states suffice for quantum key distribution.
-# * C. A. Fuchs and A. Peres, *Quantum-state disturbance versus information gain: Uncertainty relations for quantum
-#   information*, Phys. Rev. A **53**, 2038 (1996), doi:10.1103/PhysRevA.53.2038 — the trade-off between information
-#   gain and disturbance, with the optimal detection for two equiprobable nonorthogonal pure states.
-# * G. C. Ghirardi, A. Rimini and T. Weber, *A general argument against superluminal transmission through the quantum
-#   mechanical measurement process*, Lett. Nuovo Cimento **27**, 293 (1980), doi:10.1007/BF02817189 — no-signalling:
-#   a measurement on one subsystem does not change the statistics of the other.
-# * C. H. Bennett, G. Brassard, C. Crépeau, R. Jozsa, A. Peres and W. K. Wootters, *Teleporting an unknown quantum state
-#   via dual classical and Einstein-Podolsky-Rosen channels*, Phys. Rev. Lett. **70**, 1895 (1993),
-#   doi:10.1103/PhysRevLett.70.1895 — quantum teleportation.
-# * C. H. Bennett and S. J. Wiesner, *Communication via one- and two-particle operators on Einstein-Podolsky-Rosen
-#   states*, Phys. Rev. Lett. **69**, 2881 (1992), doi:10.1103/PhysRevLett.69.2881 — superdense coding: two bits
-#   encoded in one particle of an entangled pair.
-# * K. Kraus, *States, Effects, and Operations: Fundamental Notions of Quantum Theory*, Lecture Notes in Physics
-#   **190** (Springer, Berlin, 1983), doi:10.1007/3-540-12732-1 — the operator-sum (Kraus) representation of
-#   quantum operations.
-# * M. Grassl, T. Beth and T. Pellizzari, *Codes for the quantum erasure channel*, Phys. Rev. A **56**, 33 (1997),
-#   doi:10.1103/PhysRevA.56.33 — the quantum erasure channel, with errors at known positions, and codes for it.
-# * V. Coffman, J. Kundu and W. K. Wootters, *Distributed entanglement*, Phys. Rev. A **61**, 052306 (2000),
-#   doi:10.1103/PhysRevA.61.052306 — the trade-off between the entanglement of one qubit with two others.
-# * A. S. Holevo, *Bounds for the quantity of information transmitted by a quantum communication channel*, Problems of
-#   Information Transmission **9**(3), 177–183 (1973) — the Holevo bound.
-# * A. S. Holevo, *The capacity of the quantum channel with general signal states*, IEEE Trans. Inf. Theory **44**, 269
-#   (1998), doi:10.1109/18.651037 — the classical capacity with product inputs equals the maximal Holevo quantity.
-# * B. Schumacher and M. D. Westmoreland, *Sending classical information via noisy quantum channels*, Phys. Rev. A
-#   **56**, 131 (1997), doi:10.1103/PhysRevA.56.131 — the same result, obtained independently.
-# * C. King, *The capacity of the quantum depolarizing channel*, IEEE Trans. Inf. Theory **49**, 221 (2003),
-#   doi:10.1109/TIT.2002.806153 — the classical capacity of the depolarising channel, achieved with orthonormal product
-#   states and product measurements.
-# * B. Schumacher and M. A. Nielsen, *Quantum data processing and error correction*, Phys. Rev. A **54**, 2629 (1996),
-#   doi:10.1103/PhysRevA.54.2629 — the coherent information.
-# * S. Lloyd, *Capacity of the noisy quantum channel*, Phys. Rev. A **55**, 1613 (1997), doi:10.1103/PhysRevA.55.1613 —
-#   the quantum capacity and codes that attain it.
-# * P. W. Shor, *The quantum channel capacity and coherent information*, lecture notes, MSRI Workshop on Quantum
-#   Computation (Berkeley, 2002) — an independent proof that the regularised coherent information is achievable.
-# * I. Devetak, *The private classical capacity and quantum capacity of a quantum channel*, IEEE Trans. Inf. Theory
-#   **51**, 44 (2005), doi:10.1109/TIT.2004.839515 — a proof of the quantum channel coding theorem through the private
-#   capacity.
-# * I. Devetak and P. W. Shor, *The capacity of a quantum channel for simultaneous transmission of classical and quantum
-#   information*, Commun. Math. Phys. **256**, 287 (2005), doi:10.1007/s00220-005-1317-6 — single-letter formulas for
-#   dephasing channels.
-# * C. H. Bennett, D. P. DiVincenzo and J. A. Smolin, *Capacities of quantum erasure channels*, Phys. Rev. Lett. **78**,
-#   3217 (1997), doi:10.1103/PhysRevLett.78.3217 — the quantum and classical capacities of the erasure channel, and the
-#   remark that only bounds are known for the depolarising channel.
-# * C. H. Bennett, D. P. DiVincenzo, J. A. Smolin and W. K. Wootters, *Mixed-state entanglement and quantum error
-#   correction*, Phys. Rev. A **54**, 3824 (1996), doi:10.1103/PhysRevA.54.3824 — hashing codes that reach the rate
-#   $1-S$, with $S$ the entropy of the errors, and the result that forward classical communication does not raise the
-#   quantum capacity.
-# * D. P. DiVincenzo, P. W. Shor and J. A. Smolin, *Quantum-channel capacity of very noisy channels*, Phys. Rev. A
-#   **57**, 830 (1998), doi:10.1103/PhysRevA.57.830 — codes that beat the hashing bound of the depolarising channel.
-# * C. H. Bennett, P. W. Shor, J. A. Smolin and A. V. Thapliyal, *Entanglement-assisted classical capacity of noisy
-#   quantum channels*, Phys. Rev. Lett. **83**, 3081 (1999), doi:10.1103/PhysRevLett.83.3081 — entanglement doubles the
-#   classical capacity of a noiseless channel; exact entanglement-assisted capacities of the depolarising and erasure
-#   channels.
-# * C. H. Bennett, P. W. Shor, J. A. Smolin and A. V. Thapliyal, *Entanglement-assisted capacity of a quantum channel
-#   and the reverse Shannon theorem*, IEEE Trans. Inf. Theory **48**, 2637 (2002), doi:10.1109/TIT.2002.802612 — the
-#   general formula of Eq. (20).
-# * M. M. Wilde, *Quantum Information Theory*, 2nd ed. (Cambridge University Press, 2017), doi:10.1017/9781316809976 —
-#   a textbook treatment of all capacities of this notebook.
+# <span id="ref-1">[1]</span> C. H. Bennett and G. Brassard, *Quantum cryptography: Public key distribution and coin
+# tossing*, in Proceedings of the IEEE International Conference on Computers, Systems and Signal Processing
+# (Bangalore, 1984), p. 175; reprinted in Theor. Comput. Sci. **560**, 7 (2014), doi:10.1016/j.tcs.2014.05.025 — the
+# BB84 protocol.
+#
+# <span id="ref-2">[2]</span> C. W. Helstrom, *Quantum Detection and Estimation Theory* (Academic Press, New York,
+# 1976) — the optimal measurement for discriminating two quantum states and its success probability.
+#
+# <span id="ref-3">[3]</span> W. K. Wootters and W. H. Zurek, *A single quantum cannot be cloned*, Nature **299**, 802
+# (1982), doi:10.1038/299802a0 — the no-cloning theorem.
+#
+# <span id="ref-4">[4]</span> D. Dieks, *Communication by EPR devices*, Phys. Lett. A **92**, 271 (1982),
+# doi:10.1016/0375-9601(82)90084-6 — the no-cloning theorem, found independently.
+#
+# <span id="ref-5">[5]</span> C. H. Bennett, *Quantum cryptography using any two nonorthogonal states*, Phys. Rev.
+# Lett. **68**, 3121 (1992), doi:10.1103/PhysRevLett.68.3121 — any two nonorthogonal states suffice for quantum key
+# distribution.
+#
+# <span id="ref-6">[6]</span> C. A. Fuchs and A. Peres, *Quantum-state disturbance versus information gain:
+# Uncertainty relations for quantum information*, Phys. Rev. A **53**, 2038 (1996), doi:10.1103/PhysRevA.53.2038 — the
+# trade-off between information gain and disturbance, with the optimal detection for two equiprobable nonorthogonal
+# pure states.
+#
+# <span id="ref-7">[7]</span> G. C. Ghirardi, A. Rimini and T. Weber, *A general argument against superluminal
+# transmission through the quantum mechanical measurement process*, Lett. Nuovo Cimento **27**, 293 (1980),
+# doi:10.1007/BF02817189 — no-signalling: a measurement on one subsystem does not change the statistics of the other.
+#
+# <span id="ref-8">[8]</span> V. Coffman, J. Kundu and W. K. Wootters, *Distributed entanglement*, Phys. Rev. A
+# **61**, 052306 (2000), doi:10.1103/PhysRevA.61.052306 — the trade-off between the entanglement of one qubit with two
+# others.
+#
+# <span id="ref-9">[9]</span> C. H. Bennett, G. Brassard, C. Crépeau, R. Jozsa, A. Peres and W. K. Wootters,
+# *Teleporting an unknown quantum state via dual classical and Einstein-Podolsky-Rosen channels*, Phys. Rev. Lett.
+# **70**, 1895 (1993), doi:10.1103/PhysRevLett.70.1895 — quantum teleportation.
+#
+# <span id="ref-10">[10]</span> C. H. Bennett and S. J. Wiesner, *Communication via one- and two-particle operators on
+# Einstein-Podolsky-Rosen states*, Phys. Rev. Lett. **69**, 2881 (1992), doi:10.1103/PhysRevLett.69.2881 — superdense
+# coding: two bits encoded in one particle of an entangled pair.
+#
+# <span id="ref-11">[11]</span> K. Kraus, *States, Effects, and Operations: Fundamental Notions of Quantum Theory*,
+# Lecture Notes in Physics **190** (Springer, Berlin, 1983), doi:10.1007/3-540-12732-1 — the operator-sum (Kraus)
+# representation of quantum operations.
+#
+# <span id="ref-12">[12]</span> M. Grassl, T. Beth and T. Pellizzari, *Codes for the quantum erasure channel*, Phys.
+# Rev. A **56**, 33 (1997), doi:10.1103/PhysRevA.56.33 — the quantum erasure channel, with errors at known positions,
+# and codes for it.
+#
+# <span id="ref-13">[13]</span> A. S. Holevo, *Bounds for the quantity of information transmitted by a quantum
+# communication channel*, Problems of Information Transmission **9**(3), 177–183 (1973) — the Holevo bound.
+#
+# <span id="ref-14">[14]</span> A. S. Holevo, *The capacity of the quantum channel with general signal states*, IEEE
+# Trans. Inf. Theory **44**, 269 (1998), doi:10.1109/18.651037 — the classical capacity with product inputs equals the
+# maximal Holevo quantity.
+#
+# <span id="ref-15">[15]</span> B. Schumacher and M. D. Westmoreland, *Sending classical information via noisy quantum
+# channels*, Phys. Rev. A **56**, 131 (1997), doi:10.1103/PhysRevA.56.131 — the same result, obtained independently.
+#
+# <span id="ref-16">[16]</span> C. King, *The capacity of the quantum depolarizing channel*, IEEE Trans. Inf. Theory
+# **49**, 221 (2003), doi:10.1109/TIT.2002.806153 — the classical capacity of the depolarising channel, achieved with
+# orthonormal product states and product measurements.
+#
+# <span id="ref-17">[17]</span> C. H. Bennett, D. P. DiVincenzo and J. A. Smolin, *Capacities of quantum erasure
+# channels*, Phys. Rev. Lett. **78**, 3217 (1997), doi:10.1103/PhysRevLett.78.3217 — the quantum and classical
+# capacities of the erasure channel, and the remark that only bounds are known for the depolarising channel.
+#
+# <span id="ref-18">[18]</span> C. H. Bennett, D. P. DiVincenzo, J. A. Smolin and W. K. Wootters, *Mixed-state
+# entanglement and quantum error correction*, Phys. Rev. A **54**, 3824 (1996), doi:10.1103/PhysRevA.54.3824 — hashing
+# codes that reach the rate $1-S$, with $S$ the entropy of the errors, and the result that forward classical
+# communication does not raise the quantum capacity.
+#
+# <span id="ref-19">[19]</span> B. Schumacher and M. A. Nielsen, *Quantum data processing and error correction*, Phys.
+# Rev. A **54**, 2629 (1996), doi:10.1103/PhysRevA.54.2629 — the coherent information.
+#
+# <span id="ref-20">[20]</span> S. Lloyd, *Capacity of the noisy quantum channel*, Phys. Rev. A **55**, 1613 (1997),
+# doi:10.1103/PhysRevA.55.1613 — the quantum capacity and codes that attain it.
+#
+# <span id="ref-21">[21]</span> P. W. Shor, *The quantum channel capacity and coherent information*, lecture notes,
+# MSRI Workshop on Quantum Computation (Berkeley, 2002) — an independent proof that the regularised coherent
+# information is achievable.
+#
+# <span id="ref-22">[22]</span> I. Devetak, *The private classical capacity and quantum capacity of a quantum
+# channel*, IEEE Trans. Inf. Theory **51**, 44 (2005), doi:10.1109/TIT.2004.839515 — a proof of the quantum channel
+# coding theorem through the private capacity.
+#
+# <span id="ref-23">[23]</span> I. Devetak and P. W. Shor, *The capacity of a quantum channel for simultaneous
+# transmission of classical and quantum information*, Commun. Math. Phys. **256**, 287 (2005),
+# doi:10.1007/s00220-005-1317-6 — single-letter formulas for dephasing channels.
+#
+# <span id="ref-24">[24]</span> D. P. DiVincenzo, P. W. Shor and J. A. Smolin, *Quantum-channel capacity of very noisy
+# channels*, Phys. Rev. A **57**, 830 (1998), doi:10.1103/PhysRevA.57.830 — codes that beat the hashing bound of the
+# depolarising channel.
+#
+# <span id="ref-25">[25]</span> C. H. Bennett, P. W. Shor, J. A. Smolin and A. V. Thapliyal, *Entanglement-assisted
+# classical capacity of noisy quantum channels*, Phys. Rev. Lett. **83**, 3081 (1999), doi:10.1103/PhysRevLett.83.3081
+# — entanglement doubles the classical capacity of a noiseless channel; exact entanglement-assisted capacities of the
+# depolarising and erasure channels.
+#
+# <span id="ref-26">[26]</span> C. H. Bennett, P. W. Shor, J. A. Smolin and A. V. Thapliyal, *Entanglement-assisted
+# capacity of a quantum channel and the reverse Shannon theorem*, IEEE Trans. Inf. Theory **48**, 2637 (2002),
+# doi:10.1109/TIT.2002.802612 — the general formula of Eq. (20).
+#
+# <span id="ref-27">[27]</span> M. M. Wilde, *Quantum Information Theory*, 2nd ed. (Cambridge University Press, 2017),
+# doi:10.1017/9781316809976 — a textbook treatment of all capacities of this notebook.

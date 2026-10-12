@@ -3,7 +3,7 @@
 #@description: Gradient descent, heavy-ball momentum, Adam, SPSA with Spall's gain sequences, the SPSA–Adam hybrid and the quantum natural gradient, each derived from its update equation, compiled into lax.scan training loops, vmapped over random initialisations, and benchmarked on GHZ state preparation and on the ground energy of a transverse-field Ising chain with exact and shot-noisy costs.
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
 # The previous notebook,
 # [40 — parametrized gates and gradients](../ch13_quantum_machine_learning/40_parametrized_gates_and_gradients.ipynb),
@@ -411,7 +411,7 @@ fig.tight_layout(); plt.show()
 #
 # ### 5.1 The update equation
 #
-# Gradient descent treats each step independently. The **heavy-ball** method, introduced by Polyak (1964), gives the iterate inertia:
+# Gradient descent treats each step independently. The **heavy-ball** method, introduced in [[1]](#ref-1), gives the iterate inertia:
 #
 # $$\boxed{\;\mathbf v_{k+1}=\beta\,\mathbf v_k+\mathbf g_k,\qquad
 #   \boldsymbol\theta_{k+1}=\boldsymbol\theta_k-\eta\,\mathbf v_{k+1}\;}\tag{7}$$
@@ -534,7 +534,7 @@ fig.tight_layout(); plt.show()
 #
 # ### 6.1 The update equation
 #
-# Adam, introduced by Kingma and Ba (2015), combines momentum with a **per-parameter** step size inferred from the recent magnitude of
+# Adam, introduced in [[2]](#ref-2), combines momentum with a **per-parameter** step size inferred from the recent magnitude of
 # each gradient component:
 #
 # $$\begin{aligned}
@@ -675,8 +675,8 @@ for lr in (0.01, 0.05, 0.4, 1.0, 3.0):
 #
 # and steps with $\boldsymbol\theta_{k+1}=\boldsymbol\theta_k-a_k\hat g_k$. Because $\hat g_k$ is random, a **constant**
 # step size cannot converge: the iterate would keep jittering with an amplitude set by $a\,\mathrm{std}(\hat g)$. Both
-# gains must therefore decay, and stochastic-approximation theory says how: it was founded by Robbins and Monro (1951)
-# for root finding from noisy measurements, here of the gradient, and extended by Spall (1992) to the estimator of
+# gains must therefore decay, and stochastic-approximation theory says how: it was founded in [[3]](#ref-3)
+# for root finding from noisy measurements, here of the gradient, and extended in [[4]](#ref-4) to the estimator of
 # Eq. (12).
 #
 # ### 7.1 The three conditions
@@ -696,7 +696,7 @@ for lr in (0.01, 0.05, 0.4, 1.0, 3.0):
 #
 # ### 7.2 Where the exponents come from
 #
-# Spall's standard choice is the power law
+# The standard choice of [[4]](#ref-4) is the power law
 #
 # $$a_k=\frac{a}{(k+A)^{\alpha}},\qquad c_k=\frac{c}{k^{\gamma}} . \tag{14}$$
 #
@@ -704,21 +704,21 @@ for lr in (0.01, 0.05, 0.4, 1.0, 3.0):
 #
 # $$\alpha-\gamma>\tfrac12 . \tag{15}$$
 #
-# Eq. (15) alone would allow $\gamma\to0$ and $\alpha$ just above $\tfrac12$. Spall's asymptotic-normality theorem for SPSA,
+# Eq. (15) alone would allow $\gamma\to0$ and $\alpha$ just above $\tfrac12$. The asymptotic-normality theorem for SPSA proved in [[4]](#ref-4),
 # which controls how the error is distributed around the minimum at large $k$, adds two more conditions,
 # $\alpha-2\gamma>0$ and $3\gamma-\alpha/2\ge0$, i.e. $\gamma\ge\alpha/6$. Combining $\gamma\ge\alpha/6$ with Eq. (15) gives
-# $\alpha-\alpha/6>\tfrac12$, i.e. $\alpha>0.6$ and $\gamma\ge0.1$. Two regimes are in use (Spall, 1998).
+# $\alpha-\alpha/6>\tfrac12$, i.e. $\alpha>0.6$ and $\gamma\ge0.1$. Two regimes are in use [[5]](#ref-5).
 #
 # * **Asymptotically optimal**: $\alpha=1$, $\gamma=1/6$. These maximise the rate at which the mean squared error decays
 #   as $k\to\infty$.
-# * **Practically effective**: $\alpha=0.602$, $\gamma=0.101$, which Spall describes as effectively the lowest values
+# * **Practically effective**: $\alpha=0.602$, $\gamma=0.101$, which Ref. [[5]](#ref-5) describes as effectively the lowest values
 #   allowed by the theory: $0.602-0.101=0.501>\tfrac12$ and $0.101\ge0.602/6=0.1003$, each with almost nothing to spare.
 #   Small exponents mean the gains decay slowly, so the algorithm keeps taking useful steps for hundreds of iterations
 #   instead of freezing after twenty. A variational run is stopped after a few hundred iterations and never reaches the
 #   asymptotic regime, so this is the choice used below.
 #
 # The **stability constant** $A$ shifts the schedule: $a_1=a/(1+A)^\alpha$, so a large $A$ prevents an enormous first step
-# when the initial gradient estimate happens to be large. Spall's guideline is $A$ of about 10% (or less) of the planned
+# when the initial gradient estimate happens to be large. The guideline of [[5]](#ref-5) is $A$ of about 10% (or less) of the planned
 # number of iterations; we use $A=30$ for runs of 200 to 400 iterations.
 
 # %%
@@ -811,7 +811,7 @@ for al, ga in ((0.602, 0.101), (1.0, 1 / 6), (0.4, 0.101), (0.602, 0.4)):
 # angle acting on a qubit that is nearly in an eigenstate of its generator changes the state hardly at all, whatever the
 # numerical value of $\partial C/\partial\theta$.
 #
-# The natural gradient, proposed by Amari (1998) for learning in statistical models, replaces the Euclidean penalty by
+# The natural gradient, introduced in [[6]](#ref-6) for learning in statistical models, replaces the Euclidean penalty by
 # the proper distance on the manifold of the model; here the model is the family of states. For pure states
 # that distance is the **Fubini–Study metric**, and it is defined by the fidelity between neighbouring states:
 #
@@ -863,18 +863,18 @@ for al, ga in ((0.602, 0.101), (1.0, 1 / 6), (0.4, 0.101), (0.602, 0.4)):
 # direction the gradient component vanishes, because $C$ depends on $\boldsymbol\theta$ only through the state; the
 # danger comes from near-kernel directions with small but non-zero $g$, where the amplification $\eta/g$ would be
 # enormous and the ridge caps it at $\eta/\lambda_{\mathrm{reg}}=10^3\eta$. For $g\gg\lambda_{\mathrm{reg}}$ the ridge has
-# no effect. This is the **quantum natural gradient** introduced by Stokes *et al.* (2020);
+# no effect. This is the **quantum natural gradient** introduced in [[7]](#ref-7);
 # $\mathbf G$ is one quarter of the quantum Fisher information matrix for the pure state family (see
 # [29 — quantum Fisher information](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb)).
 #
 # On a simulator $\mathbf G$ is one `jacfwd` away. On hardware every entry has to be estimated from its own circuits, so
 # the full metric costs $O(n^2)$ circuits per iteration; Section 12 counts it as one circuit per independent entry,
-# $n(n+1)/2$, which is a lower count. Two cheaper routes exist. Stokes *et al.* keep only the diagonal blocks that belong
+# $n(n+1)/2$, which is a lower count. Two cheaper routes exist. Ref. [[7]](#ref-7) keeps only the diagonal blocks that belong
 # to one layer of rotations: for a layer of single-qubit rotations $e^{-i\theta_aP_a/2}$ acting on the state
 # $\vert\psi_l\rangle$ prepared by the preceding layers, the block is the covariance matrix
 # $\tfrac14\bigl(\langle P_aP_b\rangle-\langle P_a\rangle\langle P_b\rangle\bigr)$ of the generators, which can be
-# measured on the truncated circuit with a number of measurement settings that does not grow with $n$. Gacon *et al.*
-# estimate the whole metric stochastically, at constant cost, in the spirit of SPSA. We use the exact metric, because
+# measured on the truncated circuit with a number of measurement settings that does not grow with $n$. Ref. [[8]](#ref-8)
+# estimates the whole metric stochastically, at constant cost, in the spirit of SPSA. We use the exact metric, because
 # the point here is to see what the exact method buys; Exercise 6 measures what the block-diagonal approximation loses.
 
 # %%
@@ -1631,7 +1631,7 @@ fig.tight_layout(); plt.show()
 # of them a run falls into is decided by the initialisation. How many such minima there are, and how often they trap a
 # run, depends on the **number of parameters relative to the dimension of the state manifold being targeted**.
 #
-# The heuristic, analysed for example by Larocca *et al.* (2023): when the ansatz has *just* enough parameters to reach
+# The heuristic, analysed for example in [[9]](#ref-9): when the ansatz has *just* enough parameters to reach
 # the target, the solution set is a small collection of isolated points and many basins lead elsewhere; when it has many
 # more, the solution set becomes a high-dimensional manifold that is easy to hit from anywhere. Adding layers
 # makes each iteration more expensive but can make the optimisation qualitatively easier.
@@ -1811,44 +1811,58 @@ fig.tight_layout(); plt.show()
 #
 # ## References
 #
-# * J. C. Spall, *Multivariate stochastic approximation using a simultaneous perturbation gradient approximation*,
-#   IEEE Trans. Autom. Control **37**, 332 (1992) — SPSA, the conditions of Eq. (13), the power-law gains of Eq. (14)
-#   (without the stability constant $A$) and the asymptotic-normality conditions quoted in Section 7.2.
-# * J. C. Spall, *Implementation of the simultaneous perturbation algorithm for stochastic optimization*, IEEE Trans.
-#   Aerosp. Electron. Syst. **34**, 817 (1998) — the practical exponents $\alpha=0.602$, $\gamma=0.101$ as the lowest
-#   values allowed by the theory, the asymptotically optimal pair $(1,1/6)$, and the guideline for $A$ (Section 7.2).
-# * H. Robbins and S. Monro, *A stochastic approximation method*, Ann. Math. Statist. **22**, 400 (1951) — the iteration
-#   with decreasing gains that finds a root from noisy measurements (Section 7).
-# * B. T. Polyak, *Some methods of speeding up the convergence of iteration methods*, USSR Comput. Math. Math. Phys.
-#   **4**(5), 1 (1964) — the heavy-ball method of Eq. (7).
-# * D. P. Kingma and J. Ba, *Adam: a method for stochastic optimization*, 3rd International Conference on Learning
-#   Representations (ICLR 2015), arXiv:1412.6980 — the update equations of Eq. (10) and the bias correction of Eq. (11).
-# * W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes: The Art of Scientific
-#   Computing*, 3rd ed. (Cambridge University Press, 2007), Chapter 10 — minimisation; §10.8 conjugate gradients and
-#   §10.9 quasi-Newton (variable-metric, BFGS) methods (Exercise 4).
-# * S. Amari, *Natural gradient works efficiently in learning*, Neural Comput. **10**, 251 (1998) — the natural gradient
-#   as the steepest-descent direction in a parameter space with a Riemannian metric (Section 9.1).
-# * J. Stokes, J. Izaac, N. Killoran and G. Carleo, *Quantum natural gradient*, Quantum **4**, 269 (2020) — the
-#   Fubini–Study metric of Eq. (17), the update of Eq. (18) (with the pseudo-inverse of the metric in place of the ridge)
-#   and the block-diagonal approximation.
-# * J. Gacon, C. Zoufal, G. Carleo and S. Woerner, *Simultaneous perturbation stochastic approximation of the quantum
-#   Fisher information*, Quantum **5**, 567 (2021) — a constant-cost stochastic estimator of the metric, the alternative
-#   to the $O(n^2)$ overlap circuits of Section 9.
-# * J. R. McClean, J. Romero, R. Babbush and A. Aspuru-Guzik, *The theory of variational hybrid quantum-classical
-#   algorithms*, New J. Phys. **18**, 023023 (2016) — the hybrid loop and the role of the classical optimiser.
-# * A. Peruzzo, J. McClean, P. Shadbolt, M.-H. Yung, X.-Q. Zhou, P. J. Love, A. Aspuru-Guzik and J. L. O'Brien,
-#   *A variational eigenvalue solver on a photonic quantum processor*, Nat. Commun. **5**, 4213 (2014) — the first
-#   experiment of this kind.
-# * A. Kandala, A. Mezzacapo, K. Temme, M. Takita, M. Brink, J. M. Chow and J. M. Gambetta, *Hardware-efficient
-#   variational quantum eigensolver for small molecules and quantum magnets*, Nature **549**, 242 (2017) — the
-#   hardware-efficient ansatz family (layers of single-qubit rotations and native entangling gates) used in both
-#   benchmarks, and SPSA as the optimiser on hardware.
-# * M. Cerezo, A. Arrasmith, R. Babbush, S. C. Benjamin, S. Endo, K. Fujii, J. R. McClean, K. Mitarai, X. Yuan,
-#   L. Cincio and P. J. Coles, *Variational quantum algorithms*, Nat. Rev. Phys. **3**, 625 (2021) — the review, with a
-#   survey of optimisers and of trainability.
-# * J. R. McClean, S. Boixo, V. N. Smelyanskiy, R. Babbush and H. Neven, *Barren plateaus in quantum neural network
-#   training landscapes*, Nat. Commun. **9**, 4812 (2018) — why gradient-based training cannot leave an exponentially flat
-#   landscape with a polynomial number of measurements.
-# * M. Larocca, N. Ju, D. García-Martín, P. J. Coles and M. Cerezo, *Theory of overparametrization in quantum neural
-#   networks*, Nat. Comput. Sci. **3**, 542 (2023) — overparametrisation and the disappearance of spurious local minima
-#   (Section 14).
+# <span id="ref-1">[1]</span> B. T. Polyak, *Some methods of speeding up the convergence of iteration methods*, USSR Comput. Math. Math. Phys.
+# **4**(5), 1 (1964) — the heavy-ball method of Eq. (7).
+#
+# <span id="ref-2">[2]</span> D. P. Kingma and J. Ba, *Adam: a method for stochastic optimization*, 3rd International Conference on Learning
+# Representations (ICLR 2015), arXiv:1412.6980 — the update equations of Eq. (10) and the bias correction of Eq. (11).
+#
+# <span id="ref-3">[3]</span> H. Robbins and S. Monro, *A stochastic approximation method*, Ann. Math. Statist. **22**, 400 (1951) — the iteration
+# with decreasing gains that finds a root from noisy measurements (Section 7).
+#
+# <span id="ref-4">[4]</span> J. C. Spall, *Multivariate stochastic approximation using a simultaneous perturbation gradient approximation*,
+# IEEE Trans. Autom. Control **37**, 332 (1992) — SPSA, the conditions of Eq. (13), the power-law gains of Eq. (14)
+# (without the stability constant $A$) and the asymptotic-normality conditions quoted in Section 7.2.
+#
+# <span id="ref-5">[5]</span> J. C. Spall, *Implementation of the simultaneous perturbation algorithm for stochastic optimization*, IEEE Trans.
+# Aerosp. Electron. Syst. **34**, 817 (1998) — the practical exponents $\alpha=0.602$, $\gamma=0.101$ as the lowest
+# values allowed by the theory, the asymptotically optimal pair $(1,1/6)$, and the guideline for $A$ (Section 7.2).
+#
+# <span id="ref-6">[6]</span> S. Amari, *Natural gradient works efficiently in learning*, Neural Comput. **10**, 251 (1998) — the natural gradient
+# as the steepest-descent direction in a parameter space with a Riemannian metric (Section 9.1).
+#
+# <span id="ref-7">[7]</span> J. Stokes, J. Izaac, N. Killoran and G. Carleo, *Quantum natural gradient*, Quantum **4**, 269 (2020) — the
+# Fubini–Study metric of Eq. (17), the update of Eq. (18) (with the pseudo-inverse of the metric in place of the ridge)
+# and the block-diagonal approximation.
+#
+# <span id="ref-8">[8]</span> J. Gacon, C. Zoufal, G. Carleo and S. Woerner, *Simultaneous perturbation stochastic approximation of the quantum
+# Fisher information*, Quantum **5**, 567 (2021) — a constant-cost stochastic estimator of the metric, the alternative
+# to the $O(n^2)$ overlap circuits of Section 9.
+#
+# <span id="ref-9">[9]</span> M. Larocca, N. Ju, D. García-Martín, P. J. Coles and M. Cerezo, *Theory of overparametrization in quantum neural
+# networks*, Nat. Comput. Sci. **3**, 542 (2023) — overparametrisation and the disappearance of spurious local minima
+# (Section 14).
+#
+# <span id="ref-10">[10]</span> W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes: The Art of Scientific
+# Computing*, 3rd ed. (Cambridge University Press, 2007), Chapter 10 — minimisation; §10.8 conjugate gradients and
+# §10.9 quasi-Newton (variable-metric, BFGS) methods (Exercise 4).
+#
+# <span id="ref-11">[11]</span> J. R. McClean, J. Romero, R. Babbush and A. Aspuru-Guzik, *The theory of variational hybrid quantum-classical
+# algorithms*, New J. Phys. **18**, 023023 (2016) — the hybrid loop and the role of the classical optimiser.
+#
+# <span id="ref-12">[12]</span> A. Peruzzo, J. McClean, P. Shadbolt, M.-H. Yung, X.-Q. Zhou, P. J. Love, A. Aspuru-Guzik and J. L. O'Brien,
+# *A variational eigenvalue solver on a photonic quantum processor*, Nat. Commun. **5**, 4213 (2014) — the first
+# experiment of this kind.
+#
+# <span id="ref-13">[13]</span> A. Kandala, A. Mezzacapo, K. Temme, M. Takita, M. Brink, J. M. Chow and J. M. Gambetta, *Hardware-efficient
+# variational quantum eigensolver for small molecules and quantum magnets*, Nature **549**, 242 (2017) — the
+# hardware-efficient ansatz family (layers of single-qubit rotations and native entangling gates) used in both
+# benchmarks, and SPSA as the optimiser on hardware.
+#
+# <span id="ref-14">[14]</span> M. Cerezo, A. Arrasmith, R. Babbush, S. C. Benjamin, S. Endo, K. Fujii, J. R. McClean, K. Mitarai, X. Yuan,
+# L. Cincio and P. J. Coles, *Variational quantum algorithms*, Nat. Rev. Phys. **3**, 625 (2021) — the review, with a
+# survey of optimisers and of trainability.
+#
+# <span id="ref-15">[15]</span> J. R. McClean, S. Boixo, V. N. Smelyanskiy, R. Babbush and H. Neven, *Barren plateaus in quantum neural network
+# training landscapes*, Nat. Commun. **9**, 4812 (2018) — why gradient-based training cannot leave an exponentially flat
+# landscape with a polynomial number of measurements.

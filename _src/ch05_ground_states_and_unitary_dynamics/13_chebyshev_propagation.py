@@ -3,7 +3,7 @@
 #@description: The Chebyshev (Tal-Ezer–Kosloff) expansion of the propagator: Chebyshev polynomials, Bessel coefficients, the Jacobi–Anger identity, spectral rescaling, a lax.scan implementation accurate to machine precision, and its cost compared with TEBD.
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
 # **The question.** We want the solution of the time-dependent Schrödinger equation for a chain of $N$ interacting
 # spins ($\hbar = 1$ throughout),
@@ -25,15 +25,15 @@
 # > Which polynomial $p_K(x)$ of degree $K$ is the best approximation of the function $f(x) = e^{-ixt}$ on the interval that contains the spectrum of $H$?
 #
 # The answer — numerically stable, known in closed form, and within a factor that grows only like $\log K$ of the best
-# polynomial of degree $K$ that exists (Trefethen, *Approximation Theory and Approximation Practice*, Ch. 16) — is the **Chebyshev expansion**
+# polynomial of degree $K$ that exists ([[1]](#ref-1), Ch. 16) — is the **Chebyshev expansion**
 #
 # $$ e^{-iHt} \;=\; e^{-ibt}\sum_{k=0}^{\infty} (2-\delta_{k0})\,(-i)^k\,J_k(at)\;T_k\!\Big(\frac{H-b}{a}\Big), $$
 #
 # where $T_k$ are Chebyshev polynomials, $J_k$ are Bessel functions and $a,b$ rescale the spectrum of $H$ into $[-1,1]$.
 # Its error decays **faster than exponentially** once $K$ exceeds $at$: going from 4 to 13 digits costs 26 extra
-# applications of $H$ (103 → 129 in the example of §12). This propagator was introduced in quantum molecular dynamics by Tal-Ezer and Kosloff (1984), was recommended for time-independent
-# Hamiltonians in the comparison of propagation schemes by Leforestier *et al.* (1991), and is today a standard tool for exact dynamics of spin chains, quantum chaos and entanglement growth, time-dependent
-# spectral functions, and everywhere a *numerically exact* reference is needed for $N \sim 20$–$30$ spins (Fehske *et al.* 2009 benchmark it
+# applications of $H$ (103 → 129 in the example of §12). This propagator was introduced in quantum molecular dynamics in [[2]](#ref-2), was recommended for time-independent
+# Hamiltonians in the comparison of propagation schemes of [[3]](#ref-3), and is today a standard tool for exact dynamics of spin chains, quantum chaos and entanglement growth, time-dependent
+# spectral functions, and everywhere a *numerically exact* reference is needed for $N \sim 20$–$30$ spins ([[4]](#ref-4) benchmarks it
 # against other time-evolution schemes).
 #
 # **Road map.** We assume you have never met Chebyshev polynomials or Bessel functions.
@@ -143,8 +143,8 @@ plt.show()
 # however, has modulus 1: the sum must cancel twelve orders of magnitude. Floating-point numbers carry about 16 digits, so
 # after the cancellation only about four correct digits survive — the error saturates near $10^{-4}$ no matter how many terms we add. This
 # is **catastrophic cancellation**, and it gets exponentially worse with $z$ (at $z=60$ nothing at all survives).
-# For matrices it is the same story with $z \to \|H\|t$ (Moler and Van Loan list the Taylor series first among their
-# "nineteen dubious ways to compute the exponential of a matrix", 1978, revisited in 2003).
+# For matrices it is the same story with $z \to \|H\|t$ (Ref. [[5]](#ref-5) lists the Taylor series first among its
+# "nineteen dubious ways to compute the exponential of a matrix", revisited in [[6]](#ref-6)).
 #
 # The remedy is a **better basis of polynomials**, one whose members stay of size $\le 1$ on the
 # whole interval, so that coefficients of size $\le 2$ suffice and nothing large ever has to cancel.
@@ -157,7 +157,7 @@ plt.show()
 #
 # ### 3.1 Definition and recurrence
 #
-# For $x\in[-1,1]$ write $x=\cos\theta$ with $\theta\in[0,\pi]$. The **Chebyshev polynomial (of the first kind) of degree $k$** is defined by (Mason and Handscomb 2003, Ch. 1; Press *et al.* 2007, §5.8)
+# For $x\in[-1,1]$ write $x=\cos\theta$ with $\theta\in[0,\pi]$. The **Chebyshev polynomial (of the first kind) of degree $k$** is defined by ([[7]](#ref-7), Ch. 1; [[8]](#ref-8), §5.8)
 #
 # $$ T_k(\cos\theta) = \cos(k\theta) \qquad\Longleftrightarrow\qquad T_k(x) = \cos\!\big(k \arccos x\big). \qquad (2)$$
 #
@@ -273,7 +273,7 @@ print(f"orthogonality: max |Gram - diag(pi, pi/2, ...)| = {np.max(np.abs(gram - 
 assert np.max(np.abs(gram - expected)) < 1e3 * TOL
 
 # %% [markdown]
-# > **Numerical practice.** The midpoint (or trapezoidal) rule converges *exponentially* fast for smooth periodic integrands (Trefethen and Weideman 2014) —
+# > **Numerical practice.** The midpoint (or trapezoidal) rule converges *exponentially* fast for smooth periodic integrands [[9]](#ref-9) —
 # > much better than its textbook $\mathcal{O}(h^2)$, which is the worst case for non-periodic functions. We will use it again
 # > in the next section to compute Bessel functions from their integral definition.
 
@@ -291,13 +291,13 @@ assert np.max(np.abs(gram - expected)) < 1e3 * TOL
 # $$ J_k(z) \;=\; \frac{i^{-k}}{\pi}\int_0^{\pi} e^{\,iz\cos\theta}\cos k\theta\;d\theta
 #            \;=\; \frac1\pi\int_0^\pi \cos\big(k\theta - z\sin\theta\big)\,d\theta  \qquad (6)$$
 #
-# (Abramowitz & Stegun 9.1.21 states both integral representations as one equation; we quote their equivalence without proof and check it
+# ([[10]](#ref-10), 9.1.21, states both integral representations as one equation; we quote their equivalence without proof and check it
 # numerically below). $J_k(z)$ is real for real $z$ and obeys $J_k(-z) = (-1)^kJ_k(z)$. Replacing $z\to -z$ in (6):
 #
 # $$ \int_0^\pi e^{-iz\cos\theta}\cos k\theta\, d\theta = \pi\, i^{k} J_k(-z) = \pi\,(-i)^k J_k(z)
 #    \qquad\Longrightarrow\qquad \boxed{\,c_k(z) = (2-\delta_{k0})\,(-i)^k\,J_k(z)\,} \qquad (7)$$
 #
-# What do these functions look like? Three facts (the first follows from (6); the others are quoted from Abramowitz & Stegun 9.1.62 — for real $z$, which is all we need — and 9.3):
+# What do these functions look like? Three facts (the first follows from (6); the others are quoted from [[10]](#ref-10), 9.1.62 — for real $z$, which is all we need — and 9.3):
 #
 # * $J_k(0)=\delta_{k0}$: at $t=0$ only $c_0 = 1$ survives, as it must ($e^{0}=1=T_0$).
 # * $|J_k(z)|\le \dfrac{(|z|/2)^k}{k!}$: for fixed $z$ the coefficients eventually decay **faster than exponentially** in $k$.
@@ -309,7 +309,7 @@ assert np.max(np.abs(gram - expected)) < 1e3 * TOL
 #
 # ### From formula to code
 # We compute $J_k(z)$ in two independent ways: (i) from the definition (6) with the midpoint rule of §3 (a few lines of NumPy,
-# vectorised over $k$), and (ii) with the library routine `scipy.special.jv` (library routines of this kind are described in Press *et al.* 2007, §6.5). In production we use (ii); (i) is our checkpoint
+# vectorised over $k$), and (ii) with the library routine `scipy.special.jv` (library routines of this kind are described in [[8]](#ref-8), §6.5). In production we use (ii); (i) is our checkpoint
 # that we understood the definition (and the library's conventions).
 
 # %%
@@ -373,7 +373,7 @@ plt.show()
 #
 # > **Physics insight.** Why $k\approx z$? $T_k(\cos\theta)=\cos k\theta$ oscillates with "frequency" $k$ in $\theta$, whereas $e^{-iz\cos\theta}$ has local
 # > frequency $|d(z\cos\theta)/d\theta| = z|\sin\theta| \le z$. A signal whose highest frequency is $z$ needs Fourier modes up to $k\approx z$ and
-# > essentially nothing beyond: this is the sampling theorem (Shannon 1949). In our application $z = at$ = (half the spectral width) $\times$ (time): **the number of
+# > essentially nothing beyond: this is the sampling theorem [[11]](#ref-11). In our application $z = at$ = (half the spectral width) $\times$ (time): **the number of
 # > $H$-applications is set by the largest phase $e^{-iEt}$ that any eigenstate can accumulate** — and no method based on polynomials in $H$ can beat that scaling.
 
 # %% [markdown]
@@ -638,9 +638,9 @@ assert max(err_poly) < 1e3 * TOL and min(err_U) < 1e2 * TOL
 #   $\int_0^\pi e^{w\cos\theta}\cos k\theta\,d\theta = \pi I_k(w)$, so $c_k=(2-\delta_{k0})(-1)^kI_k(\tau a)$ and $e^{-\tau H}=e^{-\tau b}\sum_kc_kT_k(\tilde H)$.
 #   Applied to a random state and normalised, this projects onto the ground state — an alternative to Lanczos (Exercise 5).
 # * **Spectral functions and the kernel polynomial method.** Densities of states, $\rho(E)=\sum_n\delta(E-E_n)$, and spectral functions are expanded in exactly the
-#   same basis after exactly the same rescaling; the method is called the **kernel polynomial method**, introduced by Silver and Röder (1994) and reviewed by Weiße *et al.* (Rev. Mod. Phys. 2006). The one structural
+#   same basis after exactly the same rescaling; the method is called the **kernel polynomial method**, introduced in [[12]](#ref-12) and reviewed in [[13]](#ref-13). The one structural
 #   difference is decisive: $\delta$- and step functions are not smooth, so by §3.3 their Chebyshev coefficients decay only algebraically, the truncated series
-#   oscillates (the Gibbs phenomenon; Gibbs 1899), and one multiplies $c_k$ by a *damping kernel* $g_k$ (the kernel of Jackson 1912) which trades the oscillations for a finite
+#   oscillates (the Gibbs phenomenon [[14]](#ref-14)), and one multiplies $c_k$ by a *damping kernel* $g_k$ (the Jackson kernel [[15]](#ref-15)) which trades the oscillations for a finite
 #   resolution $\sim a/K$. Our $e^{-ixt}$ is entire, its coefficients fall off a cliff, and no kernel is needed — which is why a Chebyshev propagator is
 #   *numerically exact* while a KPM spectrum is always a smoothed one.
 
@@ -1040,13 +1040,13 @@ plt.tight_layout(); plt.show()
 # * *Magnetisation.* The transverse field rotates the spins away from $+z$ and the exchange couplings spread the disturbance: $\langle Z_j\rangle$ drops from 1, overshoots, and performs
 #   damped oscillations around a small value. The edge spins (one neighbour instead of two) follow visibly different curves from the bulk spins, and the reflection symmetry of the open chain
 #   $j\leftrightarrow N-1-j$ is evident in the colour map — a free sanity check of the code.
-# * *Entanglement.* The half-chain entropy grows roughly linearly — the hallmark of a quench in a generic interacting chain (Calabrese & Cardy 2005; Kim & Huse 2013) — and begins to bend over near $t\approx5$.
-#   Its stationary value is expected below that of a random state (dashed, Page 1993), because the initial energy $E(0)=6.5$ differs from the infinite-temperature value $\mathrm{Tr}\,H/2^N=0$ and the chain is finite. The initial product state needed $2N$ numbers; by $t\approx5$ its
+# * *Entanglement.* The half-chain entropy grows roughly linearly — the hallmark of a quench in a generic interacting chain [[16]](#ref-16), [[17]](#ref-17) — and begins to bend over near $t\approx5$.
+#   Its stationary value is expected below that of a random state (dashed, [[18]](#ref-18)), because the initial energy $E(0)=6.5$ differs from the infinite-temperature value $\mathrm{Tr}\,H/2^N=0$ and the chain is finite. The initial product state needed $2N$ numbers; by $t\approx5$ its
 #   half-chain entropy has reached about three quarters of the Page value, i.e. the state is already close to as complex as a state of this chain can be. This is why long-time dynamics of generic chains is restricted to small $N$ and is the natural habitat of exact state-vector methods like this one.
 # * *Diagnostics.* Over the whole trajectory the norm is conserved to $2\times10^{-13}$ and the energy to $4\times10^{-12}$, i.e. $5\times10^{-13}$ relative to $E(0)$.
 #
 # > **Physics insight.** The model is non-integrable: apart from energy and two discrete symmetries (the reflection $j\leftrightarrow N-1-j$ and the spin-flip parity $\prod_jX_j$) it has no conservation laws, so local observables relax to stationary values that depend on the initial
-# > state essentially only through its energy density (the eigenstate thermalization scenario of Deutsch 1991 and Srednicki 1994). The relaxation of $\langle Z\rangle$ above is a small-scale view of this; the physics is explored in depth in
+# > state essentially only through its energy density (the eigenstate thermalization scenario of [[19]](#ref-19), [[20]](#ref-20)). The relaxation of $\langle Z\rangle$ above is a small-scale view of this; the physics is explored in depth in
 # > [Quench dynamics in spin chains](15_quench_dynamics_spin_chains.ipynb).
 #
 # ### 11.2 Checkpoint: the chained trajectory against the dense solution at every time
@@ -1369,36 +1369,62 @@ plt.show()
 # 3. ★ **Backward evolution.** `make_chebyshev_step(..., dt=-t)` evolves backward in time. Explain, using $J_k(-z)=(-1)^kJ_k(z)$, why the backward coefficients are the complex conjugates of the forward ones, and verify it with `chebyshev_coefficients`.
 # 4. ★★ **Single precision.** Set `PRECISION = "single"` in the configuration cell and rerun §10. Where is the rounding floor now? What `tol` is sensible? How does the floor grow with the number of chained steps in §13?
 # 5. ★★ **Imaginary time (extend the code).** Nothing in `chebyshev_apply` is specific to $e^{-izx}$ (§7.4). Implement $e^{-\tau H}$: compute the coefficients of $f(x)=e^{-\tau a x}$ both with the midpoint rule of §4 and from the closed form $c_k=(2-\delta_{k0})(-1)^kI_k(\tau a)$ (`scipy.special.iv`), and check that they agree. Apply the step to a Haar-random state and normalise. Use several moderate steps (e.g. twenty steps of $\tau=1$) rather than one huge one: $I_k(\tau a)$ grows like $e^{\tau a}$ and overflows for $\tau a\gtrsim700$, for which `scipy.special.ive` is the cure. At $N=10$ and total $\tau=20$ the energy should match `lanczos_ground_state` from [Hamiltonians and ground states](11_hamiltonians_and_ground_states.ipynb) to $\sim10^{-13}$. Two questions: how does the number of terms needed at relative accuracy `tol` grow with $\tau a$ (use $I_k(w)/I_0(w)\approx e^{-k^2/2w}$ for $1\ll k\ll w$; you should find $K\approx\sqrt{2\tau a\ln(1/\text{tol})}$, far fewer than the $K\approx at$ of real time when $\tau a$ is large), and why is there no cancellation catastrophe of §2.2 even though every term is of size $e^{\tau a}$?
-# 6. ★★ **Loschmidt echo (physics).** The fidelity decay under two Hamiltonians was introduced by Peres (1984) and named the Loschmidt echo by Jalabert and Pastawski (2001); here both Hamiltonians coincide and it is the return probability. Compute $\mathcal L(t)=|\langle\psi(0)|\psi(t)\rangle|^2$ for the quench of §11 up to $t=10$ at $N=14$ with Chebyshev, and with TEBD-2 at $dt=0.05$ and $0.01$. Plot on a logarithmic scale. At which value of $\mathcal L$ does each TEBD curve become unreliable, and why is this observable so much more sensitive than $\langle Z_j\rangle$?
+# 6. ★★ **Loschmidt echo (physics).** The fidelity decay under two Hamiltonians was introduced in [[21]](#ref-21) and named the Loschmidt echo in [[22]](#ref-22); here both Hamiltonians coincide and it is the return probability. Compute $\mathcal L(t)=|\langle\psi(0)|\psi(t)\rangle|^2$ for the quench of §11 up to $t=10$ at $N=14$ with Chebyshev, and with TEBD-2 at $dt=0.05$ and $0.01$. Plot on a logarithmic scale. At which value of $\mathcal L$ does each TEBD curve become unreliable, and why is this observable so much more sensitive than $\langle Z_j\rangle$?
 # 7. ★★ **Wrong bounds, quantitatively.** For the experiment of §8 predict the norm of the corrupted state from the *first omitted* term of the series, $2\,\vert J_{K+1}(z)\vert\,T_{K+1}(1/s)$ with $T_{K+1}(1/s)=\cosh\big((K+1)\,\mathrm{arccosh}(1/s)\big)$ and $z=s\,a\,t$, times the overlap of $|\psi_0\rangle$ with the extremal eigenvectors (dense, $N=10$). The truncation order is the engine's: $K=\lceil z\rceil+20$, raised in steps of 10 until $|J_K(z)|<$ `tol`. Compare with the measured norms — at $s=0.9$ and $0.8$ this single term should account for them to about 20 %. At $s=0.98$ the same estimate comes out far below 1, so it predicts not the norm but the *error* column; check that as well.
-# 8. ★★★ **Piecewise-constant driving (extend the code).** Let the field switch periodically between $h_x=1$ and $h_x=0$ every $\tau=0.5$ (a periodic drive, to which Floquet's 1883 theorem applies). Build the two Chebyshev steps once and alternate them inside a `lax.scan` (hint: `lax.cond` on the step parity, or scan over pairs of steps). Record the energy with respect to the *average* Hamiltonian and the half-chain entropy: does the energy drift towards $0$, the energy of the maximally mixed state, and does the entropy approach the Page value?
+# 8. ★★★ **Piecewise-constant driving (extend the code).** Let the field switch periodically between $h_x=1$ and $h_x=0$ every $\tau=0.5$ (a periodic drive, to which Floquet's theorem [[23]](#ref-23) applies). Build the two Chebyshev steps once and alternate them inside a `lax.scan` (hint: `lax.cond` on the step parity, or scan over pairs of steps). Record the energy with respect to the *average* Hamiltonian and the half-chain entropy: does the energy drift towards $0$, the energy of the maximally mixed state, and does the entropy approach the Page value?
 
 # %% [markdown]
 # ## 17. References
 #
-# * H. Tal-Ezer and R. Kosloff, *An accurate and efficient scheme for propagating the time dependent Schrödinger equation*, J. Chem. Phys. **81**, 3967 (1984) — the original Chebyshev propagator.
-# * C. Leforestier *et al.*, *A comparison of different propagation schemes for the time dependent Schrödinger equation*, J. Comput. Phys. **94**, 59 (1991).
-# * A. Weiße, G. Wellein, A. Alvermann and H. Fehske, *The kernel polynomial method*, Rev. Mod. Phys. **78**, 275 (2006) — Chebyshev expansions for densities of states, spectral functions and dynamical correlation functions, with damping kernels (Jackson kernel).
-# * H. Fehske, J. Schleede, G. Schubert, G. Wellein, V. S. Filinov and A. R. Bishop, *Numerical approaches to time evolution of complex quantum systems*, Phys. Lett. A **373**, 2182 (2009).
-# * C. Moler and C. Van Loan, *Nineteen dubious ways to compute the exponential of a matrix*, SIAM Review **20**, 801–836 (1978); *Nineteen dubious ways to compute the exponential of a matrix, twenty-five years later*, SIAM Review **45**, 3 (2003).
-# * R. N. Silver and H. Röder, *Densities of states of mega-dimensional Hamiltonian matrices*, Int. J. Mod. Phys. C **5**, 735–753 (1994) — the kernel polynomial method.
-# * D. Jackson, *On approximation by trigonometric sums and polynomials*, Trans. Amer. Math. Soc. **13**, 491–515 (1912) — the Jackson kernel.
-# * J. W. Gibbs, *Fourier's series*, Nature **59**, 606 (1899).
-# * C. E. Shannon, *Communication in the presence of noise*, Proc. IRE **37**, 10–21 (1949) — the sampling theorem.
-# * D. N. Page, *Average entropy of a subsystem*, Phys. Rev. Lett. **71**, 1291 (1993).
-# * P. Calabrese and J. Cardy, *Evolution of entanglement entropy in one-dimensional systems*, J. Stat. Mech. P04010 (2005); H. Kim and D. A. Huse, *Ballistic spreading of entanglement in a diffusive nonintegrable system*, Phys. Rev. Lett. **111**, 127205 (2013).
-# * J. M. Deutsch, *Quantum statistical mechanics in a closed system*, Phys. Rev. A **43**, 2046 (1991); M. Srednicki, *Chaos and quantum thermalization*, Phys. Rev. E **50**, 888 (1994).
-# * A. Peres, *Stability of quantum motion in chaotic and regular systems*, Phys. Rev. A **30**, 1610 (1984); R. A. Jalabert and H. M. Pastawski, *Environment-independent decoherence rate in classically chaotic systems*, Phys. Rev. Lett. **86**, 2490 (2001).
-# * G. Floquet, *Sur les équations différentielles linéaires à coefficients périodiques*, Ann. Sci. Éc. Norm. Supér. **12**, 47–88 (1883).
-# * M. Abramowitz and I. A. Stegun (eds.), *Handbook of Mathematical Functions with Formulas, Graphs, and Mathematical Tables*, Dover, New York (1965;
+# <span id="ref-1">[1]</span> L. N. Trefethen, *Approximation Theory and Approximation Practice*, Other Titles in Applied Mathematics **128**, SIAM (2013) — why Chebyshev expansions are
+#   near-optimal polynomial approximations (Ch. 16, "Best and Near-Best").
+#
+# <span id="ref-2">[2]</span> H. Tal-Ezer and R. Kosloff, *An accurate and efficient scheme for propagating the time dependent Schrödinger equation*, J. Chem. Phys. **81**, 3967 (1984) — the original Chebyshev propagator.
+#
+# <span id="ref-3">[3]</span> C. Leforestier *et al.*, *A comparison of different propagation schemes for the time dependent Schrödinger equation*, J. Comput. Phys. **94**, 59 (1991).
+#
+# <span id="ref-4">[4]</span> H. Fehske, J. Schleede, G. Schubert, G. Wellein, V. S. Filinov and A. R. Bishop, *Numerical approaches to time evolution of complex quantum systems*, Phys. Lett. A **373**, 2182 (2009).
+#
+# <span id="ref-5">[5]</span> C. Moler and C. Van Loan, *Nineteen dubious ways to compute the exponential of a matrix*, SIAM Review **20**, 801–836 (1978).
+#
+# <span id="ref-6">[6]</span> C. Moler and C. Van Loan, *Nineteen dubious ways to compute the exponential of a matrix, twenty-five years later*, SIAM Review **45**, 3 (2003).
+#
+# <span id="ref-7">[7]</span> J. C. Mason and D. C. Handscomb, *Chebyshev Polynomials*, Chapman & Hall/CRC, Boca Raton (2003), ISBN 978-0-8493-0355-5.
+#
+# <span id="ref-8">[8]</span> W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes: The Art of Scientific Computing*, 3rd ed., Cambridge University Press
+#   (2007) — §5.8 Chebyshev approximation, §6.5 Bessel functions of integer order; and *Numerical Recipes in Fortran 90: The Art of Parallel Scientific
+#   Computing*, 2nd ed., Cambridge University Press (1996).
+#
+# <span id="ref-9">[9]</span> L. N. Trefethen and J. A. C. Weideman, *The exponentially convergent trapezoidal rule*, SIAM Review **56**, 385–458 (2014).
+#
+# <span id="ref-10">[10]</span> M. Abramowitz and I. A. Stegun (eds.), *Handbook of Mathematical Functions with Formulas, Graphs, and Mathematical Tables*, Dover, New York (1965;
 #   reprint of National Bureau of Standards Applied Mathematics Series **55**, 1964) — chapter 9 (Bessel functions of integer order: 9.1.21 integral
 #   representations, 9.1.62 upper bound, 9.3 asymptotics for large order) and chapter 22 (orthogonal polynomials). Its modern successor is the NIST Digital
 #   Library of Mathematical Functions, https://dlmf.nist.gov (10.9.2 and 10.14.4 are the same two formulas).
-# * L. N. Trefethen, *Approximation Theory and Approximation Practice*, Other Titles in Applied Mathematics **128**, SIAM (2013) — why Chebyshev expansions are
-#   near-optimal polynomial approximations (Ch. 16, "Best and Near-Best").
-# * J. C. Mason and D. C. Handscomb, *Chebyshev Polynomials*, Chapman & Hall/CRC, Boca Raton (2003), ISBN 978-0-8493-0355-5.
-# * L. N. Trefethen and J. A. C. Weideman, *The exponentially convergent trapezoidal rule*, SIAM Review **56**, 385–458 (2014).
-# * W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes: The Art of Scientific Computing*, 3rd ed., Cambridge University Press
-#   (2007) — §5.8 Chebyshev approximation, §6.5 Bessel functions of integer order; and *Numerical Recipes in Fortran 90: The Art of Parallel Scientific
-#   Computing*, 2nd ed., Cambridge University Press (1996).
+#
+# <span id="ref-11">[11]</span> C. E. Shannon, *Communication in the presence of noise*, Proc. IRE **37**, 10–21 (1949) — the sampling theorem.
+#
+# <span id="ref-12">[12]</span> R. N. Silver and H. Röder, *Densities of states of mega-dimensional Hamiltonian matrices*, Int. J. Mod. Phys. C **5**, 735–753 (1994) — the kernel polynomial method.
+#
+# <span id="ref-13">[13]</span> A. Weiße, G. Wellein, A. Alvermann and H. Fehske, *The kernel polynomial method*, Rev. Mod. Phys. **78**, 275 (2006) — Chebyshev expansions for densities of states, spectral functions and dynamical correlation functions, with damping kernels (Jackson kernel).
+#
+# <span id="ref-14">[14]</span> J. W. Gibbs, *Fourier's series*, Nature **59**, 606 (1899).
+#
+# <span id="ref-15">[15]</span> D. Jackson, *On approximation by trigonometric sums and polynomials*, Trans. Amer. Math. Soc. **13**, 491–515 (1912) — the Jackson kernel.
+#
+# <span id="ref-16">[16]</span> P. Calabrese and J. Cardy, *Evolution of entanglement entropy in one-dimensional systems*, J. Stat. Mech. P04010 (2005).
+#
+# <span id="ref-17">[17]</span> H. Kim and D. A. Huse, *Ballistic spreading of entanglement in a diffusive nonintegrable system*, Phys. Rev. Lett. **111**, 127205 (2013).
+#
+# <span id="ref-18">[18]</span> D. N. Page, *Average entropy of a subsystem*, Phys. Rev. Lett. **71**, 1291 (1993).
+#
+# <span id="ref-19">[19]</span> J. M. Deutsch, *Quantum statistical mechanics in a closed system*, Phys. Rev. A **43**, 2046 (1991).
+#
+# <span id="ref-20">[20]</span> M. Srednicki, *Chaos and quantum thermalization*, Phys. Rev. E **50**, 888 (1994).
+#
+# <span id="ref-21">[21]</span> A. Peres, *Stability of quantum motion in chaotic and regular systems*, Phys. Rev. A **30**, 1610 (1984).
+#
+# <span id="ref-22">[22]</span> R. A. Jalabert and H. M. Pastawski, *Environment-independent decoherence rate in classically chaotic systems*, Phys. Rev. Lett. **86**, 2490 (2001).
+#
+# <span id="ref-23">[23]</span> G. Floquet, *Sur les équations différentielles linéaires à coefficients périodiques*, Ann. Sci. Éc. Norm. Supér. **12**, 47–88 (1883).
 

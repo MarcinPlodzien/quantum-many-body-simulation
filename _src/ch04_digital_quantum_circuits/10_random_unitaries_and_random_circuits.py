@@ -3,26 +3,26 @@
 #@description: Haar-random states and unitaries (Mezzadri's QR recipe and why its phase fix matters), the Porter-Thomas distribution, random brick-wall circuits and the growth of entanglement to the Page value, the single-qubit Clifford group, random circuit sampling and cross-entropy benchmarking.
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
 # What does a *typical* quantum state of $N$ qubits look like? What does a *generic* interacting dynamics do to a simple
 # initial state? How can one test a quantum processor on a task for which nobody knows the answer in advance? All three
 # questions lead to the same tool: **random unitaries**.
 #
 # * **Typical states.** Draw a state "uniformly at random" from the Hilbert space and look at a small
-#   subsystem: it is almost maximally mixed, i.e. the state is almost maximally entangled (Page 1993). This is the
+#   subsystem: it is almost maximally mixed, i.e. the state is almost maximally entangled [[1]](#ref-1). This is the
 #   cartoon picture of what chaotic many-body dynamics does to a state after a long time - it *scrambles* it - and it
 #   underlies modern explanations of why local observables of isolated quantum systems relax, as well as toy models of black holes.
 # * **Minimal models of quantum chaos.** A circuit of random two-qubit gates arranged like bricks in a wall is the
 #   simplest "dynamics" that is local and unitary and has no other structure (no energy conservation, no symmetries).
 #   It reproduces the universal features of chaotic Hamiltonian evolution - linear growth of entanglement, saturation at
-#   the Page value - and is much easier to analyse (Nahum *et al.* 2017; Fisher *et al.* 2023).
-# * **Benchmarking quantum processors.** The "quantum supremacy" experiments (the term is due to Preskill 2012; Arute *et al.* 2019) ran random circuits on
+#   the Page value - and is much easier to analyse [[2]](#ref-2), [[3]](#ref-3).
+# * **Benchmarking quantum processors.** The "quantum supremacy" experiments ([[4]](#ref-4); the term was introduced in [[5]](#ref-5)) ran random circuits on
 #   53 superconducting qubits and compared the measured bit strings with a classical simulation through the *linear
-#   cross-entropy benchmark* (XEB; cross-entropy benchmarking was proposed by Boixo *et al.* 2018). The statistical theory behind it is the Porter-Thomas distribution of the output
+#   cross-entropy benchmark* (XEB; cross-entropy benchmarking was introduced in [[6]](#ref-6)). The statistical theory behind it is the Porter-Thomas distribution of the output
 #   probabilities of a random state.
-# * **Randomised measurement protocols.** Randomised benchmarking (Emerson, Alicki and Życzkowski 2005; Knill *et al.* 2008), classical shadows
-#   (Huang, Kueng and Preskill 2020; [notebook 24](../ch08_quantum_information_protocols/24_classical_shadows.ipynb)) and many
+# * **Randomised measurement protocols.** Randomised benchmarking [[7]](#ref-7), [[8]](#ref-8), classical shadows
+#   ([[9]](#ref-9); [notebook 24](../ch08_quantum_information_protocols/24_classical_shadows.ipynb)) and many
 #   tomography schemes average over random unitaries - in practice over the finite **Clifford group**, which imitates the
 #   uniform distribution well enough.
 # * **Numerical practice.** Random states and unitaries are the best *test inputs* for a simulator: they have no
@@ -47,7 +47,7 @@
 # * what the linear XEB measures and why it estimates the fidelity of a noisy device.
 #
 # *Numerical methods*
-# * sampling from the Haar measure: Gaussian vectors, QR decomposition with phase correction (Mezzadri);
+# * sampling from the Haar measure: Gaussian vectors, QR decomposition with phase correction [[10]](#ref-10);
 # * statistical validation of a sampler: moments, histograms, Monte-Carlo error bars $\propto 1/\sqrt M$;
 # * frame potentials as a quantitative test of "how random" a set of unitaries is;
 # * noisy circuits via quantum trajectories.
@@ -80,7 +80,7 @@
 # > The **Haar measure** is the (unique) probability distribution on $U(d)$ that is invariant under multiplication by any
 # > fixed unitary $V$: if $U$ is Haar distributed, so are $VU$ and $UV$.
 #
-# Such an invariant measure was constructed by Haar (1933). We quote existence and uniqueness without proof (it holds for every compact group, i.e. a group of matrices that is a closed and bounded set, like
+# Such an invariant measure was constructed in [[11]](#ref-11). We quote existence and uniqueness without proof (it holds for every compact group, i.e. a group of matrices that is a closed and bounded set, like
 # $U(d)$). Intuition: a Haar-random $U$ has
 # *no preferred basis* - whatever rotation $V$ you apply before or after, the statistics are unchanged. For $d=1$ the
 # group is the circle $\{e^{i\varphi}\}$ and the Haar measure is $d\varphi/2\pi$.
@@ -223,8 +223,8 @@ print(f"average state: max |E[|psi><psi|] - 1/D| = {float(jnp.max(jnp.abs(rho_av
 # ### 4.1 The recipe and why it needs a phase fix
 #
 # A unitary matrix is a set of $d$ orthonormal vectors. A natural idea: take $d$ random Gaussian vectors - the columns
-# of a **Ginibre matrix** (Ginibre 1965) $G$ with independent complex Gaussian entries - and orthonormalise them by the Gram-Schmidt
-# procedure (Gram 1883; Schmidt 1907). In matrix language Gram-Schmidt *is* the QR decomposition
+# of a **Ginibre matrix** [[12]](#ref-12) $G$ with independent complex Gaussian entries - and orthonormalise them by the Gram-Schmidt
+# procedure [[13]](#ref-13), [[14]](#ref-14). In matrix language Gram-Schmidt *is* the QR decomposition
 #
 # $$ G = QR,\qquad Q \text{ unitary},\quad R \text{ upper triangular}, $$
 #
@@ -242,7 +242,7 @@ print(f"average state: max |E[|psi><psi|] - 1/D| = {float(jnp.max(jnp.abs(rho_av
 # "$Q(VG)=VQ(G)$" is valid only if the convention does not depend on the basis. The convention **$R_{jj}>0$**
 # (the one Gram-Schmidt produces) has this property: the condition constrains $R$ alone, and replacing $G$ by $VG$ leaves
 # $R$ unchanged, so the selected $Q$ simply becomes $VQ$. Numerical libraries do
-# something else: LAPACK's Householder algorithm (Householder 1958) returns a *real* diagonal of $R$ whose *signs* depend on the entries of
+# something else: LAPACK's Householder algorithm [[15]](#ref-15) returns a *real* diagonal of $R$ whose *signs* depend on the entries of
 # $G$ in a basis-dependent way. The resulting $Q$ is **not** Haar distributed.
 #
 # Two details are worth separating here, because the first one alone would be harmless. If the phases $\Lambda$ were
@@ -251,7 +251,7 @@ print(f"average state: max |E[|psi><psi|] - 1/D| = {float(jnp.max(jnp.abs(rho_av
 # of $G$, hence of $Q$. Concretely, LAPACK's first Householder step returns $R_{11}=-\mathrm{sign}(\mathrm{Re}\,G_{11})\lVert G_{\cdot1}\rVert$
 # and therefore a first column $Q_{\cdot1}=G_{\cdot1}/R_{11}$ whose leading entry has
 # $\mathrm{Re}\,Q_{11}=-\lvert\mathrm{Re}\,G_{11}\rvert/\lVert G_{\cdot1}\rVert\le0$ - a hard, basis-dependent constraint that a Haar-random
-# matrix violates half of the time. The cure (Mezzadri 2007) is one line:
+# matrix violates half of the time. The cure [[10]](#ref-10) is one line:
 #
 # $$ \Lambda = \mathrm{diag}\Big(\frac{R_{jj}}{|R_{jj}|}\Big),\qquad U = Q\Lambda , $$
 #
@@ -327,9 +327,9 @@ plt.show()
 # > **Numerical practice.** It is tempting to code the Gram-Schmidt procedure by hand, since it delivers $R_{jj}>0$ with
 # > no phase fix at all, but it is numerically inferior. Measuring the departure from orthogonality of the computed $Q$ by
 # > $\lVert \mathbb 1-Q^\dagger Q\rVert$, classical Gram-Schmidt gives $O(\varepsilon\,\kappa^2)$ and the modified variant
-# > $O(\varepsilon\,\kappa)$, where $\varepsilon$ is the machine epsilon and $\kappa$ the condition number (Giraud *et al.*
-# > 2005, who also recall Björck's bound for the modified variant, Björck 1967), while the Householder algorithm used by the libraries
-# > (Numerical Recipes, 3rd ed., Section 2.10) gives $O(\varepsilon)$ whatever $\kappa$ (Higham 2002, Chapter 19). For a
+# > $O(\varepsilon\,\kappa)$, where $\varepsilon$ is the machine epsilon and $\kappa$ the condition number ([[16]](#ref-16),
+# > which also recalls Björck's bound for the modified variant [[17]](#ref-17)), while the Householder algorithm used by the libraries
+# > ([[18]](#ref-18), Section 2.10) gives $O(\varepsilon)$ whatever $\kappa$ ([[19]](#ref-19), Chapter 19). For a
 # > Ginibre matrix $\kappa$ is modest and all three would do; the general rule is to call the library and repair the
 # > *convention* afterwards.
 #
@@ -390,7 +390,7 @@ print("entanglement entropy of qubit 1 (untouched) with the rest:", f"{float(ent
 # $\rho_D(p)=(D-1)(1-p)^{D-2}$ on $p\in[0,1]$ - a Beta distribution with parameters $(1,D-1)$, whose moments
 # $\mathbb E[p]=1/D$ and $\mathbb E[p^2]=2/(D(D+1))$ are exactly the ones checked in Section 3. Substituting
 # $p=x/D$ gives $\frac{D-1}{D}(1-x/D)^{D-2}\to e^{-x}$: the exponential is the $D\to\infty$ limit.
-# The name comes from nuclear physics: Porter and Thomas (1956) described the fluctuations of neutron resonance widths
+# The name comes from nuclear physics: Ref. [[20]](#ref-20) described the fluctuations of neutron resonance widths
 # by chi-squared distributions, an early signature of quantum chaos. The exponential law is the member with two degrees
 # of freedom (complex amplitudes); the neutron widths, with real amplitudes, follow the member with one degree of freedom.
 #
@@ -404,7 +404,7 @@ print("entanglement entropy of qubit 1 (untouched) with the rest:", f"{float(ent
 #
 # $$ \Pr\big(\max_s x_s < a\big)=(1-e^{-a})^D\;\approx\;\exp\big(-e^{-(a-\ln D)}\big), $$
 #
-# a Gumbel distribution (Gumbel 1958) centred at $\ln D$. Its mean is $\ln D+\gamma$ with $\gamma=0.5772$ (Euler's constant) and its
+# a Gumbel distribution [[21]](#ref-21) centred at $\ln D$. Its mean is $\ln D+\gamma$ with $\gamma=0.5772$ (Euler's constant) and its
 # standard deviation is $\pi/\sqrt6\approx1.28$, independent of $D$. The most likely bit string therefore has a
 # probability of order $(\ln D)/D$: larger than the uniform $1/D$ only by a *logarithmic* factor. A random state spreads
 # its weight over the whole Hilbert space; it is **anticoncentrated**.
@@ -574,15 +574,15 @@ print(f"engine `brickwall`, N=8, depth 24: norm = {float(jnp.linalg.norm(psi_eng
 #
 # Two facts set the expectations. (i) A gate can change the entanglement across a cut only if it *acts across the cut*, and a
 # single two-qubit gate can change the entropy by at most 2 bits. The bound follows from two inequalities of the von
-# Neumann entropy that we quote without proof, subadditivity $S_{XY}\le S_X+S_Y$ and the Araki-Lieb inequality (Araki and Lieb 1970)
+# Neumann entropy that we quote without proof, subadditivity $S_{XY}\le S_X+S_Y$ and the Araki-Lieb inequality [[22]](#ref-22)
 # $S_{XY}\ge\lvert S_X-S_Y\rvert$ for disjoint subsystems $X,Y$. Let the gate act
 # on qubit $a\in A$ and qubit $b\in B$, and write $A=\{a\}\cup A'$. The gate does not touch $A'$, so $S_{A'}$ is the same
 # before and after, while both $S_A$ obey $\lvert S_{A'}-S_a\rvert\le S_A\le S_{A'}+S_a$ with $S_a\le1$ bit; the two
 # inequalities together give $\lvert\Delta S_A\rvert\le 2$ bits. In our geometry one gate crosses the
 # central cut every second layer - so the entropy can grow at most **linearly** in depth. (ii) It cannot exceed $N/2$ bits.
-# For a Haar-random state Page (1993) conjectured the average entropy of a subsystem of dimension $m$ in a bipartite
-# system of dimensions $m\le n$ (in nats) and derived its asymptotic form; the exact sum was proved by Foong and Kanno
-# (1994), and more simply by Sánchez-Ruiz (1995):
+# For a Haar-random state Ref. [[1]](#ref-1) conjectured the average entropy of a subsystem of dimension $m$ in a bipartite
+# system of dimensions $m\le n$ (in nats) and derived its asymptotic form; the exact sum was proved in [[23]](#ref-23),
+# and more simply in [[24]](#ref-24):
 #
 # $$ \langle S\rangle = \sum_{k=n+1}^{mn}\frac1k-\frac{m-1}{2n}\;\approx\;\ln m-\frac{m}{2n}. $$
 #
@@ -727,7 +727,7 @@ assert dev_haar < 0.05
 
 # %% [markdown]
 # The Haar states follow Page's formula to within $0.004$ bit (the fluctuations from state to state are
-# tiny - a manifestation of *typicality* (Popescu, Short and Winter 2006; Goldstein *et al.* 2006): almost every state has almost exactly the average entropy). The deep brick-wall
+# tiny - a manifestation of *typicality* [[25]](#ref-25), [[26]](#ref-26): almost every state has almost exactly the average entropy). The deep brick-wall
 # states lie on the same curve; any remaining deviation is located at the central cuts, which are the last to
 # saturate.
 
@@ -737,7 +737,7 @@ assert dev_haar < 0.05
 # ### 7.1 Definition and construction
 #
 # Haar-random unitaries form a continuum. For many purposes a *finite* set of gates is just as good. The
-# **Clifford group** (Gottesman 1998) consists of the unitaries that map Pauli operators to Pauli operators under conjugation,
+# **Clifford group** [[27]](#ref-27) consists of the unitaries that map Pauli operators to Pauli operators under conjugation,
 #
 # $$ C\,P\,C^\dagger = \pm P' ,\qquad P,P'\in\{X,Y,Z\}. $$
 #
@@ -798,17 +798,17 @@ except ValueError:
 #
 # ### 7.2 Frame potentials and unitary designs
 #
-# A finite set $\mathcal E=\{U_a\}$ is called a **unitary $t$-design** (Dankert *et al.* 2009; Gross, Audenaert and Eisert 2007) if averaging any polynomial of degree $\le t$ in
+# A finite set $\mathcal E=\{U_a\}$ is called a **unitary $t$-design** [[28]](#ref-28), [[29]](#ref-29) if averaging any polynomial of degree $\le t$ in
 # the matrix elements of $U$ (and $t$ in those of $U^*$) over $\mathcal E$ gives the same result as averaging over the
 # Haar measure. The moments $\mathbb E\lvert U_{ij}\rvert^2=1/d$ and $\mathbb E\lvert U_{ij}\rvert^4=2/(d(d+1))$ of
 # Section 4.3 are examples with $t=1$ and $t=2$. A convenient single-number test is the **frame potential**
 #
 # $$ \mathcal F_t(\mathcal E)=\frac{1}{|\mathcal E|^2}\sum_{a,b}\big\lvert\mathrm{Tr}(U_a^\dagger U_b)\big\rvert^{2t}\;\ge\;\mathcal F_t^{\rm Haar}, $$
 #
-# with equality if and only if $\mathcal E$ is a $t$-design (quoted; see Gross, Audenaert and Eisert 2007). Because
+# with equality if and only if $\mathcal E$ is a $t$-design (quoted; see [[29]](#ref-29)). Because
 # $U_a^\dagger U_b$ is itself Haar distributed when $U_a,U_b$ are independent Haar, the Haar value is a single moment,
 # $\mathcal F_t^{\rm Haar}=\mathbb E\lvert\mathrm{Tr}\,U\rvert^{2t}$. In dimension $d$ this moment equals $t!$ as long as
-# $t\le d$ (Diaconis and Shahshahani 1994: $\mathrm{Tr}\,U$ behaves like a standard complex Gaussian until the finite
+# $t\le d$ ([[30]](#ref-30): $\mathrm{Tr}\,U$ behaves like a standard complex Gaussian until the finite
 # size of the matrix is felt); for $t>d$ it is smaller. For $d=2$ the four values we need are the Catalan numbers
 # $\mathcal F_t^{\rm Haar}=1,2,5,14$ for $t=1,2,3,4$ - equal to $t!$ for $t=1,2$ and below it for $t=3,4$.
 # We compute $\mathcal F_t$ for the Clifford group exactly (a $24\times24$
@@ -842,19 +842,19 @@ for t, exact in zip((1, 2, 3, 4), (1, 2, 5, 14)):
 # %% [markdown]
 # The four Paulis match Haar only for $t=1$ (they form a 1-design: averaging over random Paulis completely depolarises a
 # qubit - the content of the depolarising channel in notebook 07). The Clifford group matches for $t=1,2,3$ and
-# deviates at $t=4$ ($15$ instead of $14$): **the Clifford group is a unitary 3-design, but not a 4-design** (Webb 2016; Zhu 2017).
+# deviates at $t=4$ ($15$ instead of $14$): **the Clifford group is a unitary 3-design, but not a 4-design** [[31]](#ref-31), [[32]](#ref-32).
 # Protocols whose analysis involves only second or third moments - randomised benchmarking, classical shadows - can
 # therefore replace Haar-random unitaries by random Clifford gates, which are easy to implement and to track classically
-# (Dankert *et al.* 2009 use the Clifford 2-design property to estimate the fidelity of a quantum process).
+# (Ref. [[28]](#ref-28) uses the Clifford 2-design property to estimate the fidelity of a quantum process).
 # But Clifford circuits are *not* generic in every respect: they generate no "magic", their output distributions are
-# flat on their support instead of Porter-Thomas (next section), and they can be simulated efficiently (Gottesman 1998).
+# flat on their support instead of Porter-Thomas (next section), and they can be simulated efficiently [[27]](#ref-27).
 
 # %% [markdown]
 # ## 8. Random circuit sampling with a discrete gate set
 #
 # ### 8.1 The task and a jit-friendly circuit model
 #
-# **Random circuit sampling** (Boixo *et al.* 2018) is the task: given a random circuit, produce bit strings $s$ distributed according to
+# **Random circuit sampling** [[6]](#ref-6) is the task: given a random circuit, produce bit strings $s$ distributed according to
 # $p_s=\lvert\langle s\rvert U_{\rm circuit}\lvert0\dots0\rangle\rvert^2$. A quantum processor does this natively: run, measure, repeat.
 # A classical computer has to compute the amplitudes, which for generic circuits is believed to require exponential
 # resources.
@@ -1077,13 +1077,13 @@ plt.show()
 #
 # 1. **The noise is global white noise.** Only for $\rho=F\lvert\psi\rangle\langle\psi\rvert+(1-F)\mathbb 1/D$ does the
 #    linearity step go through. Real devices have *local* errors; that they add up to something close to global white
-#    noise is a property of deep scrambling circuits (Boixo *et al.* 2018) and does not hold for arbitrary circuits.
+#    noise is a property of deep scrambling circuits [[6]](#ref-6) and does not hold for arbitrary circuits.
 #    Section 9.3 puts in local depolarising noise and compares the result with the global-white-noise prediction.
 # 2. **The ideal distribution is anticoncentrated.** $D\sum_sp_s^2-1$ is the signal; if the circuit is too shallow this
 #    number is far from 1 and the normalisation is doing most of the work (Exercise 8).
 #
 # The XEB therefore estimates the fidelity only within a noise model, and classical algorithms are known that produce a
-# large $\mathcal F_{\rm XEB}$ without preparing the state at all (Gao *et al.* 2024). It remains the standard
+# large $\mathcal F_{\rm XEB}$ without preparing the state at all [[33]](#ref-33). It remains the standard
 # diagnostic of random-circuit-sampling experiments.
 #
 # ### 9.2 Ideal versus uniform samples
@@ -1218,7 +1218,7 @@ plt.show()
 # systematic differences are expected. An error in the first layers, while the state is still weakly entangled, leaves a
 # sizeable overlap with the ideal state and pushes the fidelity slightly above $(1-p)^{n_{\rm loc}}$; a $Z$ error after
 # the last gate on a qubit leaves every $p_s$ unchanged, so the XEB does not register it although the fidelity does. The same error-free-run model predicted a fidelity of about $0.2\%$ for the 53-qubit, 20-cycle
-# experiment of Arute *et al.*, and the XEB measured on simplified (elided) versions of those circuits,
+# experiment of [[4]](#ref-4), and the XEB measured on simplified (elided) versions of those circuits,
 # $(2.24\pm0.21)\times10^{-3}$, agreed with it. The model also shows why error rates have to fall well below
 # $1/(\text{number of gates})$ before large circuits become useful.
 
@@ -1254,8 +1254,8 @@ print(f"D sum p^2 = {float(2 ** N_big * jnp.sum(jnp.abs(psi_big) ** 4)):.4f}")
 # after 20 layers is about 0.33 bit per layer, the same few-tenths-of-a-bit rate as in Section 6.3 - and at
 # this rate reaching the Page value of 9.28 bits would need some 30 layers: the saturation depth grows proportionally to
 # $N$, while the collision probability is already within a few per cent of its final value. For brick-wall circuits
-# anticoncentration sets in after a depth $O(\log N)$ (Dalzell, Hunter-Jones and Brandão 2022), whereas the
-# entanglement needs a depth $O(N)$ to saturate (Nahum *et al.* 2017).
+# anticoncentration sets in after a depth $O(\log N)$ [[34]](#ref-34), whereas the
+# entanglement needs a depth $O(N)$ to saturate [[2]](#ref-2).
 
 # %% [markdown]
 # ## 10. Summary - key takeaways
@@ -1263,7 +1263,7 @@ print(f"D sum p^2 = {float(2 ** N_big * jnp.sum(jnp.abs(psi_big) ** 4)):.4f}")
 # * "Uniformly random" unitaries/states are defined by **invariance** (Haar measure). Uniformly drawn Euler angles give
 #   a biased distribution of unitaries.
 # * **Haar states**: normalise a complex Gaussian vector - $O(2^N)$. **Haar unitaries**: QR-decompose a Ginibre matrix
-#   **and fix the phases** with the diagonal of $R$ (Mezzadri). Without the fix the matrices are unitary but not Haar -
+#   **and fix the phases** with the diagonal of $R$ [[10]](#ref-10). Without the fix the matrices are unitary but not Haar -
 #   visible in the eigenphase density. Validate samplers statistically, with error bars.
 # * Output probabilities of random states are exponentially distributed (**Porter-Thomas**), $D\sum_sp_s^2\to2$.
 # * **Random brick-wall circuits** are minimal models of chaotic local dynamics: entanglement grows linearly with depth
@@ -1307,55 +1307,91 @@ print(f"D sum p^2 = {float(2 ** N_big * jnp.sum(jnp.abs(psi_big) ** 4)):.4f}")
 #
 # ## 12. References
 #
-# * A. Haar, *Der Massbegriff in der Theorie der kontinuierlichen Gruppen*, Ann. Math. **34**, 147 (1933).
-# * J. Ginibre, *Statistical ensembles of complex, quaternion, and real matrices*, J. Math. Phys. **6**, 440 (1965).
-# * F. Mezzadri, *How to generate random matrices from the classical compact groups*, Notices of the AMS **54**(5),
-#   592-604 (2007).
-# * P. Diaconis and M. Shahshahani, *On the eigenvalues of random matrices*, J. Appl. Probab. **31A**, 49-62 (1994) -
-#   the moments $\mathbb E\lvert\mathrm{Tr}\,U\rvert^{2t}=t!$ for $t\le d$.
-# * C. E. Porter and R. G. Thomas, *Fluctuations of nuclear reaction widths*, Phys. Rev. **104**, 483 (1956).
-# * D. N. Page, *Average entropy of a subsystem*, Phys. Rev. Lett. **71**, 1291 (1993).
-# * S. K. Foong and S. Kanno, *Proof of Page's conjecture on the average entropy of a subsystem*, Phys. Rev. Lett.
-#   **72**, 1148 (1994); J. Sánchez-Ruiz, *Simple proof of Page's conjecture on the average entropy of a subsystem*,
-#   Phys. Rev. E **52**, 5653 (1995).
-# * A. Nahum, J. Ruhman, S. Vijay and J. Haah, *Quantum entanglement growth under random unitary dynamics*,
+# <span id="ref-1">[1]</span> D. N. Page, *Average entropy of a subsystem*, Phys. Rev. Lett. **71**, 1291 (1993).
+#
+# <span id="ref-2">[2]</span> A. Nahum, J. Ruhman, S. Vijay and J. Haah, *Quantum entanglement growth under random unitary dynamics*,
 #   Phys. Rev. X **7**, 031016 (2017).
-# * M. P. A. Fisher, V. Khemani, A. Nahum and S. Vijay, *Random quantum circuits*, Annu. Rev. Condens. Matter Phys.
+#
+# <span id="ref-3">[3]</span> M. P. A. Fisher, V. Khemani, A. Nahum and S. Vijay, *Random quantum circuits*, Annu. Rev. Condens. Matter Phys.
 #   **14**, 335 (2023).
-# * J. Preskill, *Quantum computing and the entanglement frontier*, arXiv:1203.5813 (2012).
-# * J. Emerson, R. Alicki and K. Życzkowski, *Scalable noise estimation with random unitary operators*, J. Opt. B **7**,
-#   S347 (2005); E. Knill, D. Leibfried, R. Reichle, J. Britton, R. B. Blakestad, J. D. Jost, C. Langer, R. Ozeri,
-#   S. Seidelin and D. J. Wineland, *Randomized benchmarking of quantum gates*, Phys. Rev. A **77**, 012307 (2008).
-# * H.-Y. Huang, R. Kueng and J. Preskill, *Predicting many properties of a quantum system from very few measurements*,
-#   Nat. Phys. **16**, 1050 (2020).
-# * H. Araki and E. H. Lieb, *Entropy inequalities*, Commun. Math. Phys. **18**, 160 (1970).
-# * S. Popescu, A. J. Short and A. Winter, *Entanglement and the foundations of statistical mechanics*, Nat. Phys. **2**,
-#   754 (2006); S. Goldstein, J. L. Lebowitz, R. Tumulka and N. Zanghì, *Canonical typicality*, Phys. Rev. Lett. **96**,
-#   050403 (2006).
-# * E. J. Gumbel, *Statistics of Extremes* (Columbia University Press, 1958).
-# * S. Boixo, S. V. Isakov, V. N. Smelyanskiy, R. Babbush, N. Ding, Z. Jiang, M. J. Bremner, J. M. Martinis and
+#
+# <span id="ref-4">[4]</span> F. Arute *et al.*, *Quantum supremacy using a programmable superconducting processor*, Nature **574**, 505 (2019).
+#
+# <span id="ref-5">[5]</span> J. Preskill, *Quantum computing and the entanglement frontier*, arXiv:1203.5813 (2012).
+#
+# <span id="ref-6">[6]</span> S. Boixo, S. V. Isakov, V. N. Smelyanskiy, R. Babbush, N. Ding, Z. Jiang, M. J. Bremner, J. M. Martinis and
 #   H. Neven, *Characterizing quantum supremacy in near-term devices*, Nature Physics **14**, 595 (2018).
-# * F. Arute *et al.*, *Quantum supremacy using a programmable superconducting processor*, Nature **574**, 505 (2019).
-# * A. M. Dalzell, N. Hunter-Jones and F. G. S. L. Brandão, *Random quantum circuits anticoncentrate in log depth*,
-#   PRX Quantum **3**, 010333 (2022).
-# * X. Gao, M. Kalinowski, C.-N. Chou, M. D. Lukin, B. Barak and S. Choi, *Limitations of linear cross-entropy as a
-#   measure for quantum advantage*, PRX Quantum **5**, 010334 (2024).
-# * D. Gross, K. Audenaert and J. Eisert, *Evenly distributed unitaries: on the structure of unitary designs*,
-#   J. Math. Phys. **48**, 052104 (2007).
-# * C. Dankert, R. Cleve, J. Emerson and E. Livine, *Exact and approximate unitary 2-designs and their application to
-#   fidelity estimation*, Phys. Rev. A **80**, 012304 (2009).
-# * Z. Webb, *The Clifford group forms a unitary 3-design*, Quantum Inf. Comput. **16**, 1379 (2016);
-#   H. Zhu, *Multiqubit Clifford groups are unitary 3-designs*, Phys. Rev. A **96**, 062336 (2017).
-# * D. Gottesman, *The Heisenberg representation of quantum computers*, arXiv:quant-ph/9807006 (1998).
-# * W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes*, 3rd ed. (Cambridge
-#   University Press, 2007), Section 2.10 (*QR Decomposition*) and Section 7.3 (*Deviates from Other Distributions*).
-# * J. P. Gram, *Ueber die Entwickelung reeller Functionen in Reihen mittelst der Methode der kleinsten Quadrate*,
-#   J. Reine Angew. Math. **94**, 41 (1883); E. Schmidt, *Zur Theorie der linearen und nichtlinearen Integralgleichungen*,
-#   Math. Ann. **63**, 433 (1907).
-# * A. S. Householder, *Unitary triangularization of a nonsymmetric matrix*, J. ACM **5**, 339 (1958); Å. Björck,
-#   *Solving linear least squares problems by Gram-Schmidt orthogonalization*, BIT **7**, 1 (1967).
-# * L. Giraud, J. Langou, M. Rozložník and J. van den Eshof, *Rounding error analysis of the classical Gram-Schmidt
+#
+# <span id="ref-7">[7]</span> J. Emerson, R. Alicki and K. Życzkowski, *Scalable noise estimation with random unitary operators*, J. Opt. B **7**,
+#   S347 (2005).
+#
+# <span id="ref-8">[8]</span> E. Knill, D. Leibfried, R. Reichle, J. Britton, R. B. Blakestad, J. D. Jost, C. Langer, R. Ozeri,
+#   S. Seidelin and D. J. Wineland, *Randomized benchmarking of quantum gates*, Phys. Rev. A **77**, 012307 (2008).
+#
+# <span id="ref-9">[9]</span> H.-Y. Huang, R. Kueng and J. Preskill, *Predicting many properties of a quantum system from very few measurements*,
+#   Nat. Phys. **16**, 1050 (2020).
+#
+# <span id="ref-10">[10]</span> F. Mezzadri, *How to generate random matrices from the classical compact groups*, Notices of the AMS **54**(5),
+#   592-604 (2007).
+#
+# <span id="ref-11">[11]</span> A. Haar, *Der Massbegriff in der Theorie der kontinuierlichen Gruppen*, Ann. Math. **34**, 147 (1933).
+#
+# <span id="ref-12">[12]</span> J. Ginibre, *Statistical ensembles of complex, quaternion, and real matrices*, J. Math. Phys. **6**, 440 (1965).
+#
+# <span id="ref-13">[13]</span> J. P. Gram, *Ueber die Entwickelung reeller Functionen in Reihen mittelst der Methode der kleinsten Quadrate*,
+#   J. Reine Angew. Math. **94**, 41 (1883).
+#
+# <span id="ref-14">[14]</span> E. Schmidt, *Zur Theorie der linearen und nichtlinearen Integralgleichungen*, Math. Ann. **63**, 433 (1907).
+#
+# <span id="ref-15">[15]</span> A. S. Householder, *Unitary triangularization of a nonsymmetric matrix*, J. ACM **5**, 339 (1958).
+#
+# <span id="ref-16">[16]</span> L. Giraud, J. Langou, M. Rozložník and J. van den Eshof, *Rounding error analysis of the classical Gram-Schmidt
 #   orthogonalization process*, Numer. Math. **101**, 87-100 (2005).
-# * N. J. Higham, *Accuracy and Stability of Numerical Algorithms*, 2nd ed. (SIAM, 2002), Chapter 19
+#
+# <span id="ref-17">[17]</span> Å. Björck, *Solving linear least squares problems by Gram-Schmidt orthogonalization*, BIT **7**, 1 (1967).
+#
+# <span id="ref-18">[18]</span> W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes*, 3rd ed. (Cambridge
+#   University Press, 2007), Section 2.10 (*QR Decomposition*) and Section 7.3 (*Deviates from Other Distributions*).
+#
+# <span id="ref-19">[19]</span> N. J. Higham, *Accuracy and Stability of Numerical Algorithms*, 2nd ed. (SIAM, 2002), Chapter 19
 #   (*QR Factorization*).
+#
+# <span id="ref-20">[20]</span> C. E. Porter and R. G. Thomas, *Fluctuations of nuclear reaction widths*, Phys. Rev. **104**, 483 (1956).
+#
+# <span id="ref-21">[21]</span> E. J. Gumbel, *Statistics of Extremes* (Columbia University Press, 1958).
+#
+# <span id="ref-22">[22]</span> H. Araki and E. H. Lieb, *Entropy inequalities*, Commun. Math. Phys. **18**, 160 (1970).
+#
+# <span id="ref-23">[23]</span> S. K. Foong and S. Kanno, *Proof of Page's conjecture on the average entropy of a subsystem*, Phys. Rev. Lett.
+#   **72**, 1148 (1994).
+#
+# <span id="ref-24">[24]</span> J. Sánchez-Ruiz, *Simple proof of Page's conjecture on the average entropy of a subsystem*,
+#   Phys. Rev. E **52**, 5653 (1995).
+#
+# <span id="ref-25">[25]</span> S. Popescu, A. J. Short and A. Winter, *Entanglement and the foundations of statistical mechanics*, Nat. Phys. **2**,
+#   754 (2006).
+#
+# <span id="ref-26">[26]</span> S. Goldstein, J. L. Lebowitz, R. Tumulka and N. Zanghì, *Canonical typicality*, Phys. Rev. Lett. **96**,
+#   050403 (2006).
+#
+# <span id="ref-27">[27]</span> D. Gottesman, *The Heisenberg representation of quantum computers*, arXiv:quant-ph/9807006 (1998).
+#
+# <span id="ref-28">[28]</span> C. Dankert, R. Cleve, J. Emerson and E. Livine, *Exact and approximate unitary 2-designs and their application to
+#   fidelity estimation*, Phys. Rev. A **80**, 012304 (2009).
+#
+# <span id="ref-29">[29]</span> D. Gross, K. Audenaert and J. Eisert, *Evenly distributed unitaries: on the structure of unitary designs*,
+#   J. Math. Phys. **48**, 052104 (2007).
+#
+# <span id="ref-30">[30]</span> P. Diaconis and M. Shahshahani, *On the eigenvalues of random matrices*, J. Appl. Probab. **31A**, 49-62 (1994) -
+#   the moments $\mathbb E\lvert\mathrm{Tr}\,U\rvert^{2t}=t!$ for $t\le d$.
+#
+# <span id="ref-31">[31]</span> Z. Webb, *The Clifford group forms a unitary 3-design*, Quantum Inf. Comput. **16**, 1379 (2016).
+#
+# <span id="ref-32">[32]</span> H. Zhu, *Multiqubit Clifford groups are unitary 3-designs*, Phys. Rev. A **96**, 062336 (2017).
+#
+# <span id="ref-33">[33]</span> X. Gao, M. Kalinowski, C.-N. Chou, M. D. Lukin, B. Barak and S. Choi, *Limitations of linear cross-entropy as a
+#   measure for quantum advantage*, PRX Quantum **5**, 010334 (2024).
+#
+# <span id="ref-34">[34]</span> A. M. Dalzell, N. Hunter-Jones and F. G. S. L. Brandão, *Random quantum circuits anticoncentrate in log depth*,
+#   PRX Quantum **3**, 010333 (2022).
 

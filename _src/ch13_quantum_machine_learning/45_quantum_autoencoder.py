@@ -3,12 +3,12 @@
 #@description: The encoder–trash–decoder construction, the exact relation between trash fidelity and reconstruction fidelity, the eigenvalue criterion that says exactly how well an ensemble can be compressed, compared with what training reaches, the Schmidt-rank picture of compressibility tested against it, two executions of the compression channel (exact partial trace and measure-and-reset trajectories) that give the same channel, training with automatic differentiation and with SPSA on trajectory estimates, generalisation to unseen inputs, and the effect of gate noise.
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
 # A classical autoencoder is a neural network trained to reproduce its own input through a narrow middle layer. If it
 # succeeds, the narrow layer is a *compressed* description of the data: whatever the network can reconstruct must have
-# been representable in the smaller space. A **quantum autoencoder** (Romero, Olson and Aspuru-Guzik, 2017) does the
-# same for quantum states, and the "narrow layer" is a smaller number of qubits. Wan *et al.* (2017) proposed
+# been representable in the smaller space. A **quantum autoencoder**, introduced in [[1]](#ref-1), does the
+# same for quantum states, and the "narrow layer" is a smaller number of qubits. Ref. [[2]](#ref-2) proposed
 # independently a quantum neural network trained by gradient descent and demonstrated it as a quantum autoencoder.
 #
 # The construction is short enough to state now. A unitary $U(\boldsymbol\theta)$ acts on $N$ qubits. Afterwards the
@@ -40,12 +40,12 @@
 #   The two agree within error bars, two wrong models of the channel are rejected by the same data, and the second
 #   execution is what a device does.
 # * **Section 6** proves the eigenvalue criterion above and applies it to four families of states.
-# * **Section 7** trains the encoder with `jax.grad` and Adam (Kingma and Ba, 2015) over a grid of families, compression ratios and depths,
+# * **Section 7** trains the encoder with `jax.grad` and Adam [[3]](#ref-3) over a grid of families, compression ratios and depths,
 #   and compares what is reached with the bound and with the encoder that does nothing. **Section 8** asks whether a
 #   shortfall is the optimiser's fault or the circuit's, and answers it with success fractions over many random
 #   starts. **Section 9** re-examines the folklore
 #   that "GHZ and W states are easy and Dicke states are hard" in the light of the criterion.
-# * **Section 10** trains on trajectory-estimated costs with SPSA (Spall, 1992) — the device-realistic version.
+# * **Section 10** trains on trajectory-estimated costs with SPSA [[4]](#ref-4) — the device-realistic version.
 # * **Section 11** tests **generalisation**: train on a few members of a family, then measure the compression of
 #   members never seen.
 # * **Section 12** puts gate noise into the encoder, reusing the model of
@@ -88,7 +88,7 @@
 #
 # **Conventions and sizes.** $N=6$ qubits throughout, with the trash register always the **last** $k$ qubits and
 # $k\le4$; the noise study of Section 12 drops to $N=4$ so that the density tensor stays cheap. The encoder is the
-# hardware-efficient ansatz (Kandala *et al.*, 2017) of notebook 40 with $L$ layers and $n=2N(L+1)$ angles.
+# hardware-efficient ansatz [[5]](#ref-5) of notebook 40 with $L$ layers and $n=2N(L+1)$ angles.
 
 # %% [markdown]
 # ## 2. Engine recap and notebook helpers
@@ -349,15 +349,15 @@ for k in range(1, K_MAX + 1):
 #   =\mathrm{Tr}_L\bigl(U\rho\,U^\dagger\bigr).\tag{4}$$
 #
 # It is the probability that measuring all $k$ trash qubits in the $Z$ basis gives $0$ on every one of them — one
-# circuit, $k$ single-qubit measurements, no decoder, no ancillas. It equals $1$ exactly when Eq. (2) holds. Romero,
-# Olson and Aspuru-Guzik proposed this trash-state fidelity as the training cost, for a general reference state of the
-# trash measured with a SWAP test (Buhrman, Cleve, Watrous and de Wolf, 2001); for the reference $\vert0\cdots0\rangle$ a $Z$ measurement of the trash qubits is
+# circuit, $k$ single-qubit measurements, no decoder, no ancillas. It equals $1$ exactly when Eq. (2) holds. Ref.
+# [[1]](#ref-1) proposed this trash-state fidelity as the training cost, for a general reference state of the
+# trash measured with a SWAP test [[6]](#ref-6); for the reference $\vert0\cdots0\rangle$ a $Z$ measurement of the trash qubits is
 # enough.
 #
 # In the language of notebook 40 the trash fidelity is a **global** cost on the trash register: like Eq. (9) there, it
 # asks whether *all* $k$ trash qubits are in $\vert0\rangle$ at once. It involves only $k$ of the $N$ qubits, but its
 # observable is a $k$-qubit projector. The corresponding local cost averages single-qubit probabilities,
-# $1-\frac1k\sum_{q\in T}\langle0\vert\rho_q\vert0\rangle$; Cerezo, Sone, Volkoff, Cincio and Coles (2021) used the
+# $1-\frac1k\sum_{q\in T}\langle0\vert\rho_q\vert0\rangle$; Ref. [[7]](#ref-7) used the
 # autoencoder as their example of a global cost whose gradients vanish exponentially in $k$ and whose local version does
 # not. At $k\le4$, as here, the difference is not important.
 #
@@ -693,9 +693,9 @@ fig.tight_layout(); plt.show()
 #
 # $$\boxed{\;\max_{U}\ \overline F_{\rm trash}=\sum_{a=1}^{2^{N-k}}\lambda_a^{\downarrow}(\bar\rho)\;}\tag{13}$$
 #
-# (a special case of the maximum principle of Ky Fan, 1949). The encoder achieving it maps the $2^{N-k}$ dominant eigenvectors of
+# (a special case of the maximum principle of Ky Fan [[8]](#ref-8)). The encoder achieving it maps the $2^{N-k}$ dominant eigenvectors of
 # $\bar\rho$ into the subspace where the trash is $\vert0\cdots0\rangle$. Eq. (13) is a single-copy statement; its
-# asymptotic counterpart, proved by Schumacher (1995), is that many copies drawn from the ensemble can be compressed
+# asymptotic counterpart, proved in [[9]](#ref-9), is that many copies drawn from the ensemble can be compressed
 # faithfully to $S(\bar\rho)$ qubits per copy, the von Neumann entropy of $\bar\rho$ in bits.
 #
 # ### 6.3 Three consequences
@@ -733,8 +733,8 @@ fig.tight_layout(); plt.show()
 # | Dicke($3$) | the twenty states with three excitations | equal | $20$ |
 # | graded W | the six states with one excitation | $a_j^2\propto6-j$ | $6$ |
 #
-# The first three are the families named in the folklore about compressibility, built on the GHZ state of Greenberger,
-# Horne and Zeilinger (1989), the W state of Dür, Vidal and Cirac (2000) and the Dicke states (Dicke, 1954); the fourth has the same support as the
+# The first three are the families named in the folklore about compressibility, built on the GHZ state [[10]](#ref-10),
+# the W state [[11]](#ref-11) and the Dicke states [[12]](#ref-12); the fourth has the same support as the
 # second but a deliberately uneven spectrum, which is where Eq. (13) stops being a rank count and becomes a statement
 # about weights.
 
@@ -1115,7 +1115,7 @@ fig.tight_layout(); plt.show()
 # eight runs that all end at or below $5/6$ are equally compatible with a ceiling at $5/6$ and with a rare success.
 #
 # **Diagnosis 2: success fractions against depth.** With $32$ starts per depth no run at $L\le6$ exceeds $5/6$; the
-# 68 % Wilson (1927) interval (notebook 41, Section 12) puts the success probability at these depths below $0.03$, an upper bound on the success rate that leaves open
+# 68 % Wilson interval [[13]](#ref-13) (notebook 41, Section 12) puts the success probability at these depths below $0.03$, an upper bound on the success rate that leaves open
 # whether the ansatz can reach the bound at these depths. At $L=9$ three starts in $32$ reach the bound ($0.09$, interval $[0.05,0.16]$) and at $L=12$
 # seven ($0.22$, interval $[0.16,0.30]$). The bound of Section 6 is therefore reachable by the hardware-efficient ansatz
 # from $L=9$ on, and every start that misses it ends at $5/6$ or $4/6$. Whether the success fraction keeps growing
@@ -1279,7 +1279,7 @@ for lab, opt, ns in (("constant step 0.05", opt_adam(LR), N_STEPS_DK),
 # replaces Eq. (16) by its measured estimate: run the circuit $M$ times on each ensemble member, measure the trash
 # qubits, and count how often they all come out zero. The cost is then a binomial proportion with standard error
 # $\sqrt{F(1-F)/M}$ per member. The gradient must then be estimated from costs as well: by the parameter-shift rule
-# (Mitarai *et al.*, 2018; Schuld *et al.*, 2019; $2n$ cost evaluations per iteration) or by SPSA (notebook 41), which needs two cost evaluations per iteration
+# ([[14]](#ref-14), [[15]](#ref-15); $2n$ cost evaluations per iteration) or by SPSA (notebook 41), which needs two cost evaluations per iteration
 # regardless of the number of angles and is used here.
 #
 # The comparison below runs the same problem three ways from the same initialisations: exact gradients, SPSA on the
@@ -1720,23 +1720,23 @@ fig.tight_layout(); plt.show()
 #
 # Three applications recur in the literature, and each is a variation on the construction of this notebook.
 #
-# * **Compression for storage and communication.** The original proposal (Romero, Olson and Aspuru-Guzik, 2017) was
+# * **Compression for storage and communication.** The original proposal [[1]](#ref-1) was
 #   motivated by chemistry: the ground states of a molecule along a dissociation curve form a family that occupies far
 #   fewer dimensions than the full Hilbert space, so they can be held in fewer qubits. This is exactly the ensemble
 #   problem of Section 6, with $\bar\rho$ built from the states along the curve; their simulations compressed six
 #   ground states of $\mathrm{H}_2$ at different bond lengths from four qubits to two, and ground states of Hubbard
-#   models. A photonic experiment compressed qutrits into qubits (Pepper, Tischler and Pryde, 2019).
+#   models. A photonic experiment compressed qutrits into qubits [[16]](#ref-16).
 # * **Denoising.** If the ensemble of *clean* states occupies a subspace and noise pushes states out of it, an
 #   autoencoder trained on clean data projects the noisy input back in: the encode–discard–decode cycle removes exactly
-#   the component that the latent space cannot hold. Bondarenko and Feldmann (2020) trained such autoencoders,
+#   the component that the latent space cannot hold. Ref. [[17]](#ref-17) trained such autoencoders,
 #   without access to the clean states, to denoise GHZ states subject to spin-flip errors and random unitary noise.
 #   The mechanism is visible in Section 11: an encoder trained on a subspace maps the directions outside it out of the
 #   trash-zero subspace, which is a failure for generalisation and a feature for denoising.
 # * **Anomaly detection.** The trash fidelity itself is the output: a state drawn from the training family gives
 #   $F_{\rm trash}\approx1$, and a state from anywhere else gives less. No decoder is needed and no reference state is
-#   needed — one runs the encoder and looks at $k$ measurement outcomes. Ngairangbam, Spannowsky and Takeuchi (2022)
+#   needed — one runs the encoder and looks at $k$ measurement outcomes. Ref. [[18]](#ref-18)
 #   studied this for collider events, with heavy-Higgs signals as the anomaly against a top-quark-pair background.
-#   Cerezo, Sone, Volkoff, Cincio and Coles (2021) used the autoencoder cost to show how the choice between a global
+#   Ref. [[7]](#ref-7) used the autoencoder cost to show how the choice between a global
 #   and a local cost decides whether gradients vanish exponentially with the number of qubits.
 #
 # The variational ingredient is the same in all three, and so is the limitation: Sections 7 and 12 measured that the
@@ -1818,47 +1818,71 @@ fig.tight_layout(); plt.show()
 #
 # ## References
 #
-# * J. Romero, J. P. Olson and A. Aspuru-Guzik, *Quantum autoencoders for efficient compression of quantum data*,
-#   Quantum Sci. Technol. **2**, 045001 (2017) — the construction of Section 3, the trash-fidelity cost of Eq. (4), and
-#   the remark, without proof, that the ensemble-averaged reconstruction fidelity never exceeds the averaged trash fidelity.
-# * K. H. Wan, O. Dahlsten, H. Kristjánsson, R. Gardner and M. S. Kim, *Quantum generalisation of feedforward neural
-#   networks*, npj Quantum Inf. **3**, 36 (2017) — an independent proposal: a quantum neural network trained by gradient
-#   descent, demonstrated as a quantum autoencoder.
-# * A. Pepper, N. Tischler and G. J. Pryde, *Experimental realization of a quantum autoencoder: the compression of
-#   qutrits via machine learning*, Phys. Rev. Lett. **122**, 060501 (2019) — a photonic implementation.
-# * D. Bondarenko and P. Feldmann, *Quantum autoencoders to denoise quantum data*, Phys. Rev. Lett. **124**, 130502
-#   (2020) — the denoising application of Section 13.
-# * K. Fan, *On a theorem of Weyl concerning eigenvalues of linear transformations I*, Proc. Natl. Acad. Sci. USA
-#   **35**, 652 (1949) — the maximum principle behind Eq. (13).
-# * A. Kandala, A. Mezzacapo, K. Temme, M. Takita, M. Brink, J. M. Chow and J. M. Gambetta, *Hardware-efficient
-#   variational quantum eigensolver for small molecules and quantum magnets*, Nature **549**, 242 (2017) — the
-#   hardware-efficient ansatz used as the encoder.
-# * D. P. Kingma and J. Ba, *Adam: a method for stochastic optimization*, 3rd International Conference on Learning
-#   Representations (ICLR 2015), arXiv:1412.6980 — the optimiser of Sections 7–9.
-# * J. C. Spall, *Multivariate stochastic approximation using a simultaneous perturbation gradient approximation*,
-#   IEEE Trans. Autom. Control **37**, 332 (1992) — the SPSA gradient rule of Section 10.
-# * K. Mitarai, M. Negoro, M. Kitagawa and K. Fujii, *Quantum circuit learning*, Phys. Rev. A **98**, 032309 (2018) —
-#   the parameter-shift rule for Pauli-generated gates.
-# * M. Schuld, V. Bergholm, C. Gogolin, J. Izaac and N. Killoran, *Evaluating analytic gradients on quantum hardware*,
-#   Phys. Rev. A **99**, 032331 (2019) — the shift rule for every generator with two eigenvalues $\pm r$.
-# * H. Buhrman, R. Cleve, J. Watrous and R. de Wolf, *Quantum fingerprinting*, Phys. Rev. Lett. **87**, 167902
-#   (2001) — the SWAP test.
-# * D. M. Greenberger, M. A. Horne and A. Zeilinger, *Going beyond Bell's theorem*, in *Bell's Theorem, Quantum Theory,
-#   and Conceptions of the Universe*, ed. M. Kafatos (Kluwer, Dordrecht, 1989), p. 69 — the GHZ state.
-# * W. Dür, G. Vidal and J. I. Cirac, *Three qubits can be entangled in two inequivalent ways*, Phys. Rev. A **62**,
-#   062314 (2000) — the W state.
-# * R. H. Dicke, *Coherence in spontaneous radiation processes*, Phys. Rev. **93**, 99 (1954) — the Dicke states.
-# * E. B. Wilson, *Probable inference, the law of succession, and statistical inference*, J. Am. Stat. Assoc. **22**,
-#   209 (1927) — the score interval used for success fractions.
-# * M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information*, Cambridge University Press (2000) —
-#   Schmidt decomposition, partial trace, fidelity, Schumacher compression.
-# * B. Schumacher, *Quantum coding*, Phys. Rev. A **51**, 2738 (1995) — the information-theoretic ancestor: the
-#   asymptotically optimal compression rate of an ensemble is its von Neumann entropy.
-# * M. Cerezo, A. Sone, T. Volkoff, L. Cincio and P. J. Coles, *Cost function dependent barren plateaus in shallow
-#   parametrized quantum circuits*, Nat. Commun. **12**, 1791 (2021) — global versus local trash costs, Sections 4.1
-#   and 13.
-# * M. Cerezo, A. Arrasmith, R. Babbush, S. C. Benjamin, S. Endo, K. Fujii, J. R. McClean, K. Mitarai, X. Yuan,
-#   L. Cincio and P. J. Coles, *Variational quantum algorithms*, Nat. Rev. Phys. **3**, 625 (2021) — the review, with
-#   the autoencoder among the applications.
-# * V. S. Ngairangbam, M. Spannowsky and M. Takeuchi, *Anomaly detection in high-energy physics using a quantum
-#   autoencoder*, Phys. Rev. D **105**, 095004 (2022) — the anomaly-detection application of Section 13.
+# <span id="ref-1">[1]</span> J. Romero, J. P. Olson and A. Aspuru-Guzik, *Quantum autoencoders for efficient compression
+# of quantum data*, Quantum Sci. Technol. **2**, 045001 (2017) — the construction of Section 3, the trash-fidelity cost
+# of Eq. (4), and the remark, without proof, that the ensemble-averaged reconstruction fidelity never exceeds the
+# averaged trash fidelity.
+#
+# <span id="ref-2">[2]</span> K. H. Wan, O. Dahlsten, H. Kristjánsson, R. Gardner and M. S. Kim, *Quantum generalisation of
+# feedforward neural networks*, npj Quantum Inf. **3**, 36 (2017) — an independent proposal: a quantum neural network
+# trained by gradient descent, demonstrated as a quantum autoencoder.
+#
+# <span id="ref-3">[3]</span> D. P. Kingma and J. Ba, *Adam: a method for stochastic optimization*, 3rd International
+# Conference on Learning Representations (ICLR 2015), arXiv:1412.6980 — the optimiser of Sections 7–9.
+#
+# <span id="ref-4">[4]</span> J. C. Spall, *Multivariate stochastic approximation using a simultaneous perturbation
+# gradient approximation*, IEEE Trans. Autom. Control **37**, 332 (1992) — the SPSA gradient rule of Section 10.
+#
+# <span id="ref-5">[5]</span> A. Kandala, A. Mezzacapo, K. Temme, M. Takita, M. Brink, J. M. Chow and J. M. Gambetta,
+# *Hardware-efficient variational quantum eigensolver for small molecules and quantum magnets*, Nature **549**, 242
+# (2017) — the hardware-efficient ansatz used as the encoder.
+#
+# <span id="ref-6">[6]</span> H. Buhrman, R. Cleve, J. Watrous and R. de Wolf, *Quantum fingerprinting*, Phys. Rev. Lett.
+# **87**, 167902 (2001) — the SWAP test.
+#
+# <span id="ref-7">[7]</span> M. Cerezo, A. Sone, T. Volkoff, L. Cincio and P. J. Coles, *Cost function dependent barren
+# plateaus in shallow parametrized quantum circuits*, Nat. Commun. **12**, 1791 (2021) — global versus local trash
+# costs, Sections 4.1 and 13.
+#
+# <span id="ref-8">[8]</span> K. Fan, *On a theorem of Weyl concerning eigenvalues of linear transformations I*, Proc. Natl.
+# Acad. Sci. USA **35**, 652 (1949) — the maximum principle behind Eq. (13).
+#
+# <span id="ref-9">[9]</span> B. Schumacher, *Quantum coding*, Phys. Rev. A **51**, 2738 (1995) — the information-theoretic
+# ancestor: the asymptotically optimal compression rate of an ensemble is its von Neumann entropy.
+#
+# <span id="ref-10">[10]</span> D. M. Greenberger, M. A. Horne and A. Zeilinger, *Going beyond Bell's theorem*, in *Bell's
+# Theorem, Quantum Theory, and Conceptions of the Universe*, ed. M. Kafatos (Kluwer, Dordrecht, 1989), p. 69 — the GHZ
+# state.
+#
+# <span id="ref-11">[11]</span> W. Dür, G. Vidal and J. I. Cirac, *Three qubits can be entangled in two inequivalent ways*,
+# Phys. Rev. A **62**, 062314 (2000) — the W state.
+#
+# <span id="ref-12">[12]</span> R. H. Dicke, *Coherence in spontaneous radiation processes*, Phys. Rev. **93**, 99 (1954) —
+# the Dicke states.
+#
+# <span id="ref-13">[13]</span> E. B. Wilson, *Probable inference, the law of succession, and statistical inference*, J.
+# Am. Stat. Assoc. **22**, 209 (1927) — the score interval used for success fractions.
+#
+# <span id="ref-14">[14]</span> K. Mitarai, M. Negoro, M. Kitagawa and K. Fujii, *Quantum circuit learning*, Phys. Rev. A
+# **98**, 032309 (2018) — the parameter-shift rule for Pauli-generated gates.
+#
+# <span id="ref-15">[15]</span> M. Schuld, V. Bergholm, C. Gogolin, J. Izaac and N. Killoran, *Evaluating analytic
+# gradients on quantum hardware*, Phys. Rev. A **99**, 032331 (2019) — the shift rule for every generator with two
+# eigenvalues $\pm r$.
+#
+# <span id="ref-16">[16]</span> A. Pepper, N. Tischler and G. J. Pryde, *Experimental realization of a quantum
+# autoencoder: the compression of qutrits via machine learning*, Phys. Rev. Lett. **122**, 060501 (2019) — a photonic
+# implementation.
+#
+# <span id="ref-17">[17]</span> D. Bondarenko and P. Feldmann, *Quantum autoencoders to denoise quantum data*, Phys. Rev.
+# Lett. **124**, 130502 (2020) — the denoising application of Section 13.
+#
+# <span id="ref-18">[18]</span> V. S. Ngairangbam, M. Spannowsky and M. Takeuchi, *Anomaly detection in high-energy physics
+# using a quantum autoencoder*, Phys. Rev. D **105**, 095004 (2022) — the anomaly-detection application of Section 13.
+#
+# <span id="ref-19">[19]</span> M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information*, Cambridge
+# University Press (2000) — Schmidt decomposition, partial trace, fidelity, Schumacher compression.
+#
+# <span id="ref-20">[20]</span> M. Cerezo, A. Arrasmith, R. Babbush, S. C. Benjamin, S. Endo, K. Fujii, J. R. McClean,
+# K. Mitarai, X. Yuan, L. Cincio and P. J. Coles, *Variational quantum algorithms*, Nat. Rev. Phys. **3**, 625 (2021) —
+# the review, with the autoencoder among the applications.

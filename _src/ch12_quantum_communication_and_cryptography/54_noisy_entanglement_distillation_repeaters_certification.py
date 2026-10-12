@@ -3,7 +3,7 @@
 #@description: Noisy entangled pairs as the working resource of quantum communication, simulated with the engine: Werner pairs and the product rule for two noisy halves, teleportation through a Werner pair as a depolarising channel, twirling with the 24 Clifford gates, the purification held by Eve and her information about the key, the BBPSSW distillation step derived from the bilateral CNOT and run on density tensors and shot by shot, its iteration and cost, fibre loss and the repeaterless bound, a toy repeater chain of swapping and distillation, and the certification of delivered pairs from three local correlations with Hoeffding bounds, including an adversarial source and random sampling.
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
 # Teleportation, entanglement swapping and entanglement-based key distribution all consume shared Bell pairs
 # $\vert\Phi^+\rangle=(\vert00\rangle+\vert11\rangle)/\sqrt2$, and every derivation in chapter 8 and in
@@ -41,7 +41,7 @@
 #   24 Clifford gates, which maps every pair to the Werner pair of the same fidelity.
 # * **Section 6** gives Eve the purification of the pair and computes her information about the key bits as a
 #   function of the fidelity.
-# * **Section 7** derives the distillation step of Bennett and coauthors from the bilateral CNOT, runs it on density
+# * **Section 7** derives the BBPSSW distillation step from the bilateral CNOT, runs it on density
 #   tensors and shot by shot, and iterates it.
 # * **Section 8** turns to distance: fibre loss, the bound for direct transmission, swapping with noisy links, and a
 #   toy repeater chain compared with direct transmission.
@@ -205,7 +205,7 @@ def random_pair_state(key):
 # $$\mathcal D_v(\rho)=v\,\rho+(1-v)\,\frac{\mathbb 1}{2},\qquad v=1-\frac{4p}{3}: \tag{1}$$
 #
 # with probability $v$ the qubit passes untouched, otherwise it is replaced by the maximally mixed state. Applied to
-# Bob's half of $\vert\Phi^+\rangle$, whose other half is maximally mixed, it gives the **Werner pair** (Werner 1989) of
+# Bob's half of $\vert\Phi^+\rangle$, whose other half is maximally mixed, it gives the **Werner pair** [[1]](#ref-1) of
 # [notebook 19](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb), Section 11,
 #
 # $$\rho_W(v)=v\,\vert\Phi^+\rangle\langle\Phi^+\vert+(1-v)\,\frac{\mathbb 1}{4},\qquad
@@ -222,8 +222,8 @@ def random_pair_state(key):
 # $\langle YY\rangle=-v$, and Alice's and Bob's $Z$ outcomes differ with probability $Q=(1-v)/2$, the error rate of
 # notebook 53. Notebook 21, Section 10.1, reads Eq. (3) as a perfect pair hit by a random Pauli error on one side. The
 # Werner pair is entangled exactly for $v>1/3$, or $F>1/2$: the partial transpose has the eigenvalue $(1-3v)/4$, a
-# negative one signals entanglement (Peres 1996), and for two qubits a positive partial transpose implies separability
-# (Horodecki, Horodecki and Horodecki 1996), as derived in notebook 19, Section 11, and in
+# negative one signals entanglement [[2]](#ref-2), and for two qubits a positive partial transpose implies separability
+# [[3]](#ref-3), as derived in notebook 19, Section 11, and in
 # [notebook 25](../ch09_entanglement_and_complexity/25_entanglement_negativity.ipynb), Section 6.3.
 #
 # ### 3.2 Both halves noisy
@@ -289,7 +289,7 @@ assert max_abs(rho_dp - werner(v_of_F(lam_dp[0]))) > 0.01
 #
 # ## 4. Teleportation through a Werner pair
 #
-# Teleportation, introduced by Bennett, Brassard, Crépeau, Jozsa, Peres and Wootters (1993) and derived in notebook 20,
+# Teleportation, introduced in [[4]](#ref-4) and derived in notebook 20,
 # Section 4, sends an unknown qubit $\rho$ from Alice to Bob with one shared pair and two
 # classical bits: Alice measures her input and her half of the pair in the Bell basis, and Bob corrects his half with
 # $X^{m_2}$ and $Z^{m_1}$. With a Werner pair as the resource, Bob receives
@@ -309,7 +309,7 @@ assert max_abs(rho_dp - werner(v_of_F(lam_dp[0]))) > 0.01
 # is shortened by the factor $v$, and its direction, which carries the state, is intact. Notebook 20, Section 10,
 # derives the more general statement that a Bell-diagonal resource gives a Pauli channel, and the fidelity
 # averaged over pure inputs, $\bar f=(1+v)/2=(2F+1)/3$. It exceeds the best classical value $2/3$, reached by
-# measuring the input and preparing a guess (Massar and Popescu 1995; notebook 20, Section 8), exactly when $v>1/3$,
+# measuring the input and preparing a guess ([[5]](#ref-5); notebook 20, Section 8), exactly when $v>1/3$,
 # which is when the Werner pair is entangled.
 #
 # The next cell runs the teleportation circuit of notebook 20 on a three-qubit density tensor: the input on qubit 0,
@@ -452,8 +452,8 @@ assert abs(shrink[2] - 1) < TOL and abs(shrink[0] - shrink[2]) > 0.1
 # the 24 gates into two cosets of the 12, $G_{24}=G_{12}\cup G_{12}R$ with one extra Clifford gate $R$; the average
 # over the coset $G_{12}R$ is the 12-gate twirl applied to $(R\otimes R^*)\rho(R\otimes R^*)^\dagger$, which has the
 # same fidelity, so both halves give the same Werner pair. An average over all unitaries also gives Eq. (9); the finite
-# Clifford set is what Alice and Bob would use in practice. The twirl was introduced for this purpose by Bennett,
-# Brassard, Popescu, Schumacher, Smolin and Wootters (1996), as random bilateral rotations.
+# Clifford set is what Alice and Bob would use in practice. The twirl was introduced for this purpose in
+# [[6]](#ref-6), as random bilateral rotations.
 #
 # The next cell checks Eq. (6) for $100$ Haar-random unitaries, then twirls $200$ random two-qubit states with three
 # sets of gates: the 24 Cliffords, the 12 gates $PK^j$, and the four Pauli gates alone. The wrong control replaces
@@ -636,7 +636,7 @@ plt.tight_layout(); plt.show()
 # three bases are $Q_Z=\lambda_{\Psi^+}+\lambda_{\Psi^-}$, $Q_X=\lambda_{\Phi^-}+\lambda_{\Psi^-}$ (notebook 53,
 # Eq. (14)) and $Q_Y=\lambda_{\Phi^-}+\lambda_{\Psi^+}$, the probability that the $Y$ outcomes agree, since
 # $\vert\Phi^+\rangle$ gives opposite ones; three equations fix three weights, and the fourth follows from the
-# normalisation. A protocol that tests all three bases is the six-state protocol of Bruß (1998). BB84 tests only $Z$
+# normalisation. A protocol that tests all three bases is the six-state protocol of [[7]](#ref-7). BB84 tests only $Z$
 # and $X$ and must assume the worst weights compatible with them. For $Q_Z=Q_X=Q$ these are independent bit and
 # phase errors, $\lambda=\big((1-Q)^2,\,Q(1-Q),\,Q(1-Q),\,Q^2\big)$, with $H(\lambda)=2h(Q)$, the largest value the two
 # constraints allow; Eq. (12) then gives the rate $1-2h(Q)$ of notebook 53.
@@ -743,8 +743,8 @@ plt.tight_layout(); plt.show()
 # ## 7. Entanglement distillation
 #
 # Suppose Alice and Bob share many Werner pairs of fidelity $F$. **Entanglement distillation** uses local operations
-# and classical communication to turn them into fewer pairs of higher fidelity. The first protocol is due to Bennett,
-# Brassard, Popescu, Schumacher, Smolin and Wootters (1996) and is called BBPSSW after them. It works on two pairs at a
+# and classical communication to turn them into fewer pairs of higher fidelity. The first protocol was introduced in
+# [[6]](#ref-6) and is called BBPSSW after the initials of its authors. It works on two pairs at a
 # time and rests on a single property of the CNOT gate.
 #
 # ### 7.1 The bilateral CNOT
@@ -1025,10 +1025,10 @@ plt.tight_layout(); plt.show()
 # ### 7.5 Better protocols
 #
 # Two weaknesses of BBPSSW are visible in Eq. (16): the twirl throws away the information about which error states are
-# present, and the slow convergence near $F=1$ follows from it. The protocol of Deutsch, Ekert, Jozsa, Macchiavello,
-# Popescu and Sanpera (1996) replaces the twirl by fixed local rotations before each bilateral CNOT and is much more
+# present, and the slow convergence near $F=1$ follows from it. The protocol of
+# [[8]](#ref-8) replaces the twirl by fixed local rotations before each bilateral CNOT and is much more
 # efficient: it works on pairs that are not of Werner form and reaches high fidelity with fewer pairs (Exercise 7).
-# For many pairs at once, Bennett, DiVincenzo, Smolin and Wootters (1996) introduced the **hashing** protocol, which
+# For many pairs at once, the **hashing** protocol introduced in [[9]](#ref-9)
 # uses one-way classical communication and yields $1-S(\rho)$ good pairs per input pair from Bell-diagonal pairs with
 # entropy $S(\rho)$. For Werner pairs the yield is positive for $F>0.8107$. It is the same expression as the key rate
 # $1-H(\lambda)$ of Eq. (12): a perfect pair shared with nobody else yields a secret bit, so distilling pairs and
@@ -1044,11 +1044,11 @@ plt.tight_layout(); plt.show()
 #
 # $$\eta(L)=10^{-\alpha L/10}. \tag{18}$$
 #
-# A typical value for standard telecom fibre at a wavelength near $1550$ nm is $\alpha=0.2$ dB/km (Sangouard and
-# coauthors 2011), which gives
+# A typical value for standard telecom fibre at a wavelength near $1550$ nm is $\alpha=0.2$ dB/km [[10]](#ref-10),
+# which gives
 # $\eta=10^{-2}$ over $100$ km and $\eta=10^{-10}$ over $500$ km. A classical signal is amplified every few tens of
 # kilometres, but an amplifier would copy an unknown quantum state, which no-cloning forbids (notebook 52, Section 4).
-# Pirandola, Laurenza, Ottaviani and Banchi (2017) proved that the number of secret-key bits, or of ebits, that any
+# Ref. [[11]](#ref-11) proved that the number of secret-key bits, or of ebits, that any
 # protocol can distribute through a lossy channel of transmission $\eta$ without intermediate stations is at most
 #
 # $$R_{\rm direct}(\eta)=-\log_2(1-\eta)\approx1.44\,\eta \tag{19}$$
@@ -1058,7 +1058,7 @@ plt.tight_layout(); plt.show()
 #
 # ### 8.2 Swapping with noisy links
 #
-# Entanglement swapping (Żukowski, Zeilinger, Horne and Ekert 1993; notebook 21, Sections 4–10) joins a pair $(A,R_1)$
+# Entanglement swapping ([[12]](#ref-12); notebook 21, Sections 4–10) joins a pair $(A,R_1)$
 # and a pair $(R_2,B)$ into a pair $(A,B)$
 # by a Bell measurement at the middle node and a Pauli correction. With Werner links the visibilities multiply,
 #
@@ -1101,7 +1101,7 @@ for v1, v2 in ((1.0, 1.0), (0.9, 0.8), (0.6, 0.5)):
 #
 # ### 8.3 A toy repeater chain
 #
-# A repeater of the type proposed by Briegel, Dür, Cirac and Zoller (1998) divides the line into $2^n$ segments and
+# A repeater of the type introduced in [[13]](#ref-13) divides the line into $2^n$ segments and
 # works in $n$ **nesting levels**. At level zero each segment holds Werner pairs of fidelity $F_0$, produced and stored
 # in memories. At each level, neighbouring pairs are swapped into a pair over twice the distance, Eq. (20), and the
 # swapped pairs are distilled with $r$ rounds of BBPSSW, Eq. (15). Near $F=1$ the infidelity $\epsilon=1-F$ changes
@@ -1244,11 +1244,11 @@ assert np.allclose(C_ch[1:5], c_level ** np.arange(1, 5), rtol=0.1)            #
 # logarithmic distance axis and appears curved here because the distance axis is linear. The
 # numbers depend on every simplification of the model; the change from exponential to polynomial decay is the
 # robust part. The comparison is also only indicative because the repeater delivers pairs of fidelity $F_n<1$, while
-# the bound of Eq. (19) counts perfect pairs. Briegel and coauthors showed that their nested scheme tolerates errors of
+# the bound of Eq. (19) counts perfect pairs. Ref. [[13]](#ref-13) showed that its nested scheme tolerates errors of
 # the local operations at the
 # percent level, with an overhead in time that grows only polynomially and a number of locally controlled qubits that
 # grows only logarithmically with the distance. Repeaters that take memory times, loss in the local operations and
-# probabilistic swapping into account are reviewed by Sangouard, Simon, de Riedmatten and Gisin (2011).
+# probabilistic swapping into account are reviewed in [[10]](#ref-10).
 #
 # ## 9. Certifying pairs before use
 #
@@ -1331,7 +1331,7 @@ assert abs(float(negativity(rho_classical, [0])[0])) < TOL
 #
 # Suppose first that the pairs are **independent and identically distributed** (i.i.d.): each is in the same state
 # $\rho$, independently of the others. The product of Alice's and Bob's outcomes in the $XX$ setting is then a random
-# variable $s\in\{-1,+1\}$ with mean $\langle XX\rangle$. Hoeffding (1963) proved that the average $\bar s$ of $m$
+# variable $s\in\{-1,+1\}$ with mean $\langle XX\rangle$. Ref. [[14]](#ref-14) proved that the average $\bar s$ of $m$
 # independent random variables with values in an interval $[a,b]$ and common mean $\langle s\rangle$ exceeds
 # $\langle s\rangle+t$ with probability at most $e^{-2mt^2/(b-a)^2}$, and the same holds for
 # $\bar s\leq\langle s\rangle-t$. For $[a,b]=[-1,1]$,
@@ -1422,7 +1422,7 @@ assert np.all(fail_true[-2:] < DELTAS[-2:])
 # A bound without any independence follows from the random choice alone. Think of each of the $N=n+k$ pairs as carrying
 # a hidden flag, set if a test of that pair would fail, and let an unknown fraction $\lambda$ of the flags be set,
 # arranged in any way Eve likes. Alice and Bob reveal $k$ flags chosen uniformly at random without replacement and
-# observe the fraction $\hat\lambda$. Hoeffding (1963) also proved that sampling without replacement from a finite
+# observe the fraction $\hat\lambda$. Ref. [[14]](#ref-14) also proved that sampling without replacement from a finite
 # population obeys the same bound as independent sampling; for flags in $\{0,1\}$, an interval of length one, it
 # reads $P(\lambda-\hat\lambda\geq s)\leq e^{-2ks^2}$. The flags of the $n$ untested pairs have the fraction
 # $\lambda_{\rm rem}$, and counting the set flags gives $N\lambda=k\hat\lambda+n\lambda_{\rm rem}$, hence
@@ -1431,7 +1431,7 @@ assert np.all(fail_true[-2:] < DELTAS[-2:])
 # $$P\big(\lambda_{\rm rem}\geq\hat\lambda+\mu\big)\leq\exp\!\Big(-2k\,\frac{n^2}{N^2}\,\mu^2\Big). \tag{29}$$
 #
 # No independence between the pairs was assumed: the randomness comes entirely from Alice's and Bob's choice of the
-# sample. Sharper versions of this bound, due to Serfling (1974), are used in practice. In the language of
+# sample. Sharper versions of this bound, due to [[15]](#ref-15), are used in practice. In the language of
 # Section 9.1, a test fails when the outcomes are unequal in $XX$ or $ZZ$ or equal in $YY$. If each test pair is
 # also given one of the three settings at random, the failure fraction is $\lambda=(Q_X+Q_Y+Q_Z)/3$, and Eq. (26)
 # reads $F=1-\tfrac32\lambda$. A bound on the failure fraction of the kept pairs is therefore a bound on their
@@ -1520,7 +1520,7 @@ plt.tight_layout(); plt.show()
 # its $X$ correlation, and Eve may entangle all pairs with each other. Rigorous proofs handle this by choosing, for
 # each test pair, both the position and the measurement setting at random, and by arguing that the untested pairs
 # **could** have been measured in the same way, so that the statistics of the hypothetical measurement on the kept pairs
-# obey a sampling bound of the form of Eq. (29). Takeuchi, Mantri, Morimae, Mizutani and Fitzsimons (2019), for
+# obey a sampling bound of the form of Eq. (29). The authors of [[16]](#ref-16), for
 # example, verify multi-qubit graph states in this way: they measure stabilizers on a random subset of the delivered
 # copies, sampled without replacement, and use Serfling's inequality to bound the fidelity of a copy that was not
 # tested, without assuming that the copies are independent or identical. The cost is the same as here: high confidence
@@ -1571,7 +1571,7 @@ plt.tight_layout(); plt.show()
 #    $\hat F$, and is the pair entangled if these values are exact?
 # 6. ★★ **The singlet in Pauli form.** Write $\vert\Psi^-\rangle\langle\Psi^-\vert$ in the form of Eq. (24), and check
 #    it numerically. Which correlations must a test measure to certify a source of singlets?
-# 7. ★★★ **A faster protocol (extend the code).** Modify `bbpssw_dm` into the protocol of Deutsch and coauthors:
+# 7. ★★★ **A faster protocol (extend the code).** Modify `bbpssw_dm` into the protocol of [[8]](#ref-8):
 #    before the bilateral CNOT, Alice applies `rx(np.pi / 2)` to both of her qubits and Bob `rx(-np.pi / 2)` to both of
 #    his, and there is no twirl after the step. Starting from the Werner pair with $F=0.7$, iterate both protocols six
 #    times and compare the fidelities and the costs. Why does the absence of the twirl help?
@@ -1592,7 +1592,7 @@ plt.tight_layout(); plt.show()
 # setting; $\hat F=0.88$, entangled because $F>1/2$ (a separable state twirls into a separable Werner pair with the same
 # $F$, which has $v\leq1/3$). 6: $\vert\Psi^-\rangle\langle\Psi^-\vert=\tfrac14(\mathbb 1-XX-YY-ZZ)$; all three
 # correlations. 7: BBPSSW gives $0.7353, 0.7732, 0.8119, 0.8495, 0.8837, 0.9130$ at a cost of $326$ pairs, the protocol
-# of Deutsch and coauthors $0.7353, 0.8459, 0.9344, 0.9720, 0.9970, 0.9998$ at a cost of $227$ pairs; without the
+# of [[8]](#ref-8) $0.7353, 0.8459, 0.9344, 0.9720, 0.9970, 0.9998$ at a cost of $227$ pairs; without the
 # twirl the step keeps the information about which error states remain, and the rotations exchange the roles of the
 # error types from step to step, so that errors of every type are eventually tested. 8: $F_0\approx0.956$; this
 # fixed point is unstable: above it the fidelity grows with every level, below it the fidelity decays,
@@ -1614,51 +1614,67 @@ plt.tight_layout(); plt.show()
 #
 # ## References
 #
-# * R. F. Werner, *Quantum states with Einstein-Podolsky-Rosen correlations admitting a hidden-variable model*,
-#   Phys. Rev. A **40**, 4277 (1989), doi:10.1103/PhysRevA.40.4277 — the Werner states.
-# * A. Peres, *Separability criterion for density matrices*, Phys. Rev. Lett. **77**, 1413 (1996),
-#   doi:10.1103/PhysRevLett.77.1413 — the partial-transpose test for entanglement.
-# * M. Horodecki, P. Horodecki and R. Horodecki, *Separability of mixed states: necessary and sufficient conditions*,
-#   Phys. Lett. A **223**, 1 (1996), doi:10.1016/S0375-9601(96)00706-2 — the partial-transpose test is also sufficient
-#   for two qubits.
-# * C. H. Bennett, G. Brassard, C. Crépeau, R. Jozsa, A. Peres and W. K. Wootters, *Teleporting an unknown quantum state
-#   via dual classical and Einstein-Podolsky-Rosen channels*, Phys. Rev. Lett. **70**, 1895 (1993),
-#   doi:10.1103/PhysRevLett.70.1895 — quantum teleportation.
-# * S. Massar and S. Popescu, *Optimal extraction of information from finite quantum ensembles*, Phys. Rev. Lett.
-#   **74**, 1259 (1995), doi:10.1103/PhysRevLett.74.1259 — the best fidelity of estimating an unknown qubit from one
-# copy,
-#   $2/3$.
-# * C. H. Bennett, G. Brassard, S. Popescu, B. Schumacher, J. A. Smolin and W. K. Wootters, *Purification of noisy
-#   entanglement and faithful teleportation via noisy channels*, Phys. Rev. Lett. **76**, 722 (1996),
-#   doi:10.1103/PhysRevLett.76.722 — the recurrence distillation protocol with the bilateral CNOT and random bilateral
-#   rotations.
-# * C. H. Bennett, D. P. DiVincenzo, J. A. Smolin and W. K. Wootters, *Mixed-state entanglement and quantum error
-#   correction*, Phys. Rev. A **54**, 3824 (1996), doi:10.1103/PhysRevA.54.3824 — the hashing protocol with
-#   yield $1-S$, positive for Werner pairs with $F>0.8107$, and the relation between distillation and quantum error
-#   correction.
-# * D. Deutsch, A. Ekert, R. Jozsa, C. Macchiavello, S. Popescu and A. Sanpera, *Quantum privacy amplification and the
-#   security of quantum cryptography over noisy channels*, Phys. Rev. Lett. **77**, 2818 (1996),
-#   doi:10.1103/PhysRevLett.77.2818 — a more efficient distillation protocol with local rotations in place of the
-#   twirl, and its use for secure key distribution.
-# * D. Bruß, *Optimal eavesdropping in quantum cryptography with six states*, Phys. Rev. Lett. **81**, 3018 (1998),
-#   doi:10.1103/PhysRevLett.81.3018 — the six-state protocol.
-# * M. Żukowski, A. Zeilinger, M. A. Horne and A. K. Ekert, *"Event-ready-detectors" Bell experiment via entanglement
-#   swapping*, Phys. Rev. Lett. **71**, 4287 (1993), doi:10.1103/PhysRevLett.71.4287 — entanglement swapping.
-# * H.-J. Briegel, W. Dür, J. I. Cirac and P. Zoller, *Quantum repeaters: the role of imperfect local operations in
-#   quantum communication*, Phys. Rev. Lett. **81**, 5932 (1998), doi:10.1103/PhysRevLett.81.5932 — the quantum repeater
-#   with nested purification, with a polynomial overhead in time and a logarithmic overhead in locally controlled
-#   particles.
-# * S. Pirandola, R. Laurenza, C. Ottaviani and L. Banchi, *Fundamental limits of repeaterless quantum communications*,
-#   Nat. Commun. **8**, 15043 (2017), doi:10.1038/ncomms15043 — the bound $-\log_2(1-\eta)$ for a lossy channel without
-#   repeaters.
-# * N. Sangouard, C. Simon, H. de Riedmatten and N. Gisin, *Quantum repeaters based on atomic ensembles and linear
-#   optics*, Rev. Mod. Phys. **83**, 33 (2011), doi:10.1103/RevModPhys.83.33 — review of practical repeater
-#   architectures; fibre loss of 0.2 dB/km near 1550 nm.
-# * W. Hoeffding, *Probability inequalities for sums of bounded random variables*, J. Am. Stat. Assoc. **58**, 13
-#   (1963), doi:10.1080/01621459.1963.10500830 — the exponential bounds for independent bounded variables and for
-#   sampling without replacement.
-# * R. J. Serfling, *Probability inequalities for the sum in sampling without replacement*, Ann. Statist. **2**, 39
-#   (1974), doi:10.1214/aos/1176342611 — sharper bounds for sampling without replacement.
-# * Y. Takeuchi, A. Mantri, T. Morimae, A. Mizutani and J. F. Fitzsimons, *Resource-efficient verification of quantum
-#   computing using Serfling's bound*, npj Quantum Inf. **5**, 27 (2019), doi:10.1038/s41534-019-0142-2 — verification
-#   of graph states by random sampling without an i.i.d. assumption.
+# <span id="ref-1">[1]</span> R. F. Werner, *Quantum states with Einstein-Podolsky-Rosen correlations admitting a
+# hidden-variable model*, Phys. Rev. A **40**, 4277 (1989), doi:10.1103/PhysRevA.40.4277 — the Werner states.
+#
+# <span id="ref-2">[2]</span> A. Peres, *Separability criterion for density matrices*, Phys. Rev. Lett. **77**, 1413
+# (1996), doi:10.1103/PhysRevLett.77.1413 — the partial-transpose test for entanglement.
+#
+# <span id="ref-3">[3]</span> M. Horodecki, P. Horodecki and R. Horodecki, *Separability of mixed states: necessary
+# and sufficient conditions*, Phys. Lett. A **223**, 1 (1996), doi:10.1016/S0375-9601(96)00706-2 — the
+# partial-transpose test is also sufficient for two qubits.
+#
+# <span id="ref-4">[4]</span> C. H. Bennett, G. Brassard, C. Crépeau, R. Jozsa, A. Peres and W. K. Wootters,
+# *Teleporting an unknown quantum state via dual classical and Einstein-Podolsky-Rosen channels*, Phys. Rev. Lett.
+# **70**, 1895 (1993), doi:10.1103/PhysRevLett.70.1895 — quantum teleportation.
+#
+# <span id="ref-5">[5]</span> S. Massar and S. Popescu, *Optimal extraction of information from finite quantum
+# ensembles*, Phys. Rev. Lett. **74**, 1259 (1995), doi:10.1103/PhysRevLett.74.1259 — the best fidelity of estimating
+# an unknown qubit from one copy, $2/3$.
+#
+# <span id="ref-6">[6]</span> C. H. Bennett, G. Brassard, S. Popescu, B. Schumacher, J. A. Smolin and W. K. Wootters,
+# *Purification of noisy entanglement and faithful teleportation via noisy channels*, Phys. Rev. Lett. **76**, 722
+# (1996), doi:10.1103/PhysRevLett.76.722 — the recurrence distillation protocol with the bilateral CNOT and random
+# bilateral rotations.
+#
+# <span id="ref-7">[7]</span> D. Bruß, *Optimal eavesdropping in quantum cryptography with six states*, Phys. Rev.
+# Lett. **81**, 3018 (1998), doi:10.1103/PhysRevLett.81.3018 — the six-state protocol.
+#
+# <span id="ref-8">[8]</span> D. Deutsch, A. Ekert, R. Jozsa, C. Macchiavello, S. Popescu and A. Sanpera, *Quantum
+# privacy amplification and the security of quantum cryptography over noisy channels*, Phys. Rev. Lett. **77**, 2818
+# (1996), doi:10.1103/PhysRevLett.77.2818 — a more efficient distillation protocol with local rotations in place of
+# the twirl, and its use for secure key distribution.
+#
+# <span id="ref-9">[9]</span> C. H. Bennett, D. P. DiVincenzo, J. A. Smolin and W. K. Wootters, *Mixed-state
+# entanglement and quantum error correction*, Phys. Rev. A **54**, 3824 (1996), doi:10.1103/PhysRevA.54.3824 — the
+# hashing protocol with yield $1-S$, positive for Werner pairs with $F>0.8107$, and the relation between distillation
+# and quantum error correction.
+#
+# <span id="ref-10">[10]</span> N. Sangouard, C. Simon, H. de Riedmatten and N. Gisin, *Quantum repeaters based on
+# atomic ensembles and linear optics*, Rev. Mod. Phys. **83**, 33 (2011), doi:10.1103/RevModPhys.83.33 — review of
+# practical repeater architectures; fibre loss of 0.2 dB/km near 1550 nm.
+#
+# <span id="ref-11">[11]</span> S. Pirandola, R. Laurenza, C. Ottaviani and L. Banchi, *Fundamental limits of
+# repeaterless quantum communications*, Nat. Commun. **8**, 15043 (2017), doi:10.1038/ncomms15043 — the bound
+# $-\log_2(1-\eta)$ for a lossy channel without repeaters.
+#
+# <span id="ref-12">[12]</span> M. Żukowski, A. Zeilinger, M. A. Horne and A. K. Ekert, *"Event-ready-detectors" Bell
+# experiment via entanglement swapping*, Phys. Rev. Lett. **71**, 4287 (1993), doi:10.1103/PhysRevLett.71.4287 —
+# entanglement swapping.
+#
+# <span id="ref-13">[13]</span> H.-J. Briegel, W. Dür, J. I. Cirac and P. Zoller, *Quantum repeaters: the role of
+# imperfect local operations in quantum communication*, Phys. Rev. Lett. **81**, 5932 (1998),
+# doi:10.1103/PhysRevLett.81.5932 — the quantum repeater with nested purification, with a polynomial overhead in time
+# and a logarithmic overhead in locally controlled particles.
+#
+# <span id="ref-14">[14]</span> W. Hoeffding, *Probability inequalities for sums of bounded random variables*, J. Am.
+# Stat. Assoc. **58**, 13 (1963), doi:10.1080/01621459.1963.10500830 — the exponential bounds for independent bounded
+# variables and for sampling without replacement.
+#
+# <span id="ref-15">[15]</span> R. J. Serfling, *Probability inequalities for the sum in sampling without
+# replacement*, Ann. Statist. **2**, 39 (1974), doi:10.1214/aos/1176342611 — sharper bounds for sampling without
+# replacement.
+#
+# <span id="ref-16">[16]</span> Y. Takeuchi, A. Mantri, T. Morimae, A. Mizutani and J. F. Fitzsimons,
+# *Resource-efficient verification of quantum computing using Serfling's bound*, npj Quantum Inf. **5**, 27 (2019),
+# doi:10.1038/s41534-019-0142-2 — verification of graph states by random sampling without an i.i.d. assumption.

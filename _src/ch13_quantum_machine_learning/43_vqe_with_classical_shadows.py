@@ -3,7 +3,7 @@
 #@part: Chapter 13 — Quantum machine learning
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
 # [42 — the variational quantum eigensolver](../ch13_quantum_machine_learning/42_variational_quantum_eigensolver.ipynb)
 # treated the energy $E(\boldsymbol\theta)=\langle\psi(\boldsymbol\theta)\vert H\vert\psi(\boldsymbol\theta)\rangle$ as a
@@ -12,19 +12,19 @@
 # bit per qubit drawn from the Born distribution. Every expectation value has to be **estimated** from repetitions, and
 # the number of repetitions is what a real experiment pays for.
 #
-# That cost is the subject of this notebook. The variational quantum eigensolver (VQE) was introduced by Peruzzo
-# *et al.* (2014). One VQE iteration with a parameter-shift gradient (Mitarai *et al.*, 2018; Schuld *et al.*, 2019) needs $2n$ energy
+# That cost is the subject of this notebook. The variational quantum eigensolver (VQE) was introduced in
+# [[1]](#ref-1). One VQE iteration with a parameter-shift gradient [[2]](#ref-2), [[3]](#ref-3) needs $2n$ energy
 # evaluations; each energy is a sum of $O(N)$ (for a spin chain) or $O(N^4)$ (for a molecule) Pauli terms; each term
 # needs enough shots to be resolved. For molecular Hamiltonians the number of measurements is one of the dominant
-# costs of the algorithm, and reducing it is an active field of its own (Tilly *et al.*, 2022, review the strategies).
+# costs of the algorithm, and reducing it is an active field of its own (Ref. [[4]](#ref-4) reviews the strategies).
 #
 # Three strategies are compared here, all on the same Hamiltonian and the same state:
 #
 # 1. **term by term** — measure each Pauli string in its own experiment;
 # 2. **qubit-wise-commuting grouping** — collect terms that can be read off from the same measurement setting and
-#    measure each group once (Verteletskyi, Yen and Izmaylov, 2020);
+#    measure each group once [[5]](#ref-5);
 # 3. **classical shadows** — measure every qubit in a *random* Pauli basis, store the record, and estimate any
-#    observable afterwards (Huang, Kueng and Preskill, 2020), as built in
+#    observable afterwards [[6]](#ref-6), as built in
 #    [24 — classical shadows](../ch08_quantum_information_protocols/24_classical_shadows.ipynb).
 #
 # The comparison is made at a **fixed total number of shots**, the quantity an experiment pays for, and each
@@ -37,7 +37,7 @@
 # including the covariances between terms measured in the same shot and the optimal split of the shots. Section 5
 # prepares the state to be measured with the VQE of notebook 42. Section 6 checks all three predictions against
 # simulation. Section 7 estimates the six observables of notebook 42's panel (33 Pauli strings) from one shadow data
-# set. Section 8 puts shadow energies inside an SPSA loop (Spall, 1992) and measures accuracy against snapshot budget. Section 9
+# set. Section 8 puts shadow energies inside an SPSA loop [[7]](#ref-7) and measures accuracy against snapshot budget. Section 9
 # derives and measures the selection bias that noisy costs create. Section 10 is a remark on derandomisation.
 # Section 11 is the final characterisation of the converged state with bootstrap error bars.
 #
@@ -241,7 +241,7 @@ def bootstrap_std(key, values, n_boot=200):
 # $$T=3(N-1)+N=4N-3 , \tag{2}$$
 #
 # which is $21$ at $N=6$. For the transverse-field Ising model only the $ZZ$ bonds and the $X$ fields survive, so
-# $T=2N-1$. A molecular Hamiltonian in second quantisation, after the Jordan-Wigner transformation (Jordan and Wigner, 1928), has
+# $T=2N-1$. A molecular Hamiltonian in second quantisation, after the Jordan-Wigner transformation [[8]](#ref-8), has
 # $T=O(N^4)$ terms — the reason the accounting below matters.
 #
 # By linearity,
@@ -266,8 +266,8 @@ def bootstrap_std(key, values, n_boot=200):
 #
 # i.e. wherever $P$ is not the identity, the setting measured exactly that Pauli. Two strings that both satisfy Eq. (3)
 # for a common $b$ are called **qubit-wise commuting**; one shot then yields an unbiased estimate of *both*. Grouping
-# the $T$ terms into as few settings as possible is a graph-colouring problem in general (Verteletskyi, Yen and
-# Izmaylov, 2020), but for a nearest-neighbour chain we can solve it exactly.
+# the $T$ terms into as few settings as possible is a graph-colouring problem in general
+# [[5]](#ref-5), but for a nearest-neighbour chain we can solve it exactly.
 #
 # **Claim.** The XXZ chain of Eq. (2) needs exactly $G=3$ settings, and the transverse-field Ising chain exactly
 # $G=2$.
@@ -403,7 +403,7 @@ def bootstrap_std(key, values, n_boot=200):
 # ## 5. The state to be measured: a VQE ground state
 #
 # The scenario is the realistic one: a variational circuit has been trained (notebook 42) and we now want to know what
-# it produced. We reproduce that first step compactly — hardware-efficient ansatz (Kandala *et al.*, 2017), exact gradients, Adam (Kingma and Ba, 2015), several
+# it produced. We reproduce that first step compactly — hardware-efficient ansatz [[9]](#ref-9), exact gradients, Adam [[10]](#ref-10), several
 # random restarts — and keep the best run. Everything measured afterwards is measured on *that* state, whose exact
 # properties we know but pretend not to.
 
@@ -1428,10 +1428,10 @@ fig.tight_layout(); plt.show()
 # The random Pauli ensemble of Section 3.4 is deliberately ignorant: it draws each basis uniformly, whatever the
 # Hamiltonian is. Two lines of work remove that ignorance while keeping the "one data set, many observables" property.
 #
-# **Locally biased shadows** (Hadfield, Bravyi, Raymond and Mezzacapo, 2022) keep the measurement independent per
+# **Locally biased shadows** [[11]](#ref-11) keep the measurement independent per
 # qubit but replace the uniform distribution over $\{X,Y,Z\}$ by a per-qubit distribution $\beta_q$ optimised for the
 # observables of interest; the inverse channel and the estimator change accordingly, and the variance for the target
-# set drops. **Derandomisation** (Huang, Kueng and Preskill, 2021) goes further and removes the randomness altogether:
+# set drops. **Derandomisation** [[12]](#ref-12) goes further and removes the randomness altogether:
 # given a target list of Pauli observables, a greedy algorithm chooses each measurement setting deterministically so
 # as to minimise a confidence bound on the estimation error, producing a *schedule* rather than a distribution. Its
 # guarantee is that this bound is never worse than the average bound of the randomised scheme. In the molecular
@@ -1449,7 +1449,7 @@ fig.tight_layout(); plt.show()
 # Section 5 — the one all the measurement studies were performed on — because it is the well-converged one; the
 # shadow-driven states of Section 8 were already re-measured independently in Section 9.
 #
-# The error bars come from the **bootstrap** (Efron, 1979) of notebook 24: resample the snapshots with replacement, recompute, and
+# The error bars come from the **bootstrap** [[13]](#ref-13) of notebook 24: resample the snapshots with replacement, recompute, and
 # take the spread. For the sample means reported here it must reproduce the analytic $\sigma/\sqrt M$, which makes it a
 # check of the pipeline; its real use is for non-linear functions of the same snapshots (ratios, purities, the
 # quantum Fisher information of notebook 36), for which no simple formula exists.
@@ -1462,7 +1462,7 @@ fig.tight_layout(); plt.show()
 # and it occurs with probability $3^{-N}\lvert\langle s\vert U_b\vert\psi\rangle\rvert^2$. A second moment near $11$
 # gives $5\cdot10^{4}$ snapshots an error bar near $0.015$ — acceptable here. Since the moment grows exponentially
 # with $N$, at $N=20$ the same budget would not suffice, which is why fidelity estimation from local randomised
-# measurements does not scale and global (Clifford) shadows exist (Huang, Kueng and Preskill 2020).
+# measurements does not scale and global (Clifford) shadows exist [[6]](#ref-6).
 
 # %%
 # ==============================================================================
@@ -1695,36 +1695,52 @@ fig.tight_layout(); plt.show()
 #
 # ## 14. References
 #
-# * H.-Y. Huang, R. Kueng and J. Preskill, *Predicting many properties of a quantum system from very few measurements*,
-#   Nat. Phys. **16**, 1050 (2020) — classical shadows, the estimator of Eq. (4) and its variance.
-# * H.-Y. Huang, R. Kueng and J. Preskill, *Efficient estimation of Pauli observables by derandomization*,
-#   Phys. Rev. Lett. **127**, 030503 (2021) — the derandomised schedule of Section 10.
-# * C. Hadfield, S. Bravyi, R. Raymond and A. Mezzacapo, *Measurements of quantum Hamiltonians with locally-biased
-#   classical shadows*, Commun. Math. Phys. **391**, 951 (2022) — biased local ensembles.
-# * V. Verteletskyi, T.-C. Yen and A. F. Izmaylov, *Measurement optimization in the variational quantum eigensolver
-#   using a minimum clique cover*, J. Chem. Phys. **152**, 124114 (2020) — qubit-wise-commuting grouping as a minimum
-#   clique cover of the commutativity graph, equivalently a colouring of its complement.
-# * A. Peruzzo, J. McClean, P. Shadbolt, M.-H. Yung, X.-Q. Zhou, P. J. Love, A. Aspuru-Guzik and J. L. O'Brien,
-#   *A variational eigenvalue solver on a photonic quantum processor*, Nat. Commun. **5**, 4213 (2014) — the first VQE
-#   experiment, and the term-by-term measurement scheme of Section 3.2.
-# * J. Tilly, H. Chen, S. Cao, D. Picozzi, K. Setia, Y. Li, E. Grant, L. Wossnig, I. Rungger, G. H. Booth and
-#   J. Tennyson, *The variational quantum eigensolver: a review of methods and best practices*, Phys. Rep. **986**, 1
-#   (2022) — the measurement problem in context, with cost estimates for molecular Hamiltonians.
-# * J. C. Spall, *Multivariate stochastic approximation using a simultaneous perturbation gradient approximation*,
-#   IEEE Trans. Autom. Control **37**, 332 (1992) — the SPSA gradient rule used in Section 8.
-# * K. Mitarai, M. Negoro, M. Kitagawa and K. Fujii, *Quantum circuit learning*, Phys. Rev. A **98**, 032309 (2018) —
-#   the parameter-shift rule for Pauli-generated gates.
-# * M. Schuld, V. Bergholm, C. Gogolin, J. Izaac and N. Killoran, *Evaluating analytic gradients on quantum hardware*,
-#   Phys. Rev. A **99**, 032331 (2019) — the shift rule for every generator with two eigenvalues $\pm r$.
-# * A. Kandala, A. Mezzacapo, K. Temme, M. Takita, M. Brink, J. M. Chow and J. M. Gambetta, *Hardware-efficient
-#   variational quantum eigensolver for small molecules and quantum magnets*, Nature **549**, 242 (2017) — the
-#   hardware-efficient ansatz of Section 5.
-# * D. P. Kingma and J. Ba, *Adam: a method for stochastic optimization*, 3rd International Conference on Learning
-#   Representations (ICLR 2015), arXiv:1412.6980 — the optimiser of Section 5.
-# * P. Jordan and E. Wigner, *Über das Paulische Äquivalenzverbot*, Z. Phys. **47**, 631 (1928) — the
-#   fermion-to-qubit mapping of Section 3.1.
-# * B. Efron, *Bootstrap methods: another look at the jackknife*, Ann. Statist. **7**, 1 (1979) — the bootstrap error
-#   bars of Section 11.
-# * M. Cerezo, A. Arrasmith, R. Babbush, S. C. Benjamin, S. Endo, K. Fujii, J. R. McClean, K. Mitarai, X. Yuan,
-#   L. Cincio and P. J. Coles, *Variational quantum algorithms*, Nat. Rev. Phys. **3**, 625 (2021) — the review, with a
-#   section on measurement cost.
+# <span id="ref-1">[1]</span> A. Peruzzo, J. McClean, P. Shadbolt, M.-H. Yung, X.-Q. Zhou, P. J. Love, A. Aspuru-Guzik
+# and J. L. O'Brien, *A variational eigenvalue solver on a photonic quantum processor*, Nat. Commun. **5**, 4213 (2014)
+# — the first VQE experiment, and the term-by-term measurement scheme of Section 3.2.
+#
+# <span id="ref-2">[2]</span> K. Mitarai, M. Negoro, M. Kitagawa and K. Fujii, *Quantum circuit learning*, Phys. Rev. A
+# **98**, 032309 (2018) — the parameter-shift rule for Pauli-generated gates.
+#
+# <span id="ref-3">[3]</span> M. Schuld, V. Bergholm, C. Gogolin, J. Izaac and N. Killoran, *Evaluating analytic
+# gradients on quantum hardware*, Phys. Rev. A **99**, 032331 (2019) — the shift rule for every generator with two
+# eigenvalues $\pm r$.
+#
+# <span id="ref-4">[4]</span> J. Tilly, H. Chen, S. Cao, D. Picozzi, K. Setia, Y. Li, E. Grant, L. Wossnig, I. Rungger,
+# G. H. Booth and J. Tennyson, *The variational quantum eigensolver: a review of methods and best practices*, Phys. Rep.
+# **986**, 1 (2022) — the measurement problem in context, with cost estimates for molecular Hamiltonians.
+#
+# <span id="ref-5">[5]</span> V. Verteletskyi, T.-C. Yen and A. F. Izmaylov, *Measurement optimization in the
+# variational quantum eigensolver using a minimum clique cover*, J. Chem. Phys. **152**, 124114 (2020) —
+# qubit-wise-commuting grouping as a minimum clique cover of the commutativity graph, equivalently a colouring of its
+# complement.
+#
+# <span id="ref-6">[6]</span> H.-Y. Huang, R. Kueng and J. Preskill, *Predicting many properties of a quantum system
+# from very few measurements*, Nat. Phys. **16**, 1050 (2020) — classical shadows, the estimator of Eq. (4) and its
+# variance.
+#
+# <span id="ref-7">[7]</span> J. C. Spall, *Multivariate stochastic approximation using a simultaneous perturbation
+# gradient approximation*, IEEE Trans. Autom. Control **37**, 332 (1992) — the SPSA gradient rule used in Section 8.
+#
+# <span id="ref-8">[8]</span> P. Jordan and E. Wigner, *Über das Paulische Äquivalenzverbot*, Z. Phys. **47**, 631
+# (1928) — the fermion-to-qubit mapping of Section 3.1.
+#
+# <span id="ref-9">[9]</span> A. Kandala, A. Mezzacapo, K. Temme, M. Takita, M. Brink, J. M. Chow and J. M. Gambetta,
+# *Hardware-efficient variational quantum eigensolver for small molecules and quantum magnets*, Nature **549**, 242
+# (2017) — the hardware-efficient ansatz of Section 5.
+#
+# <span id="ref-10">[10]</span> D. P. Kingma and J. Ba, *Adam: a method for stochastic optimization*, 3rd International
+# Conference on Learning Representations (ICLR 2015), arXiv:1412.6980 — the optimiser of Section 5.
+#
+# <span id="ref-11">[11]</span> C. Hadfield, S. Bravyi, R. Raymond and A. Mezzacapo, *Measurements of quantum
+# Hamiltonians with locally-biased classical shadows*, Commun. Math. Phys. **391**, 951 (2022) — biased local ensembles.
+#
+# <span id="ref-12">[12]</span> H.-Y. Huang, R. Kueng and J. Preskill, *Efficient estimation of Pauli observables by
+# derandomization*, Phys. Rev. Lett. **127**, 030503 (2021) — the derandomised schedule of Section 10.
+#
+# <span id="ref-13">[13]</span> B. Efron, *Bootstrap methods: another look at the jackknife*, Ann. Statist. **7**, 1
+# (1979) — the bootstrap error bars of Section 11.
+#
+# <span id="ref-14">[14]</span> M. Cerezo, A. Arrasmith, R. Babbush, S. C. Benjamin, S. Endo, K. Fujii, J. R. McClean,
+# K. Mitarai, X. Yuan, L. Cincio and P. J. Coles, *Variational quantum algorithms*, Nat. Rev. Phys. **3**, 625 (2021) —
+# the review, with a section on measurement cost.

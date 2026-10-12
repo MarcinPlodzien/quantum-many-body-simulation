@@ -3,7 +3,7 @@
 #@description: Binary optimisation problems written as diagonal Ising Hamiltonians, the QAOA circuit simulated with the cost layer as one phase per bit string, the depth-one expectation value in closed form for any unweighted graph and checked against simulation, gradients by automatic differentiation and by a gate-level parameter-shift rule, the approximation ratio and the probability of the optimal cut up to depth six, interpolation-based initialisation, the Trotterised-annealing limit, parameter transfer between graphs, and sampling against classical baselines.
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
 # Many problems of logistics, scheduling and circuit design reduce to choosing $N$ binary variables so that a cost
 # function is as small as possible. Two examples run through this notebook. In **MaxCut** the vertices of a graph are
@@ -12,7 +12,7 @@
 # NP-hard problems: no algorithm is known that solves every instance in a time polynomial in $N$, and every known exact
 # method needs, in the worst case, a time that grows exponentially with $N$; the plain one checks all $2^N$ assignments.
 #
-# The *quantum approximate optimisation algorithm* (QAOA), proposed by Farhi, Goldstone and Gutmann (2014), attacks such
+# The *quantum approximate optimisation algorithm* (QAOA), introduced in [[1]](#ref-1), attacks such
 # problems with a short parametrised circuit. The classical cost becomes a Hamiltonian $H_C$ that is diagonal in the
 # computational basis, so that its ground states are the optimal bit strings. A circuit of $p$ layers alternates
 # evolution under $H_C$ with evolution under a "mixer" $B=\sum_qX_q$, starting from the uniform superposition of all
@@ -65,11 +65,11 @@
 # bit), and whether these contributions add up or cancel depends on the phases they carry. With well-chosen
 # angles the weight accumulates on low-cost strings.
 #
-# A second picture explains why the alternating structure is a natural choice. In adiabatic quantum computation (Farhi,
-# Goldstone, Gutmann and Sipser, 2000) the system starts in the ground state of $-B$, which is the uniform
+# A second picture explains why the alternating structure is a natural choice. In adiabatic quantum computation [[2]](#ref-2)
+# the system starts in the ground state of $-B$, which is the uniform
 # superposition, and the Hamiltonian is changed slowly from $-B$ to $H_C$. If the change is slow enough compared with
 # the smallest energy gap along the way, the state stays in the instantaneous ground state and ends in the ground level
-# of $H_C$, where a measurement returns an optimal string. Quantum annealing (Kadowaki and Nishimori, 1998) is the same idea seen as a quantum
+# of $H_C$, where a measurement returns an optimal string. Quantum annealing [[3]](#ref-3) is the same idea seen as a quantum
 # version of simulated annealing, with a transverse field that is lowered in time playing the part of the temperature.
 # On a gate-based quantum computer the slow evolution is cut into many short steps that alternate evolutions under $H_C$
 # and under $B$. QAOA keeps this alternating structure but uses only a few steps and lets the optimiser choose their
@@ -79,14 +79,14 @@
 # cannot solve every instance of an NP-hard problem in polynomial time. The realistic hope is that QAOA finds
 # better cuts than classical heuristics, or finds them faster, on some instances of useful size, and whether it does is
 # an open research question. The algorithm is designed for *noisy intermediate-scale quantum* (NISQ) devices, the name
-# Preskill (2018) gave to processors with about 50 to 100 qubits and no error correction, whose gate errors limit the
+# introduced in [[4]](#ref-4) for processors with about 50 to 100 qubits and no error correction, whose gate errors limit the
 # size of the circuits that can be run reliably. Shallow circuits come with a limitation of their own. At depth $p$ the
-# expectation value of an edge depends only on the vertices within distance $p$ of it (the light cone of Section 5.1), and Bravyi, Kliesch,
-# Koenig and Tang (2020) used this locality, together with the spin-flip symmetry of Section 4.3, to prove that on
+# expectation value of an edge depends only on the vertices within distance $p$ of it (the light cone of Section 5.1), and Ref.
+# [[5]](#ref-5) used this locality, together with the spin-flip symmetry of Section 4.3, to prove that on
 # certain MaxCut instances a classical algorithm outperforms QAOA at every fixed depth. Experiments have run the
-# algorithm on real hardware. Harrigan *et al.* (2021) applied QAOA on up to 23 superconducting qubits of the Sycamore
+# algorithm on real hardware. Ref. [[6]](#ref-6) applied QAOA on up to 23 superconducting qubits of the Sycamore
 # processor. For problems whose graph matched the connectivity of the chip, the approximation ratio (Section 3.2) did
-# not depend on the problem size and improved with depth. For MaxCut and the spin glass of Sherrington and Kirkpatrick (1975) (random couplings between
+# not depend on the problem size and improved with depth. For MaxCut and the Sherrington–Kirkpatrick spin glass [[7]](#ref-7) (random couplings between
 # all pairs of spins), whose interactions had to be routed across the chip, the performance decreased with the problem size but stayed better
 # than random guessing.
 #
@@ -206,10 +206,10 @@ def run_timed(compiled, *args, repeats=5):
 #
 # Because $s_i^2=s_i$, a quadratic self-term $W_{ii}s_i^2$ is already linear, so Eq. (1) is the most general quadratic
 # function of binary variables. The word "unconstrained" means that every one of the $2^N$ strings is allowed; a
-# constraint is usually built in by adding a penalty term that makes forbidden strings expensive. Lucas (2014) gives
+# constraint is usually built in by adding a penalty term that makes forbidden strings expensive. Ref. [[8]](#ref-8) gives
 # such formulations for many NP-hard problems, number partitioning among them. A constraint can also be kept exactly by
-# a mixer that never leaves the allowed strings, the route of the quantum alternating operator ansatz (Hadfield *et al.*,
-# 2019); the two problems of this notebook are unconstrained and need neither.
+# a mixer that never leaves the allowed strings, the route of the quantum alternating operator ansatz [[9]](#ref-9);
+# the two problems of this notebook are unconstrained and need neither.
 #
 # A qubit register stores Ising spins more naturally than bits. The substitution
 #
@@ -283,8 +283,8 @@ assert err_qubo < 1e-12
 #
 # MaxCut asks for the split of a graph into two groups that separates as many connected pairs as possible. Problems of
 # this shape appear in many places. When the edge weights measure how dissimilar two items are, a maximum cut puts the
-# most dissimilar pairs into different groups, a simple form of clustering. Barahona, Grötschel, Jünger and Reinelt
-# (1988) reduced two applied problems to MaxCut: finding the ground states of Ising spin glasses in an external field,
+# most dissimilar pairs into different groups, a simple form of clustering. Ref. [[10]](#ref-10)
+# reduced two applied problems to MaxCut: finding the ground states of Ising spin glasses in an external field,
 # a question of statistical physics, and minimising the number of vias (contacts between layers) in the layout of
 # printed circuit boards and integrated circuits. The connection with spin glasses is direct, because the cut size is
 # a sum of Ising couplings, as Eq. (6) below shows.
@@ -782,8 +782,8 @@ for name, inst in INSTANCES.items():
 #
 # For an unweighted graph, $E_1=\sum_{(u,v)\in E}\langle Z_uZ_v\rangle$ with
 # $\langle Z_uZ_v\rangle=\langle+\vert U_C^\dagger U_B^\dagger Z_uZ_vU_BU_C\vert+\rangle$. We move the operator through
-# the two layers (the Heisenberg picture) and then take the expectation value in the product state. Wang, Hadfield,
-# Jiang and Rieffel (2018) derived the result for a general graph; the derivation follows. Write $d_u$ for the
+# the two layers (the Heisenberg picture) and then take the expectation value in the product state. The result for a general graph
+# was derived in [[11]](#ref-11); the derivation follows. Write $d_u$ for the
 # degree of vertex $u$ (its number of neighbours), $\mathcal N(u)$ for its set of neighbours and
 # $\lambda_{uv}=\vert\mathcal N(u)\cap\mathcal N(v)\vert$ for the number of triangles that contain the edge $(u,v)$.
 #
@@ -904,7 +904,7 @@ for name, (N, edges) in GRAPHS_P1.items():
 # The optimal angles depend only on $D$; neither $N$ nor the particular graph enters. For $D=2$ (the ring) $\gamma^\ast=\pi/8$
 # and three quarters of all edges are cut on average; for an even ring $P_{\max}=N=\vert E\vert$, so $r_1=3/4$. For
 # $D=3$ the fraction is $\tfrac12+\tfrac1{3\sqrt3}=0.6925$, and since $P_{\max}\le\vert E\vert$ the approximation ratio
-# is at least that on every triangle-free 3-regular graph. Farhi, Goldstone and Gutmann (2014) proved that at $p=1$ the
+# is at least that on every triangle-free 3-regular graph. Ref. [[1]](#ref-1) proved that at $p=1$ the
 # ratio is at least $0.6924$ on every 3-regular graph, with or without triangles. This is a worst-case guarantee,
 # well above the value $1/2$ of a random cut. The cell compares Eq. (17) with a grid search on the simulated landscape.
 
@@ -951,7 +951,7 @@ print(f"D = 3 edge fraction from Eq. (17): {p1_optimum_regular(3)[2]:.5f}  (1/2 
 # the ring, the cube and the Petersen graph. The cube and the Petersen graph share $D=3$ and therefore the optimal angles
 # and the expected fraction of cut edges; their ratios differ because the Petersen graph cannot cut all of its edges
 # ($P_{\max}=12$ of 15). For the cube, bipartite and without triangles, the ratio equals the edge fraction $0.69245$,
-# which coincides with the bound $0.6924$ of Farhi *et al.* to the four digits they quote.
+# which coincides with the bound $0.6924$ of [[1]](#ref-1) to the four digits quoted there.
 #
 # ## 6. Depth-one landscapes
 #
@@ -1034,7 +1034,7 @@ for name in ["ring", "cube", "Petersen", "partition"]:
 # In simulation, `jax.grad(qaoa_energy)` differentiates through the `lax.scan` of Section 4 in reverse mode, at the cost
 # of a few energy evaluations, whatever $p$ is ([notebook 40](../ch13_quantum_machine_learning/40_parametrized_gates_and_gradients.ipynb),
 # Section 10). On a quantum computer, gradients must be measured, and the standard tool is the parameter-shift rule
-# (Mitarai *et al.*, 2018; Schuld *et al.*, 2019).
+# [[12]](#ref-12), [[13]](#ref-13).
 #
 # ### 7.2 The parameter-shift rule for a parameter that feeds many gates
 #
@@ -1060,7 +1060,7 @@ for name in ["ring", "cube", "Petersen", "partition"]:
 # $$\frac{\partial E}{\partial\gamma_l}=\sum_e2J_e\frac{\partial E}{\partial\varphi_{l,e}},\qquad\frac{\partial E}{\partial\beta_l}=\sum_q2\,\frac{\partial E}{\partial\theta_{l,q}}, \tag{19}$$
 #
 # and each partial derivative is a two-term shift of a single gate: $2p(\vert E\vert+N)$ circuit evaluations for the
-# full gradient. The **general shift rule** of Wierichs, Izaac, Wang and Lin (2022) instead uses the trigonometric
+# full gradient. The **general shift rule** of [[14]](#ref-14) instead uses the trigonometric
 # polynomial of Eq. (18) directly: with $R$ distinct frequencies, $2R$ evaluations per parameter suffice. The cell
 # measures the number of frequencies by a discrete Fourier transform of $E(\beta_1)$ and $E(\gamma_1)$, then compares
 # the gate-level rule (with the engine's `parameter_shift_grad`) and the layer-level two-term rule against automatic
@@ -1169,12 +1169,12 @@ assert abs(float(g_last - g_ad[-1])) < TOL * 100
 # ### 8.1 Two initialisation strategies
 #
 # The landscape at $p>1$ has $2p$ dimensions and, as the partition instance already showed at $p=1$, may have many local
-# minima. We compare two ways of starting Adam (Kingma and Ba, 2014;
+# minima. We compare two ways of starting Adam ([[15]](#ref-15);
 # [notebook 41](../ch13_quantum_machine_learning/41_optimizers.ipynb)):
 #
 # * **random restarts**: $R$ independent starts with angles drawn uniformly, all optimised in parallel (`vmap` over the
 #   compiled `lax.scan` loop), keeping the best;
-# * **interpolation** (INTERP of Zhou, Wang, Choi, Pichler and Lukin, 2020): start at $p=1$ from the grid optimum of
+# * **interpolation** (INTERP of [[16]](#ref-16)): start at $p=1$ from the grid optimum of
 #   Section 5, and initialise depth $p+1$ from the optimum $(\boldsymbol\gamma^{(p)},\boldsymbol\beta^{(p)})$ at depth
 #   $p$ by linear interpolation,
 #
@@ -1317,8 +1317,8 @@ assert all(np.all(np.diff(RESULTS[n]["r_interp"]) > -1e-3) for n in RESULTS)  # 
 
 # %% [markdown]
 # **The ring.** The INTERP optima give $r_p=3/4,\,5/6,\,7/8$ at $p=1,2,3$ to round-off and $r_4=1$: the depth-four
-# circuit prepares an optimal state exactly, and $p_{\rm opt}$ jumps from $0.54$ to $1$. Farhi *et al.* (2014) found
-# $(2p+1)/(2p+2)$ numerically on rings with $p<N/2$, and Mbeng, Fazio and Santoro (2019) proved that on an even ring the
+# circuit prepares an optimal state exactly, and $p_{\rm opt}$ jumps from $0.54$ to $1$. Ref. [[1]](#ref-1) found
+# $(2p+1)/(2p+2)$ numerically on rings with $p<N/2$, and Ref. [[17]](#ref-17) proved that on an even ring the
 # residual $1-r_p$ is at least $1/(2p+2)$ for $2p<N$ and showed that it drops to zero for $2p\geq N$. The light cone
 # explains the switch. For $p<N/2$ every edge sees an open segment of $2p+2$ spins, the same as on an infinite chain; at $p=N/2=4$
 # the light cone closes around the ring.
@@ -1334,8 +1334,8 @@ assert all(np.all(np.diff(RESULTS[n]["r_interp"]) > -1e-3) for n in RESULTS)  # 
 # INTERP run per depth costs a twelfth of the restarts. INTERP follows a single branch of local optima from depth to
 # depth, and nothing guarantees that this branch contains the global optimum: on the partition instance its gain from
 # $p=3$ to $p=4$ is only $0.0014$, while a random start at $p=4$ does better. These are single instances with a fixed
-# budget of 300 Adam steps. Zhou *et al.* (2020) report, for MaxCut on larger graphs, that random initialisation needs
-# a number of starts growing exponentially with $p$ to match their heuristic initialisations.
+# budget of 300 Adam steps. Ref. [[16]](#ref-16) reports, for MaxCut on larger graphs, that random initialisation needs
+# a number of starts growing exponentially with $p$ to match its heuristic initialisations.
 #
 # **Expected cost and the probability of the optimum are different figures of merit.** At $p=4$ the INTERP states of
 # the partition instance and of the cube have almost the same score ($0.9871$ and $0.9861$), but $p_{\rm opt}=0.55$
@@ -1379,7 +1379,7 @@ for name in ["cube", "Petersen"]:
 # to $0.172$ (with one near-tie, $0.476$ and $0.478$). On the Petersen graph $\gamma_l$ rises from $0.138$ to $0.547$ at
 # $l=5$ and drops slightly to $0.521$ in the last layer, while $\vert\beta_l\vert$ falls monotonically from $0.579$ to
 # $0.107$. All $\beta_l$ are negative and all $\gamma_l$ positive. The circuit starts with mostly mixing and ends with
-# mostly cost evolution. Zhou *et al.* (2020) observed the same smooth pattern on many MaxCut instances, and it is the
+# mostly cost evolution. Ref. [[16]](#ref-16) observed the same smooth pattern on many MaxCut instances, and it is the
 # reason why the interpolation of Eq. (20) gives good starting points. The ring's optimum at $p=6$ is of a different kind,
 # mirror-symmetric with $\beta_l=-\gamma_{p+1-l}$ to the printed precision; from $p=4$ on the ring is solved exactly and the
 # optimum is not unique. The partition schedule has much smaller $\gamma_l$ (between $0.018$ and $0.255$; the couplings
@@ -1390,7 +1390,7 @@ for name in ["cube", "Petersen"]:
 #
 # ### 9.1 Trotterised annealing is a QAOA circuit
 #
-# Adiabatic quantum computing (Farhi, Goldstone, Gutmann and Sipser, 2000) prepares the ground state of $H_C$ by slowly
+# Adiabatic quantum computing [[2]](#ref-2) prepares the ground state of $H_C$ by slowly
 # changing the Hamiltonian
 #
 # $$H(s)=(1-s)\,H_{\rm init}+s\,H_C,\qquad H_{\rm init}=-B=-\sum_qX_q,\qquad s:0\to1,$$
@@ -1399,7 +1399,7 @@ for name in ["cube", "Petersen"]:
 # with $1/\Delta_{\min}^2$, where $\Delta_{\min}$ is the smallest gap above the ground level along the path (in the
 # spin-flip-symmetric sector, which the evolution never leaves), the state follows the instantaneous ground state. Split the
 # total time $T$ into $p$ steps of length $\Delta t=T/p$ and evaluate $s$ at the midpoint of each step,
-# $s_l=(l-\tfrac12)/p$. A first-order step of the product formula of Trotter (1959) ([notebook 12](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb)) is
+# $s_l=(l-\tfrac12)/p$. A first-order step of the Trotter product formula [[18]](#ref-18) ([notebook 12](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb)) is
 #
 # $$e^{-i\Delta t\,H(s_l)}\approx e^{-i\Delta t(1-s_l)H_{\rm init}}\,e^{-i\Delta t\,s_lH_C}=e^{+i(1-s_l)\Delta t\,B}\,e^{-is_l\Delta t\,H_C}=U_B(\beta_l)\,U_C(\gamma_l),$$
 #
@@ -1480,14 +1480,14 @@ plt.show()
 # top of the spectrum, as predicted.
 #
 # > **Physics insight.** Annealing guarantees $r_p\to1$ only for long times, set by the minimum gap of $H(s)$. Optimised
-# > angles may do better by using diabatic transitions; Zhou *et al.* (2020) study instances on which adiabatic annealing
+# > angles may do better by using diabatic transitions; Ref. [[16]](#ref-16) studies instances on which adiabatic annealing
 # > fails because of small gaps and QAOA does not.
 #
 # ## 10. Transferring angles between graphs
 #
-# Eq. (17) showed that at $p=1$ the optimal angles on triangle-free $D$-regular graphs depend only on $D$. Brandão,
-# Broughton, Farhi, Gutmann and Neven (2018) showed more generally that for fixed angles the QAOA objective of MaxCut
-# concentrates: typical instances drawn from a reasonable distribution (they prove it for large 3-regular graphs at low
+# Eq. (17) showed that at $p=1$ the optimal angles on triangle-free $D$-regular graphs depend only on $D$. Ref.
+# [[19]](#ref-19) showed more generally that for fixed angles the QAOA objective of MaxCut
+# concentrates: typical instances drawn from a reasonable distribution (the proof there covers large 3-regular graphs at low
 # depth) give nearly the same value, and angles optimised on small instances work on larger ones. We test this on six
 # random connected 3-regular graphs with $N=10$, generated by random pairing of vertex "stubs" with rejection of loops,
 # double edges and disconnected graphs. The angles optimised on the Petersen graph (Section 8) are applied unchanged
@@ -1557,7 +1557,7 @@ assert np.all(loss > -1e-3)                                                    #
 # but is bipartite ($P_{\max}=15$), unlike the Petersen graph. Starting Adam from the transferred angles reaches the same
 # optimum as the graph's own INTERP chain in 16 of the 18 cases and a worse one in the other two (graphs 1 and 5 at $p=3$).
 #
-# At ten vertices "typical" instances in the sense of Brandão *et al.* do not exist yet: their concentration argument
+# At ten vertices "typical" instances in the sense of [[19]](#ref-19) do not exist yet: its concentration argument
 # concerns large graphs, in which short cycles are rare, whereas four of our six random graphs contain triangles. At
 # this size transferred angles are useful starting points for a local optimisation, and at
 # $p=1$ they are already close to optimal.
@@ -1784,47 +1784,70 @@ for p in (1, 4):
 #
 # ## References
 #
-# * E. Farhi, J. Goldstone and S. Gutmann, *A quantum approximate optimization algorithm*, arXiv:1411.4028 (2014) — the
-#   algorithm of Eq. (9), the $(2p+1)/(2p+2)$ values on the ring, and the bound $0.6924$ at $p=1$ on 3-regular graphs.
-# * E. Farhi, J. Goldstone, S. Gutmann and M. Sipser, *Quantum computation by adiabatic evolution*,
-#   arXiv:quant-ph/0001106 (2000) — the adiabatic algorithm of Sections 1.1 and 9.
-# * T. Kadowaki and H. Nishimori, *Quantum annealing in the transverse Ising model*, Phys. Rev. E **58**, 5355 (1998)
-#   — quantum annealing with a time-dependent transverse field in the role of the temperature (Section 1.1).
-# * J. Preskill, *Quantum computing in the NISQ era and beyond*, Quantum **2**, 79 (2018) — noisy intermediate-scale
-#   quantum devices (Section 1.1).
-# * S. Bravyi, A. Kliesch, R. Koenig and E. Tang, *Obstacles to variational quantum optimization from symmetry
-#   protection*, Phys. Rev. Lett. **125**, 260505 (2020) — locality and spin-flip symmetry limit QAOA at fixed depth on
-#   certain MaxCut instances (Section 1.1).
-# * M. P. Harrigan *et al.*, *Quantum approximate optimization of non-planar graph problems on a planar
-#   superconducting processor*, Nat. Phys. **17**, 332 (2021) — QAOA on up to 23 qubits of the Sycamore processor
-#   (Section 1.1).
-# * F. Barahona, M. Grötschel, M. Jünger and G. Reinelt, *An application of combinatorial optimization to statistical
-#   physics and circuit layout design*, Oper. Res. **36**, 493 (1988) — spin-glass ground states and via minimisation in
-#   circuit layout reduced to MaxCut (Section 3.2).
-# * A. Lucas, *Ising formulations of many NP problems*, Front. Phys. **2**, 5 (2014) — Ising forms of number partitioning
-#   and many other NP-hard problems.
-# * Z. Wang, S. Hadfield, Z. Jiang and E. G. Rieffel, *Quantum approximate optimization algorithm for MaxCut: A
-#   fermionic view*, Phys. Rev. A **97**, 022304 (2018) — the depth-one expectation value for a general graph, Eq. (16).
-# * L. Zhou, S.-T. Wang, S. Choi, H. Pichler and M. D. Lukin, *Quantum approximate optimization algorithm: Performance,
-#   mechanism, and implementation on near-term devices*, Phys. Rev. X **10**, 021067 (2020) — the INTERP initialisation
-#   of Eq. (20), the smooth shape of optimal schedules, and the comparison with annealing.
-# * G. B. Mbeng, R. Fazio and G. E. Santoro, *Quantum annealing: a journey through digitalization, control, and hybrid
-#   quantum variational schemes*, arXiv:1906.08948 (2019) — the bound $1/(2p+2)$ on the residual energy of the ring.
-# * F. G. S. L. Brandão, M. Broughton, E. Farhi, S. Gutmann and H. Neven, *For fixed control parameters the quantum
-#   approximate optimization algorithm's objective function value concentrates for typical instances*,
-#   arXiv:1812.04170 (2018) — concentration and transfer of angles, Section 10.
-# * D. Wierichs, J. Izaac, C. Wang and C. Y.-Y. Lin, *General parameter-shift rules for quantum gradients*, Quantum
-#   **6**, 677 (2022) — shift rules for generators with many eigenvalues, with QAOA as an example.
-# * S. Hadfield, Z. Wang, B. O'Gorman, E. G. Rieffel, D. Venturelli and R. Biswas, *From the quantum approximate
-#   optimization algorithm to a quantum alternating operator ansatz*, Algorithms **12**, 34 (2019) — generalisations of
-#   the mixer, e.g. for constrained problems (Section 3.1).
-# * D. P. Kingma and J. Ba, *Adam: A method for stochastic optimization*, arXiv:1412.6980 (2014) — the optimiser of
-#   Section 8.
-# * K. Mitarai, M. Negoro, M. Kitagawa and K. Fujii, *Quantum circuit learning*, Phys. Rev. A **98**, 032309 (2018) —
-#   the parameter-shift rule for Pauli-generated gates.
-# * M. Schuld, V. Bergholm, C. Gogolin, J. Izaac and N. Killoran, *Evaluating analytic gradients on quantum hardware*,
-#   Phys. Rev. A **99**, 032331 (2019) — the parameter-shift rule for gates with two-eigenvalue generators.
-# * H. F. Trotter, *On the product of semi-groups of operators*, Proc. Amer. Math. Soc. **10**, 545 (1959) — the
-#   product formula behind the Trotter steps of Section 9.
-# * D. Sherrington and S. Kirkpatrick, *Solvable model of a spin-glass*, Phys. Rev. Lett. **35**, 1792 (1975) — the
-#   spin glass with random couplings between all pairs of spins (Section 1.1).
+# <span id="ref-1">[1]</span> E. Farhi, J. Goldstone and S. Gutmann, *A quantum approximate optimization algorithm*,
+# arXiv:1411.4028 (2014) — the algorithm of Eq. (9), the $(2p+1)/(2p+2)$ values on the ring, and the bound $0.6924$ at
+# $p=1$ on 3-regular graphs.
+#
+# <span id="ref-2">[2]</span> E. Farhi, J. Goldstone, S. Gutmann and M. Sipser, *Quantum computation by adiabatic
+# evolution*, arXiv:quant-ph/0001106 (2000) — the adiabatic algorithm of Sections 1.1 and 9.
+#
+# <span id="ref-3">[3]</span> T. Kadowaki and H. Nishimori, *Quantum annealing in the transverse Ising model*, Phys. Rev. E
+# **58**, 5355 (1998) — quantum annealing with a time-dependent transverse field in the role of the temperature
+# (Section 1.1).
+#
+# <span id="ref-4">[4]</span> J. Preskill, *Quantum computing in the NISQ era and beyond*, Quantum **2**, 79 (2018) — noisy
+# intermediate-scale quantum devices (Section 1.1).
+#
+# <span id="ref-5">[5]</span> S. Bravyi, A. Kliesch, R. Koenig and E. Tang, *Obstacles to variational quantum optimization
+# from symmetry protection*, Phys. Rev. Lett. **125**, 260505 (2020) — locality and spin-flip symmetry limit QAOA at
+# fixed depth on certain MaxCut instances (Section 1.1).
+#
+# <span id="ref-6">[6]</span> M. P. Harrigan *et al.*, *Quantum approximate optimization of non-planar graph problems on a
+# planar superconducting processor*, Nat. Phys. **17**, 332 (2021) — QAOA on up to 23 qubits of the Sycamore processor
+# (Section 1.1).
+#
+# <span id="ref-7">[7]</span> D. Sherrington and S. Kirkpatrick, *Solvable model of a spin-glass*, Phys. Rev. Lett. **35**,
+# 1792 (1975) — the spin glass with random couplings between all pairs of spins (Section 1.1).
+#
+# <span id="ref-8">[8]</span> A. Lucas, *Ising formulations of many NP problems*, Front. Phys. **2**, 5 (2014) — Ising forms
+# of number partitioning and many other NP-hard problems.
+#
+# <span id="ref-9">[9]</span> S. Hadfield, Z. Wang, B. O'Gorman, E. G. Rieffel, D. Venturelli and R. Biswas, *From the
+# quantum approximate optimization algorithm to a quantum alternating operator ansatz*, Algorithms **12**, 34 (2019) —
+# generalisations of the mixer, e.g. for constrained problems (Section 3.1).
+#
+# <span id="ref-10">[10]</span> F. Barahona, M. Grötschel, M. Jünger and G. Reinelt, *An application of combinatorial
+# optimization to statistical physics and circuit layout design*, Oper. Res. **36**, 493 (1988) — spin-glass ground
+# states and via minimisation in circuit layout reduced to MaxCut (Section 3.2).
+#
+# <span id="ref-11">[11]</span> Z. Wang, S. Hadfield, Z. Jiang and E. G. Rieffel, *Quantum approximate optimization
+# algorithm for MaxCut: A fermionic view*, Phys. Rev. A **97**, 022304 (2018) — the depth-one expectation value for a
+# general graph, Eq. (16).
+#
+# <span id="ref-12">[12]</span> K. Mitarai, M. Negoro, M. Kitagawa and K. Fujii, *Quantum circuit learning*, Phys. Rev. A
+# **98**, 032309 (2018) — the parameter-shift rule for Pauli-generated gates.
+#
+# <span id="ref-13">[13]</span> M. Schuld, V. Bergholm, C. Gogolin, J. Izaac and N. Killoran, *Evaluating analytic
+# gradients on quantum hardware*, Phys. Rev. A **99**, 032331 (2019) — the parameter-shift rule for gates with
+# two-eigenvalue generators.
+#
+# <span id="ref-14">[14]</span> D. Wierichs, J. Izaac, C. Wang and C. Y.-Y. Lin, *General parameter-shift rules for quantum
+# gradients*, Quantum **6**, 677 (2022) — shift rules for generators with many eigenvalues, with QAOA as an example.
+#
+# <span id="ref-15">[15]</span> D. P. Kingma and J. Ba, *Adam: A method for stochastic optimization*, arXiv:1412.6980
+# (2014) — the optimiser of Section 8.
+#
+# <span id="ref-16">[16]</span> L. Zhou, S.-T. Wang, S. Choi, H. Pichler and M. D. Lukin, *Quantum approximate optimization
+# algorithm: Performance, mechanism, and implementation on near-term devices*, Phys. Rev. X **10**, 021067 (2020) — the
+# INTERP initialisation of Eq. (20), the smooth shape of optimal schedules, and the comparison with annealing.
+#
+# <span id="ref-17">[17]</span> G. B. Mbeng, R. Fazio and G. E. Santoro, *Quantum annealing: a journey through
+# digitalization, control, and hybrid quantum variational schemes*, arXiv:1906.08948 (2019) — the bound $1/(2p+2)$ on
+# the residual energy of the ring.
+#
+# <span id="ref-18">[18]</span> H. F. Trotter, *On the product of semi-groups of operators*, Proc. Amer. Math. Soc. **10**,
+# 545 (1959) — the product formula behind the Trotter steps of Section 9.
+#
+# <span id="ref-19">[19]</span> F. G. S. L. Brandão, M. Broughton, E. Farhi, S. Gutmann and H. Neven, *For fixed control
+# parameters the quantum approximate optimization algorithm's objective function value concentrates for typical
+# instances*, arXiv:1812.04170 (2018) — concentration and transfer of angles, Section 10.

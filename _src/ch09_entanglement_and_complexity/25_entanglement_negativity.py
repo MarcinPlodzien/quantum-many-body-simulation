@@ -3,7 +3,7 @@
 #@description: Entanglement of mixed states: separability, the partial transpose as an axis swap of the density tensor, the PPT criterion, negativity and logarithmic negativity, Werner and noisy GHZ thresholds, the pure-state Schmidt formula, block negativity in the transverse-field Ising ground state, and entanglement sudden death.
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
 # For a **pure** state $\vert\psi\rangle_{AB}$ the entanglement question has a complete answer, and we already know it:
 # compute the reduced density matrix $\rho_A=\mathrm{Tr}_B\vert\psi\rangle\langle\psi\vert$, diagonalise it, and read off the
@@ -194,7 +194,7 @@ print("helpers defined; TOL =", TOL)
 #
 # Eq. (1) also explains why the problem is hard. To prove a state separable you must *exhibit* one decomposition out of an
 # infinite family; to prove it entangled you must rule out all of them. There is no bound on the number of terms $k$ that a
-# decomposition might need. The general decision problem is NP-hard in the dimension (Gurvits, 2003), so what we look for below
+# decomposition might need. The general decision problem is NP-hard in the dimension [[1]](#ref-1), so what we look for below
 # are computable *sufficient* conditions for entanglement.
 #
 # ### 3.2 Two states with the same subsystem entropy
@@ -401,7 +401,7 @@ assert np.max(np.abs(lam_A - lam_B)) < TOL
 #
 # > **If $\rho^{T_A}$ has a negative eigenvalue, then $\rho$ is entangled.**
 #
-# This is the **Peres criterion** (Peres, 1996). It is a *sufficient* condition for entanglement and a *necessary* condition for
+# This is the **Peres criterion**, introduced in [[2]](#ref-2). It is a *sufficient* condition for entanglement and a *necessary* condition for
 # separability; states with $\rho^{T_A}\ge0$ are called **PPT** (positive partial transpose).
 #
 # ### 5.2 Why a negative eigenvalue is possible at all
@@ -421,7 +421,7 @@ assert np.max(np.abs(lam_A - lam_B)) < TOL
 #
 # The converse of Section 5.1 — PPT implies separable — is **true in exactly two cases**:
 #
-# > **Theorem (Horodecki, Horodecki and Horodecki, 1996).** For bipartite systems of dimensions $2\times2$ and $2\times3$, a
+# > **Theorem [[3]](#ref-3).** For bipartite systems of dimensions $2\times2$ and $2\times3$, a
 # > state is separable if and only if its partial transpose is positive.
 #
 # In every larger pair of dimensions, $2\times4$, $3\times3$ and beyond, the converse fails: there exist entangled states whose
@@ -434,8 +434,8 @@ assert np.max(np.abs(lam_A - lam_B)) < TOL
 #
 # ### 5.4 Bound entanglement
 #
-# The entangled PPT states are not a curiosity. P. Horodecki (1997) constructed the first examples in $2\times4$ and $3\times3$,
-# and the Horodecki family then showed (1998) that **no** PPT state can be distilled: no matter how many copies you have and how
+# The entangled PPT states are not a curiosity. The first examples, in $2\times4$ and $3\times3$, were constructed in [[4]](#ref-4),
+# and Ref. [[5]](#ref-5) then showed that **no** PPT state can be distilled: no matter how many copies you have and how
 # cleverly you act locally, you cannot extract a single Bell pair from a PPT state. Such states are called **bound entangled** —
 # entanglement went in when they were made, and none of it can be taken out again in the usual currency.
 #
@@ -463,30 +463,30 @@ assert np.max(np.abs(lam_A - lam_B)) < TOL
 #   E_{\mathcal N}(\rho)=\log_2\lVert\rho^{T_A}\rVert_1=\log_2\bigl(2\mathcal N(\rho)+1\bigr) . \tag{5}$$
 #
 # So $\mathcal N$ is literally the total weight of the negative eigenvalues of the partial transpose. It is $0$ for every PPT
-# state — in particular for every separable state — and positive exactly when the Peres test fires. The name "negativity" is due
-# to Vidal and Werner (2002); the quantity itself, as $\lVert\rho^{T_A}\rVert_1-1=2\mathcal N$, first appeared in Życzkowski,
-# Horodecki, Sanpera and Lewenstein (1998), who defined it as a "degree of entanglement" and averaged it over random density
-# matrices in their study of the volume of the set of separable states.
+# state — in particular for every separable state — and positive exactly when the Peres test fires. The name "negativity" was introduced
+# in [[6]](#ref-6); the quantity itself, as $\lVert\rho^{T_A}\rVert_1-1=2\mathcal N$, first appeared in [[7]](#ref-7),
+# which defined it as a "degree of entanglement" and averaged it over random density
+# matrices in a study of the volume of the set of separable states.
 #
 # ### 6.2 Properties, and where they come from
 #
 # The following are quoted, not proved here; each is a theorem of the reference given.
 #
 # * **Entanglement monotone.** $\mathcal N$ does not increase under local operations and classical communication
-#   (Vidal and Werner, 2002, who prove monotonicity for $\mathcal N$). This is what makes it an entanglement *measure* and not
+#   ([[6]](#ref-6), which proves monotonicity for $\mathcal N$). This is what makes it an entanglement *measure* and not
 #   merely a detector.
 # * **Convexity, and the status of $E_{\mathcal N}$.** $\mathcal N$ is convex:
 #   $\mathcal N(\sum_kp_k\rho_k)\le\sum_kp_k\mathcal N(\rho_k)$, because $\lVert\cdot\rVert_1$ is a norm and the partial
 #   transpose is linear. $E_{\mathcal N}$ is **not** convex, since $\log_2$ is concave and destroys the inequality — Exercise 5
 #   constructs an explicit violation. That it is nevertheless a full entanglement monotone is a separate and later theorem:
-#   Plenio (2005) showed that $E_{\mathcal N}$ does not increase *on average* under PPT operations, a class that contains LOCC.
-#   The 2002 paper proves monotonicity for $\mathcal N$ and, for $E_{\mathcal N}$, only that it does not increase under
-#   deterministic LOCC protocols; monotonicity on average is Plenio's theorem.
+#   Ref. [[8]](#ref-8) showed that $E_{\mathcal N}$ does not increase *on average* under PPT operations, a class that contains LOCC.
+#   Ref. [[6]](#ref-6) proves monotonicity for $\mathcal N$ and, for $E_{\mathcal N}$, only that it does not increase under
+#   deterministic LOCC protocols; monotonicity on average is the theorem of [[8]](#ref-8).
 # * **Additivity.** $E_{\mathcal N}(\rho_1\otimes\rho_2)=E_{\mathcal N}(\rho_1)+E_{\mathcal N}(\rho_2)$, immediately from
 #   $(\rho_1\otimes\rho_2)^{T_A}=\rho_1^{T_A}\otimes\rho_2^{T_A}$ and the multiplicativity of the trace norm on tensor
 #   products. This is the reason to take the logarithm at all: $E_{\mathcal N}$ is measured in ebits and simply adds up over
 #   independent pairs, while $\mathcal N$ does not.
-# * **Bound on distillable entanglement.** $E_D(\rho)\le E_{\mathcal N}(\rho)$ (Vidal and Werner, 2002): the logarithmic
+# * **Bound on distillable entanglement.** $E_D(\rho)\le E_{\mathcal N}(\rho)$ [[6]](#ref-6): the logarithmic
 #   negativity is an upper bound on the number of Bell pairs per copy that can be distilled from $\rho$ by local operations and
 #   classical communication.
 # * **Normalisation.** For the maximally entangled state of two $d$-dimensional systems,
@@ -540,7 +540,7 @@ assert abs(nb - 0.5) < 1e3 * TOL and abs(eb - 1.0) < 1e3 * TOL
 #
 # $$\rho_W(v)=v\,\vert\Phi^+\rangle\langle\Phi^+\vert+(1-v)\,\frac{\mathbb 1_4}{4},\qquad v\in[0,1] . \tag{6}$$
 #
-# Werner's own family (Werner, 1989) mixes the *singlet* $\vert\Psi^-\rangle$ with $\mathbb 1/4$, and the family written above
+# Werner's own family [[9]](#ref-9) mixes the *singlet* $\vert\Psi^-\rangle$ with $\mathbb 1/4$, and the family written above
 # is strictly the *isotropic* state. For two qubits the two are the same set: $\vert\Phi^+\rangle$ and $\vert\Psi^-\rangle$
 # differ by a local unitary, and $\mathbb 1/4$ is invariant under any local unitary, so every quantity used here takes the same
 # value on both (Exercise 3). The two names are used interchangeably below, as they are in most of the literature on qubits.
@@ -596,10 +596,10 @@ fig.tight_layout(); plt.show()
 #
 # ### 6.4 Negativity against concurrence for two qubits
 #
-# For two qubits there is a second computable measure, the **concurrence** $C(\rho)$, introduced by Hill and Wootters (1997) and
-# extended by Wootters (1998) to every two-qubit state, from which the entanglement of formation follows exactly.
+# For two qubits there is a second computable measure, the **concurrence** $C(\rho)$, introduced in [[10]](#ref-10) and
+# extended in [[11]](#ref-11) to every two-qubit state, from which the entanglement of formation follows exactly.
 # Negativity and concurrence are different functions of $\rho$, but they are tied together:
-# Verstraete, Audenaert, Dehaene and De Moor (2001) proved
+# Ref. [[12]](#ref-12) proved
 #
 # $$\sqrt{(1-C)^2+C^2}-(1-C)\ \le\ 2\mathcal N\ \le\ C . \tag{8}$$
 #
@@ -846,8 +846,8 @@ assert worst < 1e3 * TOL
 #
 # ### 7.4 Analytic values for GHZ, W and Dicke states
 #
-# Eq. (11) turns the standard states into closed formulas: the GHZ state of Greenberger, Horne and Zeilinger (1989), the W state
-# singled out by Dür, Vidal and Cirac (2000) and the symmetric Dicke states (Dicke, 1954). Split $N$ qubits into $A$ = the first $k$ and $B$ = the rest.
+# Eq. (11) turns the standard states into closed formulas: the GHZ state [[13]](#ref-13), the W state
+# singled out in [[14]](#ref-14) and the symmetric Dicke states [[15]](#ref-15). Split $N$ qubits into $A$ = the first $k$ and $B$ = the rest.
 #
 # * **GHZ.** $\vert\mathrm{GHZ}\rangle=\tfrac{1}{\sqrt2}(\vert0^N\rangle+\vert1^N\rangle)
 #   =\tfrac{1}{\sqrt2}\vert0^k\rangle\vert0^{N-k}\rangle+\tfrac{1}{\sqrt2}\vert1^k\rangle\vert1^{N-k}\rangle$ is already in
@@ -1317,7 +1317,7 @@ for g in (0, 1, 2, 3, 4):
 # $(5,6)$ sits symmetrically about the centre of the open chain, so reflection makes $p_{+-}=p_{-+}$; the pair $(5,7)$ does
 # not: the last column shows its populations differ by $1.4\cdot10^{-3}$, and $C$ exceeds $2\mathcal N$ by a relative
 # $1.4\cdot10^{-5}$. Both measures still die at the same distance, since for two qubits both vanish exactly on the separable
-# states. This is the same range statement that Osterloh, Amico, Falci and Fazio (2002) report from
+# states. This is the same range statement that Ref. [[16]](#ref-16) reports from
 # the exact solution, where the concurrence of the infinite Ising chain vanishes beyond next-nearest neighbours at every field.
 #
 # **Two-spin blocks.** Making the blocks bigger extends the reach, but only by one site: the adjacent pair of two-spin blocks
@@ -1416,13 +1416,13 @@ fig.tight_layout(); plt.show()
 # logarithmic axis cannot show the difference between small and zero, which is why the window is printed as a number.
 #
 # What does carry the critical information is the **derivative**. On this grid $\vert d\mathcal N_{\rm nn}/dh\vert$ is largest
-# at $h=0.85$, i.e. below the critical field. That is the finite-size version of the structure Osterloh, Amico, Falci and
-# Fazio (2002) identified for the concurrence of the same chain: the pairwise entanglement measure itself is a smooth,
+# at $h=0.85$, i.e. below the critical field. That is the finite-size version of the structure that Ref. [[16]](#ref-16)
+# identified for the concurrence of the same chain: the pairwise entanglement measure itself is a smooth,
 # non-universal function whose maximum is unrelated to the transition, while its derivative develops a logarithmic divergence
 # at the critical point in the thermodynamic limit, its finite-size extremum approaching the critical coupling as the chain
 # grows. The next cell measures that approach directly.
 #
-# > **Comparing with the literature: translate the coupling first.** Osterloh et al. parametrise the same chain by
+# > **Comparing with the literature: translate the coupling first.** The authors of [[16]](#ref-16) parametrise the same chain by
 # > $\lambda=J/2h$, the inverse of our $h/J$, so their critical point $\lambda_c=1$ is our $h=1$ but their *directions are
 # > reversed*. They find the extremum of $\partial_\lambda C$ at $\lambda_m\simeq\lambda_c+N^{-1.87}$, i.e. *above* $\lambda_c$,
 # > which is $h_m$ *below* $1$ — the side on which we measure it ($h=0.75$, $0.80$, $0.85$). They likewise place the maximum of
@@ -1490,7 +1490,7 @@ fig.tight_layout(); plt.show()
 # %% [markdown]
 # The peak of $\vert d\mathcal N_{\rm nn}/dh\vert$ sits at $h=0.75$ for $N=8$, at $h=0.80$ for $N=10$ and at $h=0.85$ for
 # $N=12$: it moves towards $h=1$ as the chain grows, and its height increases slowly ($0.2627\to0.2725\to0.2800$, a rise of
-# $6.6\,\%$ while $N$ grows by $50\,\%$). A growth that slow is compatible with the logarithmic divergence of Osterloh et al.,
+# $6.6\,\%$ while $N$ grows by $50\,\%$). A growth that slow is compatible with the logarithmic divergence found in [[16]](#ref-16),
 # but three sizes on a grid of spacing $0.05$ cannot distinguish $\ln N$ from any other slowly increasing function, and we do
 # not fit one. What the measurement does establish is the contrast: the displacement of the *derivative*
 # peak from $h=1$ shrinks with $N$, while the displacement of the maximum of $\mathcal N$ itself ($h=1.20$, $1.20$, $1.25$ for
@@ -1503,7 +1503,7 @@ fig.tight_layout(); plt.show()
 # ### 10.1 The light cone of block negativity after a quench
 #
 # Prepare the paramagnetic product state $\vert+\rangle^{\otimes N}$ — the ground state of Eq. (16) at $h=\infty$ — and switch
-# the Hamiltonian on at $h=1$ at $t=0$. Information spreads at a finite maximal speed, as Lieb and Robinson (1972) proved for
+# the Hamiltonian on at $h=1$ at $t=0$. Information spreads at a finite maximal speed, as proved in [[17]](#ref-17) for
 # quantum spin systems with short-range interactions, so two blocks
 # far apart cannot become entangled before that speed has carried a signal between them. For the TFIM the quasiparticle
 # dispersion, derived in Section 6 of
@@ -1669,9 +1669,9 @@ assert size_scan[18][2][0] - size_scan[10][2][0] > 2.0
 # ### 10.2 Entanglement sudden death
 #
 # Under local noise the entanglement of a pair does not decay exponentially and vanish only asymptotically. It can reach
-# **exactly zero at a finite time** and stay there while the coherences that produced it are still non-zero. Yu and Eberly
-# (2004) showed this for two atoms decaying by spontaneous emission; the name **entanglement sudden death**, under which their
-# 2009 review collects the subject, came into use afterwards.
+# **exactly zero at a finite time** and stay there while the coherences that produced it are still non-zero. Ref. [[18]](#ref-18)
+# showed this for two atoms decaying by spontaneous emission; the name **entanglement sudden death**, under which the review
+# [[19]](#ref-19) collects the subject, came into use afterwards.
 #
 # Take the initial pure state
 #
@@ -1782,7 +1782,7 @@ fig.tight_layout(); plt.show()
 # > evolution from $t^*$ to any later time is again a product of local channels, which map separable states to separable
 # > states. Section 10.3 shows that this argument fails once the qubits also interact, and there the negativity can return.
 # > Sudden death is a property of the boundary of the set of separable states, not of any physical process being switched off.
-# > It has been observed in photonic and atomic experiments; Yu and Eberly (2009) review them.
+# > It has been observed in photonic and atomic experiments; Ref. [[19]](#ref-19) reviews them.
 #
 # ### 10.3 Sudden death in a many-body quench
 #
@@ -1971,7 +1971,7 @@ print(f"  the full density tensor of {N_big} spins would need {16*4**N_big/1e9:.
 # * The **partial transpose** transposes the indices of one subsystem only. On a density tensor it is a permutation of axes —
 #   one `jnp.transpose`, exact and free — and the spectra of $\rho^{T_A}$ and $\rho^{T_B}$ are identical.
 # * **PPT criterion**: separable $\Rightarrow\rho^{T_A}\ge0$, proved in one line from Eq. (1). The converse holds **only** for
-#   $2\times2$ and $2\times3$ systems (Horodecki, Horodecki and Horodecki 1996); elsewhere there are **bound entangled** PPT
+#   $2\times2$ and $2\times3$ systems [[3]](#ref-3); elsewhere there are **bound entangled** PPT
 #   states, from which no Bell pair can ever be distilled.
 # * **Negativity** $\mathcal N=\sum_{\mu<0}\vert\mu\vert$ and **logarithmic negativity** $E_{\mathcal N}=\log_2(2\mathcal N+1)$
 #   are entanglement monotones; $E_{\mathcal N}$ is additive and upper-bounds the distillable entanglement; $\mathcal N$ is
@@ -1990,7 +1990,7 @@ print(f"  the full density tensor of {N_big} spins would need {16*4**N_big/1e9:.
 #   reflection-symmetric pair and exceeds it slightly otherwise ($C/\mathcal N=2.00003$ at distance $2$). The measured maxima of the negativity sit at $h=1.25$ (nearest neighbours) and $h=1.15$ (adjacent blocks),
 #   not at $h=1$, and they do not move towards $h=1$ as $N$ grows. The critical point announces itself in the **derivative**,
 #   whose peak is measured at $h=0.75$, $0.80$, $0.85$ for $N=8$, $10$, $12$ — drifting towards $h=1$ with system size, on the
-#   side that Osterloh et al. predict once their $\lambda=J/2h$ is inverted.
+#   side that [[16]](#ref-16) predicts once its $\lambda=J/2h$ is inverted.
 # * **Dynamics**: after a quench, correlations spread inside a light cone, and block negativity is exactly zero until the
 #   correlations arriving at the blocks are strong enough to make the partial transpose negative. For two-spin blocks at
 #   separation $\ell=3$ the onset is $t=0.80$ against the quasiparticle value $\ell/(2v_{\max})=0.75$, independent of the
@@ -2027,7 +2027,7 @@ print(f"  the full density tensor of {N_big} spins would need {16*4**N_big/1e9:.
 # 6. ★★ **Sudden death with dephasing instead of damping.** Redo Section 10.2 with `kraus_dephasing` on both qubits. Derive the
 #    analogue of Eq. (18), predict whether sudden death occurs, and confirm numerically. Why does the answer differ from
 #    amplitude damping?
-# 7. ★★★ **Bound entanglement (extend the code).** Build the $3\times3$ Horodecki family of P. Horodecki (1997),
+# 7. ★★★ **Bound entanglement (extend the code).** Build the $3\times3$ Horodecki family of [[4]](#ref-4),
 #    $\rho_a=\frac{1}{8a+1}M(a)$, in the ordered basis $\vert00\rangle,\vert01\rangle,\dots,\vert22\rangle$ numbered
 #    $0,\dots,8$. $M(a)$ has: $a$ on the seven diagonal entries $0,1,2,3,4,5,7$; the entry $\tfrac{1+a}{2}$ on the two diagonal
 #    entries $6$ and $8$ with $\tfrac{\sqrt{1-a^2}}{2}$ connecting them; and $a$ on the three symmetric off-diagonal pairs
@@ -2041,49 +2041,78 @@ print(f"  the full density tensor of {N_big} spins would need {16*4**N_big/1e9:.
 #    This is a state that everything else in this notebook declares unentangled.
 # 8. ★★★ **Negativity scaling at criticality.** For the critical TFIM at $h=1$, compute the negativity between two *adjacent*
 #    blocks of $\ell$ spins each, centred in a chain of $N=14$, for $\ell=1,2,3$. Fit $E_{\mathcal N}$ against $\log_2\ell$ and
-#    compare the slope with the conformal-field-theory prediction $c/4$ with $c=1/2$ (Calabrese, Cardy and Tonni, 2012). Comment
+#    compare the slope with the conformal-field-theory prediction $c/4$ with $c=1/2$ [[20]](#ref-20). Comment
 #    on whether three points at such small $\ell$ can determine a slope.
 #
 # ## 14. References
 #
-# * A. Peres, *Separability criterion for density matrices*, Phys. Rev. Lett. **77**, 1413 (1996) — the PPT criterion, Section 5.1.
-# * M. Horodecki, P. Horodecki and R. Horodecki, *Separability of mixed states: necessary and sufficient conditions*,
-#   Phys. Lett. A **223**, 1 (1996) — PPT is also sufficient in $2\times2$ and $2\times3$, Section 5.3.
-# * P. Horodecki, *Separability criterion and inseparable mixed states with positive partial transposition*,
-#   Phys. Lett. A **232**, 333 (1997) — the first PPT entangled states, Section 5.4 and Exercise 7.
-# * M. Horodecki, P. Horodecki and R. Horodecki, *Mixed-state entanglement and distillation: is there a "bound" entanglement in
-#   nature?*, Phys. Rev. Lett. **80**, 5239 (1998) — PPT states are undistillable.
-# * G. Vidal and R. F. Werner, *Computable measure of entanglement*, Phys. Rev. A **65**, 032314 (2002) — negativity and
-#   logarithmic negativity, monotonicity, and $E_D\le E_{\mathcal N}$, Section 6.2.
-# * K. Życzkowski, P. Horodecki, A. Sanpera and M. Lewenstein, *Volume of the set of separable states*,
-#   Phys. Rev. A **58**, 883 (1998) — where the quantity later named negativity first appears.
-# * M. B. Plenio, *Logarithmic negativity: a full entanglement monotone that is not convex*,
-#   Phys. Rev. Lett. **95**, 090503 (2005) — Section 6.2.
-# * R. Horodecki, P. Horodecki, M. Horodecki and K. Horodecki, *Quantum entanglement*, Rev. Mod. Phys. **81**, 865 (2009) —
-#   the standard review; separability criteria, measures, bound entanglement.
-# * W. K. Wootters, *Entanglement of formation of an arbitrary state of two qubits*, Phys. Rev. Lett. **80**, 2245 (1998) —
-#   the concurrence used in Sections 6.4 and 9.2.
-# * S. Hill and W. K. Wootters, *Entanglement of a pair of quantum bits*, Phys. Rev. Lett. **78**, 5022 (1997) — the
-#   concurrence and the entanglement-of-formation formula for two-qubit states of rank at most two, Section 6.4.
-# * D. M. Greenberger, M. A. Horne and A. Zeilinger, *Going beyond Bell's theorem*, in *Bell's Theorem, Quantum Theory and
-#   Conceptions of the Universe*, ed. M. Kafatos (Kluwer, Dordrecht, 1989), pp. 69–72; arXiv:0712.0921 — the GHZ state.
-# * W. Dür, G. Vidal and J. I. Cirac, *Three qubits can be entangled in two inequivalent ways*, Phys. Rev. A **62**, 062314
-#   (2000) — the W state, Section 7.4.
-# * R. H. Dicke, *Coherence in spontaneous radiation processes*, Phys. Rev. **93**, 99 (1954) — the symmetric (Dicke) states.
-# * E. H. Lieb and D. W. Robinson, *The finite group velocity of quantum spin systems*, Commun. Math. Phys. **28**, 251
-#   (1972) — the light cone of Section 10.1.
-# * F. Verstraete, K. Audenaert, J. Dehaene and B. De Moor, *A comparison of the entanglement measures negativity and
-#   concurrence*, J. Phys. A **34**, 10327 (2001) — the bounds of Eq. (8).
-# * R. F. Werner, *Quantum states with Einstein-Podolsky-Rosen correlations admitting a hidden-variable model*,
-#   Phys. Rev. A **40**, 4277 (1989) — Werner states.
-# * A. Osterloh, L. Amico, G. Falci and R. Fazio, *Scaling of entanglement close to a quantum phase transition*,
-#   Nature **416**, 608 (2002) — the pairwise entanglement of the Ising chain and the role of its derivative, Section 9.3.
-# * T. Yu and J. H. Eberly, *Finite-time disentanglement via spontaneous emission*, Phys. Rev. Lett. **93**, 140404 (2004) —
-#   entanglement sudden death, Section 10.2.
-# * T. Yu and J. H. Eberly, *Sudden death of entanglement*, Science **323**, 598 (2009) — the review, including experiments.
-# * P. Calabrese, J. Cardy and E. Tonni, *Entanglement negativity in quantum field theory*,
-#   Phys. Rev. Lett. **109**, 130502 (2012) — the conformal-field-theory scaling of $E_{\mathcal N}$, Exercise 8.
-# * L. Gurvits, *Classical deterministic complexity of Edmonds' problem and quantum entanglement*, in Proceedings of the
-#   35th Annual ACM Symposium on Theory of Computing (STOC '03), 10–19 (2003) — NP-hardness of deciding separability.
-# * M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information* (Cambridge University Press, 2000) —
-#   chapters 2, 11 and 12 for density matrices, entropy and entanglement measures.
+# <span id="ref-1">[1]</span> L. Gurvits, *Classical deterministic complexity of Edmonds' problem and quantum
+# entanglement*, in Proceedings of the 35th Annual ACM Symposium on Theory of Computing (STOC '03), 10–19 (2003) —
+# NP-hardness of deciding separability.
+#
+# <span id="ref-2">[2]</span> A. Peres, *Separability criterion for density matrices*, Phys. Rev. Lett. **77**, 1413
+# (1996) — the PPT criterion, Section 5.1.
+#
+# <span id="ref-3">[3]</span> M. Horodecki, P. Horodecki and R. Horodecki, *Separability of mixed states: necessary and
+# sufficient conditions*, Phys. Lett. A **223**, 1 (1996) — PPT is also sufficient in $2\times2$ and $2\times3$, Section
+# 5.3.
+#
+# <span id="ref-4">[4]</span> P. Horodecki, *Separability criterion and inseparable mixed states with positive partial
+# transposition*, Phys. Lett. A **232**, 333 (1997) — the first PPT entangled states, Section 5.4 and Exercise 7.
+#
+# <span id="ref-5">[5]</span> M. Horodecki, P. Horodecki and R. Horodecki, *Mixed-state entanglement and distillation:
+# is there a "bound" entanglement in nature?*, Phys. Rev. Lett. **80**, 5239 (1998) — PPT states are undistillable.
+#
+# <span id="ref-6">[6]</span> G. Vidal and R. F. Werner, *Computable measure of entanglement*, Phys. Rev. A **65**,
+# 032314 (2002) — negativity and logarithmic negativity, monotonicity, and $E_D\le E_{\mathcal N}$, Section 6.2.
+#
+# <span id="ref-7">[7]</span> K. Życzkowski, P. Horodecki, A. Sanpera and M. Lewenstein, *Volume of the set of separable
+# states*, Phys. Rev. A **58**, 883 (1998) — where the quantity later named negativity first appears.
+#
+# <span id="ref-8">[8]</span> M. B. Plenio, *Logarithmic negativity: a full entanglement monotone that is not convex*,
+# Phys. Rev. Lett. **95**, 090503 (2005) — Section 6.2.
+#
+# <span id="ref-9">[9]</span> R. F. Werner, *Quantum states with Einstein-Podolsky-Rosen correlations admitting a
+# hidden-variable model*, Phys. Rev. A **40**, 4277 (1989) — Werner states.
+#
+# <span id="ref-10">[10]</span> S. Hill and W. K. Wootters, *Entanglement of a pair of quantum bits*, Phys. Rev. Lett.
+# **78**, 5022 (1997) — the concurrence and the entanglement-of-formation formula for two-qubit states of rank at most
+# two, Section 6.4.
+#
+# <span id="ref-11">[11]</span> W. K. Wootters, *Entanglement of formation of an arbitrary state of two qubits*, Phys.
+# Rev. Lett. **80**, 2245 (1998) — the concurrence used in Sections 6.4 and 9.2.
+#
+# <span id="ref-12">[12]</span> F. Verstraete, K. Audenaert, J. Dehaene and B. De Moor, *A comparison of the
+# entanglement measures negativity and concurrence*, J. Phys. A **34**, 10327 (2001) — the bounds of Eq. (8).
+#
+# <span id="ref-13">[13]</span> D. M. Greenberger, M. A. Horne and A. Zeilinger, *Going beyond Bell's theorem*, in
+# *Bell's Theorem, Quantum Theory and Conceptions of the Universe*, ed. M. Kafatos (Kluwer, Dordrecht, 1989), pp. 69–72;
+# arXiv:0712.0921 — the GHZ state.
+#
+# <span id="ref-14">[14]</span> W. Dür, G. Vidal and J. I. Cirac, *Three qubits can be entangled in two inequivalent
+# ways*, Phys. Rev. A **62**, 062314 (2000) — the W state, Section 7.4.
+#
+# <span id="ref-15">[15]</span> R. H. Dicke, *Coherence in spontaneous radiation processes*, Phys. Rev. **93**, 99
+# (1954) — the symmetric (Dicke) states.
+#
+# <span id="ref-16">[16]</span> A. Osterloh, L. Amico, G. Falci and R. Fazio, *Scaling of entanglement close to a
+# quantum phase transition*, Nature **416**, 608 (2002) — the pairwise entanglement of the Ising chain and the role of
+# its derivative, Section 9.3.
+#
+# <span id="ref-17">[17]</span> E. H. Lieb and D. W. Robinson, *The finite group velocity of quantum spin systems*,
+# Commun. Math. Phys. **28**, 251 (1972) — the light cone of Section 10.1.
+#
+# <span id="ref-18">[18]</span> T. Yu and J. H. Eberly, *Finite-time disentanglement via spontaneous emission*, Phys.
+# Rev. Lett. **93**, 140404 (2004) — entanglement sudden death, Section 10.2.
+#
+# <span id="ref-19">[19]</span> T. Yu and J. H. Eberly, *Sudden death of entanglement*, Science **323**, 598 (2009) —
+# the review, including experiments.
+#
+# <span id="ref-20">[20]</span> P. Calabrese, J. Cardy and E. Tonni, *Entanglement negativity in quantum field theory*,
+# Phys. Rev. Lett. **109**, 130502 (2012) — the conformal-field-theory scaling of $E_{\mathcal N}$, Exercise 8.
+#
+# <span id="ref-21">[21]</span> R. Horodecki, P. Horodecki, M. Horodecki and K. Horodecki, *Quantum entanglement*, Rev.
+# Mod. Phys. **81**, 865 (2009) — the standard review; separability criteria, measures, bound entanglement.
+#
+# <span id="ref-22">[22]</span> M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information* (Cambridge
+# University Press, 2000) — chapters 2, 11 and 12 for density matrices, entropy and entanglement measures.

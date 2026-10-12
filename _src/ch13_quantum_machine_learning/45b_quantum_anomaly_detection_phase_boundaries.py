@@ -3,7 +3,7 @@
 #@description: A quantum autoencoder trained on the ground state at one point of the XXZ chain in a transverse field is applied, without retraining, to the ground states of the whole parameter plane. Its local trash cost maps the region of states the frozen encoder can still compress; the map is compared with exact observables, with untrained encoders and with other reference points.
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
 # Locating a phase transition usually starts from an **order parameter**: a magnetisation, a staggered
 # magnetisation, a string correlator, chosen because one already knows what orders. For a new model, or for data from a
@@ -13,15 +13,15 @@
 # The idea comes from anomaly detection in machine learning. A model is trained to reproduce "normal" data; on data
 # unlike the training set it fails, and the size of the failure flags an anomaly. For phase diagrams one trains on
 # ground states from one region of parameter space and scans the rest: states of the same phase should be reproduced
-# well and states of other phases badly. Kottmann, Huembeli, Lewenstein and Acín (2020) used deep neural networks
-# trained for anomaly detection to map the phase diagram of the extended Bose–Hubbard model without supervision. Kottmann, Metz,
-# Fraxanet and Baldelli (2021) proposed a quantum version, *variational quantum anomaly detection*, which processes the
+# well and states of other phases badly. Deep neural networks trained for anomaly detection were used in [[1]](#ref-1)
+# to map the phase diagram of the extended Bose–Hubbard model without supervision. A quantum version, *variational
+# quantum anomaly detection*, was introduced in [[2]](#ref-2); it processes the
 # ground states on the same quantum device that prepares them. Its circuit is modelled on the quantum autoencoder of
-# Romero, Olson and Aspuru-Guzik (2017)
+# [[3]](#ref-3)
 # ([notebook 45](../ch13_quantum_machine_learning/45_quantum_autoencoder.ipynb)): an encoder is trained to drive a
 # few **trash qubits** of one input state into $\vert0\cdots0\rangle$, and for any other input the residual excitation of
-# the trash qubits is the anomaly score. They report that a single ground state was enough training data to infer
-# the three phases of their model.
+# the trash qubits is the anomaly score. Ref. [[2]](#ref-2) reports that a single ground state was enough training data to infer
+# the three phases of its model.
 #
 # We study this protocol on a chain of $N=8$ spins with the Hamiltonian
 #
@@ -151,7 +151,7 @@ def mean_and_se(x):
 # The same model was mapped by dense diagonalisation in
 # [notebook 06, Section 10](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb) and followed to $N=18$
 # in [notebook 11, Section 12.3](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb).
-# For the infinite chain in the transverse field, Dmitriev, Krivnov, Ovchinnikov and Langari (2002) showed that the
+# For the infinite chain in the transverse field, the authors of [[4]](#ref-4) showed that the
 # field opens a gap in the easy-plane regime ($\vert\Delta\vert<1$) and proposed a ground-state phase diagram with three ordered phases below
 # a critical field $h_c(\Delta)$ — Néel order along $z$ for $\Delta>1$, ferromagnetic order along $z$ for $\Delta<-1$,
 # and Néel order along $y$ for $\vert\Delta\vert<1$ — and a disordered phase above it. They argue that the
@@ -182,7 +182,7 @@ def mean_and_se(x):
 # Every eigenstate of $H$ can be chosen with $P=+1$ or $P=-1$, and two states with different values of $P$ are
 # orthogonal. In the Néel and ferromagnetic limits the two classical configurations are exchanged by $P$; the
 # eigenstates are their even and odd combinations, nearly degenerate on a finite chain, and which of them is lower
-# can change as the couplings change. A plain run of the Lanczos (1950) iteration from a random vector converges badly when two levels are that
+# can change as the couplings change. A plain run of the Lanczos iteration [[5]](#ref-5) from a random vector converges badly when two levels are that
 # close. We therefore compute the lowest state of each sector separately, as in notebook 11, Section 10, and
 # notebook 47, Section 3: if the start vector has $P\vert v\rangle=\pm\vert v\rangle$, every Krylov vector
 # $H^n\vert v\rangle$ has the same parity, and the projector $(1\pm P)/2$ applied after each product removes round-off
@@ -359,7 +359,7 @@ def grid_index(delta, hx):
 # chain), and the half-chain entanglement entropy $S_{N/2}$ in bits. Two further maps need no choice of operator. The
 # **neighbour infidelity** $1-\vert\langle\psi_0(\lambda)\vert\psi_0(\lambda')\rangle\vert^2$, with $\lambda'$ the next grid
 # point to the right or above (the larger of the two is shown), is the finite-difference form of the ground-state
-# fidelity of notebook 47, Section 7 (Zanardi and Paunković, 2006): small where the state changes smoothly, close to
+# fidelity of notebook 47, Section 7 [[6]](#ref-6): small where the state changes smoothly, close to
 # $1$ where it jumps. The parity of the ground state marks the level crossings between the two sectors.
 
 # %%
@@ -474,7 +474,7 @@ fig.tight_layout(); plt.show()
 # **The finite chain and the infinite chain.** The sharp lines of the finite chain are not the phase boundaries of
 # Section 3.1. All three ordered phases of the infinite chain break the spin-flip symmetry ($P$ reverses
 # $Y_i$ and $Z_i$, and with them the Néel and ferromagnetic order parameters), so their ground state is a doublet of
-# one even and one odd state. On a finite chain the two members are split, and Dmitriev *et al.* observed, on periodic
+# one even and one odd state. On a finite chain the two members are split, and the authors of [[4]](#ref-4) observed, on periodic
 # chains of 10 to 18 sites, that the two lowest levels cross $N/2$ times as the field grows, the last crossing on the
 # classical line. Our open chain behaves in the same way (last printed lines): along $\Delta=0$ the eight-site chain
 # has four parity crossings, the last between $h_x=2.7J$ and $2.8J$, just below $h_x^{\rm cl}=2\sqrt2J\approx2.83J$;
@@ -495,12 +495,12 @@ fig.tight_layout(); plt.show()
 #
 # ### 4.1 The encoder and the trash register
 #
-# The encoder $U(\boldsymbol\theta)$ is the hardware-efficient ansatz of notebooks 40 and 45, introduced by Kandala
-# *et al.* (2017), applied to the input
+# The encoder $U(\boldsymbol\theta)$ is the hardware-efficient ansatz of notebooks 40 and 45, introduced in
+# [[7]](#ref-7), applied to the input
 # state: $L$ layers of [$R_y$ and $R_z$ on every qubit, then a chain of $CZ$ gates], and a final rotation block, with
 # $n=2N(L+1)$ angles. A set $T$ of $k$ qubits is declared the trash register. We place the trash at the two ends of
 # the chain ($k=2$: qubits $0$ and $7$); Exercise 4 compares this choice with two adjacent trash qubits at one end.
-# Kottmann *et al.* used a different circuit, with $R_y$ rotations only and $CZ$ gates between trash and non-trash
+# Ref. [[2]](#ref-2) used a different circuit, with $R_y$ rotations only and $CZ$ gates between trash and non-trash
 # qubits and among the trash qubits; the inequalities derived below hold for any encoder.
 #
 # ![The quantum autoencoder of this notebook and its use for anomaly detection: (a) encoder U(theta) on eight qubits, trash qubits 0 and 7 discarded and replaced by fresh zeros, decoder U-dagger(theta); (b) training of the encoder on the reference ground state by the local cost of the trash qubits; (c) the frozen encoder applied to the ground state at every grid point, with the same cost as anomaly score](figures/qae_anomaly_detection.svg)\
@@ -530,7 +530,7 @@ fig.tight_layout(); plt.show()
 #   =\frac{1}{k}\sum_tp(t)\,w(t),\tag{4}$$
 #
 # where $n_j=(1-Z_j)/2$ is the projector on $\vert1\rangle$ of qubit $j$; the last form holds because $\sum_jn_j$ is
-# diagonal in the computational basis with eigenvalue $w(t)$ on $\vert t\rangle$. Kottmann *et al.* use the average
+# diagonal in the computational basis with eigenvalue $w(t)$ on $\vert t\rangle$. Ref. [[2]](#ref-2) uses the average
 # Hamming distance $\sum_j(1-\langle Z_j\rangle)/2=kD_H$; the factor $1/k$ only puts $D_H$ in $[0,1]$. The **global
 # cost** is the trash infidelity of notebook 45, Eq. (4),
 #
@@ -704,11 +704,11 @@ assert max_abs(dh_id - 0.5) < 1e-8
 #
 # For $k=1$ the two costs of Eqs. (4) and (5) are the same function. For $k>1$ the global cost asks whether *all*
 # trash qubits are in $\vert0\rangle$ at once: in the language of notebook 40, Section 5.3, it is a global cost on the
-# trash register, while $D_H$ is a sum of single-qubit terms. Cerezo, Sone, Volkoff, Cincio and Coles (2021) proved
+# trash register, while $D_H$ is a sum of single-qubit terms. The authors of [[8]](#ref-8) proved
 # for a class of layered circuits that global costs have gradients whose variance vanishes exponentially with the
 # number of qubits the cost acts on, already at shallow depth, while local costs keep a variance that decays at worst
 # polynomially when the depth grows at most logarithmically; they used the quantum autoencoder as an example.
-# Kottmann *et al.* chose the local Hamming cost for this reason. Notebook 40, Section 13, measured the two
+# Ref. [[2]](#ref-2) chose the local Hamming cost for this reason. Notebook 40, Section 13, measured the two
 # behaviours for the hardware-efficient ansatz as a function of $N$. Here the global cost acts on at most four qubits,
 # and the question is only how large the difference is at the sizes we use. We draw 400 random angle vectors, compute
 # the gradients of both costs with `jax.grad`, and take the variance of each component over the draws, averaged over
@@ -743,7 +743,7 @@ for k in (1, 2, 3, 4):
 # For $k=1$ the two costs are the same function and the variances agree exactly. At $k=2$ and $k=3$ the gradient
 # variances of the two costs agree within $7\,\%$; at $k=4$ the global cost has the smaller variance, by a factor
 # $0.55\pm0.02$. At these sizes local and global cost differ by at most a factor of two in gradient variance. The
-# exponential separation proved by Cerezo *et al.* concerns how the variance scales with the number of qubits the
+# exponential separation proved in [[8]](#ref-8) concerns how the variance scales with the number of qubits the
 # observable acts on, and four trash qubits are too few to display it. The reasons to use $D_H$ here are therefore its
 # favourable scaling, its direct measurement as a mean of single-qubit outcomes, and Eq. (7), which makes it as strict a
 # criterion of compression as the global cost. Whether either cost trains better at $N=8$ is measured next.
@@ -753,10 +753,10 @@ for k in (1, 2, 3, 4):
 #
 # ### 5.1 A training loop shared by every experiment
 #
-# Training minimises Eq. (4) (or Eq. (5)) for one input state with Adam (Kingma and Ba, 2015; notebook 41, Section 6), as a `lax.scan`
+# Training minimises Eq. (4) (or Eq. (5)) for one input state with Adam ([[9]](#ref-9); notebook 41, Section 6), as a `lax.scan`
 # over iterations. Both costs are recorded at every iteration, whichever one is being minimised, so that every run is
 # judged by the same criterion. We call a run **successful** if it ends with $1-p_0<10^{-2}$, and report the success
-# fraction with its 68 % Wilson score interval (Wilson, 1927; notebook 41, Section 12); by Eq. (7) the
+# fraction with its 68 % Wilson score interval ([[10]](#ref-10); notebook 41, Section 12); by Eq. (7) the
 # reconstruction fidelity of such an encoder is at least $0.98$. Each argument of the training function — start
 # angles, input state, trash mask, cost selector, step size — is an array with a batch dimension, so a whole study
 # is one `vmap`.
@@ -1182,7 +1182,7 @@ for name in ref_names:
 # over three chain lengths, $N=6$, $8$ and $10$. For chains this short a dense diagonalisation inside each parity sector
 # (dimension $2^{N-1}\le512$) gives all levels at once.
 #
-# * The **fidelity susceptibility** of the ground state, introduced by You, Li and Gu (2007) and written $\vert0\rangle$ here with excited levels $\vert m\rangle$
+# * The **fidelity susceptibility** of the ground state, introduced in [[11]](#ref-11) and written $\vert0\rangle$ here with excited levels $\vert m\rangle$
 #   (energy eigenstates, not qubit states), with respect to the field
 #   ([notebook 47, Section 7](../ch11_quantum_phase_transitions/47_quantum_phase_transitions.ipynb)),
 #
@@ -1387,7 +1387,7 @@ fig.tight_layout(); plt.show()
 # below $h_c$. The crossings of $Ns_N$ converge much faster. On open chains they lie at $h_x=2.520J$ ($N=6,8$) and
 # $2.531J$ ($N=8,10$) and move up with $N$; on periodic chains, which have no ends, they lie at $2.567J$ and
 # $2.559J$ and move down. If both sequences keep converging monotonically, they bracket the critical field,
-# $2.53J<h_c<2.56J$, in agreement with the $2.55J$ read off the mean-field line of Dmitriev *et al.* The
+# $2.53J<h_c<2.56J$, in agreement with the $2.55J$ read off the mean-field line of [[4]](#ref-4). The
 # correlator $\langle Z_0Z_{N-1}\rangle$ falls from $1$ to nearly $0$ (top right panel). At $N=8$ the transition is a crossover, but a crossover whose position
 # moves with $N$ and whose $Ns_N$ crossings locate $h_c$. The neighbour infidelity explains why the maps of
 # Section 3.2 show nothing here: between neighbouring grid points along the cut it is at most $0.0036$, at
@@ -1543,7 +1543,7 @@ fig.tight_layout(); plt.show()
 #   contains the peak of $\chi_F$ at $N=8$ ($1.85J$), the finite-size precursor of the transition.
 # * **The map finds the finite-size precursor and leaves $h_c$ to finite-size scaling.** The fidelity peak moves
 #   from $1.55J$ to $2.00J$ between $N=6$ and $10$, while the crossings of $Ns_N$ on open and periodic chains
-#   bracket $h_c$ between $2.53J$ and $2.56J$, in agreement with $2.55J$ from Dmitriev *et al.*; the map at $N=8$
+#   bracket $h_c$ between $2.53J$ and $2.56J$, in agreement with $2.55J$ from [[4]](#ref-4); the map at $N=8$
 #   places the boundary $0.7J$ below $h_c$.
 # * **The edges are where the ground state changes.** The steps of every map coincide with the level crossings and the
 #   avoided crossing. On the smooth line $\Delta=-2$ the trained scores change fastest near the peak of $\chi_F$, and
@@ -1583,36 +1583,46 @@ fig.tight_layout(); plt.show()
 #
 # ## References
 #
-# * K. Kottmann, F. Metz, J. Fraxanet and N. Baldelli, *Variational quantum anomaly detection: Unsupervised mapping of
-#   phase diagrams on a physical quantum computer*, Phys. Rev. Research **3**, 043184 (2021) — the protocol of this
-#   notebook: a circuit inspired by the quantum autoencoder, trained on a single ground state with the Hamming-distance
-#   cost on the trash qubits; extended Bose–Hubbard model with dimerised hoppings and a transverse–longitudinal-field Ising chain, the latter
-#   also on an IBM quantum computer.
-# * K. Kottmann, P. Huembeli, M. Lewenstein and A. Acín, *Unsupervised phase discovery with deep anomaly detection*,
-#   Phys. Rev. Lett. **125**, 170603 (2020) — anomaly detection with deep neural networks for the phase diagram of the
-#   extended Bose–Hubbard model.
-# * J. Romero, J. P. Olson and A. Aspuru-Guzik, *Quantum autoencoders for efficient compression of quantum data*,
-#   Quantum Sci. Technol. **2**, 045001 (2017) — the quantum autoencoder and its trash-state cost.
-# * M. Cerezo, A. Sone, T. Volkoff, L. Cincio and P. J. Coles, *Cost function dependent barren plateaus in shallow
-#   parametrized quantum circuits*, Nat. Commun. **12**, 1791 (2021) — global costs give exponentially vanishing
-#   gradients already at shallow depth, local costs at worst polynomially vanishing ones at logarithmic depth; illustrated
-#   with a quantum autoencoder.
-# * D. V. Dmitriev, V. Ya. Krivnov, A. A. Ovchinnikov and A. Langari, *One-dimensional anisotropic Heisenberg model in
-#   the transverse magnetic field*, J. Exp. Theor. Phys. **95**, 538 (2002) — the ground-state phase diagram of the
-#   infinite XXZ chain in a transverse field: the ordered phases, the classical line, the Ising-type transition line
-#   $h_c(\Delta)$ (their Fig. 1), and the parity crossings of finite chains.
-# * P. Zanardi and N. Paunković, *Ground state overlap and quantum phase transitions*, Phys. Rev. E **74**, 031123
-#   (2006) — the overlap of ground states at neighbouring couplings as a detector of transitions (the neighbour
-#   infidelity of Section 3.2).
-# * W.-L. You, Y.-W. Li and S.-J. Gu, *Fidelity, dynamic structure factor, and susceptibility in critical phenomena*,
-#   Phys. Rev. E **76**, 022101 (2007) — the fidelity susceptibility, Eq. (11), as the second-order term of the
-#   ground-state fidelity.
-# * A. Kandala, A. Mezzacapo, K. Temme, M. Takita, M. Brink, J. M. Chow and J. M. Gambetta, *Hardware-efficient
-#   variational quantum eigensolver for small molecules and quantum magnets*, Nature **549**, 242 (2017) — the
-#   hardware-efficient ansatz.
-# * D. P. Kingma and J. Ba, *Adam: a method for stochastic optimization*, arXiv:1412.6980 (2014), 3rd International
-#   Conference on Learning Representations (2015) — the optimiser.
-# * C. Lanczos, *An iteration method for the solution of the eigenvalue problem of linear differential and integral
-#   operators*, J. Res. Natl. Bur. Stand. **45**, 255 (1950) — the Lanczos iteration.
-# * E. B. Wilson, *Probable inference, the law of succession, and statistical inference*, J. Am. Stat. Assoc. **22**,
-#   209 (1927) — the score interval used for success rates.
+# <span id="ref-1">[1]</span> K. Kottmann, P. Huembeli, M. Lewenstein and A. Acín, *Unsupervised phase discovery with deep
+# anomaly detection*, Phys. Rev. Lett. **125**, 170603 (2020) — anomaly detection with deep neural networks for the phase
+# diagram of the extended Bose–Hubbard model.
+#
+# <span id="ref-2">[2]</span> K. Kottmann, F. Metz, J. Fraxanet and N. Baldelli, *Variational quantum anomaly detection:
+# Unsupervised mapping of phase diagrams on a physical quantum computer*, Phys. Rev. Research **3**, 043184 (2021) — the
+# protocol of this notebook: a circuit inspired by the quantum autoencoder, trained on a single ground state with the
+# Hamming-distance cost on the trash qubits; extended Bose–Hubbard model with dimerised hoppings and a
+# transverse–longitudinal-field Ising chain, the latter also on an IBM quantum computer.
+#
+# <span id="ref-3">[3]</span> J. Romero, J. P. Olson and A. Aspuru-Guzik, *Quantum autoencoders for efficient compression of
+# quantum data*, Quantum Sci. Technol. **2**, 045001 (2017) — the quantum autoencoder and its trash-state cost.
+#
+# <span id="ref-4">[4]</span> D. V. Dmitriev, V. Ya. Krivnov, A. A. Ovchinnikov and A. Langari, *One-dimensional anisotropic
+# Heisenberg model in the transverse magnetic field*, J. Exp. Theor. Phys. **95**, 538 (2002) — the ground-state phase
+# diagram of the infinite XXZ chain in a transverse field: the ordered phases, the classical line, the Ising-type
+# transition line $h_c(\Delta)$ (their Fig. 1), and the parity crossings of finite chains.
+#
+# <span id="ref-5">[5]</span> C. Lanczos, *An iteration method for the solution of the eigenvalue problem of linear
+# differential and integral operators*, J. Res. Natl. Bur. Stand. **45**, 255 (1950) — the Lanczos iteration.
+#
+# <span id="ref-6">[6]</span> P. Zanardi and N. Paunković, *Ground state overlap and quantum phase transitions*, Phys. Rev. E
+# **74**, 031123 (2006) — the overlap of ground states at neighbouring couplings as a detector of transitions (the
+# neighbour infidelity of Section 3.2).
+#
+# <span id="ref-7">[7]</span> A. Kandala, A. Mezzacapo, K. Temme, M. Takita, M. Brink, J. M. Chow and J. M. Gambetta,
+# *Hardware-efficient variational quantum eigensolver for small molecules and quantum magnets*, Nature **549**, 242
+# (2017) — the hardware-efficient ansatz.
+#
+# <span id="ref-8">[8]</span> M. Cerezo, A. Sone, T. Volkoff, L. Cincio and P. J. Coles, *Cost function dependent barren
+# plateaus in shallow parametrized quantum circuits*, Nat. Commun. **12**, 1791 (2021) — global costs give exponentially
+# vanishing gradients already at shallow depth, local costs at worst polynomially vanishing ones at logarithmic depth;
+# illustrated with a quantum autoencoder.
+#
+# <span id="ref-9">[9]</span> D. P. Kingma and J. Ba, *Adam: a method for stochastic optimization*, arXiv:1412.6980 (2014),
+# 3rd International Conference on Learning Representations (2015) — the optimiser.
+#
+# <span id="ref-10">[10]</span> E. B. Wilson, *Probable inference, the law of succession, and statistical inference*,
+# J. Am. Stat. Assoc. **22**, 209 (1927) — the score interval used for success rates.
+#
+# <span id="ref-11">[11]</span> W.-L. You, Y.-W. Li and S.-J. Gu, *Fidelity, dynamic structure factor, and susceptibility in
+# critical phenomena*, Phys. Rev. E **76**, 022101 (2007) — the fidelity susceptibility, Eq. (11), as the second-order
+# term of the ground-state fidelity.

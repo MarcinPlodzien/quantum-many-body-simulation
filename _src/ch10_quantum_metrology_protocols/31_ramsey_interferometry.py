@@ -3,7 +3,7 @@
 #@description: The complete Ramsey protocol of an atomic clock — coherent spin state, phase encoding, second pulse, atom counting — with the signal and the projection noise derived, phase estimators built from sampled bit strings, the measured sensitivity checked against the Cramér–Rao bound, and dephasing during the interrogation fixing the optimal interrogation time.
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
 # A caesium clock, a strontium optical lattice clock and an atom interferometer measuring gravity all run the same four-step
 # programme:
@@ -13,10 +13,10 @@
 # 3. **measure** the atoms;
 # 4. **estimate** $\varphi$ from the measurement record, and quote an uncertainty.
 #
-# Norman Ramsey's *method of separated oscillating fields* (1950) is the standard implementation of steps 1–3. Two short
+# The *method of separated oscillating fields*, introduced in [[1]](#ref-1), is the standard implementation of steps 1–3. Two short
 # resonant pulses, separated by a long period of free evolution, convert an unknown detuning between the laser (or microwave)
 # frequency and the atomic transition frequency into a number of atoms found in the excited state. Atomic clocks use this
-# sequence or close relatives of it; the review by Ludlow and co-workers (Section 20) describes how it is done in the
+# sequence or close relatives of it; the review [[2]](#ref-2) describes how it is done in the
 # laboratory.
 #
 # This notebook simulates that protocol **end to end**: we build the state with the einsum engine, encode a phase, sample real
@@ -28,7 +28,7 @@
 #
 # $$\Delta\varphi=\frac{1}{\sqrt{NM}},$$
 #
-# the **standard quantum limit** (SQL) of spectroscopy with uncorrelated atoms (Wineland *et al.* 1992, 1994). We will
+# the **standard quantum limit** (SQL) of spectroscopy with uncorrelated atoms [[3]](#ref-3), [[4]](#ref-4). We will
 # derive it three different ways — error propagation, classical Fisher information,
 # quantum Fisher information — see all three give the same answer, and then watch several thousand simulated experiments per
 # data point reproduce it to about one per cent. We will also see where the protocol *fails*: at the extrema of the
@@ -168,13 +168,13 @@ def std_of_std(sigma, n):
 # *estimator* is any function $\hat\varphi(x)$. It is **unbiased** if $\mathbb E[\hat\varphi]=\varphi$, and its uncertainty is
 # the standard deviation $\Delta\varphi=\sqrt{\mathrm{Var}(\hat\varphi)}$.
 #
-# **(ii) Classical Fisher information** (Fisher 1925). For a probability distribution $p(x\vert\varphi)$,
+# **(ii) Classical Fisher information** [[5]](#ref-5). For a probability distribution $p(x\vert\varphi)$,
 #
 # $$F_C(\varphi)=\sum_x\frac{1}{p(x\vert\varphi)}\left(\frac{\partial p(x\vert\varphi)}{\partial\varphi}\right)^{\!2}. \tag{1}$$
 #
 # It is **additive** over independent repetitions: $M$ repetitions of the same experiment carry $MF_C$.
 #
-# **(iii) Cramér–Rao bound** (Rao 1945; Cramér 1946). Every unbiased estimator obeys
+# **(iii) Cramér–Rao bound** [[6]](#ref-6), [[7]](#ref-7). Every unbiased estimator obeys
 #
 # $$\Delta\varphi\ \ge\ \frac{1}{\sqrt{M\,F_C(\varphi)}}. \tag{2}$$
 #
@@ -186,8 +186,8 @@ def std_of_std(sigma, n):
 # $M$ is measured in Section 11.1.
 #
 # **(iv) Quantum Fisher information.** Maximising $F_C$ over all possible measurements of the state $\rho_\varphi$ gives the
-# quantum Fisher information $F_Q[\rho_\varphi]$, and hence $\Delta\varphi\ge1/\sqrt{MF_Q}$ (the *quantum* Cramér–Rao bound of
-# Helstrom 1967 and Braunstein and Caves 1994).
+# quantum Fisher information $F_Q[\rho_\varphi]$, and hence $\Delta\varphi\ge1/\sqrt{MF_Q}$ (the *quantum* Cramér–Rao bound
+# [[8]](#ref-8), [[9]](#ref-9)).
 # For a **pure** state $\vert\psi\rangle$ whose phase is imprinted by $e^{-i\varphi G}$,
 #
 # $$F_Q=4\,\mathrm{Var}(G)=4\big(\langle G^2\rangle-\langle G\rangle^2\big). \tag{3}$$
@@ -306,7 +306,7 @@ def std_of_std(sigma, n):
 #
 # $$\vert\mathrm{CSS}\rangle=\vert+\rangle^{\otimes N},$$
 #
-# the **coherent spin state** (Radcliffe 1971; Arecchi, Courtens, Gilmore and Thomas 1972) pointing along $+x$: the closest quantum analogue of a classical arrow of length $N/2$. After
+# the **coherent spin state** [[10]](#ref-10), [[11]](#ref-11) pointing along $+x$: the closest quantum analogue of a classical arrow of length $N/2$. After
 # steps 2 and 3 it is $\big(c_0\vert0\rangle+c_1\vert1\rangle\big)^{\otimes N}$, so the $N$ atoms are statistically
 # **independent**, each excited with probability (6). Therefore the number of excited atoms is binomially distributed,
 #
@@ -514,7 +514,7 @@ fig.tight_layout(); plt.show()
 # \mathrm{Var}(J_z)=\mathrm{Var}\!\left(\frac N2-n_1\right)=Np(1-p)=\frac N4\sin^2\varphi, \tag{8}$$
 #
 # using $p(1-p)=\tfrac{1-\cos\varphi}{2}\cdot\tfrac{1+\cos\varphi}{2}=\tfrac14\sin^2\varphi$. This is **quantum projection
-# noise** (Itano and co-workers, 1993): the randomness of projecting $N$ independent superpositions onto the measurement
+# noise** [[12]](#ref-12): the randomness of projecting $N$ independent superpositions onto the measurement
 # basis, present even with a noiseless apparatus and a perfect detector. On the Bloch sphere it is the fuzzy patch at the tip of
 # the arrow, of angular radius $\sim1/\sqrt N$.
 #
@@ -1706,7 +1706,7 @@ assert abs(meas[0] / pred_l[0] - 1) < 0.1 and abs(meas[3] / pred_l[3] - 1) < 0.1
 #
 # $$M=\frac{T_{\mathrm{tot}}}{T}.$$
 #
-# The calculation that follows is the one Huelga and co-workers published in 1997; the reference is in Section 20, and
+# The calculation that follows was published in [[13]](#ref-13), and
 # [notebook 32](./32_ghz_interferometry_heisenberg_limit.ipynb) carries it through for an entangled probe, which is where its
 # punchline lies. It rests on four assumptions, all of which the simulation below implements literally:
 #
@@ -1890,7 +1890,7 @@ fig.tight_layout(); plt.show()
 # > better estimator cannot improve it. What remains is to reduce $\gamma$ (better isolation, dynamical decoupling,
 # > longer-lived transitions) or to change the probe state. [Notebook 32](./32_ghz_interferometry_heisenberg_limit.ipynb)
 # > tries the second option with a GHZ probe and finds, under the same independent dephasing, the same
-# > $\Delta\delta_{\min}$ (Huelga *et al.*, 1997).
+# > $\Delta\delta_{\min}$ [[13]](#ref-13).
 
 # %% [markdown]
 # ## 17. Performance notes
@@ -1975,7 +1975,7 @@ for N, M, K in ((4, 50, 400), (7, 50, 400), (10, 50, 200)):
 #   $C=\sqrt{1-g}$ and $F_Q=N(1-g)$ exactly, although the channel is non-unital and also shifts the Bloch vector to
 #   $r_z=g$ — a shift that drops out of both the signal and the QFI.
 # * **A clock has one optimal interrogation time,** $T_{\mathrm{opt}}=1/(2\gamma)$ — half a coherence time, independent of $N$
-#   — giving $\Delta\delta_{\min}=\sqrt{2e\gamma/(NT_{\mathrm{tot}})}$ (Huelga *et al.*, 1997; assumes uncorrelated atoms,
+#   — giving $\Delta\delta_{\min}=\sqrt{2e\gamma/(NT_{\mathrm{tot}})}$ ([[13]](#ref-13); assumes uncorrelated atoms,
 #   Markovian dephasing and no dead time). Simulated clock runs reproduced the minimum value to $0.9\%$, within its $1.3\%$
 #   error bar; the *position* is only resolved to one grid point, because the minimum is quadratically flat. Every point
 #   of the scan agrees with the exact binomial sum, including the $17\%$ excess at $T=3/\gamma$ (exact: $18\%$), where the contrast is $0.05$.
@@ -2039,36 +2039,59 @@ for N, M, K in ((4, 50, 400), (7, 50, 400), (10, 50, 200)):
 #
 # ## 20. References
 #
-# * N. F. Ramsey, *A molecular beam resonance method with separated oscillating fields*, Phys. Rev. **78**, 695 (1950) — the
-#   protocol of Section 5.
-# * W. M. Itano, J. C. Bergquist, J. J. Bollinger, J. M. Gilligan, D. J. Heinzen, F. L. Moore, M. G. Raizen and
-#   D. J. Wineland, *Quantum projection noise: population fluctuations in two-level systems*, Phys. Rev. A **47**, 3554 (1993)
-#   — the projection noise of Section 6, measured.
-# * D. J. Wineland, J. J. Bollinger, W. M. Itano, F. L. Moore and D. J. Heinzen, *Spin squeezing and reduced quantum noise in
-#   spectroscopy*, Phys. Rev. A **46**, R6797 (1992); and D. J. Wineland, J. J. Bollinger, W. M. Itano and D. J. Heinzen,
-#   *Squeezed atomic states and projection noise in spectroscopy*, Phys. Rev. A **50**, 67 (1994) — the standard quantum limit
-#   for spectroscopy and the squeezing parameter that quantifies beating it.
-# * S. F. Huelga, C. Macchiavello, T. Pellizzari, A. K. Ekert, M. B. Plenio and J. I. Cirac, *Improvement of frequency
-#   standards with quantum entanglement*, Phys. Rev. Lett. **79**, 3865 (1997) — Eqs. (23)-(25) of Section 16 are the
-#   uncorrelated-atom case of this paper; its consequences for entangled probes are the subject of notebook 32.
-# * V. Giovannetti, S. Lloyd and L. Maccone, *Quantum-enhanced measurements: beating the standard quantum limit*,
-#   Science **306**, 1330 (2004) — the standard quantum limit versus the Heisenberg limit.
-# * A. D. Ludlow, M. M. Boyd, J. Ye, E. Peik and P. O. Schmidt, *Optical atomic clocks*, Rev. Mod. Phys. **87**, 637 (2015) —
-#   how all of this is done in a real laboratory.
-# * L. Pezzè, A. Smerzi, M. K. Oberthaler, R. Schmied and P. Treutlein, *Quantum metrology with nonclassical states of atomic
-#   ensembles*, Rev. Mod. Phys. **90**, 035005 (2018) — the comprehensive review; Section II covers the estimation theory,
-#   coherent spin states, the standard quantum limit and atom counting of this notebook, Section VII.A the decoherence.
-# * C. W. Helstrom, *Quantum Detection and Estimation Theory*, Mathematics in Science and Engineering **123**
-#   (Academic Press, New York, 1976) — the quantum Cramér–Rao bound.
-# * C. W. Helstrom, *Minimum mean-squared error of estimates in quantum statistics*, Phys. Lett. A **25**, 101 (1967) —
-#   the symmetric logarithmic derivative and the quantum Cramér–Rao bound.
-# * S. L. Braunstein and C. M. Caves, *Statistical distance and the geometry of quantum states*, Phys. Rev. Lett. **72**,
-#   3439 (1994) — the quantum Fisher information as the maximum of the classical one over all measurements.
-# * R. A. Fisher, *Theory of statistical estimation*, Proc. Camb. Phil. Soc. **22**, 700 (1925) — the Fisher information.
-# * C. R. Rao, *Information and the accuracy attainable in the estimation of statistical parameters*, Bull. Calcutta
-#   Math. Soc. **37**, 81 (1945), reprinted in *Breakthroughs in Statistics*, eds. S. Kotz and N. L. Johnson (Springer,
-#   New York, 1992), p. 235, and H. Cramér, *Mathematical Methods of Statistics* (Princeton University Press, 1946) — the
-#   Cramér–Rao bound.
-# * J. M. Radcliffe, *Some properties of coherent spin states*, J. Phys. A **4**, 313 (1971), and F. T. Arecchi,
-#   E. Courtens, R. Gilmore and H. Thomas, *Atomic coherent states in quantum optics*, Phys. Rev. A **6**, 2211 (1972) —
-#   the coherent spin state of Section 5.3.
+# <span id="ref-1">[1]</span> N. F. Ramsey, *A molecular beam resonance method with separated oscillating fields*, Phys.
+# Rev. **78**, 695 (1950) — the protocol of Section 5.
+#
+# <span id="ref-2">[2]</span> A. D. Ludlow, M. M. Boyd, J. Ye, E. Peik and P. O. Schmidt, *Optical atomic clocks*, Rev.
+# Mod. Phys. **87**, 637 (2015) — how all of this is done in a real laboratory.
+#
+# <span id="ref-3">[3]</span> D. J. Wineland, J. J. Bollinger, W. M. Itano, F. L. Moore and D. J. Heinzen, *Spin
+# squeezing and reduced quantum noise in spectroscopy*, Phys. Rev. A **46**, R6797 (1992) — the standard quantum limit
+# for spectroscopy and the squeezing parameter that quantifies beating it.
+#
+# <span id="ref-4">[4]</span> D. J. Wineland, J. J. Bollinger, W. M. Itano and D. J. Heinzen, *Squeezed atomic states
+# and projection noise in spectroscopy*, Phys. Rev. A **50**, 67 (1994) — the standard quantum limit for spectroscopy
+# and the squeezing parameter that quantifies beating it.
+#
+# <span id="ref-5">[5]</span> R. A. Fisher, *Theory of statistical estimation*, Proc. Camb. Phil. Soc. **22**, 700
+# (1925) — the Fisher information.
+#
+# <span id="ref-6">[6]</span> C. R. Rao, *Information and the accuracy attainable in the estimation of statistical
+# parameters*, Bull. Calcutta Math. Soc. **37**, 81 (1945), reprinted in *Breakthroughs in Statistics*, eds. S. Kotz and
+# N. L. Johnson (Springer, New York, 1992), p. 235 — the Cramér–Rao bound.
+#
+# <span id="ref-7">[7]</span> H. Cramér, *Mathematical Methods of Statistics* (Princeton University Press, 1946) — the
+# Cramér–Rao bound.
+#
+# <span id="ref-8">[8]</span> C. W. Helstrom, *Minimum mean-squared error of estimates in quantum statistics*, Phys.
+# Lett. A **25**, 101 (1967) — the symmetric logarithmic derivative and the quantum Cramér–Rao bound.
+#
+# <span id="ref-9">[9]</span> S. L. Braunstein and C. M. Caves, *Statistical distance and the geometry of quantum
+# states*, Phys. Rev. Lett. **72**, 3439 (1994) — the quantum Fisher information as the maximum of the classical one
+# over all measurements.
+#
+# <span id="ref-10">[10]</span> J. M. Radcliffe, *Some properties of coherent spin states*, J. Phys. A **4**, 313 (1971)
+# — the coherent spin state of Section 5.3.
+#
+# <span id="ref-11">[11]</span> F. T. Arecchi, E. Courtens, R. Gilmore and H. Thomas, *Atomic coherent states in quantum
+# optics*, Phys. Rev. A **6**, 2211 (1972) — the coherent spin state of Section 5.3.
+#
+# <span id="ref-12">[12]</span> W. M. Itano, J. C. Bergquist, J. J. Bollinger, J. M. Gilligan, D. J. Heinzen, F. L.
+# Moore, M. G. Raizen and D. J. Wineland, *Quantum projection noise: population fluctuations in two-level systems*,
+# Phys. Rev. A **47**, 3554 (1993) — the projection noise of Section 6, measured.
+#
+# <span id="ref-13">[13]</span> S. F. Huelga, C. Macchiavello, T. Pellizzari, A. K. Ekert, M. B. Plenio and J. I. Cirac,
+# *Improvement of frequency standards with quantum entanglement*, Phys. Rev. Lett. **79**, 3865 (1997) — Eqs. (23)-(25)
+# of Section 16 are the uncorrelated-atom case of this paper; its consequences for entangled probes are the subject of
+# notebook 32.
+#
+# <span id="ref-14">[14]</span> V. Giovannetti, S. Lloyd and L. Maccone, *Quantum-enhanced measurements: beating the
+# standard quantum limit*, Science **306**, 1330 (2004) — the standard quantum limit versus the Heisenberg limit.
+#
+# <span id="ref-15">[15]</span> L. Pezzè, A. Smerzi, M. K. Oberthaler, R. Schmied and P. Treutlein, *Quantum metrology
+# with nonclassical states of atomic ensembles*, Rev. Mod. Phys. **90**, 035005 (2018) — the comprehensive review;
+# Section II covers the estimation theory, coherent spin states, the standard quantum limit and atom counting of this
+# notebook, Section VII.A the decoherence.
+#
+# <span id="ref-16">[16]</span> C. W. Helstrom, *Quantum Detection and Estimation Theory*, Mathematics in Science and
+# Engineering **123** (Academic Press, New York, 1976) — the quantum Cramér–Rao bound.

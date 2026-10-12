@@ -3,7 +3,7 @@
 #@description: A driven many-body spin system as a trainable machine: input injection by qubit reset (a replacement channel), Hamiltonian dynamics between injections as a feature map with fading memory, ridge-regression readout, memory capacity and its finite-data bias, NARMA and Santa Fe laser prediction against tuned classical baselines, density tensor versus trajectories, finite measurement statistics and decoherence.
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
 # A time series arrives one number at a time: $u_1,u_2,u_3,\dots$ — the intensity of a laser, the load on a power grid, the
 # price of electricity. The generic task is to produce, at every step $k$, an output $\hat y_k$ that approximates some target
@@ -13,15 +13,15 @@
 # The textbook answer is a recurrent neural network: a state $\mathbf{x}_k\in\mathbb{R}^n$ updated by
 # $\mathbf{x}_k=f(W\mathbf{x}_{k-1}+w_{\rm in}u_k)$ and read out by $\hat y_k=\mathbf{w}^{\rm T}\mathbf{x}_k$. Training all of
 # $W,w_{\rm in},\mathbf{w}$ means propagating gradients backwards through hundreds of time steps; the gradients decay or blow
-# up exponentially with the number of steps (Bengio, Simard and Frasconi, 1994), and the cost function is non-convex. Jaeger
-# (2001), and independently Maass, Natschläger and Markram (2002), proposed to give up on training the recurrent part entirely: take a **fixed** random dynamical
+# up exponentially with the number of steps [[1]](#ref-1), and the cost function is non-convex. Ref.
+# [[2]](#ref-2), and independently Ref. [[3]](#ref-3), proposed to give up on training the recurrent part entirely: take a **fixed** random dynamical
 # system, drive it with the input, and train **only the linear readout**. The fixed system — the *reservoir* — has to do two
 # things: mix past inputs into a high-dimensional nonlinear set of features, and forget its own initial condition. Training
 # then reduces to linear regression, which is convex and has a closed-form solution.
 #
 # Nothing in that recipe says the reservoir has to be a neural network. It has to be a driven dynamical system with memory and
-# nonlinearity, and a many-body quantum system driven by repeated resets of one of its qubits is such a system. Fujii and
-# Nakajima made this precise in 2017: the reservoir is a spin network with a fixed Hamiltonian, the input is written into one
+# nonlinearity, and a many-body quantum system driven by repeated resets of one of its qubits is such a system. This was made
+# precise in [[4]](#ref-4), whose protocol this notebook implements: the reservoir is a spin network with a fixed Hamiltonian, the input is written into one
 # spin, the dynamics is unitary evolution for a fixed time $\tau$, and the features are the single-qubit expectation values
 # $\langle Z_i\rangle$ of all qubits, read out several times per interval. Here we also use two-body correlators. The Hilbert space of $N$ qubits has
 # dimension $2^N$ and the space of density matrices has $4^N$ real dimensions, so a handful of qubits carries a very large
@@ -127,8 +127,8 @@
 # backpropagation through time has to store the whole trajectory, and the practical conclusion of the early 2000s becomes
 # understandable: **do not train $f$ at all**. Choose it at random, keep it fixed, and train only $\mathbf{w}$ and $b$, which
 # enter Eq. (1) *linearly*. The error is then a quadratic function of the trainable parameters: one convex problem with a
-# closed-form solution. This is the *echo-state network* of Jaeger and the *liquid-state machine* of Maass, Natschläger and
-# Markram; the review by Lukoševičius and Jaeger collects the practice that grew around them.
+# closed-form solution. This is the *echo-state network* of [[2]](#ref-2) and the *liquid-state machine* of
+# [[3]](#ref-3); the review [[5]](#ref-5) collects the practice that grew around them.
 #
 # ### 2.3 The two properties a reservoir must have
 #
@@ -139,8 +139,8 @@
 #
 # Without it the features depend on an arbitrary initial condition and nothing learned on a training block transfers to a test
 # block. For the standard sigmoid network $\mathbf{x}_k=\tanh(W\mathbf{x}_{k-1}+w_{\rm in}u_k)$ a *sufficient* condition is
-# that $W$ be a contraction, $\sigma_{\max}(W)<1$ with $\sigma_{\max}$ the largest singular value (Jaeger, GMD Report 148);
-# the widely used recipe "spectral radius $\rho(W)<1$", with $\rho$ the largest modulus of an eigenvalue, is a practical heuristic and is **not** sufficient in general, as Yildiz, Jaeger and Kiebel showed with
+# that $W$ be a contraction, $\sigma_{\max}(W)<1$ with $\sigma_{\max}$ the largest singular value [[2]](#ref-2);
+# the widely used recipe "spectral radius $\rho(W)<1$", with $\rho$ the largest modulus of an eigenvalue, is a practical heuristic and is **not** sufficient in general, as Ref. [[6]](#ref-6) showed with
 # analytical counterexamples.
 #
 # **(b) Separation and nonlinearity.** Different input histories must give different states (otherwise no readout can tell
@@ -154,7 +154,7 @@
 #
 # ### 2.4 The ridge-regression readout
 #
-# Ridge regression was introduced by Hoerl and Kennard (1970) for regression with nearly collinear predictors.
+# Ridge regression was introduced in [[7]](#ref-7) for regression with nearly collinear predictors.
 # Collect the features of the $n$ training steps in a matrix $X\in\mathbb{R}^{n\times p}$ (row $k$ = the $p$ features at step
 # $k$) and the targets in $\mathbf{y}\in\mathbb{R}^{n}$. With weights $\mathbf{w}\in\mathbb{R}^p$ and bias $b$ we minimise
 #
@@ -208,12 +208,12 @@
 #    \qquad \mathrm{MC}=\sum_{\tau\ge1}C(\tau), \tag{5}$$
 #
 # the squared Pearson correlation between the optimally trained readout and the delayed input. $C(\tau)=1$ means the reservoir
-# reproduces $u_{k-\tau}$ exactly. Jaeger proved (GMD Report 152, Proposition 2) that for an i.i.d. input and a *linear*
+# reproduces $u_{k-\tau}$ exactly. Ref. [[8]](#ref-8) proved (Proposition 2 there) that for an i.i.d. input and a *linear*
 # readout the total capacity of a network with $n$ state variables obeys
 #
 # $$ \mathrm{MC}\le n . $$
 #
-# Dambre, Verstraeten, Schrauwen and Massar later generalised the statement to arbitrary nonlinear target functionals: the sum
+# Ref. [[9]](#ref-9) later generalised the statement to arbitrary nonlinear target functionals: the sum
 # of capacities over any orthogonal family of functionals of the input is bounded by the number of **linearly independent**
 # state variables, with equality when the system has fading memory and the state variables are linearly independent. For us
 # the "state variables" are the readout features, so the bound reads $\mathrm{MC}\le p$ with $p$ the number of features. Two
@@ -236,21 +236,21 @@
 # the measurement on a much longer series.
 #
 # **NARMA.** A nonlinear auto-regressive moving-average system driven by $u_k\sim\mathcal{U}[0,0.5]$. We use the second-order
-# system of Atiya and Parlos, in the form quoted by Fujii and Nakajima,
+# system of [[10]](#ref-10), in the form quoted in [[4]](#ref-4),
 #
 # $$ y_{k+1} = 0.4\,y_k + 0.4\,y_k y_{k-1} + 0.6\,u_k^3 + 0.1, \tag{6}$$
 #
-# and the $n$-th order form that the reservoir-computing literature calls NARMA-$n$ (introduced for $n=10$ by Atiya and
-# Parlos; Fujii and Nakajima use the same coefficients $0.3,0.05,1.5,0.1$ for $n=5,10,15,20$),
+# and the $n$-th order form that the reservoir-computing literature calls NARMA-$n$ (introduced for $n=10$ in
+# [[10]](#ref-10); Ref. [[4]](#ref-4) uses the same coefficients $0.3,0.05,1.5,0.1$ for $n=5,10,15,20$),
 #
 # $$ y_{k+1} = 0.3\,y_k + 0.05\,y_k\sum_{i=0}^{n-1}y_{k-i} + 1.5\,u_{k-n+1}u_k + 0.1 . \tag{7}$$
 #
-# The target depends on its own past, so a good score needs memory of order $n$ steps *and* products of inputs. (Fujii and
-# Nakajima drive their NARMA tasks with inputs in $[0,0.2]$; we keep the interval $[0,0.5]$ of the echo-state literature.)
+# The target depends on its own past, so a good score needs memory of order $n$ steps *and* products of inputs. (Ref.
+# [[4]](#ref-4) drives its NARMA tasks with inputs in $[0,0.2]$; we keep the interval $[0,0.5]$ of the echo-state literature.)
 #
 # **Santa Fe laser data.** Data set A of the Santa Fe time-series competition: the intensity of a far-infrared
-# $^{14}$NH$_3$ laser in a chaotic regime, contributed by U. Hübner from measurements collected primarily by N. B. Abraham and
-# C. O. Weiss, and published with the competition proceedings edited by Weigend and Gershenfeld. The series is known for its
+# $^{14}$NH$_3$ laser in a chaotic regime, published with the competition proceedings [[11]](#ref-11) (see also
+# [[12]](#ref-12)). The series is known for its
 # intermittent collapses, which a linear model of the past values predicts poorly; Section 8 measures by how much.
 #
 # > **Numerical practice.** Quote errors as the *normalised* mean-square error
@@ -485,7 +485,7 @@ for n, f in [("NARMA-2 ", narma2(u_demo)), ("NARMA-5 ", narma_n(u_demo, 5)), ("N
 #    = \frac{\mathbb{1}+\cos(\pi u)\,Z+\sin(\pi u)\,X}{2} . \tag{9}$$
 #
 # Eq. (9) is the reason the reservoir is nonlinear in $u$ at all, and Section 3.6 turns it into an exact statement about the
-# features. (Fujii and Nakajima use $\sqrt{1-u}\,\vert0\rangle+\sqrt{u}\,\vert1\rangle$, for which
+# features. (Ref. [[4]](#ref-4) uses $\sqrt{1-u}\,\vert0\rangle+\sqrt{u}\,\vert1\rangle$, for which
 # $\langle Z\rangle=1-2u$ is linear in $u$; the difference is a reparametrisation of the same one-parameter family of states.)
 #
 # ### 3.3 The reset as a completely positive map
@@ -559,8 +559,8 @@ for n, f in [("NARMA-2 ", narma2(u_demo)), ("NARMA-5 ", narma_n(u_demo, 5)), ("N
 # $\langle X_iX_j\rangle$ for all pairs from the same shots; likewise for $Y$ and $Z$. Observables from different settings do
 # not commute and cannot be obtained from the same run — a fact that Section 9 has to pay for.
 #
-# **Temporal multiplexing.** The device Fujii and Nakajima use (their *virtual nodes*, a construction introduced for a
-# single nonlinear node with delayed feedback by Appeltant *et al.*, 2011) for getting more features out of the
+# **Temporal multiplexing.** The device used in [[4]](#ref-4) (its *virtual nodes*, a construction introduced for a
+# single nonlinear node with delayed feedback in [[13]](#ref-13)) for getting more features out of the
 # same hardware: instead of reading only at the end of the interval $\tau$, read $V$ times at $\tau/V,2\tau/V,\dots,\tau$.
 # The $V$ snapshots are different functions of the same history — the dynamics has run for different times — so the
 # feature vector becomes $p=V p_0$ long at no cost in qubits. The $V$ sub-states are not independent, and Section 6
@@ -1592,9 +1592,8 @@ for name, *vals in rows:
 # ## 8. The Santa Fe laser series
 #
 # Data set A of the Santa Fe time-series competition is a univariate record of the intensity of an
-# $81.5\,\mu\mathrm{m}$ $^{14}$NH$_3$ far-infrared laser in a chaotic regime, contributed by U. Hübner from measurements
-# collected primarily by N. B. Abraham and C. O. Weiss, and published with the competition proceedings edited by Weigend and
-# Gershenfeld. The series alternates between stretches of growing oscillations and abrupt collapses. The competition data
+# $81.5\,\mu\mathrm{m}$ $^{14}$NH$_3$ far-infrared laser in a chaotic regime, published with the competition proceedings [[11]](#ref-11) (see also [[12]](#ref-12)).
+# The series alternates between stretches of growing oscillations and abrupt collapses. The competition data
 # set is $1000$ points long, with a later continuation of $9093$ further points; the file `../data/santafe.txt` holds $4000$
 # samples of the series, standardised to zero mean and unit variance. The analog-to-digital conversion is still visible:
 # the cell below finds that the distinct values lie on a uniform lattice of $254$ levels, consistent with an $8$-bit
@@ -1743,9 +1742,9 @@ print(f"\nsingle configuration shown in the left panel: reservoir 0, V=4, h=1: N
 # 2. **The measurement destroys the state.** To read the reservoir at step $k$ and then continue to step $k+1$ with the
 #    *same* state is not possible. If the whole input sequence up to step $k$ is replayed for every readout time (the
 #    *restarting* protocol of earlier work), the experimental time grows quadratically with the length of the series.
-#    Chen, Nurdin and Yamamoto (2020) already noted this cost and its remedy: replay only the last stretch of the input,
-#    using the fading memory established in Section 5 (linear instead of quadratic cost). Mujal, Martínez-Peña, Giorgi,
-#    Soriano and Zambrini (2023) named and compared the protocols — *restarting*, this *rewinding* one, and an *online* protocol of their own
+#    Ref. [[14]](#ref-14) already noted this cost and its remedy: replay only the last stretch of the input,
+#    using the fading memory established in Section 5 (linear instead of quadratic cost). Ref.
+#    [[15]](#ref-15) named and compared the protocols — *restarting*, this *rewinding* one, and an *online* protocol of its own
 #    with weak measurements that never repeats the dynamics but pays with measurement back-action.
 # 3. **The noise enters the regression**, in two places: in the training features, where it changes the fitted weights,
 #    and in the test features, where it adds to every prediction. Section 9.1 derives both.
@@ -1829,7 +1828,7 @@ for q in range(N_QUBITS):
 # because the cross terms $\mathbb{E}[x\epsilon]$ vanish and $\mathbb{E}[\epsilon_{kj}\epsilon_{kj'}]=\delta_{jj'}v_{kj}$. To
 # leading order the normal equations (3) become $(X^{\rm T}X+\alpha\mathbb{1}+D)\mathbf{w}=X^{\rm T}\mathbf{y}$: **the shot
 # noise acts as a ridge penalty of its own**, with a feature-dependent strength $D_{jj}$ (this is the classical
-# errors-in-variables result; Bishop (1995) showed that training with input noise is equivalent to Tikhonov
+# errors-in-variables result; Ref. [[16]](#ref-16) showed that training with input noise is equivalent to Tikhonov
 # regularisation to this order). Two predictions
 # follow, and the next cell tests both.
 #
@@ -1946,7 +1945,7 @@ plt.tight_layout(); plt.show()
 # the state: $M=10^3$ is $3000$ runs per time step, and with $1100$ usable time steps that is $3\cdot10^6$ runs of an
 # experiment whose length itself grows with the step index. This is the quadratic cost of the restarting protocol, and the
 # reason for the rewinding protocol (replay only the last few memory times of the input, about ten to twenty steps at
-# $\tau=0.5$ according to Section 5) and for the weak-measurement online protocol of Mujal *et al.*
+# $\tau=0.5$ according to Section 5) and for the weak-measurement online protocol of [[15]](#ref-15)
 #
 # The second panel and the printed $\alpha$ values test the first prediction of Section 9.1. The validation curve is flat
 # from $\alpha=10^{-6}$ to $\alpha\approx10$ at every noise level, the $\alpha$ chosen on the validation block jumps between
@@ -2075,8 +2074,8 @@ print(f"\npurity of the driven state: gamma = 0: {float(purity(dm_matrix(rho_end
 # > **Physics insight.** For a reservoir, decoherence is not only a loss. The task of a reservoir is to forget in a
 # > *useful* way, and a dissipative bath is a perfectly good forgetting mechanism — at moderate rates a better-shaped one
 # > than unitary scrambling followed by an erasure, at large rates a destructive one. Dissipative quantum reservoirs are
-# > analysed by Chen and Nurdin; how the performance depends on the dynamical regime of the reservoir is the subject of
-# > Martínez-Peña *et al.*, who find the thermalising (ergodic) phase of a disordered spin network well suited to reservoir
+# > analysed in [[17]](#ref-17); how the performance depends on the dynamical regime of the reservoir is the subject of
+# > [[18]](#ref-18), which finds the thermalising (ergodic) phase of a disordered spin network well suited to reservoir
 # > computing, with the best performance near its transition to many-body localisation.
 #
 # ### 10.1 The comparison at equal feature count
@@ -2113,8 +2112,8 @@ print(f"\npurity of the driven state: gamma = 0: {float(purity(dm_matrix(rho_end
 # improvement; Exercise 4 maps one of them.
 #
 # The literature discusses two routes to a benefit, and this notebook tests neither. First, the number of observables
-# that can serve as features grows with the Hilbert-space dimension, and the review of Mujal *et al.* (Ref. 13) collects
-# work that quantifies how much of it a readout can use; Fujii and Nakajima (Ref. 8) found spin reservoirs of $5$–$7$
+# that can serve as features grows with the Hilbert-space dimension, and the review [[19]](#ref-19) collects
+# work that quantifies how much of it a readout can use; Ref. [[4]](#ref-4) found spin reservoirs of $5$–$7$
 # qubits, each qubit read out at $V$ instants per input step, comparable to echo-state networks of $100$–$500$ nodes; that
 # comparison counts qubits against network nodes, while the table above counts readout features. Second, the same review points
 # to tasks whose input is itself a quantum state, such as entanglement detection or state tomography, which a classical
@@ -2197,7 +2196,7 @@ print(f"\nN = {N_QUBITS}: {M_bench} trajectories over {len(u_bench)} steps: comp
 #   with measurement and reset — agree within the $1/\sqrt M$ statistical error (rms pull $1.0$), and the same comparison
 #   rejects a wrong erasure by a pull of almost $90$ and resolves the Trotter error of the production time step.
 # * The measured linear memory capacity, $3.8\pm0.45$ for one reservoir of four qubits, stays far below the number of
-#   readout features. The bound of Jaeger and of Dambre *et al.* counts *linearly independent* state variables, and the one-
+#   readout features. The bound of [[8]](#ref-8) and [[9]](#ref-9) counts *linearly independent* state variables, and the one-
 #   and two-body Pauli features of a small lattice are strongly redundant. At $220$ test points the estimate carries an
 #   upward bias of $0.3$ (null control) and a downward bias of similar size from the finite training block; a slowly
 #   forgetting reservoir hides much of its capacity in a faint tail that a sum over twenty delays misses.
@@ -2249,56 +2248,75 @@ print(f"\nN = {N_QUBITS}: {M_bench} trajectories over {len(u_bench)} steps: comp
 #
 # ## 14. References
 #
-# 1. H. Jaeger, *The "echo state" approach to analysing and training recurrent neural networks*, GMD Report 148, German
-#    National Research Center for Information Technology (2001); reissued with an erratum note (2010) correcting
-#    Definition 3 and Proposition 1.
-# 2. H. Jaeger, *Short term memory in echo state networks*, GMD Report 152, GMD – Forschungszentrum Informationstechnik
-#    GmbH (2002). Proposition 2: for i.i.d. input and linear output units the memory capacity
-#    $\mathrm{MC}=\sum_{k\ge1}\mathrm{MC}_k$ of an $N$-unit network obeys $\mathrm{MC}\le N$.
-# 3. W. Maass, T. Natschläger and H. Markram, *Real-time computing without stable states: a new framework for neural
-#    computation based on perturbations*, Neural Computation **14**, 2531 (2002).
-# 4. H. Jaeger and H. Haas, *Harnessing nonlinearity: predicting chaotic systems and saving energy in wireless
-#    communication*, Science **304**, 78 (2004). Echo-state networks applied to chaotic time-series prediction.
-# 5. M. Lukoševičius and H. Jaeger, *Reservoir computing approaches to recurrent neural network training*, Computer
-#    Science Review **3**, 127 (2009).
-# 6. I. B. Yildiz, H. Jaeger and S. J. Kiebel, *Re-visiting the echo state property*, Neural Networks **35**, 1 (2012).
-# 7. J. Dambre, D. Verstraeten, B. Schrauwen and S. Massar, *Information processing capacity of dynamical systems*,
-#    Scientific Reports **2**, 514 (2012).
-# 8. K. Fujii and K. Nakajima, *Harnessing disordered-ensemble quantum dynamics for machine learning*, Physical Review
-#    Applied **8**, 024030 (2017).
-# 9. K. Nakajima, K. Fujii, M. Negoro, K. Mitarai and M. Kitagawa, *Boosting computational power through spatial
-#    multiplexing in quantum reservoir computing*, Physical Review Applied **11**, 034021 (2019). Several disjoint
-#    quantum reservoirs read out by one linear readout.
-# 10. J. Chen and H. I. Nurdin, *Learning nonlinear input-output maps with dissipative quantum systems*, Quantum
-#     Information Processing **18**, 198 (2019).
-# 11. J. Chen, H. I. Nurdin and N. Yamamoto, *Temporal information processing on noisy quantum computers*, Physical Review
-#     Applied **14**, 024065 (2020). Quantum reservoirs on superconducting quantum computers; the quadratic cost of
-#     replaying the input and its reduction through fading memory.
-# 12. R. Martínez-Peña, G. L. Giorgi, J. Nokkala, M. C. Soriano and R. Zambrini, *Dynamical phase transitions in quantum
-#     reservoir computing*, Physical Review Letters **127**, 100502 (2021).
-# 13. P. Mujal, R. Martínez-Peña, J. Nokkala, J. García-Beni, G. L. Giorgi, M. C. Soriano and R. Zambrini,
-#     *Opportunities in quantum reservoir computing and extreme learning machines*, Advanced Quantum Technologies **4**,
-#     2100027 (2021). A review of quantum reservoir computing.
-# 14. P. Mujal, R. Martínez-Peña, G. L. Giorgi, M. C. Soriano and R. Zambrini, *Time-series quantum reservoir computing
-#     with weak and projective measurements*, npj Quantum Information **9**, 16 (2023).
-# 15. A. S. Weigend and N. A. Gershenfeld (editors), *Time Series Prediction: Forecasting the Future and Understanding the
-#     Past*, Santa Fe Institute Studies in the Sciences of Complexity, Proceedings Volume XV (Addison-Wesley, Reading,
-#     1994). Data set A was contributed by U. Hübner, from data collected primarily by N. B. Abraham and C. O. Weiss; see also
-#     U. Hübner, N. B. Abraham and C. O. Weiss, *Dimensions and entropies of chaotic intensity pulsations in a
-#     single-mode far-infrared NH3 laser*, Physical Review A **40**, 6354 (1989).
-# 16. A. F. Atiya and A. G. Parlos, *New results on recurrent network training: unifying the algorithms and accelerating
-#     convergence*, IEEE Transactions on Neural Networks **11**, 697 (2000). Source of the second-order system of Eq. (6)
-#     and of the tenth-order system that the reservoir-computing literature calls NARMA-10; Fujii and Nakajima (Ref. 8,
-#     their Eq. (18)) use the NARMA-$n$ form of Eq. (7) with these coefficients for $n=5,10,15,20$. NARMA-10 is also a
-#     benchmark of A. Rodan and P. Tiňo, *Minimum complexity echo state network*, IEEE Transactions on Neural Networks
-#     **22**, 131 (2011).
-# 17. Y. Bengio, P. Simard and P. Frasconi, *Learning long-term dependencies with gradient descent is difficult*, IEEE
-#     Transactions on Neural Networks **5**, 157 (1994). Why gradient training of recurrent networks fails on long
-#     temporal dependencies.
-# 18. A. E. Hoerl and R. W. Kennard, *Ridge regression: biased estimation for nonorthogonal problems*, Technometrics
-#     **12**, 55 (1970). Ridge regression, Eq. (3).
-# 19. C. M. Bishop, *Training with noise is equivalent to Tikhonov regularization*, Neural Computation **7**, 108
-#     (1995).
-# 20. L. Appeltant, M. C. Soriano, G. Van der Sande, J. Danckaert, S. Massar, J. Dambre, B. Schrauwen, C. R. Mirasso and
-#     I. Fischer, *Information processing using a single dynamical node as complex system*, Nature Communications **2**,
-#     468 (2011). Virtual nodes read out at equally spaced times along a delay loop.
+# <span id="ref-1">[1]</span> Y. Bengio, P. Simard and P. Frasconi, *Learning long-term dependencies with gradient descent is difficult*, IEEE
+# Transactions on Neural Networks **5**, 157 (1994). Why gradient training of recurrent networks fails on long
+# temporal dependencies.
+#
+# <span id="ref-2">[2]</span> H. Jaeger, *The "echo state" approach to analysing and training recurrent neural networks*, GMD Report 148,
+# German National Research Center for Information Technology (2001); reissued with an erratum note (2010) correcting
+# Definition 3 and Proposition 1.
+#
+# <span id="ref-3">[3]</span> W. Maass, T. Natschläger and H. Markram, *Real-time computing without stable states: a new framework for neural
+# computation based on perturbations*, Neural Computation **14**, 2531 (2002).
+#
+# <span id="ref-4">[4]</span> K. Fujii and K. Nakajima, *Harnessing disordered-ensemble quantum dynamics for machine learning*, Physical
+# Review Applied **8**, 024030 (2017).
+#
+# <span id="ref-5">[5]</span> M. Lukoševičius and H. Jaeger, *Reservoir computing approaches to recurrent neural network training*, Computer
+# Science Review **3**, 127 (2009).
+#
+# <span id="ref-6">[6]</span> I. B. Yildiz, H. Jaeger and S. J. Kiebel, *Re-visiting the echo state property*, Neural Networks **35**, 1
+# (2012).
+#
+# <span id="ref-7">[7]</span> A. E. Hoerl and R. W. Kennard, *Ridge regression: biased estimation for nonorthogonal problems*, Technometrics
+# **12**, 55 (1970). Ridge regression, Eq. (3).
+#
+# <span id="ref-8">[8]</span> H. Jaeger, *Short term memory in echo state networks*, GMD Report 152, GMD – Forschungszentrum
+# Informationstechnik GmbH (2002). Proposition 2: for i.i.d. input and linear output units the memory capacity
+# $\mathrm{MC}=\sum_{k\ge1}\mathrm{MC}_k$ of an $N$-unit network obeys $\mathrm{MC}\le N$.
+#
+# <span id="ref-9">[9]</span> J. Dambre, D. Verstraeten, B. Schrauwen and S. Massar, *Information processing capacity of dynamical systems*,
+# Scientific Reports **2**, 514 (2012).
+#
+# <span id="ref-10">[10]</span> A. F. Atiya and A. G. Parlos, *New results on recurrent network training: unifying the algorithms and
+# accelerating convergence*, IEEE Transactions on Neural Networks **11**, 697 (2000). Source of the second-order system
+# of Eq. (6) and of the tenth-order system that the reservoir-computing literature calls NARMA-10; Ref. [4] (Eq. (18)
+# there) uses the NARMA-$n$ form of Eq. (7) with these coefficients for $n=5,10,15,20$. NARMA-10 is also a benchmark of
+# A. Rodan and P. Tiňo, *Minimum complexity echo state network*, IEEE Transactions on Neural Networks **22**, 131
+# (2011).
+#
+# <span id="ref-11">[11]</span> A. S. Weigend and N. A. Gershenfeld (editors), *Time Series Prediction: Forecasting the Future and
+# Understanding the Past*, Santa Fe Institute Studies in the Sciences of Complexity, Proceedings Volume XV
+# (Addison-Wesley, Reading, 1994). Data set A was contributed by U. Hübner, from data collected primarily by N. B.
+# Abraham and C. O. Weiss.
+#
+# <span id="ref-12">[12]</span> U. Hübner, N. B. Abraham and C. O. Weiss, *Dimensions and entropies of chaotic intensity pulsations in a
+# single-mode far-infrared NH3 laser*, Physical Review A **40**, 6354 (1989).
+#
+# <span id="ref-13">[13]</span> L. Appeltant, M. C. Soriano, G. Van der Sande, J. Danckaert, S. Massar, J. Dambre, B. Schrauwen, C. R. Mirasso
+# and I. Fischer, *Information processing using a single dynamical node as complex system*, Nature Communications **2**,
+# 468 (2011). Virtual nodes read out at equally spaced times along a delay loop.
+#
+# <span id="ref-14">[14]</span> J. Chen, H. I. Nurdin and N. Yamamoto, *Temporal information processing on noisy quantum computers*, Physical
+# Review Applied **14**, 024065 (2020). Quantum reservoirs on superconducting quantum computers; the quadratic cost of
+# replaying the input and its reduction through fading memory.
+#
+# <span id="ref-15">[15]</span> P. Mujal, R. Martínez-Peña, G. L. Giorgi, M. C. Soriano and R. Zambrini, *Time-series quantum reservoir
+# computing with weak and projective measurements*, npj Quantum Information **9**, 16 (2023).
+#
+# <span id="ref-16">[16]</span> C. M. Bishop, *Training with noise is equivalent to Tikhonov regularization*, Neural Computation **7**, 108
+# (1995).
+#
+# <span id="ref-17">[17]</span> J. Chen and H. I. Nurdin, *Learning nonlinear input-output maps with dissipative quantum systems*, Quantum
+# Information Processing **18**, 198 (2019).
+#
+# <span id="ref-18">[18]</span> R. Martínez-Peña, G. L. Giorgi, J. Nokkala, M. C. Soriano and R. Zambrini, *Dynamical phase transitions in
+# quantum reservoir computing*, Physical Review Letters **127**, 100502 (2021).
+#
+# <span id="ref-19">[19]</span> P. Mujal, R. Martínez-Peña, J. Nokkala, J. García-Beni, G. L. Giorgi, M. C. Soriano and R. Zambrini,
+# *Opportunities in quantum reservoir computing and extreme learning machines*, Advanced Quantum Technologies **4**,
+# 2100027 (2021). A review of quantum reservoir computing.
+#
+# <span id="ref-20">[20]</span> K. Nakajima, K. Fujii, M. Negoro, K. Mitarai and M. Kitagawa, *Boosting computational power through spatial
+# multiplexing in quantum reservoir computing*, Physical Review Applied **11**, 034021 (2019). Several disjoint
+# quantum reservoirs read out by one linear readout.

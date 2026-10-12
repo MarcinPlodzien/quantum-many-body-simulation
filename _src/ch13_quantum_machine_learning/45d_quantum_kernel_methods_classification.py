@@ -3,7 +3,7 @@
 #@description: Two-dimensional data on concentric rings are encoded into up to ten qubits by a circuit of Hadamard, Rz and ZZ gates; the overlaps of the encoded states form a kernel matrix that a support vector machine, solved in JAX from its dual problem, turns into a classifier. The notebook measures the kernel by the inversion and swap tests, projects the data by kernel principal component analysis, compares accuracies with tuned classical kernels over random splits, and quantifies the concentration of kernel values with the number of qubits and the cost of finite shots.
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
 # ### 1.1 Classification
 #
@@ -47,7 +47,7 @@
 # The scalar product in $\mathcal F$ is computed without forming $\boldsymbol\phi$, which is the **kernel trick**. It
 # matters when $\mathcal F$ is large: the Gaussian kernel $k(\mathbf x,\mathbf x')=e^{-\gamma\vert\mathbf x-\mathbf x'\vert^2}$
 # corresponds to a feature space of infinite dimension and costs one exponential per pair. The SVM, introduced with
-# kernels by Boser, Guyon and Vapnik (1992) and given its soft margin by Cortes and Vapnik (1995), chooses, among all separating planes in $\mathcal F$, the one with the largest distance to the nearest training
+# kernels in [[1]](#ref-1) and given its soft margin in [[2]](#ref-2), chooses, among all separating planes in $\mathcal F$, the one with the largest distance to the nearest training
 # points, and Section 3.3 shows that its training needs nothing but the $M\times M$ **kernel matrix**
 # $K_{ij}=k(\mathbf x_i,\mathbf x_j)$ and the labels. The parameter $\gamma$ of the Gaussian kernel sets the length scale
 # $1/\sqrt\gamma$ over which two points are considered similar; it is called the *bandwidth* and has to be tuned.
@@ -59,7 +59,7 @@
 #
 # $$\vert\phi(\mathbf x)\rangle=U(\mathbf x)\,\vert0\rangle^{\otimes N}. \tag{4}$$
 #
-# Havlíček *et al.* (2019) and Schuld and Killoran (2019) proposed to use this map as the feature map of a kernel method.
+# The use of this map as the feature map of a kernel method was proposed in [[3]](#ref-3), [[4]](#ref-4).
 # The scalar product of two encoded states is a complex number, and the global phase of a state has no physical
 # meaning, so the natural kernel is the squared modulus of the overlap,
 #
@@ -69,7 +69,7 @@
 # the *fidelity kernel*. The second form of Eq. (5) is a measurement prescription. Running $U(\mathbf x)$ followed by
 # $U^\dagger(\mathbf x')$ on $\vert0\cdots0\rangle$ and measuring every qubit returns the string $0\cdots0$ with probability
 # exactly $k(\mathbf x,\mathbf x')$, so the fraction of all-zero outcomes in $S$ repetitions (shots) estimates the kernel.
-# This is the *inversion* or *overlap test*. The *swap test* (Buhrman *et al.*, 2001) obtains the same number from two
+# This is the *inversion* or *overlap test*. The *swap test* [[5]](#ref-5) obtains the same number from two
 # registers prepared separately, at the price of $2N+1$ qubits; Section 4.4 implements both. A quantum computer
 # estimates every entry of the kernel matrix in this way, and the rest of the method, the SVM, runs on a classical
 # computer. Figure 1 shows the whole pipeline.
@@ -85,15 +85,15 @@
 #
 # A quantum kernel is useful only if it is hard to compute on a classical computer and, at the same time, suited to
 # the data. Every circuit of this notebook runs on a classical simulator, so the first condition fails here by
-# construction. Havlíček *et al.* ran the method on two superconducting qubits and conjectured that kernels of circuits
+# construction. Ref. [[3]](#ref-3) ran the method on two superconducting qubits and conjectured that kernels of circuits
 # of the type used here become hard to estimate classically when the circuits grow; no proof of this hardness is
-# known. Liu, Arunachalam and Temme (2021) constructed a classification problem, based on the discrete logarithm, that
+# known. Ref. [[6]](#ref-6) constructed a classification problem, based on the discrete logarithm, that
 # a quantum-kernel SVM solves with high accuracy while no classical learner classifies it inverse-polynomially better
 # than random guessing, provided the discrete logarithm is classically hard. This is a proof of principle with data
-# built for the purpose and feature-map circuits designed for a fault-tolerant quantum computer. Huang *et al.* (2021)
+# built for the purpose and feature-map circuits designed for a fault-tolerant quantum computer. Ref. [[7]](#ref-7)
 # showed that classical learners that are given data can be competitive with quantum models even on problems derived
 # from quantum circuits, and developed a method, based on prediction-error bounds, for assessing whether a quantum
-# kernel can have an advantage on a given data set. Thanasilp *et al.* (2024) identified a general obstacle: for
+# kernel can have an advantage on a given data set. Ref. [[8]](#ref-8) identified a general obstacle: for
 # expressive encodings, entangled encoded states, global measurements or noise, the kernel values of different inputs
 # concentrate exponentially in $N$ around a fixed value, and resolving them requires exponentially many shots.
 # Section 8 measures this effect. No practically relevant classical data set is known on which a quantum kernel has
@@ -392,8 +392,8 @@ plt.show()
 #
 # $$\boldsymbol\alpha\leftarrow\Pi\big(\boldsymbol\alpha+\eta\,(\mathbf 1-Q\boldsymbol\alpha)\big),\qquad \eta=1/\lambda_{\max}(Q), \tag{13}$$
 #
-# where the step $\eta$ is the inverse of the largest curvature of $D$. The accelerated version (FISTA, Beck and
-# Teboulle, 2009) applies the same step at an extrapolated point
+# where the step $\eta$ is the inverse of the largest curvature of $D$. The accelerated version (FISTA, introduced in
+# [[9]](#ref-9)) applies the same step at an extrapolated point
 # $\mathbf z_t=\boldsymbol\alpha_t+\frac{\tau_t-1}{\tau_{t+1}}(\boldsymbol\alpha_t-\boldsymbol\alpha_{t-1})$, with
 # $\tau_1=1$ and $\tau_{t+1}=\frac12\big(1+\sqrt{1+4\tau_t^2}\big)$, which reduces the error of $D$ after $n$ steps from
 # $O(1/n)$ to $O(1/n^2)$.
@@ -531,8 +531,8 @@ except ImportError:
 # $$\mathbf c^{\rm T}K\mathbf c=\sum_{i,j}c_ic_j\,\boldsymbol\phi_i\cdot\boldsymbol\phi_j=\Big\vert\sum_ic_i\boldsymbol\phi_i\Big\vert^2\geq0 , \tag{15}$$
 #
 # and the converse also holds: a symmetric function all of whose kernel matrices are PSD is the scalar product of some
-# feature map (the Moore–Aronszajn theorem, Aronszajn 1950; the theorem of Mercer (1909) gives an explicit construction
-# for continuous kernels; see also Schölkopf and Smola, 2002). For the SVM the property is essential: with
+# feature map (the Moore–Aronszajn theorem [[10]](#ref-10); Mercer's theorem [[11]](#ref-11) gives an explicit construction
+# for continuous kernels; see also [[12]](#ref-12)). For the SVM the property is essential: with
 # $Q=\mathrm{diag}(\mathbf y)\,K\,\mathrm{diag}(\mathbf y)$ the function $D$ of Eq. (9) is concave exactly when $K$ is
 # PSD, and only then is every local maximum a global one, so that projected gradient ascent is guaranteed to reach the
 # optimal value. The maximiser $\boldsymbol\alpha$ itself need not be unique: the polynomial kernel of Eq. (3) has rank
@@ -712,7 +712,7 @@ section_timer("4 quantum feature map")
 # $\pm1.2$, so at $s=1$ the single-qubit angles $2s\tilde x_q$ stay within about $\pm2.4$ rad. All gates of $W$ are diagonal in the computational basis, so they
 # commute and their order does not matter; the Hadamard layers in between make the circuit non-trivial. The structure,
 # alternating Hadamard layers and diagonal layers with single-feature and pair-product phases, follows the circuits of
-# Havlíček *et al.* (2019), who used the pair angle $(\pi-x_1)(\pi-x_2)$ instead of $s^2x_1x_2$. The **product
+# [[3]](#ref-3), which use the pair angle $(\pi-x_1)(\pi-x_2)$ instead of $s^2x_1x_2$. The **product
 # encoding** omits the $R_{ZZ}$ gates; its states have no entanglement, and its kernel factorises over qubits
 # (Section 4.3). Figure 2 shows the circuit for $N=4$.
 #
@@ -892,8 +892,8 @@ assert lam_fid[0] > -TOL * 1e3 and lam_abs[0] < -0.05
 # $N/d$ qubits ($N$ a multiple of $d$). The one-layer product encoding is therefore close to a Gaussian kernel with
 # bandwidth $\gamma_{\rm eff}=Ns^2/d$. This identifies the role of the two encoding parameters: increasing $N$ at fixed
 # $s$ narrows the kernel as increasing $\gamma$ does, and keeping $Ns^2$ fixed keeps the kernel approximately
-# unchanged, exactly in the Gaussian limit. Shaydulin
-# and Wild (2022) identified the data scale as the bandwidth of quantum kernels and showed, on several kernels and data
+# unchanged, exactly in the Gaussian limit. Ref.
+# [[13]](#ref-13) identified the data scale as the bandwidth of quantum kernels and showed, on several kernels and data
 # sets, that it moves the model between underfitting and overfitting and that optimising it counteracts the decay of
 # kernel values with the number of qubits.
 # The cell checks Eq. (18) and the first equality of Eq. (19) exactly, and the Gaussian approximation for a small scale.
@@ -1066,7 +1066,7 @@ plt.show()
 #
 # The feature vectors live in a space of dimension $2^{2N}$ (Eq. (17)), but only their projections onto a few
 # directions can be drawn. Principal component analysis (PCA) chooses the directions of largest variance, and kernel PCA
-# (Schölkopf, Smola and Müller, 1998) does so using only the kernel matrix. The data are first centred in feature space,
+# [[14]](#ref-14) does so using only the kernel matrix. The data are first centred in feature space,
 # $\tilde{\boldsymbol\phi}_i=\boldsymbol\phi_i-\frac1M\sum_j\boldsymbol\phi_j$, which changes the kernel matrix to
 #
 # $$\tilde K=JKJ,\qquad J=\mathbb 1-\frac1M\mathbf 1\mathbf 1^{\rm T}. \tag{23}$$
@@ -1408,7 +1408,7 @@ section_timer("8 concentration")
 # $$S\ \gtrsim\ S^*=\frac{\mathbb E\,k\,(1-\mathbb E\,k)}{\mathrm{Var}\,k},\qquad S^*_{\rm Haar}=D+1=2^N+1 , \tag{26}$$
 #
 # where the last value follows from Eq. (25). An encoding whose states look Haar-random needs a number of shots per
-# kernel entry that doubles with every qubit. Thanasilp *et al.* (2024) proved bounds of this type for expressive
+# kernel entry that doubles with every qubit. Ref. [[8]](#ref-8) proved bounds of this type for expressive
 # encodings, global measurements, entanglement and noise.
 #
 # The cell measures $\mathbb E\,k$, $\mathrm{Var}\,k$ and $S^*$ over all pairs of 200 points in four settings. The
@@ -1716,10 +1716,10 @@ print(f"   {'total (Sections 3-10)':36s} {sum(v for k, v in SECTION_TIMES.items(
 #    $0.258$, $0.279$, $0.154$; test accuracies $99.6$, $99.9$ and $98.6\,\%$.)
 # 4. ★★ **Kernel-target alignment.** The alignment
 #    $A=\sum_{ij}K_{ij}y_iy_j\big/\big(M\Vert K\Vert_F\big)$ measures how well $K$ resembles the ideal matrix
-#    $\mathbf y\mathbf y^{\rm T}$ (Hubregtsen *et al.*, 2022). Compute it for the entangling kernel at $N=6$ on all 200
+#    $\mathbf y\mathbf y^{\rm T}$ [[15]](#ref-15). Compute it for the entangling kernel at $N=6$ on all 200
 #    points of the two-ring set for $s\in\{0.25,0.5,0.75,1,1.25,1.5,2,3\}$. Which $s$ maximises it, and does that agree
 #    with the scale chosen by validation in Section 6? (Check: maximum $A=0.411$ at $s=1.5$.)
-# 5. ★★ **The pair angle of Havlíček *et al.* (extend the code).** Replace the angle of the $R_{ZZ}$ gates in
+# 5. ★★ **The pair angle of [[3]](#ref-3) (extend the code).** Replace the angle of the $R_{ZZ}$ gates in
 #    `feature_circuit` by $2(\pi-\tilde x_q)(\pi-\tilde x_{q+1})$, keep $R_z(2s\tilde x_q)$ with $s=1$, and repeat the
 #    untuned two-ring classification at $N=6$. (Check: mean off-diagonal kernel value $0.076$, test accuracy
 #    $98.0\,\%$.)
@@ -1727,7 +1727,7 @@ print(f"   {'total (Sections 3-10)':36s} {sum(v for k, v in SECTION_TIMES.items(
 #    and the decision function $f(\mathbf x)=\sum_i\beta_ik(\mathbf x_i,\mathbf x)$. With $\lambda=0.1$ and the entangling
 #    kernel at $N=6$, $s=1$, compare the test accuracy with the SVM over the ten splits. Which training points enter
 #    $f$? (Check: $99.9\,\%$.)
-# 7. ★★★ **A projected quantum kernel (physics).** Huang *et al.* (2021) proposed kernels built from local
+# 7. ★★★ **A projected quantum kernel (physics).** Ref. [[7]](#ref-7) proposed kernels built from local
 #    quantities, for example $k(\mathbf x,\mathbf x')=\exp\big(-\gamma\sum_q\Vert\rho_q(\mathbf x)-\rho_q(\mathbf x')\Vert_F^2\big)$ with
 #    the one-qubit reduced density matrices $\rho_q$. For the random data of Section 8 (150 points, keys
 #    `jax.random.PRNGKey(300 + N)`, entangling encoding, $s=\pi/2$, $\gamma=1$), compute $S^*$ of Eq. (26) for
@@ -1736,39 +1736,58 @@ print(f"   {'total (Sections 3-10)':36s} {sum(v for k, v in SECTION_TIMES.items(
 #
 # ## References
 #
-# * V. Havlíček, A. D. Córcoles, K. Temme, A. W. Harrow, A. Kandala, J. M. Chow and J. M. Gambetta, *Supervised
-#   learning with quantum-enhanced feature spaces*, Nature **567**, 209 (2019) — the quantum kernel estimator and the
-#   variational quantum classifier, run on two superconducting qubits; encoding circuits of the type of Eq. (16).
-# * M. Schuld and N. Killoran, *Quantum machine learning in feature Hilbert spaces*, Phys. Rev. Lett. **122**, 040504
-#   (2019) — the encoding of data into quantum states as a feature map, and kernels computed from state overlaps.
-# * Y. Liu, S. Arunachalam and K. Temme, *A rigorous and robust quantum speed-up in supervised machine learning*,
-#   Nat. Phys. **17**, 1013 (2021) — a classification problem based on the discrete logarithm on which a quantum-kernel
-#   SVM is provably better than any classical learner, under the assumption that the discrete logarithm is hard.
-# * H.-Y. Huang, M. Broughton, M. Mohseni, R. Babbush, S. Boixo, H. Neven and J. R. McClean, *Power of data in quantum
-#   machine learning*, Nat. Commun. **12**, 2631 (2021) — classical learners given data can compete with quantum models;
-#   a test for a potential quantum advantage of a kernel on a given data set.
-# * S. Thanasilp, S. Wang, M. Cerezo and Z. Holmes, *Exponential concentration in quantum kernel methods*,
-#   Nat. Commun. **15**, 5200 (2024) — concentration of kernel values from expressivity, global measurements,
-#   entanglement and noise, and the resulting number of shots (Section 8).
-# * R. Shaydulin and S. M. Wild, *Importance of kernel bandwidth in quantum machine learning*, Phys. Rev. A **106**,
-#   042407 (2022) — the data scale as the bandwidth of a quantum kernel (Sections 4.3 and 7).
-# * T. Hubregtsen, D. Wierichs, E. Gil-Fuster, P.-J. H. S. Derks, P. K. Faehrmann and J. J. Meyer, *Training quantum
-#   embedding kernels on near-term quantum computers*, Phys. Rev. A **106**, 042431 (2022) — trainable encodings
-#   optimised by kernel-target alignment, noise and finite sampling in kernel matrices (Exercise 4).
-# * H. Buhrman, R. Cleve, J. Watrous and R. de Wolf, *Quantum fingerprinting*, Phys. Rev. Lett. **87**, 167902 (2001) —
-#   the swap test (Section 4.4).
-# * B. E. Boser, I. M. Guyon and V. N. Vapnik, *A training algorithm for optimal margin classifiers*, in *Proceedings of
-#   the Fifth Annual Workshop on Computational Learning Theory* (ACM, 1992), p. 144 — the maximal-margin classifier
-#   with kernels, whose solution is a combination of support vectors.
-# * C. Cortes and V. Vapnik, *Support-vector networks*, Mach. Learn. **20**, 273 (1995) — the soft-margin support
-#   vector machine of Eq. (6).
-# * B. Schölkopf, A. Smola and K.-R. Müller, *Nonlinear component analysis as a kernel eigenvalue problem*, Neural
-#   Comput. **10**, 1299 (1998) — kernel principal component analysis (Section 5.2).
-# * N. Aronszajn, *Theory of reproducing kernels*, Trans. Amer. Math. Soc. **68**, 337 (1950) — reproducing-kernel
-#   Hilbert spaces and the Moore–Aronszajn theorem (Section 3.5).
-# * J. Mercer, *Functions of positive and negative type, and their connection with the theory of integral equations*,
-#   Phil. Trans. R. Soc. Lond. A **209**, 415 (1909) — Mercer's theorem for continuous kernels of positive type.
-# * B. Schölkopf and A. J. Smola, *Learning with Kernels* (MIT Press, Cambridge MA, 2002) — kernels, Mercer's theorem
-#   and the SVM.
-# * A. Beck and M. Teboulle, *A fast iterative shrinkage-thresholding algorithm for linear inverse problems*, SIAM J.
-#   Imaging Sci. **2**, 183 (2009) — the accelerated projected gradient method (FISTA) of Section 3.4.
+# <span id="ref-1">[1]</span> B. E. Boser, I. M. Guyon and V. N. Vapnik, *A training algorithm for optimal margin
+# classifiers*, in *Proceedings of the Fifth Annual Workshop on Computational Learning Theory* (ACM, 1992), p. 144 — the
+# maximal-margin classifier with kernels, whose solution is a combination of support vectors.
+#
+# <span id="ref-2">[2]</span> C. Cortes and V. Vapnik, *Support-vector networks*, Mach. Learn. **20**, 273 (1995) — the
+# soft-margin support vector machine of Eq. (6).
+#
+# <span id="ref-3">[3]</span> V. Havlíček, A. D. Córcoles, K. Temme, A. W. Harrow, A. Kandala, J. M. Chow and J. M.
+# Gambetta, *Supervised learning with quantum-enhanced feature spaces*, Nature **567**, 209 (2019) — the quantum kernel
+# estimator and the variational quantum classifier, run on two superconducting qubits; encoding circuits of the type of
+# Eq. (16).
+#
+# <span id="ref-4">[4]</span> M. Schuld and N. Killoran, *Quantum machine learning in feature Hilbert spaces*, Phys. Rev.
+# Lett. **122**, 040504 (2019) — the encoding of data into quantum states as a feature map, and kernels computed from
+# state overlaps.
+#
+# <span id="ref-5">[5]</span> H. Buhrman, R. Cleve, J. Watrous and R. de Wolf, *Quantum fingerprinting*, Phys. Rev. Lett.
+# **87**, 167902 (2001) — the swap test (Section 4.4).
+#
+# <span id="ref-6">[6]</span> Y. Liu, S. Arunachalam and K. Temme, *A rigorous and robust quantum speed-up in supervised
+# machine learning*, Nat. Phys. **17**, 1013 (2021) — a classification problem based on the discrete logarithm on which a
+# quantum-kernel SVM is provably better than any classical learner, under the assumption that the discrete logarithm is
+# hard.
+#
+# <span id="ref-7">[7]</span> H.-Y. Huang, M. Broughton, M. Mohseni, R. Babbush, S. Boixo, H. Neven and J. R. McClean,
+# *Power of data in quantum machine learning*, Nat. Commun. **12**, 2631 (2021) — classical learners given data can
+# compete with quantum models; a test for a potential quantum advantage of a kernel on a given data set.
+#
+# <span id="ref-8">[8]</span> S. Thanasilp, S. Wang, M. Cerezo and Z. Holmes, *Exponential concentration in quantum kernel
+# methods*, Nat. Commun. **15**, 5200 (2024) — concentration of kernel values from expressivity, global measurements,
+# entanglement and noise, and the resulting number of shots (Section 8).
+#
+# <span id="ref-9">[9]</span> A. Beck and M. Teboulle, *A fast iterative shrinkage-thresholding algorithm for linear
+# inverse problems*, SIAM J. Imaging Sci. **2**, 183 (2009) — the accelerated projected gradient method (FISTA) of
+# Section 3.4.
+#
+# <span id="ref-10">[10]</span> N. Aronszajn, *Theory of reproducing kernels*, Trans. Amer. Math. Soc. **68**, 337 (1950) —
+# reproducing-kernel Hilbert spaces and the Moore–Aronszajn theorem (Section 3.5).
+#
+# <span id="ref-11">[11]</span> J. Mercer, *Functions of positive and negative type, and their connection with the theory
+# of integral equations*, Phil. Trans. R. Soc. Lond. A **209**, 415 (1909) — Mercer's theorem for continuous kernels of
+# positive type.
+#
+# <span id="ref-12">[12]</span> B. Schölkopf and A. J. Smola, *Learning with Kernels* (MIT Press, Cambridge MA, 2002) —
+# kernels, Mercer's theorem and the SVM.
+#
+# <span id="ref-13">[13]</span> R. Shaydulin and S. M. Wild, *Importance of kernel bandwidth in quantum machine learning*,
+# Phys. Rev. A **106**, 042407 (2022) — the data scale as the bandwidth of a quantum kernel (Sections 4.3 and 7).
+#
+# <span id="ref-14">[14]</span> B. Schölkopf, A. Smola and K.-R. Müller, *Nonlinear component analysis as a kernel
+# eigenvalue problem*, Neural Comput. **10**, 1299 (1998) — kernel principal component analysis (Section 5.2).
+#
+# <span id="ref-15">[15]</span> T. Hubregtsen, D. Wierichs, E. Gil-Fuster, P.-J. H. S. Derks, P. K. Faehrmann and J. J.
+# Meyer, *Training quantum embedding kernels on near-term quantum computers*, Phys. Rev. A **106**, 042431 (2022) —
+# trainable encodings optimised by kernel-target alignment, noise and finite sampling in kernel matrices (Exercise 4).

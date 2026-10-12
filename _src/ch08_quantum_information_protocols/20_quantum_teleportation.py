@@ -3,7 +3,7 @@
 #@description: A complete derivation and simulation of quantum teleportation: the no-cloning theorem with proof, the Bell-basis algebra of the protocol, a jit/vmap-compatible mid-circuit measurement with classical feed-forward, uniform outcome statistics and no-signalling, the classical 2/3 benchmark derived from a Haar-averaging identity, teleportation through a noisy Bell pair on the density tensor and via trajectories, and the deferred-measurement circuit.
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
 # You hold a qubit in an unknown state $\vert\psi\rangle=\alpha\vert0\rangle+\beta\vert1\rangle$ and want a colleague far away to
 # hold a qubit in *that* state. Sending the qubit itself is often impossible: it may be an atom in a trap, or the channel may
@@ -14,19 +14,19 @@
 # $\vert\langle\psi\vert\phi\rangle\vert^2$ is the probability that the delivered state $\vert\phi\rangle$ passes the test "are you
 # $\vert\psi\rangle$?" ([06](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb), Section 5).
 #
-# In 1993 Bennett, Brassard, Crépeau, Jozsa, Peres and Wootters found the way out. Alice and Bob share, before the protocol starts,
+# The way out was found in [[1]](#ref-1). Alice and Bob share, before the protocol starts,
 # one Bell pair of [notebook 19](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb), the unit of entanglement
 # called one **ebit**. Alice performs a **Bell measurement**, a joint measurement of her unknown qubit *and* her half of the pair in
 # the basis of the four Bell states, and phones Bob the two classical bits that name the outcome. Bob then recovers the state
 # exactly by applying one of four fixed single-qubit Pauli gates. One ebit plus two classical bits thus replace one transmitted
 # qubit. The state is destroyed at Alice's end (as no-cloning demands) and reappears at Bob's, and nothing travels faster than
-# light, because Bob's qubit is useless until the two bits arrive. The protocol was demonstrated with photons in 1997 (Bouwmeester et al.)
-# and has since been run over distances up to 1400 km, from the ground to a satellite (Ren et al. 2017).
+# light, because Bob's qubit is useless until the two bits arrive. The protocol was demonstrated with photons in [[2]](#ref-2)
+# and has since been run over distances up to 1400 km, from the ground to a satellite [[3]](#ref-3).
 #
-# Teleportation is the primitive behind **quantum repeaters** (Briegel, Dür, Cirac and Zoller 1998), which distribute entanglement
-# over long distances (notebook 21), **measurement-based quantum computing** (Raussendorf and Briegel 2001), where every gate is a
-# teleportation, and **fault-tolerant gate implementations** by gate teleportation (Gottesman and Chuang 1999), including
-# magic-state injection (Bravyi and Kitaev 2005; Exercise 8). The fidelity a noisy pair supports, Eq. (13) below, is a standard figure of merit for
+# Teleportation is the primitive behind **quantum repeaters** [[4]](#ref-4), which distribute entanglement
+# over long distances (notebook 21), **measurement-based quantum computing** [[5]](#ref-5), where every gate is a
+# teleportation, and **fault-tolerant gate implementations** by gate teleportation [[6]](#ref-6), including
+# magic-state injection ([[7]](#ref-7); Exercise 8). The fidelity a noisy pair supports, Eq. (13) below, is a standard figure of merit for
 # quantum-network hardware.
 #
 # **What we will do.**
@@ -131,7 +131,7 @@ TEST_INPUTS = {"|0>": (0.0, 0.0), "|1>": (np.pi, 0.0), "|+>": (np.pi / 2, 0.0),
 #
 # ### 3.1 Statement
 #
-# **Theorem (Wootters and Zurek 1982; Dieks 1982).** There is no unitary $U$ acting on two qubits and no fixed "blank" state
+# **Theorem ([[8]](#ref-8), [[9]](#ref-9)).** There is no unitary $U$ acting on two qubits and no fixed "blank" state
 # $\vert b\rangle$ such that
 #
 # $$U\left(\vert\psi\rangle\otimes\vert b\rangle\right)=\vert\psi\rangle\otimes\vert\psi\rangle\qquad\text{for every }\vert\psi\rangle .$$
@@ -188,8 +188,8 @@ TEST_INPUTS = {"|0>": (0.0, 0.0), "|1>": (np.pi, 0.0), "|+>": (np.pi / 2, 0.0),
 # $\langle\alpha^4+\beta^4\rangle=\langle1-\tfrac12\sin^2\theta\rangle=2/3$ (Section 8 derives $\langle\sin^2\theta\rangle=2/3$);
 # the code below computes that average from the curve.
 #
-# For comparison, the optimal *approximate* universal $1\to2$ cloner — the machine constructed by Bužek and Hillery (1996) and
-# proved optimal shortly afterwards (Gisin and Massar 1997; Bruß et al. 1998) — delivers a single-copy fidelity of exactly
+# For comparison, the optimal *approximate* universal $1\to2$ cloner — the machine constructed in [[10]](#ref-10) and
+# proved optimal shortly afterwards in [[11]](#ref-11), [[12]](#ref-12) — delivers a single-copy fidelity of exactly
 # $5/6\approx0.833$ for **every** input. It is worse than CNOT near the poles and much better at the equator, and its average
 # $5/6$ beats CNOT's $2/3$; it is still strictly below 1, as it must be.
 
@@ -706,7 +706,7 @@ assert chi2_tot < CHI2_18_999 < chi2_bad_tot
 # prepare $\vert0\rangle$ or $\vert1\rangle$, for which
 # $\bar F=\langle\cos^4\frac\vartheta2+\sin^4\frac\vartheta2\rangle=\langle1-\tfrac12\sin^2\vartheta\rangle
 # =1-\tfrac12\cdot\tfrac23=\tfrac23$. **Any teleportation fidelity above $2/3$ therefore proves that something non-classical was
-# used.** (Massar and Popescu 1995 proved the corresponding statement for $N$ identical copies: $\bar F=(N+1)/(N+2)$, which is $2/3$
+# used.** (Ref. [[13]](#ref-13) proved the corresponding statement for $N$ identical copies: $\bar F=(N+1)/(N+2)$, which is $2/3$
 # at $N=1$ and tends to 1 only as $N\to\infty$.)
 
 # %%
@@ -955,7 +955,7 @@ print(f"\n   F_avg of the ideal teleportation channel (2-design) = "
 # positive). Teleportation is therefore a sharper entanglement witness than CHSH: recall that CHSH needed $v>1/\sqrt2\approx0.707$,
 # so the entire band $1/3<v\le1/\sqrt2$ of entangled states that do not violate CHSH (Section 11 of the CHSH notebook) is
 # *useful for teleportation*.
-# (For general two-qubit resources the correct statement, due to M. Horodecki, P. Horodecki and R. Horodecki (1999), is that the best average fidelity is
+# (For general two-qubit resources the correct statement, proved in [[14]](#ref-14), is that the best average fidelity is
 # $(2f_{\max}+1)/3$, with $f_{\max}$ the largest singlet fraction reachable from the resource by trace-preserving local operations
 # and classical communication.)
 #
@@ -1092,7 +1092,7 @@ assert abs(F_one_bit_Z - 2 / 3) < 1e3 * TOL and abs(F_one_bit_X - 2 / 3) < 1e3 *
 # $(2F_{\rm res}+1)/3$ exactly. Two
 # separate facts are at work, and the `F_e(channel)` column separates them.
 #
-# The first holds for **any** channel $\Lambda$ on a qubit (Horodecki, Horodecki and Horodecki 1999; Nielsen 2002):
+# The first holds for **any** channel $\Lambda$ on a qubit ([[14]](#ref-14), [[15]](#ref-15)):
 #
 # $$\bar F=\frac{2F_e+1}{3},\qquad F_e=\langle\Phi^+\vert\left(\Lambda\otimes\mathrm{id}\right)
 #   \left(\vert\Phi^+\rangle\langle\Phi^+\vert\right)\vert\Phi^+\rangle ,$$
@@ -1109,7 +1109,7 @@ assert abs(F_one_bit_Z - 2 / 3) < 1e3 * TOL and abs(F_one_bit_X - 2 / 3) < 1e3 *
 # be $A_\mu^{T}$ times the Pauli attached to each branch, and the corrections are chosen precisely so that all four branches
 # contribute $\vert\mathrm{Tr}A_\mu\vert^2=2\,\vert\langle\Phi^+\vert v_\mu\rangle\vert^2$ to $F_e$.)
 #
-# What is *not* general is optimality. The Horodecki result is that the best average fidelity reachable from a resource $\rho$ by
+# What is *not* general is optimality. The result of [[14]](#ref-14) is that the best average fidelity reachable from a resource $\rho$ by
 # trace-preserving local operations and classical communication is $(2f_{\max}+1)/3$, with $f_{\max}$ the largest singlet fraction
 # that such operations can produce from $\rho$. The last column, `f (max)`, is the fully entangled fraction (the maximum of
 # $\langle\Phi\vert\rho\vert\Phi\rangle$ over all maximally entangled $\vert\Phi\rangle$, found by gradient ascent over
@@ -1546,7 +1546,7 @@ print("   p(m1,m2) = " + "  ".join(f"{lab}: {v:.4f}" for lab, v in zip(("00", "0
 #    [23 — quantum state tomography](../ch08_quantum_information_protocols/23_quantum_state_tomography.ipynb) using $M$ shots per
 #    Pauli setting, and plot the reconstructed fidelity with bootstrap error bars versus $M$. How many shots are needed to claim
 #    $\bar F>2/3$ at $5\sigma$ with a Werner resource of $v=0.5$?
-# 8. ★★★ **Gate teleportation** (Gottesman and Chuang 1999). Prepare the resource in the state $(\mathbb 1\otimes U)\vert\Phi^+\rangle$ instead of
+# 8. ★★★ **Gate teleportation** [[6]](#ref-6). Prepare the resource in the state $(\mathbb 1\otimes U)\vert\Phi^+\rangle$ instead of
 #    $\vert\Phi^+\rangle$, so that $U$ is applied *offline*, before the data arrives. (a) Show from Eq. (3) that Bob now holds
 #    $UX^{m_2}Z^{m_1}\vert\psi\rangle$, so the corrections must become $UX^{m_2}U^\dagger$ followed by $UZ^{m_1}U^\dagger$ for
 #    Bob to end with $U\vert\psi\rangle$; check numerically that the unmodified Pauli corrections fail for $U=T$ in two
@@ -1557,34 +1557,59 @@ print("   p(m1,m2) = " + "  ".join(f"{lab}: {v:.4f}" for lab, v in zip(("00", "0
 #
 # ## References
 #
-# * C. H. Bennett, G. Brassard, C. Crépeau, R. Jozsa, A. Peres and W. K. Wootters, *Teleporting an unknown quantum state via dual
-#   classical and Einstein-Podolsky-Rosen channels*, Phys. Rev. Lett. **70**, 1895 (1993) — the protocol.
-# * W. K. Wootters and W. H. Zurek, *A single quantum cannot be cloned*, Nature **299**, 802 (1982) — the no-cloning theorem.
-# * D. Dieks, *Communication by EPR devices*, Phys. Lett. A **92**, 271 (1982) — the no-cloning theorem, found independently.
-# * V. Bužek and M. Hillery, *Quantum copying: beyond the no-cloning theorem*, Phys. Rev. A **54**, 1844 (1996) — the universal
-#   $1\to2$ cloning machine with single-copy fidelity $5/6$; its optimality was proved by N. Gisin and S. Massar, *Optimal quantum
-#   cloning machines*, Phys. Rev. Lett. **79**, 2153 (1997), and by D. Bruß, D. P. DiVincenzo, A. Ekert, C. A. Fuchs, C. Macchiavello
-#   and J. A. Smolin, *Optimal universal and state-dependent quantum cloning*, Phys. Rev. A **57**, 2368 (1998).
-# * S. Massar and S. Popescu, *Optimal extraction of information from finite quantum ensembles*, Phys. Rev. Lett. **74**, 1259 (1995)
-#   — the $2/3$ classical benchmark as the $N=1$ case of $(N+1)/(N+2)$.
-# * M. Horodecki, P. Horodecki and R. Horodecki, *General teleportation channel, singlet fraction, and quasidistillation*,
-#   Phys. Rev. A **60**, 1888 (1999) — the optimal teleportation fidelity $(2f_{\max}+1)/3$, with $f_{\max}$ the largest singlet
-#   fraction reachable by trace-preserving local operations and classical communication.
-# * M. A. Nielsen, *A simple formula for the average gate fidelity of a quantum dynamical operation*, Phys. Lett. A **303**, 249
-#   (2002) — the relation $\bar F=(dF_e+1)/(d+1)$ between average fidelity and entanglement fidelity.
-# * R. F. Werner, *Quantum states with Einstein-Podolsky-Rosen correlations admitting a hidden-variable model*,
-#   Phys. Rev. A **40**, 4277 (1989) — Werner states.
-# * D. Bouwmeester, J.-W. Pan, K. Mattle, M. Eibl, H. Weinfurter and A. Zeilinger, *Experimental quantum teleportation*,
-#   Nature **390**, 575 (1997) — the first photonic demonstration.
-# * J.-G. Ren et al., *Ground-to-satellite quantum teleportation*, Nature **549**, 70 (2017) — teleportation over 1400 km to the
-#   Micius satellite.
-# * M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information* (Cambridge University Press, 2000), Sections 1.3.5,
-#   1.3.7 and 4.4 — no-cloning, teleportation, and the principle of deferred measurement.
-# * H.-J. Briegel, W. Dür, J. I. Cirac and P. Zoller, *Quantum repeaters: the role of imperfect local operations in quantum
-#   communication*, Phys. Rev. Lett. **81**, 5932 (1998) — the quantum repeater.
-# * R. Raussendorf and H. J. Briegel, *A one-way quantum computer*, Phys. Rev. Lett. **86**, 5188 (2001) — measurement-based
-#   quantum computing on a cluster state.
-# * D. Gottesman and I. L. Chuang, *Demonstrating the viability of universal quantum computation using teleportation and
-#   single-qubit operations*, Nature **402**, 390 (1999) — gate teleportation and fault-tolerant gates, Exercise 8.
-# * S. Bravyi and A. Kitaev, *Universal quantum computation with ideal Clifford gates and noisy ancillas*, Phys. Rev. A **71**,
-#   022316 (2005) — magic states, Exercise 8.
+# <span id="ref-1">[1]</span> C. H. Bennett, G. Brassard, C. Crépeau, R. Jozsa, A. Peres and W. K. Wootters, *Teleporting an
+# unknown quantum state via dual classical and Einstein-Podolsky-Rosen channels*, Phys. Rev. Lett. **70**, 1895 (1993) — the
+# protocol.
+#
+# <span id="ref-2">[2]</span> D. Bouwmeester, J.-W. Pan, K. Mattle, M. Eibl, H. Weinfurter and A. Zeilinger, *Experimental
+# quantum teleportation*, Nature **390**, 575 (1997) — the first photonic demonstration.
+#
+# <span id="ref-3">[3]</span> J.-G. Ren et al., *Ground-to-satellite quantum teleportation*, Nature **549**, 70 (2017) —
+# teleportation over 1400 km to the Micius satellite.
+#
+# <span id="ref-4">[4]</span> H.-J. Briegel, W. Dür, J. I. Cirac and P. Zoller, *Quantum repeaters: the role of imperfect
+# local operations in quantum communication*, Phys. Rev. Lett. **81**, 5932 (1998) — the quantum repeater.
+#
+# <span id="ref-5">[5]</span> R. Raussendorf and H. J. Briegel, *A one-way quantum computer*, Phys. Rev. Lett. **86**, 5188
+# (2001) — measurement-based quantum computing on a cluster state.
+#
+# <span id="ref-6">[6]</span> D. Gottesman and I. L. Chuang, *Demonstrating the viability of universal quantum computation
+# using teleportation and single-qubit operations*, Nature **402**, 390 (1999) — gate teleportation and fault-tolerant
+# gates, Exercise 8.
+#
+# <span id="ref-7">[7]</span> S. Bravyi and A. Kitaev, *Universal quantum computation with ideal Clifford gates and noisy
+# ancillas*, Phys. Rev. A **71**, 022316 (2005) — magic states, Exercise 8.
+#
+# <span id="ref-8">[8]</span> W. K. Wootters and W. H. Zurek, *A single quantum cannot be cloned*, Nature **299**, 802
+# (1982) — the no-cloning theorem.
+#
+# <span id="ref-9">[9]</span> D. Dieks, *Communication by EPR devices*, Phys. Lett. A **92**, 271 (1982) — the no-cloning
+# theorem, found independently.
+#
+# <span id="ref-10">[10]</span> V. Bužek and M. Hillery, *Quantum copying: beyond the no-cloning theorem*, Phys. Rev. A
+# **54**, 1844 (1996) — the universal $1\to2$ cloning machine with single-copy fidelity $5/6$.
+#
+# <span id="ref-11">[11]</span> N. Gisin and S. Massar, *Optimal quantum cloning machines*, Phys. Rev. Lett. **79**, 2153
+# (1997) — optimality of the cloning machine of [10].
+#
+# <span id="ref-12">[12]</span> D. Bruß, D. P. DiVincenzo, A. Ekert, C. A. Fuchs, C. Macchiavello and J. A. Smolin, *Optimal
+# universal and state-dependent quantum cloning*, Phys. Rev. A **57**, 2368 (1998) — optimality of the cloning machine of
+# [10].
+#
+# <span id="ref-13">[13]</span> S. Massar and S. Popescu, *Optimal extraction of information from finite quantum ensembles*,
+# Phys. Rev. Lett. **74**, 1259 (1995) — the $2/3$ classical benchmark as the $N=1$ case of $(N+1)/(N+2)$.
+#
+# <span id="ref-14">[14]</span> M. Horodecki, P. Horodecki and R. Horodecki, *General teleportation channel, singlet
+# fraction, and quasidistillation*, Phys. Rev. A **60**, 1888 (1999) — the optimal teleportation fidelity $(2f_{\max}+1)/3$,
+# with $f_{\max}$ the largest singlet fraction reachable by trace-preserving local operations and classical communication.
+#
+# <span id="ref-15">[15]</span> M. A. Nielsen, *A simple formula for the average gate fidelity of a quantum dynamical
+# operation*, Phys. Lett. A **303**, 249 (2002) — the relation $\bar F=(dF_e+1)/(d+1)$ between average fidelity and
+# entanglement fidelity.
+#
+# <span id="ref-16">[16]</span> R. F. Werner, *Quantum states with Einstein-Podolsky-Rosen correlations admitting a
+# hidden-variable model*, Phys. Rev. A **40**, 4277 (1989) — Werner states.
+#
+# <span id="ref-17">[17]</span> M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information* (Cambridge
+# University Press, 2000), Sections 1.3.5, 1.3.7 and 4.4 — no-cloning, teleportation, and the principle of deferred
+# measurement.

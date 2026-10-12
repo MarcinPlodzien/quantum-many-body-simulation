@@ -3,7 +3,7 @@
 #@description: The four Bell states and the circuit that makes them, their correlations and maximally mixed marginals, a full derivation of the local-hidden-variable bound $\vert S\vert\le2$ and of Tsirelson's bound $2\sqrt2$, a simulated shot-by-shot CHSH experiment with error bars, and the fate of the violation under white noise, dephasing and imperfect detectors.
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
 # Two experimenters, by tradition called Alice and Bob, work in distant laboratories, and a source between them sends each of them
 # one qubit of every pair it emits. For each pair Alice measures with one of two settings, $a$ or $a'$, and records an outcome
@@ -14,27 +14,27 @@
 # once; this double agreement is the signature of **entanglement**, a two-qubit state that is not a product of one state for each
 # qubit. Can a set of instructions written into each particle at the source reproduce such correlations?
 #
-# In 1935 Einstein, Podolsky and Rosen used a state of this kind to argue that quantum mechanics cannot be a complete description of
+# A state of this kind was used in [[1]](#ref-1) to argue that quantum mechanics cannot be a complete description of
 # reality: measuring one particle instantly tells you the outcome of a measurement on the other, however far away it is. Either the
 # distant particle "already had" the value — in which case quantum mechanics, which does not list that value, is incomplete — or
 # measuring one particle somehow acts on the other, which Einstein later called "spooky action at a distance". For nearly thirty
 # years the debate was philosophical.
 #
-# In 1964 John Bell turned the philosophy into an **experimentally testable inequality**. If the outcomes are fixed in advance by
+# Ref. [[2]](#ref-2) turned the philosophy into an **experimentally testable inequality**. If the outcomes are fixed in advance by
 # some hidden variable $\lambda$ carried by the particles (the instructions above), and if what happens at Alice's detector does not
 # depend on the setting at Bob's, then a certain combination of measured correlations is bounded by a number. Quantum mechanics
 # predicts a *larger* number. The question is thereby moved from interpretation to the laboratory: the apparatus is built, the
 # clicks are counted, and the measured combination either respects the bound or exceeds it. The form of the inequality used in every
-# real experiment since is the one written down by Clauser, Horne, Shimony and Holt (CHSH) in 1969:
+# real experiment since is the CHSH inequality introduced in [[3]](#ref-3):
 #
 # $$S=E(a,b)+E(a,b')+E(a',b)-E(a',b') ,\qquad \vert S\vert\le 2 \quad\text{(local hidden variables)}.$$
 #
-# Quantum mechanics allows $\vert S\vert$ up to $2\sqrt2\approx2.828$ (Tsirelson's bound, proved by Cirel'son in 1980) and no larger value. Experiments — Aspect
-# and co-workers in the early 1980s, and the loophole-free experiments of 2015 — measure a violation. The 2022 Nobel Prize in
+# Quantum mechanics allows $\vert S\vert$ up to $2\sqrt2\approx2.828$ (Tsirelson's bound, proved in [[4]](#ref-4)) and no larger value. Experiments — those of [[5]](#ref-5), [[6]](#ref-6)
+# in the early 1980s, and the loophole-free experiments of 2015 [[7]](#ref-7), [[8]](#ref-8), [[9]](#ref-9) — measure a violation. The 2022 Nobel Prize in
 # Physics went to Aspect, Clauser and Zeilinger for this line of work. Today the same inequality is a *tool*: a CHSH violation
 # certifies that a device really produces entanglement, and it is the security foundation of device-independent quantum key
-# distribution, in which two parties establish a secret key without trusting the inner workings of their devices. Ekert (1991) first
-# based a key-distribution protocol on Bell's theorem, and Acín, Brunner, Gisin, Massar, Pironio and Scarani (2007) proved the security of a
+# distribution, in which two parties establish a secret key without trusting the inner workings of their devices. The first key-distribution
+# protocol based on Bell's theorem was introduced in [[10]](#ref-10), and Ref. [[11]](#ref-11) proved the security of a
 # CHSH-based protocol against collective attacks with no assumption on how the devices work
 # ([53 — quantum key distribution](../ch12_quantum_communication_and_cryptography/53_quantum_key_distribution.ipynb)).
 #
@@ -550,8 +550,8 @@ assert err_max < 1e3 * TOL
 #
 # The algebraic maximum of $S=E_1+E_2+E_3-E_4$ with each $\vert E_i\vert\le1$ is $4$. Local models are stuck at $2$. Quantum mechanics
 # reaches $2\sqrt2$ — strictly in between. Where does that number come from? From the fact that Alice's two observables *do not
-# commute*, but only by a bounded amount. The bound is Tsirelson's (1980); the short proof below, which squares the CHSH operator,
-# is due to Landau (1987).
+# commute*, but only by a bounded amount. The bound was proved in [[4]](#ref-4); the short proof below, which squares the CHSH operator,
+# was given in [[12]](#ref-12).
 #
 # Let $A,A',B,B'$ be Hermitian operators with $A^2=A'^2=B^2=B'^2=\mathbb 1$ (i.e. $\pm1$-valued observables), with Alice's acting on
 # the first factor and Bob's on the second, so that $[A\otimes\mathbb 1,\mathbb 1\otimes B]=0$ automatically. Define the **CHSH
@@ -655,7 +655,7 @@ print(f"\n  largest operator norm found in {6} random trials: {norm_max:.6f}   (
 # where $t_1\ge t_2$ are the two largest singular values of $T$. All three inequalities are saturated at once: take
 # $\hat e_1,\hat e_2$ along the eigenvectors of $T^{\mathsf T}T$ that belong to $t_1^2,t_2^2$, choose $\tan(\delta/2)=t_2/t_1$
 # (equality in Cauchy–Schwarz), and point $\hat a,\hat a'$ along $T(\hat b\pm\hat b')$. Eq. (6) is therefore the attained maximum
-# over all settings. This is the **Horodecki criterion** (R. Horodecki, P. Horodecki and M. Horodecki 1995): a two-qubit state violates CHSH
+# over all settings. This is the **Horodecki criterion** [[13]](#ref-13): a two-qubit state violates CHSH
 # (for some choice of settings) if and only if the sum of the two largest squared singular values of its correlation matrix exceeds 1.
 #
 # ### 8.2 The maximally entangled case
@@ -1007,12 +1007,12 @@ plt.show()
 # %% [markdown]
 # ## 11. Werner states: the entanglement threshold and the CHSH threshold
 #
-# Real sources are noisy. The standard one-parameter family of noisy Bell pairs is the **Werner state** (Werner 1989), a Bell state
+# Real sources are noisy. The standard one-parameter family of noisy Bell pairs is the **Werner state** [[14]](#ref-14), a Bell state
 # mixed with white noise:
 #
 # $$\rho_W(v)=v\,\vert\Phi^+\rangle\langle\Phi^+\vert+(1-v)\,\frac{\mathbb 1_4}{4},\qquad v\in[0,1] .$$
 #
-# $v$ is called the **visibility**. (Werner's original state is written with the singlet. The two families are related by the local
+# $v$ is called the **visibility**. (The original state of [[14]](#ref-14) is written with the singlet. The two families are related by the local
 # unitary $\mathbb 1\otimes(-iY)$, which maps $\vert\Phi^+\rangle$ to $\vert\Psi^-\rangle$ and leaves $\mathbb 1/4$ alone, so they
 # have identical entanglement and CHSH properties.)
 #
@@ -1023,8 +1023,8 @@ plt.show()
 #
 # $$S_{\max}(v)=2\sqrt2\,v\quad\Longrightarrow\quad\text{CHSH violation}\iff v>\frac{1}{\sqrt2}\approx0.7071 .$$
 #
-# **(b) Entanglement.** Use the PPT criterion (Peres 1996; M. Horodecki, P. Horodecki and R. Horodecki 1996), implemented by the engine's `negativity`
-# (the measure of Vidal and Werner 2002): the partial transpose of
+# **(b) Entanglement.** Use the PPT criterion [[15]](#ref-15), [[16]](#ref-16), implemented by the engine's `negativity`
+# (the measure introduced in [[17]](#ref-17)): the partial transpose of
 # $\vert\Phi^+\rangle\langle\Phi^+\vert$ has eigenvalues $(\tfrac12,\tfrac12,\tfrac12,-\tfrac12)$, so
 # $\rho_W^{T_A}$ has eigenvalues $\tfrac{1-v}{4}+v\cdot(\pm\tfrac12)$, i.e. $\tfrac{1+v}{4}$ (three times) and $\tfrac{1-3v}{4}$.
 # One eigenvalue is negative exactly when
@@ -1033,9 +1033,9 @@ plt.show()
 #
 # **(c) The gap.** For $\tfrac13<v\le\tfrac{1}{\sqrt2}$ the state is **entangled but does not violate CHSH** for any choice of
 # settings, because Eq. (6) is the exact maximum over all angles. Whether such a state violates *some other* Bell inequality is a
-# separate and harder question. Werner constructed an explicit local hidden-variable model that reproduces *all* projective
+# separate and harder question. Ref. [[14]](#ref-14) constructed an explicit local hidden-variable model that reproduces *all* projective
 # measurements on these states for $v\le\tfrac12$, so in that range they are entangled and local. The exact locality threshold for
-# projective measurements is known only within bounds, $0.6875\le v_c\le0.6961$ (Designolle et al. 2023); Werner states with
+# projective measurements is known only within bounds, $0.6875\le v_c\le0.6961$ [[18]](#ref-18); Werner states with
 # $0.6961<v\le1/\sqrt2$ therefore violate a Bell inequality with more than two settings per party while satisfying CHSH.
 # Entanglement and Bell nonlocality are different resources — nonlocality is strictly stronger — and a CHSH test is a *sufficient*
 # but not a necessary entanglement witness.
@@ -1341,14 +1341,14 @@ plt.show()
 # $$\eta_{\rm crit}=\frac{2}{1+\sqrt2}=2\left(\sqrt2-1\right)\approx0.8284 .$$
 #
 # **Below $83\%$ detection efficiency a maximally entangled pair can no longer demonstrate nonlocality this way.** The threshold
-# holds beyond the $+1$ assignment: Garg and Mermin derived the necessary and sufficient condition for data from
+# holds beyond the $+1$ assignment: Ref. [[19]](#ref-19) derived the necessary and sufficient condition for data from
 # two settings per side, undetected events included, to be compatible with local realism without any fair-sampling assumption, and
 # showed that the quantum predictions for a maximally entangled pair satisfy it unless the detection efficiency exceeds $83\%$.
 # Below that efficiency a local model reproduces all the data, the post-selected coincidences of route 1 included (we do not
 # construct it here). This is the *detection loophole*; it is why the 1980s photon experiments, whose overall detection efficiencies
 # were far below this threshold, were not conclusive on their own, and why the loophole-free experiments of
-# 2015 (Hensen and co-workers with entangled spins in diamond, and the photonic experiments of Giustina and of Shalm later the same
-# year) were such an achievement. Eberhard showed in 1993 that with *non-maximally* entangled states the requirement is lowered,
+# 2015 ([[7]](#ref-7) with entangled spins in diamond, and the photonic experiments [[8]](#ref-8), [[9]](#ref-9) later the same
+# year) were such an achievement. Ref. [[20]](#ref-20) showed that with *non-maximally* entangled states the requirement is lowered,
 # towards $\eta=2/3$ in the limit of weak entanglement — one of the rare cases where less entanglement is better.
 #
 # We simulate route 2 directly: draw the outcomes, draw a detection flag per side per run, and replace the undetected outcome by $+1$
@@ -1520,7 +1520,7 @@ print(f"  (sanity: mean S = {float(jnp.mean(r_v)):.4f} vmapped vs {float(jnp.mea
 #   *expected* violation $5\sigma$ — though, as the Monte Carlo shows, only about half of such experiments actually reach $5\sigma$.
 #   For a maximally entangled pair, a detection efficiency below $2(\sqrt2-1)\approx0.83$ removes the conclusion entirely.
 # * **Entanglement $\neq$ nonlocality.** Werner states are entangled for $v>1/3$ but violate CHSH only for $v>1/\sqrt2$; in between
-#   no CHSH experiment detects them, for $v\le1/2$ Werner's explicit local model reproduces every projective measurement, and the
+#   no CHSH experiment detects them, for $v\le1/2$ the explicit local model of [[14]](#ref-14) reproduces every projective measurement, and the
 #   true locality threshold lies between $0.6875$ and $0.6961$. Under dephasing the critical noise level even depends on whether
 #   the measurement angles are re-optimised — the violation is a property of the *protocol* as well as of the state.
 # * **Implementation**: measuring a rotated observable is `apply_gate(psi, ry(-theta), [q])` followed by an ordinary $Z$-basis
@@ -1550,7 +1550,7 @@ print(f"  (sanity: mean S = {float(jnp.mean(r_v)):.4f} vmapped vs {float(jnp.mea
 #    compute $T$, use Eq. (6) to get $S_{\max}(\alpha)$, and plot it together with the entanglement entropy. Confirm that the maximum
 #    violation requires maximal entanglement. Then redo the detection-loophole analysis of Section 13 for these states. Careful:
 #    the local marginals no longer vanish ($\langle Z\otimes\mathbb 1\rangle=\cos2\alpha$), so the two middle terms of $E_{\rm eff}$
-#    survive and you must re-optimise the four angles at each $\eta$. Confirm Eberhard's claim that the critical efficiency falls
+#    survive and you must re-optimise the four angles at each $\eta$. Confirm the claim of [[20]](#ref-20) that the critical efficiency falls
 #    below $2(\sqrt2-1)$ as $\alpha\to0$, tending to $2/3$.
 # 5. ★★ **Sampling from a noisy source (extend the code).** Write `chsh_sampled_dm`, the density-tensor analogue of `chsh_sampled`
 #    (sample from `rotated_probs_dm`), and use it to answer: with a depolarising source at $p=0.05$, how many runs per setting are
@@ -1564,7 +1564,7 @@ print(f"  (sanity: mean S = {float(jnp.mean(r_v)):.4f} vmapped vs {float(jnp.mea
 #    with the singular vectors of $T$. For $\vert\Phi^+\rangle$, plot the landscape $S(\theta_b,\theta_{b'})$ at fixed Alice
 #    settings, show that it is a sum of two sinusoids, and check whether gradient ascent over all four angles from random starts
 #    ever ends at a local maximum below $2\sqrt2$.
-# 8. ★★★ **A local model for the Werner state (physics).** Werner's model is rotationally covariant, so state it for the *singlet*
+# 8. ★★★ **A local model for the Werner state (physics).** The model of [[14]](#ref-14) is rotationally covariant, so state it for the *singlet*
 #    family $\rho_W^-(v)=v\vert\Psi^-\rangle\langle\Psi^-\vert+(1-v)\mathbb 1_4/4$, whose correlator is
 #    $E(\hat a,\hat b)=-v\,\hat a\cdot\hat b$ for **any** two directions in three dimensions (use `werner_state(v, "psi-")`).
 #    Draw a unit vector $\hat\lambda$ uniformly on the sphere, let Alice output $A=-\mathrm{sign}(\hat a\cdot\hat\lambda)$ and let Bob
@@ -1577,45 +1577,69 @@ print(f"  (sanity: mean S = {float(jnp.mean(r_v)):.4f} vmapped vs {float(jnp.mea
 #
 # ## References
 #
-# * A. Einstein, B. Podolsky and N. Rosen, *Can quantum-mechanical description of physical reality be considered complete?*,
+# <span id="ref-1">[1]</span> A. Einstein, B. Podolsky and N. Rosen, *Can quantum-mechanical description of physical reality be considered complete?*,
 #   Phys. Rev. **47**, 777 (1935) — the original argument.
-# * J. S. Bell, *On the Einstein Podolsky Rosen paradox*, Physics **1**, 195 (1964) — the theorem, with the original inequality.
-# * J. F. Clauser, M. A. Horne, A. Shimony and R. A. Holt, *Proposed experiment to test local hidden-variable theories*,
+#
+# <span id="ref-2">[2]</span> J. S. Bell, *On the Einstein Podolsky Rosen paradox*, Physics **1**, 195 (1964) — the theorem, with the original inequality.
+#
+# <span id="ref-3">[3]</span> J. F. Clauser, M. A. Horne, A. Shimony and R. A. Holt, *Proposed experiment to test local hidden-variable theories*,
 #   Phys. Rev. Lett. **23**, 880 (1969) — the CHSH inequality used throughout this notebook.
-# * B. S. Cirel'son (Tsirelson), *Quantum generalizations of Bell's inequality*, Lett. Math. Phys. **4**, 93 (1980) — the bound
+#
+# <span id="ref-4">[4]</span> B. S. Cirel'son (Tsirelson), *Quantum generalizations of Bell's inequality*, Lett. Math. Phys. **4**, 93 (1980) — the bound
 #   $2\sqrt2$ of Section 7.
-# * L. J. Landau, *On the violation of Bell's inequality in quantum theory*, Phys. Lett. A **120**, 54 (1987) — the operator
-#   identity $\mathcal S^2=4-[A,A']\otimes[B,B']$ and the proof of Tsirelson's bound in Section 7.
-# * A. Aspect, P. Grangier and G. Roger, *Experimental realization of Einstein-Podolsky-Rosen-Bohm Gedankenexperiment: a new violation
-#   of Bell's inequalities*, Phys. Rev. Lett. **49**, 91 (1982); A. Aspect, J. Dalibard and G. Roger, *Experimental test of Bell's
-#   inequalities using time-varying analyzers*, Phys. Rev. Lett. **49**, 1804 (1982).
-# * A. Garg and N. D. Mermin, *Detector inefficiencies in the Einstein-Podolsky-Rosen experiment*, Phys. Rev. D **35**, 3831 (1987)
-#   — the $2(\sqrt2-1)$ efficiency threshold for maximally entangled pairs.
-# * P. H. Eberhard, *Background level and counter efficiencies required for a loophole-free Einstein-Podolsky-Rosen experiment*,
-#   Phys. Rev. A **47**, R747 (1993) — the detection loophole and the $2/3$ efficiency threshold.
-# * R. F. Werner, *Quantum states with Einstein-Podolsky-Rosen correlations admitting a hidden-variable model*,
-#   Phys. Rev. A **40**, 4277 (1989) — Werner states and the explicit local model.
-# * A. Peres, *Separability criterion for density matrices*, Phys. Rev. Lett. **77**, 1413 (1996); M. Horodecki, P. Horodecki and
-#   R. Horodecki, *Separability of mixed states: necessary and sufficient conditions*, Phys. Lett. A **223**, 1 (1996) — the PPT
-#   criterion of Section 11 and its sufficiency for two qubits.
-# * R. Horodecki, P. Horodecki and M. Horodecki, *Violating Bell inequality by mixed spin-1/2 states: necessary and sufficient
-#   condition*, Phys. Lett. A **200**, 340 (1995) — the criterion $S_{\max}=2\sqrt{t_1^2+t_2^2}$ of Eq. (6).
-# * B. Hensen et al., *Loophole-free Bell inequality violation using electron spins separated by 1.3 kilometres*,
+#
+# <span id="ref-5">[5]</span> A. Aspect, P. Grangier and G. Roger, *Experimental realization of Einstein-Podolsky-Rosen-Bohm Gedankenexperiment: a new violation
+#   of Bell's inequalities*, Phys. Rev. Lett. **49**, 91 (1982).
+#
+# <span id="ref-6">[6]</span> A. Aspect, J. Dalibard and G. Roger, *Experimental test of Bell's inequalities using time-varying analyzers*, Phys. Rev. Lett.
+#   **49**, 1804 (1982).
+#
+# <span id="ref-7">[7]</span> B. Hensen et al., *Loophole-free Bell inequality violation using electron spins separated by 1.3 kilometres*,
 #   Nature **526**, 682 (2015) — the first loophole-free experiment.
-# * M. Giustina et al., *Significant-loophole-free test of Bell's theorem with entangled photons*, Phys. Rev. Lett. **115**, 250401
-#   (2015); L. K. Shalm et al., *Strong loophole-free test of local realism*, Phys. Rev. Lett. **115**, 250402 (2015) — the two
-#   photonic loophole-free experiments of the same year.
-# * N. Brunner, D. Cavalcanti, S. Pironio, V. Scarani and S. Wehner, *Bell nonlocality*, Rev. Mod. Phys. **86**, 419 (2014) —
-#   the modern review, including device-independent applications.
-# * A. K. Ekert, *Quantum cryptography based on Bell's theorem*, Phys. Rev. Lett. **67**, 661 (1991) — the first key-distribution
+#
+# <span id="ref-8">[8]</span> M. Giustina et al., *Significant-loophole-free test of Bell's theorem with entangled photons*, Phys. Rev. Lett. **115**, 250401
+#   (2015) — one of the two photonic loophole-free experiments of the same year.
+#
+# <span id="ref-9">[9]</span> L. K. Shalm et al., *Strong loophole-free test of local realism*, Phys. Rev. Lett. **115**, 250402 (2015) — the other
+#   photonic loophole-free experiment of the same year.
+#
+# <span id="ref-10">[10]</span> A. K. Ekert, *Quantum cryptography based on Bell's theorem*, Phys. Rev. Lett. **67**, 661 (1991) — the first key-distribution
 #   protocol whose security rests on a Bell-inequality test.
-# * A. Acín, N. Brunner, N. Gisin, S. Massar, S. Pironio and V. Scarani, *Device-independent security of quantum cryptography against
+#
+# <span id="ref-11">[11]</span> A. Acín, N. Brunner, N. Gisin, S. Massar, S. Pironio and V. Scarani, *Device-independent security of quantum cryptography against
 #   collective attacks*, Phys. Rev. Lett. **98**, 230501 (2007) — the eavesdropper's information bounded as a function of the CHSH violation
 #   alone, Section 1.
-# * G. Vidal and R. F. Werner, *Computable measure of entanglement*, Phys. Rev. A **65**, 032314 (2002) — the negativity of
+#
+# <span id="ref-12">[12]</span> L. J. Landau, *On the violation of Bell's inequality in quantum theory*, Phys. Lett. A **120**, 54 (1987) — the operator
+#   identity $\mathcal S^2=4-[A,A']\otimes[B,B']$ and the proof of Tsirelson's bound in Section 7.
+#
+# <span id="ref-13">[13]</span> R. Horodecki, P. Horodecki and M. Horodecki, *Violating Bell inequality by mixed spin-1/2 states: necessary and sufficient
+#   condition*, Phys. Lett. A **200**, 340 (1995) — the criterion $S_{\max}=2\sqrt{t_1^2+t_2^2}$ of Eq. (6).
+#
+# <span id="ref-14">[14]</span> R. F. Werner, *Quantum states with Einstein-Podolsky-Rosen correlations admitting a hidden-variable model*,
+#   Phys. Rev. A **40**, 4277 (1989) — Werner states and the explicit local model.
+#
+# <span id="ref-15">[15]</span> A. Peres, *Separability criterion for density matrices*, Phys. Rev. Lett. **77**, 1413 (1996) — the PPT criterion of
 #   Section 11.
-# * S. Designolle, G. Iommazzo, M. Besançon, S. Knebel, P. Gelß and S. Pokutta, *Improved local models and new Bell inequalities via
+#
+# <span id="ref-16">[16]</span> M. Horodecki, P. Horodecki and R. Horodecki, *Separability of mixed states: necessary and sufficient conditions*,
+#   Phys. Lett. A **223**, 1 (1996) — sufficiency of the PPT criterion for two qubits.
+#
+# <span id="ref-17">[17]</span> G. Vidal and R. F. Werner, *Computable measure of entanglement*, Phys. Rev. A **65**, 032314 (2002) — the negativity of
+#   Section 11.
+#
+# <span id="ref-18">[18]</span> S. Designolle, G. Iommazzo, M. Besançon, S. Knebel, P. Gelß and S. Pokutta, *Improved local models and new Bell inequalities via
 #   Frank-Wolfe algorithms*, Phys. Rev. Research **5**, 043059 (2023) — the bounds $0.6875\le v_c\le0.6961$ on the locality threshold
 #   of two-qubit Werner states under projective measurements.
-# * M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information* (Cambridge University Press, 2000), Ch. 2.6 —
+#
+# <span id="ref-19">[19]</span> A. Garg and N. D. Mermin, *Detector inefficiencies in the Einstein-Podolsky-Rosen experiment*, Phys. Rev. D **35**, 3831 (1987)
+#   — the $2(\sqrt2-1)$ efficiency threshold for maximally entangled pairs.
+#
+# <span id="ref-20">[20]</span> P. H. Eberhard, *Background level and counter efficiencies required for a loophole-free Einstein-Podolsky-Rosen experiment*,
+#   Phys. Rev. A **47**, R747 (1993) — the detection loophole and the $2/3$ efficiency threshold.
+#
+# <span id="ref-21">[21]</span> N. Brunner, D. Cavalcanti, S. Pironio, V. Scarani and S. Wehner, *Bell nonlocality*, Rev. Mod. Phys. **86**, 419 (2014) —
+#   the modern review, including device-independent applications.
+#
+# <span id="ref-22">[22]</span> M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information* (Cambridge University Press, 2000), Ch. 2.6 —
 #   textbook treatment of the EPR argument and the CHSH inequality.

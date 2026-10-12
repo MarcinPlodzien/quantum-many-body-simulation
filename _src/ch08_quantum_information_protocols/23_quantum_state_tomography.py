@@ -3,7 +3,7 @@
 #@description: How to reconstruct an unknown density matrix from measured click statistics: the Pauli/Bloch linear model and its design matrix, ordinary and weighted least squares with error propagation, the unphysical-estimate problem and its projection fix, the RρR and gradient-based maximum-likelihood estimators, and an accuracy-versus-shots assessment up to four qubits.
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
 # The protocols of notebooks 19–22 all *started* from a known state: we prepared $|\psi\rangle$ or $\rho$ with a circuit and then
 # computed what the parties would observe. An experiment faces the reverse problem. A laboratory builds a device that is *supposed*
@@ -12,8 +12,8 @@
 # be run many times. The only access is the one described in [08 — measurements](../ch03_matrix_free_engine/08_measurements.ipynb):
 # choose a measurement axis for every qubit, run the device, read out a string of $N$ bits, repeat. From those click statistics the
 # full density matrix must be *reconstructed*. That reconstruction problem is **quantum state tomography** (QST). It was proposed
-# by Vogel and Risken (1989) for a mode of light and first carried out by Smithey, Beck, Raymer and Faridani (1993), who called it
-# optical homodyne tomography; the qubit version used here was worked out in detail by James, Kwiat, Munro and White (2001).
+# in [[1]](#ref-1) for a mode of light and first carried out in [[2]](#ref-2), under the name optical homodyne tomography; the qubit version
+# used here was worked out in detail in [[3]](#ref-3).
 #
 # It is the standard acceptance test of every quantum device. "We prepared a three-qubit GHZ state with fidelity $0.97$" is a
 # statement produced by tomography. It is also the place where a physicist meets, usually for the first time, a genuine
@@ -35,8 +35,8 @@
 #    expectation values, derive the statistical error bars analytically and check them by Monte Carlo, and add weighted least
 #    squares (Sections 6–9).
 # 4. **Unphysical estimates.** Linear inversion regularly returns a matrix with **negative eigenvalues** — not a quantum state. We
-#    measure how often, and repair it by the eigenvalue-truncation projection of Smolin, Gambetta and Smith (Sections 10–11).
-# 5. **Maximum-likelihood tomography**, introduced by Hradil (1997). Write the multinomial likelihood, derive the extremal equation $R\rho R=\rho$, implement the
+#    measure how often, and repair it by the eigenvalue-truncation projection of [[4]](#ref-4) (Sections 10–11).
+# 5. **Maximum-likelihood tomography**, introduced in [[5]](#ref-5). Write the multinomial likelihood, derive the extremal equation $R\rho R=\rho$, implement the
 #    iterative $R\rho R$ algorithm and its *diluted* variant with convergence monitoring, then solve the *same* problem by gradient
 #    ascent with `jax.grad` and Adam on the Cholesky parametrisation $\rho=T^\dagger T/\mathrm{Tr}(T^\dagger T)$, and check that the
 #    two agree (Sections 12–14).
@@ -1123,8 +1123,8 @@ fig.tight_layout(); plt.show()
 #
 # > **Common pitfall.** A negative eigenvalue of this size is a statistical effect of order $1/\sqrt M$, far above rounding level,
 # > and clipping it away without further thought breaks everything downstream: entropies become complex, fidelities are ill-defined ($\sqrt{\hat\rho}$ does not exist), and negativity or
-# > concurrence report entanglement that is not there. This is exactly the objection Hradil raised in 1997 when he introduced
-# > maximum-likelihood tomography.
+# > concurrence report entanglement that is not there. This is exactly the objection raised in [[5]](#ref-5), where
+# > maximum-likelihood tomography was introduced.
 #
 # There are two standard cures, and we implement both: **project** the unphysical estimate onto the physical set (cheap, Section 11),
 # or **constrain the estimation itself** so that only physical states are ever considered (maximum likelihood, Sections 12–15).
@@ -1139,8 +1139,8 @@ fig.tight_layout(); plt.show()
 #
 # $$\rho_\star=\arg\min_{\sigma\succeq0,\ \mathrm{Tr}\sigma=1}\lVert\hat\rho-\sigma\rVert_F^2 .$$
 #
-# Smolin, Gambetta and Smith (2012) observed that this problem has a *closed-form* solution, derived below in three steps plus a
-# certificate. The title of their paper calls $\rho_\star$ the maximum-likelihood state for additive Gaussian noise. That
+# Ref. [[4]](#ref-4) observed that this problem has a *closed-form* solution, derived below in three steps plus a
+# certificate. The title of that paper calls $\rho_\star$ the maximum-likelihood state for additive Gaussian noise. That
 # identification needs the noise on the matrix elements to be Gaussian **with the same variance in every direction**, because only then
 # is the log-likelihood a multiple of $-\lVert\hat\rho-\sigma\rVert_F^2$. Linear-inversion noise is not isotropic: by Eq. (9) the
 # variance of $\hat r_P$ is $(1-r_P^2)/(M\,3^{N-w(P)})$, which differs between coordinates by up to a factor $3^{N-1}$ through the
@@ -1408,7 +1408,7 @@ for N in (1, 2, 3):
 # %% [markdown]
 # ## 13. Maximum-likelihood tomography II: the extremal equation $R\rho R=\rho$
 #
-# We now derive the condition satisfied by the maximiser. Hradil (1997) obtained it from the inequality between geometric and
+# We now derive the condition satisfied by the maximiser. Ref. [[5]](#ref-5) obtained it from the inequality between geometric and
 # arithmetic means; a shorter route parametrises the positivity constraint away:
 # write $\rho=T^\dagger T$ with an arbitrary complex $d\times d$ matrix $T$ — every positive semi-definite matrix can be written this
 # way — and impose the trace with a Lagrange multiplier $\lambda$:
@@ -1446,8 +1446,8 @@ for N in (1, 2, 3):
 #
 # $$\rho_{k+1}=\frac{\tilde R(\rho_k)\;\rho_k\;\tilde R(\rho_k)}{\mathrm{Tr}\!\left[\tilde R(\rho_k)\,\rho_k\,\tilde R(\rho_k)\right]} \tag{14}$$
 #
-# — the **$R\rho R$ algorithm**, proposed by Hradil, Řeháček, Fiurášek and Ježek (2004) and given its name by Řeháček, Hradil,
-# Knill and Lvovsky (2007). Each step (i) computes the $6^N$ probabilities, (ii) assembles $R$, (iii) sandwiches and renormalises.
+# — the **$R\rho R$ algorithm**, proposed in [[6]](#ref-6) and given its name in
+# [[7]](#ref-7). Each step (i) computes the $6^N$ probabilities, (ii) assembles $R$, (iii) sandwiches and renormalises.
 # Starting from the maximally mixed state $\rho_0=\mathbb 1/d$, positivity and unit trace hold at every step *by construction*.
 #
 # **Two caveats, both important.**
@@ -1456,7 +1456,7 @@ for N in (1, 2, 3):
 #    identity. For our POVM it is: $\sum_j\Pi_j=3^N\mathbb 1$, as verified above. For a general (unbalanced) POVM one replaces
 #    $R$ by $G^{-1}R$ with $G=\sum_j\Pi_j$.
 # 2. Equation (14) is a *fixed-point* iteration: it has the right fixed points but is **not guaranteed** to
-#    increase the likelihood at every step, and it can fail to converge. Řeháček, Hradil, Knill and Lvovsky (2007) fixed this with a
+#    increase the likelihood at every step, and it can fail to converge. Ref. [[7]](#ref-7) fixed this with a
 #    **diluted** step that interpolates towards the identity map,
 #
 # $$\rho_{k+1}\ \propto\ \left(\mathbb 1+\epsilon\tilde R\right)\rho_k\left(\mathbb 1+\epsilon\tilde R\right), \tag{15}$$
@@ -1464,7 +1464,7 @@ for N in (1, 2, 3):
 # which for small enough $\epsilon>0$ provably increases $\log L$ at every step and has exactly the same fixed points
 # (at a fixed point $\tilde R\rho=\rho$, so the right-hand side is $(1+\epsilon)^2\rho$, i.e. $\rho$ after normalisation).
 # Large $\epsilon$ recovers Eq. (14). The theorem covers *sufficiently small* $\epsilon$ only; for $\epsilon$ of order one — and
-# for the plain step — monotonicity has to be checked on the data at hand. (Řeháček et al. give a one-qubit example, three
+# for the plain step — monotonicity has to be checked on the data at hand. (Ref. [[7]](#ref-7) gives a one-qubit example, three
 # detections in a single basis, on which the plain step cycles with period two and lowers the likelihood every second step.)
 # The cell below performs that check, and for these data sets nothing ever decreases (see also Exercise 5).
 #
@@ -1667,8 +1667,8 @@ fig.tight_layout(); plt.show()
 # ### 14.1 The Cholesky (Cholesky-like) parametrisation
 #
 # Take an arbitrary complex matrix $T\in\mathbb{C}^{d\times d}$ — in this notebook a full matrix, though a lower-triangular one with
-# real diagonal (the Cholesky factor, introduced for maximum-likelihood tomography by Banaszek, D'Ariano, Paris and Sacchi 1999 and used
-# for two qubits by James, Kwiat, Munro and White 2001) has exactly the right number of parameters — and set
+# real diagonal (the Cholesky factor, introduced for maximum-likelihood tomography in [[8]](#ref-8) and used
+# for two qubits in [[3]](#ref-3)) has exactly the right number of parameters — and set
 #
 # $$\rho(T)=\frac{T^\dagger T}{\mathrm{Tr}\!\left(T^\dagger T\right)} . \tag{16}$$
 #
@@ -1678,8 +1678,8 @@ fig.tight_layout(); plt.show()
 #
 # $$C(\theta)=-\frac{1}{N_{\rm tot}}\sum_jn_j\log\big\langle\phi_j\big\vert\rho(\theta)\big\vert\phi_j\big\rangle$$
 #
-# with `jax.value_and_grad` (reverse-mode differentiation straight through the einsum and the normalisation) and the Adam optimiser of
-# Kingma and Ba (2015), built in the engine. Dividing by $N_{\rm tot}$ only makes the printed cost a number per shot: Adam divides each gradient component
+# with `jax.value_and_grad` (reverse-mode differentiation straight through the einsum and the normalisation) and the Adam optimiser
+# [[9]](#ref-9), built in the engine. Dividing by $N_{\rm tot}$ only makes the printed cost a number per shot: Adam divides each gradient component
 # by the square root of its running mean square, so a constant factor in the cost leaves the step unchanged (up to the regulariser
 # $10^{-8}$ in that denominator). The parametrisation is redundant ($T$ and $UT$ give the same $\rho$ for unitary $U$, and the overall scale
 # drops out), which is harmless for a first-order method.
@@ -1826,8 +1826,8 @@ fig.tight_layout(); plt.show()
 #
 # ### 15.2 The bootstrap
 #
-# In a real experiment there is only **one** data set, so error bars cannot come from repetitions. The bootstrap, introduced by
-# Efron (1979), replaces the unknown
+# In a real experiment there is only **one** data set, so error bars cannot come from repetitions. The bootstrap, introduced in
+# [[10]](#ref-10), replaces the unknown
 # true distribution by the observed one: treat the measured frequencies $\hat p(s\vert b)=n_{b,s}/M$ as if they were the truth, draw
 # $B$ new synthetic data sets of the same size from them, re-run the *entire* estimation pipeline on each, and use the spread of the
 # resulting estimates as the error bar. It is nothing but Monte-Carlo error propagation through a pipeline that is too complicated
@@ -2004,7 +2004,7 @@ assert abs(pooled - 0.25) > 3 * pooled_se           # ... and the wrong control 
 #   line that nobody tests is decoration. The contrast with a *generic* pure
 #   state is sharp: there the unconstrained maximum-likelihood estimate of a boundary state has infidelity $O(M^{-1/2})$, not
 #   $O(M^{-1})$, because infidelity is *linear* rather than quadratic in the error along a direction with a zero eigenvalue
-#   (Mahler et al. 2013). The stabiliser state escapes that fate because its deterministic outcomes make the estimation error along
+#   [[11]](#ref-11). The stabiliser state escapes that fate because its deterministic outcomes make the estimation error along
 #   exactly those directions vanish at the same rate. Section 17 shows both regimes side by side.
 #
 # ### 15.3 Bootstrap error bars from a single data set
@@ -2076,7 +2076,7 @@ assert worst_w > 2.0
 # The bootstrap works. Every error bar obtained from the *single* data set reproduces the across-experiment one within a factor of
 # about $1.8$, and the comparison is itself noisy, since $150$ experiments determine a standard deviation only to $\pm6\%$ and the
 # bootstrap sample is drawn around one particular $\hat\rho$. The agreement is tightest for the trace distance and the purity and
-# loosest for the Uhlmann fidelity (Uhlmann 1976; named fidelity by Jozsa 1994) of the Werner state (ratios $1.79$ and $1.66$). All eleven ratios are *above* one. They come from
+# loosest for the Uhlmann fidelity [[12]](#ref-12) (named fidelity in [[13]](#ref-13)) of the Werner state (ratios $1.79$ and $1.66$). All eleven ratios are *above* one. They come from
 # a single data set per state and are therefore strongly correlated, so this run alone does not establish a systematic
 # over-estimate; resampling around a $\hat p$ that is itself noisy and the non-smoothness of the estimators at the boundary are the
 # two mechanisms that can produce one. The control line shows that the factor-2 test has discriminating power: a bootstrap with the
@@ -2300,7 +2300,7 @@ fig.tight_layout(rect=[0, 0, 1, 0.94]); plt.show()
 #   pinned at $0$ in **every** experiment (the printed rank-deficiency probability) and the extra weight has to come out of the
 #   largest eigenvalue, which lands visibly **below** 1. The mean infidelity of the maximum-likelihood estimate falls only like
 #   $M^{-1/2}$ here, slower than the $M^{-1}$ of the stabiliser state, because at a zero eigenvalue the infidelity is *linear* rather
-#   than quadratic in the reconstruction error — the point of Mahler et al. (2013), who also show that one adaptive re-measurement
+#   than quadratic in the reconstruction error — the point of [[11]](#ref-11), which also shows that one adaptive re-measurement
 #   in the estimated eigenbasis restores the $M^{-1}$ law. The consequence is the systematic fidelity deficit in the printed table:
 #   maximum likelihood reports a state that is less pure and slightly rotated away from the truth, and no amount of averaging over
 #   experiments removes it, because it is a bias. This is the standard criticism of maximum-likelihood tomography: a reported
@@ -2471,7 +2471,7 @@ fig.tight_layout(); plt.show()
 # $24$ only as $N$ grows. Extrapolating the measured $N=4$
 # time with the asymptotic factor puts a single $N=6$ reconstruction at tens of seconds and $N=8$ at hours on this machine, and that
 # is *after* collecting a data set of $3^{8}M\approx7\cdot10^6$ shots at $M=1000$ shots per setting.
-# A real example of that scale: the eight-ion W-state tomography of Häffner et al. (2005) measured all $3^8=6561$ bases with $100$
+# A real example of that scale: the eight-ion W-state tomography of [[14]](#ref-14) measured all $3^8=6561$ bases with $100$
 # repetitions each, $656\,100$ runs and ten hours of measurement, and reconstructed $\rho$ with an iterative maximum-likelihood
 # procedure of the kind derived in Section 13.
 #
@@ -2487,9 +2487,9 @@ fig.tight_layout(); plt.show()
 # at an *equal shot budget* on the very states we reconstructed here.
 #
 # Two other standard escapes are worth naming: **compressed sensing** tomography, which exploits the fact that interesting states are
-# nearly low-rank and reconstructs them from $O(rd\log^2d)$ random Pauli expectations (Gross et al. 2010); and **tensor-network
+# nearly low-rank and reconstructs them from $O(rd\log^2d)$ random Pauli expectations [[15]](#ref-15); and **tensor-network
 # tomography**, which parametrises $\rho$ as a matrix-product operator and therefore has only $O(N)$ parameters
-# (Baumgratz et al. 2013). Both start from the same linear model of
+# [[16]](#ref-16). Both start from the same linear model of
 # Section 6 — they just replace "solve for all $4^N$ coordinates" by "solve inside a smaller, physically motivated set".
 
 # %% [markdown]
@@ -2573,42 +2573,70 @@ fig.tight_layout(); plt.show()
 #
 # ## References
 #
-# * Z. Hradil, *Quantum-state estimation*, Phys. Rev. A **55**, R1561 (1997) — maximum-likelihood tomography, the positivity objection
-#   to linear inversion, and the extremal equation behind the $R\rho R$ iteration.
-# * K. Vogel and H. Risken, *Determination of quasiprobability distributions in terms of probability distributions for the rotated
-#   quadrature phase*, Phys. Rev. A **40**, 2847 (1989) — the proposal to reconstruct a quantum state from measured distributions.
-# * D. T. Smithey, M. Beck, M. G. Raymer and A. Faridani, *Measurement of the Wigner distribution and the density matrix of a light mode
-#   using optical homodyne tomography: application to squeezed states and the vacuum*, Phys. Rev. Lett. **70**, 1244 (1993) — the first
-#   quantum state tomography.
-# * K. Banaszek, G. M. D'Ariano, M. G. A. Paris and M. F. Sacchi, *Maximum-likelihood estimation of the density matrix*,
-#   Phys. Rev. A **61**, 010304(R) (1999) — the triangular (Cholesky) parametrisation $\rho=T^\dagger T$ in maximum-likelihood tomography.
-# * D. F. V. James, P. G. Kwiat, W. J. Munro and A. G. White, *Measurement of qubits*, Phys. Rev. A **64**, 052312 (2001) — the
-#   standard reference for two-qubit tomography (with $4^n$ product projectors, $16$ for two qubits, rather than the $3^N$
-#   six-outcome Pauli settings used here) and the two-qubit form of the parametrisation $T^\dagger T/\mathrm{Tr}(T^\dagger T)$ of Section 14.
-# * J. Řeháček, Z. Hradil, E. Knill and A. I. Lvovsky, *Diluted maximum-likelihood algorithm for quantum tomography*,
-#   Phys. Rev. A **75**, 042108 (2007) — the name "$R\rho R$ algorithm", a counterexample to its convergence, and the diluted iteration
-#   of Eq. (15) with its monotonicity for small $\epsilon$.
-# * Z. Hradil, J. Řeháček, J. Fiurášek and M. Ježek, *Maximum-likelihood methods in quantum mechanics*, in *Quantum State Estimation*,
-#   ed. M. G. A. Paris and J. Řeháček, Lecture Notes in Physics **649**, 59–112 (Springer, 2004) — the $R\rho R$ iteration of Eq. (14).
-# * H. Häffner, W. Hänsel, C. F. Roos, J. Benhelm, D. Chek-al-kar, M. Chwalla, T. Körber, U. D. Rapol, M. Riebe, P. O. Schmidt,
-#   C. Becher, O. Gühne, W. Dür and R. Blatt, *Scalable multiparticle entanglement of trapped ions*, Nature **438**, 643 (2005) —
-#   eight-qubit W-state tomography with $3^8$ bases (Section 18.2).
-# * J. A. Smolin, J. M. Gambetta and G. Smith, *Efficient method for computing the maximum-likelihood quantum state from measurements
-#   with additive Gaussian noise*, Phys. Rev. Lett. **108**, 070502 (2012) — the eigenvalue-truncation projection of Section 11.
-# * D. H. Mahler, L. A. Rozema, A. Darabi, C. Ferrie, R. Blume-Kohout and A. M. Steinberg, *Adaptive quantum state tomography improves
-#   accuracy quadratically*, Phys. Rev. Lett. **111**, 183601 (2013) — why the infidelity of a *generic* nearly pure state estimated
-#   from fixed Pauli settings falls only like $M^{-1/2}$, and how one adaptive step restores $M^{-1}$ (Sections 15 and 17).
-# * M. G. A. Paris and J. Řeháček (eds.), *Quantum State Estimation*, Lecture Notes in Physics **649** (Springer, 2004) — the standard
-#   collection of review articles on the whole subject.
-# * D. Gross, Y.-K. Liu, S. T. Flammia, S. Becker and J. Eisert, *Quantum state tomography via compressed sensing*,
-#   Phys. Rev. Lett. **105**, 150401 (2010) — the compressed-sensing route mentioned in Section 18.3.
-# * T. Baumgratz, D. Gross, M. Cramer and M. B. Plenio, *Scalable reconstruction of density matrices*,
-#   Phys. Rev. Lett. **111**, 020401 (2013) — matrix-product-operator (tensor-network) tomography, also Section 18.3.
-# * B. Efron, *Bootstrap methods: another look at the jackknife*, Ann. Statist. **7**, 1 (1979) — the bootstrap of Section 15.2.
-# * D. P. Kingma and J. Ba, *Adam: a method for stochastic optimization*, arXiv:1412.6980, ICLR 2015 — the optimiser of Section 14.
-# * A. Uhlmann, *The "transition probability" in the state space of a $\ast$-algebra*, Rep. Math. Phys. **9**, 273 (1976);
-#   R. Jozsa, *Fidelity for mixed quantum states*, J. Mod. Opt. **41**, 2315 (1994) — the fidelity between mixed states.
-# * M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information* (Cambridge University Press, 2000) — density
-#   matrices, the Bloch/Pauli expansion, fidelity and trace distance (Ch. 2, 8 and 9).
-# * H.-Y. Huang, R. Kueng and J. Preskill, *Predicting many properties of a quantum system from very few measurements*,
-#   Nature Physics **16**, 1050 (2020) — classical shadows, the subject of the next notebook.
+# <span id="ref-1">[1]</span> K. Vogel and H. Risken, *Determination of quasiprobability distributions in terms of
+# probability distributions for the rotated quadrature phase*, Phys. Rev. A **40**, 2847 (1989) — the proposal to reconstruct
+# a quantum state from measured distributions.
+#
+# <span id="ref-2">[2]</span> D. T. Smithey, M. Beck, M. G. Raymer and A. Faridani, *Measurement of the Wigner distribution
+# and the density matrix of a light mode using optical homodyne tomography: application to squeezed states and the vacuum*,
+# Phys. Rev. Lett. **70**, 1244 (1993) — the first quantum state tomography.
+#
+# <span id="ref-3">[3]</span> D. F. V. James, P. G. Kwiat, W. J. Munro and A. G. White, *Measurement of qubits*, Phys. Rev. A
+# **64**, 052312 (2001) — the standard reference for two-qubit tomography (with $4^n$ product projectors, $16$ for two
+# qubits, rather than the $3^N$ six-outcome Pauli settings used here) and the two-qubit form of the parametrisation
+# $T^\dagger T/\mathrm{Tr}(T^\dagger T)$ of Section 14.
+#
+# <span id="ref-4">[4]</span> J. A. Smolin, J. M. Gambetta and G. Smith, *Efficient method for computing the
+# maximum-likelihood quantum state from measurements with additive Gaussian noise*, Phys. Rev. Lett. **108**, 070502 (2012)
+# — the eigenvalue-truncation projection of Section 11.
+#
+# <span id="ref-5">[5]</span> Z. Hradil, *Quantum-state estimation*, Phys. Rev. A **55**, R1561 (1997) — maximum-likelihood
+# tomography, the positivity objection to linear inversion, and the extremal equation behind the $R\rho R$ iteration.
+#
+# <span id="ref-6">[6]</span> Z. Hradil, J. Řeháček, J. Fiurášek and M. Ježek, *Maximum-likelihood methods in quantum
+# mechanics*, in *Quantum State Estimation*, ed. M. G. A. Paris and J. Řeháček, Lecture Notes in Physics **649**, 59–112
+# (Springer, 2004) — the $R\rho R$ iteration of Eq. (14).
+#
+# <span id="ref-7">[7]</span> J. Řeháček, Z. Hradil, E. Knill and A. I. Lvovsky, *Diluted maximum-likelihood algorithm for
+# quantum tomography*, Phys. Rev. A **75**, 042108 (2007) — the name "$R\rho R$ algorithm", a counterexample to its
+# convergence, and the diluted iteration of Eq. (15) with its monotonicity for small $\epsilon$.
+#
+# <span id="ref-8">[8]</span> K. Banaszek, G. M. D'Ariano, M. G. A. Paris and M. F. Sacchi, *Maximum-likelihood estimation of
+# the density matrix*, Phys. Rev. A **61**, 010304(R) (1999) — the triangular (Cholesky) parametrisation $\rho=T^\dagger T$
+# in maximum-likelihood tomography.
+#
+# <span id="ref-9">[9]</span> D. P. Kingma and J. Ba, *Adam: a method for stochastic optimization*, arXiv:1412.6980, ICLR
+# 2015 — the optimiser of Section 14.
+#
+# <span id="ref-10">[10]</span> B. Efron, *Bootstrap methods: another look at the jackknife*, Ann. Statist. **7**, 1 (1979)
+# — the bootstrap of Section 15.2.
+#
+# <span id="ref-11">[11]</span> D. H. Mahler, L. A. Rozema, A. Darabi, C. Ferrie, R. Blume-Kohout and A. M. Steinberg,
+# *Adaptive quantum state tomography improves accuracy quadratically*, Phys. Rev. Lett. **111**, 183601 (2013) — why the
+# infidelity of a *generic* nearly pure state estimated from fixed Pauli settings falls only like $M^{-1/2}$, and how one
+# adaptive step restores $M^{-1}$ (Sections 15 and 17).
+#
+# <span id="ref-12">[12]</span> A. Uhlmann, *The "transition probability" in the state space of a $\ast$-algebra*, Rep.
+# Math. Phys. **9**, 273 (1976) — the fidelity between mixed states.
+#
+# <span id="ref-13">[13]</span> R. Jozsa, *Fidelity for mixed quantum states*, J. Mod. Opt. **41**, 2315 (1994) — the name
+# fidelity for the quantity of [12].
+#
+# <span id="ref-14">[14]</span> H. Häffner, W. Hänsel, C. F. Roos, J. Benhelm, D. Chek-al-kar, M. Chwalla, T. Körber,
+# U. D. Rapol, M. Riebe, P. O. Schmidt, C. Becher, O. Gühne, W. Dür and R. Blatt, *Scalable multiparticle entanglement of
+# trapped ions*, Nature **438**, 643 (2005) — eight-qubit W-state tomography with $3^8$ bases (Section 18.2).
+#
+# <span id="ref-15">[15]</span> D. Gross, Y.-K. Liu, S. T. Flammia, S. Becker and J. Eisert, *Quantum state tomography via
+# compressed sensing*, Phys. Rev. Lett. **105**, 150401 (2010) — the compressed-sensing route mentioned in Section 18.3.
+#
+# <span id="ref-16">[16]</span> T. Baumgratz, D. Gross, M. Cramer and M. B. Plenio, *Scalable reconstruction of density
+# matrices*, Phys. Rev. Lett. **111**, 020401 (2013) — matrix-product-operator (tensor-network) tomography, also Section 18.3.
+#
+# <span id="ref-17">[17]</span> M. G. A. Paris and J. Řeháček (eds.), *Quantum State Estimation*, Lecture Notes in Physics
+# **649** (Springer, 2004) — the standard collection of review articles on the whole subject.
+#
+# <span id="ref-18">[18]</span> M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information* (Cambridge
+# University Press, 2000) — density matrices, the Bloch/Pauli expansion, fidelity and trace distance (Ch. 2, 8 and 9).
+#
+# <span id="ref-19">[19]</span> H.-Y. Huang, R. Kueng and J. Preskill, *Predicting many properties of a quantum system from
+# very few measurements*, Nature Physics **16**, 1050 (2020) — classical shadows, the subject of the next notebook.

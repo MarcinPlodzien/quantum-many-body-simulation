@@ -3,7 +3,7 @@
 #@description: What a scrambler does to metrologically useful entanglement: one-axis-twisting probes pushed through global Haar unitaries and random brick-wall circuits, the Page curve derived and measured, the Haar average of the collective quantum Fisher information N d/(d+1) derived and verified, the gate-by-gate collapse of the cat's quantum Fisher information in a brick-wall circuit derived, quantum Fisher information optimised over site-dependent local generators with jax.grad and Adam, the unitary-invariance identity that shows where the information went, the Pauli weight of the scrambled generator, and the quantum Fisher information of a subsystem as the metrological analogue of the Page curve.
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
 # A metrological probe is a fragile object. Notebook 34 built one: starting from $N$ atoms all pointing along $x$,
 # the one-axis-twisting interaction winds them into a spin-squeezed state and, at the right moment, into a

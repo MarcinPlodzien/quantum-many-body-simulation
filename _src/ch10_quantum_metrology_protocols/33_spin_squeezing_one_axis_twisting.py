@@ -3,7 +3,7 @@
 #@description: Coherent spin states and their isotropic projection noise, the one-axis-twisting Hamiltonian and its two exact implementations, the shearing mechanism, the Kitagawa–Ueda and Wineland squeezing parameters derived from Ramsey error propagation, the analytic OAT moments verified numerically, the $N^{-2/3}$ scaling of the optimal squeezing, a squeezed Ramsey interferometer simulated end to end from sampled bit strings, Husimi-Q maps on the Bloch sphere, and the point where squeezing stops measuring the metrological gain.
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
 # A Ramsey interferometer built from $N$ independent atoms measures a phase with an uncertainty
 #
@@ -16,11 +16,11 @@
 # is the extreme and most fragile case; a gentler way is to let the atoms interact with each other for a short time.
 #
 # The interaction we study is the simplest one imaginable: every pair of spins feels the same $Z_iZ_j$ coupling. The
-# resulting Hamiltonian, $H=\chi J_z^2$, is called **one-axis twisting** (OAT). It was introduced by Kitagawa and Ueda in
-# 1993, it is realised today in Bose–Einstein condensates, in optical cavities and in ion traps, and it produces
+# resulting Hamiltonian, $H=\chi J_z^2$, is called **one-axis twisting** (OAT). It was introduced in [[1]](#ref-1), is
+# realised today in Bose–Einstein condensates, in optical cavities and in ion traps, and produces
 # **spin-squeezed states**: states whose noise in one direction is smaller than the projection noise, at the price of
 # more noise in the perpendicular direction. Feed such a state into a Ramsey sequence and the phase uncertainty drops
-# below the SQL by a factor $\xi_R$, the Wineland squeezing parameter. Ma *et al.* (2011) and Pezzè *et al.* (2018)
+# below the SQL by a factor $\xi_R$, the Wineland squeezing parameter. Refs. [[2]](#ref-2), [[3]](#ref-3)
 # review the subject.
 #
 # This notebook develops the subject from the definitions and checks every claim against numbers produced by the
@@ -171,7 +171,7 @@ print("helpers ready")
 #
 # ### 3.2 Coherent spin states
 #
-# A **coherent spin state** (CSS), introduced by Radcliffe (1971) and by Arecchi, Courtens, Gilmore and Thomas (1972), is a
+# A **coherent spin state** (CSS), introduced in [[4]](#ref-4) and [[5]](#ref-5), is a
 # product state in which every qubit points in the same direction
 # $\mathbf n=(\sin\theta\cos\varphi,\sin\theta\sin\varphi,\cos\theta)$:
 #
@@ -284,15 +284,15 @@ assert abs(float(jnp.linalg.norm(mean_css)) - N_DEMO / 2) < 1e4 * TOL
 #   energy depends only on the populations $N_a,N_b$, and because $N_a-N_b=2J_z$ and $N_a+N_b=N$ is fixed, the
 #   population-dependent part is quadratic in $J_z$. The effective coupling
 #   $\chi\propto a_{aa}+a_{bb}-2a_{ab}$ can be tuned — even through zero — with a Feshbach resonance. Collisional
-#   twisting is the mechanism behind the squeezing measured by Gross *et al.* and by Riedel *et al.* in 2010; Gross *et al.*
-#   tuned $\chi$ with a Feshbach resonance, Riedel *et al.* with a state-dependent microwave potential that controls the
+#   twisting is the mechanism behind the squeezing measured in [[6]](#ref-6) and [[7]](#ref-7); the experiment of [[6]](#ref-6)
+#   tuned $\chi$ with a Feshbach resonance, that of [[7]](#ref-7) with a state-dependent microwave potential that controls the
 #   overlap of the two components.
 # * **Atoms in an optical cavity.** A cavity mode detuned from the atomic transition mediates an infinite-range
 #   interaction: each atom shifts the cavity resonance according to its internal state, and the cavity field acts back on
-#   all atoms. Eliminating the field adiabatically leaves $\propto J_z^2$. Leroux *et al.* (2010) used this
+#   all atoms. Eliminating the field adiabatically leaves $\propto J_z^2$. Ref. [[8]](#ref-8) used this
 #   "cavity feedback" to squeeze an ensemble of $^{87}$Rb atoms.
 # * **Trapped ions.** A bichromatic laser field couples the internal states to a collective motional mode; eliminating
-#   the motion gives the interaction of Mølmer and Sørensen (1999), $\sum_{i<j}J_{ij}\sigma^x_i\sigma^x_j$, which for a uniform $J_{ij}$
+#   the motion gives the Mølmer–Sørensen interaction [[9]](#ref-9), $\sum_{i<j}J_{ij}\sigma^x_i\sigma^x_j$, which for a uniform $J_{ij}$
 #   is one-axis twisting about $\hat x$ — the same Hamiltonian with the axes relabelled. The coupling range can be tuned
 #   with the laser detuning.
 #
@@ -571,7 +571,7 @@ for mu in (0.0, 0.05, 0.10, 0.2005, 0.40, 0.80):
 # $$\Delta\phi=\frac{\sqrt{V_{\min}}}{\left\vert\langle\mathbf J\rangle\right\vert}.$$
 #
 # Divide by the SQL value $1/\sqrt N$ and square. The result is the definition of the **Wineland (metrological)
-# squeezing parameter** (Wineland *et al.* 1992, 1994):
+# squeezing parameter** [[10]](#ref-10), [[11]](#ref-11):
 #
 # $$\boxed{\;\xi_R^2\;=\;\frac{\left(\Delta\phi\right)^2}{\left(\Delta\phi_{\text{SQL}}\right)^2}
 #   \;=\;\frac{N\,V_{\min}}{\left\vert\langle\mathbf J\rangle\right\vert^2}\;} \tag{12}$$
@@ -586,8 +586,8 @@ for mu in (0.0, 0.05, 0.10, 0.2005, 0.40, 0.80):
 #
 # ### 8.3 The Kitagawa–Ueda parameter
 #
-# Kitagawa and Ueda asked a different question: how much narrower is the distribution than that of a CSS, *regardless* of
-# contrast? Their parameter compares $V_{\min}$ with the CSS value $N/4$:
+# Ref. [[1]](#ref-1) asks a different question: how much narrower is the distribution than that of a CSS, *regardless* of
+# contrast? Its parameter compares $V_{\min}$ with the CSS value $N/4$:
 #
 # $$\boxed{\;\xi_S^2\;=\;\frac{V_{\min}}{N/4}\;=\;\frac{4V_{\min}}{N}\;} \tag{13}$$
 #
@@ -604,12 +604,12 @@ for mu in (0.0, 0.05, 0.10, 0.2005, 0.40, 0.80):
 #
 # ### 8.4 $\xi_R^2<1$ implies entanglement — and $\xi_S^2<1$ does not
 #
-# Sørensen, Duan, Cirac and Zoller (Nature **409**, 63 (2001)) proved the following. For every **separable** state of $N$
+# Ref. [[12]](#ref-12) proved the following. For every **separable** state of $N$
 # spins $1/2$ — i.e. every mixture of product states —
 #
 # $$\xi_R^2\;=\;\frac{N\,V_{\min}}{\left\vert\langle\mathbf J\rangle\right\vert^2}\;\ge\;1 . \tag{15}$$
 #
-# *Proof for a pure product state* (mixtures follow from a convexity argument given in the reference). Let
+# *Proof for a pure product state* (mixtures follow from a convexity argument given in [[12]](#ref-12)). Let
 # $\vert\psi\rangle=\bigotimes_q\vert\psi_q\rangle$ with Bloch vectors $\mathbf s_q$, $\vert\mathbf s_q\vert\le1$. As in
 # Section 3.3 variances add, and $\mathrm{Var}_q\!\left(\tfrac12\mathbf m\cdot\vec\sigma\right)
 # =\tfrac14\left(1-(\mathbf m\cdot\mathbf s_q)^2\right)$, so for any unit vector $\mathbf m$
@@ -907,8 +907,8 @@ assert err_ana < 1e4 * TOL
 # $$\mu_{\text{opt}}=\sqrt{\frac{u_{\rm opt}}{N}}\simeq 3^{1/6}N^{-2/3},\qquad
 #   \xi^2_{S,\min}\simeq\frac{u_{\rm opt}^2}{2}=\frac12\left(\frac{3}{N}\right)^{2/3}, \tag{24}$$
 #
-# i.e. **both** the optimal twisting angle and the best squeezing scale as $N^{-2/3}$, the laws found by Kitagawa and
-# Ueda. (Their abstract quotes the minimal variance as $\tfrac12(S/3)^{1/3}$ with $S=N/2$, i.e.
+# i.e. **both** the optimal twisting angle and the best squeezing scale as $N^{-2/3}$, the laws found in [[1]](#ref-1).
+# (The abstract of [[1]](#ref-1) quotes the minimal variance as $\tfrac12(S/3)^{1/3}$ with $S=N/2$, i.e.
 # $\xi^2_{S,\min}\simeq(4/3)^{1/3}N^{-2/3}$, a prefactor $6\%$ above Eq. (24); the exact moments of Section 9 approach
 # Eq. (24).) This exponent — not $1/N$ — is the signature of one-axis twisting. We now measure it.
 #
@@ -1194,8 +1194,8 @@ fig.tight_layout(); plt.show()
 # * **Error propagation, Eq. (11):** $\Delta\phi=\sqrt{\mathrm{Var}(J_z^{\rm out})}/\vert\partial_\phi\langle J_z^{\rm out}\rangle\vert$
 #   should equal $\xi_R/\sqrt N$ for the squeezed input and $1/\sqrt N$ for the CSS.
 # * **The estimator:** a maximum-likelihood estimate of $\phi$ from $M$ sampled shots should have
-#   $\Delta\hat\phi\approx1/\sqrt{M\,I(\phi)}$ (the Cramér–Rao bound of Rao 1945 and Cramér 1946) with $I$ the classical
-#   Fisher information (Fisher 1925) of $p(m\vert\phi)$, and
+#   $\Delta\hat\phi\approx1/\sqrt{M\,I(\phi)}$ (the Cramér–Rao bound [[13]](#ref-13), [[14]](#ref-14)) with $I$ the classical
+#   Fisher information [[15]](#ref-15) of $p(m\vert\phi)$, and
 #   $I\ge N$ for the squeezed input.
 # * **The bias of the estimator.** Maximum likelihood is biased at finite $M$; to first order in $1/M$ the bias is
 #   $b_1(\phi)/M$ with $b_1=-\sum_m p'p''/p\,\big/\,(2I^2)$, derived in
@@ -1292,7 +1292,7 @@ print(f"\nSQL Fisher information: I = N = {N_RAM};   N/xi_R^2 = {N_RAM / float(d
 # output distribution $p(m\vert\phi)$ is $I=38.98$ for the squeezed input, while $N/\xi_R^2=32.27$. The error-propagation
 # formula only uses the mean and the variance of the distribution; an estimator that uses the entire histogram can do
 # better, and it does — by $21\%$ in Fisher information, i.e. a further $10\%$ in $\Delta\phi$. Both numbers stay below
-# the quantum Fisher information $F_Q=39.61$ of that state, as the Braunstein–Caves theorem (1994)
+# the quantum Fisher information $F_Q=39.61$ of that state, as the Braunstein–Caves theorem [[16]](#ref-16)
 # ([29](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb)) requires. We now check that a real
 # estimator, fed real samples, reaches $1/\sqrt{MI}$.
 
@@ -1547,7 +1547,7 @@ fig.tight_layout(); plt.show()
 # > every Ramsey interferometer already performs. These are the ingredients of the 2010 squeezing experiments cited in
 # > Section 4.3. Under independent dephasing during
 # > the interrogation, spin-squeezed probes also reach asymptotically the best resolution available to generalised Ramsey
-# > spectroscopy, a factor $\sqrt e$ better than uncorrelated atoms (Ulam-Orgikh and Kitagawa 2001; the bound and its
+# > spectroscopy, a factor $\sqrt e$ better than uncorrelated atoms ([[17]](#ref-17); the bound and its
 # > derivation are in [32](../ch10_quantum_metrology_protocols/32_ghz_interferometry_heisenberg_limit.ipynb),
 # > Section 13.2).
 
@@ -1559,7 +1559,7 @@ fig.tight_layout(); plt.show()
 #
 # ### 12.1 Definition
 #
-# The **Husimi-$Q$ function** (Husimi 1940) of a spin state is its overlap with the coherent spin state pointing in each
+# The **Husimi-$Q$ function** [[18]](#ref-18) of a spin state is its overlap with the coherent spin state pointing in each
 # direction:
 #
 # $$Q(\theta,\varphi)\;=\;\left\vert\left\langle\theta,\varphi\middle\vert\psi\right\rangle\right\vert^2 , \tag{25}$$
@@ -1750,11 +1750,11 @@ make_husimi_gif(psi_q0, MU_FRAMES, jnp.asarray(THETA_M), jnp.asarray(PHI_M), phi
 #
 # The Wineland parameter was derived from the error-propagation formula, Eq. (11), which uses only the first two moments
 # of one measured observable. The quantum Fisher information uses the whole state. The general relation
-# (Pezzè and Smerzi 2009) is
+# [[19]](#ref-19) is
 #
 # $$F_Q\;\ge\;\frac{N}{\xi_R^2}, \tag{26}$$
 #
-# which follows from the quantum Cramér–Rao bound (Helstrom 1967; Braunstein and Caves 1994): $N/\xi_R^2=\vert\langle\mathbf J\rangle\vert^2/V_{\min}$ is
+# which follows from the quantum Cramér–Rao bound ([[20]](#ref-20), [[16]](#ref-16)): $N/\xi_R^2=\vert\langle\mathbf J\rangle\vert^2/V_{\min}$ is
 # $1/(\Delta\phi)^2$ for one *particular* readout strategy (rotate, measure one quadrature, invert the mean signal),
 # while $F_Q$ bounds $1/(\Delta\phi)^2$ for *every* strategy, optimal measurement and optimal estimator included.
 # A specific strategy can never beat the optimum over all of them, hence Eq. (26).
@@ -1919,7 +1919,7 @@ fig.tight_layout(); plt.show()
 #   equal — zero Trotter error, verified to $10^{-15}$ up to $\mu=3$.
 # * Two squeezing parameters: $\xi_S^2=4V_{\min}/N$ (noise reduction) and
 #   $\xi_R^2=NV_{\min}/\vert\langle\mathbf J\rangle\vert^2=\xi_S^2/\mathcal{C}^2$ (phase sensitivity). Only $\xi_R^2$
-#   answers the question a clock asks, and only $\xi_R^2<1$ is an entanglement criterion (Sørensen *et al.*, proved in
+#   answers the question a clock asks, and only $\xi_R^2<1$ is an entanglement criterion ([[12]](#ref-12), proved in
 #   Section 8.4); random product states reach $\xi_S^2$ far below $1$ while keeping $\xi_R^2>1$.
 # * The closed-form Kitagawa–Ueda results, Eqs. (17)–(23), reproduce the exact simulation to $3\times10^{-14}$. The
 #   optimum scales as $\mu_{\rm opt}\sim3^{1/6}N^{-2/3}$ and $\xi^2_{S,\min}\sim\tfrac12(3/N)^{2/3}$ — a law that only
@@ -1958,7 +1958,7 @@ fig.tight_layout(); plt.show()
 #    for $N$ from $6$ to a few hundred. Fit a power law over $6\le N\le10$ first, then compute the local slopes
 #    $\mathrm d\ln\xi^2_{S,\min}/\mathrm d\ln N$ over the whole range. Over $N\le10$ the fitted exponent cannot be told
 #    apart from the one-axis-twisting value $-2/3$; the local slopes keep falling and reach about $-0.99$ between $N=160$
-#    and $N=320$, approaching the $1/N$ law of counter-twisting (Kitagawa and Ueda 1993) only at large $N$.
+#    and $N=320$, approaching the $1/N$ law of counter-twisting [[1]](#ref-1) only at large $N$.
 # 4. **(★★)** *Extend the code.* Add inhomogeneous couplings: replace the uniform $\chi$ in `oat_circuit` by a matrix
 #    $\chi_{ij}$ drawn from a distribution with mean $\chi$ and relative width $\sigma$. The gates still commute, so the
 #    evolution is still exact. Measure how $\xi_R^2$ at the optimum degrades with $\sigma$, averaging over several draws
@@ -1988,43 +1988,64 @@ fig.tight_layout(); plt.show()
 #    $e^{+i\mu J_z^2}$, then a $\pi/2$ pulse about $\hat y$, and count the qubits in $\vert1\rangle$, i.e. measure $J_x$.
 #    Show numerically for $N=8$ that the classical Fisher information of this "interaction-based readout" at a small
 #    phase equals $F_Q^{\max}(\mu)$ at every twisting angle, including those where the population readout of Section 11
-#    has failed. (Echo protocols of this kind: Davis, Bentsen and Schleier-Smith 2016; Macrì, Smerzi and Pezzè 2016.)
+#    has failed. (Echo protocols of this kind: [[21]](#ref-21), [[22]](#ref-22).)
 #
 # ## References
 #
-# * M. Kitagawa and M. Ueda, *Squeezed spin states*, Physical Review A **47**, 5138 (1993).
-# * D. J. Wineland, J. J. Bollinger, W. M. Itano, F. L. Moore and D. J. Heinzen, *Spin squeezing and reduced quantum noise
-#   in spectroscopy*, Physical Review A **46**, R6797 (1992).
-# * D. J. Wineland, J. J. Bollinger, W. M. Itano and D. J. Heinzen, *Squeezed atomic states and projection noise in
-#   spectroscopy*, Physical Review A **50**, 67 (1994).
-# * A. Sørensen, L.-M. Duan, J. I. Cirac and P. Zoller, *Many-particle entanglement with Bose–Einstein condensates*,
-#   Nature **409**, 63 (2001).
-# * K. Mølmer and A. Sørensen, *Multiparticle entanglement of hot trapped ions*, Physical Review Letters **82**, 1835 (1999).
-# * L. Pezzè and A. Smerzi, *Entanglement, nonlinear dynamics, and the Heisenberg limit*, Physical Review Letters **102**,
-#   100401 (2009).
-# * S. L. Braunstein and C. M. Caves, *Statistical distance and the geometry of quantum states*, Physical Review Letters
-#   **72**, 3439 (1994).
-# * C. W. Helstrom, *Minimum mean-squared error of estimates in quantum statistics*, Physics Letters A **25**, 101 (1967).
-# * R. A. Fisher, *Theory of statistical estimation*, Proceedings of the Cambridge Philosophical Society **22**, 700 (1925).
-# * C. R. Rao, *Information and the accuracy attainable in the estimation of statistical parameters* (1945), reprinted in
-#   S. Kotz and N. L. Johnson (eds.), *Breakthroughs in Statistics* (Springer, New York, 1992), p. 235.
-# * H. Cramér, *Mathematical Methods of Statistics* (Princeton University Press, 1946).
-# * J. M. Radcliffe, *Some properties of coherent spin states*, Journal of Physics A **4**, 313 (1971).
-# * F. T. Arecchi, E. Courtens, R. Gilmore and H. Thomas, *Atomic coherent states in quantum optics*, Physical Review A
-#   **6**, 2211 (1972).
-# * K. Husimi, *Some formal properties of the density matrix*, Proceedings of the Physico-Mathematical Society of Japan
-#   **22**, 264 (1940).
-# * J. Ma, X. Wang, C. P. Sun and F. Nori, *Quantum spin squeezing*, Physics Reports **509**, 89 (2011).
-# * L. Pezzè, A. Smerzi, M. K. Oberthaler, R. Schmied and P. Treutlein, *Quantum metrology with nonclassical states of
-#   atomic ensembles*, Reviews of Modern Physics **90**, 035005 (2018).
-# * C. Gross, T. Zibold, E. Nicklas, J. Estève and M. K. Oberthaler, *Nonlinear atom interferometer surpasses classical
-#   precision limit*, Nature **464**, 1165 (2010).
-# * M. F. Riedel, P. Böhi, Y. Li, T. W. Hänsch, A. Sinatra and P. Treutlein, *Atom-chip-based generation of entanglement
-#   for quantum metrology*, Nature **464**, 1170 (2010).
-# * I. D. Leroux, M. H. Schleier-Smith and V. Vuletić, *Implementation of cavity squeezing of a collective atomic spin*,
-#   Physical Review Letters **104**, 073602 (2010).
-# * D. Ulam-Orgikh and M. Kitagawa, *Spin squeezing and decoherence limit in Ramsey spectroscopy*, Physical Review A
-#   **64**, 052106 (2001).
-# * E. Davis, G. Bentsen and M. Schleier-Smith, *Approaching the Heisenberg limit without single-particle detection*,
-#   Physical Review Letters **116**, 053601 (2016).
-# * T. Macrì, A. Smerzi and L. Pezzè, *Loschmidt echo for quantum metrology*, Physical Review A **94**, 010102(R) (2016).
+# <span id="ref-1">[1]</span> M. Kitagawa and M. Ueda, *Squeezed spin states*, Physical Review A **47**, 5138 (1993).
+#
+# <span id="ref-2">[2]</span> J. Ma, X. Wang, C. P. Sun and F. Nori, *Quantum spin squeezing*, Physics Reports **509**, 89 (2011).
+#
+# <span id="ref-3">[3]</span> L. Pezzè, A. Smerzi, M. K. Oberthaler, R. Schmied and P. Treutlein, *Quantum metrology with nonclassical states of
+# atomic ensembles*, Reviews of Modern Physics **90**, 035005 (2018).
+#
+# <span id="ref-4">[4]</span> J. M. Radcliffe, *Some properties of coherent spin states*, Journal of Physics A **4**, 313 (1971).
+#
+# <span id="ref-5">[5]</span> F. T. Arecchi, E. Courtens, R. Gilmore and H. Thomas, *Atomic coherent states in quantum optics*, Physical Review A
+# **6**, 2211 (1972).
+#
+# <span id="ref-6">[6]</span> C. Gross, T. Zibold, E. Nicklas, J. Estève and M. K. Oberthaler, *Nonlinear atom interferometer surpasses classical
+# precision limit*, Nature **464**, 1165 (2010).
+#
+# <span id="ref-7">[7]</span> M. F. Riedel, P. Böhi, Y. Li, T. W. Hänsch, A. Sinatra and P. Treutlein, *Atom-chip-based generation of entanglement
+# for quantum metrology*, Nature **464**, 1170 (2010).
+#
+# <span id="ref-8">[8]</span> I. D. Leroux, M. H. Schleier-Smith and V. Vuletić, *Implementation of cavity squeezing of a collective atomic spin*,
+# Physical Review Letters **104**, 073602 (2010).
+#
+# <span id="ref-9">[9]</span> K. Mølmer and A. Sørensen, *Multiparticle entanglement of hot trapped ions*, Physical Review Letters **82**, 1835 (1999).
+#
+# <span id="ref-10">[10]</span> D. J. Wineland, J. J. Bollinger, W. M. Itano, F. L. Moore and D. J. Heinzen, *Spin squeezing and reduced quantum noise
+# in spectroscopy*, Physical Review A **46**, R6797 (1992).
+#
+# <span id="ref-11">[11]</span> D. J. Wineland, J. J. Bollinger, W. M. Itano and D. J. Heinzen, *Squeezed atomic states and projection noise in
+# spectroscopy*, Physical Review A **50**, 67 (1994).
+#
+# <span id="ref-12">[12]</span> A. Sørensen, L.-M. Duan, J. I. Cirac and P. Zoller, *Many-particle entanglement with Bose–Einstein condensates*,
+# Nature **409**, 63 (2001).
+#
+# <span id="ref-13">[13]</span> C. R. Rao, *Information and the accuracy attainable in the estimation of statistical parameters* (1945), reprinted in
+# S. Kotz and N. L. Johnson (eds.), *Breakthroughs in Statistics* (Springer, New York, 1992), p. 235.
+#
+# <span id="ref-14">[14]</span> H. Cramér, *Mathematical Methods of Statistics* (Princeton University Press, 1946).
+#
+# <span id="ref-15">[15]</span> R. A. Fisher, *Theory of statistical estimation*, Proceedings of the Cambridge Philosophical Society **22**, 700 (1925).
+#
+# <span id="ref-16">[16]</span> S. L. Braunstein and C. M. Caves, *Statistical distance and the geometry of quantum states*, Physical Review Letters
+# **72**, 3439 (1994).
+#
+# <span id="ref-17">[17]</span> D. Ulam-Orgikh and M. Kitagawa, *Spin squeezing and decoherence limit in Ramsey spectroscopy*, Physical Review A
+# **64**, 052106 (2001).
+#
+# <span id="ref-18">[18]</span> K. Husimi, *Some formal properties of the density matrix*, Proceedings of the Physico-Mathematical Society of Japan
+# **22**, 264 (1940).
+#
+# <span id="ref-19">[19]</span> L. Pezzè and A. Smerzi, *Entanglement, nonlinear dynamics, and the Heisenberg limit*, Physical Review Letters **102**,
+# 100401 (2009).
+#
+# <span id="ref-20">[20]</span> C. W. Helstrom, *Minimum mean-squared error of estimates in quantum statistics*, Physics Letters A **25**, 101 (1967).
+#
+# <span id="ref-21">[21]</span> E. Davis, G. Bentsen and M. Schleier-Smith, *Approaching the Heisenberg limit without single-particle detection*,
+# Physical Review Letters **116**, 053601 (2016).
+#
+# <span id="ref-22">[22]</span> T. Macrì, A. Smerzi and L. Pezzè, *Loschmidt echo for quantum metrology*, Physical Review A **94**, 010102(R) (2016).

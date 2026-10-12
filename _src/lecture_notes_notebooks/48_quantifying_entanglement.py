@@ -3,7 +3,7 @@
 #@description: Pure-state entanglement and why the Schmidt spectrum is the whole story; the zoo classified (GHZ has no pairwise entanglement, W does); why mixed states are harder; the partial transpose as one axis swap; the PPT criterion and negativity, calibrated on Werner states; entanglement death under noise; negativity, mutual information and pair entropy against distance in the XXZ chain; the same two measures from a matrix product state, with mps_rdm2 derived leg by leg and validated against exact diagonalisation.
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
 # The many-body notebooks of this course computed entanglement entropies and put them to work. The bond dimension a
 # matrix product state needs is set by an entropy; the entanglement barrier that stops a time evolution is an entropy

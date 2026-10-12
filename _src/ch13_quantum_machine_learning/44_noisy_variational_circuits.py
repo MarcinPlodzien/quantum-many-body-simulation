@@ -3,13 +3,13 @@
 #@description: Gate noise as a channel after every rotation pair and every two-qubit gate, the dictionary between measured error rates and channel parameters, two exact-in-expectation simulators (density tensor and quantum trajectories) shown to agree, the contraction of the cost landscape derived and measured, the exact invariance of the minimum under global depolarising noise and its shift under local and non-unital noise, noise-induced barren plateaus, training with density-tensor gradients against SPSA on trajectory costs, optimal-parameter resilience, the depth trade-off and zero-noise extrapolation.
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
 # Every variational quantum algorithm written so far in this chapter assumed a perfect device. The circuit
 # $U(\boldsymbol\theta)$ was a product of exact unitaries, the state stayed pure, and the cost
 # $C(\boldsymbol\theta)=\langle\psi(\boldsymbol\theta)\vert\hat H\vert\psi(\boldsymbol\theta)\rangle$ was the energy of
 # that pure state. Present-day hardware is not like that. A two-qubit gate on a superconducting processor fails a few
-# times in a thousand (Barends *et al.* 2014; Sung *et al.* 2021); qubits dephase while they wait; excited states decay. The circuit that runs is not
+# times in a thousand [[1]](#ref-1), [[2]](#ref-2); qubits dephase while they wait; excited states decay. The circuit that runs is not
 # $U(\boldsymbol\theta)$ but a **quantum channel** $\mathcal E_{\boldsymbol\theta}$, and the state it produces is mixed.
 #
 # This changes the optimisation problem itself as well as the accuracy of its answer. Three questions must be answered
@@ -84,7 +84,7 @@
 #   the algorithm itself, which is taken as given here.
 #
 # **Conventions and sizes.** The test problem throughout is the ground state of an XXZ chain in a transverse field on
-# $N=4$ qubits, with the hardware-efficient ansatz (Kandala *et al.* 2017) of notebook 40. Four qubits keep the density tensor at $4^4=256$
+# $N=4$ qubits, with the hardware-efficient ansatz [[3]](#ref-3) of notebook 40. Four qubits keep the density tensor at $4^4=256$
 # complex numbers, so exact gradients through the channel are cheap and every experiment can be repeated over many
 # random initialisations. The trajectory simulator is pushed to $N=12$ in the cost study of Section 13.
 
@@ -217,8 +217,8 @@ def compile_then_run(fn, *args):
 #
 # ### 3.2 Depolarising strength from an average gate fidelity
 #
-# A laboratory does not publish $p$; it publishes an *error per gate* $r$ measured by randomised benchmarking (Emerson, Alicki and Życzkowski 2005;
-# Knill *et al.* 2008; Magesan, Gambetta and Emerson 2012), which is
+# A laboratory does not publish $p$; it publishes an *error per gate* $r$ measured by randomised benchmarking [[4]](#ref-4),
+# [[5]](#ref-5), [[6]](#ref-6), which is
 # $1-F_{\rm avg}$ with $F_{\rm avg}$ the gate fidelity averaged over input states. The dictionary follows from one
 # algebraic identity. For a single qubit,
 #
@@ -241,7 +241,7 @@ def compile_then_run(fn, *args):
 #
 # A two-qubit gate needs one more step, because its error per gate is averaged over two-qubit inputs. The average
 # fidelity in dimension $d$ is fixed by the process (entanglement) fidelity $F_e=\sum_m\lvert\mathrm{Tr}K_m\rvert^2/d^2$
-# through $F_{\rm avg}=(dF_e+1)/(d+1)$ (Horodecki, Horodecki and Horodecki 1999; Nielsen 2002), so that
+# through $F_{\rm avg}=(dF_e+1)/(d+1)$ [[7]](#ref-7), [[8]](#ref-8), so that
 #
 # $$r=1-F_{\rm avg}=\frac{d}{d+1}\,\bigl(1-F_e\bigr).\tag{4a}$$
 #
@@ -257,7 +257,7 @@ def compile_then_run(fn, *args):
 # with the one-qubit rule $p_2=\tfrac32r_2$ would give a model with $\tfrac85\cdot\tfrac32=2.4$ times the measured error.
 # Every two-qubit noise level in this notebook is the channel parameter $p_2$, and Eq. (4b) gives its error per gate: the
 # default $p_2=0.02$ has $r_2=3.2\cdot10^{-2}$. Randomised benchmarking of $CZ$ gates on superconducting qubits gave
-# $r_2=5.6\cdot10^{-3}$ for the best qubit pair of Barends *et al.* (2014) and $r_2=2.4\cdot10^{-3}$ in Sung *et al.* (2021),
+# $r_2=5.6\cdot10^{-3}$ for the best qubit pair of [[1]](#ref-1) and $r_2=2.4\cdot10^{-3}$ in [[2]](#ref-2),
 # with single-qubit errors per gate of $8\cdot10^{-4}$ and $0.6$–$1.0\cdot10^{-3}$ on the same devices. By Eq. (4b) the two
 # $CZ$ values are $p_2=3.5\cdot10^{-3}$ and $1.5\cdot10^{-3}$; the default of this notebook is six to thirteen times
 # larger, so that the effects of noise are large already at four qubits and two layers.
@@ -429,7 +429,7 @@ fig.tight_layout(); plt.show()
 #
 # ### 4.3 Representation 2: quantum trajectories
 #
-# The unravelling of notebook 07, introduced by Dalibard, Castin and Mølmer (1992), keeps a **pure** state and replaces each channel by a random choice of one Kraus
+# The unravelling of notebook 07, introduced in [[9]](#ref-9), keeps a **pure** state and replaces each channel by a random choice of one Kraus
 # operator, $\vert\psi\rangle\to K_m\vert\psi\rangle/\lVert K_m\vert\psi\rangle\rVert$ with probability
 # $\lVert K_m\vert\psi\rangle\rVert^2$ (`apply_kraus_mcwf`). The average of $\vert\psi\rangle\langle\psi\vert$ over
 # trajectories is exactly $\rho$, so any expectation value is estimated without bias:
@@ -948,8 +948,8 @@ fig.tight_layout(); plt.show()
 # of order $(1-q)^{-2}$ times as many measurement shots for the same resolution (the single-shot variance of the
 # estimator changes as well, so the factor is not exact).
 #
-# > **Physics insight.** This is the simplest instance of *optimal-parameter resilience* (Sharma, Khatri, Cerezo and
-# > Coles, 2020), who proved for variational *compiling* that the optimal parameters are unaffected by a broad class of
+# > **Physics insight.** This is the simplest instance of *optimal-parameter resilience*, introduced in
+# > [[10]](#ref-10). That work proved for variational *compiling* that the optimal parameters are unaffected by a broad class of
 # > noise models (measurement noise, gate noise, Pauli channel noise), showed it in a warm-up eigensolver for
 # > non-interacting spins with measurement noise, and speculated that the resilience extends to the variational
 # > eigensolver in general. Section 7 shows that for the eigensolver with local noise the minimum does move, and
@@ -1082,7 +1082,7 @@ fig.tight_layout(); plt.show()
 # $\nabla C_1(\boldsymbol\theta^\star)=0$ by a symmetry, and the minimiser moves by an amount of order
 # $p\,\lVert\mathcal H^{-1}\nabla C_1\rVert$, with $\mathcal H$ the Hessian of $C$ at the minimum.
 #
-# The code finds $\boldsymbol\theta^\star$ for $L=2$ with the quasi-Newton method BFGS (Numerical Recipes, §10.9;
+# The code finds $\boldsymbol\theta^\star$ for $L=2$ with the quasi-Newton method BFGS ([[11]](#ref-11), §10.9;
 # `jax.scipy.optimize.minimize`, eight random starts in one `vmap`), checks Eq. (15a), and evaluates the gradient of the noisy cost at
 # $\boldsymbol\theta^\star$ for four noise models placed in the circuit as in Section 4.1. The global depolarising
 # channel after every layer is the control: by Eq. (13) its gradient is $(1-q)^{L+1}$ times the noiseless one, which is
@@ -1172,7 +1172,7 @@ for name, _ in MODELS[1:]:
 # ## 8. Noise-induced barren plateaus
 #
 # Notebook 40 measured the barren plateau of a *noiseless* circuit: for a hardware-efficient ansatz the variance of a
-# gradient component falls exponentially with the number of **qubits** (McClean *et al.* 2018). Wang and co-workers (2021) identified a second,
+# gradient component falls exponentially with the number of **qubits** [[12]](#ref-12). The authors of [[13]](#ref-13) identified a second,
 # conceptually different mechanism caused by noise. For local Pauli noise acting on every qubit before and after each
 # of $L$ layers, with $q$ the largest factor by which the noise multiplies $X$, $Y$ or $Z$ ($q=\lambda$ for
 # depolarising noise), they proved an upper bound on **every** partial derivative of the noisy cost, at **every** point
@@ -1290,11 +1290,11 @@ fig.tight_layout(); plt.show()
 # why both were measured rather than assumed.
 #
 # The practical consequence: a gradient of size $\epsilon$ needs $O(\epsilon^{-2})$ measurement shots to resolve, so
-# a variance falling like $e^{-\alpha L}$ makes the shot cost grow like $e^{\alpha L}$. Because the theorem of Wang
-# *et al.* bounds the gradient at every point of the landscape, changing the optimiser or the initialisation does not
-# remove this cost; they make the same point for gradient-free and higher-order methods, and argue that error
+# a variance falling like $e^{-\alpha L}$ makes the shot cost grow like $e^{\alpha L}$. Because the theorem of
+# [[13]](#ref-13) bounds the gradient at every point of the landscape, changing the optimiser or the initialisation does not
+# remove this cost; its authors make the same point for gradient-free and higher-order methods, and argue that error
 # mitigation acting as an affine map on cost values cannot remove the exponential scaling either, leaving open whether
-# other mitigation strategies can. Stilck França and García-Patrón (2021) attacked the same question from the side of
+# other mitigation strategies can. The authors of [[14]](#ref-14) attacked the same question from the side of
 # the output state: using entropic inequalities for how fast the state of a noisy circuit converges to the fixed point
 # of the noise, combined with classical sampling of Gibbs states, they concluded that substantial quantum advantages in
 # classical optimisation are unlikely unless noise rates decrease by orders of magnitude or the topology of the problem
@@ -1309,9 +1309,9 @@ fig.tight_layout(); plt.show()
 #    `jax.grad` differentiates straight through the Kraus operators and returns $\nabla C_{\rm noisy}$ exactly. This is
 #    a *simulator privilege*: no device can do it, because no device has $\rho$.
 # 2. **SPSA on a trajectory estimate.** The cost is estimated from $M$ trajectories, which is what a device with a
-#    finite measurement budget delivers, and the gradient comes from the two-evaluation SPSA rule of Spall (1992),
+#    finite measurement budget delivers, and the gradient comes from the two-evaluation SPSA rule introduced in [[15]](#ref-15),
 #    used in notebook 41, with
-#    Spall's probe schedule $c_k=c/k^{0.101}$ (Spall 1998).
+#    Spall's probe schedule $c_k=c/k^{0.101}$ [[16]](#ref-16).
 #
 # The diagnostic recorded at every iteration is the **exact** density-tensor cost for both methods, and, separately, the
 # noiseless energy of the same parameters — the quantity Section 10 needs. Twelve random initialisations are run in one
@@ -1446,7 +1446,7 @@ assert abs(E_mc_star - E_bug_star) > 5 * se_star
 # ## 10. Optimal-parameter resilience
 #
 # Section 6 proved that for global depolarising noise the minimiser does not move; Section 7 showed that for local
-# noise it does, by an amount of order $p$. Sharma, Khatri, Cerezo and Coles (2020) proved resilience statements for
+# noise it does, by an amount of order $p$. Ref. [[10]](#ref-10) proved resilience statements for
 # several noise models in variational *compiling* and gave the effect its name — **optimal parameter resilience**. For
 # local noise and an energy cost the question is quantitative: how much noiseless energy does the move cost?
 #
@@ -1667,8 +1667,8 @@ fig.tight_layout(); plt.show()
 #
 # Error *correction* removes errors by encoding one logical qubit in many physical ones, and needs resources no current
 # device has. Error *mitigation* leaves the errors in place and corrects the **estimate** afterwards, by running the
-# circuit at several noise levels and extrapolating. The idea is due to Temme, Bravyi and Gambetta (2017) and,
-# independently, Li and Benjamin (2017).
+# circuit at several noise levels and extrapolating. The idea was introduced in [[17]](#ref-17) and,
+# independently, in [[18]](#ref-18).
 #
 # ### 12.1 The method
 #
@@ -1678,13 +1678,13 @@ fig.tight_layout(); plt.show()
 # by replacing each gate $G$ by $GG^\dagger G$, the same unitary with roughly three times the error, exactly so only if
 # $G^\dagger$ is as noisy as $G$ and the errors add) but not lowered. **Extrapolate to $s=0$.** With
 # $s_1<\dots<s_m$ and the corresponding measurements, fit a polynomial of degree $m-1$ and evaluate it at zero. This
-# is Richardson extrapolation (Richardson and Gaunt 1927), and the result is the linear combination
+# is Richardson extrapolation [[19]](#ref-19), and the result is the linear combination
 #
 # $$\hat E(0)=\sum_{i=1}^{m}c_i\,E(s_i),\qquad
 #   c_i=\prod_{j\neq i}\frac{s_j}{s_j-s_i},\qquad \sum_ic_i=1,\tag{17}$$
 #
 # which follows from writing the Lagrange interpolating polynomial through the points $(s_i,E(s_i))$ and evaluating it
-# at $s=0$ (Numerical Recipes, §3.2; the same idea, with the step size in place of $s$, is Romberg integration, §4.3). For $m=2$ with $s=1,2$ this is $\hat E(0)=2E(1)-E(2)$, ordinary linear extrapolation.
+# at $s=0$ ([[11]](#ref-11), §3.2; the same idea, with the step size in place of $s$, is Romberg integration, §4.3). For $m=2$ with $s=1,2$ this is $\hat E(0)=2E(1)-E(2)$, ordinary linear extrapolation.
 #
 # ### 12.2 Bias, variance, and when it stops working
 #
@@ -1783,7 +1783,7 @@ fig.tight_layout(); plt.show()
 # $\sqrt{\sum_ic_i^2}$ from $2.24$ to $8.31$: shot noise in the inputs is amplified by that factor, so the shots per
 # noise level must grow by its square — a factor $14$ — to keep the statistical error where it was. A high-order
 # extrapolation on a device is therefore a deliberate exchange of bias for variance. On the noise-induced plateau of
-# Section 8, Wang *et al.* (2021) argue that mitigation acting as an affine map on cost values cannot remove the
+# Section 8, the authors of [[13]](#ref-13) argue that mitigation acting as an affine map on cost values cannot remove the
 # exponential scaling, consider it unlikely that post-processing in general can, and leave the general question open;
 # for extrapolation, the shot cost of Section 12.2, growing exponentially with the number of noisy gates, is where the
 # difficulty reappears.
@@ -1912,7 +1912,7 @@ fig.tight_layout(); plt.show()
 #   of the grid spacing). For the four-qubit circuit local depolarising noise turns the cost into that of a Hamiltonian
 #   with a rescaled field, Eq. (15a), and the gradient of the noisy cost at the noiseless optimum grows linearly in $p$
 #   for local depolarising, dephasing and damping noise, while it stays at the noiseless residual for global noise.
-# * **Noise produces a barren plateau in the circuit depth.** Wang *et al.* bound every gradient component by a factor
+# * **Noise produces a barren plateau in the circuit depth.** Ref. [[13]](#ref-13) bounds every gradient component by a factor
 #   decaying exponentially in $L$ for local Pauli noise. At $N=4$, where the noiseless gradient variance hardly changes
 #   with depth, the noisy variance fell exponentially, $16$–$25\%$ steeper than the noise-location count of
 #   Eq. (16), with bootstrap intervals that exclude both Eq. (16) and the weight-1 control.
@@ -1969,64 +1969,91 @@ fig.tight_layout(); plt.show()
 #
 # ## References
 #
-# * M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information*, Cambridge University Press (2000) —
-#   channels, the Kraus representation, the depolarising and amplitude-damping channels.
-# * M. A. Nielsen, *A simple formula for the average gate fidelity of a quantum dynamical operation*,
-#   Phys. Lett. A **303**, 249 (2002) — the relation $F_{\rm avg}=(dF_e+1)/(d+1)$ between process and average gate
-#   fidelity (due to M., P. and R. Horodecki, with a simplified proof there), Eq. (4a).
-# * M. Horodecki, P. Horodecki and R. Horodecki, *General teleportation channel, singlet fraction, and quasidistillation*,
-#   Phys. Rev. A **60**, 1888 (1999) — Proposition 1, $f(\Lambda)=(F(\Lambda)d+1)/(d+1)$ between the average fidelity
-#   and the entanglement (process) fidelity of a channel, Eq. (4a).
-# * R. Barends *et al.*, *Superconducting quantum circuits at the surface code threshold for fault tolerance*,
-#   Nature **508**, 500 (2014) — randomised-benchmarking fidelities $99.92\%$ (single-qubit gates, average) and up to
-#   $99.44\%$ ($CZ$), quoted in Section 3.2.
-# * Y. Sung, L. Ding, J. Braumüller, A. Vepsäläinen, B. Kannan, M. Kjaergaard *et al.*, *Realization of high-fidelity CZ
-#   and ZZ-free iSWAP gates with a tunable coupler*, Phys. Rev. X **11**, 021058 (2021) — interleaved-benchmarking $CZ$
-#   fidelity $99.76\%$ and single-qubit fidelities $99.90$–$99.94\%$, quoted in Section 3.2.
-# * E. Magesan, J. M. Gambetta and J. Emerson, *Characterizing quantum gates via randomized benchmarking*,
-#   Phys. Rev. A **85**, 042311 (2012) — where the error per gate $r$ of Section 3.2 comes from, and why twirling over
-#   the Clifford group turns the average error into a depolarising channel.
-# * J. Emerson, R. Alicki and K. Życzkowski, *Scalable noise estimation with random unitary operators*, J. Opt. B
-#   **7**, S347 (2005) — the estimation of the average gate fidelity from sequences of random unitaries.
-# * E. Knill, D. Leibfried, R. Reichle, J. Britton, R. B. Blakestad, J. D. Jost, C. Langer, R. Ozeri, S. Seidelin and
-#   D. J. Wineland, *Randomized benchmarking of quantum gates*, Phys. Rev. A **77**, 012307 (2008) — the randomised
-#   benchmarking method, with long sequences of random gates, and its first implementation on trapped ions.
-# * J. Dalibard, Y. Castin and K. Mølmer, *Wave-function approach to dissipative processes in quantum optics*,
-#   Phys. Rev. Lett. **68**, 580 (1992) — the trajectory unravelling of Section 4.3.
-# * J. Preskill, *Quantum computing in the NISQ era and beyond*, Quantum **2**, 79 (2018) — the regime this notebook
-#   simulates.
-# * M. Cerezo, A. Arrasmith, R. Babbush, S. C. Benjamin, S. Endo, K. Fujii, J. R. McClean, K. Mitarai, X. Yuan,
-#   L. Cincio and P. J. Coles, *Variational quantum algorithms*, Nat. Rev. Phys. **3**, 625 (2021) — the review,
-#   including noise and trainability.
-# * A. Kandala, A. Mezzacapo, K. Temme, M. Takita, M. Brink, J. M. Chow and J. M. Gambetta, *Hardware-efficient
-#   variational quantum eigensolver for small molecules and quantum magnets*, Nature **549**, 242 (2017) — the
-#   hardware-efficient ansatz.
-# * J. R. McClean, S. Boixo, V. N. Smelyanskiy, R. Babbush and H. Neven, *Barren plateaus in quantum neural network
-#   training landscapes*, Nat. Commun. **9**, 4812 (2018) — the exponential concentration of gradients in noiseless
-#   random circuits, recalled in Section 8.
-# * S. Wang, E. Fontana, M. Cerezo, K. Sharma, A. Sone, L. Cincio and P. J. Coles, *Noise-induced barren plateaus in
-#   variational quantum algorithms*, Nat. Commun. **12**, 6961 (2021) — the gradient bound for local Pauli noise
-#   (Section 8) and the discussion of mitigation (Section 12); Section 8 quotes the bound in the form of the revised
-#   version arXiv:2007.14384v6 (2024).
-# * K. Sharma, S. Khatri, M. Cerezo and P. J. Coles, *Noise resilience of variational quantum compiling*,
-#   New J. Phys. **22**, 043006 (2020) — optimal-parameter resilience in variational compiling; Section 10 tests it for
-#   the eigensolver.
-# * D. Stilck França and R. García-Patrón, *Limitations of optimization algorithms on noisy quantum devices*,
-#   Nat. Phys. **17**, 1221 (2021) — entropic bounds on how fast a noisy circuit approaches the fixed point of the
-#   noise, and the comparison with classical Gibbs-state sampling.
-# * K. Temme, S. Bravyi and J. M. Gambetta, *Error mitigation for short-depth quantum circuits*,
-#   Phys. Rev. Lett. **119**, 180509 (2017) — zero-noise extrapolation and probabilistic error cancellation.
-# * Y. Li and S. C. Benjamin, *Efficient variational quantum simulator incorporating active error minimization*,
-#   Phys. Rev. X **7**, 021050 (2017) — the independent proposal of extrapolation in the noise strength.
-# * S. Endo, Z. Cai, S. C. Benjamin and X. Yuan, *Hybrid quantum-classical algorithms and quantum error mitigation*,
-#   J. Phys. Soc. Jpn. **90**, 032001 (2021) — the review of mitigation techniques and their costs.
-# * J. C. Spall, *Implementation of the simultaneous perturbation algorithm for stochastic optimization*, IEEE Trans.
-#   Aerosp. Electron. Syst. **34**, 817 (1998) — the probe exponent $\gamma=0.101$ of the SPSA schedule in Section 9.
-# * J. C. Spall, *Multivariate stochastic approximation using a simultaneous perturbation gradient approximation*,
-#   IEEE Trans. Autom. Control **37**, 332 (1992) — the SPSA gradient rule.
-# * L. F. Richardson and J. A. Gaunt, *The deferred approach to the limit*, Phil. Trans. R. Soc. Lond. A **226**, 299
-#   (1927) — extrapolation of a computed quantity to zero step size, the method of Eq. (17).
-# * W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes: The Art of Scientific
-#   Computing*, 3rd ed., Cambridge University Press (2007) — §3.2 (polynomial interpolation and extrapolation, the basis
-#   of Eq. (17)), §4.3 (Romberg integration, Richardson extrapolation in the step size) and §10.9 (quasi-Newton
-#   methods, the BFGS minimiser of Section 7.2).
+# <span id="ref-1">[1]</span> R. Barends *et al.*, *Superconducting quantum circuits at the surface code threshold for fault
+# tolerance*, Nature **508**, 500 (2014) — randomised-benchmarking fidelities $99.92\%$ (single-qubit gates, average) and
+# up to $99.44\%$ ($CZ$), quoted in Section 3.2.
+#
+# <span id="ref-2">[2]</span> Y. Sung, L. Ding, J. Braumüller, A. Vepsäläinen, B. Kannan, M. Kjaergaard *et al.*,
+# *Realization of high-fidelity CZ and ZZ-free iSWAP gates with a tunable coupler*, Phys. Rev. X **11**, 021058 (2021) —
+# interleaved-benchmarking $CZ$ fidelity $99.76\%$ and single-qubit fidelities $99.90$–$99.94\%$, quoted in Section 3.2.
+#
+# <span id="ref-3">[3]</span> A. Kandala, A. Mezzacapo, K. Temme, M. Takita, M. Brink, J. M. Chow and J. M. Gambetta,
+# *Hardware-efficient variational quantum eigensolver for small molecules and quantum magnets*, Nature **549**, 242
+# (2017) — the hardware-efficient ansatz.
+#
+# <span id="ref-4">[4]</span> J. Emerson, R. Alicki and K. Życzkowski, *Scalable noise estimation with random unitary
+# operators*, J. Opt. B **7**, S347 (2005) — the estimation of the average gate fidelity from sequences of random
+# unitaries.
+#
+# <span id="ref-5">[5]</span> E. Knill, D. Leibfried, R. Reichle, J. Britton, R. B. Blakestad, J. D. Jost, C. Langer,
+# R. Ozeri, S. Seidelin and D. J. Wineland, *Randomized benchmarking of quantum gates*, Phys. Rev. A **77**, 012307
+# (2008) — the randomised benchmarking method, with long sequences of random gates, and its first implementation on
+# trapped ions.
+#
+# <span id="ref-6">[6]</span> E. Magesan, J. M. Gambetta and J. Emerson, *Characterizing quantum gates via randomized
+# benchmarking*, Phys. Rev. A **85**, 042311 (2012) — where the error per gate $r$ of Section 3.2 comes from, and why
+# twirling over the Clifford group turns the average error into a depolarising channel.
+#
+# <span id="ref-7">[7]</span> M. Horodecki, P. Horodecki and R. Horodecki, *General teleportation channel, singlet
+# fraction, and quasidistillation*, Phys. Rev. A **60**, 1888 (1999) — Proposition 1, $f(\Lambda)=(F(\Lambda)d+1)/(d+1)$
+# between the average fidelity and the entanglement (process) fidelity of a channel, Eq. (4a).
+#
+# <span id="ref-8">[8]</span> M. A. Nielsen, *A simple formula for the average gate fidelity of a quantum dynamical
+# operation*, Phys. Lett. A **303**, 249 (2002) — the relation $F_{\rm avg}=(dF_e+1)/(d+1)$ between process and average
+# gate fidelity (due to [7], with a simplified proof there), Eq. (4a).
+#
+# <span id="ref-9">[9]</span> J. Dalibard, Y. Castin and K. Mølmer, *Wave-function approach to dissipative processes in
+# quantum optics*, Phys. Rev. Lett. **68**, 580 (1992) — the trajectory unravelling of Section 4.3.
+#
+# <span id="ref-10">[10]</span> K. Sharma, S. Khatri, M. Cerezo and P. J. Coles, *Noise resilience of variational quantum
+# compiling*, New J. Phys. **22**, 043006 (2020) — optimal-parameter resilience in variational compiling; Section 10
+# tests it for the eigensolver.
+#
+# <span id="ref-11">[11]</span> W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes: The
+# Art of Scientific Computing*, 3rd ed., Cambridge University Press (2007) — §3.2 (polynomial interpolation and
+# extrapolation, the basis of Eq. (17)), §4.3 (Romberg integration, Richardson extrapolation in the step size) and §10.9
+# (quasi-Newton methods, the BFGS minimiser of Section 7.2).
+#
+# <span id="ref-12">[12]</span> J. R. McClean, S. Boixo, V. N. Smelyanskiy, R. Babbush and H. Neven, *Barren plateaus in
+# quantum neural network training landscapes*, Nat. Commun. **9**, 4812 (2018) — the exponential concentration of
+# gradients in noiseless random circuits, recalled in Section 8.
+#
+# <span id="ref-13">[13]</span> S. Wang, E. Fontana, M. Cerezo, K. Sharma, A. Sone, L. Cincio and P. J. Coles,
+# *Noise-induced barren plateaus in variational quantum algorithms*, Nat. Commun. **12**, 6961 (2021) — the gradient
+# bound for local Pauli noise (Section 8) and the discussion of mitigation (Section 12); Section 8 quotes the bound in the
+# form of the revised version arXiv:2007.14384v6 (2024).
+#
+# <span id="ref-14">[14]</span> D. Stilck França and R. García-Patrón, *Limitations of optimization algorithms on noisy
+# quantum devices*, Nat. Phys. **17**, 1221 (2021) — entropic bounds on how fast a noisy circuit approaches the fixed
+# point of the noise, and the comparison with classical Gibbs-state sampling.
+#
+# <span id="ref-15">[15]</span> J. C. Spall, *Multivariate stochastic approximation using a simultaneous perturbation
+# gradient approximation*, IEEE Trans. Autom. Control **37**, 332 (1992) — the SPSA gradient rule.
+#
+# <span id="ref-16">[16]</span> J. C. Spall, *Implementation of the simultaneous perturbation algorithm for stochastic
+# optimization*, IEEE Trans. Aerosp. Electron. Syst. **34**, 817 (1998) — the probe exponent $\gamma=0.101$ of the SPSA
+# schedule in Section 9.
+#
+# <span id="ref-17">[17]</span> K. Temme, S. Bravyi and J. M. Gambetta, *Error mitigation for short-depth quantum
+# circuits*, Phys. Rev. Lett. **119**, 180509 (2017) — zero-noise extrapolation and probabilistic error cancellation.
+#
+# <span id="ref-18">[18]</span> Y. Li and S. C. Benjamin, *Efficient variational quantum simulator incorporating active
+# error minimization*, Phys. Rev. X **7**, 021050 (2017) — the independent proposal of extrapolation in the noise
+# strength.
+#
+# <span id="ref-19">[19]</span> L. F. Richardson and J. A. Gaunt, *The deferred approach to the limit*, Phil. Trans. R. Soc.
+# Lond. A **226**, 299 (1927) — extrapolation of a computed quantity to zero step size, the method of Eq. (17).
+#
+# <span id="ref-20">[20]</span> M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information*, Cambridge
+# University Press (2000) — channels, the Kraus representation, the depolarising and amplitude-damping channels.
+#
+# <span id="ref-21">[21]</span> J. Preskill, *Quantum computing in the NISQ era and beyond*, Quantum **2**, 79 (2018) — the
+# regime this notebook simulates.
+#
+# <span id="ref-22">[22]</span> M. Cerezo, A. Arrasmith, R. Babbush, S. C. Benjamin, S. Endo, K. Fujii, J. R. McClean,
+# K. Mitarai, X. Yuan, L. Cincio and P. J. Coles, *Variational quantum algorithms*, Nat. Rev. Phys. **3**, 625 (2021) —
+# the review, including noise and trainability.
+#
+# <span id="ref-23">[23]</span> S. Endo, Z. Cai, S. C. Benjamin and X. Yuan, *Hybrid quantum-classical algorithms and
+# quantum error mitigation*, J. Phys. Soc. Jpn. **90**, 032001 (2021) — the review of mitigation techniques and their
+# costs.

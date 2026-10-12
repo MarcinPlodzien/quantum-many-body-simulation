@@ -3,13 +3,13 @@
 #@description: The maximally entangled interferometer end to end: GHZ preparation, N-fold phase encoding, parity readout, phase estimation from sampled records reaching $\Delta\varphi=1/N$, the $2\pi/N$ ambiguity, the collapse of the advantage under dephasing, depolarising, damping and particle loss, the Huelga argument that Markovian dephasing removes the asymptotic gain, and phase estimation from randomised measurements after scrambling.
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
 # [Notebook 31](./31_ramsey_interferometry.ipynb) established the standard quantum limit: $N$ independent atoms in a Ramsey
 # interferometer measure a phase with uncertainty $\Delta\varphi=1/\sqrt{NM}$, and no readout or estimator can do better with
 # that probe. The only remaining variable is the probe state.
 #
-# Replace the coherent spin state by the maximally entangled state of Greenberger, Horne and Zeilinger (1989)
+# Replace the coherent spin state by the maximally entangled state introduced in [[1]](#ref-1)
 #
 # $$\vert\mathrm{GHZ}_N\rangle=\frac{\vert0\cdots0\rangle+\vert1\cdots1\rangle}{\sqrt2}$$
 #
@@ -21,8 +21,7 @@
 # $$\Delta\varphi=\frac{1}{N\sqrt M},$$
 #
 # the **Heisenberg limit** — better than the standard quantum limit by a factor $\sqrt N$ at the same number of atoms and the
-# same number of repetitions. This is the proposal of Bollinger, Itano, Wineland and Heinzen (1996), demonstrated with three
-# ions by Leibfried and co-workers (2004).
+# same number of repetitions. This protocol was introduced in [[2]](#ref-2) and demonstrated with three ions in [[3]](#ref-3).
 #
 # The second half of the notebook is about the three reasons why this gain is hard to keep.
 #
@@ -35,7 +34,7 @@
 # * For the task a clock actually performs — estimating a *frequency* at a fixed total measurement time under Markovian
 #   dephasing — the quadratic advantage disappears. Optimising the interrogation time for the GHZ probe gives
 #   $T_{\mathrm{opt}}=1/(2N\gamma)$ instead of $1/(2\gamma)$, and the resulting frequency uncertainty is *identical* to the one
-#   of uncorrelated atoms. This is the result of Huelga and co-workers (1997); we derive it, verify it with simulated clock
+#   of uncorrelated atoms. This result was derived in [[4]](#ref-4); we derive it, verify it with simulated clock
 #   runs, and state the later theorem that no probe state can beat it by more than the constant factor $\sqrt e$.
 #
 # The final section takes a different angle on the same state: what happens if the probe is **scrambled** by a random unitary
@@ -149,15 +148,15 @@ def std_of_std(sigma, n):
 # From [29](./29_quantum_fisher_information.ipynb) and [30](./30_qfi_from_the_sld_prepare_encode_estimate.ipynb), restated
 # without proof:
 #
-# * **Classical Fisher information** (Fisher 1925) of a distribution $p(x\vert\varphi)$:
+# * **Classical Fisher information** [[5]](#ref-5) of a distribution $p(x\vert\varphi)$:
 #
 # $$F_C(\varphi)=\sum_x\frac{1}{p(x\vert\varphi)}\left(\frac{\partial p(x\vert\varphi)}{\partial\varphi}\right)^{\!2},$$
 #
 # additive over independent repetitions.
 #
-# * **Cramér–Rao bound** (Rao 1945; Cramér 1946): any unbiased estimator obeys $\Delta\varphi\ge1/\sqrt{MF_C(\varphi)}$, with $M$ the number of
+# * **Cramér–Rao bound** [[6]](#ref-6), [[7]](#ref-7): any unbiased estimator obeys $\Delta\varphi\ge1/\sqrt{MF_C(\varphi)}$, with $M$ the number of
 #   repetitions; the maximum-likelihood estimator saturates it asymptotically.
-# * **Quantum Fisher information** (Helstrom 1967; Braunstein and Caves 1994): $F_Q=\max_{\text{measurements}}F_C$, giving $\Delta\varphi\ge1/\sqrt{MF_Q}$. For a pure
+# * **Quantum Fisher information** [[8]](#ref-8), [[9]](#ref-9): $F_Q=\max_{\text{measurements}}F_C$, giving $\Delta\varphi\ge1/\sqrt{MF_Q}$. For a pure
 #   state encoded as $e^{-i\varphi G}\vert\psi\rangle$,
 #
 # $$F_Q=4\,\mathrm{Var}(G)=4\big(\langle G^2\rangle-\langle G\rangle^2\big), \tag{1}$$
@@ -178,7 +177,7 @@ def std_of_std(sigma, n):
 # strengths $p$, $p$ and $g$, the $N$-body coherence $\rho_{\bar0\bar1}$ is multiplied by $(1-2p)^N$, $\lambda^N$ with
 # $\lambda=1-\tfrac{4p}{3}$, and $(1-g)^{N/2}$ respectively.
 #
-# For $N$ qubits, $F_Q\le N^2$ always, and $F_Q>N$ is a sufficient criterion for entanglement (Pezzè and Smerzi 2009). The GHZ state sits at the
+# For $N$ qubits, $F_Q\le N^2$ always, and $F_Q>N$ is a sufficient criterion for entanglement [[10]](#ref-10). The GHZ state sits at the
 # maximum.
 
 # %% [markdown]
@@ -917,12 +916,12 @@ fig.tight_layout(); plt.show()
 #
 # * **A hierarchy of probes or of interrogation times.** A first stage with unentangled atoms, or with a small GHZ state,
 #   localises the phase inside the window of the next stage, which uses a larger $N$ (or a longer $T$) and localises it inside
-#   the window of the stage after, and so on; each stage spends a fraction of the repetitions. Kessler and co-workers (2014)
+#   the window of the stage after, and so on; each stage spends a fraction of the repetitions. Ref. [[11]](#ref-11)
 #   proposed a clock version in which a cascade of GHZ states of increasing size interrogates the laser phase
 #   simultaneously.
 #   Exercise 5 implements the two-stage version.
 # * **Adaptive phase estimation.** The same ladder can be built from a single probe that passes through the phase shift
-#   $1,2,4,\dots$ times, with each measurement setting chosen from the previous outcomes; Higgins and co-workers (2007)
+#   $1,2,4,\dots$ times, with each measurement setting chosen from the previous outcomes; Ref. [[12]](#ref-12)
 #   realised it with single photons and reached Heisenberg scaling of the total number of phase passes with no entanglement
 #   at all.
 #
@@ -1023,8 +1022,7 @@ fig.tight_layout(); plt.show()
 # \tag{12b}$$
 #
 # On a grid of phases the logarithm of the product is a single matrix product of the outcome table with the table of
-# $\ln p_\pm$. The $j$-th of the $m$ shots taken with one probe size gets $\theta_j=j\pi/m$, the choice of Higgins and
-# co-workers (2009); it makes the likelihood non-even in $\varphi$ and removes the reflection $\varphi\to-\varphi$ discussed
+# $\ln p_\pm$. The $j$-th of the $m$ shots taken with one probe size gets $\theta_j=j\pi/m$, the choice of [[13]](#ref-13); it makes the likelihood non-even in $\varphi$ and removes the reflection $\varphi\to-\varphi$ discussed
 # above, so only the translations by $2\pi/N$ remain.
 #
 # **One probe size.** If every shot uses the same $N$, every factor of Eq. (12b) is invariant under
@@ -1041,10 +1039,10 @@ fig.tight_layout(); plt.show()
 # The RMSE is $1.842$ rad for $N=8$, independent of the number of shots, and tends to $\pi/\sqrt3$, the RMSE of a phase
 # guessed uniformly at random, as $N$ grows.
 #
-# **A ladder of sizes.** Kitaev's procedure for measuring an eigenvalue of a unitary (1995) and its interferometric
-# versions — adaptive (Higgins *et al.* 2007), non-adaptive (Higgins *et al.* 2009), and the general theory for NOON states
-# and multi-pass interferometry (Berry *et al.* 2009) — remove the ambiguity with the sizes $N_k=2^k$, $k=0,\dots,K$: each
-# stage selects one window of the next. Higgins and co-workers (2009) found that the same number of shots at every stage
+# **A ladder of sizes.** The procedure for measuring an eigenvalue of a unitary introduced in [[14]](#ref-14) and its
+# interferometric versions — adaptive [[12]](#ref-12), non-adaptive [[13]](#ref-13), and the general theory for NOON states and multi-pass
+# interferometry [[15]](#ref-15) — remove the ambiguity with the sizes $N_k=2^k$, $k=0,\dots,K$: each
+# stage selects one window of the next. Ref. [[13]](#ref-13) found that the same number of shots at every stage
 # leaves a variance that stops decreasing, and that $M(K,k)=M_K+\mu(K-k)$ shots at stage $k$, with $M_K=2$ and $\mu=3$,
 # works robustly. We count as resources the total number of phase passes $R=\sum_sN_s$ (the same count for one atom passing
 # $N_s$ times, the multi-pass version). Each shot carries Fisher information $N_s^2$ at every phase, Eq. (11), so the
@@ -1056,7 +1054,7 @@ fig.tight_layout(); plt.show()
 # \frac{R}{\sqrt{F_{\mathrm{tot}}}}\xrightarrow[K\to\infty]{}\frac{3(M_K+\mu)}{\sqrt{3M_K+\mu}} . \tag{12d}$$
 #
 # A ladder that reaches its local bound therefore has $\mathrm{RMSE}\cdot R\to$ const, Heisenberg scaling; the constant is
-# $5$ for $M_K=2$, $\mu=3$, that is $1.59$ times the Heisenberg limit $\pi/R$ quoted by Higgins and co-workers, whose
+# $5$ for $M_K=2$, $\mu=3$, that is $1.59$ times the Heisenberg limit $\pi/R$ quoted in [[13]](#ref-13), whose
 # simulations of this schedule up to $R=10^7$ give a standard deviation below $2.03\,\pi/R$. With $N\le8$ the ladder stops at $K=3$, far
 # from that limit, so the simulation below tests two narrower statements: whether the global estimate reaches
 # $1/\sqrt{F_{\mathrm{tot}}}$, and what that buys against the standard quantum limit at equal $R$. Every point is $2000$
@@ -1262,7 +1260,7 @@ fig.tight_layout(); plt.show()
 # excess of the ladder over its local bound.
 #
 # The control without extra shots at the early stages ($M=2$ at every stage) stays at RMSE $0.75$–$0.79$ for $K=1,2,3$,
-# against $0.46$, $0.18$, $0.086$ with $\mu=3$, which is the plateau Higgins and co-workers describe: a wrong decision at
+# against $0.46$, $0.18$, $0.086$ with $\mu=3$, which is the plateau described in [[13]](#ref-13): a wrong decision at
 # stage $k$ costs an error of order $\pi/2^k$, and the probability of making it does not shrink unless stage $k$ gets more
 # shots than the stages after it.
 
@@ -1768,7 +1766,7 @@ assert err_loss < 1e-9
 # the phase is returned in full through the factor $N$ lost in the usable interrogation time, and both final answers scale as
 # $1/\sqrt N$.
 #
-# **What Huelga and co-workers (1997) proved, and what was proved later.** Their paper contains three statements, and only
+# **What Ref. [[4]](#ref-4) proved, and what was proved later.** That paper contains three statements, and only
 # the first is the one derived above.
 #
 # 1. Eq. (21) holds for uncorrelated atoms with Ramsey readout *and* for the maximally entangled state with its optimal
@@ -1776,14 +1774,14 @@ assert err_loss < 1e-9
 # 2. Within generalised Ramsey spectroscopy (a collective-spin readout after the second pulse, optimised over the input) the
 #    resolution is bounded below by $\sqrt{2\gamma/(NT_{\mathrm{tot}})}$, smaller than Eq. (21) by exactly
 #    $\sqrt e\simeq1.65$; and partially entangled, highly symmetric states, optimised numerically for small numbers of ions,
-#    do beat Eq. (21). Their abstract concludes that
+#    do beat Eq. (21). Its abstract concludes that
 #    "the best resolution is achieved using partially entangled preparations with a high degree of symmetry".
 # 3. Whether the factor $\sqrt e$ is reached for large $N$ was left open.
 #
-# Ulam-Orgikh and Kitagawa (2001) closed point 3: spin-squeezed states reach the $\sqrt e$ improvement asymptotically. That
+# Ref. [[16]](#ref-16) closed point 3: spin-squeezed states reach the $\sqrt e$ improvement asymptotically. That
 # *no* state and *no* measurement can do better was established later, as a special case of general bounds for noisy
-# channels (Demkowicz-Dobrzanski, Kolodynski and Guta 2012). For independent dephasing that shrinks each atom's transverse
-# Bloch vector by $\eta$, their bound reads $\Delta\varphi\ge\sqrt{1-\eta^2}/(\eta\sqrt{N\nu})$ for $\nu$ repetitions. With
+# channels [[17]](#ref-17). For independent dephasing that shrinks each atom's transverse
+# Bloch vector by $\eta$, the bound of [[17]](#ref-17) reads $\Delta\varphi\ge\sqrt{1-\eta^2}/(\eta\sqrt{N\nu})$ for $\nu$ repetitions. With
 # $\eta=e^{-\gamma T}$, $\nu=M=T_{\mathrm{tot}}/T$ and $\Delta\delta=\Delta\varphi/T$,
 #
 # $$\begin{aligned}\Delta\delta\ &\ge\ \sqrt{\frac{e^{2\gamma T}-1}{N\,T_{\mathrm{tot}}\,T}}
@@ -1807,13 +1805,12 @@ assert err_loss < 1e-9
 #
 # * **Non-Markovian noise.** At times short compared with the bath correlation time the contrast is Gaussian,
 #   $C=e^{-N(\gamma T)^2}$, and repeating the optimisation above gives $T_{\mathrm{opt}}=1/(2\sqrt N\gamma)$ and
-#   $\Delta\delta_{\min}\propto N^{-3/4}$, an improvement over uncorrelated atoms that grows as $N^{1/4}$ (the "Zeno" regime:
-#   Matsuzaki, Benjamin and Fitzsimons 2011; Chin, Huelga and Plenio 2012). Exercise 8 reproduces this.
+#   $\Delta\delta_{\min}\propto N^{-3/4}$, an improvement over uncorrelated atoms that grows as $N^{1/4}$ (the "Zeno" regime
+#   [[18]](#ref-18), [[19]](#ref-19)). Exercise 8 reproduces this.
 # * **Transversal noise.** Dephasing perpendicular to the generator does not commute with the encoding; with GHZ probes and an
-#   optimised interrogation time the precision then scales as $N^{-5/6}$, which Chaves and co-workers (2013) found
+#   optimised interrogation time the precision then scales as $N^{-5/6}$, which Ref. [[20]](#ref-20) found
 #   numerically and showed to be the optimal scaling in that setting.
-# * **Error-corrected sensors**, which remove the noise from the code space while keeping the signal (Kessler, Lovchinsky,
-#   Sushkov and Lukin 2014).
+# * **Error-corrected sensors**, which remove the noise from the code space while keeping the signal [[21]](#ref-21).
 #
 # Under the four assumptions above, what disappears is the *quadratic* improvement; a constant factor of at most $\sqrt e$ remains.
 #
@@ -2031,7 +2028,7 @@ fig.tight_layout(); plt.show()
 # [notebook 10](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb)) the weight is spread
 # over essentially all of them, including the ones of full Pauli weight $N$.
 #
-# The randomised-measurement (classical-shadow) protocol of Huang, Kueng and Preskill (2020), derived in
+# The randomised-measurement (classical-shadow) protocol introduced in [[22]](#ref-22), derived in
 # [notebook 24](../ch08_quantum_information_protocols/24_classical_shadows.ipynb), estimates any $\langle P_s\rangle$ from
 # snapshots in random local Pauli bases: each snapshot draws a basis $b_q\in\{X,Y,Z\}$ per atom, measures, and contributes
 #
@@ -2473,7 +2470,7 @@ for N in (4, 6, 8):
 #   $T_{\mathrm{opt}}=1/(2N\gamma)$, and the resulting $\Delta\delta_{\min}=\sqrt{2e\gamma/(NT_{\mathrm{tot}})}$ is *identical*
 #   to the product-state result, constant included — derived here and reproduced by simulated clock runs, which gave
 #   $0.018648\gamma$ (GHZ) and $0.018612\gamma$ (product) against the predicted $0.018433\gamma$. This is the result of
-#   Huelga and co-workers; the later channel bound, Eq. (21a), shows that no probe state and no measurement improves on it
+#   [[4]](#ref-4); the later channel bound, Eq. (21a), shows that no probe state and no measurement improves on it
 #   by more than the factor $\sqrt e\simeq1.65$. The quadratic advantage survives only at a fixed interrogation time, and a
 #   clock is given a fixed total time instead.
 # * **Scrambling hides the signal without deleting it.** $F_Q$ is invariant under a $\varphi$-independent unitary and
@@ -2527,55 +2524,91 @@ for N in (4, 6, 8):
 #
 # ## 18. References
 #
-# * J. J. Bollinger, W. M. Itano, D. J. Wineland and D. J. Heinzen, *Optimal frequency measurements with maximally correlated
-#   states*, Phys. Rev. A **54**, R4649 (1996) — the protocol of Sections 4–6.
-# * D. Leibfried, M. D. Barrett, T. Schaetz, J. Britton, J. Chiaverini, W. M. Itano, J. D. Jost, C. Langer and
-#   D. J. Wineland, *Toward Heisenberg-limited spectroscopy with multiparticle entangled states*, Science **304**, 1476 (2004)
-#   — the three-ion realisation.
-# * S. F. Huelga, C. Macchiavello, T. Pellizzari, A. K. Ekert, M. B. Plenio and J. I. Cirac, *Improvement of frequency
-#   standards with quantum entanglement*, Phys. Rev. Lett. **79**, 3865 (1997) — Section 13.
-# * D. Ulam-Orgikh and M. Kitagawa, *Spin squeezing and decoherence limit in Ramsey spectroscopy*, Phys. Rev. A **64**, 052106
-#   (2001) — spin-squeezed states reach the $\sqrt e$ improvement asymptotically (Section 13.2).
-# * R. Demkowicz-Dobrzanski, J. Kolodynski and M. Guta, *The elusive Heisenberg limit in quantum-enhanced metrology*,
-#   Nature Communications **3**, 1063 (2012) — the general statement that decoherence reduces the quantum advantage to a
-#   constant factor; the dephasing bound used in Eq. (21a) is in their Table I.
-# * B. L. Higgins, D. W. Berry, S. D. Bartlett, H. M. Wiseman and G. J. Pryde, *Entanglement-free Heisenberg-limited phase
-#   estimation*, Nature **450**, 393 (2007) — adaptive multi-pass phase estimation (Section 9).
-# * B. L. Higgins, D. W. Berry, S. D. Bartlett, M. W. Mitchell, H. M. Wiseman and G. J. Pryde, *Demonstrating
-#   Heisenberg-limited unambiguous phase estimation without adaptive measurements*, New J. Phys. **11**, 073023 (2009) —
-#   the non-adaptive ladder with $M(K,k)=M_K+\mu(K-k)$ shots per stage used in Section 9.1.
-# * D. W. Berry, B. L. Higgins, S. D. Bartlett, M. W. Mitchell, G. J. Pryde and H. M. Wiseman, *How to perform the most
-#   accurate possible phase measurements*, Phys. Rev. A **80**, 052114 (2009) — the theory of removing the phase ambiguity
-#   of NOON-state and multi-pass interferometry within a constant factor of the Heisenberg limit.
-# * A. Yu. Kitaev, *Quantum measurements and the Abelian Stabilizer Problem*, arXiv:quant-ph/9511026 (1995) — the
-#   procedure for measuring an eigenvalue of a unitary operator from which the ladder descends.
-# * E. M. Kessler, P. Kómár, M. Bishof, L. Jiang, A. S. Sørensen, J. Ye and M. D. Lukin, *Heisenberg-limited atom clocks
-#   based on entangled qubits*, Phys. Rev. Lett. **112**, 190403 (2014) — cascaded GHZ states of increasing size (Section 9).
-# * E. M. Kessler, I. Lovchinsky, A. O. Sushkov and M. D. Lukin, *Quantum error correction for metrology*, Phys. Rev. Lett.
-#   **112**, 150802 (2014) — error-corrected sensors (Section 13.2).
-# * Y. Matsuzaki, S. C. Benjamin and J. Fitzsimons, *Magnetic field sensing beyond the standard quantum limit under the
-#   effect of decoherence*, Phys. Rev. A **84**, 012103 (2011), and A. W. Chin, S. F. Huelga and M. B. Plenio, *Quantum
-#   metrology in non-Markovian environments*, Phys. Rev. Lett. **109**, 233601 (2012) — the $N^{-3/4}$ regime of Exercise 8.
-# * R. Chaves, J. B. Brask, M. Markiewicz, J. Kołodyński and A. Acín, *Noisy metrology beyond the standard quantum limit*,
-#   Phys. Rev. Lett. **111**, 120401 (2013) — transversal noise, $N^{-5/6}$ (Section 13.2).
-# * V. Giovannetti, S. Lloyd and L. Maccone, *Quantum-enhanced measurements: beating the standard quantum limit*,
-#   Science **306**, 1330 (2004) — the standard quantum limit and the Heisenberg limit side by side.
-# * D. M. Greenberger, M. A. Horne and A. Zeilinger, *Going beyond Bell's theorem*, in *Bell's Theorem, Quantum Theory, and
-#   Conceptions of the Universe*, ed. M. Kafatos (Kluwer, Dordrecht, 1989), p. 69 — the state.
-# * L. Pezzè, A. Smerzi, M. K. Oberthaler, R. Schmied and P. Treutlein, *Quantum metrology with nonclassical states of atomic
-#   ensembles*, Rev. Mod. Phys. **90**, 035005 (2018) — the review; Sections II.C.7 and VI.B.2 cover GHZ (NOON)
-#   states and GHZ interferometry with trapped ions, Section VII.A noise and decoherence.
-# * H.-Y. Huang, R. Kueng and J. Preskill, *Predicting many properties of a quantum system from very few measurements*,
-#   Nature Physics **16**, 1050 (2020) — the classical-shadow estimator of Section 14.
-# * C. W. Helstrom, *Minimum mean-squared error of estimates in quantum statistics*, Phys. Lett. A **25**, 101 (1967) — the
-#   symmetric logarithmic derivative and the quantum Cramér–Rao bound (Section 3).
-# * C. W. Helstrom, *Quantum Detection and Estimation Theory* (Academic Press, 1976) — the quantum Cramér–Rao bound.
-# * S. L. Braunstein and C. M. Caves, *Statistical distance and the geometry of quantum states*, Phys. Rev. Lett. **72**,
-#   3439 (1994) — the quantum Fisher information as the maximum of the classical one over all measurements (Section 3).
-# * R. A. Fisher, *Theory of statistical estimation*, Proc. Cambridge Philos. Soc. **22**, 700 (1925) — the Fisher
-#   information (Section 3).
-# * C. R. Rao, *Information and the accuracy attainable in the estimation of statistical parameters* (1945), reprinted in
-#   S. Kotz and N. L. Johnson (eds.), *Breakthroughs in Statistics* (Springer, New York, 1992), p. 235, and H. Cramér,
-#   *Mathematical Methods of Statistics* (Princeton University Press, 1946) — the Cramér–Rao bound.
-# * L. Pezzè and A. Smerzi, *Entanglement, nonlinear dynamics, and the Heisenberg limit*, Phys. Rev. Lett. **102**, 100401
-#   (2009) — $F_Q>N$ as a sufficient condition for multiparticle entanglement (Section 3).
+# <span id="ref-1">[1]</span> D. M. Greenberger, M. A. Horne and A. Zeilinger, *Going beyond Bell's theorem*, in *Bell's
+# Theorem, Quantum Theory, and Conceptions of the Universe*, ed. M. Kafatos (Kluwer, Dordrecht, 1989), p. 69 — the state.
+#
+# <span id="ref-2">[2]</span> J. J. Bollinger, W. M. Itano, D. J. Wineland and D. J. Heinzen, *Optimal frequency
+# measurements with maximally correlated states*, Phys. Rev. A **54**, R4649 (1996) — the protocol of Sections 4–6.
+#
+# <span id="ref-3">[3]</span> D. Leibfried, M. D. Barrett, T. Schaetz, J. Britton, J. Chiaverini, W. M. Itano, J. D. Jost,
+# C. Langer and D. J. Wineland, *Toward Heisenberg-limited spectroscopy with multiparticle entangled states*, Science
+# **304**, 1476 (2004) — the three-ion realisation.
+#
+# <span id="ref-4">[4]</span> S. F. Huelga, C. Macchiavello, T. Pellizzari, A. K. Ekert, M. B. Plenio and J. I. Cirac,
+# *Improvement of frequency standards with quantum entanglement*, Phys. Rev. Lett. **79**, 3865 (1997) — Section 13.
+#
+# <span id="ref-5">[5]</span> R. A. Fisher, *Theory of statistical estimation*, Proc. Cambridge Philos. Soc. **22**, 700
+# (1925) — the Fisher information (Section 3).
+#
+# <span id="ref-6">[6]</span> C. R. Rao, *Information and the accuracy attainable in the estimation of statistical
+# parameters* (1945), reprinted in S. Kotz and N. L. Johnson (eds.), *Breakthroughs in Statistics* (Springer, New York,
+# 1992), p. 235 — the Cramér–Rao bound.
+#
+# <span id="ref-7">[7]</span> H. Cramér, *Mathematical Methods of Statistics* (Princeton University Press, 1946) — the
+# Cramér–Rao bound.
+#
+# <span id="ref-8">[8]</span> C. W. Helstrom, *Minimum mean-squared error of estimates in quantum statistics*, Phys. Lett. A
+# **25**, 101 (1967) — the symmetric logarithmic derivative and the quantum Cramér–Rao bound (Section 3).
+#
+# <span id="ref-9">[9]</span> S. L. Braunstein and C. M. Caves, *Statistical distance and the geometry of quantum states*,
+# Phys. Rev. Lett. **72**, 3439 (1994) — the quantum Fisher information as the maximum of the classical one over all
+# measurements (Section 3).
+#
+# <span id="ref-10">[10]</span> L. Pezzè and A. Smerzi, *Entanglement, nonlinear dynamics, and the Heisenberg limit*, Phys.
+# Rev. Lett. **102**, 100401 (2009) — $F_Q>N$ as a sufficient condition for multiparticle entanglement (Section 3).
+#
+# <span id="ref-11">[11]</span> E. M. Kessler, P. Kómár, M. Bishof, L. Jiang, A. S. Sørensen, J. Ye and M. D. Lukin,
+# *Heisenberg-limited atom clocks based on entangled qubits*, Phys. Rev. Lett. **112**, 190403 (2014) — cascaded GHZ
+# states of increasing size (Section 9).
+#
+# <span id="ref-12">[12]</span> B. L. Higgins, D. W. Berry, S. D. Bartlett, H. M. Wiseman and G. J. Pryde,
+# *Entanglement-free Heisenberg-limited phase estimation*, Nature **450**, 393 (2007) — adaptive multi-pass phase
+# estimation (Section 9).
+#
+# <span id="ref-13">[13]</span> B. L. Higgins, D. W. Berry, S. D. Bartlett, M. W. Mitchell, H. M. Wiseman and G. J. Pryde,
+# *Demonstrating Heisenberg-limited unambiguous phase estimation without adaptive measurements*, New J. Phys. **11**,
+# 073023 (2009) — the non-adaptive ladder with $M(K,k)=M_K+\mu(K-k)$ shots per stage used in Section 9.1.
+#
+# <span id="ref-14">[14]</span> A. Yu. Kitaev, *Quantum measurements and the Abelian Stabilizer Problem*,
+# arXiv:quant-ph/9511026 (1995) — the procedure for measuring an eigenvalue of a unitary operator from which the ladder
+# descends.
+#
+# <span id="ref-15">[15]</span> D. W. Berry, B. L. Higgins, S. D. Bartlett, M. W. Mitchell, G. J. Pryde and H. M. Wiseman,
+# *How to perform the most accurate possible phase measurements*, Phys. Rev. A **80**, 052114 (2009) — the theory of
+# removing the phase ambiguity of NOON-state and multi-pass interferometry within a constant factor of the Heisenberg
+# limit.
+#
+# <span id="ref-16">[16]</span> D. Ulam-Orgikh and M. Kitagawa, *Spin squeezing and decoherence limit in Ramsey
+# spectroscopy*, Phys. Rev. A **64**, 052106 (2001) — spin-squeezed states reach the $\sqrt e$ improvement asymptotically
+# (Section 13.2).
+#
+# <span id="ref-17">[17]</span> R. Demkowicz-Dobrzanski, J. Kolodynski and M. Guta, *The elusive Heisenberg limit in
+# quantum-enhanced metrology*, Nature Communications **3**, 1063 (2012) — the general statement that decoherence reduces
+# the quantum advantage to a constant factor; the dephasing bound used in Eq. (21a) is in their Table I.
+#
+# <span id="ref-18">[18]</span> Y. Matsuzaki, S. C. Benjamin and J. Fitzsimons, *Magnetic field sensing beyond the standard
+# quantum limit under the effect of decoherence*, Phys. Rev. A **84**, 012103 (2011) — the $N^{-3/4}$ regime of
+# Exercise 8.
+#
+# <span id="ref-19">[19]</span> A. W. Chin, S. F. Huelga and M. B. Plenio, *Quantum metrology in non-Markovian
+# environments*, Phys. Rev. Lett. **109**, 233601 (2012) — the $N^{-3/4}$ regime of Exercise 8.
+#
+# <span id="ref-20">[20]</span> R. Chaves, J. B. Brask, M. Markiewicz, J. Kołodyński and A. Acín, *Noisy metrology beyond
+# the standard quantum limit*, Phys. Rev. Lett. **111**, 120401 (2013) — transversal noise, $N^{-5/6}$ (Section 13.2).
+#
+# <span id="ref-21">[21]</span> E. M. Kessler, I. Lovchinsky, A. O. Sushkov and M. D. Lukin, *Quantum error correction for
+# metrology*, Phys. Rev. Lett. **112**, 150802 (2014) — error-corrected sensors (Section 13.2).
+#
+# <span id="ref-22">[22]</span> H.-Y. Huang, R. Kueng and J. Preskill, *Predicting many properties of a quantum system from
+# very few measurements*, Nature Physics **16**, 1050 (2020) — the classical-shadow estimator of Section 14.
+#
+# <span id="ref-23">[23]</span> V. Giovannetti, S. Lloyd and L. Maccone, *Quantum-enhanced measurements: beating the
+# standard quantum limit*, Science **306**, 1330 (2004) — the standard quantum limit and the Heisenberg limit side by
+# side.
+#
+# <span id="ref-24">[24]</span> L. Pezzè, A. Smerzi, M. K. Oberthaler, R. Schmied and P. Treutlein, *Quantum metrology with
+# nonclassical states of atomic ensembles*, Rev. Mod. Phys. **90**, 035005 (2018) — the review; Sections II.C.7 and
+# VI.B.2 cover GHZ (NOON) states and GHZ interferometry with trapped ions, Section VII.A noise and decoherence.
+#
+# <span id="ref-25">[25]</span> C. W. Helstrom, *Quantum Detection and Estimation Theory* (Academic Press, 1976) — the
+# quantum Cramér–Rao bound.

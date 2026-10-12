@@ -1,13 +1,12 @@
 #@title: Data re-uploading — a universal quantum classifier from a single qubit
 #@part: Chapter 13 — Quantum machine learning
-#@description: A single qubit that receives the data once separates classes only by a plane through the Bloch sphere; uploading the data $L$ times between trainable rotations turns it into a classifier for curved and non-convex regions. The notebook builds the protocol introduced by Pérez-Salinas, Cervera-Lierta, Gil-Fuster and Latorre (Quantum 4, 226 (2020)) piece by piece in JAX (rotation layers $U(\boldsymbol\theta_i+\mathbf w_i\circ\mathbf x)$, maximally orthogonal label states, the fidelity and weighted fidelity costs, Adam training with vmap over random starts), compares test accuracies with the published tables, extends the classifier to two and four qubits with and without CZ entanglers, and shows that $L$ uploads make the output a Fourier series with frequencies up to $L$.
+#@description: A single qubit that receives the data once separates classes only by a plane through the Bloch sphere; uploading the data $L$ times between trainable rotations turns it into a classifier for curved and non-convex regions. The notebook builds the protocol of Pérez-Salinas *et al.* (2020) piece by piece in JAX (rotation layers $U(\boldsymbol\theta_i+\mathbf w_i\circ\mathbf x)$, maximally orthogonal label states, the fidelity and weighted fidelity costs, Adam training with vmap over random starts), compares test accuracies with the published tables, extends the classifier to two and four qubits with and without CZ entanglers, and shows that $L$ uploads make the output a Fourier series with frequencies up to $L$.
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
-# The data re-uploading classifier was introduced by A. Pérez-Salinas, A. Cervera-Lierta, E. Gil-Fuster and J. I. Latorre,
-# *Data re-uploading for a universal quantum classifier*, Quantum **4**, 226 (2020), arXiv:1907.02085. This notebook
-# implements their protocol and compares its results with theirs.
+# The data re-uploading classifier was introduced in [[1]](#ref-1). This notebook implements the protocol and compares its
+# results with those of [[1]](#ref-1).
 #
 # ### 1.1 What a classifier does
 #
@@ -25,8 +24,8 @@
 # $$h(\mathbf x)=\sum_{i=1}^{N}\alpha_i\,\varphi(\mathbf w_i\cdot\mathbf x+b_i). \tag{1}$$
 #
 # The universal approximation theorem states that functions of the form (1) approximate any continuous function on a
-# bounded domain to any accuracy, provided $N$ is large enough. This was proved by Cybenko (1989) for continuous sigmoidal $\varphi$ and by Hornik
-# (1991) for any continuous, bounded and nonconstant $\varphi$. The input $\mathbf x$ is *copied* into each of the $N$ neurons.
+# bounded domain to any accuracy, provided $N$ is large enough. This was proved in [[2]](#ref-2) for continuous sigmoidal $\varphi$ and in [[3]](#ref-3)
+# for any continuous, bounded and nonconstant $\varphi$. The input $\mathbf x$ is *copied* into each of the $N$ neurons.
 #
 # ### 1.2 A qubit as a classifier
 #
@@ -41,7 +40,7 @@
 # forbids copying an unknown quantum state; the classical numbers $\mathbf x$, however, can be written into the
 # circuit as many times as we like.
 #
-# Pérez-Salinas, Cervera-Lierta, Gil-Fuster and Latorre (2020) introduced a classifier built on exactly this idea, *data
+# The classifier of [[1]](#ref-1) is built on exactly this idea, *data
 # re-uploading*: the data are uploaded $L$ times, each time combined with a different trainable rotation of the same
 # qubit, and the label is read from the fidelities of the final state with a set of *label states* that are as
 # different from each other as possible. Each layer plays the part of one neuron of Eq. (1), with the rotation angle
@@ -623,8 +622,7 @@ assert err_circ < TOL and err_norm < TOL
 #
 # For three classes we put the great circle in the $x$–$z$ plane with one vector at the north pole; for four classes
 # one vertex of the tetrahedron is at the north pole and the other three at polar angle $\arccos(-\frac13)$ and
-# azimuths $0,\pm\frac{2\pi}3$. Both orientations follow the authors' published code (Pérez-Salinas,
-# `universal_qlassifier` on GitHub, cited in the paper as its Ref. [24]); the paper's Fig. 3 shows the tetrahedron. A Bloch vector with polar angle $\vartheta$ and azimuth $\varphi$
+# azimuths $0,\pm\frac{2\pi}3$. Both orientations follow the authors' published code [[4]](#ref-4); the paper's Fig. 3 shows the tetrahedron. A Bloch vector with polar angle $\vartheta$ and azimuth $\varphi$
 # belongs to the state $\cos\frac\vartheta2\vert0\rangle+e^{i\varphi}\sin\frac\vartheta2\vert1\rangle$. With $C$ label
 # states, the expected fidelities of a perfectly classified point of class $s$ form the vector
 #
@@ -745,7 +743,7 @@ plt.show()
 #
 # the second form being the choice consistent with Eq. (11), where $\alpha_sF_s$ is driven to 1 and $\alpha_rF_r$ to
 # values below 1. The paper's text does not state this rule; it follows the authors' published code
-# (`universal_qlassifier`, see the references). The single-qubit classifier with $\chi^2_{\rm wf}$ has $(3+d)L+C$ parameters, for example 12 for
+# [[4]](#ref-4). The single-qubit classifier with $\chi^2_{\rm wf}$ has $(3+d)L+C$ parameters, for example 12 for
 # $L=2$ on the circle, the number the paper quotes.
 #
 # In code all trainable numbers are stored in one flat vector, which is what the engine's `adam_update` expects;
@@ -870,8 +868,8 @@ section_timer("6 training")
 #
 # ### 6.1 Optimiser and protocol
 #
-# The paper minimises the costs with L-BFGS-B, the limited-memory quasi-Newton method of Byrd *et al.* (1995) from
-# SciPy, with its default settings. We use Adam (notebook 41, Eq. (10) there) with the exact gradient from `jax.grad`, for two reasons: the whole training run can then be compiled into one
+# The paper minimises the costs with L-BFGS-B, the limited-memory quasi-Newton method introduced in [[5]](#ref-5), from
+# SciPy, with its default settings. We use Adam [[6]](#ref-6) (notebook 41, Eq. (10) there) with the exact gradient from `jax.grad`, for two reasons: the whole training run can then be compiled into one
 # `lax.scan` and batched over random starts with `vmap`, and Adam with a fixed number of steps has a cost that is known
 # in advance, which keeps the notebook within its time budget. The price is that Adam with a few hundred steps does not
 # converge to a local minimum as tightly as a quasi-Newton method run to its stopping criterion; Section 7 compares the
@@ -1419,12 +1417,12 @@ print(f"trained one-layer single-qubit classifier on the circle (Section 7.1): {
 # where the commutator corrections $\mathcal O_{\rm corr}$ are again combinations of Pauli matrices, since
 # $[\sigma^a,\sigma^b]=2i\epsilon_{abc}\sigma^c$. The sum in Eq. (17) has the form of Eq. (1): the weights
 # $\mathbf w_i$ and biases $\boldsymbol\theta_i$ enter a bounded, nonconstant, continuous function $\boldsymbol\omega$,
-# and the number of layers plays the role of the number of neurons. Hornik's version of the universal approximation
-# theorem allows such activation functions, including, as a corollary quoted by the authors, trigonometric
+# and the number of layers plays the role of the number of neurons. The version of the universal approximation
+# theorem proved in [[3]](#ref-3) allows such activation functions, including, as a corollary quoted by the authors, trigonometric
 # polynomials. Section 3 of the paper calls the argument a motivation, and adds that more parameters are necessary to
 # map it onto the theorem; the paper's conclusions speak of applying the theorem to prove universality. The
 # corrections $\mathcal O_{\rm corr}$, and the fact that the label is read from a fidelity instead of a free linear
-# combination with coefficients $\alpha_i$, are not controlled by the argument. Schuld, Sweke and Meyer (2021) describe
+# combination with coefficients $\alpha_i$, are not controlled by the argument. Ref. [[7]](#ref-7) describes
 # the result as a conjecture that such models are universal function approximators.
 #
 # ### 10.2 One upload: a single frequency
@@ -1471,9 +1469,9 @@ print(f"trained one-layer single-qubit classifier on the circle (Section 7.1): {
 # | 3 | $-\frac32$, $-\frac12$ (3 times), $\frac12$ (3 times), $\frac32$ | $-3,\dots,3$ | 7 |
 #
 # Each upload adds $\pm\frac12$ to the phase of a path; the phases of the paths spread over $-\frac L2,\dots,\frac L2$, and
-# their differences over the integers from $-L$ to $L$. Schuld, Sweke and Meyer (2021) derive this for any encoding gate
+# their differences over the integers from $-L$ to $L$. Ref. [[7]](#ref-7) derives this for any encoding gate
 # $S(x)=e^{-ixH}$ with eigenvalues $\lambda_j$, repeated in $L$ layers between arbitrary trainable unitaries
-# $W^{(1)},\dots,W^{(L+1)}$, and any observable $O$ (their Eqs. (8)–(12)):
+# $W^{(1)},\dots,W^{(L+1)}$, and any observable $O$ (Eqs. (8)–(12) there; repeated encoding of the input was studied earlier in [[8]](#ref-8)):
 #
 # $$f(x)=\sum_{\omega\in\Omega}c_\omega\,e^{i\omega x},\qquad
 # \Omega=\big\{(\lambda_{k_1}+\dots+\lambda_{k_L})-(\lambda_{j_1}+\dots+\lambda_{j_L})\big\}. \tag{20}$$
@@ -1622,9 +1620,9 @@ plt.show()
 # $L$ has $2L+1$ free real numbers, and our single-qubit model has $3L$ angles, but the coefficients are tied together by
 # the circuit: in our layer the rotation $R_z(\phi_3)$ of the first layer acts on $\vert0\rangle$ and only adds a phase,
 # and the final $R_z(\phi_2)$ does not change $\langle Z\rangle$, so the trainable blocks before the first and after the
-# last upload are restricted. Schuld, Sweke and Meyer show that quantum models with sufficiently flexible trainable
+# last upload are restricted. Ref. [[7]](#ref-7) shows that quantum models with sufficiently flexible trainable
 # blocks can realise every set of Fourier coefficients, and conclude that such models are universal function
-# approximators when the spectrum becomes rich enough; their Fig. 3 shows a single-qubit model with one upload that
+# approximators when the spectrum becomes rich enough; Fig. 3 there shows a single-qubit model with one upload that
 # fits a degree-1 target and fails on a degree-2 target. The frequency limit is therefore a necessary condition, and the
 # reachable coefficients are a separate question. Exercise 6 explores it.
 #
@@ -1782,26 +1780,33 @@ print(f"   {'total (Sections 3-11)':26s} {sum(v for k, v in SECTION_TIMES.items(
 #
 # ## References
 #
-# * A. Pérez-Salinas, A. Cervera-Lierta, E. Gil-Fuster and J. I. Latorre, *Data re-uploading for a universal quantum
-#   classifier*, Quantum **4**, 226 (2020), arXiv:1907.02085 — the protocol of this notebook: re-uploading layers
-#   (Eqs. (1)–(6) there), label states, the fidelity and weighted fidelity costs (Eqs. (7)–(9)), the multi-qubit
-#   classifiers with CZ entanglers (Figs. 4, 5, Eq. (22), and Eq. (23) as implemented in the authors' code), the universality argument (Sec. 3), and the
-#   success rates of Tables 1, 4 and 6 quoted in Sections 7 and 8.
-# * M. Schuld, R. Sweke and J. J. Meyer, *Effect of data encoding on the expressive power of variational
-#   quantum-machine-learning models*, Phys. Rev. A **103**, 032430 (2021), arXiv:2008.08605 — quantum models with
-#   repeated encoding gates as partial Fourier series, Eqs. (20)–(21) of Section 10.3.
-# * F. J. Gil Vidal and D. O. Theis, *Input redundancy for parameterized quantum circuits*, Front. Phys. **8**, 297
-#   (2020), arXiv:1901.11434 — repeated encoding of the input in quantum neural networks; Schuld *et al.* note that the
-#   connection between repeated encoding and Fourier series was established here first.
-# * G. Cybenko, *Approximation by superpositions of a sigmoidal function*, Math. Control Signals Syst. **2**, 303
-#   (1989), and K. Hornik, *Approximation capabilities of multilayer feedforward networks*, Neural Netw. **4**, 251
-#   (1991) — the universal approximation theorem of Eq. (1): Cybenko for continuous sigmoidal activation functions,
-#   Hornik for any continuous, bounded and nonconstant one (uniform approximation on compact sets).
-# * R. H. Byrd, P. Lu, J. Nocedal and C. Zhu, *A limited memory algorithm for bound constrained optimization*, SIAM J.
-#   Sci. Comput. **16**, 1190 (1995) — L-BFGS-B, the optimiser of the paper (Section 6.1).
-# * A. Pérez-Salinas, *Quantum classifier with data re-uploading*, https://github.com/AdrianPerezSalinas/universal_qlassifier
-#   (2019) — the authors' published code, cited in the paper as Ref. [24]; the prediction rule of Eq. (12) for
-#   $\chi^2_{\rm wf}$, the orientation of the label states and the multi-qubit cost of Eq. (16) follow it (Sections 5.3,
-#   5.4 and 8.2).
-# * D. P. Kingma and J. Ba, *Adam: a method for stochastic optimization*, 3rd International Conference on Learning
-#   Representations (ICLR 2015), arXiv:1412.6980 — the optimiser of this notebook.
+# <span id="ref-1">[1]</span> A. Pérez-Salinas, A. Cervera-Lierta, E. Gil-Fuster and J. I. Latorre, *Data re-uploading for a
+# universal quantum classifier*, Quantum **4**, 226 (2020), arXiv:1907.02085 — the protocol of this notebook:
+# re-uploading layers (Eqs. (1)–(6) there), label states, the fidelity and weighted fidelity costs (Eqs. (7)–(9)), the
+# multi-qubit classifiers with CZ entanglers (Figs. 4, 5, Eq. (22), and Eq. (23) as implemented in the authors' code),
+# the universality argument (Sec. 3), and the success rates of Tables 1, 4 and 6 quoted in Sections 7 and 8.
+#
+# <span id="ref-2">[2]</span> G. Cybenko, *Approximation by superpositions of a sigmoidal function*, Math. Control Signals
+# Syst. **2**, 303 (1989) — the universal approximation theorem of Eq. (1) for continuous sigmoidal activation functions.
+#
+# <span id="ref-3">[3]</span> K. Hornik, *Approximation capabilities of multilayer feedforward networks*, Neural Netw. **4**,
+# 251 (1991) — the theorem for any continuous, bounded and nonconstant activation function (uniform approximation on
+# compact sets).
+#
+# <span id="ref-4">[4]</span> A. Pérez-Salinas, *Quantum classifier with data re-uploading*,
+# https://github.com/AdrianPerezSalinas/universal_qlassifier (2019) — the authors' published code, Ref. [24] of [1]; the
+# prediction rule of Eq. (12) for $\chi^2_{\rm wf}$, the orientation of the label states and the multi-qubit cost of
+# Eq. (16) follow it (Sections 5.3, 5.4 and 8.2).
+#
+# <span id="ref-5">[5]</span> R. H. Byrd, P. Lu, J. Nocedal and C. Zhu, *A limited memory algorithm for bound constrained
+# optimization*, SIAM J. Sci. Comput. **16**, 1190 (1995) — L-BFGS-B, the optimiser of [1] (Section 6.1).
+#
+# <span id="ref-6">[6]</span> D. P. Kingma and J. Ba, *Adam: a method for stochastic optimization*, 3rd International
+# Conference on Learning Representations (ICLR 2015), arXiv:1412.6980 — the optimiser of this notebook.
+#
+# <span id="ref-7">[7]</span> M. Schuld, R. Sweke and J. J. Meyer, *Effect of data encoding on the expressive power of
+# variational quantum-machine-learning models*, Phys. Rev. A **103**, 032430 (2021), arXiv:2008.08605 — quantum models
+# with repeated encoding gates as partial Fourier series, Eqs. (20)–(21) of Section 10.3.
+#
+# <span id="ref-8">[8]</span> F. J. Gil Vidal and D. O. Theis, *Input redundancy for parameterized quantum circuits*,
+# Front. Phys. **8**, 297 (2020), arXiv:1901.11434 — repeated encoding of the input in quantum neural networks.

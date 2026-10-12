@@ -3,7 +3,7 @@
 #@description: The GKSL master equation for newcomers: jump operators, a matrix-free Lindbladian acting on the rank-2N density tensor, RK4 versus Trotter–Kraus time stepping, analytic single-qubit checks (T1, T2, driven-dissipative steady state) and a dissipative spin chain.
 
 # %% [markdown]
-# ## 1. Introduction and motivation
+# ## 1. Introduction
 #
 # Every notebook so far has solved the Schrödinger equation $i\,\partial_t|\psi\rangle = H|\psi\rangle$: the spin
 # chain was **closed**, perfectly isolated from the rest of the universe. No laboratory system is like that. An atom
@@ -25,8 +25,8 @@
 #
 # The state of an open system is not a vector $|\psi\rangle$ but a **density matrix** $\rho$
 # (introduced in [notebook 07 (Chapter 3)](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb)), and the
-# Schrödinger equation is replaced by the **Lindblad master equation**, also called the GKSL equation after
-# Gorini, Kossakowski, Sudarshan and Lindblad (1976):
+# Schrödinger equation is replaced by the **Lindblad master equation**, also called the GKSL equation; it was
+# introduced in [[1]](#ref-1), [[2]](#ref-2):
 #
 # $$ \frac{d\rho}{dt} = -i[H,\rho] + \sum_j \gamma_j\Big( L_j\,\rho\,L_j^\dagger - \tfrac12\big\{L_j^\dagger L_j,\rho\big\}\Big). $$
 #
@@ -171,7 +171,7 @@
 #
 # A microscopic derivation starts from the Schrödinger equation of system **plus** bath, $H_{\rm tot} = H + H_E + H_{\rm int}$,
 # and traces out the bath. Three approximations make the result tractable (we quote them without proof; see
-# Breuer & Petruccione, chapter 3):
+# [[3]](#ref-3), chapter 3):
 #
 # 1. **Born** (weak coupling): the bath is so large that the system does not change it appreciably;
 # 2. **Markov** (no memory): bath correlations decay much faster than the system evolves — whatever leaks into the
@@ -218,11 +218,11 @@
 # This is the **GKSL (Lindblad) master equation**. $\mathcal{L}$ is called the **Lindbladian** or Liouvillian,
 # $\mathcal{D}[L]$ the **dissipator** of the jump operator $L$.
 #
-# > **GKSL theorem** (Gorini, Kossakowski and Sudarshan; Lindblad; both 1976). Let $\{e^{\mathcal{L}t}\}_{t\ge0}$ be a
+# > **GKSL theorem** [[1]](#ref-1), [[2]](#ref-2). Let $\{e^{\mathcal{L}t}\}_{t\ge0}$ be a
 # > one-parameter **semigroup** — $e^{\mathcal{L}(t+s)}=e^{\mathcal{L}t}e^{\mathcal{L}s}$, $e^{\mathcal{L}0}=\mathrm{id}$ —
 # > of completely positive, trace-preserving (CPTP) maps, continuous in $t$. On a finite-dimensional Hilbert space its generator
-# > $\mathcal{L}$ **must** have the form (2), with $H=H^\dagger$ and finitely many $L_j$, $\gamma_j\ge0$. Gorini,
-# > Kossakowski and Sudarshan proved it for $N$-level systems; Lindblad proved it in infinite dimension for generators
+# > $\mathcal{L}$ **must** have the form (2), with $H=H^\dagger$ and finitely many $L_j$, $\gamma_j\ge0$.
+# > Ref. [[1]](#ref-1) proved it for $N$-level systems; Ref. [[2]](#ref-2) proved it in infinite dimension for generators
 # > that are bounded in operator norm.
 #
 # The theorem is what turns Section 2.3 from a plausible ansatz into a statement about *all* memoryless evolutions:
@@ -464,7 +464,7 @@ plt.tight_layout(); plt.show()
 #   $\dot\rho_{01} = -\tfrac\gamma2\rho_{01}$ gives $\dot x=-\tfrac\gamma2x$, $\dot y = -\tfrac\gamma2 y$.
 #
 # Together, the **optical Bloch equations**, the optical counterpart of the equations with finite relaxation times that
-# Bloch (1946) introduced for nuclear induction,
+# were introduced for nuclear induction in [[4]](#ref-4),
 #
 # $$ \dot x = -\tfrac\gamma2 x,\qquad \dot y = -\Omega z-\tfrac\gamma2 y,\qquad \dot z = \Omega y+\gamma(1-z). \tag{4}$$
 #
@@ -1226,13 +1226,13 @@ plt.tight_layout(); plt.show()
 #
 # This picture — one zero eigenvalue, everything else decaying — presupposes that the steady state is **unique**. It need
 # not be: a Lindbladian can have several zero eigenvalues (several steady states) or purely imaginary ones (persistent
-# oscillations). Spohn gave an algebraic sufficient condition for a self-adjoint set of jump operators. Frigerio's
-# criterion covers the case met in this notebook: if a full-rank steady state exists (such as $\mathbb 1/2^N$ under
+# oscillations). Ref. [[5]](#ref-5) gave an algebraic sufficient condition for a self-adjoint set of jump operators. Frigerio's
+# criterion [[6]](#ref-6), [[7]](#ref-7) covers the case met in this notebook: if a full-rank steady state exists (such as $\mathbb 1/2^N$ under
 # unital noise), it is the only one when *the only operators that commute with $H$ and with all the $L_j$ and
 # $L_j^\dagger$ are multiples of $\mathbb 1$*. Without a full-rank steady state this commutant test is not sufficient:
 # decay alone has a unique but pure steady state (Section 8.4), and two decay channels from one level $\vert e\rangle$ into
-# two different levels $\vert a\rangle$, $\vert b\rangle$ have a trivial commutant and a whole family of steady states (Zhang and
-# Barthel give a general criterion). Any conserved quantity that survives the dissipation — a symmetry, a dark state, a
+# two different levels $\vert a\rangle$, $\vert b\rangle$ have a trivial commutant and a whole family of steady states (Ref. [[8]](#ref-8)
+# gives a general criterion). Any conserved quantity that survives the dissipation — a symmetry, a dark state, a
 # decoherence-free subspace — splits the state space into non-communicating sectors. In practice
 # one checks the condition numerically the way the cell below does: by counting how many singular values of
 # $\hat{\mathcal L}$ are zero. A single zero (and a healthy gap to the next one) means a unique steady state.
@@ -1515,18 +1515,31 @@ plt.tight_layout(); plt.show()
 #
 # ## 12. References
 #
-# * G. Lindblad, *On the generators of quantum dynamical semigroups*, Commun. Math. Phys. **48**, 119 (1976).
-# * V. Gorini, A. Kossakowski, E. C. G. Sudarshan, *Completely positive dynamical semigroups of N-level systems*, J. Math. Phys. **17**, 821 (1976).
-# * F. Bloch, *Nuclear induction*, Phys. Rev. **70**, 460 (1946) — the equations of motion of a polarisation with finite relaxation times, whose optical counterpart are the optical Bloch equations of Section 3.4.
-# * H. Spohn, *An algebraic condition for the approach to equilibrium of an open N-level system*, Lett. Math. Phys. **2**, 33–38 (1977) — a sufficient condition for approach to equilibrium, Section 8.3.
-# * A. Frigerio, *Quantum dynamical semigroups and approach to equilibrium*, Lett. Math. Phys. **2**, 79–87 (1977);
-#   A. Frigerio, *Stationary states of quantum dynamical semigroups*, Commun. Math. Phys. **63**, 269–276 (1978) — the commutant criterion for a unique steady state when a full-rank one exists, Section 8.3.
-# * D. E. Evans, *Irreducible quantum dynamical semigroups*, Commun. Math. Phys. **54**, 293–297 (1977) — conserved projections and irreducibility.
-# * Y. Zhang, T. Barthel, *Criteria for Davies irreducibility of Markovian quantum dynamics*, J. Phys. A **57**, 115301 (2024) — an algebraic irreducibility criterion that extends Frigerio's, and the distinction between Evans and Davies irreducibility (Section 8.3).
-# * H.-P. Breuer, F. Petruccione, *The Theory of Open Quantum Systems*, Oxford University Press (2002) — chapter 3 ("Quantum Master Equations"): the microscopic Born–Markov–secular derivation.
-# * D. Manzano, *A short introduction to the Lindblad master equation*, AIP Advances **10**, 025106 (2020) — a self-contained derivation at introductory level.
-# * M. A. Nielsen, I. L. Chuang, *Quantum Computation and Quantum Information*, Cambridge University Press (2000) — chapter 8 ("Quantum noise and quantum operations"): the operator-sum representation and, in §8.3, the amplitude-damping and phase-damping channels used here.
-# * A. J. Daley, *Quantum trajectories and open many-body quantum systems*, Adv. Phys. **63**, 77 (2014) — open many-body systems and the methods of the next notebook.
-# * E. Hairer, S. P. Nørsett, G. Wanner, *Solving Ordinary Differential Equations I: Nonstiff Problems*, 2nd revised ed., Springer Series in Computational Mathematics **8**, Springer (1993) — Runge–Kutta methods, order conditions and stability regions.
-# * W. H. Press, S. A. Teukolsky, W. T. Vetterling, B. P. Flannery, *Numerical Recipes: The Art of Scientific Computing*, 3rd ed., Cambridge University Press (2007) — chapter 17 ("Integration of Ordinary Differential Equations"), §17.1 the Runge–Kutta method and §17.2 adaptive step-size control; the same algorithms appear in W. H. Press *et al.*, *Numerical Recipes in Fortran 90*, 2nd ed., Cambridge University Press (1996).
+# <span id="ref-1">[1]</span> V. Gorini, A. Kossakowski, E. C. G. Sudarshan, *Completely positive dynamical semigroups of N-level systems*, J. Math. Phys. **17**, 821 (1976).
+#
+# <span id="ref-2">[2]</span> G. Lindblad, *On the generators of quantum dynamical semigroups*, Commun. Math. Phys. **48**, 119 (1976).
+#
+# <span id="ref-3">[3]</span> H.-P. Breuer, F. Petruccione, *The Theory of Open Quantum Systems*, Oxford University Press (2002) — chapter 3 ("Quantum Master Equations"): the microscopic Born–Markov–secular derivation.
+#
+# <span id="ref-4">[4]</span> F. Bloch, *Nuclear induction*, Phys. Rev. **70**, 460 (1946) — the equations of motion of a polarisation with finite relaxation times, whose optical counterpart are the optical Bloch equations of Section 3.4.
+#
+# <span id="ref-5">[5]</span> H. Spohn, *An algebraic condition for the approach to equilibrium of an open N-level system*, Lett. Math. Phys. **2**, 33–38 (1977) — a sufficient condition for approach to equilibrium, Section 8.3.
+#
+# <span id="ref-6">[6]</span> A. Frigerio, *Quantum dynamical semigroups and approach to equilibrium*, Lett. Math. Phys. **2**, 79–87 (1977) — Section 8.3.
+#
+# <span id="ref-7">[7]</span> A. Frigerio, *Stationary states of quantum dynamical semigroups*, Commun. Math. Phys. **63**, 269–276 (1978) — the commutant criterion for a unique steady state when a full-rank one exists, Section 8.3.
+#
+# <span id="ref-8">[8]</span> Y. Zhang, T. Barthel, *Criteria for Davies irreducibility of Markovian quantum dynamics*, J. Phys. A **57**, 115301 (2024) — an algebraic irreducibility criterion that extends Frigerio's, and the distinction between Evans and Davies irreducibility (Section 8.3).
+#
+# <span id="ref-9">[9]</span> D. E. Evans, *Irreducible quantum dynamical semigroups*, Commun. Math. Phys. **54**, 293–297 (1977) — conserved projections and irreducibility.
+#
+# <span id="ref-10">[10]</span> D. Manzano, *A short introduction to the Lindblad master equation*, AIP Advances **10**, 025106 (2020) — a self-contained derivation at introductory level.
+#
+# <span id="ref-11">[11]</span> M. A. Nielsen, I. L. Chuang, *Quantum Computation and Quantum Information*, Cambridge University Press (2000) — chapter 8 ("Quantum noise and quantum operations"): the operator-sum representation and, in §8.3, the amplitude-damping and phase-damping channels used here.
+#
+# <span id="ref-12">[12]</span> A. J. Daley, *Quantum trajectories and open many-body quantum systems*, Adv. Phys. **63**, 77 (2014) — open many-body systems and the methods of the next notebook.
+#
+# <span id="ref-13">[13]</span> E. Hairer, S. P. Nørsett, G. Wanner, *Solving Ordinary Differential Equations I: Nonstiff Problems*, 2nd revised ed., Springer Series in Computational Mathematics **8**, Springer (1993) — Runge–Kutta methods, order conditions and stability regions.
+#
+# <span id="ref-14">[14]</span> W. H. Press, S. A. Teukolsky, W. T. Vetterling, B. P. Flannery, *Numerical Recipes: The Art of Scientific Computing*, 3rd ed., Cambridge University Press (2007) — chapter 17 ("Integration of Ordinary Differential Equations"), §17.1 the Runge–Kutta method and §17.2 adaptive step-size control; the same algorithms appear in W. H. Press *et al.*, *Numerical Recipes in Fortran 90*, 2nd ed., Cambridge University Press (1996).
 
