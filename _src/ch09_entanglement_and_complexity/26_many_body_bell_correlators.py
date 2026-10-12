@@ -1558,7 +1558,7 @@ def bootstrap_error(key, z, n_boot=200):
 
     ALGORITHM  resample the M trajectory values WITH REPLACEMENT n_boot times, apply Eq. (20) to each
     resample, return the standard deviation of the resulting values.  No formula for the variance of a
-    nonlinear statistic is needed -- that is the point of the bootstrap (Efron 1979).
+    nonlinear statistic is needed -- that is the point of the bootstrap (Ref. [24]).
     JAX  `jax.random.randint` draws the indices; vmap over the bootstrap replicas.
     """
     M = z.shape[0]
@@ -1810,10 +1810,10 @@ fig.tight_layout(); plt.show()
 
 # %%
 # ==============================================================================
-# STEP 13b: the fixed-plane onset for larger N, from the two sums of PRL 129, Eq. (10)
+# STEP 13b: the fixed-plane onset for larger N, from the two sums of Eq. (10) of Ref. [14]
 # ==============================================================================
 def fixed_plane_sums(tt, N):
-    """|C_{-N/2} C_{N/2}|^2 of PRL 129 Eq. (10) in double precision."""
+    """|C_{-N/2} C_{N/2}|^2 of Eq. (10) of Ref. [14] in double precision."""
     n = np.arange(N + 1) - N / 2
     w = np.array([comb(N, j) for j in range(N + 1)], dtype=float) / 2.0**N
     w = w * np.exp(-1j * tt * n**2)
@@ -1830,14 +1830,14 @@ def onset(f, N):
         lo, hi = (lo, mid) if g(mid) > 0 else (mid, hi)
     return 0.5 * (lo + hi)
 
-pref15 = 2 * np.sqrt(np.pi**2 / (8 * np.log(2)) - 1)            # Eq. (15): N chi t_crit
+pref15 = 2 * np.sqrt(np.pi**2 / (8 * np.log(2)) - 1)            # Eq. (15) of Ref. [14]: N chi t_crit
 Ns_fp = [8, 16, 32, 64]
 rows = {N: N * onset(fixed_plane_sums, N) for N in Ns_fp}
 print("N chi t at the Bell onset of the fixed-plane correlator")
-print(f"{'N':>3s} {'exact, PRL (10)':>16s} {'PRL (15)':>9s}")
+print(f"{'N':>3s} {'exact':>16s} {'Ref. [14]':>9s}")
 for N, r in rows.items():
     print(f"{N:3d} {r:16.4f} {pref15:9.4f}")
-print(f"N = 8: PRL (15) gives chi t = {pref15/8:.4f}; exact {rows[8]/8:.4f}; pi/8 = {np.pi/8:.4f}")
+print(f"N = 8: Ref. [14] gives chi t = {pref15/8:.4f}; exact {rows[8]/8:.4f}; pi/8 = {np.pi/8:.4f}")
 assert abs(rows[8] / 8 - t_bell_fixed) < 1e-6                     # the sums reproduce the qubit-level bisection
 assert all(2.98 < rows[N] < 3.0 for N in Ns_fp)                   # exact onset close to 3/N
 

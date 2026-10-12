@@ -327,7 +327,7 @@ assert abs(r_mc - r_formula) < 5 * r_se
 F_e_pair = sum(abs(np.trace(k)) ** 2 for k in K_pair) / 16              # process fidelity of the Kraus set, d = 4
 print(f"  process fidelity sum|Tr K|^2/16 = {F_e_pair:.10f}   (1-p)^2 = {(1 - p_pair) ** 2:.10f}")
 assert abs(F_e_pair - (1 - p_pair) ** 2) < TOL
-# Eq. (4b) inverted: measured two-qubit errors per gate (Barends 2014, Sung 2021) -> channel parameter p2 of the model
+# Eq. (4b) inverted: measured two-qubit errors per gate (Refs. [1], [2]) -> channel parameter p2 of the model
 for r2_meas in (5.6e-3, 2.4e-3):
     p2_meas = 1 - np.sqrt(1 - 1.25 * r2_meas)
     r2_wrong = 0.8 * (1 - (1 - 1.5 * r2_meas) ** 2)                    # model error if p2 = 3 r2 / 2 were used

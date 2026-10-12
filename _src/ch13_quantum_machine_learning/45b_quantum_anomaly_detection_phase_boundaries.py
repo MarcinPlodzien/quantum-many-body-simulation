@@ -1224,7 +1224,7 @@ D_CUT = -2.0                                           # the cut: ferromagnet al
 NS_FSS = (6, 8, 10)                                    # chain lengths of the finite-size comparison (open chains)
 H_FINE = np.round(np.arange(0.1, 5.0001, 0.05), 6)     # field values of the dense scan
 H_PBC = np.round(np.arange(2.3, 2.8001, 0.05), 6)      # fields of the periodic-chain check around h_c
-H_C_REF = 2.55                                         # h_c(Delta = -2) in units of J, read off Dmitriev et al., Fig. 1
+H_C_REF = 2.55                                         # h_c(Delta = -2) in units of J, read off Ref. [4], Fig. 1
 
 
 def sector_basis(n, sign):
@@ -1306,7 +1306,7 @@ for n1, n2 in zip(NS_FSS[:-1], NS_FSS[1:]):
         res[(n1, n2)] = crossings(hs, y)
         print(f"crossing of N (E0_odd - E0_even), {lab} chains, N = {n1}, {n2}: h_x = "
               f"{', '.join(f'{x:.3f}' for x in res[(n1, n2)])}")
-print(f"h_c of the infinite chain (Dmitriev et al., Fig. 1, mean-field line): about {H_C_REF} J")
+print(f"h_c of the infinite chain (Ref. [4], Fig. 1, mean-field line): about {H_C_REF} J")
 assert PEAK[6] < PEAK[8] < PEAK[10] < H_C_REF                     # the fidelity peak drifts up towards h_c
 assert all(len(x) == 1 and abs(x[0] - H_C_REF) < 0.1 for x in list(HC_FSS.values()) + list(HC_PBC.values()))
 assert HC_FSS[(8, 10)][0] < HC_PBC[(8, 10)][0]                     # open and periodic chains bracket h_c

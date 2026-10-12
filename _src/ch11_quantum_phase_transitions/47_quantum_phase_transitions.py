@@ -147,14 +147,14 @@ def tfim_terms(N, J=1.0, h=1.0):
 
 def tfim_exact_gap(N, J=1.0, h=1.0):
     """Exact gap of the OPEN TFIM chain: 2 s_min, where s_min is the smallest singular value of the N x N
-    bidiagonal matrix B with h on the diagonal and J on the first superdiagonal (Lieb-Schultz-Mattis 1961).
+    bidiagonal matrix B with h on the diagonal and J on the first superdiagonal (Ref. [5]).
     For N -> infinity this tends to 2|J-h|."""
     B = h * np.eye(N) + J * np.eye(N, k=1)
     return 2.0 * np.min(np.linalg.svd(B, compute_uv=False))
 
 
 def tfim_exact_magnetisation(h, J=1.0):
-    """Spontaneous magnetisation of the infinite chain, m = (1-(h/J)^2)^{1/8} for h<J and 0 above (Pfeuty 1970)."""
+    """Spontaneous magnetisation of the infinite chain, m = (1-(h/J)^2)^{1/8} for h<J and 0 above (Ref. [3])."""
     x = np.asarray(h) / J
     return np.where(x < 1.0, np.power(np.clip(1.0 - x ** 2, 0.0, None), 0.125), 0.0)
 
@@ -1052,7 +1052,7 @@ def xx_ground_entropy_profile(N, J=1.0):
     """Exact entanglement entropy (bits) of every cut of the XX-chain ground state at half filling.
 
     MATH  hopping matrix h1[i,i+1] = h1[i+1,i] = 2J;  occupy the N/2 lowest single-particle levels;
-          C = sum_occ phi phi^T;  S(l) = -sum_m [nu log2 nu + (1-nu) log2(1-nu)], nu = eig(C[:l,:l])  (Peschel 2003).
+          C = sum_occ phi phi^T;  S(l) = -sum_m [nu log2 nu + (1-nu) log2(1-nu)], nu = eig(C[:l,:l])  (Ref. [18]).
     This is the ground-state twin of the time-dependent reference of notebook 18 (Chapter 7), Sec. 10.1."""
     h1 = 2.0 * J * (np.eye(N, k=1) + np.eye(N, k=-1))
     _, V = np.linalg.eigh(h1)

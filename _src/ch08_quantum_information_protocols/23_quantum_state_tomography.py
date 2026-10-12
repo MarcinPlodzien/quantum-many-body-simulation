@@ -1189,7 +1189,7 @@ fig.tight_layout(); plt.show()
 # STEP 6: projection of a Hermitian unit-trace matrix onto the physical states
 # ==============================================================================
 def project_physical(rho_mat):
-    """Closest positive semi-definite unit-trace matrix in Frobenius norm (Smolin, Gambetta & Smith 2012).
+    """Closest positive semi-definite unit-trace matrix in Frobenius norm (Ref. [4]).
 
     MATH   rho = V diag(lambda) V^dag  ->  mu_i = max(lambda_i + nu, 0)  with nu fixed by sum_i mu_i = 1.
     IMPL   sort descending, cumulative sums, pick the largest admissible prefix length k -- no Python loop,
@@ -1501,8 +1501,8 @@ def _renormalise(M):
 def mle_rrhor(n_vec, PHI, n_iter=250, eps=None, rho0=None):
     """Maximum-likelihood state by the (diluted) RrhoR iteration, Eqs. (14)-(15).
 
-    MATH   eps = None : rho <- N[ R rho R ]   (R normalised by N_tot; extremal equation of Hradil 1997)
-           eps > 0    : rho <- N[ (1 + eps R) rho (1 + eps R) ]   (diluted; Rehacek et al. 2007)
+    MATH   eps = None : rho <- N[ R rho R ]   (R normalised by N_tot; extremal equation of Ref. [5])
+           eps > 0    : rho <- N[ (1 + eps R) rho (1 + eps R) ]   (diluted; Ref. [7])
     IMPL   lax.scan over a FIXED number of iterations; the per-step output is log L, so the convergence
            history comes for free and monotonicity can be asserted.
     JAX    pure function of (n_vec) -> vmap-able over data sets / bootstrap resamples.

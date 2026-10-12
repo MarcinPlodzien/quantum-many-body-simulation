@@ -689,7 +689,7 @@ assert min_S < 1.0                                    # the counterexample annou
 
 d_sq = squeezing_data(oat_evolve(psi_css, 0.2005))
 print(f"\nOAT state at mu = 0.2005, N = {N_DEMO}:")
-print(f"  xi_S^2 = {float(d_sq['xi_S2']):.5f}  ->  entangled (Sorensen et al. criterion)")
+print(f"  xi_S^2 = {float(d_sq['xi_S2']):.5f}  ->  entangled (criterion of Ref. [12])")
 print(f"  xi_R^2 = {float(d_sq['xi_R2']):.5f}  ->  {10 * np.log10(float(d_sq['xi_R2'])):.2f} dB below the SQL,"
       f"  Delta phi = {float(jnp.sqrt(d_sq['xi_R2'])):.4f}/sqrt(NM)")
 assert float(d_sq["xi_S2"]) < 1.0 and float(d_sq["xi_R2"]) < 1.0

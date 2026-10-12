@@ -1133,7 +1133,7 @@ print(f"largest |<X..X> engine - cos(N phi - theta)|, N = 1, 2, 4, 8: {err_off:.
 assert err_off < 1e3 * TOL
 
 # --- CHECKPOINT 2: resource count and Fisher information of the ladder, Eq. (12d) ----------------------
-MK_L, MU_L = 2, 3                                 # the schedule of Higgins et al. (2009)
+MK_L, MU_L = 2, 3                                 # the schedule of Ref. [13]
 R_closed = lambda K, MK, mu: MK * (2 ** (K + 1) - 1) + mu * (2 ** (K + 1) - K - 2)
 F_closed = lambda K, MK, mu: MK * (4 ** (K + 1) - 1) / 3 + mu * (4 ** (K + 1) - 3 * K - 4) / 9
 for K in range(8):
@@ -1906,7 +1906,7 @@ assert z_wrong > 8
 
 # %%
 # ==============================================================================
-# FIGURE 5: Huelga's result -- two different optimal times, one identical minimum
+# FIGURE 5: the result of Ref. [4] -- two different optimal times, one identical minimum
 # ==============================================================================
 fig, axes = plt.subplots(1, 2, figsize=(11.5, 4.2))
 

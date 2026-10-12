@@ -376,7 +376,7 @@ print("extra imports OK")
 # ==============================================================================
 # STEP 0: the unit system of a real bright soliton  (pure bookkeeping, no physics happens here)
 #   a_perp = sqrt(hbar / (m omega_perp))          transverse oscillator length
-#   g_1D   = 2 hbar omega_perp a_s                Olshanii, PRL 81, 938 (1998), leading order
+#   g_1D   = 2 hbar omega_perp a_s                Ref. [17], leading order
 #   ell    = a_perp^2 / (N |a_s|)                 soliton width, Eq. (9)  -> we set x_0 = ell
 #   t_0    = m x_0^2 / hbar,  E_0 = hbar / t_0,  v_0 = x_0 / t_0
 # ==============================================================================
@@ -409,8 +409,8 @@ def soliton_units(N, a_s_m, nu_perp_hz, mass_kg=M_LI7):
             "kappa": N * abs(a_s_m) / a_perp}
 
 
-experiments = [("Khaykovich et al. 2002", 4500, -0.21e-9, 710.0),
-               ("Strecker et al. 2002  ", 5000, -0.16e-9, 800.0)]
+experiments = [("Ref. [3]", 4500, -0.21e-9, 710.0),
+               ("Ref. [4]", 5000, -0.16e-9, 800.0)]
 
 print(f"{'experiment':24s} {'a_perp[um]':>10s} {'ell[um]':>9s} {'t_0[ms]':>9s} "
       f"{'E_0/h[Hz]':>10s} {'v_0[mm/s]':>10s} {'g':>7s} {'kappa':>7s}")
@@ -1355,7 +1355,7 @@ for n_frac in (0.5, 1.0, 2.0):
 # ==============================================================================
 # CHECKPOINT 4: how close were the 2002 experiments to the collapse threshold?
 #   kappa = N |a_s| / a_perp = a_perp / ell     (quasi-1D parameter)
-#   kappa_c = 0.675 +/- 0.005                   (Parker et al. 2007, 3D GP numerics)
+#   kappa_c = 0.675 +/- 0.005                   (Ref. [28], 3D GP numerics)
 # ==============================================================================
 KAPPA_C = 0.675
 
@@ -1369,7 +1369,7 @@ print("\nCHECKPOINT 4 passed: both experiments sit below kappa_c = 0.675, but no
 
 # how sensitive is that verdict to the atom number?  kappa is LINEAR in N, and N carries the largest
 # experimental error bar of the three inputs -- so the margin below kappa_c is only as good as N.
-print("\nsensitivity to N (Khaykovich et al.: measured 6(2)e3, stability estimate 4.2-5.2e3):")
+print("\nsensitivity to N (Ref. [3]: measured 6(2)e3, stability estimate 4.2-5.2e3):")
 for N_try in (4200, 4500, 5200, 6000, 8000):
     print(f"    N = {N_try:5d}  ->  kappa = {soliton_units(N_try, -0.21e-9, 710.0)['kappa']:.3f}"
           f"   ({'below' if soliton_units(N_try, -0.21e-9, 710.0)['kappa'] < KAPPA_C else 'ABOVE'} kappa_c)")

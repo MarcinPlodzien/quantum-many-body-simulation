@@ -156,7 +156,7 @@ def block_negativity(psi, A, B):
 
 
 def concurrence(rho_mat):
-    """Wootters' concurrence of a TWO-qubit density matrix (Phys. Rev. Lett. 80, 2245 (1998)).
+    """Concurrence of a TWO-qubit density matrix (Ref. [11]).
 
     MATH   spin-flipped state   rho~ = (Y (x) Y) rho^* (Y (x) Y)
            lambda_1 >= ... >= lambda_4 = square roots of the eigenvalues of rho rho~
@@ -426,7 +426,7 @@ assert np.max(np.abs(lam_A - lam_B)) < TOL
 #
 # In every larger pair of dimensions, $2\times4$, $3\times3$ and beyond, the converse fails: there exist entangled states whose
 # partial transpose is positive. We quote the theorem without proof; its proof rests on the characterisation of positive maps on
-# low-dimensional matrix algebras (Størmer; Woronowicz), which is well outside this course.
+# low-dimensional matrix algebras, which is well outside this course.
 #
 # For us this has a very concrete consequence. Two qubits, and one qubit against one qutrit, are the only cases in which
 # "negativity $=0$" *proves* separability. For a pair of two-qubit blocks ($4\times4$) — the main object of Section 9 — a

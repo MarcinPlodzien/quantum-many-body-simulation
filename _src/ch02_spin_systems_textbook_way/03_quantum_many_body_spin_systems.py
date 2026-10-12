@@ -792,8 +792,8 @@ assert list(counts) == [comb(N, k) for k in range(N, -1, -1)] and counts.sum() =
 # | **XXZ** | $J_{xx}=J_{yy}=J,\ J_{zz}=J\Delta$ | $H=J\sum_j\big(X_jX_{j+1}+Y_jY_{j+1}+\Delta Z_jZ_{j+1}\big)$ |
 # | **XY / XX** | $J_{zz}=0$ | $H=J\sum_j\big(X_jX_{j+1}+Y_jY_{j+1}\big)$ |
 #
-# **The transverse-field Ising model.** The Ising chain is named after Ising, who solved its classical version
-# in one dimension [[15]](#ref-15); the transverse field was introduced in [[16]](#ref-16) to describe tunnelling
+# **The transverse-field Ising model.** The classical Ising chain in one dimension was solved in
+# [[15]](#ref-15); the transverse field was introduced in [[16]](#ref-16) to describe tunnelling
 # protons in hydrogen-bonded ferroelectrics. The term $-JZ_jZ_{j+1}$ with $J>0$ is *ferromagnetic*: it gives energy
 # $-J$ to parallel neighbours and $+J$ to antiparallel ones, and on its own it has two ground states,
 # $|{\uparrow\uparrow\cdots\uparrow}\rangle$ and $|{\downarrow\downarrow\cdots\downarrow}\rangle$. The field

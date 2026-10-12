@@ -100,8 +100,8 @@ plt.rcParams.update({"axes.prop_cycle": plt.cycler(color=PALETTE), "axes.grid": 
                      "grid.alpha": 0.3, "font.size": 10, "legend.frameon": False})
 
 R_POISSON = 2.0 * np.log(2.0) - 1.0      # <r> for uncorrelated levels  (derived in Section 7.1)
-R_GUE = 0.5996                            # <r> for the Gaussian unitary ensemble (Atas et al. 2013)
-R_GOE = 0.5359                            # <r> for the Gaussian orthogonal ensemble (Atas et al. 2013)
+R_GUE = 0.5996                            # <r> for the Gaussian unitary ensemble (Ref. [21])
+R_GOE = 0.5359                            # <r> for the Gaussian orthogonal ensemble (Ref. [21])
 LOG2_4_3 = float(np.log2(4.0 / 3.0))      # magic of one T|+> state (notebook 27)
 
 print(f"reference gap ratios:  Poisson 2 ln2 - 1 = {R_POISSON:.4f} | GOE {R_GOE} | GUE {R_GUE}")
@@ -145,7 +145,7 @@ print(f"reference gap ratios:  Poisson 2 ln2 - 1 = {R_POISSON:.4f} | GOE {R_GOE}
 # the whole state is stored in $O(N^2)$ bits, and every Clifford gate (Hadamard $H$, phase $S$, CNOT) maps Pauli strings to
 # Pauli strings and therefore updates the list in $O(N)$ steps — one column operation on each of the $O(N)$ rows of the
 # tableau. A computational-basis measurement is the expensive step, $O(N^2)$. This is the **Gottesman-Knill theorem**
-# (stated in [[4]](#ref-4), which credits Knill);
+# (stated in [[4]](#ref-4));
 # the efficient tableau algorithm was introduced in [[5]](#ref-5). Such circuits can produce a half-chain
 # entropy of $N/2$ bits, the maximum, and are still simulated in polynomial time — entanglement is *free* here.
 #
@@ -1539,7 +1539,7 @@ axes[1].set_xscale("symlog", linthresh=8)
 axes[1].set_xlim(-1.0, 520)
 axes[1].set_xticks([0, 8, 16, 32, 64, 128, 256, 512])
 axes[1].set_xticklabels(["0", "8", "16", "32", "64", "128", "256", "512"])
-axes[1].set_xlabel(r"$kN$  (the scaling variable of Zhou et al. 2020)")
+axes[1].set_xlabel(r"$kN$  (the scaling variable of Ref. [23])")
 axes[1].set_title("the same data against $kN$")
 axes[1].legend(fontsize=8, loc="lower right")
 fig.tight_layout()

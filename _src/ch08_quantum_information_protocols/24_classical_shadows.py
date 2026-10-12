@@ -1591,7 +1591,7 @@ def shadow_pauli_vector(bases, bits, N):
 
 
 def project_physical(rho_mat):
-    """Closest positive semi-definite unit-trace matrix in Frobenius norm (Smolin, Gambetta & Smith 2012).
+    """Closest positive semi-definite unit-trace matrix in Frobenius norm (Ref. [13]).
     Identical to the routine derived in notebook 23; repeated here so this notebook stands alone."""
     lam, V = jnp.linalg.eigh(jnp.asarray(rho_mat, dtype=CDTYPE))
     d = lam.shape[0]

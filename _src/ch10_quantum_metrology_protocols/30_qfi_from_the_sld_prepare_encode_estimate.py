@@ -869,7 +869,7 @@ fig.tight_layout(); plt.show()
 #
 # ### 8.1 Why the eigenbasis of $L$ is optimal
 #
-# **Theorem (Braunstein and Caves 1994).** For every POVM $\{E_x\}$, the classical Fisher information of the outcome
+# **Theorem [[4]](#ref-4).** For every POVM $\{E_x\}$, the classical Fisher information of the outcome
 # distribution obeys $I(\theta;\{E_x\})\le F_Q$, and the projective measurement in the eigenbasis of $L_\theta$ attains it.
 #
 # The proof is in notebook 29, Section 5.3, Eqs. (50)–(57): the Cauchy–Schwarz inequality in the Hilbert–Schmidt inner

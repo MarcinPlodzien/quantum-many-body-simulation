@@ -13,7 +13,7 @@
 # Consider the $N$-qubit GHZ state $(\vert0\cdots0\rangle+\vert1\cdots1\rangle)/\sqrt2$, or the cluster state used as a
 # resource for measurement-based quantum computation, or the output of a random circuit built only from Hadamard, phase and
 # CNOT gates. All of them can be maximally entangled across any cut. All of them are also **classically simulable in
-# polynomial time**: the Gottesman-Knill theorem (stated in [[1]](#ref-1), which credits Knill; Section 4.3) says that a
+# polynomial time**: the Gottesman-Knill theorem (stated in [[1]](#ref-1); Section 4.3) says that a
 # circuit made of those gates, applied to $\vert0\cdots0\rangle$
 # and followed by measurements in the computational basis, can be tracked on a laptop for thousands of qubits. Entanglement
 # is necessary for quantum advantage, but it is very far from sufficient.
@@ -353,7 +353,7 @@ print("  " + "  ".join(f"({a},{b}):{pauli_letters(a, b, 2)}" for a in range(4) f
 #
 # "Perfectly" means that the classical algorithm produces measurement records distributed exactly as the quantum
 # computation's, with no approximation; the theorem is a statement about sampling the outcomes. This is the form given
-# in [[1]](#ref-1), which attributes the theorem to Knill.
+# in [[1]](#ref-1).
 # Starting from any stabilizer state given by its generators changes nothing, since such a state is prepared from
 # $\vert0\cdots0\rangle$ by a Clifford circuit.
 #

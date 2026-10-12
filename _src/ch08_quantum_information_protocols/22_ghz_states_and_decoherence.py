@@ -127,7 +127,7 @@ def dm_tensor(mat, N):
 
 
 def concurrence(rho_mat):
-    """Wootters' concurrence of a TWO-qubit density matrix (Phys. Rev. Lett. 80, 2245 (1998)).
+    """Concurrence of a TWO-qubit density matrix (Ref. [10]).
 
     MATH   rho~ = (Y (x) Y) rho^* (Y (x) Y);  lambda_i = sqrt(eigenvalues of rho rho~), sorted decreasingly;
            C = max(0, lambda_1 - lambda_2 - lambda_3 - lambda_4).   C = 0 separable, C = 1 maximally entangled.

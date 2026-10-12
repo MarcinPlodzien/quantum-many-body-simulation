@@ -137,7 +137,7 @@ def neg2(rho_mat):
 
 
 def concurrence(rho_mat):
-    """Wootters' concurrence of a TWO-qubit density matrix (Phys. Rev. Lett. 80, 2245 (1998)).
+    """Concurrence of a TWO-qubit density matrix (Ref. [9]).
 
     MATH   spin-flipped state   rho~ = (Y (x) Y) rho^* (Y (x) Y)
            lambda_1 >= ... >= lambda_4 = square roots of the eigenvalues of rho rho~

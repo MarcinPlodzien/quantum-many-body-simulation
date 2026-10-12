@@ -16,7 +16,7 @@
 #
 # Later in this chapter a third question joins the first two: how can Alice and Bob communicate *secretly*, when an
 # eavesdropper, Eve, may listen to the channel? The answer will need a shared secret key, and quantum mechanics will
-# offer a way to create one. The language of that answer is Shannon's. The error rate on a quantum key, the amount of
+# offer a way to create one. The language of that answer is information theory. The error rate on a quantum key, the amount of
 # public discussion needed to correct it and the information that Eve may hold are all measured in the bits of this
 # notebook, and the same function $h(q)$ that sets the capacity of a noisy channel reappears in the rate of quantum key
 # distribution.
@@ -31,7 +31,7 @@
 # parity bits to locate and undo the flipped bit (Section 6). Shannon's noisy-channel coding theorem says that the error probability can
 # be made as small as desired at every rate below $C$ and at no rate above it.
 #
-# **The idea.** Shannon measured information by *surprise*: an unlikely outcome tells more than a likely one. The
+# **The idea.** Information is measured by *surprise*: an unlikely outcome tells more than a likely one. The
 # average surprise of a random source, its entropy, is exactly the number of bits per symbol that a
 # compressor needs. A noisy channel is described by the probabilities with which inputs become outputs, and the mutual
 # information between input and output says how much of the input survives. Its maximum over all ways of using the
@@ -145,8 +145,8 @@ def binom_se(p, n):
 #
 # Suppose a random experiment has outcomes $x$ with probabilities $p(x)$. Learning that the outcome was $x$ is
 # informative in proportion to how unexpected it was: being told that the sun rose this morning carries almost no
-# information, being told the winning lottery number carries a lot. Shannon measured the information of a single
-# outcome by its **surprise**
+# information, being told the winning lottery number carries a lot. The information of a single outcome is
+# measured by its **surprise**
 #
 # $$s(x)=-\log_2p(x)=\log_2\frac1{p(x)}. \tag{1}$$
 #
@@ -386,7 +386,7 @@ ax.legend(fontsize=8); plt.tight_layout(); plt.show()
 #
 # The last form, the **chain rule**, follows from $\log_2p(x\vert y)=\log_2p(x,y)-\log_2p(y)$ and
 # $\sum_xp(x,y)=p(y)$: the uncertainty about the pair is the uncertainty about $Y$ plus what remains about $X$ once $Y$
-# is known. Shannon called $H(X\vert Y)$ the *equivocation* of a channel, the average ambiguity left in the received
+# is known. Ref. [[1]](#ref-1) calls $H(X\vert Y)$ the *equivocation* of a channel, the average ambiguity left in the received
 # signal.
 #
 # The **mutual information** is the reduction of the uncertainty about $X$ achieved by learning $Y$,
@@ -674,7 +674,7 @@ ax.legend(fontsize=8); plt.tight_layout(); plt.show()
 #
 # distinguishable messages, a rate of at most $I(X{:}Y)\leq C$ bits per use.
 #
-# The same counting shows why every rate below $C$ is achievable. Shannon drew the codebook *at random*: each of the
+# The same counting shows why every rate below $C$ is achievable. The proof of [[1]](#ref-1) draws the codebook *at random*: each of the
 # $2^{nR}$ codewords is a string of $n$ fair coin tosses, and Bob decodes to the codeword closest to the received string
 # in **Hamming distance**, the number of positions in which two strings differ. On the BSC the noise flips about $nq$ of
 # the $n$ bits, and there are about $2^{n\,h(q)}$ such flip patterns (Eq. (7) for the noise), so each sent codeword
