@@ -265,6 +265,8 @@ website:
             contents:
               - href: ch13_quantum_machine_learning/56_tensor_networks_for_machine_learning.ipynb
                 text: "Tensor networks as machine-learning models"
+              - href: ch13_quantum_machine_learning/57_mps_born_machine.ipynb
+                text: "The matrix product state Born machine"
       - text: "Engine source code"
         href: engine.qmd
   page-footer:

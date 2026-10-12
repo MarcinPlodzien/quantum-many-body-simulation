@@ -76,6 +76,13 @@ singular value decomposition and the Schmidt values of notebook 18 in [Chapter 7
 optimiser of notebook 41, the tensor-leg diagrams of notebook 02 and notebook 01 (`jit`, `vmap`, `grad`, `lax.scan`) of
 [Chapter 1](ch01_computational_toolbox.qmd).
 
+Notebook 57 turns the same matrix product state into a generative model. The probability of a binary image is the
+squared amplitude of the state, the Born rule, so the normalisation follows from the canonical form and new images are
+drawn exactly, pixel by pixel, without a Markov chain. The notebook trains the model by two-site sweeps on the negative
+log-likelihood, learns the bars-and-stripes data set exactly and relates the bond dimensions it needs to the Schmidt
+ranks of the data, and on handwritten digits generates samples, completes images with missing pixels and measures the
+gap between training and test likelihood. It builds on notebook 56 and needs the same prerequisites.
+
 ## Notebooks in this chapter
 
 ### Foundations: parametrised circuits, gradients, optimisers and noise
@@ -178,5 +185,11 @@ A single qubit that receives the data once separates classes only by a plane thr
 [Tensor networks as machine-learning models](../ch13_quantum_machine_learning/56_tensor_networks_for_machine_learning.ipynb)
 
 A classical image classifier built from the tools of quantum many-body physics: every image becomes a product state of one qubit per pixel, and the weight tensor of a linear model on these $2^{196}$-dimensional states is stored as a matrix product state with a label index. The notebook trains it on MNIST in two ways, by DMRG-like sweeps with a gradient step on a two-site bond tensor and an SVD split, and by reverse-mode automatic differentiation of the whole contraction with Adam; it checks that the gradient of a contraction is its environment, measures accuracy against bond dimension and training-set size, compares with published results, and shows that the trained classifier is far less entangled than the superposition of its training images.
+:::
+
+::: {.nb-item}
+[The matrix product state Born machine](../ch13_quantum_machine_learning/57_mps_born_machine.ipynb)
+
+Unsupervised generative modelling with a matrix product state: binary images become basis states of one qubit per pixel, and the probability of an image is the squared amplitude of a many-body wave function, normalised exactly by a contraction. The notebook trains the state by two-site sweeps on the negative log-likelihood with an SVD split that adapts the bond dimensions, draws independent samples pixel by pixel without a Markov chain, learns the bars-and-stripes data set exactly (with bond dimensions that depend on the signs the amplitudes acquire), and on binarised MNIST measures training and test likelihoods against an independent-pixel baseline, overfitting, generated digits, the reconstruction of missing pixels and the entanglement of the learned state.
 :::
 
