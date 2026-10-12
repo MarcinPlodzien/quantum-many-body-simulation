@@ -19,17 +19,19 @@
 # Matrix product states push the limit much further for a large and important class of states.
 # [Notebook 18](../ch07_tensor_networks/18_mps_tebd.ipynb) builds them (Sections 2 and 3) and runs DMRG on chains of a
 # hundred spins (Section 6.9). They work because ground states of gapped one-dimensional Hamiltonians obey an area law:
-# the entanglement entropy across a cut stays bounded as the chain grows (Eisert, Cramer and Plenio, 2010), so a modest
-# bond dimension suffices. The cost rises whenever the entanglement grows. At a critical point the entropy grows
-# logarithmically with the system size, which is still manageable in one dimension; after a global quench it grows
-# linearly in time, volume-law states cannot be compressed at all, and a two-dimensional lattice snaked into a chain
+# the entanglement entropy across a cut stays bounded as the chain grows, as proved by Hastings (2007) and reviewed by
+# Eisert, Cramer and Plenio (2010), so a modest bond dimension suffices. The cost rises whenever the entanglement grows.
+# At a critical point the entropy grows logarithmically with the system size (Holzhey, Larsen and Wilczek, 1994;
+# Calabrese and Cardy, 2004), which is still manageable in one dimension; after a global quench it grows linearly in
+# time (Calabrese and Cardy, 2005), volume-law states cannot be compressed at all, and a two-dimensional lattice snaked into a chain
 # needs a bond dimension exponential in its width (notebook 18, Section 12).
 #
-# The variational quantum eigensolver (VQE) uses a representation of a different kind. A parametrised quantum circuit
+# The variational quantum eigensolver (VQE), introduced by Peruzzo *et al.* (2014), uses a representation of a different
+# kind. A parametrised quantum circuit
 # $U(\boldsymbol\theta)$ prepares a trial state $\vert\psi(\boldsymbol\theta)\rangle=U(\boldsymbol\theta)
 # \vert0\rangle^{\otimes N}$ on a quantum device, so the state exists physically and is never stored as a list of
 # amplitudes. Its energy is estimated from repeated measurements, and a classical optimiser adjusts the angles
-# $\boldsymbol\theta$ to lower it (Peruzzo *et al.*, 2014). Reviews of the method and its variants are given by
+# $\boldsymbol\theta$ to lower it. Reviews of the method and its variants are given by
 # Cerezo *et al.* (2021, *Nat. Rev. Phys.*) and Tilly *et al.* (2022). On the classical simulator of this course we pay
 # the $2^N$ cost ourselves, which is why every chain in this notebook has at most ten spins; the method is meant for hardware on
 # which the circuit runs natively. What the simulator gives in return is the exact answer next to every variational
@@ -217,7 +219,8 @@ def var_with_error(g):
 #   two ordered states, a cat state with one bit of entanglement across any cut, and its odd partner lies above it by a
 #   splitting that shrinks exponentially with $N$.
 #
-# **Gap.** The model maps to free fermions by a Jordan-Wigner transformation (Pfeuty, 1970). In the Pauli convention of
+# **Gap.** Pfeuty (1970) solved the model by mapping it to free fermions with the transformation of Jordan and Wigner
+# (1928). In the Pauli convention of
 # Eq. (4) the single-fermion energies of the infinite chain are $2\sqrt{J^2+h^2-2Jh\cos k}$, whose minimum gives the
 # bulk gap
 #
@@ -1884,3 +1887,13 @@ print(f"total wall time of the notebook so far: {time.perf_counter() - T_START:.
 #   solution of the transverse-field Ising chain.
 # * J. Eisert, M. Cramer and M. B. Plenio, *Colloquium: Area laws for the entanglement entropy*, Rev. Mod. Phys. **82**,
 #   277 (2010).
+# * M. B. Hastings, *An area law for one-dimensional quantum systems*, J. Stat. Mech. **2007**, P08024 (2007) — the proof
+#   of the area law for gapped one-dimensional Hamiltonians.
+# * C. Holzhey, F. Larsen and F. Wilczek, *Geometric and renormalized entropy in conformal field theory*, Nucl. Phys. B
+#   **424**, 443 (1994) — the logarithmic entanglement entropy of a critical system.
+# * P. Calabrese and J. Cardy, *Entanglement entropy and quantum field theory*, J. Stat. Mech. **2004**, P06002 (2004) —
+#   the logarithm with prefactor $c/3$ for an interval of a critical chain, and its extensions.
+# * P. Calabrese and J. Cardy, *Evolution of entanglement entropy in one-dimensional systems*, J. Stat. Mech. **2005**,
+#   P04010 (2005) — linear growth of the entanglement entropy after a global quench.
+# * P. Jordan and E. Wigner, *Über das Paulische Äquivalenzverbot*, Z. Phys. **47**, 631 (1928) — the transformation from
+#   spins to fermions.

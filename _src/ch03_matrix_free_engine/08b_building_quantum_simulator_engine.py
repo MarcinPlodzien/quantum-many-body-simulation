@@ -25,7 +25,7 @@
 # or uses inputs so symmetric that the wrong answer coincides with the right one, passes for buggy code as well. We therefore use
 # random complex states and operators without any symmetry, place two-qubit operators on non-adjacent qubits in reversed order,
 # and, for most checks, also evaluate a deliberately wrong variant of the computation, which we call a **mutant** (a wrong qubit
-# order, a missing complex conjugate, a transposed matrix, the opposite sign of $\hat Y$, $1-p$ in place of $\sqrt{1-p}$). The
+# order, a missing complex conjugate, a transposed matrix, the opposite sign of $\hat Y$, $1-p$ in place of $\sqrt{1-p}$), a term taken from the mutation testing of software (DeMillo, Lipton and Sayward 1978). The
 # mutant's error is printed next to the real error, and the check asserts that it is large. The register of all checks is
 # printed in Section 19 together with a table that maps every function to its equation, its check and the notebook that derives it.
 #
@@ -675,7 +675,7 @@ plt.show()
 #
 # ### 6.2 Entangled reference states
 #
-# The Greenberger–Horne–Zeilinger (GHZ) state is
+# The Greenberger–Horne–Zeilinger (GHZ) state (Greenberger, Horne and Zeilinger 1989) is
 #
 # $$ \vert\mathrm{GHZ}_N\rangle=\tfrac{1}{\sqrt2}\big(\vert 0\dots0\rangle+\vert 1\dots1\rangle\big). \tag{23} $$
 #
@@ -684,12 +684,12 @@ plt.show()
 #
 # $$ \tfrac{1}{\sqrt2}\big(\vert 0\dots0\rangle+\vert 1\dots1\rangle\big)_{0..q-1}\vert 0\rangle_q \;\xrightarrow{\ \mathrm{CNOT}_{q-1,q}\ }\; \tfrac{1}{\sqrt2}\big(\vert 0\dots0\rangle+\vert 1\dots1\rangle\big)_{0..q}. \tag{24} $$
 #
-# The Dicke state with $k$ excitations is the normalised equal superposition of the $\binom{N}{k}$ basis states with exactly $k$ ones,
+# The Dicke state (Dicke 1954) with $k$ excitations is the normalised equal superposition of the $\binom{N}{k}$ basis states with exactly $k$ ones,
 #
 # $$ \vert D_N^k\rangle=\binom{N}{k}^{-1/2}\sum_{s:\ \sum_q s_q=k}\vert s\rangle, \qquad \Big(\sum_q\hat Z_q\Big)\vert D_N^k\rangle=(N-2k)\,\vert D_N^k\rangle, \tag{25} $$
 #
-# where the eigenvalue follows because each 0 contributes $+1$ and each 1 contributes $-1$. The W state is $\vert D_N^1\rangle$. The one-dimensional
-# cluster state is $\vert C\rangle=\prod_q\mathrm{CZ}_{q,q+1}\,\vert +\rangle^{\otimes N}$. Its stabilisers follow from the identity
+# where the eigenvalue follows because each 0 contributes $+1$ and each 1 contributes $-1$. The W state (Dür, Vidal and Cirac 2000) is $\vert D_N^1\rangle$. The one-dimensional
+# cluster state (Briegel and Raussendorf 2001) is $\vert C\rangle=\prod_q\mathrm{CZ}_{q,q+1}\,\vert +\rangle^{\otimes N}$. Its stabilisers follow from the identity
 # $\mathrm{CZ}\,(\hat X\otimes\mathbb{1})\,\mathrm{CZ}=\hat X\otimes\hat Z$, which we derive from Eq. (9) and $\hat X\vert 0\rangle\langle 0\vert\hat X=\vert 1\rangle\langle 1\vert$:
 #
 # $$ \begin{aligned} (\hat X\otimes\mathbb{1})\,\mathrm{CZ}\,(\hat X\otimes\mathbb{1}) &= \vert 1\rangle\langle 1\vert\otimes\mathbb{1}+\vert 0\rangle\langle 0\vert\otimes\hat Z, \\ \mathrm{CZ}\,(\hat X\otimes\mathbb{1})\,\mathrm{CZ} &= (\hat X\otimes\mathbb{1})\big(\vert 1\rangle\langle 1\vert\otimes\mathbb{1}+\vert 0\rangle\langle 0\vert\otimes\hat Z\big)\big(\vert 0\rangle\langle 0\vert\otimes\mathbb{1}+\vert 1\rangle\langle 1\vert\otimes\hat Z\big) \\ &= (\hat X\otimes\mathbb{1})\big(\vert 1\rangle\langle 1\vert\otimes\hat Z+\vert 0\rangle\langle 0\vert\otimes\hat Z\big)=\hat X\otimes\hat Z . \end{aligned} $$
@@ -704,7 +704,7 @@ plt.show()
 #
 # ### 6.3 Haar-random states
 #
-# A Haar-random state is a unit vector whose direction is uniformly distributed, so that no basis is preferred. `haar_state` draws a vector $g$ of
+# A Haar-random state, named after the invariant measure of Haar (1933), is a unit vector whose direction is uniformly distributed, so that no basis is preferred. `haar_state` draws a vector $g$ of
 # $D=2^N$ independent standard complex Gaussian numbers and normalises it. The joint density of $g$ is proportional to
 # $\exp(-\sum_i\vert g_i\vert^2)=\exp(-\Vert g\Vert^2)$, which is unchanged under $g\to\hat Ug$ for every unitary $\hat U$ because $\Vert\hat Ug\Vert=\Vert g\Vert$;
 # hence the direction $g/\Vert g\Vert$ is uniformly distributed. Notebook 10 shows that the weight $x=\vert\psi_s\vert^2$ of one basis state then has the
@@ -834,7 +834,7 @@ for name, st in [("product |0+r1-l+0>", product_state("0+r1-l+0")), ("GHZ_8", gh
 #
 # ### 7.3 Kraus channels on density tensors
 #
-# A quantum channel in Kraus form (notebook 07; Nielsen & Chuang, Ch. 8) maps
+# A quantum channel in Kraus form (Kraus 1971; notebook 07; Nielsen & Chuang, Ch. 8) maps
 #
 # $$ \hat\rho\;\to\;\sum_m\hat K_m\,\hat\rho\,\hat K_m^\dagger . \tag{31} $$
 #
@@ -1003,7 +1003,7 @@ print("Bloch vectors (rows: qubits 0..4; columns <X>, <Y>, <Z>):\n", np.round(np
 #
 # $$ \mathrm{Tr}\,\hat\rho^2=\sum_{i,j}\rho_{ij}\,\rho_{ji}=\sum_{i,j}\vert\rho_{ij}\vert^2, \tag{37} $$
 #
-# which equals 1 for pure states and $1/d$ for the maximally mixed state $\mathbb{1}/d$. With the eigenvalues $\lambda_i$ of $\hat\rho$ the von Neumann entropy is
+# which equals 1 for pure states and $1/d$ for the maximally mixed state $\mathbb{1}/d$. With the eigenvalues $\lambda_i$ of $\hat\rho$ the von Neumann entropy (von Neumann 1927) is
 #
 # $$ S(\hat\rho)=-\mathrm{Tr}\,\hat\rho\log_2\hat\rho=-\sum_i\lambda_i\log_2\lambda_i , \tag{38} $$
 #
@@ -1012,12 +1012,12 @@ print("Bloch vectors (rows: qubits 0..4; columns <X>, <Y>, <Z>):\n", np.round(np
 # ### 9.2 Schmidt decomposition and entanglement entropies
 #
 # Group the axes of $A$ into a row index and those of $B$ into a column index, $M_{a,b}=\psi[a,b]$, and compute the singular value decomposition
-# $M=U\,\mathrm{diag}(\lambda_1,\lambda_2,\dots)\,V^\dagger$ (Press *et al.* 2007, Sec. 2.6). Writing it out in components gives the Schmidt decomposition (Nielsen & Chuang, Sec. 2.5), and inserting it into Eq. (32) gives the reduced matrix:
+# $M=U\,\mathrm{diag}(\lambda_1,\lambda_2,\dots)\,V^\dagger$ (Press *et al.* 2007, Sec. 2.6). Writing it out in components gives the Schmidt decomposition (Schmidt 1907; Nielsen & Chuang, Sec. 2.5), and inserting it into Eq. (32) gives the reduced matrix:
 #
 # $$ \vert\psi\rangle=\sum_k\lambda_k\,\vert u_k\rangle_A\vert v_k^*\rangle_B, \qquad \hat\rho_A=MM^\dagger=U\,\mathrm{diag}(\lambda_k^2)\,U^\dagger . \tag{39} $$
 #
 # Here $\vert u_k\rangle$ is the $k$-th column of $U$, $\vert v_k^*\rangle$ has the components $V^*_{bk}$, and $V^\dagger V=\mathbb{1}$ was used. The eigenvalues of $\hat\rho_A$ are the squared
-# Schmidt values, so the entanglement entropy and the second Rényi entropy follow from one SVD without forming any density matrix:
+# Schmidt values, so the entanglement entropy and the second Rényi entropy (Rényi 1961) follow from one SVD without forming any density matrix:
 #
 # $$ S_A=-\sum_k\lambda_k^2\log_2\lambda_k^2, \qquad S_2(A)=-\log_2\mathrm{Tr}\,\hat\rho_A^2=-\log_2\sum_k\lambda_k^4 . \tag{40} $$
 #
@@ -1465,7 +1465,7 @@ print(f"      {len(terms)} local terms represent a {2 ** N} x {2 ** N} Hamiltoni
 #
 # ### 13.2 Trotter–Suzuki splitting and TEBD
 #
-# For $\hat H=\sum_k\hat h_k$ with non-commuting terms the exponential does not factorise. The Baker–Campbell–Hausdorff formula gives for two terms
+# For $\hat H=\sum_k\hat h_k$ with non-commuting terms the exponential does not factorise. The Baker–Campbell–Hausdorff formula (Campbell 1897; Baker 1905; Hausdorff 1906) gives for two terms
 #
 # $$ e^{-i\hat A\,dt}\,e^{-i\hat B\,dt}=\exp\Big(-i(\hat A+\hat B)\,dt-\tfrac12[\hat A,\hat B]\,dt^2+O(dt^3)\Big), \tag{62} $$
 #
@@ -1474,7 +1474,7 @@ print(f"      {len(terms)} local terms represent a {2 ** N} x {2 ** N} Hamiltoni
 #
 # $$ \begin{aligned} \hat S_1(dt) &= \prod_k e^{-i\hat h_k dt}, \\ \hat S_2(dt) &= \prod_{k=1}^{K}e^{-i\hat h_k dt/2}\prod_{k=K}^{1}e^{-i\hat h_k dt/2}, \\ \hat S_4(dt) &= \hat S_2(s\,dt)^2\,\hat S_2\big((1-4s)\,dt\big)\,\hat S_2(s\,dt)^2, \qquad s=\frac{1}{4-4^{1/3}}. \end{aligned} \tag{63} $$
 #
-# The symmetric product $\hat S_2$ satisfies $\hat S_2(dt)\,\hat S_2(-dt)=\mathbb{1}$, because the second product undoes the first factor by factor. If we write
+# The symmetric product $\hat S_2$ (Strang 1968) satisfies $\hat S_2(dt)\,\hat S_2(-dt)=\mathbb{1}$, because the second product undoes the first factor by factor. If we write
 # $\hat S_2(dt)=\exp\big(\hat C_1dt+\hat C_2dt^2+\hat C_3dt^3+\dots\big)$, this identity requires the exponent to be odd in $dt$, so $\hat C_2=0$ and
 #
 # $$ \hat S_2(dt)=e^{-i\hat H\,dt+O(dt^3)}, \qquad \text{global errors: } O(dt)\ (\hat S_1),\quad O(dt^2)\ (\hat S_2),\quad O(dt^4)\ (\hat S_4). \tag{64} $$
@@ -1662,7 +1662,7 @@ check("krylov_evolve (m = 32) vs expm (t = 2)", maxdiff(krylov_evolve(psi0, term
 #
 # ### 14.2 Integrators
 #
-# `lindblad_rk4_step` is the classical fourth-order Runge–Kutta step (Press *et al.* 2007, Sec. 17.1) for $\dot\rho=\mathcal L(\rho)$:
+# `lindblad_rk4_step` is the classical fourth-order Runge–Kutta step (Runge 1895; Kutta 1901; Press *et al.* 2007, Sec. 17.1) for $\dot\rho=\mathcal L(\rho)$:
 #
 # $$ \begin{aligned} k_1&=\mathcal L(\rho),\quad k_2=\mathcal L\big(\rho+\tfrac{dt}{2}k_1\big),\quad k_3=\mathcal L\big(\rho+\tfrac{dt}{2}k_2\big),\quad k_4=\mathcal L\big(\rho+dt\,k_3\big), \\ \rho(t+dt)&=\rho+\tfrac{dt}{6}\big(k_1+2k_2+2k_3+k_4\big)+O(dt^5). \end{aligned} \tag{73} $$
 #
@@ -1817,7 +1817,7 @@ check("MCWF trajectories vs density tensor, max |z|", np.max(np.abs(z_traj.mean(
 # $$ F_Q=4\,\mathrm{Var}(\hat J)=\langle\hat G^2\rangle-\langle\hat G\rangle^2, \qquad \langle\hat G^2\rangle=\langle\phi\vert\phi\rangle,\quad \langle\hat G\rangle=\langle\psi\vert\phi\rangle,\quad \vert\phi\rangle=\hat G\vert\psi\rangle . \tag{75} $$
 #
 # The second form uses that $\hat G$ is Hermitian, so $\langle\psi\vert\hat G^2\vert\psi\rangle=\Vert\hat G\psi\Vert^2$, and needs one application of $\hat G$. The QFI bounds the precision of any
-# estimate of $\theta$ from $M$ repetitions by the quantum Cramér–Rao bound $\Delta\theta\ge1/\sqrt{MF_Q}$. Two cases can be evaluated by hand with $\hat P=\hat Z$. For $\vert +\rangle^{\otimes N}$
+# estimate of $\theta$ from $M$ repetitions by the quantum Cramér–Rao bound $\Delta\theta\ge1/\sqrt{MF_Q}$ (Helstrom 1967; Braunstein and Caves 1994). Two cases can be evaluated by hand with $\hat P=\hat Z$. For $\vert +\rangle^{\otimes N}$
 # the cross terms vanish, $\langle\hat Z_q\hat Z_{q'}\rangle=\langle\hat Z_q\rangle\langle\hat Z_{q'}\rangle=0$ for $q\neq q'$, so $\langle\hat G^2\rangle=\sum_q\langle\hat Z_q^2\rangle=N$ and $\langle\hat G\rangle=0$. For the GHZ state both
 # branches are eigenstates of $\hat G$ with eigenvalues $\pm N$, so $\langle\hat G^2\rangle=N^2$ and $\langle\hat G\rangle=0$:
 #
@@ -1827,7 +1827,7 @@ check("MCWF trajectories vs density tensor, max |z|", np.max(np.abs(z_traj.mean(
 #
 # $$ F_Q=2\sum_{m,n:\ \lambda_m+\lambda_n>0}\frac{(\lambda_m-\lambda_n)^2}{\lambda_m+\lambda_n}\,\big\vert\langle m\vert\hat J\vert n\rangle\big\vert^2 , \tag{77} $$
 #
-# which `qfi_mixed` evaluates from a dense eigendecomposition. As an independent check we use its geometric meaning (Braunstein and Caves): the QFI is the
+# which `qfi_mixed` evaluates from a dense eigendecomposition. As an independent check we use its geometric meaning (Braunstein and Caves 1994): the QFI is the
 # curvature of the Uhlmann fidelity of Eq. (41) between neighbouring states $\hat\rho_\theta=e^{-i\theta\hat J}\hat\rho\,e^{i\theta\hat J}$,
 #
 # $$ F_Q=\lim_{\theta\to0}\frac{8\big(1-\sqrt{F(\hat\rho,\hat\rho_\theta)}\big)}{\theta^2}, \tag{78} $$
@@ -1926,9 +1926,9 @@ check("oat_evolve vs expm(-i chi t J_z^2)", maxdiff(oat_evolve(css, 0.2), sla.ex
 #
 # ### 16.1 Haar-random unitaries and the QR phase fix
 #
-# Let $G$ be a $d\times d$ matrix of independent standard complex Gaussian entries (a Ginibre matrix). Its distribution is invariant under $G\to\hat VG$ for every unitary $\hat V$.
+# Let $G$ be a $d\times d$ matrix of independent standard complex Gaussian entries (a Ginibre matrix, Ginibre 1965). Its distribution is invariant under $G\to\hat VG$ for every unitary $\hat V$.
 # The QR decomposition (Press *et al.* 2007, Sec. 2.10) $G=QR$ ($Q$ unitary, $R$ upper triangular) is unique only up to a diagonal unitary $\Lambda$, since $G=(Q\Lambda)(\Lambda^\dagger R)$ is another valid factorisation. The
-# library convention fixes this freedom in a way that depends on $G$, so the distribution of $Q$ is not invariant. Mezzadri's recipe removes the dependence by
+# library convention fixes this freedom in a way that depends on $G$, so the distribution of $Q$ is not invariant. Mezzadri's recipe (Mezzadri 2007) removes the dependence by
 # making the diagonal of $R$ real and positive:
 #
 # $$ \hat U=Q\,\Lambda, \qquad \Lambda=\mathrm{diag}\Big(\frac{R_{11}}{\vert R_{11}\vert},\dots,\frac{R_{dd}}{\vert R_{dd}\vert}\Big), \tag{82} $$
@@ -1939,14 +1939,14 @@ check("oat_evolve vs expm(-i chi t J_z^2)", maxdiff(oat_evolve(css, 0.2), sla.ex
 #
 # $$ \mathbb{E}\big[\mathrm{Tr}\,\hat U\big]=0, \qquad \mathbb{E}\big[\vert\mathrm{Tr}\,\hat U\vert^2\big]=\sum_{i,k}\mathbb{E}\big[U_{ii}U^*_{kk}\big]=\sum_{i,k}\frac{\delta_{ik}}{d}=1 . \tag{83} $$
 #
-# A random brick-wall circuit applies Haar-random two-qubit gates on the even bonds, then on the odd bonds, and so on. After a depth of order $N$ it produces
-# states whose half-chain entanglement approaches the Page value for a random state of two subsystems of dimensions $m\le n$ (notebooks 06 and 10):
+# A random brick-wall circuit (Nahum *et al.* 2017) applies Haar-random two-qubit gates on the even bonds, then on the odd bonds, and so on. After a depth of order $N$ it produces
+# states whose half-chain entanglement approaches the Page value (Page 1993) for a random state of two subsystems of dimensions $m\le n$ (notebooks 06 and 10):
 #
 # $$ S_{\mathrm{Page}}=\frac{1}{\ln2}\Big(\sum_{k=n+1}^{mn}\frac1k-\frac{m-1}{2n}\Big)\ \text{bits}. \tag{84} $$
 #
 # ### 16.2 Single-qubit Clifford gates
 #
-# The Clifford group maps Pauli matrices to Pauli matrices under conjugation, $\hat C\hat\sigma^a\hat C^\dagger=\pm\hat\sigma^{\pi(a)}$ for a permutation $\pi$. Up to a global phase there are 24
+# The Clifford group (Gottesman 1998) maps Pauli matrices to Pauli matrices under conjugation, $\hat C\hat\sigma^a\hat C^\dagger=\pm\hat\sigma^{\pi(a)}$ for a permutation $\pi$. Up to a global phase there are 24
 # single-qubit Cliffords: the image of $\hat X$ can be any of the six operators $\pm\hat X,\pm\hat Y,\pm\hat Z$; conjugation preserves anticommutation, so the image of $\hat Z$ can be any of the
 # four signed Pauli matrices that anticommute with the image of $\hat X$; and the image of
 # $\hat Y=-i\hat Z\hat X$ is then fixed, giving $6\times4=24$. The engine generates them by closing $\{\hat H_{\mathrm d},\hat S\}$ under multiplication (a breadth-first search),
@@ -2031,7 +2031,7 @@ check("Cliffords closed under multiplication", 0.0 if closed else 1.0, 0.5)
 #
 # ### 16.3 Classical shadows from random Pauli measurements
 #
-# A classical shadow (Huang, Kueng and Preskill) is collected by measuring every qubit in a basis $\hat X$, $\hat Y$ or $\hat Z$ chosen uniformly at random. For one qubit and one basis
+# A classical shadow (Huang, Kueng and Preskill 2020) is collected by measuring every qubit in a basis $\hat X$, $\hat Y$ or $\hat Z$ chosen uniformly at random. For one qubit and one basis
 # $\hat P$ with eigenprojectors $\hat\Pi_\pm=\tfrac12(\mathbb{1}\pm\hat P)$, the measured projector, averaged over the outcomes, is
 #
 # $$ \sum_\pm\mathrm{Tr}\big(\hat\Pi_\pm\hat\rho\big)\,\hat\Pi_\pm=\sum_\pm\frac{1\pm\langle\hat P\rangle}{2}\,\frac{\mathbb{1}\pm\hat P}{2}=\frac{\mathbb{1}+\langle\hat P\rangle\hat P}{2}. $$
@@ -2051,7 +2051,7 @@ check("Cliffords closed under multiplication", 0.0 if closed else 1.0, 0.5)
 #
 # ### 16.4 Stabilizer Rényi entropy
 #
-# The stabilizer Rényi entropy (Leone, Oliviero and Hamma) measures how far a state is from the stabilizer states, the states reachable by Clifford circuits:
+# The stabilizer Rényi entropy (Leone, Oliviero and Hamma 2022) measures how far a state is from the stabilizer states, the states reachable by Clifford circuits:
 #
 # $$ M_\alpha=\frac{1}{1-\alpha}\log_2\Big(\frac{1}{2^N}\sum_{P}\langle\hat P\rangle^{2\alpha}\Big), \tag{88} $$
 #
@@ -2060,7 +2060,7 @@ check("Cliffords closed under multiplication", 0.0 if closed else 1.0, 0.5)
 #
 # $$ \langle\psi\vert\hat X^a\hat Z^b\vert\psi\rangle=\sum_s(-1)^{b\cdot s}\,\psi^*[s\oplus a]\,\psi[s]=\sum_s(-1)^{b\cdot s}f_a[s], \qquad f_a[s]=\psi^*[s\oplus a]\,\psi[s] . \tag{89} $$
 #
-# The sum over $s$ with the signs $(-1)^{b\cdot s}$ is the Walsh–Hadamard transform of $f_a$, which is the matrix $\big(\begin{smallmatrix}1&1\\1&-1\end{smallmatrix}\big)$ applied to every tensor axis.
+# The sum over $s$ with the signs $(-1)^{b\cdot s}$ is the Walsh–Hadamard transform (Walsh 1923) of $f_a$, which is the matrix $\big(\begin{smallmatrix}1&1\\1&-1\end{smallmatrix}\big)$ applied to every tensor axis.
 # One transform gives all $2^N$ values of $b$ at once, so the cost drops from $O(8^N)$ to $O(N\,4^N)$. Notebook 27 derives the method; notebook 24 treats classical shadows.
 
 # %%
@@ -2147,12 +2147,12 @@ check("M_2(cluster state, N=5) = 0", abs(stabilizer_renyi_entropy(cluster_state(
 #
 # ### 17.3 SPSA and Adam
 #
-# Simultaneous-perturbation stochastic approximation (SPSA, Spall) perturbs all parameters at once along a random vector $\boldsymbol\Delta$ with independent entries $\pm1$:
+# Simultaneous-perturbation stochastic approximation (SPSA, Spall 1992) perturbs all parameters at once along a random vector $\boldsymbol\Delta$ with independent entries $\pm1$:
 #
 # $$ \boldsymbol g=\frac{f(\boldsymbol\theta+c\boldsymbol\Delta)-f(\boldsymbol\theta-c\boldsymbol\Delta)}{2c}\,\boldsymbol\Delta, \qquad \mathbb{E}[\boldsymbol g]=\mathbb{E}\big[\boldsymbol\Delta\boldsymbol\Delta^T\big]\nabla f+O(c^2)=\nabla f+O(c^2), \tag{92} $$
 #
 # where the Taylor expansion $f(\boldsymbol\theta\pm c\boldsymbol\Delta)=f\pm c\,\boldsymbol\Delta\cdot\nabla f+\tfrac{c^2}{2}\boldsymbol\Delta^T\nabla^2f\,\boldsymbol\Delta\pm O(c^3)$ and $\mathbb{E}[\Delta_k\Delta_l]=\delta_{kl}$ were used. Two
-# evaluations per step suffice, whatever the number of parameters. Adam (Kingma and Ba) keeps exponential averages of the gradient and of its square and corrects their bias towards zero at early steps:
+# evaluations per step suffice, whatever the number of parameters. Adam (Kingma and Ba 2015) keeps exponential averages of the gradient and of its square and corrects their bias towards zero at early steps:
 #
 # $$ \begin{aligned} m_t &= \beta_1m_{t-1}+(1-\beta_1)\,g_t, \qquad v_t=\beta_2v_{t-1}+(1-\beta_2)\,g_t^2, \\ \theta_t &= \theta_{t-1}-\eta\,\frac{m_t/(1-\beta_1^t)}{\sqrt{v_t/(1-\beta_2^t)}+\epsilon} . \end{aligned} \tag{93} $$
 #
@@ -2239,7 +2239,7 @@ check("adam_update: 30 steps vs NumPy Adam, Eq. (93)", maxdiff(th_e, adam_numpy(
 #
 # ## 18. Matrix product states: the ingredients
 #
-# The last part of the engine leaves the state vector. A matrix product state (MPS) writes the $2^N$ amplitudes as a product of $N$ small matrices, one per site and per
+# The last part of the engine leaves the state vector. A matrix product state (MPS; Fannes, Nachtergaele and Werner 1992) writes the $2^N$ amplitudes as a product of $N$ small matrices, one per site and per
 # value of its spin,
 #
 # $$ \psi[s_0,s_1,\dots,s_{N-1}]=A_0^{s_0}A_1^{s_1}\cdots A_{N-1}^{s_{N-1}}, \qquad A_j^{s}\ \text{of size}\ \chi_j\times\chi_{j+1},\quad \chi_0=\chi_N=1 . \tag{94} $$
@@ -2370,7 +2370,7 @@ check("mps_correlator and mps_rdm2 raise ValueError for j <= i (4 calls)", abs(n
 # ### 18.2 Matrix product operators, environments and the effective Hamiltonian
 #
 # A Hamiltonian with nearest-neighbour terms is a matrix product operator (MPO), $\hat H=\sum W_0^{v_0v_1}W_1^{v_1v_2}\cdots$, where each $W_j$ is a $D\times D$ matrix of single-site operators. For
-# the Hamiltonian of Eq. (58) without the $\hat Y$ field the engine uses $D=5$ and reads $W$ as a finite-state machine whose states are "nothing placed yet" (4), "$\hat X$, $\hat Y$ or $\hat Z$
+# the Hamiltonian of Eq. (58) without the $\hat Y$ field the engine uses $D=5$ and reads $W$ as a finite-state machine (Crosswhite and Bacon 2008) whose states are "nothing placed yet" (4), "$\hat X$, $\hat Y$ or $\hat Z$
 # placed on the previous site" (1, 2, 3) and "term complete" (0):
 #
 # $$ W=\begin{pmatrix}\mathbb{1}&0&0&0&0\\ \hat X&0&0&0&0\\ \hat Y&0&0&0&0\\ \hat Z&0&0&0&0\\ h_x\hat X+h_z\hat Z&J_{xx}\hat X&J_{yy}\hat Y&J_{zz}\hat Z&\mathbb{1}\end{pmatrix}, \qquad \text{rows }v,\ \text{columns }w . \tag{98} $$
@@ -2484,7 +2484,7 @@ check("dmrg ground state: |<psi|psi_exact>|^2 = 1", abs(abs(np.vdot(V8[:, 0], ps
 
 # %% [markdown]
 # The fixed-length Lanczos solver finds the lowest eigenpair of a random $60\times60$ Hermitian matrix, and the split returns the best rank-$\chi$ approximation of $\theta$ (the
-# Eckart–Young property of the SVD), the discarded weight of Eq. (96) and a left-canonical left tensor. DMRG converges for $N=8$ to the exact ground-state energy and state within
+# Eckart–Young property of the SVD, Eckart and Young 1936), the discarded weight of Eq. (96) and a left-canonical left tensor. DMRG converges for $N=8$ to the exact ground-state energy and state within
 # a few sweeps; the printed trace shows the energy per sweep, the largest discarded weight and the bond dimension in use. A second call of `make_local_step` with the same
 # $(\chi,m,\text{direction})$ returns the cached compiled function, so a scan over Hamiltonian parameters compiles the local step only once.
 #
@@ -2544,7 +2544,7 @@ for n_sw in (1, 4):
 #
 # $$ \begin{aligned} C[a,s,t,b] &= \sum_{m,s',t'}G[s,t,s',t']\,B_j[a,s',m]\,B_{j+1}[m,t',b], \qquad \theta[a,s,t,b]=\lambda_j[a]\,C[a,s,t,b], \\ \theta_{(as),(tb)} &= U\,\mathrm{diag}(S)\,V^\dagger, \qquad B'_{j+1}=V^\dagger_{[:\chi]}, \qquad B'_j=C\cdot B'^{\dagger}_{j+1}/\Vert S_{[:\chi]}\Vert, \qquad \lambda'_{j+1}=S_{[:\chi]}/\Vert S_{[:\chi]}\Vert . \end{aligned} \tag{102} $$
 #
-# The new left tensor is obtained from $C$ and the new right tensor (Hastings' form), which avoids a division by small Schmidt values. Schmidt values below the constant
+# The new left tensor is obtained from $C$ and the new right tensor (the form of Hastings 2009), which avoids a division by small Schmidt values. Schmidt values below the constant
 # `LAM_CUT` $=100\,\epsilon_{\mathrm{mach}}$ ($2.2\times10^{-14}$ in double precision, $1.2\times10^{-5}$ in single precision) are set to zero together with their rows of $B'_{j+1}$, so that the padding stays
 # exactly zero; their weight is not counted in the discarded weight. `tebd_layer` applies all gates of one parity
 # at once with `vmap`, `bond_gates` exponentiates all bond Hamiltonians with `vmap`, and `mps_tebd_evolve` runs the Strang sequence $e^{-i\hat H_{\mathrm{e}}dt/2}e^{-i\hat H_{\mathrm{o}}dt}e^{-i\hat H_{\mathrm{e}}dt/2}$
@@ -2735,7 +2735,12 @@ print(f"\nALL {len(CHECKS)} CHECKS PASSED; {n_mut} of them also rejected a delib
 #   (singular value decomposition), Section 2.10 (QR decomposition), Chapter 11 (eigensystems), Section 17.1 (Runge–Kutta method); the same algorithms in *Numerical Recipes in Fortran 90*, 2nd ed.
 #   (Cambridge University Press, 1996).
 # * H. F. Trotter, On the product of semi-groups of operators, Proc. Amer. Math. Soc. **10**, 545 (1959); M. Suzuki, Fractal decomposition of exponential operators with applications to
-#   many-body theories and Monte Carlo simulations, Phys. Lett. A **146**, 319 (1990).
+#   many-body theories and Monte Carlo simulations, Phys. Lett. A **146**, 319 (1990); G. Strang, On the construction and comparison of difference schemes, SIAM J. Numer. Anal. **5**, 506 (1968).
+# * J. E. Campbell, On a law of combination of operators bearing on the theory of continuous transformation groups, Proc. London Math. Soc. **28**, 381 (1897);
+#   H. F. Baker, Alternants and continuous groups, Proc. London Math. Soc. (2) **3**, 24 (1905); F. Hausdorff, Die symbolische Exponentialformel in der Gruppentheorie,
+#   Ber. Verh. Kgl. Sächs. Ges. Wiss. Leipzig, Math.-Phys. Kl. **58**, 19 (1906).
+# * C. Runge, Ueber die numerische Auflösung von Differentialgleichungen, Math. Ann. **46**, 167 (1895); W. Kutta, Beitrag zur näherungsweisen Integration totaler
+#   Differentialgleichungen, Z. Math. Phys. **46**, 435 (1901).
 # * C. Lanczos, An iteration method for the solution of the eigenvalue problem of linear differential and integral operators, J. Res. Natl. Bur. Stand. **45**, 255 (1950).
 # * H. Tal-Ezer and R. Kosloff, An accurate and efficient scheme for propagating the time dependent Schrödinger equation, J. Chem. Phys. **81**, 3967 (1984).
 # * T. J. Park and J. C. Light, Unitary quantum time evolution by iterative Lanczos reduction, J. Chem. Phys. **85**, 5870 (1986); M. Hochbruck and C. Lubich, On Krylov subspace approximations
@@ -2760,4 +2765,21 @@ print(f"\nALL {len(CHECKS)} CHECKS PASSED; {n_mut} of them also rejected a delib
 # * J. C. Spall, Multivariate stochastic approximation using a simultaneous perturbation gradient approximation, IEEE Trans. Autom. Control **37**, 332 (1992).
 # * D. P. Kingma and J. Ba, Adam: a method for stochastic optimization, arXiv:1412.6980, 3rd International Conference on Learning Representations (2015).
 # * S. R. White, Density matrix formulation for quantum renormalization groups, Phys. Rev. Lett. **69**, 2863 (1992); G. Vidal, Efficient simulation of one-dimensional quantum many-body systems,
-#   Phys. Rev. Lett. **93**, 040502 (2004); U. Schollwöck, The density-matrix renormalization group in the age of matrix product states, Ann. Phys. **326**, 96 (2011).
+#   Phys. Rev. Lett. **93**, 040502 (2004); U. Schollwöck, The density-matrix renormalization group in the age of matrix product states, Ann. Phys. **326**, 96 (2011); M. Fannes, B. Nachtergaele and R. F. Werner, Finitely correlated states on quantum spin chains, Commun. Math. Phys. **144**, 443 (1992).
+# * G. M. Crosswhite and D. Bacon, Finite automata for caching in matrix product algorithms, Phys. Rev. A **78**, 012356 (2008); M. B. Hastings, Light-cone matrix product,
+#   J. Math. Phys. **50**, 095207 (2009); C. Eckart and G. Young, The approximation of one matrix by another of lower rank, Psychometrika **1**, 211 (1936).
+# * D. M. Greenberger, M. A. Horne and A. Zeilinger, Going beyond Bell's theorem, in *Bell's Theorem, Quantum Theory and Conceptions of the Universe*, ed. M. Kafatos
+#   (Kluwer, 1989), pp. 69–72; R. H. Dicke, Coherence in spontaneous radiation processes, Phys. Rev. **93**, 99 (1954); W. Dür, G. Vidal and J. I. Cirac, Three qubits can be
+#   entangled in two inequivalent ways, Phys. Rev. A **62**, 062314 (2000); H. J. Briegel and R. Raussendorf, Persistent entanglement in arrays of interacting particles,
+#   Phys. Rev. Lett. **86**, 910 (2001).
+# * A. Haar, Der Massbegriff in der Theorie der kontinuierlichen Gruppen, Ann. Math. **34**, 147 (1933); J. Ginibre, Statistical ensembles of complex, quaternion, and real
+#   matrices, J. Math. Phys. **6**, 440 (1965).
+# * E. Schmidt, Zur Theorie der linearen und nichtlinearen Integralgleichungen, Math. Ann. **63**, 433 (1907); J. von Neumann, Thermodynamik quantenmechanischer
+#   Gesamtheiten, Nachr. Ges. Wiss. Göttingen, Math.-Phys. Kl. (1927); A. Rényi, On measures of entropy and information, in *Proc. 4th Berkeley Symp. Math. Stat. Probab.*,
+#   Vol. 1, pp. 547–561 (1961).
+# * K. Kraus, General state changes in quantum theory, Ann. Phys. **64**, 311 (1971).
+# * C. W. Helstrom, Minimum mean-squared error of estimates in quantum statistics, Phys. Lett. A **25**, 101 (1967).
+# * A. Nahum, J. Ruhman, S. Vijay and J. Haah, Quantum entanglement growth under random unitary dynamics, Phys. Rev. X **7**, 031016 (2017).
+# * D. Gottesman, The Heisenberg representation of quantum computers, arXiv:quant-ph/9807006 (1998).
+# * J. L. Walsh, A closed set of normal orthogonal functions, Amer. J. Math. **45**, 5 (1923).
+# * R. A. DeMillo, R. J. Lipton and F. G. Sayward, Hints on test data selection: help for the practicing programmer, Computer **11**(4), 34 (1978).

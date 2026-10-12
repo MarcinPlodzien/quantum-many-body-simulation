@@ -152,13 +152,15 @@
 # ### 2.1 The free Schrödinger equation in SI units
 #
 # A particle of mass $m$ moving in one dimension with no forces acting on it is described by a wave function
-# $\Psi(X,T)$ obeying
+# $\Psi(X,T)$ obeying the time-dependent Schrödinger equation, introduced by Schrödinger in his 1926 papers on
+# wave mechanics,
 #
 # $$ i\hbar \frac{\partial \Psi(X,T)}{\partial T} \;=\; -\frac{\hbar^2}{2m}\frac{\partial^2 \Psi(X,T)}{\partial X^2} . \tag{1} $$
 #
 # Capital $X$ and $T$ are a position in metres and a time in seconds. The right-hand side is the kinetic-energy
 # operator $\hat p^2/2m$ with $\hat p = -i\hbar\,\partial_X$; there is no potential term, which is exactly what
-# "free" means. The physical content of $\Psi$ is the Born rule: $\vert\Psi(X,T)\vert^2\,dX$ is the probability of
+# "free" means. The physical content of $\Psi$ is the Born rule, proposed by Born (1926):
+# $\vert\Psi(X,T)\vert^2\,dX$ is the probability of
 # finding the particle in $[X, X+dX]$, and
 #
 # $$ \int_{-\infty}^{\infty} \vert\Psi(X,T)\vert^2 \, dX = 1 \qquad \text{for all } T . $$
@@ -457,8 +459,8 @@ for name, mass, x0 in cases:
 #    \sigma(t) = \sigma_0\sqrt{1+\tau^{2}} = \sigma_0\sqrt{1 + \left(\frac{t}{2\sigma_0^{2}}\right)^{2}} . \tag{8} $$
 #
 # The centre moves with constant velocity $k_0$ — in SI units $\hbar k_0/m = p_0/m$, precisely the classical
-# velocity (this is Ehrenfest's theorem for a free particle). The width grows: slowly at first
-# ($\sigma \approx \sigma_0(1+\tau^2/2)$, quadratically in $t$), then linearly,
+# velocity (this is Ehrenfest's theorem (Ehrenfest, 1927) for a free particle). The width grows: slowly at
+# first ($\sigma \approx \sigma_0(1+\tau^2/2)$, quadratically in $t$), then linearly,
 # $\sigma(t)\to \sigma_0 \tau = t/(2\sigma_0)= \sigma_k t$, which is nothing but "the packet expands at the spread
 # of its own velocities". The cross-over happens at $\tau = 1$, i.e. at the **spreading time**
 #
@@ -487,6 +489,8 @@ for name, mass, x0 in cases:
 # $$ \sigma_x(t)\,\sigma_k = \frac12\sqrt{1+\tau^{2}} \;\ge\; \frac12 , $$
 #
 # with equality only at $t=0$. A free packet is a minimum-uncertainty state for one instant and never again.
+# The bound itself is Heisenberg's uncertainty relation (Heisenberg, 1927); the inequality
+# $\sigma_x\sigma_p \ge \hbar/2$ in this standard-deviation form was proved by Kennard (1927).
 #
 # **(d) Phase velocity versus group velocity.** A single plane wave $e^{i(kx-\omega t)}$ with $\omega = k^2/2$ has
 #
@@ -495,7 +499,8 @@ for name, mass, x0 in cases:
 # The **envelope** travels at $k_0$; the **ripples inside it** travel at only $k_0/2$, so in an animation of
 # $\mathrm{Re}\,\psi$ the individual crests continuously fall behind the lump and disappear at its rear edge.
 # For light in vacuum the two velocities coincide; for matter waves they differ by a factor of two. The particle
-# velocity of a de Broglie matter wave is the group velocity, the one that carries the probability.
+# velocity of a de Broglie matter wave (de Broglie, 1924) is the group velocity, the one that carries the
+# probability.
 #
 # > **Physics insight.** Everything above came from one fact: $\omega(k)$ is *not* linear in $k$. A linear
 # > dispersion (light in vacuum, sound in air) transports any pulse shape rigidly and forever. A curved
@@ -571,7 +576,8 @@ for name, mass, x0 in cases:
 #
 # $$ k_{\max} = \frac{\pi}{\Delta x} \qquad \text{(the Nyquist wave number)} , $$
 #
-# which is the **sampling theorem**: you need at least two grid points per wavelength. Two practical rules follow,
+# which is the **sampling theorem** proved by Shannon (1949), the critical rate being named after Nyquist (1928):
+# you need at least two grid points per wavelength. Two practical rules follow,
 # and violating either of them is a common mistake:
 #
 # 1. **Choose $k_0$ commensurate with the ring**, $k_0 = 2\pi m/L$ with integer $m$. Otherwise $e^{ik_0x}$ is not
@@ -584,7 +590,8 @@ for name, mass, x0 in cases:
 #
 # ### 4.5 `fftfreq`: the order the wave numbers come in
 #
-# NumPy's `fft` returns the coefficients in the order $n = 0, 1, \ldots, N_x/2-1, -N_x/2, \ldots, -1$ — the
+# NumPy's `fft`, an implementation of the fast Fourier transform algorithm of Cooley and Tukey (1965), returns
+# the coefficients in the order $n = 0, 1, \ldots, N_x/2-1, -N_x/2, \ldots, -1$ — the
 # non-negative frequencies first, then the negative ones ("wrapped" order). Rather than remembering that, call
 # `np.fft.fftfreq(N_x, d=dx)`, which returns $n/(N_x\Delta x) = n/L$ in exactly the matching order; multiply by
 # $2\pi$ to get $k$:
@@ -2340,7 +2347,8 @@ plt.show()
 # > **Physics insight.** The fringe spacing tells you which images interfere. Two copies of the packet separated
 # > by $\Delta = nL$ produce fringes of period $2\pi/(\Delta/t) = 2\pi t/(nL)$, exactly like a double slit whose
 # > "slit separation" is $nL$. This is the same mathematics as the interference of two expanding cold-atom
-# > clouds, which is how the relative phase of two Bose-Einstein condensates is measured.
+# > clouds, which is how the relative phase of two Bose-Einstein condensates is measured; such fringes were
+# > first observed by Andrews *et al.* (1997).
 #
 # ### 11.2 Exact revivals on a ring
 #
@@ -2357,13 +2365,14 @@ plt.show()
 # $\psi(x, T_{\rm rev}) = \psi(x, 0)$ **exactly, for any initial state whatsoever**. The wave function reassembles
 # itself out of what looked like structureless mush. This is a *quantum revival*. A classical swarm with the same
 # spread of velocities never re-forms: each particle is periodic, but with its own period $L/v$, and the swarm
-# spreads uniformly over the ring. Revivals have been observed with Rydberg wave packets and with cold atoms (see
-# the review by Robinett, Phys. Rep. **392**, 1 (2004)).
+# spreads uniformly over the ring. Revivals were observed with Rydberg wave packets by Yeazell, Mallalieu and
+# Stroud (1990), and have since been seen with cold atoms (see the review by Robinett, Phys. Rep. **392**, 1 (2004)).
 #
 # A bonus: at $T_{\rm rev}/2$ the phases are $e^{-i\pi n^2} = (-1)^{n^2} = (-1)^n$, which is precisely the Fourier
 # multiplier of a **translation by $L/2$**. So at half the revival time the packet reappears on the opposite side
-# of the ring. At other rational fractions of $T_{\rm rev}$ one finds several smaller copies — "fractional
-# revivals" — and plotting $\vert\psi(x,t)\vert^2$ over a full revival period produces a **quantum carpet**.
+# of the ring. At other rational fractions of $T_{\rm rev}$ one finds several smaller copies — the "fractional
+# revivals" analysed by Averbukh and Perelman (1989) — and plotting $\vert\psi(x,t)\vert^2$ over a full revival
+# period produces a **quantum carpet**.
 
 # %%
 # ==============================================================================
@@ -2504,13 +2513,14 @@ plt.show()
 # 6. (★★) **Revivals on your own ring.** Change $L$ and verify $T_{\rm rev}=L^2/\pi$ numerically. What happens at
 #    $t = T_{\rm rev}/3$? Plot it. (These are *fractional revivals*: three copies of the packet.)
 # 7. (★★★) **A potential step.** A free particle is boring in the end; the interesting physics is scattering. The
-#    split-step recipe extends `propagate` to a Hamiltonian $H = \hat p^2/2 + V(x)$: apply
+#    split-step recipe of Feit, Fleck and Steiger (1982) extends `propagate` to a Hamiltonian
+#    $H = \hat p^2/2 + V(x)$: apply
 #    $e^{-iV\Delta t/2}$ in position space, then $e^{-ik^2\Delta t/2}$ in Fourier space, then
 #    $e^{-iV\Delta t/2}$ again. Implement it, send a packet of energy $E=k_0^2/2$ at a step $V(x)=V_0$ for
 #    $x>L/2$, and measure the transmitted probability for $V_0/E \in \{0.5, 0.9, 1.0, 1.1, 2\}$. Compare with the
 #    textbook plane-wave transmission coefficient. Why is the agreement imperfect? (Notebook 00b builds the
 #    machinery for potentials properly.)
-# 8. (★★★) **The Wigner function.** Compute
+# 8. (★★★) **The Wigner function**, introduced by Wigner (1932). Compute
 #    $W(x,p) = \frac{1}{\pi}\int \psi^{*}(x+y)\,\psi(x-y)\,e^{2ipy}\,dy$ on the grid and animate it. For the free
 #    particle it should simply shear: $W(x,p,t) = W(x-pt, p, 0)$ — the exact classical Liouville flow. Verify
 #    that, and explain why the free particle is the one case where quantum and classical phase-space dynamics
@@ -2537,6 +2547,33 @@ plt.show()
 #   385–458 (2014) — why trapezoidal sums of smooth periodic functions converge exponentially (Section 4.2).
 # * R. W. Robinett, *Quantum wave packet revivals*, Phys. Rep. **392**, 1 (2004) — revivals, fractional revivals
 #   and quantum carpets.
+#
+# **Original papers**
+# * E. Schrödinger, *Quantisierung als Eigenwertproblem*, Ann. Phys. **384** (4th series **79**), 361 (1926) and
+#   Ann. Phys. **386** (4th series **81**), 109 (1926) — the first and the fourth communication on wave mechanics; the fourth contains the
+#   time-dependent equation, Eq. (1).
+# * M. Born, *Zur Quantenmechanik der Stoßvorgänge*, Z. Phys. **37**, 863 (1926) — the probability
+#   interpretation of the wave function.
+# * W. Heisenberg, *Über den anschaulichen Inhalt der quantentheoretischen Kinematik und Mechanik*, Z. Phys.
+#   **43**, 172 (1927) — the uncertainty relation.
+# * E. H. Kennard, *Zur Quantenmechanik einfacher Bewegungstypen*, Z. Phys. **44**, 326 (1927) — the inequality
+#   $\sigma_x\sigma_p \ge \hbar/2$.
+# * P. Ehrenfest, *Bemerkung über die angenäherte Gültigkeit der klassischen Mechanik innerhalb der
+#   Quantenmechanik*, Z. Phys. **45**, 455 (1927) — Ehrenfest's theorem, Section 8.2.
+# * L. de Broglie, *Recherches sur la théorie des quanta*, Ann. Phys. (Paris) **10**, 22 (1925) — the thesis of
+#   1924 that introduced matter waves.
+# * H. Nyquist, *Certain topics in telegraph transmission theory*, Trans. AIEE **47**, 617 (1928); C. E. Shannon,
+#   *Communication in the presence of noise*, Proc. IRE **37**, 10 (1949) — the sampling theorem of Section 4.4.
+# * J. W. Cooley and J. W. Tukey, *An algorithm for the machine calculation of complex Fourier series*, Math.
+#   Comp. **19**, 297 (1965) — the fast Fourier transform.
+# * M. R. Andrews, C. G. Townsend, H.-J. Miesner, D. S. Durfee, D. M. Kurn and W. Ketterle, *Observation of
+#   interference between two Bose condensates*, Science **275**, 637 (1997).
+# * I. Sh. Averbukh and N. F. Perelman, *Fractional revivals: universality in the long-term evolution of quantum
+#   wave packets beyond the correspondence principle dynamics*, Phys. Lett. A **139**, 449 (1989).
+# * J. A. Yeazell, M. Mallalieu and C. R. Stroud, *Observation of the collapse and revival of a Rydberg electronic
+#   wave packet*, Phys. Rev. Lett. **64**, 2007 (1990).
+# * E. Wigner, *On the quantum correction for thermodynamic equilibrium*, Phys. Rev. **40**, 749 (1932) — the
+#   Wigner function of Exercise 8.
 #
 # ### What comes next
 #

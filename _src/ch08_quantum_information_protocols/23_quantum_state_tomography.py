@@ -11,7 +11,9 @@
 # prepared**. One run cannot answer this, because a measurement returns a single bit string and disturbs the state; the device must
 # be run many times. The only access is the one described in [08 — measurements](../ch03_matrix_free_engine/08_measurements.ipynb):
 # choose a measurement axis for every qubit, run the device, read out a string of $N$ bits, repeat. From those click statistics the
-# full density matrix must be *reconstructed*. That reconstruction problem is **quantum state tomography** (QST).
+# full density matrix must be *reconstructed*. That reconstruction problem is **quantum state tomography** (QST). It was proposed
+# by Vogel and Risken (1989) for a mode of light and first carried out by Smithey, Beck, Raymer and Faridani (1993), who called it
+# optical homodyne tomography; the qubit version used here was worked out in detail by James, Kwiat, Munro and White (2001).
 #
 # It is the standard acceptance test of every quantum device. "We prepared a three-qubit GHZ state with fidelity $0.97$" is a
 # statement produced by tomography. It is also the place where a physicist meets, usually for the first time, a genuine
@@ -34,7 +36,7 @@
 #    squares (Sections 6–9).
 # 4. **Unphysical estimates.** Linear inversion regularly returns a matrix with **negative eigenvalues** — not a quantum state. We
 #    measure how often, and repair it by the eigenvalue-truncation projection of Smolin, Gambetta and Smith (Sections 10–11).
-# 5. **Maximum-likelihood tomography.** Write the multinomial likelihood, derive the extremal equation $R\rho R=\rho$, implement the
+# 5. **Maximum-likelihood tomography**, introduced by Hradil (1997). Write the multinomial likelihood, derive the extremal equation $R\rho R=\rho$, implement the
 #    iterative $R\rho R$ algorithm and its *diluted* variant with convergence monitoring, then solve the *same* problem by gradient
 #    ascent with `jax.grad` and Adam on the Cholesky parametrisation $\rho=T^\dagger T/\mathrm{Tr}(T^\dagger T)$, and check that the
 #    two agree (Sections 12–14).
@@ -1444,8 +1446,8 @@ for N in (1, 2, 3):
 #
 # $$\rho_{k+1}=\frac{\tilde R(\rho_k)\;\rho_k\;\tilde R(\rho_k)}{\mathrm{Tr}\!\left[\tilde R(\rho_k)\,\rho_k\,\tilde R(\rho_k)\right]} \tag{14}$$
 #
-# — the **$R\rho R$ algorithm**, as Řeháček, Hradil, Knill and Lvovsky (2007) call it, crediting it to earlier work of Hradil,
-# Řeháček, Fiurášek and Ježek (in the Paris–Řeháček collection listed in the references). Each step (i) computes the $6^N$ probabilities, (ii) assembles $R$, (iii) sandwiches and renormalises.
+# — the **$R\rho R$ algorithm**, proposed by Hradil, Řeháček, Fiurášek and Ježek (2004) and given its name by Řeháček, Hradil,
+# Knill and Lvovsky (2007). Each step (i) computes the $6^N$ probabilities, (ii) assembles $R$, (iii) sandwiches and renormalises.
 # Starting from the maximally mixed state $\rho_0=\mathbb 1/d$, positivity and unit trace hold at every step *by construction*.
 #
 # **Two caveats, both important.**
@@ -1665,7 +1667,8 @@ fig.tight_layout(); plt.show()
 # ### 14.1 The Cholesky (Cholesky-like) parametrisation
 #
 # Take an arbitrary complex matrix $T\in\mathbb{C}^{d\times d}$ — in this notebook a full matrix, though a lower-triangular one with
-# real diagonal (the Cholesky factor, as in James, Kwiat, Munro and White 2001) has exactly the right number of parameters — and set
+# real diagonal (the Cholesky factor, introduced for maximum-likelihood tomography by Banaszek, D'Ariano, Paris and Sacchi 1999 and used
+# for two qubits by James, Kwiat, Munro and White 2001) has exactly the right number of parameters — and set
 #
 # $$\rho(T)=\frac{T^\dagger T}{\mathrm{Tr}\!\left(T^\dagger T\right)} . \tag{16}$$
 #
@@ -1675,8 +1678,8 @@ fig.tight_layout(); plt.show()
 #
 # $$C(\theta)=-\frac{1}{N_{\rm tot}}\sum_jn_j\log\big\langle\phi_j\big\vert\rho(\theta)\big\vert\phi_j\big\rangle$$
 #
-# with `jax.value_and_grad` (reverse-mode differentiation straight through the einsum and the normalisation) and the Adam optimiser we
-# built in the engine. Dividing by $N_{\rm tot}$ only makes the printed cost a number per shot: Adam divides each gradient component
+# with `jax.value_and_grad` (reverse-mode differentiation straight through the einsum and the normalisation) and the Adam optimiser of
+# Kingma and Ba (2015), built in the engine. Dividing by $N_{\rm tot}$ only makes the printed cost a number per shot: Adam divides each gradient component
 # by the square root of its running mean square, so a constant factor in the cost leaves the step unchanged (up to the regulariser
 # $10^{-8}$ in that denominator). The parametrisation is redundant ($T$ and $UT$ give the same $\rho$ for unitary $U$, and the overall scale
 # drops out), which is harmless for a first-order method.
@@ -1823,7 +1826,8 @@ fig.tight_layout(); plt.show()
 #
 # ### 15.2 The bootstrap
 #
-# In a real experiment there is only **one** data set, so error bars cannot come from repetitions. The bootstrap replaces the unknown
+# In a real experiment there is only **one** data set, so error bars cannot come from repetitions. The bootstrap, introduced by
+# Efron (1979), replaces the unknown
 # true distribution by the observed one: treat the measured frequencies $\hat p(s\vert b)=n_{b,s}/M$ as if they were the truth, draw
 # $B$ new synthetic data sets of the same size from them, re-run the *entire* estimation pipeline on each, and use the spread of the
 # resulting estimates as the error bar. It is nothing but Monte-Carlo error propagation through a pipeline that is too complicated
@@ -2072,7 +2076,7 @@ assert worst_w > 2.0
 # The bootstrap works. Every error bar obtained from the *single* data set reproduces the across-experiment one within a factor of
 # about $1.8$, and the comparison is itself noisy, since $150$ experiments determine a standard deviation only to $\pm6\%$ and the
 # bootstrap sample is drawn around one particular $\hat\rho$. The agreement is tightest for the trace distance and the purity and
-# loosest for the Uhlmann fidelity of the Werner state (ratios $1.79$ and $1.66$). All eleven ratios are *above* one. They come from
+# loosest for the Uhlmann fidelity (Uhlmann 1976; named fidelity by Jozsa 1994) of the Werner state (ratios $1.79$ and $1.66$). All eleven ratios are *above* one. They come from
 # a single data set per state and are therefore strongly correlated, so this run alone does not establish a systematic
 # over-estimate; resampling around a $\hat p$ that is itself noisy and the non-smoothness of the estimators at the boundary are the
 # two mechanisms that can produce one. The control line shows that the factor-2 test has discriminating power: a bootstrap with the
@@ -2571,12 +2575,21 @@ fig.tight_layout(); plt.show()
 #
 # * Z. Hradil, *Quantum-state estimation*, Phys. Rev. A **55**, R1561 (1997) — maximum-likelihood tomography, the positivity objection
 #   to linear inversion, and the extremal equation behind the $R\rho R$ iteration.
+# * K. Vogel and H. Risken, *Determination of quasiprobability distributions in terms of probability distributions for the rotated
+#   quadrature phase*, Phys. Rev. A **40**, 2847 (1989) — the proposal to reconstruct a quantum state from measured distributions.
+# * D. T. Smithey, M. Beck, M. G. Raymer and A. Faridani, *Measurement of the Wigner distribution and the density matrix of a light mode
+#   using optical homodyne tomography: application to squeezed states and the vacuum*, Phys. Rev. Lett. **70**, 1244 (1993) — the first
+#   quantum state tomography.
+# * K. Banaszek, G. M. D'Ariano, M. G. A. Paris and M. F. Sacchi, *Maximum-likelihood estimation of the density matrix*,
+#   Phys. Rev. A **61**, 010304(R) (1999) — the triangular (Cholesky) parametrisation $\rho=T^\dagger T$ in maximum-likelihood tomography.
 # * D. F. V. James, P. G. Kwiat, W. J. Munro and A. G. White, *Measurement of qubits*, Phys. Rev. A **64**, 052312 (2001) — the
 #   standard reference for two-qubit tomography (with $4^n$ product projectors, $16$ for two qubits, rather than the $3^N$
-#   six-outcome Pauli settings used here) and the source of the parametrisation $T^\dagger T/\mathrm{Tr}(T^\dagger T)$ of Section 14.
+#   six-outcome Pauli settings used here) and the two-qubit form of the parametrisation $T^\dagger T/\mathrm{Tr}(T^\dagger T)$ of Section 14.
 # * J. Řeháček, Z. Hradil, E. Knill and A. I. Lvovsky, *Diluted maximum-likelihood algorithm for quantum tomography*,
 #   Phys. Rev. A **75**, 042108 (2007) — the name "$R\rho R$ algorithm", a counterexample to its convergence, and the diluted iteration
 #   of Eq. (15) with its monotonicity for small $\epsilon$.
+# * Z. Hradil, J. Řeháček, J. Fiurášek and M. Ježek, *Maximum-likelihood methods in quantum mechanics*, in *Quantum State Estimation*,
+#   ed. M. G. A. Paris and J. Řeháček, Lecture Notes in Physics **649**, 59–112 (Springer, 2004) — the $R\rho R$ iteration of Eq. (14).
 # * H. Häffner, W. Hänsel, C. F. Roos, J. Benhelm, D. Chek-al-kar, M. Chwalla, T. Körber, U. D. Rapol, M. Riebe, P. O. Schmidt,
 #   C. Becher, O. Gühne, W. Dür and R. Blatt, *Scalable multiparticle entanglement of trapped ions*, Nature **438**, 643 (2005) —
 #   eight-qubit W-state tomography with $3^8$ bases (Section 18.2).
@@ -2591,6 +2604,10 @@ fig.tight_layout(); plt.show()
 #   Phys. Rev. Lett. **105**, 150401 (2010) — the compressed-sensing route mentioned in Section 18.3.
 # * T. Baumgratz, D. Gross, M. Cramer and M. B. Plenio, *Scalable reconstruction of density matrices*,
 #   Phys. Rev. Lett. **111**, 020401 (2013) — matrix-product-operator (tensor-network) tomography, also Section 18.3.
+# * B. Efron, *Bootstrap methods: another look at the jackknife*, Ann. Statist. **7**, 1 (1979) — the bootstrap of Section 15.2.
+# * D. P. Kingma and J. Ba, *Adam: a method for stochastic optimization*, arXiv:1412.6980, ICLR 2015 — the optimiser of Section 14.
+# * A. Uhlmann, *The "transition probability" in the state space of a $\ast$-algebra*, Rep. Math. Phys. **9**, 273 (1976);
+#   R. Jozsa, *Fidelity for mixed quantum states*, J. Mod. Opt. **41**, 2315 (1994) — the fidelity between mixed states.
 # * M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information* (Cambridge University Press, 2000) — density
 #   matrices, the Bloch/Pauli expansion, fidelity and trace distance (Ch. 2, 8 and 9).
 # * H.-Y. Huang, R. Kueng and J. Preskill, *Predicting many properties of a quantum system from very few measurements*,

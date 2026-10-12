@@ -182,7 +182,7 @@ def mean_and_se(x):
 # Every eigenstate of $H$ can be chosen with $P=+1$ or $P=-1$, and two states with different values of $P$ are
 # orthogonal. In the Néel and ferromagnetic limits the two classical configurations are exchanged by $P$; the
 # eigenstates are their even and odd combinations, nearly degenerate on a finite chain, and which of them is lower
-# can change as the couplings change. A plain Lanczos run from a random vector converges badly when two levels are that
+# can change as the couplings change. A plain run of the Lanczos (1950) iteration from a random vector converges badly when two levels are that
 # close. We therefore compute the lowest state of each sector separately, as in notebook 11, Section 10, and
 # notebook 47, Section 3: if the start vector has $P\vert v\rangle=\pm\vert v\rangle$, every Krylov vector
 # $H^n\vert v\rangle$ has the same parity, and the projector $(1\pm P)/2$ applied after each product removes round-off
@@ -495,7 +495,8 @@ fig.tight_layout(); plt.show()
 #
 # ### 4.1 The encoder and the trash register
 #
-# The encoder $U(\boldsymbol\theta)$ is the hardware-efficient ansatz of notebooks 40 and 45 applied to the input
+# The encoder $U(\boldsymbol\theta)$ is the hardware-efficient ansatz of notebooks 40 and 45, introduced by Kandala
+# *et al.* (2017), applied to the input
 # state: $L$ layers of [$R_y$ and $R_z$ on every qubit, then a chain of $CZ$ gates], and a final rotation block, with
 # $n=2N(L+1)$ angles. A set $T$ of $k$ qubits is declared the trash register. We place the trash at the two ends of
 # the chain ($k=2$: qubits $0$ and $7$); Exercise 4 compares this choice with two adjacent trash qubits at one end.
@@ -752,10 +753,10 @@ for k in (1, 2, 3, 4):
 #
 # ### 5.1 A training loop shared by every experiment
 #
-# Training minimises Eq. (4) (or Eq. (5)) for one input state with Adam (notebook 41, Section 6), as a `lax.scan`
+# Training minimises Eq. (4) (or Eq. (5)) for one input state with Adam (Kingma and Ba, 2015; notebook 41, Section 6), as a `lax.scan`
 # over iterations. Both costs are recorded at every iteration, whichever one is being minimised, so that every run is
 # judged by the same criterion. We call a run **successful** if it ends with $1-p_0<10^{-2}$, and report the success
-# fraction with its 68 % Wilson interval (notebook 41, Section 12); by Eq. (7) the
+# fraction with its 68 % Wilson score interval (Wilson, 1927; notebook 41, Section 12); by Eq. (7) the
 # reconstruction fidelity of such an encoder is at least $0.98$. Each argument of the training function — start
 # angles, input state, trash mask, cost selector, step size — is an array with a batch dimension, so a whole study
 # is one `vmap`.
@@ -1181,7 +1182,7 @@ for name in ref_names:
 # over three chain lengths, $N=6$, $8$ and $10$. For chains this short a dense diagonalisation inside each parity sector
 # (dimension $2^{N-1}\le512$) gives all levels at once.
 #
-# * The **fidelity susceptibility** of the ground state, written $\vert0\rangle$ here with excited levels $\vert m\rangle$
+# * The **fidelity susceptibility** of the ground state, introduced by You, Li and Gu (2007) and written $\vert0\rangle$ here with excited levels $\vert m\rangle$
 #   (energy eigenstates, not qubit states), with respect to the field
 #   ([notebook 47, Section 7](../ch11_quantum_phase_transitions/47_quantum_phase_transitions.ipynb)),
 #
@@ -1603,3 +1604,15 @@ fig.tight_layout(); plt.show()
 # * P. Zanardi and N. Paunković, *Ground state overlap and quantum phase transitions*, Phys. Rev. E **74**, 031123
 #   (2006) — the overlap of ground states at neighbouring couplings as a detector of transitions (the neighbour
 #   infidelity of Section 3.2).
+# * W.-L. You, Y.-W. Li and S.-J. Gu, *Fidelity, dynamic structure factor, and susceptibility in critical phenomena*,
+#   Phys. Rev. E **76**, 022101 (2007) — the fidelity susceptibility, Eq. (11), as the second-order term of the
+#   ground-state fidelity.
+# * A. Kandala, A. Mezzacapo, K. Temme, M. Takita, M. Brink, J. M. Chow and J. M. Gambetta, *Hardware-efficient
+#   variational quantum eigensolver for small molecules and quantum magnets*, Nature **549**, 242 (2017) — the
+#   hardware-efficient ansatz.
+# * D. P. Kingma and J. Ba, *Adam: a method for stochastic optimization*, arXiv:1412.6980 (2014), 3rd International
+#   Conference on Learning Representations (2015) — the optimiser.
+# * C. Lanczos, *An iteration method for the solution of the eigenvalue problem of linear differential and integral
+#   operators*, J. Res. Natl. Bur. Stand. **45**, 255 (1950) — the Lanczos iteration.
+# * E. B. Wilson, *Probable inference, the law of succession, and statistical inference*, J. Am. Stat. Assoc. **22**,
+#   209 (1927) — the score interval used for success rates.

@@ -13,7 +13,10 @@
 #
 # At that point the state is a **GHZ-like cat**, a coherent superposition of two coherent spin states pointing in
 # opposite directions. The same interaction that produces modest, robust squeezing at short times produces, when it is
-# left on until $\chi t=\pi/2$, the most fragile and most sensitive state of this chapter.
+# left on until $\chi t=\pi/2$, the most fragile and most sensitive state of this chapter. Such atomic cat states were
+# analysed by Agarwal, Puri and Singh (1997), and Mølmer and Sørensen (1999) proposed this route to GHZ states of trapped
+# ions; Yurke and Stoler (1986) had found the analogous superposition of two coherent states of light in a medium with an
+# intensity-dependent refractive index.
 #
 # This notebook follows the protocol from beginning to end:
 #
@@ -187,7 +190,7 @@ print("helpers ready")
 #
 # Three facts are carried over, each stated here in the form we need and derived in the notebook indicated.
 #
-# **(a) Quantum Cramér–Rao bound** (notebook 29). For $M$ repetitions of a protocol whose prepared state has quantum
+# **(a) Quantum Cramér–Rao bound** (Helstrom 1967; Braunstein and Caves 1994; notebook 29). For $M$ repetitions of a protocol whose prepared state has quantum
 # Fisher information $F_Q$ with respect to the encoding generator,
 #
 # $$\Delta\theta\;\ge\;\frac{1}{\sqrt{M\,F_Q}},$$
@@ -196,7 +199,7 @@ print("helpers ready")
 # collective generator $G=\mathbf n\cdot\mathbf J$ this is the quadratic form $F_Q(\mathbf n)=\mathbf n^{\mathsf T}\mathcal F\mathbf n$
 # with $\mathcal F_{ab}=4C_{ab}$; the best direction is the top eigenvector of $\mathcal F$.
 #
-# **(b) Ramsey and GHZ** (notebooks 31, 32). A coherent spin state reaches $\Delta\theta=1/\sqrt{NM}$ — the standard
+# **(b) Ramsey and GHZ** (notebooks 31, 32; Bollinger *et al.* 1996 for the GHZ protocol). A coherent spin state reaches $\Delta\theta=1/\sqrt{NM}$ — the standard
 # quantum limit; a GHZ state encoded with $J_z$ and read out with the parity $\prod_qX_q$ reaches $\Delta\theta=1/(N\sqrt M)$
 # — the Heisenberg limit. The GHZ fringe has period $2\pi/N$, so the phase is only determined modulo $2\pi/N$ unless one
 # already knows it that well.
@@ -624,7 +627,7 @@ fig.tight_layout(); plt.show()
 # around the equator. The number of components is $q$ (for $q$ even) or $q$ with a different arrangement (for $q$ odd);
 # the coefficients are quadratic Gauss sums. We do not need the coefficients — we can look.
 #
-# The Husimi-$Q$ function, $Q(\theta,\varphi)=\vert\langle\theta,\varphi\vert\psi\rangle\vert^2$, is the overlap of the
+# The Husimi-$Q$ function (Husimi 1940), $Q(\theta,\varphi)=\vert\langle\theta,\varphi\vert\psi\rangle\vert^2$, is the overlap of the
 # state with the coherent spin state pointing in each direction; it is non-negative and it is what "the distribution of
 # the spin direction" means. Since $\vert\theta,\varphi\rangle$ is a product state, $Q$ is a contraction of $\psi$ with
 # the same $2$-vector on every axis, and the whole grid of directions is one `vmap`.
@@ -991,7 +994,7 @@ fig.tight_layout(); plt.show()
 # ### 9.3 The QFI of a mixed state
 #
 # For a mixed state the pure-state formula $4\mathrm{Var}(G)$ is wrong, and the correct object is the symmetric
-# logarithmic derivative $L$, defined by $\partial_\theta\rho=\tfrac12(L\rho+\rho L)$ and derived in
+# logarithmic derivative $L$ introduced by Helstrom (1967), defined by $\partial_\theta\rho=\tfrac12(L\rho+\rho L)$ and derived in
 # [30](../ch10_quantum_metrology_protocols/30_qfi_from_the_sld_prepare_encode_estimate.ipynb). In the eigenbasis
 # $\rho=\sum_m\lambda_m\vert m\rangle\langle m\vert$ and for unitary encoding $\partial_\theta\rho=-i[G,\rho]$, it gives
 #
@@ -1613,7 +1616,7 @@ fig.tight_layout(); plt.show()
 #
 # A projective measurement $\{P_x\}$ of the encoded state $\rho_\theta=e^{-i\theta G}\rho\,e^{i\theta G}$ produces the
 # outcome $x$ with probability $p_x(\theta)=\mathrm{Tr}(P_x\rho_\theta)$. The information that one outcome carries about
-# $\theta$ is the score $\partial_\theta\ln p_x$, and the classical Fisher information is its mean square
+# $\theta$ is the score $\partial_\theta\ln p_x$, and the classical Fisher information (Fisher 1925) is its mean square
 # (notebook 29, Eq. (13)):
 #
 # $$F_C(\theta)=\sum_xp_x\left(\frac{\partial_\theta p_x}{p_x}\right)^2=\sum_{x:\,p_x>0}\frac{(\partial_\theta p_x)^2}{p_x}. \tag{15}$$
@@ -2303,6 +2306,14 @@ fig.tight_layout(); plt.show()
 #
 # * M. Kitagawa and M. Ueda, *Squeezed spin states*, Physical Review A **47**, 5138 (1993).
 # * G. S. Agarwal, R. R. Puri and R. P. Singh, *Atomic Schrödinger cat states*, Physical Review A **56**, 2249 (1997).
+# * B. Yurke and D. Stoler, *Generating quantum mechanical superpositions of macroscopically distinguishable states via
+#   amplitude dispersion*, Physical Review Letters **57**, 13 (1986).
+# * J. J. Bollinger, W. M. Itano, D. J. Wineland and D. J. Heinzen, *Optimal frequency measurements with maximally
+#   correlated states*, Physical Review A **54**, R4649 (1996).
+# * C. W. Helstrom, *Minimum mean-squared error of estimates in quantum statistics*, Physics Letters A **25**, 101 (1967).
+# * R. A. Fisher, *Theory of statistical estimation*, Proceedings of the Cambridge Philosophical Society **22**, 700 (1925).
+# * K. Husimi, *Some formal properties of the density matrix*, Proceedings of the Physico-Mathematical Society of Japan
+#   **22**, 264 (1940).
 # * K. Mølmer and A. Sørensen, *Multiparticle entanglement of hot trapped ions*, Physical Review Letters **82**, 1835 (1999).
 # * A. Sørensen, L.-M. Duan, J. I. Cirac and P. Zoller, *Many-particle entanglement with Bose–Einstein condensates*,
 #   Nature **409**, 63 (2001).

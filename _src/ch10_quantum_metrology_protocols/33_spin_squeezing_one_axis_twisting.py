@@ -171,7 +171,8 @@ print("helpers ready")
 #
 # ### 3.2 Coherent spin states
 #
-# A **coherent spin state** (CSS) is a product state in which every qubit points in the same direction
+# A **coherent spin state** (CSS), introduced by Radcliffe (1971) and by Arecchi, Courtens, Gilmore and Thomas (1972), is a
+# product state in which every qubit points in the same direction
 # $\mathbf n=(\sin\theta\cos\varphi,\sin\theta\sin\varphi,\cos\theta)$:
 #
 # $$\vert\theta,\varphi\rangle\;=\;\bigotimes_{q=0}^{N-1}\left(\cos\tfrac{\theta}{2}\,\vert0\rangle+e^{i\varphi}\sin\tfrac{\theta}{2}\,\vert1\rangle\right). \tag{3}$$
@@ -291,7 +292,7 @@ assert abs(float(jnp.linalg.norm(mean_css)) - N_DEMO / 2) < 1e4 * TOL
 #   all atoms. Eliminating the field adiabatically leaves $\propto J_z^2$. Leroux *et al.* (2010) used this
 #   "cavity feedback" to squeeze an ensemble of $^{87}$Rb atoms.
 # * **Trapped ions.** A bichromatic laser field couples the internal states to a collective motional mode; eliminating
-#   the motion gives the Mølmer–Sørensen interaction $\sum_{i<j}J_{ij}\sigma^x_i\sigma^x_j$, which for a uniform $J_{ij}$
+#   the motion gives the interaction of Mølmer and Sørensen (1999), $\sum_{i<j}J_{ij}\sigma^x_i\sigma^x_j$, which for a uniform $J_{ij}$
 #   is one-axis twisting about $\hat x$ — the same Hamiltonian with the axes relabelled. The coupling range can be tuned
 #   with the laser detuning.
 #
@@ -1193,7 +1194,8 @@ fig.tight_layout(); plt.show()
 # * **Error propagation, Eq. (11):** $\Delta\phi=\sqrt{\mathrm{Var}(J_z^{\rm out})}/\vert\partial_\phi\langle J_z^{\rm out}\rangle\vert$
 #   should equal $\xi_R/\sqrt N$ for the squeezed input and $1/\sqrt N$ for the CSS.
 # * **The estimator:** a maximum-likelihood estimate of $\phi$ from $M$ sampled shots should have
-#   $\Delta\hat\phi\approx1/\sqrt{M\,I(\phi)}$ with $I$ the classical Fisher information of $p(m\vert\phi)$, and
+#   $\Delta\hat\phi\approx1/\sqrt{M\,I(\phi)}$ (the Cramér–Rao bound of Rao 1945 and Cramér 1946) with $I$ the classical
+#   Fisher information (Fisher 1925) of $p(m\vert\phi)$, and
 #   $I\ge N$ for the squeezed input.
 # * **The bias of the estimator.** Maximum likelihood is biased at finite $M$; to first order in $1/M$ the bias is
 #   $b_1(\phi)/M$ with $b_1=-\sum_m p'p''/p\,\big/\,(2I^2)$, derived in
@@ -1290,7 +1292,7 @@ print(f"\nSQL Fisher information: I = N = {N_RAM};   N/xi_R^2 = {N_RAM / float(d
 # output distribution $p(m\vert\phi)$ is $I=38.98$ for the squeezed input, while $N/\xi_R^2=32.27$. The error-propagation
 # formula only uses the mean and the variance of the distribution; an estimator that uses the entire histogram can do
 # better, and it does — by $21\%$ in Fisher information, i.e. a further $10\%$ in $\Delta\phi$. Both numbers stay below
-# the quantum Fisher information $F_Q=39.61$ of that state, as the Braunstein–Caves theorem
+# the quantum Fisher information $F_Q=39.61$ of that state, as the Braunstein–Caves theorem (1994)
 # ([29](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb)) requires. We now check that a real
 # estimator, fed real samples, reaches $1/\sqrt{MI}$.
 
@@ -1557,7 +1559,8 @@ fig.tight_layout(); plt.show()
 #
 # ### 12.1 Definition
 #
-# The **Husimi-$Q$ function** of a spin state is its overlap with the coherent spin state pointing in each direction:
+# The **Husimi-$Q$ function** (Husimi 1940) of a spin state is its overlap with the coherent spin state pointing in each
+# direction:
 #
 # $$Q(\theta,\varphi)\;=\;\left\vert\left\langle\theta,\varphi\middle\vert\psi\right\rangle\right\vert^2 , \tag{25}$$
 #
@@ -1751,7 +1754,7 @@ make_husimi_gif(psi_q0, MU_FRAMES, jnp.asarray(THETA_M), jnp.asarray(PHI_M), phi
 #
 # $$F_Q\;\ge\;\frac{N}{\xi_R^2}, \tag{26}$$
 #
-# which follows from the quantum Cramér–Rao bound: $N/\xi_R^2=\vert\langle\mathbf J\rangle\vert^2/V_{\min}$ is
+# which follows from the quantum Cramér–Rao bound (Helstrom 1967; Braunstein and Caves 1994): $N/\xi_R^2=\vert\langle\mathbf J\rangle\vert^2/V_{\min}$ is
 # $1/(\Delta\phi)^2$ for one *particular* readout strategy (rotate, measure one quadrature, invert the mean signal),
 # while $F_Q$ bounds $1/(\Delta\phi)^2$ for *every* strategy, optimal measurement and optimal estimator included.
 # A specific strategy can never beat the optimum over all of them, hence Eq. (26).
@@ -2001,6 +2004,16 @@ fig.tight_layout(); plt.show()
 #   100401 (2009).
 # * S. L. Braunstein and C. M. Caves, *Statistical distance and the geometry of quantum states*, Physical Review Letters
 #   **72**, 3439 (1994).
+# * C. W. Helstrom, *Minimum mean-squared error of estimates in quantum statistics*, Physics Letters A **25**, 101 (1967).
+# * R. A. Fisher, *Theory of statistical estimation*, Proceedings of the Cambridge Philosophical Society **22**, 700 (1925).
+# * C. R. Rao, *Information and the accuracy attainable in the estimation of statistical parameters* (1945), reprinted in
+#   S. Kotz and N. L. Johnson (eds.), *Breakthroughs in Statistics* (Springer, New York, 1992), p. 235.
+# * H. Cramér, *Mathematical Methods of Statistics* (Princeton University Press, 1946).
+# * J. M. Radcliffe, *Some properties of coherent spin states*, Journal of Physics A **4**, 313 (1971).
+# * F. T. Arecchi, E. Courtens, R. Gilmore and H. Thomas, *Atomic coherent states in quantum optics*, Physical Review A
+#   **6**, 2211 (1972).
+# * K. Husimi, *Some formal properties of the density matrix*, Proceedings of the Physico-Mathematical Society of Japan
+#   **22**, 264 (1940).
 # * J. Ma, X. Wang, C. P. Sun and F. Nori, *Quantum spin squeezing*, Physics Reports **509**, 89 (2011).
 # * L. Pezzè, A. Smerzi, M. K. Oberthaler, R. Schmied and P. Treutlein, *Quantum metrology with nonclassical states of
 #   atomic ensembles*, Reviews of Modern Physics **90**, 035005 (2018).

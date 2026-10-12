@@ -1719,7 +1719,8 @@ run_exercise(3, ex3_answer, check_ex3)
 # %% [markdown]
 # **Exercise 4 (★★) -- partial transpose.** For a matrix $M$ on a composite space $(d_A,d_B)$ the *partial transpose* with respect to $B$ swaps the row and column index of subsystem $B$ only:
 # $\big(M^{T_B}\big)_{(ab),(cd)}=M_{(ad),(cb)}$. Implement `partial_transpose_B(M, dA, dB)` with one reshape, one einsum and one reshape. For product operators it must give
-# $(A\otimes B)^{T_B}=A\otimes B^T$. (The partial transpose is the key to detecting entanglement in mixed states; it returns in
+# $(A\otimes B)^{T_B}=A\otimes B^T$. (The partial transpose is the key to detecting entanglement in mixed states, as shown by
+# Peres (1996) and by M., P. and R. Horodecki (1996); it returns in
 # [25 — entanglement negativity](../ch09_entanglement_and_complexity/25_entanglement_negativity.ipynb).)
 
 # %%
@@ -1828,6 +1829,8 @@ run_exercise(8, ex8_answer, check_ex8)
 # 6. J. C. Bridgeman and C. T. Chubb, *Hand-waving and interpretive dance: an introductory course on tensor networks*, J. Phys. A: Math. Theor. **50**, 223001 (2017) -- tensor diagrams and contraction costs for beginners.
 # 7. R. Orús, *A practical introduction to tensor networks: Matrix product states and projected entangled pair states*, Annals of Physics **349**, 117 (2014).
 # 8. M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information* (Cambridge University Press, 2000; 10th anniversary edition 2010, DOI 10.1017/CBO9780511976667) -- tensor products (Sec. 2.1.7) and the reduced density operator / partial trace (Sec. 2.4.3).
+# 9. A. Peres, *Separability criterion for density matrices*, Phys. Rev. Lett. **77**, 1413 (1996) -- the partial-transpose criterion of Exercise 4.
+# 10. M. Horodecki, P. Horodecki and R. Horodecki, *Separability of mixed states: necessary and sufficient conditions*, Phys. Lett. A **223**, 1 (1996).
 
 # %% [markdown]
 # ## 20. Solutions to the exercises

@@ -463,7 +463,8 @@ plt.tight_layout(); plt.show()
 # * *Decay.* From Section 3.1: $\dot\rho_{11}=-\gamma\rho_{11}$ gives $\dot z = -2\dot\rho_{11} = \gamma(1-z)$, and
 #   $\dot\rho_{01} = -\tfrac\gamma2\rho_{01}$ gives $\dot x=-\tfrac\gamma2x$, $\dot y = -\tfrac\gamma2 y$.
 #
-# Together, the **optical Bloch equations**
+# Together, the **optical Bloch equations**, the optical counterpart of the equations with finite relaxation times that
+# Bloch (1946) introduced for nuclear induction,
 #
 # $$ \dot x = -\tfrac\gamma2 x,\qquad \dot y = -\Omega z-\tfrac\gamma2 y,\qquad \dot z = \Omega y+\gamma(1-z). \tag{4}$$
 #
@@ -1516,6 +1517,7 @@ plt.tight_layout(); plt.show()
 #
 # * G. Lindblad, *On the generators of quantum dynamical semigroups*, Commun. Math. Phys. **48**, 119 (1976).
 # * V. Gorini, A. Kossakowski, E. C. G. Sudarshan, *Completely positive dynamical semigroups of N-level systems*, J. Math. Phys. **17**, 821 (1976).
+# * F. Bloch, *Nuclear induction*, Phys. Rev. **70**, 460 (1946) — the equations of motion of a polarisation with finite relaxation times, whose optical counterpart are the optical Bloch equations of Section 3.4.
 # * H. Spohn, *An algebraic condition for the approach to equilibrium of an open N-level system*, Lett. Math. Phys. **2**, 33–38 (1977) — a sufficient condition for approach to equilibrium, Section 8.3.
 # * A. Frigerio, *Quantum dynamical semigroups and approach to equilibrium*, Lett. Math. Phys. **2**, 79–87 (1977);
 #   A. Frigerio, *Stationary states of quantum dynamical semigroups*, Commun. Math. Phys. **63**, 269–276 (1978) — the commutant criterion for a unique steady state when a full-rank one exists, Section 8.3.

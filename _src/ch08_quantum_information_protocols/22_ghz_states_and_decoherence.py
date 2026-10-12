@@ -6,7 +6,7 @@
 # ## 1. Introduction and motivation
 #
 # The Bell pair of [notebook 19](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb) has two qubits. Its natural
-# extension to $N$ qubits, named after Greenberger, Horne and Zeilinger, is
+# extension to $N$ qubits, introduced by Greenberger, Horne and Zeilinger (1989) and named after them, is
 #
 # $$\vert\mathrm{GHZ}_N\rangle=\frac{\vert00\cdots0\rangle+\vert11\cdots1\rangle}{\sqrt2}.$$
 #
@@ -331,7 +331,8 @@ for N in (2, 3, 4, 5, 6, 8, 10, 12, 14):
 # These $N$ operators commute (each pair overlaps in an even number of anticommuting factors: $Z_qZ_{q+1}$ and $X^{\otimes N}$ share
 # **two** sites, and $(-1)^2=+1$), they are independent, and $N$ independent commuting $\pm1$ observables cut the $2^N$-dimensional
 # space down to $2^N/2^N=1$ dimension. **The list of $N$ operators therefore determines the state uniquely.** That is the
-# stabiliser formalism in miniature, and it is why GHZ states are so convenient for both theory (Gottesman–Knill, notebook
+# stabiliser formalism of Gottesman (1997) in miniature, and it is why GHZ states are so convenient for both theory (the
+# Gottesman–Knill theorem, published by Gottesman (1998), notebook
 # [27 — stabilizer Renyi entropy](../ch09_entanglement_and_complexity/27_stabilizer_renyi_entropy.ipynb)) and experiment: checking
 # $N$ expectation values is much cheaper than full tomography's $4^N-1$ parameters.
 #
@@ -359,7 +360,9 @@ for N in (2, 3, 4, 5, 6, 8, 10, 12, 14):
 # of the hidden variables: the contradiction is between the definite values $+1$ and $-1$. In contrast to CHSH, no statistics are
 # needed for an ideal state, and one run of each of the four settings already exhibits it. We verify the four
 # signs numerically below; the statistical cousin of this argument is developed in
-# [19 — Bell states and CHSH](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb) and its many-body version in
+# [19 — Bell states and CHSH](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb), and its many-body version, the
+# $N$-spin Bell inequality of Mermin (*Phys. Rev. Lett.*, 1990) that the GHZ state violates by a factor growing exponentially
+# with $N$, in
 # [26 — many-body Bell correlators](../ch09_entanglement_and_complexity/26_many_body_bell_correlators.ipynb).
 
 # %%
@@ -417,11 +420,12 @@ assert all(abs(ghz_signs[k] + 1) < 1e3 * TOL for k in ("XYY", "YXY", "YYX"))
 #
 # Eq. (1) is a **classical mixture**: "both qubits are $0$, or both are $1$, with probability one half each".
 # It gives perfect correlation, $\langle Z_iZ_j\rangle=1$, but $\langle X_iX_j\rangle=\langle Y_iY_j\rangle=0$, it is manifestly
-# separable, and its negativity and concurrence are $0$. Two dice that always show the same face are perfectly correlated and
+# separable, and its negativity (Vidal and Werner, 2002) and concurrence (Wootters, 1998) are $0$. Two dice that always show the same face are perfectly correlated and
 # contain no entanglement whatsoever.
 #
 # For $N=2$ nothing is traced out, Eq. (1) does not apply, and $\rho_{01}=\vert\Phi^+\rangle\langle\Phi^+\vert$ is maximally
 # entangled. **The pairwise entanglement of the GHZ state disappears the moment a third qubit joins.** Monogamy of entanglement
+# (Coffman, Kundu and Wootters, 2000)
 # forbids qubit $0$ to remain maximally entangled with qubit $1$ once it is entangled with qubit $2$, but it does not force the pair
 # entanglement all the way to zero; that is a property of the GHZ structure, and the W state of Section 16 keeps a non-zero amount
 # in every pair.
@@ -689,7 +693,9 @@ fig.tight_layout(); plt.show()
 #
 # Contrapositive: **$F>1/2$ certifies that $\rho$ is genuinely $N$-partite entangled.** Equivalently the operator
 # $\mathcal W=\tfrac12\mathbb 1-\vert\mathrm{GHZ}\rangle\langle\mathrm{GHZ}\vert$ is an **entanglement witness**: $\mathrm{Tr}(\mathcal W\rho)\ge0$
-# for every biseparable $\rho$, and a negative value proves genuine multipartite entanglement (Gühne and Tóth, 2009).
+# for every biseparable $\rho$, and a negative value proves genuine multipartite entanglement. Witnesses go back to the separability
+# theorem of M., P. and R. Horodecki (1996) and were named by Terhal (2000); this projector witness was used by Bourennane and
+# co-workers (2004) to detect genuine multipartite entanglement of photons, and Gühne and Tóth (2009) review the subject.
 #
 # The implication runs one way only: $F>1/2$ is *sufficient* and not necessary. A state may be genuinely entangled and have small
 # GHZ fidelity; the witness detects only states close to *this* target. The W state of Section 16 is an example: it is genuinely
@@ -994,7 +1000,8 @@ fig.tight_layout(); plt.show()
 # memory. At $N=14$ the $4.3$ GB still fit into a workstation, but the benchmark of Section 17 extrapolates to the order of an hour per
 # noisy evaluation; at $N=16$ one copy alone needs $69$ GB.
 #
-# The **Monte-Carlo wave function** (MCWF, or "quantum trajectory") method trades it for statistics. The identity it rests on is
+# The **Monte-Carlo wave function** (MCWF, or "quantum trajectory") method, introduced by Dalibard, Castin and Mølmer (1992) and by
+# Dum, Zoller and Ritsch (1992), trades it for statistics. The identity it rests on is
 #
 # $$\rho'=\sum_m K_m\rho K_m^\dagger
 # \quad\text{with}\quad \rho=\vert\psi\rangle\langle\psi\vert
@@ -1458,7 +1465,7 @@ fig.tight_layout(); plt.show()
 #
 # $$\vert W_N\rangle=\frac{1}{\sqrt N}\Big(\vert10\cdots0\rangle+\vert010\cdots0\rangle+\cdots+\vert0\cdots01\rangle\Big)$$
 #
-# (a single excitation delocalised over all sites — the Dicke state with $k=1$) is genuinely $N$-partite entangled too, but Dür,
+# (a single excitation delocalised over all sites — the Dicke (1954) state with $k=1$) is genuinely $N$-partite entangled too, but Dür,
 # Vidal and Cirac proved in 2000 that for $N=3$ it cannot be converted into a GHZ state by local operations and classical
 # communication, not even with a small non-zero probability of success (and the GHZ state cannot be converted into it either):
 # they are **inequivalent classes** of tripartite entanglement.
@@ -1858,6 +1865,11 @@ print(f"the two routes cross at N ~ {np.log(bench_rows[3][4] / bench_rows[3][2])
 #   *14-qubit entanglement: creation and coherence*, Phys. Rev. Lett. **106**, 130506 (2011) — GHZ states of up to $14$ ions, and
 #   the coherence decay measured on up to $8$ ions, which grows as $N^2$ because the magnetic-field noise is correlated across
 #   the crystal (the independent-environment case of Section 15 gives $N$).
+# * M. Horodecki, P. Horodecki and R. Horodecki, *Separability of mixed states: necessary and sufficient conditions*,
+#   Phys. Lett. A **223**, 1 (1996) — the separability criterion through operators with non-negative expectation on product
+#   states, the origin of entanglement witnesses.
+# * B. M. Terhal, *Bell inequalities and the separability criterion*, Phys. Lett. A **271**, 319 (2000) — the name
+#   "entanglement witness".
 # * O. Gühne and G. Tóth, *Entanglement detection*, Physics Reports **474**, 1 (2009) — entanglement witnesses, including the
 #   projector witness of Eq. (5).
 # * M. Bourennane, M. Eibl, C. Kurtsiefer, S. Gaertner, H. Weinfurter, O. Gühne, P. Hyllus, D. Bruß, M. Lewenstein and A. Sanpera,
@@ -1867,5 +1879,17 @@ print(f"the two routes cross at N ~ {np.log(bench_rows[3][4] / bench_rows[3][2])
 #   concurrence.
 # * K. Mølmer and A. Sørensen, *Multiparticle entanglement of hot trapped ions*, Phys. Rev. Lett. **82**, 1835 (1999) — the
 #   interaction used to make GHZ states in ion traps in a single step.
+# * D. Gottesman, *Stabilizer codes and quantum error correction*, Ph.D. thesis, California Institute of Technology (1997);
+#   arXiv:quant-ph/9705052 — the stabiliser formalism of Section 5.1.
+# * D. Gottesman, *The Heisenberg representation of quantum computers*, in *Group22: Proceedings of the XXII International
+#   Colloquium on Group Theoretical Methods in Physics*, edited by S. P. Corney, R. Delbourgo and P. D. Jarvis
+#   (International Press, Cambridge MA, 1999), pp. 32-43; arXiv:quant-ph/9807006 — the Gottesman-Knill theorem.
+# * V. Coffman, J. Kundu and W. K. Wootters, *Distributed entanglement*, Phys. Rev. A **61**, 052306 (2000) — monogamy of
+#   entanglement for three qubits (Section 6).
+# * J. Dalibard, Y. Castin and K. Mølmer, *Wave-function approach to dissipative processes in quantum optics*,
+#   Phys. Rev. Lett. **68**, 580 (1992); R. Dum, P. Zoller and H. Ritsch, *Monte Carlo simulation of the atomic master equation
+#   for spontaneous emission*, Phys. Rev. A **45**, 4879 (1992) — the Monte-Carlo wave-function method of Section 12.
+# * R. H. Dicke, *Coherence in spontaneous radiation processes*, Phys. Rev. **93**, 99 (1954) — the collective (Dicke) states, of
+#   which the W state is the one-excitation case.
 # * M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information* (Cambridge University Press, 2000) —
 #   Chapters 2, 8 and 10 for density matrices, channels and the stabiliser formalism.

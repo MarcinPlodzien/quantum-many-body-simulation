@@ -17,12 +17,12 @@
 #   simplest "dynamics" that is local and unitary and has no other structure (no energy conservation, no symmetries).
 #   It reproduces the universal features of chaotic Hamiltonian evolution - linear growth of entanglement, saturation at
 #   the Page value - and is much easier to analyse (Nahum *et al.* 2017; Fisher *et al.* 2023).
-# * **Benchmarking quantum processors.** The "quantum supremacy" experiments (Arute *et al.* 2019) ran random circuits on
+# * **Benchmarking quantum processors.** The "quantum supremacy" experiments (the term is due to Preskill 2012; Arute *et al.* 2019) ran random circuits on
 #   53 superconducting qubits and compared the measured bit strings with a classical simulation through the *linear
-#   cross-entropy benchmark* (XEB). The statistical theory behind it is the Porter-Thomas distribution of the output
+#   cross-entropy benchmark* (XEB; cross-entropy benchmarking was proposed by Boixo *et al.* 2018). The statistical theory behind it is the Porter-Thomas distribution of the output
 #   probabilities of a random state.
-# * **Randomised measurement protocols.** Randomised benchmarking, classical shadows
-#   ([notebook 24](../ch08_quantum_information_protocols/24_classical_shadows.ipynb)) and many
+# * **Randomised measurement protocols.** Randomised benchmarking (Emerson, Alicki and Życzkowski 2005; Knill *et al.* 2008), classical shadows
+#   (Huang, Kueng and Preskill 2020; [notebook 24](../ch08_quantum_information_protocols/24_classical_shadows.ipynb)) and many
 #   tomography schemes average over random unitaries - in practice over the finite **Clifford group**, which imitates the
 #   uniform distribution well enough.
 # * **Numerical practice.** Random states and unitaries are the best *test inputs* for a simulator: they have no
@@ -80,7 +80,7 @@
 # > The **Haar measure** is the (unique) probability distribution on $U(d)$ that is invariant under multiplication by any
 # > fixed unitary $V$: if $U$ is Haar distributed, so are $VU$ and $UV$.
 #
-# We quote existence and uniqueness without proof (it holds for every compact group, i.e. a group of matrices that is a closed and bounded set, like
+# Such an invariant measure was constructed by Haar (1933). We quote existence and uniqueness without proof (it holds for every compact group, i.e. a group of matrices that is a closed and bounded set, like
 # $U(d)$). Intuition: a Haar-random $U$ has
 # *no preferred basis* - whatever rotation $V$ you apply before or after, the statistics are unchanged. For $d=1$ the
 # group is the circle $\{e^{i\varphi}\}$ and the Haar measure is $d\varphi/2\pi$.
@@ -223,8 +223,8 @@ print(f"average state: max |E[|psi><psi|] - 1/D| = {float(jnp.max(jnp.abs(rho_av
 # ### 4.1 The recipe and why it needs a phase fix
 #
 # A unitary matrix is a set of $d$ orthonormal vectors. A natural idea: take $d$ random Gaussian vectors - the columns
-# of a **Ginibre matrix** $G$ with independent complex Gaussian entries - and orthonormalise them by the Gram-Schmidt
-# procedure. In matrix language Gram-Schmidt *is* the QR decomposition
+# of a **Ginibre matrix** (Ginibre 1965) $G$ with independent complex Gaussian entries - and orthonormalise them by the Gram-Schmidt
+# procedure (Gram 1883; Schmidt 1907). In matrix language Gram-Schmidt *is* the QR decomposition
 #
 # $$ G = QR,\qquad Q \text{ unitary},\quad R \text{ upper triangular}, $$
 #
@@ -242,7 +242,7 @@ print(f"average state: max |E[|psi><psi|] - 1/D| = {float(jnp.max(jnp.abs(rho_av
 # "$Q(VG)=VQ(G)$" is valid only if the convention does not depend on the basis. The convention **$R_{jj}>0$**
 # (the one Gram-Schmidt produces) has this property: the condition constrains $R$ alone, and replacing $G$ by $VG$ leaves
 # $R$ unchanged, so the selected $Q$ simply becomes $VQ$. Numerical libraries do
-# something else: LAPACK's Householder algorithm returns a *real* diagonal of $R$ whose *signs* depend on the entries of
+# something else: LAPACK's Householder algorithm (Householder 1958) returns a *real* diagonal of $R$ whose *signs* depend on the entries of
 # $G$ in a basis-dependent way. The resulting $Q$ is **not** Haar distributed.
 #
 # Two details are worth separating here, because the first one alone would be harmless. If the phases $\Lambda$ were
@@ -328,7 +328,7 @@ plt.show()
 # > no phase fix at all, but it is numerically inferior. Measuring the departure from orthogonality of the computed $Q$ by
 # > $\lVert \mathbb 1-Q^\dagger Q\rVert$, classical Gram-Schmidt gives $O(\varepsilon\,\kappa^2)$ and the modified variant
 # > $O(\varepsilon\,\kappa)$, where $\varepsilon$ is the machine epsilon and $\kappa$ the condition number (Giraud *et al.*
-# > 2005, who also recall Björck's bound for the modified variant), while the Householder algorithm used by the libraries
+# > 2005, who also recall Björck's bound for the modified variant, Björck 1967), while the Householder algorithm used by the libraries
 # > (Numerical Recipes, 3rd ed., Section 2.10) gives $O(\varepsilon)$ whatever $\kappa$ (Higham 2002, Chapter 19). For a
 # > Ginibre matrix $\kappa$ is modest and all three would do; the general rule is to call the library and repair the
 # > *convention* afterwards.
@@ -404,7 +404,7 @@ print("entanglement entropy of qubit 1 (untouched) with the rest:", f"{float(ent
 #
 # $$ \Pr\big(\max_s x_s < a\big)=(1-e^{-a})^D\;\approx\;\exp\big(-e^{-(a-\ln D)}\big), $$
 #
-# a Gumbel distribution centred at $\ln D$. Its mean is $\ln D+\gamma$ with $\gamma=0.5772$ (Euler's constant) and its
+# a Gumbel distribution (Gumbel 1958) centred at $\ln D$. Its mean is $\ln D+\gamma$ with $\gamma=0.5772$ (Euler's constant) and its
 # standard deviation is $\pi/\sqrt6\approx1.28$, independent of $D$. The most likely bit string therefore has a
 # probability of order $(\ln D)/D$: larger than the uniform $1/D$ only by a *logarithmic* factor. A random state spreads
 # its weight over the whole Hilbert space; it is **anticoncentrated**.
@@ -574,7 +574,7 @@ print(f"engine `brickwall`, N=8, depth 24: norm = {float(jnp.linalg.norm(psi_eng
 #
 # Two facts set the expectations. (i) A gate can change the entanglement across a cut only if it *acts across the cut*, and a
 # single two-qubit gate can change the entropy by at most 2 bits. The bound follows from two inequalities of the von
-# Neumann entropy that we quote without proof, subadditivity $S_{XY}\le S_X+S_Y$ and the Araki-Lieb inequality
+# Neumann entropy that we quote without proof, subadditivity $S_{XY}\le S_X+S_Y$ and the Araki-Lieb inequality (Araki and Lieb 1970)
 # $S_{XY}\ge\lvert S_X-S_Y\rvert$ for disjoint subsystems $X,Y$. Let the gate act
 # on qubit $a\in A$ and qubit $b\in B$, and write $A=\{a\}\cup A'$. The gate does not touch $A'$, so $S_{A'}$ is the same
 # before and after, while both $S_A$ obey $\lvert S_{A'}-S_a\rvert\le S_A\le S_{A'}+S_a$ with $S_a\le1$ bit; the two
@@ -727,7 +727,7 @@ assert dev_haar < 0.05
 
 # %% [markdown]
 # The Haar states follow Page's formula to within $0.004$ bit (the fluctuations from state to state are
-# tiny - a manifestation of *typicality*: almost every state has almost exactly the average entropy). The deep brick-wall
+# tiny - a manifestation of *typicality* (Popescu, Short and Winter 2006; Goldstein *et al.* 2006): almost every state has almost exactly the average entropy). The deep brick-wall
 # states lie on the same curve; any remaining deviation is located at the central cuts, which are the last to
 # saturate.
 
@@ -737,7 +737,7 @@ assert dev_haar < 0.05
 # ### 7.1 Definition and construction
 #
 # Haar-random unitaries form a continuum. For many purposes a *finite* set of gates is just as good. The
-# **Clifford group** consists of the unitaries that map Pauli operators to Pauli operators under conjugation,
+# **Clifford group** (Gottesman 1998) consists of the unitaries that map Pauli operators to Pauli operators under conjugation,
 #
 # $$ C\,P\,C^\dagger = \pm P' ,\qquad P,P'\in\{X,Y,Z\}. $$
 #
@@ -798,7 +798,7 @@ except ValueError:
 #
 # ### 7.2 Frame potentials and unitary designs
 #
-# A finite set $\mathcal E=\{U_a\}$ is called a **unitary $t$-design** if averaging any polynomial of degree $\le t$ in
+# A finite set $\mathcal E=\{U_a\}$ is called a **unitary $t$-design** (Dankert *et al.* 2009; Gross, Audenaert and Eisert 2007) if averaging any polynomial of degree $\le t$ in
 # the matrix elements of $U$ (and $t$ in those of $U^*$) over $\mathcal E$ gives the same result as averaging over the
 # Haar measure. The moments $\mathbb E\lvert U_{ij}\rvert^2=1/d$ and $\mathbb E\lvert U_{ij}\rvert^4=2/(d(d+1))$ of
 # Section 4.3 are examples with $t=1$ and $t=2$. A convenient single-number test is the **frame potential**
@@ -854,7 +854,7 @@ for t, exact in zip((1, 2, 3, 4), (1, 2, 5, 14)):
 #
 # ### 8.1 The task and a jit-friendly circuit model
 #
-# **Random circuit sampling** is the task: given a random circuit, produce bit strings $s$ distributed according to
+# **Random circuit sampling** (Boixo *et al.* 2018) is the task: given a random circuit, produce bit strings $s$ distributed according to
 # $p_s=\lvert\langle s\rvert U_{\rm circuit}\lvert0\dots0\rangle\rvert^2$. A quantum processor does this natively: run, measure, repeat.
 # A classical computer has to compute the amplitudes, which for generic circuits is believed to require exponential
 # resources.
@@ -1307,6 +1307,8 @@ print(f"D sum p^2 = {float(2 ** N_big * jnp.sum(jnp.abs(psi_big) ** 4)):.4f}")
 #
 # ## 12. References
 #
+# * A. Haar, *Der Massbegriff in der Theorie der kontinuierlichen Gruppen*, Ann. Math. **34**, 147 (1933).
+# * J. Ginibre, *Statistical ensembles of complex, quaternion, and real matrices*, J. Math. Phys. **6**, 440 (1965).
 # * F. Mezzadri, *How to generate random matrices from the classical compact groups*, Notices of the AMS **54**(5),
 #   592-604 (2007).
 # * P. Diaconis and M. Shahshahani, *On the eigenvalues of random matrices*, J. Appl. Probab. **31A**, 49-62 (1994) -
@@ -1320,6 +1322,17 @@ print(f"D sum p^2 = {float(2 ** N_big * jnp.sum(jnp.abs(psi_big) ** 4)):.4f}")
 #   Phys. Rev. X **7**, 031016 (2017).
 # * M. P. A. Fisher, V. Khemani, A. Nahum and S. Vijay, *Random quantum circuits*, Annu. Rev. Condens. Matter Phys.
 #   **14**, 335 (2023).
+# * J. Preskill, *Quantum computing and the entanglement frontier*, arXiv:1203.5813 (2012).
+# * J. Emerson, R. Alicki and K. Życzkowski, *Scalable noise estimation with random unitary operators*, J. Opt. B **7**,
+#   S347 (2005); E. Knill, D. Leibfried, R. Reichle, J. Britton, R. B. Blakestad, J. D. Jost, C. Langer, R. Ozeri,
+#   S. Seidelin and D. J. Wineland, *Randomized benchmarking of quantum gates*, Phys. Rev. A **77**, 012307 (2008).
+# * H.-Y. Huang, R. Kueng and J. Preskill, *Predicting many properties of a quantum system from very few measurements*,
+#   Nat. Phys. **16**, 1050 (2020).
+# * H. Araki and E. H. Lieb, *Entropy inequalities*, Commun. Math. Phys. **18**, 160 (1970).
+# * S. Popescu, A. J. Short and A. Winter, *Entanglement and the foundations of statistical mechanics*, Nat. Phys. **2**,
+#   754 (2006); S. Goldstein, J. L. Lebowitz, R. Tumulka and N. Zanghì, *Canonical typicality*, Phys. Rev. Lett. **96**,
+#   050403 (2006).
+# * E. J. Gumbel, *Statistics of Extremes* (Columbia University Press, 1958).
 # * S. Boixo, S. V. Isakov, V. N. Smelyanskiy, R. Babbush, N. Ding, Z. Jiang, M. J. Bremner, J. M. Martinis and
 #   H. Neven, *Characterizing quantum supremacy in near-term devices*, Nature Physics **14**, 595 (2018).
 # * F. Arute *et al.*, *Quantum supremacy using a programmable superconducting processor*, Nature **574**, 505 (2019).
@@ -1336,6 +1349,11 @@ print(f"D sum p^2 = {float(2 ** N_big * jnp.sum(jnp.abs(psi_big) ** 4)):.4f}")
 # * D. Gottesman, *The Heisenberg representation of quantum computers*, arXiv:quant-ph/9807006 (1998).
 # * W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes*, 3rd ed. (Cambridge
 #   University Press, 2007), Section 2.10 (*QR Decomposition*) and Section 7.3 (*Deviates from Other Distributions*).
+# * J. P. Gram, *Ueber die Entwickelung reeller Functionen in Reihen mittelst der Methode der kleinsten Quadrate*,
+#   J. Reine Angew. Math. **94**, 41 (1883); E. Schmidt, *Zur Theorie der linearen und nichtlinearen Integralgleichungen*,
+#   Math. Ann. **63**, 433 (1907).
+# * A. S. Householder, *Unitary triangularization of a nonsymmetric matrix*, J. ACM **5**, 339 (1958); Å. Björck,
+#   *Solving linear least squares problems by Gram-Schmidt orthogonalization*, BIT **7**, 1 (1967).
 # * L. Giraud, J. Langou, M. Rozložník and J. van den Eshof, *Rounding error analysis of the classical Gram-Schmidt
 #   orthogonalization process*, Numer. Math. **101**, 87-100 (2005).
 # * N. J. Higham, *Accuracy and Stability of Numerical Algorithms*, 2nd ed. (SIAM, 2002), Chapter 19

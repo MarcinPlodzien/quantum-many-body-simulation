@@ -13,7 +13,8 @@
 #
 # The answer is that the states which actually occur in one-dimensional physics are *not* generic vectors of the
 # $2^N$-dimensional Hilbert space. They carry **little entanglement**, and a state with little entanglement
-# can be *compressed*. The compressed format is the **matrix product state (MPS)**: instead of one tensor with $N$
+# can be *compressed*. The compressed format is the **matrix product state (MPS)**, introduced for infinite chains as the
+# finitely correlated states of Fannes, Nachtergaele and Werner (1992): instead of one tensor with $N$
 # indices we store $N$ small tensors with three indices each, $O(N\chi^2)$ numbers in total, where the
 # **bond dimension** $\chi$ is a knob that controls how much entanglement the format can hold.
 # The algorithm you learned in [notebook 12 (Chapter 5)](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb) - a sequence of
@@ -173,7 +174,7 @@ plt.show()
 # - The product state has exactly one (rank 1, $S=0$): the other weights sit at the clipping floor $10^{-18}$.
 # - GHZ has exactly two equal weights $1/2$ (rank 2, $S=1$ bit), no matter how long the chain is.
 # - The Haar-random state uses *all* 64 with comparable weights; its entropy is close to the maximum
-#   $\log_2 64=6$ bits. This is a **volume law** ($S\propto$ number of spins in $A$): nothing can be discarded.
+#   $\log_2 64=6$ bits (Page (1993) computed the average over random states: $5.28$ bits for two halves of six spins). This is a **volume law** ($S\propto$ number of spins in $A$): nothing can be discarded.
 # - The ground state is the interesting case. Formally its rank is also 64, but the weights fall off a cliff: below
 #   $10^{-5}$ after the first 8 values, below $10^{-9}$ after 20 (the plateaus are multiplets of the SU(2) spin-rotation
 #   symmetry). Keeping $\chi=16$ values would already describe it far more accurately than any experiment could tell.
@@ -181,7 +182,7 @@ plt.show()
 # > **Physics insight.** Ground states of gapped local Hamiltonians in one dimension obey an **area law**
 # > (Hastings 2007): $S_A$ is bounded by a constant independent of the size of $A$, because only the spins near the cut are
 # > correlated across it. At a critical point (the Heisenberg chain is critical) $S_A$ grows only logarithmically with
-# > the block size, with a prefactor set by the central charge $c$ of the critical chain ([notebook 06](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb), Section 9). Both are tiny compared with the volume law of a random state. The physically relevant states
+# > the block size, with a prefactor set by the central charge $c$ of the critical chain (Holzhey, Larsen and Wilczek 1994; Calabrese and Cardy 2004; [notebook 06](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb), Section 9). Both are tiny compared with the volume law of a random state. The physically relevant states
 # > live in a small, weakly entangled corner of Hilbert space - and MPS are a parametrisation of that corner.
 
 # %% [markdown]
@@ -869,7 +870,8 @@ print(f"(for reference: <Z_2 Z_9> = {float(mps_correlator(B_g, lam_g, Z, 2, Z, 9
 # %% [markdown]
 # ### 6.2 The Hamiltonian as a matrix product operator
 #
-# An MPS writes a *state* as a product of matrices, one per site. A **matrix product operator** (MPO) does the same for an *operator*:
+# An MPS writes a *state* as a product of matrices, one per site. A **matrix product operator** (MPO) does the same for an *operator*; MPOs were introduced for
+# density operators by Verstraete, García-Ripoll and Cirac (2004), and McCulloch (2007) wrote the DMRG Hamiltonian in this form:
 #
 # $$ H=\sum_{v_1,\dots,v_{N-1}}W^{[0]}_{v_0,v_1}\otimes W^{[1]}_{v_1,v_2}\otimes\cdots\otimes W^{[N-1]}_{v_{N-1},v_N},\qquad v_0=D-1,\quad v_N=0, \tag{10}$$
 #
@@ -1135,7 +1137,7 @@ assert err_heff < 1e3 * TOL
 # ### 6.5 The local solver: Lanczos on the two-site tensor
 #
 # Equation (9) asks for the lowest eigenvector of $H_{\rm eff}$, and Section 6.4 gives us exactly what Lanczos needs: a function $\theta\mapsto H_{\rm eff}\theta$. We use the algorithm of
-# notebook 11 — three-term recurrence, full reorthogonalisation, Ritz vector from the small tridiagonal matrix — with two choices specific to DMRG.
+# notebook 11 (Lanczos 1950) — three-term recurrence, full reorthogonalisation, Ritz vector from the small tridiagonal matrix — with two choices specific to DMRG.
 #
 # * **Warm start.** The start vector is the current $\theta$, the contraction of the two tensors from the previous step. After the first sweep it is already close to the answer, so a small fixed
 #   number of Lanczos steps ($m\approx20$) is enough. We do not need to solve the local problem to machine precision in early sweeps, since the environments are still changing.
@@ -1691,7 +1693,7 @@ plt.tight_layout(); plt.show()
 # notorious weak spot of the original algorithm**: small $\lambda$'s (the very ones that make truncation possible) amplify
 # rounding errors, and the padded zeros would give $0/0$.
 #
-# **The trick of Hastings.** Multiply $\theta'=USV^\dagger$ from the right by $V$ and use $V^\dagger V=1$: $\;US=\theta'V$. Hence
+# **The trick of Hastings.** Hastings (2009) introduced it as a numerically stable modification of infinite-chain TEBD. Multiply $\theta'=USV^\dagger$ from the right by $V$ and use $V^\dagger V=1$: $\;US=\theta'V$. Hence
 #
 # $$ B'^{[j]} = (\Lambda^{[j]})^{-1}US=(\Lambda^{[j]})^{-1}\theta' V = C'\,V,\qquad C'=G\cdot C, $$
 #
@@ -1868,9 +1870,9 @@ assert max(err_best, err_eps, err_lam2) < 100 * TOL and dev_can > 1e-2
 # ### 8.1 Even/odd splitting and the Trotter scheme
 #
 # Exactly as in [notebook 12 (Chapter 5)](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb) we split the nearest-neighbour Hamiltonian
-# into even and odd bonds, $H=H_{\rm even}+H_{\rm odd}$, $H_{\rm even}=\sum_{j\ {\rm even}}h_{j,j+1}$. Terms inside one group act on
+# into even and odd bonds (the product formulas of Trotter 1959 and Suzuki 1976), $H=H_{\rm even}+H_{\rm odd}$, $H_{\rm even}=\sum_{j\ {\rm even}}h_{j,j+1}$. Terms inside one group act on
 # disjoint pairs of spins and commute, so $e^{-iH_{\rm even}\tau}=\prod_{j\,\rm even}e^{-ih_{j,j+1}\tau}$ exactly. The
-# second-order (Strang) step is
+# second-order symmetric step (Strang 1968) is
 #
 # $$ e^{-iH\delta t}=e^{-iH_{\rm even}\delta t/2}\,e^{-iH_{\rm odd}\delta t}\,e^{-iH_{\rm even}\delta t/2}+O(\delta t^3). $$
 #
@@ -2176,8 +2178,8 @@ print(f"  SV |            |            |                  |            | {float(
 # * **Néel state** $|\!\uparrow\downarrow\uparrow\downarrow\cdots\rangle$: a highly excited state everywhere in the chain.
 #
 # Writing $X_jX_{j+1}+Y_jY_{j+1}=2(\sigma^+_j\sigma^-_{j+1}+\sigma^-_j\sigma^+_{j+1})$, with $\sigma^\pm=(X\pm iY)/2$ ($\sigma^-=|1\rangle\langle0|$ lowers spin up $|0\rangle$ to spin down $|1\rangle$), shows what $H$ does: it moves a down spin one site to the left or right with
-# amplitude $2J$, and it conserves the total magnetisation $\sum_jZ_j$. The Jordan-Wigner transformation (quoted without
-# proof; Lieb, Schultz and Mattis 1961; used in notebook 15, Section 7.2) maps down spins to *non-interacting* fermions hopping on the chain. For free
+# amplitude $2J$, and it conserves the total magnetisation $\sum_jZ_j$. The Jordan-Wigner transformation (Jordan and Wigner 1928; quoted without
+# proof; applied to the XY chain by Lieb, Schultz and Mattis 1961; used in notebook 15, Section 7.2) maps down spins to *non-interacting* fermions hopping on the chain. For free
 # particles everything follows from the single-particle propagator $U(t)=e^{-i\,h_1t}$, where $h_1$ is the $N\times N$ hopping matrix
 # with $2J$ on its first off-diagonals:
 #
@@ -2611,8 +2613,8 @@ plt.show()
 #   time. Always vary *both* independently.
 # * **Geometry.** MPS are built for chains with short-range couplings. A two-dimensional $L\times L$ lattice snaked into a chain
 #   has cuts crossed by $L$ bonds, so area-law entropy $S\propto L$ demands $\chi\propto2^{L}$. Long-range couplings require
-#   swap gates or other algorithms (MPO-based methods, the time-dependent variational principle, TDVP; review: Paeckel et
-#   al. 2019). Higher-dimensional tensor networks (projected entangled pair states, PEPS) exist, at a much higher cost.
+#   swap gates or other algorithms (MPO-based methods, the time-dependent variational principle, TDVP, of Haegeman et al. 2011; review: Paeckel et
+#   al. 2019). Higher-dimensional tensor networks (projected entangled pair states, PEPS, of Verstraete and Cirac 2004) exist, at a much higher cost.
 # * **Loss of canonical form.** Truncation breaks the orthonormality on which the local formulas of Sec. 5 rely, and
 #   it breaks it by $O(\varepsilon/\lambda_{\min}^2)$ rather than $O(\varepsilon)$ (Sec. 7.2), which is why the discarded weight and not
 #   the look of the observables must decide whether a run is converged; we also monitored the norm through
@@ -2695,11 +2697,19 @@ plt.show()
 #   A. J. Daley, C. Kollath, U. Schollwöck and G. Vidal, *Time-dependent density-matrix renormalization-group using adaptive effective Hilbert spaces*, J. Stat. Mech. P04005 (2004). - time evolution in the DMRG language.
 # * U. Schollwöck, *The density-matrix renormalization group in the age of matrix product states*, Ann. Phys. **326**, 96 (2011). - the standard review; canonical forms, truncation, DMRG, TEBD.
 # * S. R. White, *Density matrix formulation for quantum renormalization groups*, Phys. Rev. Lett. **69**, 2863 (1992). - DMRG.
+# * M. Fannes, B. Nachtergaele and R. F. Werner, *Finitely correlated states on quantum spin chains*, Commun. Math. Phys. **144**, 443 (1992). - finitely correlated states, the matrix product states of infinite chains.
 # * S. Östlund and S. Rommer, *Thermodynamic limit of density matrix renormalization*, Phys. Rev. Lett. **75**, 3537 (1995). - DMRG as a variational method over MPS.
-# * I. P. McCulloch, *From density-matrix renormalization group to matrix product states*, J. Stat. Mech. **2007**, P10014 (2007). - matrix product operators.
-# * R. J. Baxter, *Spontaneous staggered polarization of the F-model*, J. Stat. Phys. **9**, 145 (1973). - the exact staggered magnetisation of the XXZ chain used in Sec. 6.9 (the product formula as quoted by A. G. Izergin, N. Kitanine, J. M. Maillet and V. Terras, *Spontaneous magnetization of the XXZ Heisenberg spin-1/2 chain*, Nucl. Phys. B **554**, 679 (1999), Eq. (1.7)).
+# * F. Verstraete, J. J. García-Ripoll and J. I. Cirac, *Matrix product density operators: simulation of finite-temperature and dissipative systems*, Phys. Rev. Lett. **93**, 207204 (2004). - matrix product operators.
+# * I. P. McCulloch, *From density-matrix renormalization group to matrix product states*, J. Stat. Mech. **2007**, P10014 (2007). - the DMRG Hamiltonian as a matrix product operator.
+# * C. Lanczos, *An iteration method for the solution of the eigenvalue problem of linear differential and integral operators*, J. Res. Natl. Bur. Stand. **45**, 255 (1950). - the local solver of Sec. 6.5.
+# * H. F. Trotter, *On the product of semi-groups of operators*, Proc. Amer. Math. Soc. **10**, 545 (1959); M. Suzuki, *Generalized Trotter's formula and systematic approximants of exponential operators and inner derivations with applications to many-body problems*, Commun. Math. Phys. **51**, 183 (1976). - product formulas.
+# * G. Strang, *On the construction and comparison of difference schemes*, SIAM J. Numer. Anal. **5**, 506 (1968). - the symmetric second-order splitting of Sec. 8.1.
+# * R. J. Baxter, *Spontaneous staggered polarization of the F-model*, J. Stat. Phys. **9**, 145 (1973). - the exact staggered magnetisation of the infinite XXZ chain as an infinite product, used in Sec. 6.9.
+# * A. G. Izergin, N. Kitanine, J. M. Maillet and V. Terras, *Spontaneous magnetization of the XXZ Heisenberg spin-1/2 chain*, Nucl. Phys. B **554**, 679 (1999). - an independent algebraic-Bethe-ansatz derivation of Baxter's formula; the product is written in Sec. 6.9 in the form of their Eq. (1.7), with $q\to1/q$.
 # * J. des Cloizeaux and M. Gaudin, *Anisotropic linear magnetic chain*, J. Math. Phys. **7**, 1384 (1966). - the excitation gap of the XXZ chain for $\Delta>1$.
 # * D. V. Dmitriev, V. Ya. Krivnov and A. A. Ovchinnikov, *Gap generation in the XXZ model in a transverse magnetic field*, Phys. Rev. B **65**, 172409 (2002). - phase diagram; Néel order along $y$ induced by the transverse field (Sec. 6.9).
+# * J. Haegeman, J. I. Cirac, T. J. Osborne, I. Pižorn, H. Verschelde and F. Verstraete, *Time-dependent variational principle for quantum lattices*, Phys. Rev. Lett. **107**, 070601 (2011). - TDVP (Sec. 12).
+# * F. Verstraete and J. I. Cirac, *Renormalization algorithms for quantum-many body systems in two and higher dimensions*, arXiv:cond-mat/0407066 (2004). - projected entangled pair states (Sec. 12).
 # * S. Paeckel, T. Köhler, A. Swoboda, S. R. Manmana, U. Schollwöck and C. Hubig, *Time-evolution methods for matrix-product states*, Ann. Phys. **411**, 167998 (2019).
 # * M. B. Hastings, *Light-cone matrix product*, J. Math. Phys. **50**, 095207 (2009). - the division-free update. *An area law for one-dimensional quantum systems*, J. Stat. Mech. P08024 (2007).
 # * F. Verstraete and J. I. Cirac, *Matrix product states represent ground states faithfully*, Phys. Rev. B **73**, 094423 (2006). - Lemma 1: the bound $2\sum_b\varepsilon_b$ on the error of truncating every bond of one state (Sec. 3.5).
@@ -2708,8 +2718,11 @@ plt.show()
 #   Cambridge University Press (2007) - Sec. 2.6 "Singular Value Decomposition": what the SVD computes, its cost and its
 #   conditioning; the same material in *Numerical Recipes in Fortran 90: The Art of Parallel Scientific Computing*, 2nd ed.,
 #   Cambridge University Press (1996).
+# * D. N. Page, *Average entropy of a subsystem*, Phys. Rev. Lett. **71**, 1291 (1993). - the average entanglement entropy of a random pure state (Sec. 2).
+# * C. Holzhey, F. Larsen and F. Wilczek, *Geometric and renormalized entropy in conformal field theory*, Nucl. Phys. B **424**, 443 (1994); P. Calabrese and J. Cardy, *Entanglement entropy and quantum field theory*, J. Stat. Mech. P06002 (2004). - logarithmic entropy of critical chains with prefactor set by $c$ (Sec. 2).
 # * J. Eisert, M. Cramer and M. B. Plenio, *Colloquium: Area laws for the entanglement entropy*, Rev. Mod. Phys. **82**, 277 (2010).
 # * P. Calabrese and J. Cardy, *Evolution of entanglement entropy in one-dimensional systems*, J. Stat. Mech. P04010 (2005). - linear growth after a quench.
+# * P. Jordan and E. Wigner, *Über das Paulische Äquivalenzverbot*, Z. Phys. **47**, 631 (1928). - the Jordan-Wigner transformation.
 # * E. Lieb, T. Schultz and D. Mattis, *Two soluble models of an antiferromagnetic chain*, Ann. Phys. **16**, 407 (1961). - Jordan-Wigner solution of the XY chain.
 # * E. H. Lieb and D. W. Robinson, *The finite group velocity of quantum spin systems*, Commun. Math. Phys. **28**, 251 (1972). - the light cone of Sec. 10.2.
 # * I. Peschel, *Calculation of reduced density matrices from correlation functions*, J. Phys. A **36**, L205 (2003).

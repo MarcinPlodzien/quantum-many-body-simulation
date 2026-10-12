@@ -18,7 +18,9 @@
 # In 2018 Scott Aaronson formulated the *shadow tomography* problem — predict $K$ observables of an unknown state
 # using a number of copies growing only **polylogarithmically** in $K$, i.e. like a power of $\log K$ — and proved it is possible
 # in principle.
-# In 2020 Huang, Kueng and Preskill turned the idea into a concrete measurement protocol:
+# Measurements in randomly chosen bases on single copies had already been used to estimate purities and Rényi entropies
+# (van Enk and Beenakker 2012; Elben, Vermersch, Dalmonte, Cirac and Zoller 2018), and in an experiment by Brydges and co-workers (2019).
+# In 2020 Huang, Kueng and Preskill turned the shadow-tomography idea into a concrete measurement protocol:
 #
 # > Measure every qubit along a **randomly chosen** axis. Write down which axes you chose and which bits came out.
 # > Repeat $M$ times. That list of $2NM$ integers, the **classical shadow**, is enough to predict, after the fact,
@@ -704,7 +706,7 @@ fig.tight_layout(); plt.show()
 #   \qquad\text{provided}\qquad \frac MG\ge\frac{4\sigma^2}{\varepsilon^2}.$$
 #
 # The median can only be wrong if at least half of the groups are wrong. The number $B$ of bad groups is binomial with success
-# probability $p\le1/4$, and Hoeffding's inequality gives
+# probability $p\le1/4$, and Hoeffding's inequality (Hoeffding 1963) gives
 #
 # $$\Pr\left[B\ge\frac G2\right]\le\exp\left(-2G\left(\tfrac12-\tfrac14\right)^2\right)=e^{-G/8}.$$
 #
@@ -1086,7 +1088,8 @@ assert abs(z7_wrong) > 5
 #   \mathcal M^{-1}(A)=3A-\mathrm{Tr}(A)\mathbb 1 .$$
 #
 # A second derivation of the same statement, needed again in Section 10: the single-qubit Clifford group is a **unitary
-# 2-design** (Webb 2016; Zhu 2017 prove the much stronger statement that the multi-qubit Clifford group is a 3-design). Equation (1)
+# 2-design** (for any number of qubits this was proved by Dankert, Cleve, Emerson and Livine (2009), extending DiVincenzo, Leung and
+# Terhal (2002); Webb 2016 and Zhu 2017 prove the much stronger statement that the multi-qubit Clifford group is a 3-design). Equation (1)
 # involves the ensemble only through its second moments, so *any* 2-design on one qubit gives the same channel — and for $d=2$ the
 # general 2-design result of Section 10.1 reads $\mathcal M(A)=(A+\mathrm{Tr}(A)\mathbb 1)/(d+1)=(A+\mathrm{Tr}(A)\mathbb 1)/3$,
 # which is Eq. (3) again.
@@ -1970,8 +1973,19 @@ assert np.abs(z_e2_wrong).min() > 5.0
 #   $\mathrm{Tr}(O_0^2)\le\lVert O_0\rVert^2_{\rm shadow}\le3\,\mathrm{Tr}(O_0^2)$ for global Clifford shadows (Proposition 1).
 # * H.-Y. Huang, R. Kueng and J. Preskill, *Efficient estimation of Pauli observables by derandomization*,
 #   Phys. Rev. Lett. **127**, 030503 (2021) — the derandomised variant of Exercise 8.
+# * S. J. van Enk and C. W. J. Beenakker, *Measuring $\mathrm{Tr}\,\rho^n$ on single copies of $\rho$ using random measurements*,
+#   Phys. Rev. Lett. **108**, 110503 (2012); A. Elben, B. Vermersch, M. Dalmonte, J. I. Cirac and P. Zoller, *Rényi entropies from
+#   random quenches in atomic Hubbard and spin models*, Phys. Rev. Lett. **120**, 050406 (2018) — randomised measurements on single
+#   copies before classical shadows.
+# * T. Brydges, A. Elben, P. Jurcevic, B. Vermersch, C. Maier, B. P. Lanyon, P. Zoller, R. Blatt and C. F. Roos, *Probing Rényi
+#   entanglement entropy via randomized measurements*, Science **364**, 260 (2019) — the experiment, on up to $10$ trapped-ion qubits.
 # * A. Elben, S. T. Flammia, H.-Y. Huang, R. Kueng, J. Preskill, B. Vermersch and P. Zoller, *The randomized measurement toolbox*,
 #   Nature Reviews Physics **5**, 9 (2023) — a review of randomised measurements, including purities, entropies and noise robustness.
+# * D. P. DiVincenzo, D. W. Leung and B. M. Terhal, *Quantum data hiding*, IEEE Trans. Inf. Theory **48**, 580 (2002) — the Clifford
+#   group as a substitute for Haar-random unitaries in twirling.
+# * C. Dankert, R. Cleve, J. Emerson and E. Livine, *Exact and approximate unitary 2-designs and their application to fidelity
+#   estimation*, Phys. Rev. A **80**, 012304 (2009) — unitary $t$-designs, and the proof that the Clifford group is a unitary 2-design
+#   (their Theorem 1), Sections 9 and 10.
 # * Z. Webb, *The Clifford group forms a unitary 3-design*, Quantum Information and Computation **16**, 1379 (2016);
 #   H. Zhu, *Multiqubit Clifford groups are unitary 3-designs*, Phys. Rev. A **96**, 062336 (2017) — the design property used in
 #   Sections 9 and 10.
@@ -1982,5 +1996,7 @@ assert np.abs(z_e2_wrong).min() > 5.0
 #   $N$-qubit Clifford unitary can be implemented with $O(N^2/\log N)$ gates (Section 10.3).
 # * J. A. Smolin, J. M. Gambetta and G. Smith, *Efficient method for computing the maximum-likelihood quantum state from
 #   measurements with additive Gaussian noise*, Phys. Rev. Lett. **108**, 070502 (2012) — the projection used in Section 11.
+# * W. Hoeffding, *Probability inequalities for sums of bounded random variables*, J. Amer. Statist. Assoc. **58**, 13 (1963) —
+#   the tail bound used for the median of means, Section 6.3.
 # * M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information* (Cambridge University Press, 2000) — density
 #   matrices, quantum channels, the Clifford group (Ch. 2, 8 and 10).

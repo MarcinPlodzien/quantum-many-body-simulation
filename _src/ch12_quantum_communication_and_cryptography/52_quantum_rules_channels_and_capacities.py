@@ -194,7 +194,8 @@ BB84 = {"0": (KET0, "Z"), "1": (KET1, "Z"), "+": (KETP, "X"), "-": (KETM, "X")} 
 #
 # A measurement that never errs on $\vert\psi\rangle$ must err on $\vert\varphi\rangle$ with probability at least
 # $\vert\langle\psi\vert\varphi\rangle\vert^2$. One copy of a quantum state therefore does not reveal which of several
-# nonorthogonal states it is. The BB84 protocol of the next notebook of this chapter sends exactly such states:
+# nonorthogonal states it is. The BB84 protocol, proposed by Bennett and Brassard (1984) and the subject of the next
+# notebook of this chapter, sends exactly such states:
 # $\vert0\rangle$, $\vert1\rangle$, $\vert+\rangle$ and $\vert-\rangle$, where every state of one basis has overlap
 # $\vert\langle0\vert+\rangle\vert^2=1/2$ with both states of the other.
 #
@@ -627,7 +628,8 @@ plt.tight_layout(); plt.show()
 # distributed by sending quantum systems, and that protocols such as teleportation use up.
 #
 # **No-signalling.** Whatever Alice does to her half, a channel with Kraus operators $K_k$ or a measurement whose
-# outcome Bob does not learn, Bob's reduced state is unchanged:
+# outcome Bob does not learn, Bob's reduced state is unchanged, as Ghirardi, Rimini and Weber (1980) showed for any
+# measurement process:
 #
 # $$\textstyle\sum_k{\rm Tr}_A\big[(K_k\otimes\mathbb 1)\rho_{AB}(K_k^\dagger\otimes\mathbb 1)\big]
 # ={\rm Tr}_A\big[(\sum_kK_k^\dagger K_k\otimes\mathbb 1)\rho_{AB}\big]={\rm Tr}_A\rho_{AB}=\rho_B, \tag{9}$$
@@ -744,7 +746,8 @@ plt.tight_layout(); plt.show()
 #
 # ## 7. Resource accounting
 #
-# Teleportation sends an unknown qubit with one ebit and two classical bits, and superdense coding sends two
+# Teleportation, introduced by Bennett, Brassard, Crépeau, Jozsa, Peres and Wootters (1993), sends an unknown qubit
+# with one ebit and two classical bits, and superdense coding, introduced by Bennett and Wiesner (1992), sends two
 # classical bits with one ebit and one qubit. Written as resource inequalities, "the left side can simulate the right
 # side",
 #
@@ -765,7 +768,7 @@ plt.tight_layout(); plt.show()
 # A classical channel (notebook 50, Section 5.1) is a matrix of transition probabilities that maps input distributions
 # to output distributions. A **quantum channel** maps density matrices to density matrices: a linear map
 # $\rho\mapsto\mathcal E(\rho)$ that keeps every state a state, including when it acts on one half of an entangled
-# pair. Every such map can be written with **Kraus operators** $K_k$,
+# pair. Every such map can be written with **Kraus operators** $K_k$ (Kraus 1983),
 #
 # $$\mathcal E(\rho)=\sum_kK_k\,\rho\,K_k^\dagger,\qquad\sum_kK_k^\dagger K_k=\mathbb 1 . \tag{13}$$
 #
@@ -792,7 +795,8 @@ plt.tight_layout(); plt.show()
 #   $\vert1\rangle$ to $\vert0\rangle$; these are the same operators as the engine's `kraus_amplitude_damping` of
 #   [notebook 07](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb). The ball shrinks and moves towards the north pole,
 #   $(r_x,r_y,r_z)\to(\sqrt{1-\gamma}\,r_x,\sqrt{1-\gamma}\,r_y,\gamma+(1-\gamma)r_z)$.
-# * **Erasure**: with probability $e$ the qubit is lost, and the receiver is told so. The output lives in a larger
+# * **Erasure**, the channel studied by Grassl, Beth and Pellizzari (1997): with probability $e$ the qubit is lost, and
+#   the receiver is told so. The output lives in a larger
 #   space, the qubit plus an orthogonal "erased" flag:
 #
 # $$\mathcal E_e(\rho)=(1-e)\,\rho\otimes\vert0\rangle\langle0\vert_{\rm flag}+e\,\vert0\rangle\langle0\vert\otimes
@@ -1268,6 +1272,9 @@ plt.tight_layout(); plt.show()
 #
 # * C. W. Helstrom, *Quantum Detection and Estimation Theory* (Academic Press, New York, 1976) — the optimal measurement
 #   for discriminating two quantum states and its success probability.
+# * C. H. Bennett and G. Brassard, *Quantum cryptography: Public key distribution and coin tossing*, in Proceedings of
+#   the IEEE International Conference on Computers, Systems and Signal Processing (Bangalore, 1984), p. 175; reprinted
+#   in Theor. Comput. Sci. **560**, 7 (2014), doi:10.1016/j.tcs.2014.05.025 — the BB84 protocol.
 # * W. K. Wootters and W. H. Zurek, *A single quantum cannot be cloned*, Nature **299**, 802 (1982),
 #   doi:10.1038/299802a0 — the no-cloning theorem.
 # * D. Dieks, *Communication by EPR devices*, Phys. Lett. A **92**, 271 (1982), doi:10.1016/0375-9601(82)90084-6 — the
@@ -1277,6 +1284,20 @@ plt.tight_layout(); plt.show()
 # * C. A. Fuchs and A. Peres, *Quantum-state disturbance versus information gain: Uncertainty relations for quantum
 #   information*, Phys. Rev. A **53**, 2038 (1996), doi:10.1103/PhysRevA.53.2038 — the trade-off between information
 #   gain and disturbance, with the optimal detection for two equiprobable nonorthogonal pure states.
+# * G. C. Ghirardi, A. Rimini and T. Weber, *A general argument against superluminal transmission through the quantum
+#   mechanical measurement process*, Lett. Nuovo Cimento **27**, 293 (1980), doi:10.1007/BF02817189 — no-signalling:
+#   a measurement on one subsystem does not change the statistics of the other.
+# * C. H. Bennett, G. Brassard, C. Crépeau, R. Jozsa, A. Peres and W. K. Wootters, *Teleporting an unknown quantum state
+#   via dual classical and Einstein-Podolsky-Rosen channels*, Phys. Rev. Lett. **70**, 1895 (1993),
+#   doi:10.1103/PhysRevLett.70.1895 — quantum teleportation.
+# * C. H. Bennett and S. J. Wiesner, *Communication via one- and two-particle operators on Einstein-Podolsky-Rosen
+#   states*, Phys. Rev. Lett. **69**, 2881 (1992), doi:10.1103/PhysRevLett.69.2881 — superdense coding: two bits
+#   encoded in one particle of an entangled pair.
+# * K. Kraus, *States, Effects, and Operations: Fundamental Notions of Quantum Theory*, Lecture Notes in Physics
+#   **190** (Springer, Berlin, 1983), doi:10.1007/3-540-12732-1 — the operator-sum (Kraus) representation of
+#   quantum operations.
+# * M. Grassl, T. Beth and T. Pellizzari, *Codes for the quantum erasure channel*, Phys. Rev. A **56**, 33 (1997),
+#   doi:10.1103/PhysRevA.56.33 — the quantum erasure channel, with errors at known positions, and codes for it.
 # * V. Coffman, J. Kundu and W. K. Wootters, *Distributed entanglement*, Phys. Rev. A **61**, 052306 (2000),
 #   doi:10.1103/PhysRevA.61.052306 — the trade-off between the entanglement of one qubit with two others.
 # * A. S. Holevo, *Bounds for the quantity of information transmitted by a quantum communication channel*, Problems of

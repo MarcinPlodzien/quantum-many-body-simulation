@@ -1,9 +1,13 @@
 #@title: Data re-uploading — a universal quantum classifier from a single qubit
 #@part: Chapter 13 — Quantum machine learning
-#@description: A single qubit that receives the data once separates classes only by a plane through the Bloch sphere; uploading the data $L$ times between trainable rotations turns it into a classifier for curved and non-convex regions. The notebook builds the protocol of Pérez-Salinas et al. piece by piece in JAX (rotation layers $U(\boldsymbol\theta_i+\mathbf w_i\circ\mathbf x)$, maximally orthogonal label states, the fidelity and weighted fidelity costs, Adam training with vmap over random starts), compares test accuracies with the published tables, extends the classifier to two and four qubits with and without CZ entanglers, and shows that $L$ uploads make the output a Fourier series with frequencies up to $L$.
+#@description: A single qubit that receives the data once separates classes only by a plane through the Bloch sphere; uploading the data $L$ times between trainable rotations turns it into a classifier for curved and non-convex regions. The notebook builds the protocol introduced by Pérez-Salinas, Cervera-Lierta, Gil-Fuster and Latorre (Quantum 4, 226 (2020)) piece by piece in JAX (rotation layers $U(\boldsymbol\theta_i+\mathbf w_i\circ\mathbf x)$, maximally orthogonal label states, the fidelity and weighted fidelity costs, Adam training with vmap over random starts), compares test accuracies with the published tables, extends the classifier to two and four qubits with and without CZ entanglers, and shows that $L$ uploads make the output a Fourier series with frequencies up to $L$.
 
 # %% [markdown]
 # ## 1. Introduction and motivation
+#
+# The data re-uploading classifier was introduced by A. Pérez-Salinas, A. Cervera-Lierta, E. Gil-Fuster and J. I. Latorre,
+# *Data re-uploading for a universal quantum classifier*, Quantum **4**, 226 (2020), arXiv:1907.02085. This notebook
+# implements their protocol and compares its results with theirs.
 #
 # ### 1.1 What a classifier does
 #
@@ -21,8 +25,8 @@
 # $$h(\mathbf x)=\sum_{i=1}^{N}\alpha_i\,\varphi(\mathbf w_i\cdot\mathbf x+b_i). \tag{1}$$
 #
 # The universal approximation theorem states that functions of the form (1) approximate any continuous function on a
-# bounded domain to any accuracy, provided $N$ is large enough (Cybenko 1989 for sigmoidal $\varphi$; Hornik 1991 for
-# any bounded, nonconstant, continuous $\varphi$, as summarised by Pérez-Salinas *et al.*). The input $\mathbf x$ is *copied* into each of the $N$ neurons.
+# bounded domain to any accuracy, provided $N$ is large enough. This was proved by Cybenko (1989) for continuous sigmoidal $\varphi$ and by Hornik
+# (1991) for any continuous, bounded and nonconstant $\varphi$. The input $\mathbf x$ is *copied* into each of the $N$ neurons.
 #
 # ### 1.2 A qubit as a classifier
 #
@@ -37,7 +41,7 @@
 # forbids copying an unknown quantum state; the classical numbers $\mathbf x$, however, can be written into the
 # circuit as many times as we like.
 #
-# Pérez-Salinas, Cervera-Lierta, Gil-Fuster and Latorre (2020) built a classifier on exactly this idea, *data
+# Pérez-Salinas, Cervera-Lierta, Gil-Fuster and Latorre (2020) introduced a classifier built on exactly this idea, *data
 # re-uploading*: the data are uploaded $L$ times, each time combined with a different trainable rotation of the same
 # qubit, and the label is read from the fidelities of the final state with a set of *label states* that are as
 # different from each other as possible. Each layer plays the part of one neuron of Eq. (1), with the rotation angle
@@ -57,7 +61,8 @@
 # ### 1.4 Road map
 #
 # * **Section 3** defines the three data sets of the paper used here (a circle, a non-convex boundary, and a
-#   three-class annulus), the training and test sets and the accuracy.
+#   three-class ring problem, in which the plane is split by two concentric circles into an inner disc, the ring
+#   between the circles and the region outside), the training and test sets and the accuracy.
 # * **Section 4** builds the encoding layer and shows why one upload followed by any rotation separates the classes
 #   by a plane through the Bloch sphere; on the circle the best such plane is a strip that gets three quarters of the
 #   points right.
@@ -162,8 +167,10 @@ section_timer("3 data")
 #   disc area $\pi r^2=2$ half of the square, so random guessing scores $50\,\%$;
 # * **non-convex** (2 classes): class 1 above the curve $x_2=-2x_1+\tfrac32\sin(\pi x_1)$, class 0 below it. Neither
 #   region is convex, and the wiggles of the boundary have to be resolved;
-# * **annulus** (3 classes): class 0 inside the circle of radius $r_1=\sqrt{0.8-2/\pi}$, class 1 in the ring
-#   $r_1<\vert\mathbf x\vert<r_2=\sqrt{0.8}$, class 2 outside. The ring area $\pi(r_2^2-r_1^2)=2$ is again half of the
+# * **ring** (3 classes; called *annulus* in the paper): the region between two concentric circles, of radii
+#   $r_1=\sqrt{0.8-2/\pi}$ and $r_2=\sqrt{0.8}$. Class 0 lies inside the inner circle, $\vert\mathbf x\vert<r_1$;
+#   class 1 in the ring between the circles, $r_1<\vert\mathbf x\vert<r_2$; class 2 outside the outer circle. The ring
+#   area $\pi(r_2^2-r_1^2)=2$ is again half of the
 #   square; the inner disc covers $12.8\,\%$ and the outer region $37.2\,\%$.
 #
 # As in the paper, the training set has 200 points and the test set 4000 points, drawn independently. The *accuracy* is
@@ -177,7 +184,7 @@ section_timer("3 data")
 # ==============================================================================
 R_CIRCLE = np.sqrt(2 / np.pi)
 R_ANN = (np.sqrt(0.8 - 2 / np.pi), np.sqrt(0.8))
-PROBLEMS = {"circle": 2, "non-convex": 2, "annulus": 3}          # name -> number of classes C
+PROBLEMS = {"circle": 2, "non-convex": 2, "ring": 3}          # name -> number of classes C
 
 
 def labels_of(points, problem):
@@ -185,14 +192,14 @@ def labels_of(points, problem):
 
     MATH   circle:     y = 1 if x1^2 + x2^2 < 2/pi
            non-convex: y = 1 if x2 > -2 x1 + 1.5 sin(pi x1)
-           annulus:    y = 0, 1, 2 for |x| < r1, r1 < |x| < r2, |x| > r2,  r1^2 = 0.8 - 2/pi, r2^2 = 0.8
+           ring:    y = 0, 1, 2 for |x| < r1, r1 < |x| < r2, |x| > r2,  r1^2 = 0.8 - 2/pi, r2^2 = 0.8
     """
     r2 = jnp.sum(points ** 2, axis=1)
     if problem == "circle":
         return (r2 < R_CIRCLE ** 2).astype(jnp.int32)
     if problem == "non-convex":
         return (points[:, 1] > -2 * points[:, 0] + 1.5 * jnp.sin(jnp.pi * points[:, 0])).astype(jnp.int32)
-    if problem == "annulus":
+    if problem == "ring":
         return (r2 > R_ANN[0] ** 2).astype(jnp.int32) + (r2 > R_ANN[1] ** 2).astype(jnp.int32)
     raise ValueError(problem)
 
@@ -220,7 +227,7 @@ def draw_boundaries(ax, problem):
     t = np.linspace(0, 2 * np.pi, 300)
     if problem == "circle":
         ax.plot(R_CIRCLE * np.cos(t), R_CIRCLE * np.sin(t), "k-", lw=1.2)
-    elif problem == "annulus":
+    elif problem == "ring":
         for r in R_ANN:
             ax.plot(r * np.cos(t), r * np.sin(t), "k-", lw=1.2)
     else:
@@ -247,7 +254,7 @@ plt.show()
 
 # %% [markdown]
 # The measured class fractions agree with the areas computed above to within the sampling fluctuation of 4000 points.
-# The circle is the easiest shape and the annulus the hardest: its middle class is a ring that surrounds the inner
+# The circle is the easiest shape and the ring problem the hardest: its middle class is a ring that surrounds the inner
 # disc, so a classifier must produce a region with a hole.
 
 # %%
@@ -586,7 +593,7 @@ L_chk = 5
 k1, k2 = jax.random.split(jax.random.PRNGKey(3))
 theta_chk = jax.random.uniform(k1, (1, L_chk, 3), RDTYPE, 0, 2 * np.pi)
 w_chk = jax.random.normal(k2, (1, L_chk, 2), RDTYPE)
-x_chk = DATA["annulus"]["Xtr"][0]
+x_chk = DATA["ring"]["Xtr"][0]
 psi_ref = np.array([1.0, 0.0], dtype=complex)
 for l in range(L_chk):
     phi = np.asarray(theta_chk[0, l]) + np.array([*(np.asarray(w_chk[0, l]) * np.asarray(x_chk)), 0.0])
@@ -664,8 +671,54 @@ for C, off in [(2, 0.0), (3, 0.25), (4, 1 / 3)]:
     assert err_lab < TOL
 
 # %% [markdown]
-# The label states have the overlaps of the table. A point is assigned the class whose label state has the
-# largest fidelity with the final state; for $C=2$ this is the hemisphere rule of Section 4.2.
+# The label states have the overlaps of the table. The cell draws them on the Bloch sphere, using the Bloch vectors of
+# the states returned by `label_states`, so the picture shows exactly the states the classifier is trained against.
+
+# %%
+# ==============================================================================
+# STEP 5b: the label states on the Bloch sphere (Figure 2)
+# ==============================================================================
+fig = plt.figure(figsize=(12, 4.2))
+u, v = np.meshgrid(np.linspace(0, 2 * np.pi, 36), np.linspace(0, np.pi, 18))
+for k, C in enumerate((2, 3, 4)):
+    ax = fig.add_subplot(1, 3, k + 1, projection="3d")
+    ax.plot_wireframe(np.cos(u) * np.sin(v), np.sin(u) * np.sin(v), np.cos(v), color="0.85", lw=0.4)
+    for a, name in enumerate(("x", "y", "z")):                         # coordinate axes
+        e = np.zeros(3)
+        e[a] = 1.2
+        ax.plot(*np.stack([-e, e], axis=1), color="0.6", lw=0.6)
+        ax.text(*(1.3 * e), f"${name}$", color="0.4", fontsize=10)
+    nvec = np.asarray(jax.vmap(bloch_vector)(label_states(C)))          # (C, 3) Bloch vectors of the label states
+    for c1 in range(C):                                                   # edges between the label points
+        for c2 in range(c1 + 1, C):
+            if C > 2:
+                ax.plot(*np.stack([nvec[c1], nvec[c2]], axis=1), color="k", lw=1.0, ls="--")
+    for c in range(C):
+        ax.quiver(0, 0, 0, *nvec[c], color=PALETTE[c], lw=2.5, arrow_length_ratio=0.12)
+        ax.scatter(*nvec[c], s=60, color=PALETTE[c], depthshade=False)
+        ax.text(*(1.3 * nvec[c]), f"class {c}", color=PALETTE[c], fontsize=9, ha="center")
+    ax.set_xlim(-1, 1)
+    ax.set_ylim(-1, 1)
+    ax.set_zlim(-1, 1)
+    ax.set_box_aspect((1, 1, 1))
+    ax.set_axis_off()
+    overlap = float(target_fidelities(C)[0, 1])
+    ax.set_title(f"$C={C}$: overlaps {overlap:.3f}", fontsize=10)
+    ax.view_init(elev=20, azim=30)
+fig.tight_layout()
+plt.show()
+
+# %% [markdown]
+# **Figure 2.** Label states on the Bloch sphere for $C=2$, $3$ and $4$ classes; each arrow is the Bloch vector
+# $\mathbf n_c$ of the label state of class $c$. Two classes use the poles, three classes the corners of an equilateral
+# triangle on the great circle in the $x$–$z$ plane, and four classes the vertices of a regular tetrahedron (dashed
+# lines: the edges between the label points).
+#
+# The overlaps are $0$, $\frac14$ and $\frac13$; no other arrangement of $C$ points on the sphere makes the largest
+# overlap smaller. Two classes whose label states lie far apart on the sphere are easy to tell apart: a final state
+# close to one label state has a small fidelity with the other. The more classes, the closer the label states must lie, and the less room a
+# single qubit has to separate them. A point is assigned the class whose label state has the largest fidelity with the
+# final state; for $C=2$ this is the hemisphere rule of Section 4.2.
 #
 # ### 5.4 Two cost functions
 #
@@ -789,10 +842,10 @@ c_exact = float(chi2_f(p_exact, pts_sep, y_sep, cfg_sep))
 print(f"separable set: chi2_f at the exact solution = {c_exact:.2e},  accuracy = {accuracy(p_exact, pts_sep, y_sep, cfg_sep, 'f'):.3f}")
 assert c_exact < TOL
 
-# CHECKPOINT 2: reverse-mode gradient against central finite differences, both costs, L = 3 on the annulus
+# CHECKPOINT 2: reverse-mode gradient against central finite differences, both costs, L = 3 on the ring problem
 cfg_chk = (1, 3, 2, 3, False)
 p_chk = init_params(jax.random.PRNGKey(5), 1, *cfg_chk[:4])[0]
-d = DATA["annulus"]
+d = DATA["ring"]
 for name, fn0 in COSTS.items():
     fn = jax.jit(fn0, static_argnames=("cfg",))
     g_ad = jax.grad(fn0)(p_chk, d["Xtr"], d["ytr"], cfg_chk)
@@ -926,8 +979,8 @@ PAPER_1Q = {("circle", "f"): (0.50, 0.85, 0.85, 0.90, 0.89, 0.92, 0.93, 0.95),
             ("circle", "wf"): (0.50, 0.94, 0.94, 0.94, 0.96, 0.95, 0.97, 0.96),
             ("non-convex", "f"): (0.49, 0.82, 0.93, 0.93, 0.91, 0.96, 0.96, 0.95),
             ("non-convex", "wf"): (0.49, 0.86, 0.96, 0.95, 0.97, 0.98, 0.98, 0.96),
-            ("annulus", "f"): (0.34, 0.57, 0.80, 0.84, 0.92, 0.93, 0.90, 0.90),
-            ("annulus", "wf"): (0.43, 0.76, 0.68, 0.79, 0.88, 0.91, 0.92, 0.93)}
+            ("ring", "f"): (0.34, 0.57, 0.80, 0.84, 0.92, 0.93, 0.90, 0.90),
+            ("ring", "wf"): (0.43, 0.76, 0.68, 0.79, 0.88, 0.91, 0.92, 0.93)}
 
 
 def paper_value(table, L):
@@ -987,16 +1040,16 @@ plot_regions([(f"$L={L}$", RES_1Q[("circle", "wf", L)]) for L in (1, 2, 4, 8)], 
 # and $6$. Neither optimiser finds the global minimum of a landscape full of local minima, and a deeper circuit does
 # not guarantee a better result after a finite training.
 #
-# ### 7.2 The non-convex boundary and the annulus
+# ### 7.2 The non-convex boundary and the ring problem
 #
 # The same scan for the two harder problems, with the weighted fidelity cost only, which the paper finds better on
 # both.
 
 # %%
 # ==============================================================================
-# STEP 9: single qubit, accuracy vs L, weighted fidelity cost, non-convex and annulus
+# STEP 9: single qubit, accuracy vs L, weighted fidelity cost, non-convex and ring
 # ==============================================================================
-for problem in ("non-convex", "annulus"):
+for problem in ("non-convex", "ring"):
     for L in LAYERS_1Q:
         RES_1Q[(problem, "wf", L)] = fit(problem, 1, L, "wf", n_steps=N_STEPS_1Q)
     print_table(problem, ("wf",))
@@ -1022,8 +1075,8 @@ plt.show()
 
 plot_regions([(f"$L={L}$", RES_1Q[("non-convex", "wf", L)]) for L in (1, 2, 4, 8)], "non-convex",
              r"non-convex, one qubit, $\chi^2_{\rm wf}$")
-plot_regions([(f"$L={L}$", RES_1Q[("annulus", "wf", L)]) for L in (1, 2, 4, 8)], "annulus",
-             r"annulus, one qubit, $\chi^2_{\rm wf}$")
+plot_regions([(f"$L={L}$", RES_1Q[("ring", "wf", L)]) for L in (1, 2, 4, 8)], "ring",
+             r"ring, one qubit, $\chi^2_{\rm wf}$")
 
 # %% [markdown]
 # On the non-convex problem the single qubit goes from a vertical cut at $L=1$ ($51.7\,\%$) to a boundary that follows
@@ -1031,7 +1084,7 @@ plot_regions([(f"$L={L}$", RES_1Q[("annulus", "wf", L)]) for L in (1, 2, 4, 8)],
 # within one point for $L=3,4,8,10$, while at $L=2$ ($76.5$ against $86\,\%$) and $L=6$ ($95.1$ against $98\,\%$) we
 # stopped in a worse minimum.
 #
-# The annulus is the hardest case. With one or two layers the classifier finds horizontal bands and no inner disc
+# The ring problem is the hardest case. With one or two layers the classifier finds horizontal bands and no inner disc
 # (inner class $12\,\%$ of the points). The bands depend on $x_2$ already at $L=1$, unlike the strip of the circle,
 # because two of the three label states lie off the $z$ axis, so their fidelities depend on the azimuth, which carries
 # $x_2$. At $L=4$ a tilted inner region appears, and at $L=8$ the three regions are concentric, with $93.5\,\%$; the
@@ -1060,9 +1113,9 @@ section_timer("8 multi-qubit")
 # * **entanglers between layers.** In the entangled version, CZ gates follow every layer except the last. For two
 #   qubits this is one CZ between qubits 0 and 1; for four qubits two CZ gates alternate between the pairs $(0,1),(2,3)$
 #   after odd layers and $(1,2),(0,3)$ after even layers, so that after two layers every qubit is linked to both
-#   neighbours on a ring. Without the CZ gates the qubits never interact.
+#   neighbours in a closed loop of four qubits. Without the CZ gates the qubits never interact.
 #
-# Figure 2 shows the four-qubit entangled circuit. The CZ gate is diagonal,
+# Figure 3 shows the four-qubit entangled circuit. The CZ gate is diagonal,
 # $\mathrm{CZ}=\mathrm{diag}(1,1,1,-1)$: it changes the sign of $\vert11\rangle$ only. It has no effect on a product of
 # computational basis states, but on superpositions it creates entanglement, and the trainable rotations before and
 # after it decide how much. The paper places no entangler after the last layer. For two classes with the label
@@ -1070,7 +1123,7 @@ section_timer("8 multi-qubit")
 # computational-basis populations, and these are the fidelities with $\vert0\rangle$ and $\vert1\rangle$.
 #
 # ![Four-qubit re-uploading classifier with entanglement: every layer applies a compressed rotation U_{q,l} on each of the four qubits, followed by CZ gates on the pairs (0,1),(2,3) after layer 1 and (1,2),(0,3) after layer 2, alternating; the last layer has no CZ; every qubit is measured and its reduced state gives the fidelities F_{c,q}](figures/reuploading_four_qubits.svg)\
-# **Figure 2.** The four-qubit classifier with entanglement (paper, Fig. 5b). $U_{q,l}=U(\boldsymbol\theta_{q,l}+\mathbf w_{q,l}\circ\mathbf x)$
+# **Figure 3.** The four-qubit classifier with entanglement (paper, Fig. 5b). $U_{q,l}=U(\boldsymbol\theta_{q,l}+\mathbf w_{q,l}\circ\mathbf x)$
 # uploads the data on qubit $q$ in layer $l$. The CZ gates alternate between the pairs $(0,1),(2,3)$ and $(1,2),(0,3)$.
 # The fidelities $F_{c,q}$ of the reduced state of each qubit with the label states enter the cost of Eq. (16).
 #
@@ -1115,7 +1168,7 @@ section_timer("8 multi-qubit")
 # ==============================================================================
 # STEP 10: checks of the multi-qubit circuit
 # ==============================================================================
-d = DATA["annulus"]
+d = DATA["ring"]
 pts5 = d["Xtr"][:50]
 for Q in (2, 4):
     cfgQ = (Q, 3, 2, 3, False)
@@ -1160,26 +1213,26 @@ for Q in (2, 4):
 #
 # ### 8.3 Training with two and four qubits
 #
-# The cell trains the multi-qubit classifiers on the circle for $L=2,3,4$ and on the annulus for $L=1,2,3,4$, with and
+# The cell trains the multi-qubit classifiers on the circle for $L=2,3,4$ and on the ring problem for $L=1,2,3,4$, with and
 # without CZ gates (with $L=1$ there is nothing to entangle, since no CZ follows the last layer), and prints the test
 # accuracy next to the paper's Tables 1 and 4. On the circle the case $L=1$ is not trained: Section 9 shows that its
 # accuracy cannot exceed $75.8\,\%$ for any number of qubits. A four-qubit layer costs several times as much as a
 # single-qubit layer (Section 11), so we use two random starts here, with 300 Adam steps on the circle and 600 on the
-# annulus.
+# ring problem.
 
 # %%
 # ==============================================================================
-# STEP 11: 2 and 4 qubits, with and without CZ, circle and annulus, weighted fidelity cost
+# STEP 11: 2 and 4 qubits, with and without CZ, circle and ring, weighted fidelity cost
 # ==============================================================================
-LAYERS_MQ = {"circle": (2, 3, 4), "annulus": (1, 2, 3, 4)}   # circle L = 1 is fixed by the x1-only bound (Section 9)
-N_STEPS_MQ, N_STARTS_MQ = {"circle": 300, "annulus": 600}, 2       # Adam steps per problem, random starts
-# paper, chi2_wf, L = 1, 2, 3, 4 (Table 1: circle, Table 4: annulus); None = no entangled version for L = 1
+LAYERS_MQ = {"circle": (2, 3, 4), "ring": (1, 2, 3, 4)}   # circle L = 1 is fixed by the x1-only bound (Section 9)
+N_STEPS_MQ, N_STARTS_MQ = {"circle": 300, "ring": 600}, 2       # Adam steps per problem, random starts
+# paper, chi2_wf, L = 1, 2, 3, 4 (Table 1: circle, Table 4: ring); None = no entangled version for L = 1
 PAPER_MQ = {("circle", 2, False): (0.76, 0.96, 0.97, 0.97), ("circle", 2, True): (None, 0.96, 0.95, 0.96),
             ("circle", 4, False): (0.76, 0.96, 0.97, 0.97), ("circle", 4, True): (None, 0.96, 0.96, 0.96),
-            ("annulus", 2, False): (0.77, 0.79, 0.94, 0.93), ("annulus", 2, True): (None, 0.82, 0.95, 0.96),
-            ("annulus", 4, False): (0.81, 0.87, 0.92, 0.93), ("annulus", 4, True): (None, 0.96, 0.94, 0.96)}
+            ("ring", 2, False): (0.77, 0.79, 0.94, 0.93), ("ring", 2, True): (None, 0.82, 0.95, 0.96),
+            ("ring", 4, False): (0.81, 0.87, 0.92, 0.93), ("ring", 4, True): (None, 0.96, 0.94, 0.96)}
 RES_MQ = {}
-for problem in ("circle", "annulus"):
+for problem in ("circle", "ring"):
     for Q in (2, 4):
         for ent in (False, True):
             for L in LAYERS_MQ[problem]:
@@ -1190,7 +1243,7 @@ for problem in ("circle", "annulus"):
                                                      n_starts=N_STARTS_MQ)
                 RES_MQ[(problem, Q, ent, L)]["time"] = time.perf_counter() - t0
 
-for problem in ("circle", "annulus"):
+for problem in ("circle", "ring"):
     print(f"\n{problem}: test accuracy, chi2_wf (this notebook / paper)")
     print("   L      1 qubit      " + "  ".join(f"{Q} qubits {'CZ' if e else 'no CZ':5s}" for Q in (2, 4) for e in (False, True)))
     for i, L in enumerate((1, 2, 3, 4)):
@@ -1203,7 +1256,7 @@ for problem in ("circle", "annulus"):
                     row.append(f"{RES_MQ[(problem, Q, ent, L)]['acc_test']:.3f} / {PAPER_MQ[(problem, Q, ent)][i]:.2f}")
         print(f"  {L:2d}  " + "  ".join(f"{r:>17s}" for r in row))
 print()
-for problem in ("circle", "annulus"):
+for problem in ("circle", "ring"):
     n = N_STEPS_MQ[problem]
     drop = [1 - r["hist"][r["best"], -1] / r["hist"][r["best"], -n // 10 - 1]
             for k, r in RES_MQ.items() if k[0] == problem]
@@ -1218,7 +1271,7 @@ print(f"\ntraining time of the {len(RES_MQ)} multi-qubit classifiers (incl. comp
 # $0.945\to0.955$ and $0.946\to0.966$ for four) and change it by less than one point at $L=4$; the paper finds no effect of entanglement on this problem.
 # The paper's one-layer value for two and four qubits, $0.76$, coincides with the bound of Section 9.
 #
-# **Annulus.** Two and four qubits do much better than one at small $L$: at $L=2$, $0.82$–$0.93$ against $0.68$ for a
+# **Ring.** Two and four qubits do much better than one at small $L$: at $L=2$, $0.82$–$0.93$ against $0.68$ for a
 # single qubit, and at $L=4$, $0.90$–$0.94$ against $0.79$. This agrees with the paper's statement that more qubits
 # reach a given accuracy with fewer layers. The training has nearly levelled off: over the last 60 of the 600 steps
 # the cost of the selected start fell by a median $1.3\,\%$ and at most $10.7\,\%$. The CZ gates change the accuracy
@@ -1241,7 +1294,7 @@ print(f"\ntraining time of the {len(RES_MQ)} multi-qubit classifiers (incl. comp
 # STEP 12: accuracy vs number of parameters, and what the entanglers do to the reduced states
 # ==============================================================================
 fig, axes = plt.subplots(1, 2, figsize=(11, 3.9))
-for ax, problem in zip(axes, ("circle", "annulus")):
+for ax, problem in zip(axes, ("circle", "ring")):
     C = PROBLEMS[problem]
     ax.plot([n_params(1, L, 2, C) for L in LAYERS_1Q], [RES_1Q[(problem, "wf", L)]["acc_test"] for L in LAYERS_1Q],
             "o-", color=PALETTE[0], label="1 qubit")
@@ -1268,7 +1321,7 @@ def purities(theta, w, pts):
     return jax.vmap(one)(pts)
 
 
-for problem in ("circle", "annulus"):
+for problem in ("circle", "ring"):
     for Q in (2, 4):
         r = RES_MQ[(problem, Q, True, 4)]
         th, w, _ = unpack(r["p"], *r["cfg"][:4])
@@ -1276,15 +1329,15 @@ for problem in ("circle", "annulus"):
         print(f"{problem:8s} Q = {Q}, CZ, L = 4: mean purity of rho_q on 1000 test points per qubit "
               + ", ".join(f"{v:.3f}" for v in np.asarray(pur.mean(0))))
 
-plot_regions([("1 qubit, $L=4$", RES_1Q[("annulus", "wf", 4)]),
-              ("2 qubits, no CZ, $L=4$", RES_MQ[("annulus", 2, False, 4)]),
-              ("2 qubits, CZ, $L=4$", RES_MQ[("annulus", 2, True, 4)]),
-              ("4 qubits, CZ, $L=4$", RES_MQ[("annulus", 4, True, 4)])], "annulus",
-             r"annulus, $\chi^2_{\rm wf}$, four layers")
+plot_regions([("1 qubit, $L=4$", RES_1Q[("ring", "wf", 4)]),
+              ("2 qubits, no CZ, $L=4$", RES_MQ[("ring", 2, False, 4)]),
+              ("2 qubits, CZ, $L=4$", RES_MQ[("ring", 2, True, 4)]),
+              ("4 qubits, CZ, $L=4$", RES_MQ[("ring", 4, True, 4)])], "ring",
+             r"ring, $\chi^2_{\rm wf}$, four layers")
 
 # %% [markdown]
 # **Accuracy per parameter.** Plotted against the number of trainable parameters, the advantage of several qubits
-# disappears. On the annulus the single qubit with $L=6$ (33 parameters) reaches $91.4\,\%$ and the two-qubit
+# disappears. On the ring problem the single qubit with $L=6$ (33 parameters) reaches $91.4\,\%$ and the two-qubit
 # classifiers with $L=3$ (36 parameters) $89.6$–$89.7\,\%$; the four-qubit classifiers with $L=2$ (52 parameters)
 # reach $92.4$–$93.0\,\%$, like the single qubit with $L=10$ (53 parameters, $92.5\,\%$). On the circle the curves
 # overlap. More qubits buy a shorter circuit for the same accuracy because they carry more parameters per layer; per
@@ -1293,7 +1346,7 @@ plot_regions([("1 qubit, $L=4$", RES_1Q[("annulus", "wf", 4)]),
 # **The entanglers are used.** In the trained entangled classifiers the mean purity of the one-qubit reduced states on
 # the test set is $0.69$–$0.86$, far from the value 1 of a product state. By Eq. (14), a purity $0.83$ means
 # $\vert\mathbf r_q\vert=\sqrt{2\cdot0.83-1}=0.81$ and, by Eq. (15), fidelities of at most $0.91$; the class weights
-# $\alpha_{c,q}$ can rescale them towards the targets $Y_c$. The decision regions for the annulus with four layers
+# $\alpha_{c,q}$ can rescale them towards the targets $Y_c$. The decision regions for the ring problem with four layers
 # show the gain from more qubits: the tilted inner region of the single qubit becomes a disc.
 
 # %%
@@ -1342,10 +1395,10 @@ print(f"trained one-layer single-qubit classifier on the circle (Section 7.1): {
 #
 # **Entanglers let the measured qubit see the data uploaded on the others.** Without CZ gates the reduced state of
 # qubit $q$ depends only on the gates on qubit $q$. With CZ gates, the uploads on the neighbours before the last CZ
-# also act on it; Section 10.3 shows that this raises the number of frequencies in its output. The price is that its
+# also act on it; Section 10.6 shows that this raises the number of frequencies in its output. The price is that its
 # reduced state becomes mixed and its fidelities are bounded by Eq. (15). On the circle the entanglers helped slightly at
 # $L=2$ and $3$, by $1.0$ to $2.0$ points in all four cases (two starts per classifier), and made no difference at $L=4$
-# ($-0.5$ and $+0.3$ points); on the annulus the differences have either sign, from $-8.8$ to $+2.5$ points. On a problem not run here, the
+# ($-0.5$ and $+0.3$ points); on the ring problem the differences have either sign, from $-8.8$ to $+2.5$ points. On a problem not run here, the
 # four-dimensional hypersphere, the paper reports a clear gain from entanglement (its Table 3: $0.98$ with CZ against
 # $0.90$ without, four qubits, $L=2$). What the paper and this
 # notebook show is that the protocol works with and without entanglement; neither shows that entanglement is needed
@@ -1374,40 +1427,80 @@ print(f"trained one-layer single-qubit classifier on the circle (Section 7.1): {
 # combination with coefficients $\alpha_i$, are not controlled by the argument. Schuld, Sweke and Meyer (2021) describe
 # the result as a conjecture that such models are universal function approximators.
 #
-# ### 10.2 The Fourier series of a re-uploading model
+# ### 10.2 One upload: a single frequency
 #
-# A sharper statement holds for one-dimensional data (Schuld, Sweke and Meyer, 2021). Consider a model that encodes a
-# number $x$ with the gate $S(x)=e^{-ixH}$ in each of $L$ layers, separated by arbitrary trainable unitaries
-# $W^{(1)},\dots,W^{(L+1)}$, and outputs $f(x)=\langle0\vert\mathcal U^\dagger(x)\,O\,\mathcal U(x)\vert0\rangle$ for an
-# observable $O$. In the eigenbasis of $H$, with eigenvalues $\lambda_j$, every encoding gate contributes phases
-# $e^{-i\lambda_jx}$ to the amplitudes and $e^{+i\lambda_kx}$ to their complex conjugates, so
+# The Fourier picture explains in a few lines why one upload is a weak classifier and why every further upload helps.
+# We work with one-dimensional data $x$, write the encoding gate as $R_y(x)=e^{-ixY/2}$, and collect all other gates of
+# the circuit in trainable unitaries. With one upload the state is $\vert\psi(x)\rangle=W_2R_y(x)W_1\vert0\rangle$.
+#
+# The Pauli operator $Y$ has the eigenvalues $\pm1$, so the generator $Y/2$ of the encoding has the eigenvalues $\pm\frac12$.
+# With the projectors $P_\pm=\frac12(\mathbb 1\pm Y)$ onto the two eigenvectors, $Y=P_+-P_-$ and $\mathbb 1=P_++P_-$, and the
+# exponential acts on each eigenspace as a number:
+#
+# $$R_y(x)=e^{-ixY/2}=e^{-ix/2}P_++e^{+ix/2}P_- . \tag{18}$$
+#
+# The data appear only in the two phases $e^{\mp ix/2}$, one for each eigenvalue. The state therefore splits into two
+# pieces, $\vert\psi(x)\rangle=e^{-ix/2}\vert a\rangle+e^{ix/2}\vert b\rangle$ with $\vert a\rangle=W_2P_+W_1\vert0\rangle$ and
+# $\vert b\rangle=W_2P_-W_1\vert0\rangle$, which do not depend on $x$. A measured quantity is an expectation value,
+# $f(x)=\langle\psi(x)\vert O\vert\psi(x)\rangle$, in which a phase from the ket meets the complex conjugate of a phase from
+# the bra. Multiplying out,
+#
+# $$f(x)=\underbrace{\langle a\vert O\vert a\rangle+\langle b\vert O\vert b\rangle}_{c_0}
+# +\underbrace{\langle a\vert O\vert b\rangle}_{c_{1}}e^{ix}+\underbrace{\langle b\vert O\vert a\rangle}_{c_{-1}}e^{-ix}
+# =A+B\cos(x+\varphi), \tag{19}$$
+#
+# because $c_{-1}=c_1^*$ for a Hermitian $O$; here $A=c_0$, $B=2\vert c_1\vert$ and $\varphi=\arg c_1$. The frequencies
+# that survive are the differences of the two eigenvalues, $\frac12-\frac12=0$ and $\pm(\frac12-(-\frac12))=\pm1$. Whatever
+# the trainable gates are, one upload produces a single sinusoid in $x$. This is the one-dimensional form of the plane
+# cut of Section 4.2: there the output $\frac12(1+\mathbf m\cdot\mathbf r(\mathbf x))$ was linear in the Bloch vector of
+# Eq. (4), whose components contain each coordinate only through $\cos$ and $\sin$ of the coordinate itself, and a
+# threshold on a single sinusoid in $x_1$ is the strip $\vert x_1\vert<a$.
+#
+# ### 10.3 Several uploads: paths and their phases
+#
+# With $L$ uploads, separated by trainable gates, every encoding gate is again split as in Eq. (18). Expanding the
+# product, the state becomes a sum of $2^L$ *paths*, one for each choice of the eigenvalue $\pm\frac12$ at every upload,
+# and the path that picks $s_1,\dots,s_L\in\{+\frac12,-\frac12\}$ carries the phase $e^{-i\lambda x}$ with
+# $\lambda=s_1+\dots+s_L$. The output pairs a path of the ket, phase $e^{-i\lambda x}$, with a path of the bra, phase
+# $e^{+i\lambda' x}$, so the frequencies in $f$ are the differences $\lambda'-\lambda$:
+#
+# | $L$ | phases $\lambda$ of the $2^L$ paths | frequencies $\lambda'-\lambda$ | number of frequencies |
+# |---|---|---|---|
+# | 1 | $-\frac12$, $\frac12$ | $-1,0,1$ | 3 |
+# | 2 | $-1$, $0$ (twice), $1$ | $-2,\dots,2$ | 5 |
+# | 3 | $-\frac32$, $-\frac12$ (3 times), $\frac12$ (3 times), $\frac32$ | $-3,\dots,3$ | 7 |
+#
+# Each upload adds $\pm\frac12$ to the phase of a path; the phases of the paths spread over $-\frac L2,\dots,\frac L2$, and
+# their differences over the integers from $-L$ to $L$. Schuld, Sweke and Meyer (2021) derive this for any encoding gate
+# $S(x)=e^{-ixH}$ with eigenvalues $\lambda_j$, repeated in $L$ layers between arbitrary trainable unitaries
+# $W^{(1)},\dots,W^{(L+1)}$, and any observable $O$ (their Eqs. (8)–(12)):
 #
 # $$f(x)=\sum_{\omega\in\Omega}c_\omega\,e^{i\omega x},\qquad
-# \Omega=\big\{(\lambda_{k_1}+\dots+\lambda_{k_L})-(\lambda_{j_1}+\dots+\lambda_{j_L})\big\}, \tag{18}$$
+# \Omega=\big\{(\lambda_{k_1}+\dots+\lambda_{k_L})-(\lambda_{j_1}+\dots+\lambda_{j_L})\big\}. \tag{20}$$
 #
-# where the coefficients $c_\omega$ depend on the trainable unitaries and on $O$ (their Eqs. (8)–(12)). The data enter
-# only through the frequencies, and the frequencies are fixed by the spectrum of the encoding generator. For a Pauli
-# rotation, $H=\sigma/2$ with eigenvalues $\pm\frac12$, each difference of two sums of $L$ terms $\pm\frac12$ is an
-# integer between $-L$ and $L$, so
+# The set $\Omega$ is the *frequency spectrum*; it is fixed by the eigenvalues of the encoding generator alone. For a
+# Pauli rotation, $H=\sigma/2$, the table gives
 #
-# $$\Omega=\{-L,\dots,-1,0,1,\dots,L\}: \tag{19}$$
+# $$\Omega=\{-L,\dots,-1,0,1,\dots,L\}, \tag{21}$$
 #
-# **a model with $L$ uploads is a truncated Fourier series of degree $L$** in $x$. One upload gives a single
-# frequency, $f(x)=A\cos(x+B)+C$ (for the layer of `model_1d` below exactly $\cos(x+\theta_1)$, with $A=1$, $C=0$),
-# which is the one-dimensional version of the plane cut of Section 4.2; each further
-# upload adds one harmonic. In our layer $U(\boldsymbol\theta+\mathbf w\circ\mathbf x)$ the data enter as
-# $R_y(\theta_1+w_1x)=R_y(\theta_1)R_y(w_1x)$, that is, through $S(x)=e^{-ixw_1\sigma^y/2}$ with eigenvalues
-# $\pm w_1/2$. With trainable weights the frequencies become sums $\pm w_1\pm w_2\pm\dots$ (with some terms
-# cancelling), which need not be integers: the weights let the model choose its frequencies, at the price of a
-# spectrum that is no longer a fixed Fourier series.
+# so **a model with $L$ uploads is a truncated Fourier series of degree $L$** in $x$: every upload adds one harmonic.
 #
-# The cell tests Eq. (19) on a single qubit with $w=1$ fixed and the data in the polar angle,
-# $\phi_1=\theta_1+x$, and the remaining angles trainable. The output $f(x)=\langle Z\rangle$ is sampled at 64 points of
-# $[0,2\pi)$, and the discrete Fourier transform gives the coefficients $c_n$ exactly as long as the model has no
-# frequency above 31. For random parameters every coefficient with $\vert n\vert>L$ must vanish. Then we take a model
-# with $L=3$ and random parameters as a *teacher*: its output $g(x)$ is a Fourier series of degree 3 that a three-layer
-# model can certainly represent. We fit $g$ with student models of $L=1,\dots,4$ layers, minimising the mean-square
-# error on the 64 points with Adam from eight starts.
+# ### 10.4 What the trainable gates set: the coefficients
+#
+# The trainable gates do not appear in $\Omega$. They enter only the vectors of the paths, like $\vert a\rangle$ and
+# $\vert b\rangle$ in Eq. (19), and through them the coefficients $c_\omega$. The work is divided: the data encoding
+# fixes the *basis functions* $e^{i\omega x}$, and training chooses the *weights* $c_\omega$ with which they are combined.
+# This is the structure of the output layer of the neural network of Eq. (1), where learned coefficients $\alpha_i$
+# combine basis functions; in the network the hidden-layer weights also shape the basis functions, and Section 10.7
+# shows that the trainable weights $\mathbf w_i$ of the classifier play that role.
+#
+# The cell tests Eq. (21) on a single qubit with $w=1$ fixed and the data in the polar angle, $\phi_1=\theta_1+x$,
+# so that $R_y(\theta_1+x)=R_y(\theta_1)R_y(x)$ and the remaining angles are trainable. The output
+# $f(x)=\langle Z\rangle$ is sampled at 64 points of $[0,2\pi)$, and the discrete Fourier transform gives the
+# coefficients $c_n$ exactly as long as the model has no frequency above 31. For random parameters every coefficient
+# with $\vert n\vert>L$ must vanish. Then we take a model with $L=3$ and random parameters as a *teacher*: its output
+# $g(x)$ is a Fourier series of degree 3 that a three-layer model can certainly represent. We fit $g$ with student
+# models of $L=1,\dots,4$ layers, minimising the mean-square error on the 64 points with Adam from eight starts.
 
 # %%
 # ==============================================================================
@@ -1500,7 +1593,8 @@ plt.show()
 # %% [markdown]
 # For random parameters every Fourier coefficient with $\vert n\vert>L$ vanishes to round-off, $10^{-16}$, while those
 # with $\vert n\vert\leq L$ lie between about $0.01$ and $0.5$ (except $c_0=0$ for $L=1$, where $f=\cos(x+\theta_1)$):
-# Eq. (19) holds for $L=1,2,3,5$. The teacher has coefficients up to
+# Eq. (21) holds for $L=1,2,3,5$. The left panel is the spectrum: the coefficients fill the band $\vert n\vert\leq L$
+# and are zero to round-off outside it. The teacher has coefficients up to
 # $n=3$ and none beyond. Students with $L=1$ and $L=2$ cannot fit it (mean-square errors $0.21$ and $0.25$), whatever
 # the parameters, because they lack the frequency 3; the students with $L=3$ and $L=4$ fit it to $2\times10^{-31}$
 # and $2\times10^{-6}$ (pair cancellation embeds the two-layer model in the four-layer one, but not the three-layer
@@ -1509,21 +1603,38 @@ plt.show()
 # $R_y(\theta'+x)R_z(\pi)R_y(\theta+x)=R_z(\pi)R_y(\theta-\theta')$), so the two-layer model contains the constant model
 # but not the one-layer model, while the three-layer model contains the one-layer model.
 #
-# The frequency limit is a necessary condition. Having the right frequencies does not guarantee that every Fourier
-# series of degree $L$ can be reached, because the coefficients $c_\omega$ are constrained by the circuit; in our layer
-# the rotation $R_z(\phi_3)$ of the first layer acts on $\vert0\rangle$ and only adds a phase, and the final
-# $R_z(\phi_2)$ does not change $\langle Z\rangle$, so the trainable blocks before the first and after the last upload
-# are restricted. Exercise 6 explores this.
+# ### 10.5 From a Fourier series to a decision boundary
 #
-# ### 10.3 Entanglers raise the degree seen by one qubit
+# A classifier thresholds its output: the decision boundary is a level set of a function such as $f$. A single sinusoid
+# crosses a threshold at most twice per period, so one upload yields stripes; a series of degree $L$ can cross it up to
+# $2L$ times per period, and its level sets can bend more often and enclose more separate regions. In two dimensions the
+# same counting applies along each coordinate. The circle boundary $x_1^2+x_2^2=r^2$ is not a finite Fourier series, so a
+# classifier can only approach it, and more harmonics allow a closer approach. This is what Section 7 measured: on the
+# circle the one-layer classifier draws the strip of Section 4.2 ($75.1\,\%$), two layers already give a rounded region
+# ($91.0\,\%$) and eight layers follow the circle ($97.4\,\%$); on the ring problem the inner disc appears only from
+# $L=4$ on. The accuracy saturates once the remaining errors come from the finite training set rather than from the
+# missing harmonics.
 #
-# Without CZ gates the reduced state of qubit 0 depends only on its own $L$ uploads, and its output is a Fourier
-# series of degree $L$. With CZ gates between the layers of two qubits, the uploads on qubit 1 in layers
-# $1,\dots,L-1$ act on qubit 0 through the CZ gates that follow them; the upload on qubit 1 in the last layer comes
-# after the last CZ and cannot. By Eq. (18) with all encoding gates in the past of the measurement, the output of qubit
-# 0 can then contain frequencies up to $L+(L-1)=2L-1$. The cell measures the highest frequency in
-# $\langle Z_0\rangle$ for two qubits with random parameters, $w=1$ and the data in every polar angle, using
-# `classifier_state` with a one-dimensional input.
+# ### 10.6 Limits of the Fourier picture
+#
+# The degree grows only linearly with the number of uploads, $L$ uploads for degree $L$. More importantly, having the
+# right frequencies does not guarantee that every Fourier series of degree $L$ can be reached. A real series of degree
+# $L$ has $2L+1$ free real numbers, and our single-qubit model has $3L$ angles, but the coefficients are tied together by
+# the circuit: in our layer the rotation $R_z(\phi_3)$ of the first layer acts on $\vert0\rangle$ and only adds a phase,
+# and the final $R_z(\phi_2)$ does not change $\langle Z\rangle$, so the trainable blocks before the first and after the
+# last upload are restricted. Schuld, Sweke and Meyer show that quantum models with sufficiently flexible trainable
+# blocks can realise every set of Fourier coefficients, and conclude that such models are universal function
+# approximators when the spectrum becomes rich enough; their Fig. 3 shows a single-qubit model with one upload that
+# fits a degree-1 target and fails on a degree-2 target. The frequency limit is therefore a necessary condition, and the
+# reachable coefficients are a separate question. Exercise 6 explores it.
+#
+# The counting of Section 10.3 also predicts what entangling gates do. Without CZ gates the reduced state of qubit 0
+# depends only on its own $L$ uploads, and its output is a Fourier series of degree $L$. With CZ gates between the
+# layers of two qubits, the uploads on qubit 1 in layers $1,\dots,L-1$ act on qubit 0 through the CZ gates that follow
+# them; the upload on qubit 1 in the last layer comes after the last CZ and cannot. Each of these $2L-1$ uploads adds
+# $\pm\frac12$ to the phase of a path, so by Eq. (20) the output of qubit 0 can contain frequencies up to $2L-1$. The
+# cell measures the highest frequency in $\langle Z_0\rangle$ for two qubits with random parameters, $w=1$ and the data
+# in every polar angle, using `classifier_state` with a one-dimensional input.
 
 # %%
 # ==============================================================================
@@ -1549,7 +1660,19 @@ for L in (1, 2, 3, 4):
 # %% [markdown]
 # The measured degrees are $L$ without and $2L-1$ with the entanglers, as predicted. This is one concrete thing that entanglement adds to the model: a larger frequency spectrum at the same
 # number of uploads per qubit, at the price of mixed reduced states. Whether the extra frequencies help depends on the
-# problem; on the circle Section 8 found a gain of one to two points at $L=2$ and $3$, and on the annulus no consistent gain.
+# problem; on the circle Section 8 found a gain of one to two points at $L=2$ and $3$, and on the ring problem no consistent gain.
+#
+# ### 10.7 Trainable weights rescale the frequencies
+#
+# The frequencies are integers only because the data enter with unit weight. In the classifier the data enter as
+# $R_y(\theta_1+w_1x)=R_y(\theta_1)R_y(w_1x)$, an encoding gate with generator $w_1Y/2$ and eigenvalues $\pm w_1/2$.
+# Repeating the path counting of Section 10.3 with these eigenvalues, a path picks up $\pm w_l/2$ at upload $l$, and the
+# frequencies become sums $\pm w_1\pm w_2\pm\dots$ (with some terms cancelling), which need not be integers. The weights
+# let the classifier choose its frequencies: a large $w_l$ allows fast oscillations in $x$, a small one slow
+# variations, and different layers can use different scales. This is the role that the hidden-layer weights
+# $\mathbf w_i$ play in Eq. (1), and the reason why the compressed layer $U(\boldsymbol\theta_i+\mathbf w_i\circ\mathbf x)$
+# carries trainable weights. The price is a spectrum that is no longer a fixed Fourier series on a fixed period, which
+# is why the clean test of Eq. (21) above uses `model_1d` with $w=1$.
 
 # %%
 section_timer("11 cost")
@@ -1607,7 +1730,7 @@ print(f"   {'total (Sections 3-11)':26s} {sum(v for k, v in SECTION_TIMES.items(
 #   beyond sampling fluctuations.
 # * **Re-uploading makes a single qubit expressive.** With $L$ layers $U(\boldsymbol\theta_i+\mathbf w_i\circ\mathbf x)$,
 #   $5L+C$ parameters, one qubit reached $97$–$98\,\%$ on the circle and the non-convex problem and $93.5\,\%$ on the
-#   three-class annulus. Our test accuracies agree with the paper's single-qubit tables to within a few points for most
+#   three-class ring problem. Our test accuracies agree with the paper's single-qubit tables to within a few points for most
 #   $L$, with different optimisers, training sets and starts.
 # * **Label states and costs.** Maximally orthogonal label states (overlaps $0$, $\frac14$, $\frac13$ for $C=2,3,4$)
 #   turn fidelities into class scores. The weighted fidelity cost, with trainable class weights and target overlaps
@@ -1615,9 +1738,9 @@ print(f"   {'total (Sections 3-11)':26s} {sum(v for k, v in SECTION_TIMES.items(
 # * **Training.** Adam with exact gradients, compiled into one `lax.scan` and vmapped over random starts, with the
 #   best start chosen by training cost only. Different starts end in different local minima, and the accuracy is not
 #   monotonic in $L$, in our tables as in the paper's.
-# * **Several qubits.** Uploading on two or four qubits reaches a given accuracy with fewer layers (annulus at $L=4$:
+# * **Several qubits.** Uploading on two or four qubits reaches a given accuracy with fewer layers (ring problem at $L=4$:
 #   $90$–$94\,\%$ against $79\,\%$ for one qubit), but not with fewer parameters. CZ entanglers gave one to two points
-#   on the circle at $L=2$ and $3$ and no consistent gain on the annulus (the paper reports a clear gain on its
+#   on the circle at $L=2$ and $3$ and no consistent gain on the ring problem (the paper reports a clear gain on its
 #   hypersphere); the trained
 #   entangled circuits do create entanglement (purities of the one-qubit states $0.69$–$0.86$).
 # * **Fourier view.** With $L$ uploads of a Pauli rotation the output is a Fourier series of degree $L$ in the data,
@@ -1642,19 +1765,19 @@ print(f"   {'total (Sections 3-11)':26s} {sum(v for k, v in SECTION_TIMES.items(
 #    angles of the layer carry data (`fit` sets $d=2$ in `cfg` and `init_params`; replace it by 3). Generate 500
 #    training and 4000 test points (the paper's sizes), train with
 #    $\chi^2_{\rm wf}$ for $L=1,\dots,4$, and compare with the paper's single-qubit values $0.53$, $0.78$, $0.78$, $0.89$.
-# 5. ★★ **More starts (extend the code).** Retrain the two-qubit entangled classifier on the annulus at $L=3$ with
+# 5. ★★ **More starts (extend the code).** Retrain the two-qubit entangled classifier on the ring problem at $L=3$ with
 #    1000 Adam steps from eight starts instead of two. Plot the final training costs of all starts and compare the test
 #    accuracy of the selected start with the $0.897$ of Section 8.3 and the paper's $0.95$. How much of the difference
 #    comes from the choice of local minimum?
 # 6. ★★ **Frequencies are not enough.** Fit the degree-3 series
 #    $g(x)=0.1+0.3\cos x-0.2\sin2x+0.25\cos3x+0.1\sin3x$ with `model_1d` and $L=3,4,5$, eight starts and 1500 steps.
-#    Compare the errors with the teacher fit of Section 10.2. Add a trainable rotation $R_y(\beta)$ before the
-#    measurement and a trainable $R_y(\gamma)$ before the first upload, and repeat. Which of the two restrictions discussed in Section 10.2 matters?
+#    Compare the errors with the teacher fit of Section 10.4. Add a trainable rotation $R_y(\beta)$ before the
+#    measurement and a trainable $R_y(\gamma)$ before the first upload, and repeat. Which of the two restrictions discussed in Section 10.6 matters?
 # 7. ★★★ **Trainable frequencies (physics).** Replace $x$ by $w x$ in `model_1d`, with one trainable $w$ per layer,
-#    and fit $\cos(1.5\,x)$ on $[0,2\pi)$ with $L=1$. Explain with Eq. (18) why the model with $w=1$ cannot fit it and
+#    and fit $\cos(1.5\,x)$ on $[0,2\pi)$ with $L=1$. Explain with Eq. (20) why the model with $w=1$ cannot fit it and
 #    the model with trainable $w$ can. What happens to the Fourier transform of the fitted model on the 64-point grid?
 # 8. ★★★ **Uncompressed layers.** Implement the circuit of Eq. (6), $U(\boldsymbol\phi_i)U(\mathbf x)$ in every layer
-#    (without weights), and compare its test accuracy on the annulus with the compressed classifier at equal $L$ and
+#    (without weights), and compare its test accuracy on the ring problem with the compressed classifier at equal $L$ and
 #    at equal number of parameters.
 #
 # ## References
@@ -1666,13 +1789,14 @@ print(f"   {'total (Sections 3-11)':26s} {sum(v for k, v in SECTION_TIMES.items(
 #   success rates of Tables 1, 4 and 6 quoted in Sections 7 and 8.
 # * M. Schuld, R. Sweke and J. J. Meyer, *Effect of data encoding on the expressive power of variational
 #   quantum-machine-learning models*, Phys. Rev. A **103**, 032430 (2021), arXiv:2008.08605 — quantum models with
-#   repeated encoding gates as partial Fourier series, Eqs. (18)–(19) of Section 10.2.
+#   repeated encoding gates as partial Fourier series, Eqs. (20)–(21) of Section 10.3.
 # * F. J. Gil Vidal and D. O. Theis, *Input redundancy for parameterized quantum circuits*, Front. Phys. **8**, 297
 #   (2020), arXiv:1901.11434 — repeated encoding of the input in quantum neural networks; Schuld *et al.* note that the
 #   connection between repeated encoding and Fourier series was established here first.
 # * G. Cybenko, *Approximation by superpositions of a sigmoidal function*, Math. Control Signals Syst. **2**, 303
 #   (1989), and K. Hornik, *Approximation capabilities of multilayer feedforward networks*, Neural Netw. **4**, 251
-#   (1991) — the universal approximation theorem of Eq. (1), as cited by Pérez-Salinas *et al.*
+#   (1991) — the universal approximation theorem of Eq. (1): Cybenko for continuous sigmoidal activation functions,
+#   Hornik for any continuous, bounded and nonconstant one (uniform approximation on compact sets).
 # * R. H. Byrd, P. Lu, J. Nocedal and C. Zhu, *A limited memory algorithm for bound constrained optimization*, SIAM J.
 #   Sci. Comput. **16**, 1190 (1995) — L-BFGS-B, the optimiser of the paper (Section 6.1).
 # * A. Pérez-Salinas, *Quantum classifier with data re-uploading*, https://github.com/AdrianPerezSalinas/universal_qlassifier

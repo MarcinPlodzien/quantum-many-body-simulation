@@ -13,8 +13,8 @@
 # The textbook answer is a recurrent neural network: a state $\mathbf{x}_k\in\mathbb{R}^n$ updated by
 # $\mathbf{x}_k=f(W\mathbf{x}_{k-1}+w_{\rm in}u_k)$ and read out by $\hat y_k=\mathbf{w}^{\rm T}\mathbf{x}_k$. Training all of
 # $W,w_{\rm in},\mathbf{w}$ means propagating gradients backwards through hundreds of time steps; the gradients decay or blow
-# up exponentially with the number of steps, and the cost function is non-convex. Around 2001 Jaeger, and independently Maass,
-# Natschläger and Markram, proposed to give up on training the recurrent part entirely: take a **fixed** random dynamical
+# up exponentially with the number of steps (Bengio, Simard and Frasconi, 1994), and the cost function is non-convex. Jaeger
+# (2001), and independently Maass, Natschläger and Markram (2002), proposed to give up on training the recurrent part entirely: take a **fixed** random dynamical
 # system, drive it with the input, and train **only the linear readout**. The fixed system — the *reservoir* — has to do two
 # things: mix past inputs into a high-dimensional nonlinear set of features, and forget its own initial condition. Training
 # then reduces to linear regression, which is convex and has a closed-form solution.
@@ -154,6 +154,7 @@
 #
 # ### 2.4 The ridge-regression readout
 #
+# Ridge regression was introduced by Hoerl and Kennard (1970) for regression with nearly collinear predictors.
 # Collect the features of the $n$ training steps in a matrix $X\in\mathbb{R}^{n\times p}$ (row $k$ = the $p$ features at step
 # $k$) and the targets in $\mathbf{y}\in\mathbb{R}^{n}$. With weights $\mathbf{w}\in\mathbb{R}^p$ and bias $b$ we minimise
 #
@@ -558,7 +559,8 @@ for n, f in [("NARMA-2 ", narma2(u_demo)), ("NARMA-5 ", narma_n(u_demo, 5)), ("N
 # $\langle X_iX_j\rangle$ for all pairs from the same shots; likewise for $Y$ and $Z$. Observables from different settings do
 # not commute and cannot be obtained from the same run — a fact that Section 9 has to pay for.
 #
-# **Temporal multiplexing.** The device Fujii and Nakajima use (their *virtual nodes*) for getting more features out of the
+# **Temporal multiplexing.** The device Fujii and Nakajima use (their *virtual nodes*, a construction introduced for a
+# single nonlinear node with delayed feedback by Appeltant *et al.*, 2011) for getting more features out of the
 # same hardware: instead of reading only at the end of the interval $\tau$, read $V$ times at $\tau/V,2\tau/V,\dots,\tau$.
 # The $V$ snapshots are different functions of the same history — the dynamics has run for different times — so the
 # feature vector becomes $p=V p_0$ long at no cost in qubits. The $V$ sub-states are not independent, and Section 6
@@ -1827,7 +1829,8 @@ for q in range(N_QUBITS):
 # because the cross terms $\mathbb{E}[x\epsilon]$ vanish and $\mathbb{E}[\epsilon_{kj}\epsilon_{kj'}]=\delta_{jj'}v_{kj}$. To
 # leading order the normal equations (3) become $(X^{\rm T}X+\alpha\mathbb{1}+D)\mathbf{w}=X^{\rm T}\mathbf{y}$: **the shot
 # noise acts as a ridge penalty of its own**, with a feature-dependent strength $D_{jj}$ (this is the classical
-# errors-in-variables result; ridge regression and training with input noise are equivalent to this order). Two predictions
+# errors-in-variables result; Bishop (1995) showed that training with input noise is equivalent to Tikhonov
+# regularisation to this order). Two predictions
 # follow, and the next cell tests both.
 #
 # 1. As long as $D_{jj}\gg\alpha$, the explicit ridge parameter is irrelevant: the validation curve is flat and switching
@@ -2289,3 +2292,13 @@ print(f"\nN = {N_QUBITS}: {M_bench} trajectories over {len(u_bench)} steps: comp
 #     their Eq. (18)) use the NARMA-$n$ form of Eq. (7) with these coefficients for $n=5,10,15,20$. NARMA-10 is also a
 #     benchmark of A. Rodan and P. Tiňo, *Minimum complexity echo state network*, IEEE Transactions on Neural Networks
 #     **22**, 131 (2011).
+# 17. Y. Bengio, P. Simard and P. Frasconi, *Learning long-term dependencies with gradient descent is difficult*, IEEE
+#     Transactions on Neural Networks **5**, 157 (1994). Why gradient training of recurrent networks fails on long
+#     temporal dependencies.
+# 18. A. E. Hoerl and R. W. Kennard, *Ridge regression: biased estimation for nonorthogonal problems*, Technometrics
+#     **12**, 55 (1970). Ridge regression, Eq. (3).
+# 19. C. M. Bishop, *Training with noise is equivalent to Tikhonov regularization*, Neural Computation **7**, 108
+#     (1995).
+# 20. L. Appeltant, M. C. Soriano, G. Van der Sande, J. Danckaert, S. Massar, J. Dambre, B. Schrauwen, C. R. Mirasso and
+#     I. Fischer, *Information processing using a single dynamical node as complex system*, Nature Communications **2**,
+#     468 (2011). Virtual nodes read out at equally spaced times along a delay loop.

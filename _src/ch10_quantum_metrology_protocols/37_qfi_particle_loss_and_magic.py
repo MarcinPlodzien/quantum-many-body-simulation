@@ -9,7 +9,7 @@
 # $\theta$ was imprinted on all $N$ particles, but only $N-k$ of them are measured, and the question a laboratory must
 # answer before building anything is: **how much of the quantum advantage survives?**
 #
-# The answer is not a detail. Notebook 29 found that a GHZ state — the probe that saturates the Heisenberg limit
+# The answer is not a detail. Notebook 29 found that a GHZ state (Greenberger, Horne and Zeilinger 1989) — the probe that saturates the Heisenberg limit
 # $F_Q=N^2$ — is destroyed by the loss of one single particle. If that were the whole story, quantum-enhanced metrology
 # would be a curiosity rather than a technology. It is not the whole story: other probes degrade gracefully, and a probe
 # can even be *encoded* so that the phase it carries is immune to the loss of several particles. This notebook measures
@@ -144,7 +144,7 @@ def timed(f, *args, budget=0.3, min_reps=3, max_reps=200):
 #   \qquad A=\text{kept},\quad B=\text{lost}. \tag{1}$$
 #
 # This is a *mixed* state even though the probe was pure, so its quantum Fisher information is the general SLD
-# expression derived in notebook 30,
+# expression derived in notebook 30 (Helstrom 1976; Braunstein and Caves 1994),
 #
 # $$F_Q=2\sum_{m,n\,:\,\lambda_m+\lambda_n>0}
 #   \frac{\left\vert\langle m\vert\partial_\theta\rho_A\vert n\rangle\right\vert^2}{\lambda_m+\lambda_n},
@@ -394,7 +394,7 @@ assert err_all < 1e4 * TOL
 #
 # ### 4.3 Dicke states: a hypergeometric loss law
 #
-# The symmetric Dicke state $\vert D_N^M\rangle$ (equal superposition of all bit strings with $M$ ones) splits along any
+# The symmetric Dicke state $\vert D_N^M\rangle$ (Dicke 1954; equal superposition of all bit strings with $M$ ones) splits along any
 # bipartition into
 #
 # $$\vert D_N^M\rangle=\sum_m\sqrt{w_m}\;\vert D_K^m\rangle\otimes\vert D_k^{M-m}\rangle,\qquad
@@ -419,7 +419,7 @@ assert err_all < 1e4 * TOL
 #
 # ### 4.4 The W state as a special case
 #
-# The W state is $\vert D_N^1\rangle$. Then $w_0=k/N$, $w_1=K/N$ and all other weights vanish, so Eq. (11) has two
+# The W state (Dür, Vidal and Cirac 2000) is $\vert D_N^1\rangle$. Then $w_0=k/N$, $w_1=K/N$ and all other weights vanish, so Eq. (11) has two
 # terms: $m=0$ gives $K(w_0-w_1)^2/(w_0+w_1)=K(1-2K/N)^2$, and $m=1$ gives $2(K-1)w_1=2(K-1)K/N$. Hence
 #
 # $$F_Q^{\,W}(K)=K\left(1-\frac{2K}{N}\right)^{2}+\frac{2K(K-1)}{N}. \tag{12}$$
@@ -499,7 +499,7 @@ assert err_law < 1e4 * TOL
 #
 # We now measure the loss curve of the standard probe families, each with the generator that suits it: the optimal
 # collective direction $\mathbf n_{\rm opt}$ of the **intact** probe, read off the $3\times3$ QFI matrix of
-# notebook 29. The one-axis-twisting family of notebooks 33–35 supplies three of the probes:
+# notebook 29. The one-axis-twisting family (Kitagawa and Ueda 1993) of notebooks 33–35 supplies three of the probes:
 # $\vert+\rangle^{\otimes N}$ twisted by $e^{-i\mu J_z^2}$ at the optimal squeezing angle $\mu_{\rm opt}$, at
 # $\mu=0.5$ (over-squeezed) and at $\mu=\pi/2$ (the GHZ-like cat).
 #
@@ -620,7 +620,7 @@ fig.tight_layout(); plt.show()
 # **A Page-like shape.** The Haar-random probe follows the standard quantum limit of its survivors, $F_Q\approx K$, up
 # to $k=3$ and collapses once fewer than half of the qubits remain ($F_Q=2.2$ at $K=5$, $0.44$ at $K=4$). This is the
 # metrological Page curve measured in notebook 35: for $K<N/2$ the reduced state of a random state is close to
-# $\mathbb 1/2^K$ (Page), and a state close to the maximally mixed one carries almost no QFI for any generator. The
+# $\mathbb 1/2^K$ (Page 1993), and a state close to the maximally mixed one carries almost no QFI for any generator. The
 # intact probe has $F_Q=10.22$, barely above $N=10$, so this robustness buys nothing — another reminder that "entangled"
 # and "useful" are different words.
 #
@@ -676,7 +676,8 @@ for name, psi in ZOO.items():
 #
 # Entanglement entropy does not predict metrological usefulness (notebook 29) nor, as we just saw, loss robustness.
 # A natural next candidate is **magic** — the non-stabilizerness of the state, the resource that makes a circuit hard
-# to simulate classically. Notebook 27 defines the **stabilizer Rényi entropy**
+# to simulate classically. Its measure here is the **stabilizer Rényi entropy**, introduced by Leone, Oliviero and
+# Hamma (2022) and treated in notebook 27,
 #
 # $$M_\alpha(\psi)=\frac{1}{1-\alpha}\log_2\left(\frac{1}{2^N}\sum_{P\in\mathcal P_N}
 #    \left\vert\langle\psi\vert P\vert\psi\rangle\right\vert^{2\alpha}\right), \tag{14}$$
@@ -939,8 +940,8 @@ assert err_nl < 1e4 * TOL
 #
 # Take the Clifford encoder first. One layer applies CNOTs on the even bonds, a Hadamard gate $H$ followed by the phase
 # gate $S$ on every qubit, CNOTs on the odd bonds, and $H$, $S$ again, so every gate is a Clifford gate. Both codewords $\vert\bar0\rangle=V\vert0\rangle^{\otimes N}$ and
-# $\vert\bar1\rangle=V\vert1\rangle^{\otimes N}$ are then **stabilizer states**: the code is a stabilizer code with one
-# logical qubit. Section 9.1 derives that the QFI of the survivors can then take only the values $0$ and $N^2$. We first
+# $\vert\bar1\rangle=V\vert1\rangle^{\otimes N}$ are then **stabilizer states**: the code is a stabilizer code (Gottesman 1996)
+# with one logical qubit. Section 9.1 derives that the QFI of the survivors can then take only the values $0$ and $N^2$. We first
 # measure it, together with the norm of the coherence $C$ of Eq. (17), for the loss of the last $k$ qubits.
 
 # %%
@@ -1366,13 +1367,13 @@ fig.tight_layout(); plt.show()
 #   $\rho_A=2^{-\vert A\vert}\sum_{P\in\mathcal S_A}P$ with $\mathcal S_A$ the subgroup supported on $A$; and
 #   $\vert\mathcal S_A\vert^{-1}\sum_{P\in\mathcal S_A}P$ is a projector.) Rescaled, the spectrum is a single spike at
 #   $x=d_A2^{-S}$ plus a pile of exact zeros.
-# * A **Haar-random state** at $d_A=d_B=d$ has, in the large-$d$ limit, the **Marchenko–Pastur** density with aspect
-#   ratio $\gamma=d_A/d_B=1$,
+# * A **Haar-random state** at $d_A=d_B=d$ has, in the large-$d$ limit, the **Marchenko–Pastur** density (Marchenko and
+#   Pastur 1967) with aspect ratio $\gamma=d_A/d_B=1$,
 #
 # $$p(x)=\frac{1}{2\pi}\sqrt{\frac{4-x}{x}},\qquad 0\le x\le4, \tag{19}$$
 #
 #   with mean $1$ and variance $1$. (This is the $\gamma=1$ case of the classical Marchenko–Pastur law for the
-#   eigenvalues of a Wishart matrix $\Psi\Psi^\dagger$ with independent Gaussian entries — which is exactly what
+#   eigenvalues of a Wishart matrix (Wishart 1928) $\Psi\Psi^\dagger$ with independent Gaussian entries — which is exactly what
 #   $\rho_A$ is for a Haar-random pure state, up to normalisation.)
 #
 # So the question "how random does the encoder make the state" has a quantitative answer, and we can ask whether magic
@@ -1628,8 +1629,17 @@ for N in (6, 8, 10, 12):
 # * S. L. Braunstein and C. M. Caves, *Statistical distance and the geometry of quantum states*,
 #   Phys. Rev. Lett. **72**, 3439 (1994) — the quantum Fisher information as the maximum of the classical Fisher
 #   information over all measurements; the quantum Cramér–Rao bound used throughout.
+# * C. W. Helstrom, *Quantum Detection and Estimation Theory* (Academic Press, New York, 1976) — the symmetric
+#   logarithmic derivative and the quantum Cramér–Rao bound.
 # * L. Pezzè and A. Smerzi, *Entanglement, nonlinear dynamics, and the Heisenberg limit*,
 #   Phys. Rev. Lett. **102**, 100401 (2009) — $F_Q>N$ as an entanglement witness for collective generators.
+# * D. M. Greenberger, M. A. Horne and A. Zeilinger, *Going beyond Bell's theorem*, in *Bell's Theorem, Quantum
+#   Theory, and Conceptions of the Universe*, ed. M. Kafatos (Kluwer, Dordrecht, 1989), pp. 69–72;
+#   arXiv:0712.0921 — the GHZ state.
+# * R. H. Dicke, *Coherence in spontaneous radiation processes*, Phys. Rev. **93**, 99 (1954) — the collective
+#   (Dicke) states of $N$ two-level systems.
+# * W. Dür, G. Vidal and J. I. Cirac, *Three qubits can be entangled in two inequivalent ways*, Phys. Rev. A **62**,
+#   062314 (2000) — the W state.
 # * G. Tóth and I. Apellaniz, *Quantum metrology from a quantum information science perspective*,
 #   J. Phys. A **47**, 424006 (2014) — the review behind the folklore of Sections 4–6; Section 2.2 states that a GHZ
 #   state "becomes a separable state" already after a single particle is lost, while spin-squeezed states stay optimal.
@@ -1654,11 +1664,15 @@ for N in (6, 8, 10, 12):
 # * L. Leone, S. F. E. Oliviero and A. Hamma, *Stabilizer Rényi entropy*, Phys. Rev. Lett. **128**, 050402 (2022) —
 #   the definition of $M_\alpha$, Eq. (14), and its properties as a measure of magic (faithfulness, invariance under
 #   Clifford unitaries, additivity).
+# * D. Gottesman, *Class of quantum error-correcting codes saturating the quantum Hamming bound*, Phys. Rev. A
+#   **54**, 1862 (1996) — the stabilizer construction of quantum codes.
 # * D. Gottesman, *The Heisenberg representation of quantum computers*, in *Group22: Proceedings of the XXII
 #   International Colloquium on Group Theoretical Methods in Physics*, eds. S. P. Corney, R. Delbourgo and P. D. Jarvis
 #   (International Press, Cambridge MA, 1999), pp. 32–43; arXiv:quant-ph/9807006 — the stabilizer formalism and the
 #   Gottesman–Knill theorem (Clifford circuits acting on stabilizer states are classically simulable), on which
 #   Sections 9.1 and 12 rely.
+# * J. Wishart, *The generalised product moment distribution in samples from a normal multivariate population*,
+#   Biometrika **20A**, 32 (1928) — the Wishart distribution.
 # * V. A. Marchenko and L. A. Pastur, *Distribution of eigenvalues for some sets of random matrices*,
 #   Mat. Sb. **72(114)**, 507–536 (1967); English translation Math. USSR-Sb. **1**, 457 (1967) — the law of Eq. (19) itself (a statement about random matrices, not about
 #   quantum states), and B. Collins and I. Nechita, *Random matrix techniques in quantum information theory*,

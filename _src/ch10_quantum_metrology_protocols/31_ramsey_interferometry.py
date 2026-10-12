@@ -28,7 +28,8 @@
 #
 # $$\Delta\varphi=\frac{1}{\sqrt{NM}},$$
 #
-# the **standard quantum limit** (SQL). We will derive it three different ways — error propagation, classical Fisher information,
+# the **standard quantum limit** (SQL) of spectroscopy with uncorrelated atoms (Wineland *et al.* 1992, 1994). We will
+# derive it three different ways — error propagation, classical Fisher information,
 # quantum Fisher information — see all three give the same answer, and then watch several thousand simulated experiments per
 # data point reproduce it to about one per cent. We will also see where the protocol *fails*: at the extrema of the
 # fringe, and beyond a phase window of width $\pi$.
@@ -167,13 +168,13 @@ def std_of_std(sigma, n):
 # *estimator* is any function $\hat\varphi(x)$. It is **unbiased** if $\mathbb E[\hat\varphi]=\varphi$, and its uncertainty is
 # the standard deviation $\Delta\varphi=\sqrt{\mathrm{Var}(\hat\varphi)}$.
 #
-# **(ii) Classical Fisher information.** For a probability distribution $p(x\vert\varphi)$,
+# **(ii) Classical Fisher information** (Fisher 1925). For a probability distribution $p(x\vert\varphi)$,
 #
 # $$F_C(\varphi)=\sum_x\frac{1}{p(x\vert\varphi)}\left(\frac{\partial p(x\vert\varphi)}{\partial\varphi}\right)^{\!2}. \tag{1}$$
 #
 # It is **additive** over independent repetitions: $M$ repetitions of the same experiment carry $MF_C$.
 #
-# **(iii) Cramér–Rao bound.** Every unbiased estimator obeys
+# **(iii) Cramér–Rao bound** (Rao 1945; Cramér 1946). Every unbiased estimator obeys
 #
 # $$\Delta\varphi\ \ge\ \frac{1}{\sqrt{M\,F_C(\varphi)}}. \tag{2}$$
 #
@@ -185,7 +186,8 @@ def std_of_std(sigma, n):
 # $M$ is measured in Section 11.1.
 #
 # **(iv) Quantum Fisher information.** Maximising $F_C$ over all possible measurements of the state $\rho_\varphi$ gives the
-# quantum Fisher information $F_Q[\rho_\varphi]$, and hence $\Delta\varphi\ge1/\sqrt{MF_Q}$ (the *quantum* Cramér–Rao bound).
+# quantum Fisher information $F_Q[\rho_\varphi]$, and hence $\Delta\varphi\ge1/\sqrt{MF_Q}$ (the *quantum* Cramér–Rao bound of
+# Helstrom 1967 and Braunstein and Caves 1994).
 # For a **pure** state $\vert\psi\rangle$ whose phase is imprinted by $e^{-i\varphi G}$,
 #
 # $$F_Q=4\,\mathrm{Var}(G)=4\big(\langle G^2\rangle-\langle G\rangle^2\big). \tag{3}$$
@@ -304,7 +306,7 @@ def std_of_std(sigma, n):
 #
 # $$\vert\mathrm{CSS}\rangle=\vert+\rangle^{\otimes N},$$
 #
-# the **coherent spin state** pointing along $+x$: the closest quantum analogue of a classical arrow of length $N/2$. After
+# the **coherent spin state** (Radcliffe 1971; Arecchi, Courtens, Gilmore and Thomas 1972) pointing along $+x$: the closest quantum analogue of a classical arrow of length $N/2$. After
 # steps 2 and 3 it is $\big(c_0\vert0\rangle+c_1\vert1\rangle\big)^{\otimes N}$, so the $N$ atoms are statistically
 # **independent**, each excited with probability (6). Therefore the number of excited atoms is binomially distributed,
 #
@@ -2058,3 +2060,15 @@ for N, M, K in ((4, 50, 400), (7, 50, 400), (10, 50, 200)):
 #   coherent spin states, the standard quantum limit and atom counting of this notebook, Section VII.A the decoherence.
 # * C. W. Helstrom, *Quantum Detection and Estimation Theory*, Mathematics in Science and Engineering **123**
 #   (Academic Press, New York, 1976) — the quantum Cramér–Rao bound.
+# * C. W. Helstrom, *Minimum mean-squared error of estimates in quantum statistics*, Phys. Lett. A **25**, 101 (1967) —
+#   the symmetric logarithmic derivative and the quantum Cramér–Rao bound.
+# * S. L. Braunstein and C. M. Caves, *Statistical distance and the geometry of quantum states*, Phys. Rev. Lett. **72**,
+#   3439 (1994) — the quantum Fisher information as the maximum of the classical one over all measurements.
+# * R. A. Fisher, *Theory of statistical estimation*, Proc. Camb. Phil. Soc. **22**, 700 (1925) — the Fisher information.
+# * C. R. Rao, *Information and the accuracy attainable in the estimation of statistical parameters*, Bull. Calcutta
+#   Math. Soc. **37**, 81 (1945), reprinted in *Breakthroughs in Statistics*, eds. S. Kotz and N. L. Johnson (Springer,
+#   New York, 1992), p. 235, and H. Cramér, *Mathematical Methods of Statistics* (Princeton University Press, 1946) — the
+#   Cramér–Rao bound.
+# * J. M. Radcliffe, *Some properties of coherent spin states*, J. Phys. A **4**, 313 (1971), and F. T. Arecchi,
+#   E. Courtens, R. Gilmore and H. Thomas, *Atomic coherent states in quantum optics*, Phys. Rev. A **6**, 2211 (1972) —
+#   the coherent spin state of Section 5.3.

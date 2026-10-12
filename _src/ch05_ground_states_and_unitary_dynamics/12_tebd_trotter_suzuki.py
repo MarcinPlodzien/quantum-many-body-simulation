@@ -165,7 +165,7 @@ assert float(err_one) < TOL
 #
 # $$ e^{\varepsilon A}e^{\varepsilon B}-e^{\varepsilon(A+B)}=\frac{\varepsilon^2}{2}[A,B]+O(\varepsilon^3). \qquad (2)$$
 #
-# This is the lowest order of the **Baker–Campbell–Hausdorff (BCH) formula** $e^{\varepsilon A}e^{\varepsilon B}=\exp\!\big(\varepsilon(A+B)+\tfrac{\varepsilon^2}{2}[A,B]+\tfrac{\varepsilon^3}{12}([A,[A,B]]+[B,[B,A]])+\dots\big)$, in which *all* corrections are nested commutators.
+# This is the lowest order of the **Baker–Campbell–Hausdorff (BCH) formula** (Campbell 1897; Baker 1905; Hausdorff 1906) $e^{\varepsilon A}e^{\varepsilon B}=\exp\!\big(\varepsilon(A+B)+\tfrac{\varepsilon^2}{2}[A,B]+\tfrac{\varepsilon^3}{12}([A,[A,B]]+[B,[B,A]])+\dots\big)$, in which *all* corrections are nested commutators.
 # If $[A,B]=0$ all of them vanish and the product formula is exact.
 #
 # ### 4.2 The first-order (Lie–Trotter) step
@@ -327,7 +327,7 @@ assert abs(r - 1) < 0.05                                 # sign and direction, n
 #
 # ### 5.1 Second order from a symmetry argument
 #
-# Consider the **symmetrised** product (Strang splitting; "second-order Trotter–Suzuki")
+# Consider the **symmetrised** product, introduced by Strang (1968) for difference schemes (Strang splitting; "second-order Trotter–Suzuki")
 #
 # $$ S_2(dt)=e^{-iA\,dt/2}\,e^{-iB\,dt}\,e^{-iA\,dt/2}. $$
 #
@@ -756,7 +756,7 @@ for N_s in (6, 8, 10, 12, 14, 16, 18):
 # $$ \langle H\rangle_t-\langle H\rangle_0=-\big(\langle H_{\rm eff}-H\rangle_t-\langle H_{\rm eff}-H\rangle_0\big)=O(dt^p)\quad\text{at all measured times }t=n\,dt: $$
 #
 # the energy error **oscillates but does not drift**, with an amplitude $\propto dt^p$. This makes $\max_t|\langle H\rangle_t-\langle H\rangle_0|$ a cheap, reference-free indicator of whether $dt$ is small enough. (The same mechanism explains the excellent long-time energy behaviour of
-# symplectic integrators in classical mechanics — leapfrog/Verlet is the Strang splitting of $H=T+V$; Hairer, Lubich and Wanner (2006), Chapter IX, develop this backward error analysis.)
+# symplectic integrators in classical mechanics — leapfrog/Verlet (Verlet 1967) is the Strang splitting of $H=T+V$. That a symplectic map is the exact flow of a nearby Hamiltonian up to exponentially small terms was proved by Benettin and Giorgilli (1994); Hairer, Lubich and Wanner (2006), Chapter IX, develop this backward error analysis.)
 #
 # Two caveats belong with this argument. First, $H_{\rm eff}$ is a *local* operator only as long as the expansion behaves: the series of nested commutators is asymptotic, not convergent, and for a many-body system its truncation is useful only while $dt$ times the local energy
 # scale is small. Second, "does not drift" is a statement about a long but finite time. Rigorous results for Floquet systems — and a Trotterised evolution is a periodically driven system, with period $dt$ — show that the energy stays close to its initial value for a time
@@ -818,7 +818,7 @@ print(f"\ndt = 1.0 (order 2), T = 10:  |norm - 1| = {abs(float(jnp.linalg.norm(p
 #
 # Trotter error comes from commutators. When they vanish, a product formula of *any* order with *any* $dt$ is exact:
 #
-# * **All terms commute.** The classical Ising chain $H=J\sum_jZ_jZ_{j+1}+h_z\sum_jZ_j$ contains only $Z$ operators. One step with $dt=T$ is the exact evolution. (The one-axis-twisting Hamiltonian $\chi\sum_{i<j}Z_iZ_j$ used for spin squeezing in quantum metrology is of this type.)
+# * **All terms commute.** The classical Ising chain $H=J\sum_jZ_jZ_{j+1}+h_z\sum_jZ_j$ contains only $Z$ operators. One step with $dt=T$ is the exact evolution. (The one-axis-twisting Hamiltonian $\chi\sum_{i<j}Z_iZ_j$, introduced for spin squeezing by Kitagawa and Ueda (1993), is of this type.)
 #   Adding a transverse field $h_xX_j$ switches the error on, proportionally to $\|[Z_jZ_{j+1},h_xX_j]\|\propto h_x$.
 # * **The state is a common eigenstate of all terms.** $|\!\uparrow\uparrow\cdots\uparrow\rangle$ under the XXZ Hamiltonian: every gate only multiplies it by a phase.
 # * **A single bond** ($N=2$): nothing to split.
@@ -1038,7 +1038,7 @@ for target in (1e-2, 1e-4, 1e-6, 1e-8):
 #
 # $$ \epsilon(dt)\approx\frac{\delta}{1-2^{-p}},\qquad\epsilon(dt/2)\approx\frac{\delta}{2^p-1}. \qquad (7)$$
 #
-# This *a-posteriori* estimate (the idea behind Richardson extrapolation and adaptive step-size control; Press *et al.* 2007, §17.3) requires no exact solution. We first validate it where we do know the answer.
+# This *a-posteriori* estimate (the idea behind the extrapolation introduced by Richardson (1911) and behind adaptive step-size control; Press *et al.* 2007, §17.3) requires no exact solution. We first validate it where we do know the answer.
 
 # %%
 # ==============================================================================
@@ -1062,7 +1062,7 @@ for scheme, dt_h in (("2", 0.1), ("2", 0.05), ("4", 0.2), ("4", 0.1)):
 #
 # We now go beyond the reach of dense references: $N=18$ spins ($2^{18}=262\,144$ amplitudes; the dense propagator would need 1.1 TB). Initial state: a **domain wall** $|\!\uparrow\cdots\uparrow\downarrow\cdots\downarrow\rangle$. Hamiltonian: the XXZ chain with $\Delta=0$ (the "XX chain") and with $\Delta=1$ (Heisenberg).
 #
-# For $\Delta=0$ an exact solution exists for any $N$. The Jordan–Wigner transformation maps down-spins to fermions and $J(X_jX_{j+1}+Y_jY_{j+1})=2J(\sigma^+_j\sigma^-_{j+1}+{\rm h.c.})$, with $\sigma^\pm=(X\pm iY)/2$ ($\sigma^-=|1\rangle\langle0|$ lowers spin up $|0\rangle$ to spin down $|1\rangle$), to *free* hopping with amplitude $2J$. For free particles the density evolves with the single-particle propagator
+# For $\Delta=0$ an exact solution exists for any $N$. The Jordan–Wigner transformation (Jordan & Wigner 1928) maps down-spins to fermions and $J(X_jX_{j+1}+Y_jY_{j+1})=2J(\sigma^+_j\sigma^-_{j+1}+{\rm h.c.})$, with $\sigma^\pm=(X\pm iY)/2$ ($\sigma^-=|1\rangle\langle0|$ lowers spin up $|0\rangle$ to spin down $|1\rangle$), to *free* hopping with amplitude $2J$. For free particles the density evolves with the single-particle propagator
 # $u(t)=e^{-ih_1t}$, where $h_1$ is the $N\times N$ hopping matrix ($(h_1)_{j,j\pm1}=2J$):
 #
 # $$ n_j(t)=\sum_{l\,\in\,\text{initially occupied}}|u_{jl}(t)|^2,\qquad\langle Z_j(t)\rangle=1-2\,n_j(t). $$
@@ -1212,11 +1212,16 @@ for Delta_big in (0.0, 1.0):
 # **Product formulas**
 # * H. F. Trotter, *On the product of semi-groups of operators*, Proc. Amer. Math. Soc. **10**, 545 (1959).
 # * G. Strang, *On the construction and comparison of difference schemes*, SIAM J. Numer. Anal. **5**, 506 (1968).
+# * J. E. Campbell, *On a law of combination of operators bearing on the theory of continuous transformation groups*, Proc. London Math. Soc. **28**, 381–390 (1897); H. F. Baker, *Alternants and continuous groups*, Proc. London Math. Soc. (2) **3**, 24–47 (1905);
+#   F. Hausdorff, *Die symbolische Exponentialformel in der Gruppentheorie*, Ber. Verh. Sächs. Akad. Wiss. Leipzig, Math.-Phys. Kl. **58**, 19–48 (1906), reprinted in *Felix Hausdorff — Gesammelte Werke*, Springer (2001), pp. 429–465 — the BCH formula.
 # * M. Suzuki, *Generalized Trotter's formula and systematic approximants of exponential operators and inner derivations with applications to many-body problems*, Commun. Math. Phys. **51**, 183 (1976).
 # * M. Suzuki, *Fractal decomposition of exponential operators with applications to many-body theories and Monte Carlo simulations*, Phys. Lett. A **146**, 319 (1990) — the five-stage fourth-order formula used here.
 # * M. Suzuki, *General theory of fractal path integrals with applications to many-body theories and statistical physics*, J. Math. Phys. **32**, 400 (1991) — the recursion to arbitrary order and the proof that no formula of order higher than two has only positive coefficients.
 # * E. Forest and R. D. Ruth, *Fourth-order symplectic integration*, Physica D **43**, 105 (1990); H. Yoshida, *Construction of higher order symplectic integrators*, Phys. Lett. A **150**, 262 (1990).
 # * N. Hatano and M. Suzuki, *Finding exponential product formulas of higher orders*, in *Quantum Annealing and Other Optimization Methods*, eds. A. Das and B. K. Chakrabarti, Lecture Notes in Physics **679**, pp. 37–68, Springer (2005).
+# * L. Verlet, *Computer "experiments" on classical fluids. I. Thermodynamical properties of Lennard-Jones molecules*, Phys. Rev. **159**, 98–103 (1967).
+# * G. Benettin and A. Giorgilli, *On the Hamiltonian interpolation of near-to-the-identity symplectic mappings with application to symplectic integration algorithms*, J. Stat. Phys. **74**, 1117–1143 (1994).
+# * L. F. Richardson, *The approximate arithmetical solution by finite differences of physical problems involving differential equations, with an application to the stresses in a masonry dam*, Phil. Trans. R. Soc. Lond. A **210**, 307–357 (1911).
 # * R. I. McLachlan and G. R. W. Quispel, *Splitting methods*, Acta Numerica **11**, 341–434 (2002) — the survey of splitting and composition methods and their order conditions.
 # * A. M. Childs, Y. Su, M. C. Tran, N. Wiebe and S. Zhu, *Theory of Trotter error with commutator scaling*, Phys. Rev. X **11**, 011020 (2021).
 # * M. Heyl, P. Hauke and P. Zoller, *Quantum localization bounds Trotter errors in digital quantum simulation*, Sci. Adv. **5**, eaau8342 (2019) — the threshold in $dt$, and why local observables are robust.
@@ -1231,7 +1236,9 @@ for Delta_big in (0.0, 1.0):
 # * U. Schollwöck, *The density-matrix renormalization group in the age of matrix product states*, Ann. Phys. **326**, 96 (2011) — Section 7 on time evolution with Trotter gates.
 #
 # **Physics of the examples**
+# * P. Jordan and E. Wigner, *Über das Paulische Äquivalenzverbot*, Z. Phys. **47**, 631–651 (1928).
 # * E. Lieb, T. Schultz and D. Mattis, *Two soluble models of an antiferromagnetic chain*, Ann. Phys. **16**, 407 (1961).
+# * M. Kitagawa and M. Ueda, *Squeezed spin states*, Phys. Rev. A **47**, 5138–5143 (1993) — one-axis twisting.
 # * T. Antal, Z. Rácz, A. Rákos and G. M. Schütz, *Transport in the XX chain at zero temperature: Emergence of flat magnetization profiles*, Phys. Rev. E **59**, 4912 (1999).
 # * A. Polkovnikov, K. Sengupta, A. Silva and M. Vengalattore, *Colloquium: Nonequilibrium dynamics of closed interacting quantum systems*, Rev. Mod. Phys. **83**, 863 (2011).
 # * G. Misguich, K. Mallick and P. L. Krapivsky, *Dynamics of the spin-1/2 Heisenberg chain initialized in a domain-wall state*, Phys. Rev. B **96**, 195151 (2017).

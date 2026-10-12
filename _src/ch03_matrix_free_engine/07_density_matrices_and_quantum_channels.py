@@ -15,7 +15,7 @@
 #    The qubits become *entangled with an environment that we do not track*.
 #
 # In both situations no single state vector describes the system, and quantum mechanics needs a more general
-# object: the **density operator** (density matrix) $\rho$. Noise then acts on $\rho$ through a **quantum channel**, a
+# object: the **density operator** (density matrix) $\rho$, introduced by von Neumann (1927) and Landau (1927). Noise then acts on $\rho$ through a **quantum channel**, a
 # class of maps that contains the unitaries as a special case (textbook treatments: Nielsen & Chuang, Ch. 8; Preskill, Ch. 3;
 # Breuer and Petruccione 2002). This is the language of every experimental paper on quantum hardware: gate fidelities, $T_1$/$T_2$
 # times, "depolarising error per gate", error-correction thresholds. It is also the language needed for a
@@ -183,8 +183,8 @@ assert err < TOL
 # experiment can distinguish these two preparations*. All measurable consequences of a preparation are contained in its
 # density operator; the particular ensemble used to build it has none of its own.
 #
-# The general rule behind this (quoted without proof; Nielsen & Chuang, Theorem 2.6, "unitary freedom in the ensemble
-# for density matrices") is stated with the *unnormalised* vectors $|\tilde\psi_k\rangle=\sqrt{p_k}\,|\psi_k\rangle$, so
+# The general rule behind this was proved by Hughston, Jozsa and Wootters (1993) (quoted here without proof; Nielsen & Chuang, Theorem 2.6, "unitary freedom
+# in the ensemble for density matrices"). It is stated with the *unnormalised* vectors $|\tilde\psi_k\rangle=\sqrt{p_k}\,|\psi_k\rangle$, so
 # that $\rho=\sum_k|\tilde\psi_k\rangle\langle\tilde\psi_k|$: after padding the shorter list with zero vectors, two
 # ensembles give the same $\rho$ if and only if $|\tilde\psi_m\rangle=\sum_nu_{mn}|\tilde\phi_n\rangle$ for some unitary
 # matrix $u$. Our two ensembles are exactly of this kind — $\tfrac1{\sqrt2}|\pm\rangle$ are the Hadamard combinations of
@@ -200,7 +200,7 @@ assert err < TOL
 #
 # * **Purity** $\gamma=\mathrm{Tr}\rho^2=\sum_i\lambda_i^2$. It equals 1 exactly for pure states ($\lambda=(1,0,\dots)$) and
 #   takes its minimum $1/d$ for the *maximally mixed state* $\rho=\mathbb 1/d$ in dimension $d=2^N$.
-# * **Von Neumann entropy** $S(\rho)=-\mathrm{Tr}\,\rho\log_2\rho=-\sum_i\lambda_i\log_2\lambda_i$, the Shannon entropy of the
+# * **Von Neumann entropy** (von Neumann 1927) $S(\rho)=-\mathrm{Tr}\,\rho\log_2\rho=-\sum_i\lambda_i\log_2\lambda_i$, the Shannon entropy of the
 #   eigenvalues, in bits. $S=0$ for pure states and $S=N$ bits for the maximally mixed state of $N$ qubits.
 #
 # Both were introduced in notebook 06 for *reduced* states; the engine functions `purity` and `von_neumann_entropy` take
@@ -213,7 +213,7 @@ assert err < TOL
 # $$ \rho=\tfrac12\big(\mathbb 1+r_xX+r_yY+r_zZ\big)=\frac12\begin{pmatrix}1+r_z & r_x-i r_y\\ r_x+i r_y & 1-r_z\end{pmatrix}. $$
 #
 # Because $\mathrm{Tr}(\sigma_a\sigma_b)=2\delta_{ab}$ and $\mathrm{Tr}\,\sigma_a=0$, the coefficients are the expectation
-# values: $r_a=\mathrm{Tr}(\rho\,\sigma_a)=\langle\sigma_a\rangle$. This **Bloch vector** $\mathbf r$ is the one you know
+# values: $r_a=\mathrm{Tr}(\rho\,\sigma_a)=\langle\sigma_a\rangle$. This **Bloch vector** $\mathbf r$ (Bloch 1946) is the one you know
 # from a single spin-1/2, but now its length is free. The eigenvalues of the matrix above are
 # $\lambda_\pm=\tfrac12(1\pm|\mathbf r|)$ (trace 1, determinant $\tfrac14(1-|\mathbf r|^2)$), hence
 #
@@ -663,7 +663,7 @@ assert dp < TOL and dS < 1e3 * TOL
 # $\sum_m(K_m\otimes\mathbb 1_R)\,\Omega\,(K_m\otimes\mathbb 1_R)^\dagger$ is a sum of positive operators for every joint
 # state $\Omega$. Maps that are completely positive and trace preserving are called **quantum channels** (CPTP maps).
 #
-# We quote without proof the converse (Kraus' theorem, Kraus 1983; see Nielsen & Chuang §8.2): *every* CPTP map on a $d$-dimensional
+# We quote without proof the converse (Kraus' theorem: Kraus 1971, 1983; for matrices Choi 1975; see Nielsen & Chuang §8.2): *every* CPTP map on a $d$-dimensional
 # system can be written in the form (3) with operators obeying (4), and at most $d^2$ Kraus operators are ever needed —
 # equivalently, an environment of dimension $d^2$ always suffices in the construction above. That construction
 # ("unitary on system + environment, then discard the environment") is the **Stinespring dilation** of the channel (Stinespring 1955);
@@ -1370,7 +1370,7 @@ for name, rec in sweeps.items():
 # * *Right:* the negativity starts at ½ (the value of a maximally entangled pair of qubits) and decays with the noise
 #   strength. For dephasing it follows $\tfrac12(1-2p)^N$ exactly (checked above): it is tiny beyond $p\approx0.25$ but
 #   vanishes only at $p=0.5$. Under depolarising noise it reaches zero already at a *finite* noise strength (see the last
-#   lines of the printout), a phenomenon known as "sudden death" of entanglement.
+#   lines of the printout), a phenomenon known as "sudden death" of entanglement (Yu and Eberly 2004).
 # * Compare the bit-flip curves in the two panels: its *fidelity* falls fastest of all four channels, yet up to
 #   $p\approx0.25$ its *negativity* is the **largest** of the four (beyond that amplitude damping, which is not a Pauli
 #   channel and pulls the state towards the pure $|0\dots0\rangle$, overtakes it and is the only channel with a non-zero
@@ -1416,7 +1416,7 @@ for name, rec in sweeps.items():
 #
 # where $\sigma_O^2$ is the variance of $\langle\psi|O|\psi\rangle$ over trajectories (at most 1 for a Pauli observable). This
 # is a Monte-Carlo method: the error decreases as $1/\sqrt M$ **independently of $N$**. It is known as the *Monte-Carlo
-# wave-function* (MCWF) or *quantum-jump* method (Dalibard, Castin & Mølmer 1992; Carmichael 1993; review: Plenio & Knight 1998); its continuous-time
+# wave-function* (MCWF) or *quantum-jump* method (Dalibard, Castin & Mølmer 1992; Dum, Zoller & Ritsch 1992; Carmichael 1993; review: Plenio & Knight 1998); its continuous-time
 # version is developed in [notebook 17](../ch06_open_quantum_systems/17_monte_carlo_wave_function.ipynb), Chapter 6.
 #
 # ### 11.2 From formula to code
@@ -1600,7 +1600,8 @@ for label, Kc, key in [("Z-flip unravelling", kraus_dephasing(p_equiv), jax.rand
 # > **Physics insight.** The channel fixes the *average*; the Kraus representation (what the imagined observer measures on
 # > the environment) fixes the *individual trajectories* and the Monte-Carlo variance. Single trajectories also have a
 # > direct experimental meaning: experiments that do monitor the environment (photon counting on a single ion or superconducting
-# > qubit) observe exactly such quantum jumps.
+# > qubit) observe exactly such quantum jumps, first seen with single trapped ions (Nagourney, Sandberg and Dehmelt 1986;
+# > Sauter *et al.* 1986; Bergquist *et al.* 1986).
 #
 # ### 11.4 GHZ with one noisy qubit: density tensor against trajectories
 #
@@ -2159,12 +2160,26 @@ assert err < TOL
 # * J. Preskill, *Lecture Notes for Physics 229: Quantum Information and Computation* (Caltech), chapter 3
 #   "Foundations II: Measurement and evolution" (channels, Kraus representation, master equation).
 # * H.-P. Breuer and F. Petruccione, *The Theory of Open Quantum Systems* (Oxford University Press, 2002).
+# * J. von Neumann, "Wahrscheinlichkeitstheoretischer Aufbau der Quantenmechanik", Nachr. Ges. Wiss. Göttingen, Math.-Phys. Kl.,
+#   245–272 (1927); J. von Neumann, "Thermodynamik quantenmechanischer Gesamtheiten", Nachr. Ges. Wiss. Göttingen, Math.-Phys. Kl. (1927);
+#   L. Landau, "Das Dämpfungsproblem in der Wellenmechanik", Z. Phys. **45**, 430 (1927).
+# * L. P. Hughston, R. Jozsa and W. K. Wootters, "A complete classification of quantum ensembles having a given density
+#   matrix", Phys. Lett. A **183**, 14 (1993).
+# * F. Bloch, "Nuclear induction", Phys. Rev. **70**, 460 (1946).
+# * K. Kraus, "General state changes in quantum theory", Ann. Phys. **64**, 311 (1971); M.-D. Choi, "Completely positive
+#   linear maps on complex matrices", Linear Algebra Appl. **10**, 285 (1975).
 # * K. Kraus, *States, Effects, and Operations: Fundamental Notions of Quantum Theory*, ed. A. Böhm, J. D. Dollard and
 #   W. H. Wootters, Lecture Notes in Physics **190** (Springer, 1983).
 # * W. F. Stinespring, "Positive functions on C\*-algebras", Proc. Amer. Math. Soc. **6**, 211–216 (1955) (the dilation
 #   theorem behind §7.2).
 # * J. Dalibard, Y. Castin and K. Mølmer, "Wave-function approach to dissipative processes in quantum optics",
-#   Phys. Rev. Lett. **68**, 580 (1992).
+#   Phys. Rev. Lett. **68**, 580 (1992); R. Dum, P. Zoller and H. Ritsch, "Monte Carlo simulation of the atomic master
+#   equation for spontaneous emission", Phys. Rev. A **45**, 4879 (1992).
+# * W. Nagourney, J. Sandberg and H. Dehmelt, "Shelved optical electron amplifier: Observation of quantum jumps",
+#   Phys. Rev. Lett. **56**, 2797 (1986); Th. Sauter, W. Neuhauser, R. Blatt and P. E. Toschek, "Observation of quantum
+#   jumps", Phys. Rev. Lett. **57**, 1696 (1986); J. C. Bergquist, R. G. Hulet, W. M. Itano and D. J. Wineland,
+#   "Observation of quantum jumps in a single atom", Phys. Rev. Lett. **57**, 1699 (1986).
+# * T. Yu and J. H. Eberly, "Finite-time disentanglement via spontaneous emission", Phys. Rev. Lett. **93**, 140404 (2004).
 # * H. J. Carmichael, *An Open Systems Approach to Quantum Optics* (Lecture Notes in Physics m18, Springer, 1993).
 # * M. B. Plenio and P. L. Knight, "The quantum-jump approach to dissipative dynamics in quantum optics",
 #   Rev. Mod. Phys. **70**, 101 (1998).

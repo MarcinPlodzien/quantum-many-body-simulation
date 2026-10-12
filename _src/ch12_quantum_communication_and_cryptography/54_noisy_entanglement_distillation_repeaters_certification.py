@@ -289,7 +289,8 @@ assert max_abs(rho_dp - werner(v_of_F(lam_dp[0]))) > 0.01
 #
 # ## 4. Teleportation through a Werner pair
 #
-# Teleportation (notebook 20, Section 4) sends an unknown qubit $\rho$ from Alice to Bob with one shared pair and two
+# Teleportation, introduced by Bennett, Brassard, Crépeau, Jozsa, Peres and Wootters (1993) and derived in notebook 20,
+# Section 4, sends an unknown qubit $\rho$ from Alice to Bob with one shared pair and two
 # classical bits: Alice measures her input and her half of the pair in the Bell basis, and Bob corrects his half with
 # $X^{m_2}$ and $Z^{m_1}$. With a Werner pair as the resource, Bob receives
 #
@@ -1620,6 +1621,9 @@ plt.tight_layout(); plt.show()
 # * M. Horodecki, P. Horodecki and R. Horodecki, *Separability of mixed states: necessary and sufficient conditions*,
 #   Phys. Lett. A **223**, 1 (1996), doi:10.1016/S0375-9601(96)00706-2 — the partial-transpose test is also sufficient
 #   for two qubits.
+# * C. H. Bennett, G. Brassard, C. Crépeau, R. Jozsa, A. Peres and W. K. Wootters, *Teleporting an unknown quantum state
+#   via dual classical and Einstein-Podolsky-Rosen channels*, Phys. Rev. Lett. **70**, 1895 (1993),
+#   doi:10.1103/PhysRevLett.70.1895 — quantum teleportation.
 # * S. Massar and S. Popescu, *Optimal extraction of information from finite quantum ensembles*, Phys. Rev. Lett.
 #   **74**, 1259 (1995), doi:10.1103/PhysRevLett.74.1259 — the best fidelity of estimating an unknown qubit from one
 # copy,

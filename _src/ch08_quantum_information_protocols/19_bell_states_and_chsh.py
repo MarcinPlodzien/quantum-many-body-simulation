@@ -29,11 +29,13 @@
 #
 # $$S=E(a,b)+E(a,b')+E(a',b)-E(a',b') ,\qquad \vert S\vert\le 2 \quad\text{(local hidden variables)}.$$
 #
-# Quantum mechanics allows $\vert S\vert$ up to $2\sqrt2\approx2.828$ (Tsirelson's bound) and no larger value. Experiments — Aspect
+# Quantum mechanics allows $\vert S\vert$ up to $2\sqrt2\approx2.828$ (Tsirelson's bound, proved by Cirel'son in 1980) and no larger value. Experiments — Aspect
 # and co-workers in the early 1980s, and the loophole-free experiments of 2015 — measure a violation. The 2022 Nobel Prize in
 # Physics went to Aspect, Clauser and Zeilinger for this line of work. Today the same inequality is a *tool*: a CHSH violation
 # certifies that a device really produces entanglement, and it is the security foundation of device-independent quantum key
-# distribution, in which two parties establish a secret key without trusting the inner workings of their devices
+# distribution, in which two parties establish a secret key without trusting the inner workings of their devices. Ekert (1991) first
+# based a key-distribution protocol on Bell's theorem, and Acín, Brunner, Gisin, Massar, Pironio and Scarani (2007) proved the security of a
+# CHSH-based protocol against collective attacks with no assumption on how the devices work
 # ([53 — quantum key distribution](../ch12_quantum_communication_and_cryptography/53_quantum_key_distribution.ipynb)).
 #
 # **What we will do.** Everything, from the state to the measured number and its error bar.
@@ -653,7 +655,7 @@ print(f"\n  largest operator norm found in {6} random trials: {norm_max:.6f}   (
 # where $t_1\ge t_2$ are the two largest singular values of $T$. All three inequalities are saturated at once: take
 # $\hat e_1,\hat e_2$ along the eigenvectors of $T^{\mathsf T}T$ that belong to $t_1^2,t_2^2$, choose $\tan(\delta/2)=t_2/t_1$
 # (equality in Cauchy–Schwarz), and point $\hat a,\hat a'$ along $T(\hat b\pm\hat b')$. Eq. (6) is therefore the attained maximum
-# over all settings. This is the **Horodecki criterion**: a two-qubit state violates CHSH
+# over all settings. This is the **Horodecki criterion** (R. Horodecki, P. Horodecki and M. Horodecki 1995): a two-qubit state violates CHSH
 # (for some choice of settings) if and only if the sum of the two largest squared singular values of its correlation matrix exceeds 1.
 #
 # ### 8.2 The maximally entangled case
@@ -1021,7 +1023,8 @@ plt.show()
 #
 # $$S_{\max}(v)=2\sqrt2\,v\quad\Longrightarrow\quad\text{CHSH violation}\iff v>\frac{1}{\sqrt2}\approx0.7071 .$$
 #
-# **(b) Entanglement.** Use the PPT (Peres–Horodecki) criterion, implemented by the engine's `negativity`: the partial transpose of
+# **(b) Entanglement.** Use the PPT criterion (Peres 1996; M. Horodecki, P. Horodecki and R. Horodecki 1996), implemented by the engine's `negativity`
+# (the measure of Vidal and Werner 2002): the partial transpose of
 # $\vert\Phi^+\rangle\langle\Phi^+\vert$ has eigenvalues $(\tfrac12,\tfrac12,\tfrac12,-\tfrac12)$, so
 # $\rho_W^{T_A}$ has eigenvalues $\tfrac{1-v}{4}+v\cdot(\pm\tfrac12)$, i.e. $\tfrac{1+v}{4}$ (three times) and $\tfrac{1-3v}{4}$.
 # One eigenvalue is negative exactly when
@@ -1604,6 +1607,13 @@ print(f"  (sanity: mean S = {float(jnp.mean(r_v)):.4f} vmapped vs {float(jnp.mea
 #   photonic loophole-free experiments of the same year.
 # * N. Brunner, D. Cavalcanti, S. Pironio, V. Scarani and S. Wehner, *Bell nonlocality*, Rev. Mod. Phys. **86**, 419 (2014) —
 #   the modern review, including device-independent applications.
+# * A. K. Ekert, *Quantum cryptography based on Bell's theorem*, Phys. Rev. Lett. **67**, 661 (1991) — the first key-distribution
+#   protocol whose security rests on a Bell-inequality test.
+# * A. Acín, N. Brunner, N. Gisin, S. Massar, S. Pironio and V. Scarani, *Device-independent security of quantum cryptography against
+#   collective attacks*, Phys. Rev. Lett. **98**, 230501 (2007) — the eavesdropper's information bounded as a function of the CHSH violation
+#   alone, Section 1.
+# * G. Vidal and R. F. Werner, *Computable measure of entanglement*, Phys. Rev. A **65**, 032314 (2002) — the negativity of
+#   Section 11.
 # * S. Designolle, G. Iommazzo, M. Besançon, S. Knebel, P. Gelß and S. Pokutta, *Improved local models and new Bell inequalities via
 #   Frank-Wolfe algorithms*, Phys. Rev. Research **5**, 043059 (2023) — the bounds $0.6875\le v_c\le0.6961$ on the locality threshold
 #   of two-qubit Werner states under projective measurements.

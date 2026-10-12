@@ -90,7 +90,7 @@
 # flips every spin in the $Z$ basis. It commutes with $H$: $ZZ$ terms are even in the number of flips and $X$ commutes
 # with itself. It also squares to the identity, so its eigenvalues are $\pm1$ and the spectrum splits into two
 # **parity sectors**. Since $[H,P]=0$ and the finite-chain ground state is *unique*, that ground
-# state is an eigenvector of $P$. (Uniqueness follows from the Perron-Frobenius theorem: for $h>0$ every off-diagonal
+# state is an eigenvector of $P$. (Uniqueness follows from the Perron-Frobenius theorem (Perron 1907): for $h>0$ every off-diagonal
 # element of $H$ in the $Z$ basis is $-h$ or zero, and single spin flips connect every configuration to every other.)
 # Therefore
 #
@@ -108,7 +108,7 @@
 #
 # ### 2.3 The exact results we will use as a grader
 #
-# The TFIM maps to free fermions by the Jordan-Wigner transformation (notebook 15, Sec. 7.2; notebook 11, Sec. 11.2). We quote three results (Pfeuty 1970;
+# The TFIM maps to free fermions by the Jordan-Wigner transformation (Jordan and Wigner 1928; notebook 15, Sec. 7.2; notebook 11, Sec. 11.2). We quote three results (Pfeuty 1970;
 # Sachdev 2011) and use them only to *check* the numerics:
 #
 # $$ h_c = J, \qquad \Delta_\infty(h)=2|J-h|, \qquad m_\infty(h)=\big(1-(h/J)^2\big)^{1/8}\ \ (h<J) . \qquad (5) $$
@@ -187,7 +187,7 @@ for N_ in (8, 16, 64):
 #
 # ## 3. The tool: Lanczos inside a symmetry sector
 #
-# The gap needs the first excited state, and the restarted Lanczos solver of notebook 11 (Chapter 5) returns only the
+# The gap needs the first excited state, and the restarted Lanczos solver (Lanczos 1950) of notebook 11 (Chapter 5) returns only the
 # lowest one. The symmetry solves the problem, as in Sec. 10 of that notebook. If $[H,P]=0$ and the start vector satisfies $P|v\rangle=p|v\rangle$, then $PH^k|v\rangle=pH^k|v\rangle$:
 # **every Krylov vector keeps the parity of the start vector**, so Lanczos started in a sector converges to the
 # lowest state *of that sector* and never sees the other one. For the TFIM the ground state has $p=+1$ and the first
@@ -473,7 +473,7 @@ print(f"exact: m^2(0.5) = {tfim_exact_magnetisation(0.5) ** 2:.4f}, m^2(1.5) = 0
 #
 # Away from the critical point the ground state of a gapped local Hamiltonian obeys an **area law**: in one dimension
 # the entropy of a block saturates at a constant of order $\ln\xi$, with $\xi$ the correlation length, independent of
-# the block size. That is the statement that made the matrix product states of the previous chapters work at all.
+# the block size; Hastings (2007) proved this area law for gapped one-dimensional Hamiltonians. That is the statement that made the matrix product states of the previous chapters work at all.
 #
 # There is a trap on the ordered side. The parity-even ground state of a finite chain is not a ferromagnet; by
 # Eq. (3) it is the **cat state** $(\vert\!\uparrow\cdots\uparrow\rangle+\vert\!\downarrow\cdots\downarrow\rangle)/\sqrt2$, up to
@@ -487,8 +487,9 @@ print(f"exact: m^2(0.5) = {tfim_exact_magnetisation(0.5) ** 2:.4f}, m^2(1.5) = 0
 # section uses it for.
 #
 # At the critical point $\xi$ diverges and the area law fails: the entropy grows with the size of the block,
-# logarithmically. For an **open** chain of $N$ sites cut after $\ell$ sites the precise form is (Calabrese and
-# Cardy 2004)
+# logarithmically. This logarithm was first derived for a conformal field theory by Holzhey, Larsen and Wilczek
+# (1994) and found in critical spin chains by Vidal, Latorre, Rico and Kitaev (2003). For an **open** chain of $N$
+# sites cut after $\ell$ sites the precise form is (Calabrese and Cardy 2004)
 #
 # $$ S(\ell,N)=\frac{c}{6}\,\ln\Big[\frac{2N}{\pi}\sin\frac{\pi\ell}{N}\Big]+\text{const} , \qquad (8) $$
 #
@@ -590,7 +591,9 @@ plt.tight_layout(); plt.show()
 # ## 7. Signature 4: fidelity susceptibility - finding a transition without knowing the order parameter
 #
 # All three signatures so far needed physical input: which operator orders, which symmetry sectors to use. The
-# fourth one needs none. Take the ground state at two nearby couplings and overlap them,
+# fourth one needs none. Take the ground state at two nearby couplings and overlap them; this ground-state fidelity
+# was proposed as a detector of quantum phase transitions by Zanardi and Paunković (2006), and its second-order
+# coefficient, the fidelity susceptibility, was introduced by You, Li and Gu (2007),
 #
 # $$ F(h,\delta)=\big|\langle\psi_0(h)\vert\psi_0(h+\delta)\rangle\big| ,\qquad
 #    \chi_F(h)=\lim_{\delta\to0}\frac{2\big(1-F(h,\delta)\big)}{\delta^2} . \qquad (9) $$
@@ -651,7 +654,7 @@ assert abs(chi_fd - chi_exact) / chi_exact < 1e-3
 # ## 8. Finite-size scaling: from five smooth curves to a critical point and two exponents
 #
 # Every quantity computed so far is analytic in $h$; the transition shows up only in how the curves *change with*
-# $N$. Finite-size scaling turns that into numbers. Near a continuous transition the correlation length is the only
+# $N$. Finite-size scaling (Fisher and Barber 1972) turns that into numbers. Near a continuous transition the correlation length is the only
 # relevant length, $\xi\sim|h-h_c|^{-\nu}$, and on a chain of $N$ sites a quantity $A$ with bulk behaviour
 # $A\sim|h-h_c|^{\kappa}$ obeys
 #
@@ -813,7 +816,7 @@ plt.tight_layout(); plt.show()
 #
 # Sixteen spins were enough to see every signature and to get $h_c$ to a per cent, but the scaling analysis rested
 # on five points, the smallest of which is arguably too small to be in the scaling regime at all. Notebook 18
-# (Chapter 7) built a method that removes that restriction: **DMRG** finds the ground state of a chain of a hundred
+# (Chapter 7) built a method that removes that restriction: **DMRG** (White 1992) finds the ground state of a chain of a hundred
 # spins directly in the matrix product format. The critical ground state is the *worst* case for an MPS, which makes
 # this a stringent test of the method: by Eq. (8) the entropy of the central cut grows by $\frac c6\log_22=1/12$
 # bit per doubling of $N$ instead of saturating, so the number of Schmidt values that matter, and with it the bond
@@ -1023,7 +1026,7 @@ plt.tight_layout(); plt.show()
 # $$ H=\sum_i\big(X_iX_{i+1}+Y_iY_{i+1}+\Delta\,Z_iZ_{i+1}\big) \qquad (13) $$
 #
 # is **critical for the whole range** $-1<\Delta\le1$ - a gapless line of critical points with central charge $c=1$ - and
-# gapped with Néel order for $\Delta>1$. The transition at $\Delta=1$ is of the **Kosterlitz-Thouless** type: the
+# gapped with Néel order for $\Delta>1$. The transition at $\Delta=1$ is of the **Kosterlitz-Thouless** type (Kosterlitz and Thouless 1973): the
 # gap opens with an essential singularity. The exact result of des Cloizeaux and Gaudin (1966), with
 # $\Delta=\cosh\Psi$, is $\Delta_{\rm gap}=(\pi J_S\sinh\Psi/\Psi)\sum_{n=-\infty}^{\infty}1/\cosh[(2n+1)\pi^2/(2\Psi)]$
 # for the spin-operator coupling $J_S$; in the Pauli convention of Eq. (13) $J_S=4$, and close to $\Delta=1$ the
@@ -1039,7 +1042,7 @@ plt.tight_layout(); plt.show()
 #
 # The experiment below measures the same central charge as in Sec. 6, now as a function of $\Delta$, and asks where
 # the transition is. First a checkpoint: at $\Delta=0$ the model is the XX chain, free fermions again, so its exact
-# entropy profile is available for any $N$ and grades the DMRG result.
+# entropy profile is available for any $N$ from the correlation matrix (Peschel 2003) and grades the DMRG result.
 
 # %%
 # ==============================================================================
@@ -1207,6 +1210,12 @@ plt.tight_layout(); plt.show()
 #
 # * P. Pfeuty, *The one-dimensional Ising model with a transverse field*, Ann. Phys. **57**, 79 (1970). — the exact
 #   solution used as the grader of this notebook.
+# * O. Perron, *Zur Theorie der Matrices*, Math. Ann. **64**, 248 (1907). — positive matrices have a simple largest
+#   eigenvalue with a positive eigenvector, the theorem behind the uniqueness argument of Sec. 2.2.
+# * P. Jordan and E. Wigner, *Über das Paulische Äquivalenzverbot*, Z. Phys. **47**, 631 (1928). — the
+#   Jordan-Wigner transformation from spins to fermions.
+# * C. Lanczos, *An iteration method for the solution of the eigenvalue problem of linear differential and integral
+#   operators*, J. Res. Natl. Bur. Stand. **45**, 255 (1950). — the Lanczos algorithm.
 # * S. Sachdev, *Quantum Phase Transitions*, 2nd ed., Cambridge University Press (2011). — the standard text;
 #   scaling, exponents, the TFIM as the canonical example.
 # * M. E. Fisher and M. N. Barber, *Scaling theory for finite-size effects in the critical region*,
@@ -1217,6 +1226,13 @@ plt.tight_layout(); plt.show()
 # * E. Lieb, T. Schultz and D. Mattis, *Two soluble models of an antiferromagnetic chain*, Ann. Phys. **16**, 407
 #   (1961). — the free-fermion method for quadratic fermion Hamiltonians, which for the open TFIM gives the
 #   bidiagonal matrix $B$ of Sec. 2.3.
+# * C. Holzhey, F. Larsen and F. Wilczek, *Geometric and renormalized entropy in conformal field theory*,
+#   Nucl. Phys. B **424**, 443 (1994). — the logarithmic entropy of an interval in a conformal field theory,
+#   including the $\sin(\pi\ell/N)$ form on a finite system (their Eqs. (2.12) and (2.13)).
+# * M. B. Hastings, *An area law for one-dimensional quantum systems*, J. Stat. Mech. P08024 (2007). — proof of the
+#   area law for gapped one-dimensional Hamiltonians.
+# * S. R. White, *Density matrix formulation for quantum renormalization groups*, Phys. Rev. Lett. **69**, 2863
+#   (1992). — the density-matrix renormalisation group (DMRG).
 # * G. Vidal, J. I. Latorre, E. Rico and A. Kitaev, *Entanglement in quantum critical phenomena*,
 #   Phys. Rev. Lett. **90**, 227902 (2003). — the logarithmic growth of entanglement at criticality.
 # * P. Zanardi and N. Paunković, *Ground state overlap and quantum phase transitions*, Phys. Rev. E **74**, 031123

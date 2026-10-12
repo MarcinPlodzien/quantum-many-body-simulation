@@ -20,12 +20,13 @@
 # the basis of the four Bell states, and phones Bob the two classical bits that name the outcome. Bob then recovers the state
 # exactly by applying one of four fixed single-qubit Pauli gates. One ebit plus two classical bits thus replace one transmitted
 # qubit. The state is destroyed at Alice's end (as no-cloning demands) and reappears at Bob's, and nothing travels faster than
-# light, because Bob's qubit is useless until the two bits arrive. The protocol was demonstrated with photons in 1997 and has since
-# been run over distances up to 1400 km, from the ground to a satellite.
+# light, because Bob's qubit is useless until the two bits arrive. The protocol was demonstrated with photons in 1997 (Bouwmeester et al.)
+# and has since been run over distances up to 1400 km, from the ground to a satellite (Ren et al. 2017).
 #
-# Teleportation is the primitive behind **quantum repeaters**, which distribute entanglement over long distances (notebook 21),
-# **measurement-based quantum computing**, where every gate is a teleportation, and **fault-tolerant gate implementations**
-# (magic-state injection, Exercise 8). The fidelity a noisy pair supports, Eq. (13) below, is a standard figure of merit for
+# Teleportation is the primitive behind **quantum repeaters** (Briegel, Dür, Cirac and Zoller 1998), which distribute entanglement
+# over long distances (notebook 21), **measurement-based quantum computing** (Raussendorf and Briegel 2001), where every gate is a
+# teleportation, and **fault-tolerant gate implementations** by gate teleportation (Gottesman and Chuang 1999), including
+# magic-state injection (Bravyi and Kitaev 2005; Exercise 8). The fidelity a noisy pair supports, Eq. (13) below, is a standard figure of merit for
 # quantum-network hardware.
 #
 # **What we will do.**
@@ -954,7 +955,7 @@ print(f"\n   F_avg of the ideal teleportation channel (2-design) = "
 # positive). Teleportation is therefore a sharper entanglement witness than CHSH: recall that CHSH needed $v>1/\sqrt2\approx0.707$,
 # so the entire band $1/3<v\le1/\sqrt2$ of entangled states that do not violate CHSH (Section 11 of the CHSH notebook) is
 # *useful for teleportation*.
-# (For general two-qubit resources the correct statement, due to the Horodecki family, is that the best average fidelity is
+# (For general two-qubit resources the correct statement, due to M. Horodecki, P. Horodecki and R. Horodecki (1999), is that the best average fidelity is
 # $(2f_{\max}+1)/3$, with $f_{\max}$ the largest singlet fraction reachable from the resource by trace-preserving local operations
 # and classical communication.)
 #
@@ -1545,7 +1546,7 @@ print("   p(m1,m2) = " + "  ".join(f"{lab}: {v:.4f}" for lab, v in zip(("00", "0
 #    [23 — quantum state tomography](../ch08_quantum_information_protocols/23_quantum_state_tomography.ipynb) using $M$ shots per
 #    Pauli setting, and plot the reconstructed fidelity with bootstrap error bars versus $M$. How many shots are needed to claim
 #    $\bar F>2/3$ at $5\sigma$ with a Werner resource of $v=0.5$?
-# 8. ★★★ **Gate teleportation.** Prepare the resource in the state $(\mathbb 1\otimes U)\vert\Phi^+\rangle$ instead of
+# 8. ★★★ **Gate teleportation** (Gottesman and Chuang 1999). Prepare the resource in the state $(\mathbb 1\otimes U)\vert\Phi^+\rangle$ instead of
 #    $\vert\Phi^+\rangle$, so that $U$ is applied *offline*, before the data arrives. (a) Show from Eq. (3) that Bob now holds
 #    $UX^{m_2}Z^{m_1}\vert\psi\rangle$, so the corrections must become $UX^{m_2}U^\dagger$ followed by $UZ^{m_1}U^\dagger$ for
 #    Bob to end with $U\vert\psi\rangle$; check numerically that the unmodified Pauli corrections fail for $U=T$ in two
@@ -1579,3 +1580,11 @@ print("   p(m1,m2) = " + "  ".join(f"{lab}: {v:.4f}" for lab, v in zip(("00", "0
 #   Micius satellite.
 # * M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information* (Cambridge University Press, 2000), Sections 1.3.5,
 #   1.3.7 and 4.4 — no-cloning, teleportation, and the principle of deferred measurement.
+# * H.-J. Briegel, W. Dür, J. I. Cirac and P. Zoller, *Quantum repeaters: the role of imperfect local operations in quantum
+#   communication*, Phys. Rev. Lett. **81**, 5932 (1998) — the quantum repeater.
+# * R. Raussendorf and H. J. Briegel, *A one-way quantum computer*, Phys. Rev. Lett. **86**, 5188 (2001) — measurement-based
+#   quantum computing on a cluster state.
+# * D. Gottesman and I. L. Chuang, *Demonstrating the viability of universal quantum computation using teleportation and
+#   single-qubit operations*, Nature **402**, 390 (1999) — gate teleportation and fault-tolerant gates, Exercise 8.
+# * S. Bravyi and A. Kitaev, *Universal quantum computation with ideal Clifford gates and noisy ancillas*, Phys. Rev. A **71**,
+#   022316 (2005) — magic states, Exercise 8.

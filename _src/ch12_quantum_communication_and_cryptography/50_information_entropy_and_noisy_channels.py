@@ -749,9 +749,10 @@ ax.legend(fontsize=8); plt.tight_layout(); plt.show()
 #
 # Random codes come close to the capacity, but they cannot be decoded efficiently: minimum-distance decoding compares
 # the received string with all $2^{nR}$ codewords, a number that grows exponentially with $n$. The search for codes that
-# approach the capacity *and* can be decoded fast took decades. Two families that do are low-density parity-check codes
-# (Richardson, Shokrollahi and Urbanke 2001) and polar codes, which provably reach the capacity of channels such as the
-# BSC (Arıkan 2009); the 5G mobile standard encodes its data with the first and its control information with the second
+# approach the capacity *and* can be decoded fast took decades. Two families that do are low-density parity-check codes,
+# introduced by Gallager (1962) and brought close to the capacity in their irregular form by Richardson, Shokrollahi and
+# Urbanke (2001), and polar codes, introduced by Arıkan (2009), which provably reach the capacity of channels such as the
+# BSC; the 5G mobile standard encodes its data with the first and its control information with the second
 # (3GPP TS 38.212). Section 6 studies two simple codes and shows how far from $C$ they stay.
 #
 # ## 6. Error correction
@@ -1177,6 +1178,9 @@ ax.legend(fontsize=8); plt.tight_layout(); plt.show()
 #   EUROCRYPT '93*, Lecture Notes in Computer Science **765**, 410 (Springer, 1994), doi:10.1007/3-540-48285-7\_35 —
 #   reconciliation over a binary symmetric channel, the lower bound $n\,h(p)$ on the leaked information (Theorem 2), the binary-search primitive
 #   BINARY, and the protocol Cascade with its first-pass block length and its benchmark of the leaked information.
+# * R. G. Gallager, *Low-density parity-check codes*, IRE Trans. Inf. Theory **8**, 21 (1962),
+#   doi:10.1109/TIT.1962.1057683 — codes defined by a sparse parity-check matrix with a fixed small number of ones per
+#   row and per column, and their iterative decoding from the channel probabilities.
 # * T. Richardson, A. Shokrollahi and R. Urbanke, *Design of capacity-approaching irregular low-density parity-check
 #   codes*, IEEE Trans. Inf. Theory **47**, 619 (2001), doi:10.1109/18.910578 — low-density parity-check codes that
 #   approach the capacity.

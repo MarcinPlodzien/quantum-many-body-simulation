@@ -13,7 +13,8 @@
 # Consider the $N$-qubit GHZ state $(\vert0\cdots0\rangle+\vert1\cdots1\rangle)/\sqrt2$, or the cluster state used as a
 # resource for measurement-based quantum computation, or the output of a random circuit built only from Hadamard, phase and
 # CNOT gates. All of them can be maximally entangled across any cut. All of them are also **classically simulable in
-# polynomial time**: the Gottesman-Knill theorem says that a circuit made of those gates, applied to $\vert0\cdots0\rangle$
+# polynomial time**: the Gottesman-Knill theorem (stated by Gottesman in 1999, who credits Knill; Section 4.3) says that a
+# circuit made of those gates, applied to $\vert0\cdots0\rangle$
 # and followed by measurements in the computational basis, can be tracked on a laptop for thousands of qubits. Entanglement
 # is necessary for quantum advantage, but it is very far from sufficient.
 #
@@ -301,6 +302,7 @@ print("  " + "  ".join(f"({a},{b}):{pauli_letters(a, b, 2)}" for a in range(4) f
 #
 # ### 4.1 Definition
 #
+# The stabilizer formalism was developed by Gottesman in his 1997 thesis on quantum error-correcting codes.
 # A **stabilizer group** $\mathcal S$ is an abelian subgroup of the Pauli group that does not contain $-\mathbb 1$ and has
 # $2^N$ elements. The condition "$-\mathbb 1\notin\mathcal S$" guarantees that all elements can be simultaneously
 # diagonalised with eigenvalue $+1$ on a common eigenvector, and the size $2^N$ makes that eigenvector unique. The state
@@ -337,9 +339,9 @@ print("  " + "  ".join(f"({a},{b}):{pauli_letters(a, b, 2)}" for a in range(4) f
 #
 # In words: a Clifford unitary maps Pauli strings to Pauli strings under conjugation. It therefore maps stabilizer groups to
 # stabilizer groups, and stabilizer states to stabilizer states. The group is generated — this is quoted, not proved here —
-# by the Hadamard $H$, the phase gate $S=\mathrm{diag}(1,i)$ and CNOT; modulo phases it is finite, with $24$ elements for
+# by the Hadamard $H$, the phase gate $S=\mathrm{diag}(1,i)$ and CNOT (Gottesman 1999); modulo phases it is finite, with $24$ elements for
 # $N=1$ (enumerated in [notebook 10](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb)) and
-# $2^{N^2+2N}\prod_{k=1}^N(4^k-1)$ elements in general (Koenig and Smolin 2014) — $24$ at $N=1$ and $11520$ at $N=2$.
+# $2^{N^2+2N}\prod_{k=1}^N(4^k-1)$ elements in general (Calderbank, Rains, Shor and Sloane 1998; in this form Koenig and Smolin 2014) — $24$ at $N=1$ and $11520$ at $N=2$.
 #
 # ### 4.3 The Gottesman-Knill theorem
 #
@@ -986,6 +988,8 @@ for N in (2, 3):
 #
 # ### 9.1 The derivation
 #
+# This algorithm was introduced by Sierant, Vallès-Muns and Garcia-Saez (2026), who computed stabilizer Renyi entropies of
+# state vectors with the fast Hadamard transform at cost $O(N4^N)$.
 # The waste in Algorithm 1 is that each of the $4^N$ expectation values is computed from scratch. The $(a,b)$ encoding of
 # Eq. (1) exposes the structure that makes almost all of that work redundant.
 #
@@ -2403,6 +2407,8 @@ print(f"\nN = {N_m}: the maximally mixed state is reported as having M_2 = {N_m}
 #   Section 4.3.
 # * S. Aaronson and D. Gottesman, *Improved simulation of stabilizer circuits*, Phys. Rev. A **70**, 052328 (2004) —
 #   the tableau algorithm quoted in Section 4.3: $O(N)$ per Clifford gate, $O(N^2)$ per computational-basis measurement.
+# * A. R. Calderbank, E. M. Rains, P. W. Shor and N. J. A. Sloane, *Quantum error correction via codes over GF(4)*,
+#   IEEE Trans. Inf. Theory **44**, 1369 (1998) — the order of the Clifford group, Section 4.2.
 # * R. Koenig and J. A. Smolin, *How to efficiently select an arbitrary Clifford group element*,
 #   J. Math. Phys. **55**, 122202 (2014) — the order $2^{N^2+2N}\prod_k(4^k-1)$ of the Clifford group modulo phases,
 #   Section 4.2.
@@ -2440,6 +2446,8 @@ print(f"\nN = {N_m}: the maximally mixed state is reported as having M_2 = {N_m}
 # * L. Leone and L. Bittel, *Stabilizer entropies are monotones for magic-state resource theory*,
 #   Phys. Rev. A **110**, L040403 (2024) — monotonicity for $\alpha\ge2$ on pure states, strong monotonicity of the linear
 #   stabilizer entropy, and the convex-roof extension to mixed states (Sections 6.6 and 11).
+# * P. Sierant, J. Vallès-Muns and A. Garcia-Saez, *Computing quantum magic of state vectors*, Quantum **10**, 2059 (2026);
+#   arXiv:2601.07824 — the $O(N4^N)$ fast-Hadamard-transform algorithm for $M_\alpha$ of Section 9.
 # * T. Haug, S. Lee and M. S. Kim, *Efficient quantum algorithms for stabilizer entropies*,
 #   Phys. Rev. Lett. **132**, 240602 (2024) — measurement of $M_\alpha$ on a quantum computer by Bell measurements,
 #   Section 11.

@@ -8,7 +8,8 @@
 # A classical autoencoder is a neural network trained to reproduce its own input through a narrow middle layer. If it
 # succeeds, the narrow layer is a *compressed* description of the data: whatever the network can reconstruct must have
 # been representable in the smaller space. A **quantum autoencoder** (Romero, Olson and Aspuru-Guzik, 2017) does the
-# same for quantum states, and the "narrow layer" is a smaller number of qubits.
+# same for quantum states, and the "narrow layer" is a smaller number of qubits. Wan *et al.* (2017) proposed
+# independently a quantum neural network trained by gradient descent and demonstrated it as a quantum autoencoder.
 #
 # The construction is short enough to state now. A unitary $U(\boldsymbol\theta)$ acts on $N$ qubits. Afterwards the
 # last $k$ qubits — the **trash** — are discarded and replaced by fresh $\vert0\rangle$'s, and $U^\dagger(\boldsymbol\theta)$
@@ -39,12 +40,12 @@
 #   The two agree within error bars, two wrong models of the channel are rejected by the same data, and the second
 #   execution is what a device does.
 # * **Section 6** proves the eigenvalue criterion above and applies it to four families of states.
-# * **Section 7** trains the encoder with `jax.grad` and Adam over a grid of families, compression ratios and depths,
+# * **Section 7** trains the encoder with `jax.grad` and Adam (Kingma and Ba, 2015) over a grid of families, compression ratios and depths,
 #   and compares what is reached with the bound and with the encoder that does nothing. **Section 8** asks whether a
 #   shortfall is the optimiser's fault or the circuit's, and answers it with success fractions over many random
 #   starts. **Section 9** re-examines the folklore
 #   that "GHZ and W states are easy and Dicke states are hard" in the light of the criterion.
-# * **Section 10** trains on trajectory-estimated costs with SPSA — the device-realistic version.
+# * **Section 10** trains on trajectory-estimated costs with SPSA (Spall, 1992) — the device-realistic version.
 # * **Section 11** tests **generalisation**: train on a few members of a family, then measure the compression of
 #   members never seen.
 # * **Section 12** puts gate noise into the encoder, reusing the model of
@@ -87,7 +88,7 @@
 #
 # **Conventions and sizes.** $N=6$ qubits throughout, with the trash register always the **last** $k$ qubits and
 # $k\le4$; the noise study of Section 12 drops to $N=4$ so that the density tensor stays cheap. The encoder is the
-# hardware-efficient ansatz of notebook 40 with $L$ layers and $n=2N(L+1)$ angles.
+# hardware-efficient ansatz (Kandala *et al.*, 2017) of notebook 40 with $L$ layers and $n=2N(L+1)$ angles.
 
 # %% [markdown]
 # ## 2. Engine recap and notebook helpers
@@ -350,7 +351,7 @@ for k in range(1, K_MAX + 1):
 # It is the probability that measuring all $k$ trash qubits in the $Z$ basis gives $0$ on every one of them — one
 # circuit, $k$ single-qubit measurements, no decoder, no ancillas. It equals $1$ exactly when Eq. (2) holds. Romero,
 # Olson and Aspuru-Guzik proposed this trash-state fidelity as the training cost, for a general reference state of the
-# trash measured with a SWAP test; for the reference $\vert0\cdots0\rangle$ a $Z$ measurement of the trash qubits is
+# trash measured with a SWAP test (Buhrman, Cleve, Watrous and de Wolf, 2001); for the reference $\vert0\cdots0\rangle$ a $Z$ measurement of the trash qubits is
 # enough.
 #
 # In the language of notebook 40 the trash fidelity is a **global** cost on the trash register: like Eq. (9) there, it
@@ -692,8 +693,10 @@ fig.tight_layout(); plt.show()
 #
 # $$\boxed{\;\max_{U}\ \overline F_{\rm trash}=\sum_{a=1}^{2^{N-k}}\lambda_a^{\downarrow}(\bar\rho)\;}\tag{13}$$
 #
-# (a special case of Ky Fan's maximum principle). The encoder achieving it maps the $2^{N-k}$ dominant eigenvectors of
-# $\bar\rho$ into the subspace where the trash is $\vert0\cdots0\rangle$.
+# (a special case of the maximum principle of Ky Fan, 1949). The encoder achieving it maps the $2^{N-k}$ dominant eigenvectors of
+# $\bar\rho$ into the subspace where the trash is $\vert0\cdots0\rangle$. Eq. (13) is a single-copy statement; its
+# asymptotic counterpart, proved by Schumacher (1995), is that many copies drawn from the ensemble can be compressed
+# faithfully to $S(\bar\rho)$ qubits per copy, the von Neumann entropy of $\bar\rho$ in bits.
 #
 # ### 6.3 Three consequences
 #
@@ -730,7 +733,8 @@ fig.tight_layout(); plt.show()
 # | Dicke($3$) | the twenty states with three excitations | equal | $20$ |
 # | graded W | the six states with one excitation | $a_j^2\propto6-j$ | $6$ |
 #
-# The first three are the families named in the folklore about compressibility; the fourth has the same support as the
+# The first three are the families named in the folklore about compressibility, built on the GHZ state of Greenberger,
+# Horne and Zeilinger (1989), the W state of Dür, Vidal and Cirac (2000) and the Dicke states (Dicke, 1954); the fourth has the same support as the
 # second but a deliberately uneven spectrum, which is where Eq. (13) stops being a rank count and becomes a statement
 # about weights.
 
@@ -1111,8 +1115,8 @@ fig.tight_layout(); plt.show()
 # eight runs that all end at or below $5/6$ are equally compatible with a ceiling at $5/6$ and with a rare success.
 #
 # **Diagnosis 2: success fractions against depth.** With $32$ starts per depth no run at $L\le6$ exceeds $5/6$; the
-# 68 % Wilson interval (notebook 41, Section 12) puts the success probability at these depths below $0.03$, which is a bound, not a proof that
-# the ansatz cannot do it. At $L=9$ three starts in $32$ reach the bound ($0.09$, interval $[0.05,0.16]$) and at $L=12$
+# 68 % Wilson (1927) interval (notebook 41, Section 12) puts the success probability at these depths below $0.03$, an upper bound on the success rate that leaves open
+# whether the ansatz can reach the bound at these depths. At $L=9$ three starts in $32$ reach the bound ($0.09$, interval $[0.05,0.16]$) and at $L=12$
 # seven ($0.22$, interval $[0.16,0.30]$). The bound of Section 6 is therefore reachable by the hardware-efficient ansatz
 # from $L=9$ on, and every start that misses it ends at $5/6$ or $4/6$. Whether the success fraction keeps growing
 # with depth is not resolved by $32$ starts: the Fisher exact test (the probability, if both depths had the same success
@@ -1275,7 +1279,7 @@ for lab, opt, ns in (("constant step 0.05", opt_adam(LR), N_STEPS_DK),
 # replaces Eq. (16) by its measured estimate: run the circuit $M$ times on each ensemble member, measure the trash
 # qubits, and count how often they all come out zero. The cost is then a binomial proportion with standard error
 # $\sqrt{F(1-F)/M}$ per member. The gradient must then be estimated from costs as well: by the parameter-shift rule
-# ($2n$ cost evaluations per iteration) or by SPSA (notebook 41), which needs two cost evaluations per iteration
+# (Mitarai *et al.*, 2018; Schuld *et al.*, 2019; $2n$ cost evaluations per iteration) or by SPSA (notebook 41), which needs two cost evaluations per iteration
 # regardless of the number of angles and is used here.
 #
 # The comparison below runs the same problem three ways from the same initialisations: exact gradients, SPSA on the
@@ -1826,6 +1830,26 @@ fig.tight_layout(); plt.show()
 #   (2020) — the denoising application of Section 13.
 # * K. Fan, *On a theorem of Weyl concerning eigenvalues of linear transformations I*, Proc. Natl. Acad. Sci. USA
 #   **35**, 652 (1949) — the maximum principle behind Eq. (13).
+# * A. Kandala, A. Mezzacapo, K. Temme, M. Takita, M. Brink, J. M. Chow and J. M. Gambetta, *Hardware-efficient
+#   variational quantum eigensolver for small molecules and quantum magnets*, Nature **549**, 242 (2017) — the
+#   hardware-efficient ansatz used as the encoder.
+# * D. P. Kingma and J. Ba, *Adam: a method for stochastic optimization*, 3rd International Conference on Learning
+#   Representations (ICLR 2015), arXiv:1412.6980 — the optimiser of Sections 7–9.
+# * J. C. Spall, *Multivariate stochastic approximation using a simultaneous perturbation gradient approximation*,
+#   IEEE Trans. Autom. Control **37**, 332 (1992) — the SPSA gradient rule of Section 10.
+# * K. Mitarai, M. Negoro, M. Kitagawa and K. Fujii, *Quantum circuit learning*, Phys. Rev. A **98**, 032309 (2018) —
+#   the parameter-shift rule for Pauli-generated gates.
+# * M. Schuld, V. Bergholm, C. Gogolin, J. Izaac and N. Killoran, *Evaluating analytic gradients on quantum hardware*,
+#   Phys. Rev. A **99**, 032331 (2019) — the shift rule for every generator with two eigenvalues $\pm r$.
+# * H. Buhrman, R. Cleve, J. Watrous and R. de Wolf, *Quantum fingerprinting*, Phys. Rev. Lett. **87**, 167902
+#   (2001) — the SWAP test.
+# * D. M. Greenberger, M. A. Horne and A. Zeilinger, *Going beyond Bell's theorem*, in *Bell's Theorem, Quantum Theory,
+#   and Conceptions of the Universe*, ed. M. Kafatos (Kluwer, Dordrecht, 1989), p. 69 — the GHZ state.
+# * W. Dür, G. Vidal and J. I. Cirac, *Three qubits can be entangled in two inequivalent ways*, Phys. Rev. A **62**,
+#   062314 (2000) — the W state.
+# * R. H. Dicke, *Coherence in spontaneous radiation processes*, Phys. Rev. **93**, 99 (1954) — the Dicke states.
+# * E. B. Wilson, *Probable inference, the law of succession, and statistical inference*, J. Am. Stat. Assoc. **22**,
+#   209 (1927) — the score interval used for success fractions.
 # * M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information*, Cambridge University Press (2000) —
 #   Schmidt decomposition, partial trace, fidelity, Schumacher compression.
 # * B. Schumacher, *Quantum coding*, Phys. Rev. A **51**, 2738 (1995) — the information-theoretic ancestor: the

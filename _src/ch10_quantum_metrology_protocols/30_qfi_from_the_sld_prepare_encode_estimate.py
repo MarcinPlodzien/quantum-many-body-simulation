@@ -141,7 +141,8 @@ def maximally_mixed(N):
 # **Measure.** A POVM $\{E_x\}$ turns the state into outcome probabilities by the Born rule,
 # $p(x\vert\theta)=\mathrm{Tr}(\rho_\theta E_x)$.
 #
-# **Estimate.** From $M$ outcomes we compute $\hat\theta$, and the Cramér–Rao chain of notebook 29 bounds its error, with
+# **Estimate.** From $M$ outcomes we compute $\hat\theta$, and the Cramér–Rao chain of notebook 29 bounds its error (the
+# classical bound of Rao 1945 and Cramér 1946, the quantum bound of Helstrom 1967 and Braunstein and Caves 1994), with
 # $I(\theta;\{E_x\})$ the classical Fisher information of the measurement (written $F_C$ in notebook 29):
 #
 # $$\Delta\theta\;\ge\;\frac{1}{\sqrt{M\,I(\theta;\{E_x\})}}\;\ge\;\frac{1}{\sqrt{M\,F_Q[\rho_\theta]}}. \tag{2}$$
@@ -409,7 +410,7 @@ assert tr_abs < 1e3 * TOL and max_abs(dm - dm.conj().T) < 1e3 * TOL
 #
 # ### 5.1 Definition (recap)
 #
-# Notebook 29, Section 5.2, motivated and defined the **symmetric logarithmic derivative** (SLD), the Hermitian operator
+# Notebook 29, Section 5.2, motivated and defined the **symmetric logarithmic derivative** (SLD), introduced by Helstrom (1967): the Hermitian operator
 # $L_\theta$ solving
 #
 # $$\partial_\theta\rho_\theta=\frac{1}{2}\left(L_\theta\,\rho_\theta+\rho_\theta\,L_\theta\right). \tag{6}$$
@@ -727,14 +728,14 @@ assert abs(f_x - var4_x) < 1e4 * TOL
 #   \qquad\Longleftrightarrow\qquad
 #   F_Q=\lim_{d\theta\to0}\frac{8\left(1-\sqrt{F(\rho_\theta,\rho_{\theta+d\theta})}\right)}{d\theta^2}, \tag{13}$$
 #
-# where $F(\rho,\sigma)=\left(\mathrm{Tr}\sqrt{\sqrt\rho\,\sigma\sqrt\rho}\right)^2$ is the Uhlmann fidelity **squared**,
+# where $F(\rho,\sigma)=\left(\mathrm{Tr}\sqrt{\sqrt\rho\,\sigma\sqrt\rho}\right)^2$ is the fidelity of Uhlmann (1976) and Jozsa (1994), **squared**,
 # which is what the engine's `fidelity_dm` returns; squaring Eq. (13) gives the equivalent statement
 # $F=1-\tfrac{F_Q}{4}d\theta^2+O(d\theta^4)$ for the squared quantity. Conventions differ from book to book, and the
 # factor $8$ versus $4$ is exactly the difference between them — always check which one your fidelity routine computes.
 # For pure states the squared form is immediate:
 # $F=\vert\langle\psi_\theta\vert\psi_{\theta+d\theta}\rangle\vert^2=1-\mathrm{Var}(G)\,d\theta^2+O(d\theta^4)$ and
-# $F_Q=4\mathrm{Var}(G)$ (notebook 29, Section 6.4); for mixed states Eq. (13) is a standard
-# result which we now *test* rather than prove.
+# $F_Q=4\mathrm{Var}(G)$ (notebook 29, Section 6.4); for mixed states Eq. (13) is the statistical-distance
+# result of Braunstein and Caves (1994), which we now *test* rather than prove.
 #
 # This gives a completely independent estimator of $F_Q$: no SLD, no eigen-decomposition of $\partial_\theta\rho$, only two
 # encoded states and a fidelity. It is also a textbook illustration of the two competing errors in any finite-difference
@@ -1019,7 +1020,7 @@ fig.tight_layout(); plt.show()
 #
 # $$\log\mathcal{L}(\theta)=\sum_x n_x\log p(x\vert\theta), \tag{14}$$
 #
-# and the maximum-likelihood estimate is $\hat\theta=\arg\max_\theta\log\mathcal{L}(\theta)$. We maximise on a fine grid,
+# and the maximum-likelihood estimate (Fisher 1922) is $\hat\theta=\arg\max_\theta\log\mathcal{L}(\theta)$. We maximise on a fine grid,
 # which is robust, trivially `vmap`-able, and makes the **phase ambiguity** explicit: $p(x\vert\theta)$ for a GHZ-like state
 # oscillates with period $2\pi/N$ in $\theta$, so a search over the whole circle would let the estimator lock onto a
 # neighbouring fringe. We take the window $\theta_0\pm\pi/(2N)$ — a quarter of a period on each side, i.e. the width
@@ -1759,6 +1760,16 @@ fig.tight_layout(); plt.show()
 #
 # * C. W. Helstrom, *Quantum Detection and Estimation Theory*, Mathematics in Science and Engineering vol. 123
 #   (Academic Press, New York, 1976) — the symmetric logarithmic derivative, Eq. (6), and the quantum Cramér–Rao bound.
+# * C. W. Helstrom, *Minimum mean-squared error of estimates in quantum statistics*, Phys. Lett. A **25**, 101 (1967) —
+#   the paper that introduced the symmetric logarithmic derivative and the quantum Cramér–Rao bound.
+# * C. R. Rao, *Information and the accuracy attainable in the estimation of statistical parameters*, Bull. Calcutta
+#   Math. Soc. **37**, 81 (1945), reprinted in *Breakthroughs in Statistics*, eds. S. Kotz and N. L. Johnson (Springer,
+#   New York, 1992), p. 235, and H. Cramér, *Mathematical Methods of Statistics* (Princeton University Press, 1946) — the
+#   classical Cramér–Rao bound of Eq. (2).
+# * R. A. Fisher, *On the mathematical foundations of theoretical statistics*, Phil. Trans. R. Soc. Lond. A **222**, 309
+#   (1922) — maximum likelihood, Section 9.1.
+# * A. Uhlmann, *The "transition probability" in the state space of a $*$-algebra*, Rep. Math. Phys. **9**, 273 (1976),
+#   and R. Jozsa, *Fidelity for mixed quantum states*, J. Mod. Opt. **41**, 2315 (1994) — the fidelity of Eq. (13).
 # * A. S. Holevo, *Probabilistic and Statistical Aspects of Quantum Theory* (North-Holland, Amsterdam, 1982; 2nd ed.,
 #   Edizioni della Normale, Pisa, 2011) — the other classic monograph of quantum estimation theory, formulated
 #   throughout with general measurements (resolutions of the identity, the POVMs of Section 8).

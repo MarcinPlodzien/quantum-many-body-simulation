@@ -86,7 +86,7 @@
 # certain MaxCut instances a classical algorithm outperforms QAOA at every fixed depth. Experiments have run the
 # algorithm on real hardware. Harrigan *et al.* (2021) applied QAOA on up to 23 superconducting qubits of the Sycamore
 # processor. For problems whose graph matched the connectivity of the chip, the approximation ratio (Section 3.2) did
-# not depend on the problem size and improved with depth. For MaxCut and the Sherrington–Kirkpatrick spin glass (random couplings between
+# not depend on the problem size and improved with depth. For MaxCut and the spin glass of Sherrington and Kirkpatrick (1975) (random couplings between
 # all pairs of spins), whose interactions had to be routed across the chip, the performance decreased with the problem size but stayed better
 # than random guessing.
 #
@@ -1033,7 +1033,8 @@ for name in ["ring", "cube", "Petersen", "partition"]:
 #
 # In simulation, `jax.grad(qaoa_energy)` differentiates through the `lax.scan` of Section 4 in reverse mode, at the cost
 # of a few energy evaluations, whatever $p$ is ([notebook 40](../ch13_quantum_machine_learning/40_parametrized_gates_and_gradients.ipynb),
-# Section 10). On a quantum computer, gradients must be measured, and the standard tool is the parameter-shift rule.
+# Section 10). On a quantum computer, gradients must be measured, and the standard tool is the parameter-shift rule
+# (Mitarai *et al.*, 2018; Schuld *et al.*, 2019).
 #
 # ### 7.2 The parameter-shift rule for a parameter that feeds many gates
 #
@@ -1398,7 +1399,7 @@ for name in ["cube", "Petersen"]:
 # with $1/\Delta_{\min}^2$, where $\Delta_{\min}$ is the smallest gap above the ground level along the path (in the
 # spin-flip-symmetric sector, which the evolution never leaves), the state follows the instantaneous ground state. Split the
 # total time $T$ into $p$ steps of length $\Delta t=T/p$ and evaluate $s$ at the midpoint of each step,
-# $s_l=(l-\tfrac12)/p$. A first-order Trotter step ([notebook 12](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb)) is
+# $s_l=(l-\tfrac12)/p$. A first-order step of the product formula of Trotter (1959) ([notebook 12](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb)) is
 #
 # $$e^{-i\Delta t\,H(s_l)}\approx e^{-i\Delta t(1-s_l)H_{\rm init}}\,e^{-i\Delta t\,s_lH_C}=e^{+i(1-s_l)\Delta t\,B}\,e^{-is_l\Delta t\,H_C}=U_B(\beta_l)\,U_C(\gamma_l),$$
 #
@@ -1819,3 +1820,11 @@ for p in (1, 4):
 #   the mixer, e.g. for constrained problems (Section 3.1).
 # * D. P. Kingma and J. Ba, *Adam: A method for stochastic optimization*, arXiv:1412.6980 (2014) — the optimiser of
 #   Section 8.
+# * K. Mitarai, M. Negoro, M. Kitagawa and K. Fujii, *Quantum circuit learning*, Phys. Rev. A **98**, 032309 (2018) —
+#   the parameter-shift rule for Pauli-generated gates.
+# * M. Schuld, V. Bergholm, C. Gogolin, J. Izaac and N. Killoran, *Evaluating analytic gradients on quantum hardware*,
+#   Phys. Rev. A **99**, 032331 (2019) — the parameter-shift rule for gates with two-eigenvalue generators.
+# * H. F. Trotter, *On the product of semi-groups of operators*, Proc. Amer. Math. Soc. **10**, 545 (1959) — the
+#   product formula behind the Trotter steps of Section 9.
+# * D. Sherrington and S. Kirkpatrick, *Solvable model of a spin-glass*, Phys. Rev. Lett. **35**, 1792 (1975) — the
+#   spin glass with random couplings between all pairs of spins (Section 1.1).

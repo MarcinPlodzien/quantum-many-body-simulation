@@ -363,7 +363,7 @@ assert float(jnp.linalg.norm(comm_P)) < TOL * 100 and float(jnp.linalg.norm(comm
 #
 # ### 4.1 Idea and convergence rate
 #
-# Let $A$ be a Hermitian matrix with eigenpairs $A|n\rangle=\lambda_n|n\rangle$ and suppose $\lambda_0$ is the eigenvalue of **largest modulus**. Expand an arbitrary start vector,
+# The power method goes back to von Mises and Pollaczek-Geiringer (1929). Let $A$ be a Hermitian matrix with eigenpairs $A|n\rangle=\lambda_n|n\rangle$ and suppose $\lambda_0$ is the eigenvalue of **largest modulus**. Expand an arbitrary start vector,
 # $|v\rangle=\sum_n c_n|n\rangle$, and apply $A$ $k$ times:
 #
 # $$ A^k|v\rangle=\sum_n c_n\lambda_n^k|n\rangle=\lambda_0^k\Big[c_0|0\rangle+\sum_{n\ge1}c_n\Big(\frac{\lambda_n}{\lambda_0}\Big)^{k}|n\rangle\Big]. \qquad (2)$$
@@ -482,7 +482,7 @@ for k in (60, 500, 1000):
 # $$ T_{ij}=\langle v_i|H|v_j\rangle,\qquad\text{i.e.}\qquad T=V^\dagger HV,\quad V=\big[\,v_1\,|\,v_2\,|\cdots|\,v_m\,\big]\in\mathbb C^{2^N\times m}, $$
 #
 # and $\langle\psi|\psi\rangle=\sum_j|s_j|^2$. Minimising a quadratic form at fixed norm is an eigenvalue problem: the minimum is the lowest eigenvalue $\theta_0$ of $T$, reached for the corresponding
-# eigenvector $s^{(0)}$. The eigenvalues $\theta_k$ of $T$ are called **Ritz values**, the vectors $V s^{(k)}$ **Ritz vectors**. By construction
+# eigenvector $s^{(0)}$. The eigenvalues $\theta_k$ of $T$ are called **Ritz values**, the vectors $V s^{(k)}$ **Ritz vectors**, after W. Ritz, who introduced this variational method in a subspace (Ritz 1909). By construction
 # $\theta_0^{(m)}\ge E_0$ and $\theta_0^{(m+1)}\le\theta_0^{(m)}$ (a bigger subspace can only lower the minimum) — and $\theta_0^{(m)}$ is at least as good as the power-method energy with *any* shift $\sigma$, because
 # that vector lies in $\mathcal K_m$ too.
 #
@@ -650,7 +650,7 @@ assert err_orth < 1e4 * TOL and err_T < 1e4 * TOL
 #
 # Because the lowest Ritz value is the minimum of the energy over *all* polynomials $p(H)|v\rangle$ of degree $<m$, one can bound its error by inserting a cleverly chosen polynomial.
 # The optimal choice is a Chebyshev polynomial, which is small on the whole interval $[E_1,E_{\max}]$ of unwanted eigenvalues while being large at $E_0$. The result is the
-# **Kaniel–Paige–Saad bound** (we quote it without proof; see Golub & Van Loan or Saad in the references):
+# **Kaniel–Paige–Saad bound**, proved by Kaniel (1966) and sharpened by Paige (1971) and Saad (1980) (we quote it without proof; a textbook account is in Golub & Van Loan):
 #
 # $$ 0\;\le\;\theta_0^{(m)}-E_0\;\le\;(E_{\max}-E_0)\left[\frac{\tan\varphi}{T_{m-1}(1+2\gamma)}\right]^2,\qquad \gamma=\frac{E_1-E_0}{E_{\max}-E_1}, \qquad (6)$$
 #
@@ -839,7 +839,7 @@ for k in (50, 60, 70, 80, 100):
 # | memory | 3 vectors (eigenvalues only) | all $m$ vectors: $m\,2^N$ numbers |
 #
 # For spin chains one matvec costs $\sim 6N$ vector-sized operations, so the overhead is comparable to the matvecs themselves as long as $m$ is of the order of $6N$ — a fair price for robustness. Cheaper strategies exist (*selective* and *partial*
-# reorthogonalisation, which project only when and where needed; see Parlett's book) and **restarting** (Section 8.3) keeps $m$ small.
+# reorthogonalisation, which project only when and where needed; introduced by Parlett and Scott (1979) and by Simon (1984), respectively) and **restarting** (Section 8.3) keeps $m$ small.
 #
 # > **Common pitfall.** "My Lanczos finds a doubly degenerate ground state" — before announcing spontaneous symmetry breaking, check the orthogonality of your Krylov basis.
 
@@ -879,7 +879,7 @@ for k in (50, 60, 70, 80, 100):
 # Exercise 4 asks you to verify Eq. (8) against the definition; the function `residual_norm` below does it the expensive way, with one extra matvec, precisely so that the check is independent.
 #
 # **What the number means.** Two standard results turn $\rho$ into an error bar. (i) There is always an exact eigenvalue within distance $\rho$ of $\tilde E_0$. (ii) If the gap $\Delta$ from $\tilde E_0$ to the *rest* of the spectrum is
-# known, both errors are much smaller (Kato–Temple and Davis–Kahan; see Parlett):
+# known, both errors are much smaller: the eigenvalue bound of Temple (1928) and Kato (1949) and the eigenvector bound of Davis and Kahan (1970) (see also Parlett):
 #
 # $$ |\tilde E_0-E_0|\;\le\;\frac{\rho^2}{\Delta},\qquad \sin\angle(\tilde\psi_0,\psi_0)\;\le\;\frac{\rho}{\Delta}. $$
 #
@@ -893,7 +893,7 @@ for k in (50, 60, 70, 80, 100):
 # If $m$ steps are not enough and memory forbids a larger $m$, **restart**: use the current Ritz vector $|\tilde\psi_0\rangle$ as the new start vector and run another $m$ steps. Since $|\tilde\psi_0\rangle$ already has a large overlap with the
 # ground state ($\tan\varphi$ in Eq. (6) is small), each restart improves the result. The engine's `lanczos_ground_state(terms, N, m, restarts)` does exactly this; its source is in the Engine recap and uses nothing beyond the
 # preceding sections. This *explicit* restart throws away everything the run learned except one vector. Production libraries instead keep the best few Ritz vectors and filter out the rest with a polynomial — **implicitly restarted**
-# (or thick-restarted) Lanczos, the algorithm inside ARPACK and therefore inside `scipy.sparse.linalg.eigsh` (Lehoucq, Sorensen & Yang; Saad).
+# Lanczos (Sorensen 1992), or its thick-restart variant (Wu & Simon 2000); implicit restarting is the algorithm inside ARPACK and therefore inside `scipy.sparse.linalg.eigsh` (Lehoucq, Sorensen & Yang 1998).
 #
 # ### 8.4 Checkpoint: engine solver vs dense diagonalisation
 
@@ -1159,7 +1159,7 @@ for N in (8, 10, 12, 14):
 #
 # ### 11.2 An exact benchmark at every $N$
 #
-# The TFIM chain is one of the few exactly solvable many-body models: a Jordan–Wigner transformation maps it onto non-interacting fermions (Lieb, Schultz & Mattis 1961; Pfeuty 1970). We quote the result for the **open** chain
+# The TFIM chain is one of the few exactly solvable many-body models: a Jordan–Wigner transformation (Jordan & Wigner 1928) maps it onto non-interacting fermions (Lieb, Schultz & Mattis 1961; Pfeuty 1970). We quote the result for the **open** chain
 # without proof: let $s_1\ge\dots\ge s_N>0$ be the singular values of the $N\times N$ bidiagonal matrix with $h$ on the diagonal and $J$ on the first superdiagonal. Then, in our Pauli convention,
 #
 # $$ E_0=-\sum_{k=1}^Ns_k,\qquad \Delta=E_1-E_0=2\,s_N . $$
@@ -1270,10 +1270,10 @@ for N in sizes:
 # * **Magnetisations (top right, bottom left).** $m_x$ rises smoothly from $0$ to $1$, with the steepest slope developing near $h=J$. The order parameter $m_z^2$ is close to 1 in the ferromagnet and, as $h\to\infty$, heads for
 #   the value $1/N$ of uncorrelated spins (only the $i=j$ terms survive); at $h=2J$ it is still about $1.7$ times that, because neighbouring spins remain correlated. The drop sharpens with $N$, but the field at which $m_z^2$
 #   has halved drifts *downwards* (printed: $0.937J$, $0.914J$, $0.907J$ for $N=8,12,16$) rather than towards $h=J$. The reason is that $m_z^2$ is not scale invariant at the critical point: it decays there as
-#   $N^{-2\beta/\nu}=N^{-1/4}$ (two-dimensional Ising exponents $\beta=1/8$, $\nu=1$), and the printed products $N^{1/4}m_z^2(h{=}J)$ are indeed nearly constant. A quantity whose curves *cross* at the critical point — a
-#   dimensionless ratio such as $N^{1/4}m_z^2$ itself, or a Binder cumulant — is what finite-size scaling uses to locate $h_c$.
+#   $N^{-2\beta/\nu}=N^{-1/4}$ (two-dimensional Ising exponents $\beta=1/8$, $\nu=1$, from the exact solutions of Onsager (1944) and Yang (1952)), and the printed products $N^{1/4}m_z^2(h{=}J)$ are indeed nearly constant. A quantity whose curves *cross* at the critical point — a
+#   dimensionless ratio such as $N^{1/4}m_z^2$ itself, or the cumulant introduced by Binder (1981) — is what finite-size scaling uses to locate $h_c$.
 # * **Entanglement (bottom right).** For $h\to0$ the entropy tends to **exactly 1 bit**: the symmetric ground state is the cat (GHZ) state, and cutting a GHZ state anywhere yields one bit
-#   ([notebook 06 (Chapter 3)](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb)). For $h\gg J$ the state is a product state and $S\to0$. In between, the curves for different $N$ coincide for $h>J$ (the entropy obeys an *area law*:
+#   ([notebook 06 (Chapter 3)](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb)). For $h\gg J$ the state is a product state and $S\to0$. In between, the curves for different $N$ coincide for $h>J$ (the entropy obeys an *area law*, proved for gapped one-dimensional chains by Hastings (2007):
 #   it does not grow with the size of the block), for $h<J$ they approach the 1 bit of the cat state from below as $N$ grows, and around the critical point $S$ **grows with $N$**.
 #
 # > **Physics insight.** An experiment (or a simulation with a tiny symmetry-breaking field $h_zZ_i$) would find one of the two ferromagnets, a product state with $S=0$. The cat state is the correct ground
@@ -1282,7 +1282,7 @@ for N in sizes:
 # ### 11.3 Finite-size scaling at the critical point
 #
 # At $h=J$ the low-energy physics is described by a conformal field theory with central charge $c=\tfrac12$, which predicts (quoted): a gap closing as $\Delta\propto1/N$ and, for an open chain cut in the middle,
-# $S_{N/2}=\frac{c}{6}\log_2N+\text{const}$ (Calabrese & Cardy 2004). We add $N=10,14,18$ at $h=J$ to the sizes already computed — $N=18$ is a Hilbert space of dimension 262 144.
+# $S_{N/2}=\frac{c}{6}\log_2N+\text{const}$ (derived by Holzhey, Larsen & Wilczek 1994; for open boundaries and general $c$ by Calabrese & Cardy 2004). We add $N=10,14,18$ at $h=J$ to the sizes already computed — $N=18$ is a Hilbert space of dimension 262 144.
 
 # %%
 # ==============================================================================
@@ -1341,7 +1341,7 @@ plt.tight_layout(); plt.show()
 # |---|---|---|
 # | ferromagnet: all spins parallel, product state | **critical "XY" phase**: gapless, power-law correlations, no long-range order | **Néel antiferromagnet**: staggered order $\uparrow\downarrow\uparrow\downarrow$, gapped |
 #
-# The model is solvable by the Bethe ansatz. For the Heisenberg point $\Delta=1$ Hulthén (1938) found the ground-state energy per site of the infinite chain, $e_\infty=J(\tfrac14-\ln2)$ in spin-operator units, i.e.
+# The model is solvable by the Bethe ansatz, introduced by Bethe (1931) for the Heisenberg chain and extended to the anisotropic chain by Orbach (1958). For the Heisenberg point $\Delta=1$ Hulthén (1938) found the ground-state energy per site of the infinite chain, $e_\infty=J(\tfrac14-\ln2)$ in spin-operator units, i.e.
 #
 # $$ e_\infty=(1-4\ln2)\,J=-1.772589\,J \qquad\text{(Pauli convention: } \vec\sigma_i\cdot\vec\sigma_j=4\,\vec S_i\cdot\vec S_j). $$
 #
@@ -1443,7 +1443,7 @@ print(f"N=16, r=8: staggered correlation = {xxz[16][0.0]['czz'][-1]:.4f} (Delta=
 # * *Right:* the entanglement entropy is largest in the critical region and drops once the Néel gap opens — for large $\Delta$ it approaches 1 bit, the entropy of the cat state
 #   $(|\!\uparrow\downarrow\uparrow\downarrow\cdots\rangle+|\!\downarrow\uparrow\downarrow\uparrow\cdots\rangle)/\sqrt2$, in complete analogy with the Ising ferromagnet.
 #
-# > **Physics insight.** Unlike the Ising transition, the transition at $\Delta=1$ is of Berezinskii–Kosterlitz–Thouless type: the Néel gap does not open linearly in $\Delta-1$ but exponentially slowly. Writing
+# > **Physics insight.** Unlike the Ising transition, the transition at $\Delta=1$ is of Berezinskii–Kosterlitz–Thouless type (Berezinskii 1971; Kosterlitz & Thouless 1973): the Néel gap does not open linearly in $\Delta-1$ but exponentially slowly. Writing
 # > $\Delta=\cosh\lambda$, the Bethe-ansatz result (des Cloizeaux & Gaudin 1966) is $\Delta_{\rm gap}\to4\pi J\,e^{-\pi^2/(2\lambda)}$ as $\lambda\to0$, and with $\lambda\approx\sqrt{2(\Delta-1)}$ this is
 # > $\Delta_{\rm gap}\sim e^{-\pi^2/\sqrt{8(\Delta-1)}}$. At $\Delta=1.1$ that exponent is already $-11$: the gap is $\sim10^{-4}J$, far below the finite-size level spacing of any chain we can diagonalise. This is why
 # > finite-size data change very smoothly across $\Delta=1$ and why locating a BKT transition from small systems is notoriously hard.
@@ -1661,7 +1661,7 @@ for alpha in (3.0, 1.5):
 #
 # The long-range chains behave the same way, and the printed table separates the two contributions. Going from nearest-neighbour to $\alpha=3$ multiplies $\bar w$ by $1.17$ and the crossover field by $1.32$; going to
 # $\alpha=1.5$ multiplies them by $1.72$ and $2.22$. Most of the extra robustness of the long-range ferromagnet therefore comes from the larger total coupling per spin; what is left over
-# (factors $1.13$ and $1.29$) is the genuine long-range effect. A fair comparison at fixed energy scale uses the Kac rescaling $J\to J/\bar w$, which is also what keeps the energy extensive for $\alpha<1$. The genuinely long-range physics —
+# (factors $1.13$ and $1.29$) is the genuine long-range effect. A fair comparison at fixed energy scale uses the Kac rescaling $J\to J/\bar w$ (Kac, Uhlenbeck & Hemmer 1963), which is also what keeps the energy extensive for $\alpha<1$. The genuinely long-range physics —
 # a changed universality class, correlations that never decay — needs larger systems than a state vector allows. What the experiment does show is that the *cost* is unchanged: the $\alpha$ runs touch $66$ bonds instead
 # of $11$ and are one line of code apart, whereas analytical solutions (and also matrix-product-state methods) are tied to one dimension and short-range couplings.
 
@@ -1768,15 +1768,25 @@ if RUN_LARGE:
 #    $E_0(M=2)-E_0(M=0)$ for $N=8,\dots,16$ and show that $N\cdot\Delta$ tends to a constant (the chain is gapless; logarithmic corrections at the Heisenberg point make the approach slow).
 # 7. **(★★★) Excited states by deflation.** Without using symmetries, obtain the first excited state by running Lanczos on $H'=H+\mu|\psi_0\rangle\langle\psi_0|$ with $\mu>E_1-E_0$ (implement the projector term matrix-free inside `matvec`). Apply
 #    it to the TFIM with an additional longitudinal field $h_z\sum_iZ_i$, which destroys the parity symmetry, and plot the gap versus $h_z$.
-# 8. **(★★★) Differentiate through Lanczos.** `ground_state_scan` is differentiable. Compute $dE_0/dh$ for the TFIM with `jax.grad` and compare it with the Hellmann–Feynman theorem, $dE_0/dh=\langle\psi_0|\partial_hH|\psi_0\rangle=-N m_x$.
-#    Then compute the "fidelity susceptibility" $\chi_F(h)=2\,[1-|\langle\psi_0(h)|\psi_0(h+\delta)\rangle|]/\delta^2$ and locate its maximum for $N=8,12,16$.
+# 8. **(★★★) Differentiate through Lanczos.** `ground_state_scan` is differentiable. Compute $dE_0/dh$ for the TFIM with `jax.grad` and compare it with the Hellmann–Feynman theorem (Feynman 1939), $dE_0/dh=\langle\psi_0|\partial_hH|\psi_0\rangle=-N m_x$.
+#    Then compute the "fidelity susceptibility" (Zanardi & Paunković 2006; You, Li & Gu 2007) $\chi_F(h)=2\,[1-|\langle\psi_0(h)|\psi_0(h+\delta)\rangle|]/\delta^2$ and locate its maximum for $N=8,12,16$.
 
 # %% [markdown]
 # ## 17. References
 #
 # **The algorithm**
 # * C. Lanczos, *An iteration method for the solution of the eigenvalue problem of linear differential and integral operators*, J. Res. Natl. Bur. Stand. **45**, 255 (1950).
+# * R. von Mises and H. Pollaczek-Geiringer, *Praktische Verfahren der Gleichungsauflösung*, Z. Angew. Math. Mech. **9**, 58–77 (1929) — the power method.
+# * W. Ritz, *Über eine neue Methode zur Lösung gewisser Variationsprobleme der mathematischen Physik*, J. Reine Angew. Math. **135**, 1–61 (1909) — the Ritz variational method.
+# * S. Kaniel, *Estimates for some computational techniques in linear algebra*, Math. Comp. **20**, 369–378 (1966).
 # * C. C. Paige, *The computation of eigenvalues and eigenvectors of very large sparse matrices*, PhD thesis, University of London (1971) — loss of orthogonality and its connection to convergence.
+# * Y. Saad, *On the rates of convergence of the Lanczos and the block-Lanczos methods*, SIAM J. Numer. Anal. **17**, 687–706 (1980).
+# * B. N. Parlett and D. S. Scott, *The Lanczos algorithm with selective orthogonalization*, Math. Comp. **33**, 217–238 (1979).
+# * H. D. Simon, *The Lanczos algorithm with partial reorthogonalization*, Math. Comp. **42**, 115–142 (1984).
+# * G. Temple, *The theory of Rayleigh's principle as applied to continuous systems*, Proc. R. Soc. Lond. A **119**, 276–293 (1928); T. Kato, *On the upper and lower bounds of eigenvalues*, J. Phys. Soc. Jpn. **4**, 334–339 (1949).
+# * C. Davis and W. M. Kahan, *The rotation of eigenvectors by a perturbation. III*, SIAM J. Numer. Anal. **7**, 1–46 (1970).
+# * D. C. Sorensen, *Implicit application of polynomial filters in a k-step Arnoldi method*, SIAM J. Matrix Anal. Appl. **13**, 357–385 (1992).
+# * K. Wu and H. Simon, *Thick-restart Lanczos method for large symmetric eigenvalue problems*, SIAM J. Matrix Anal. Appl. **22**, 602–616 (2000).
 # * B. N. Parlett, *The Symmetric Eigenvalue Problem*, Classics in Applied Mathematics **20**, SIAM (1998) — selective reorthogonalisation, error bounds from residuals (Kato–Temple).
 # * G. H. Golub and C. F. Van Loan, *Matrix Computations*, 4th ed., Johns Hopkins University Press (2013), chapter 10 *Large Sparse Eigenvalue Problems*, §10.1 — the symmetric Lanczos process and the Kaniel–Paige–Saad bound.
 # * Y. Saad, *Numerical Methods for Large Eigenvalue Problems*, revised ed., Classics in Applied Mathematics **66**, SIAM (2011).
@@ -1790,12 +1800,23 @@ if RUN_LARGE:
 # * A. Wietek and A. M. Läuchli, *Sublattice coding algorithm and distributed memory parallelization for large-scale exact diagonalizations of quantum many-body systems*, Phys. Rev. E **98**, 033309 (2018) — how far the method reaches today.
 #
 # **The models**
+# * P. Jordan and E. Wigner, *Über das Paulische Äquivalenzverbot*, Z. Phys. **47**, 631–651 (1928).
 # * E. Lieb, T. Schultz and D. Mattis, *Two soluble models of an antiferromagnetic chain*, Ann. Phys. **16**, 407 (1961).
 # * P. Pfeuty, *The one-dimensional Ising model with a transverse field*, Ann. Phys. **57**, 79 (1970).
+# * H. Bethe, *Zur Theorie der Metalle. I. Eigenwerte und Eigenfunktionen der linearen Atomkette*, Z. Phys. **71**, 205–226 (1931).
+# * R. Orbach, *Linear antiferromagnetic chain with anisotropic coupling*, Phys. Rev. **112**, 309–316 (1958).
 # * L. Hulthén, *Über das Austauschproblem eines Kristalles*, Ark. Mat. Astron. Fys. **26A**, No. 11, 1–106 (1938).
 # * J. des Cloizeaux and M. Gaudin, *Anisotropic linear magnetic chain*, J. Math. Phys. **7**, 1384–1400 (1966) — the exact XXZ gap and its essential singularity at $\Delta=1$.
+# * V. L. Berezinskii, *Destruction of long-range order in one-dimensional and two-dimensional systems having a continuous symmetry group. I. Classical systems*, Sov. Phys. JETP **32**, 493 (1971); J. M. Kosterlitz and D. J. Thouless, *Ordering, metastability and phase transitions in two-dimensional systems*, J. Phys. C **6**, 1181–1203 (1973).
+# * L. Onsager, *Crystal statistics. I. A two-dimensional model with an order-disorder transition*, Phys. Rev. **65**, 117–149 (1944); C. N. Yang, *The spontaneous magnetization of a two-dimensional Ising model*, Phys. Rev. **85**, 808–816 (1952).
+# * K. Binder, *Finite size scaling analysis of Ising model block distribution functions*, Z. Phys. B **43**, 119–140 (1981).
 # * S. Sachdev, *Quantum Phase Transitions*, 2nd ed., Cambridge University Press (2011).
+# * C. Holzhey, F. Larsen and F. Wilczek, *Geometric and renormalized entropy in conformal field theory*, Nucl. Phys. B **424**, 443–467 (1994).
 # * P. Calabrese and J. Cardy, *Entanglement entropy and quantum field theory*, J. Stat. Mech. **2004**, P06002 (2004).
+# * M. B. Hastings, *An area law for one-dimensional quantum systems*, J. Stat. Mech. **2007**, P08024 (2007).
 # * H. W. J. Blöte and Y. Deng, *Cluster Monte Carlo simulation of the transverse Ising model*, Phys. Rev. E **66**, 066110 (2002) — $h_c/J=3.04438$ for the square lattice.
+# * M. Kac, G. E. Uhlenbeck and P. C. Hemmer, *On the van der Waals theory of the vapor-liquid equilibrium. I. Discussion of a one-dimensional model*, J. Math. Phys. **4**, 216–228 (1963).
+# * R. P. Feynman, *Forces in molecules*, Phys. Rev. **56**, 340–343 (1939).
+# * P. Zanardi and N. Paunković, *Ground state overlap and quantum phase transitions*, Phys. Rev. E **74**, 031123 (2006); W.-L. You, Y.-W. Li and S.-J. Gu, *Fidelity, dynamic structure factor, and susceptibility in critical phenomena*, Phys. Rev. E **76**, 022101 (2007).
 # * D. V. Dmitriev, V. Ya. Krivnov and A. A. Ovchinnikov, *Gap generation in the XXZ model in a transverse magnetic field*, Phys. Rev. B **65**, 172409 (2002) — the field-induced gap and Néel order along $y$.
 

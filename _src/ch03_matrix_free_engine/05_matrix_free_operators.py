@@ -1084,8 +1084,8 @@ assert max_abs_diff(E_vmap, E_kron) < 1e3 * TOL
 #
 # ### 7.4 The speed-up of the matrix-free $H|\psi\rangle$
 #
-# The matrix–vector product is the workhorse of iterative eigensolvers (Lanczos) and of polynomial time-evolution methods
-# (Chebyshev, Krylov) — all of Chapter 5 — so its cost is what ultimately limits the accessible $N$. We time the TFIM matvec, jitted, with the
+# The matrix–vector product is the workhorse of iterative eigensolvers (Lanczos 1950) and of polynomial time-evolution methods
+# (the Chebyshev propagator of Tal-Ezer and Kosloff 1984, the Krylov propagator of Park and Light 1986) — all of Chapter 5 — so its cost is what ultimately limits the accessible $N$. We time the TFIM matvec, jitted, with the
 # list of terms closed over.
 
 # %%
@@ -1132,7 +1132,7 @@ for n in [6, 8, 10, 12, 14, 16, 18, 20]:
 #    ($w=\tfrac12$), the end spins give everything to their only bond ($w=1$).
 # 2. **Even/odd colouring.** $H=H_{\rm even}+H_{\rm odd}$ with $H_{\rm even}=h_{01}+h_{23}+\dots$, $H_{\rm odd}=h_{12}+h_{34}+\dots$. Bonds of one colour share no spin, hence commute, hence
 #    $e^{-iH_{\rm even}\tau}=\prod_{j\ \rm even}e^{-ih_{j,j+1}\tau}$ **exactly**.
-# 3. **Strang splitting.** The only approximation is
+# 3. **Strang splitting** (Strang 1968), the symmetric form of the product formula of Trotter (1959). The only approximation is
 #
 # $$ e^{-iH\,dt}\;=\;e^{-iH_{\rm even}dt/2}\;e^{-iH_{\rm odd}dt}\;e^{-iH_{\rm even}dt/2}+O(dt^3), \tag{4} $$
 #
@@ -1143,7 +1143,7 @@ for n in [6, 8, 10, 12, 14, 16, 18, 20]:
 #
 # > **the exponential of a local term is a local gate** — a $4\times4$ unitary that `apply_gate` applies to axes $(j,j+1)$ in $O(4\cdot2^N)$ operations.
 #
-# A Trotter step is therefore a short list of small unitaries applied one after the other: a *quantum circuit* (Nielsen and Chuang 2000, Ch. 4) with a brick-wall pattern,
+# A Trotter step is therefore a short list of small unitaries applied one after the other: a *quantum circuit* (the network model of quantum computation introduced by Deutsch 1989; Nielsen and Chuang 2000, Ch. 4) with a brick-wall pattern,
 #
 # ```
 # spins        0     1     2     3     4     5     6     7
@@ -1152,7 +1152,7 @@ for n in [6, 8, 10, 12, 14, 16, 18, 20]:
 # even, dt/2   [=====]     [=====]     [=====]     [=====]
 # ```
 #
-# Applying Eq. (4) in this way is known as **TEBD** (time-evolving block decimation) on a state vector; the name comes from its matrix-product-state version (Vidal 2004; review: Schollwöck 2011), which we will meet in notebook 18 (Chapter 7).
+# Applying Eq. (4) in this way is known as **TEBD** (time-evolving block decimation) on a state vector; the name comes from its matrix-product-state version, introduced by Vidal (2003, 2004; review: Schollwöck 2011), which we will meet in notebook 18 (Chapter 7).
 # The Hamiltonian enters as a *list of terms* `[((j, j+1), h_j), ...]`, exactly as in §7 — only now with the fields absorbed into the bonds.
 #
 # The small exponentials are computed exactly by diagonalising the Hermitian matrix, $h=V\,\mathrm{diag}(w)\,V^\dagger\Rightarrow
@@ -1229,7 +1229,7 @@ print(f"one Strang step for N=8: {len(gates_demo)} two-site gates on bonds", [q 
 #
 # * the local magnetisation $m_j(t)=\langle Z_j\rangle$;
 # * the connected correlation with the central spin $c$: $C_j(t)=\langle Z_cZ_j\rangle-\langle Z_c\rangle\langle Z_j\rangle$, which vanishes in the initial product state;
-# * the Loschmidt echo (return probability) $\mathcal L(t)=|\langle\psi_0|\psi(t)\rangle|^2$ and its rate function $\lambda(t)=-\frac1N\ln\mathcal L(t)$.
+# * the Loschmidt echo (return probability; Peres 1984, Jalabert and Pastawski 2001) $\mathcal L(t)=|\langle\psi_0|\psi(t)\rangle|^2$ and its rate function $\lambda(t)=-\frac1N\ln\mathcal L(t)$.
 #
 # **Observables, matrix-free.** The general tool is $\langle\psi|O_{\rm qubits}|\psi\rangle=\langle\psi|\big(O\psi\big)\rangle$: apply the operator with
 # `apply_gate`, then take one inner product. For operators that are *diagonal* in the computational basis ($Z_j$, $Z_cZ_j$) there is a cheaper
@@ -1554,12 +1554,12 @@ print("measured front (|C| > 1e-3):  " + "  ".join(f"d={d}: tJ={t:.2f}, d/t={d /
 #   $v_{\max}=2J$, so the boundary is felt at $tJ=4/2=2$. The edge spin (green) has a single neighbour, feels a weaker
 #   ordering field, and departs from the bulk curve immediately — a much larger effect. Twenty spins show *bulk* physics over a time window in which eight spins already show finite-size artefacts.
 # * *Middle.* Correlations are not created instantaneously everywhere. The quench creates pairs of quasi-particles which fly apart with
-#   velocity at most $v_{\max}=2J\min(1,h/J)$ (for the TFIM in Pauli convention, quoted here without proof from its exact free-fermion solution); two spins
+#   velocity at most $v_{\max}=2J\min(1,h/J)$ (for the TFIM in Pauli convention, quoted here without proof from its exact free-fermion solution, Pfeuty 1970); two spins
 #   become correlated when counter-propagating partners reach them, which bounds the correlated region by $|j-c|\le 2v_{\max}t$ (dashed lines). The
 #   numbers printed under the figure make this quantitative: the front at which $|C_j|$ first exceeds $10^{-3}$ advances at $|j-c|/t\approx3$–$4$ in
 #   units of $J$, i.e. just inside the bound $2v_{\max}=4J$. Outside
-#   this **light cone** correlations are exponentially small (note the logarithmic colour scale) — an instance of the Lieb–Robinson bound and of
-#   the quasi-particle picture of Calabrese and Cardy. With $N=20$ the cone has room to develop before it hits the edges.
+#   this **light cone** correlations are exponentially small (note the logarithmic colour scale) — an instance of the Lieb–Robinson (1972) bound and of
+#   the quasi-particle picture of Calabrese and Cardy (2006). With $N=20$ the cone has room to develop before it hits the edges.
 # * *Right.* The return probability $\mathcal L\sim e^{-N\lambda(t)}$ decays exponentially with the system size (for 20 spins it is already below $10^{-3}$ at the
 #   end of the window, printed above, and still falling), which is why one plots the intensive rate function $\lambda(t)$. At early times the curves for $N=8$ and $N=20$ coincide: $\lambda$ is a bulk quantity.
 #   Then the small chain develops a pronounced peak near $tJ\approx2.9$, where the $N=20$ curve shows only a gentle bump — a finite-size effect that one could easily have
@@ -1701,11 +1701,20 @@ plt.tight_layout(); plt.show()
 # * M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information* (Cambridge University Press, 2000) — tensor products, gates and circuits.
 # * A. W. Sandvik, *Computational studies of quantum spin systems*, AIP Conf. Proc. **1297**, 135 (2010) — bit representation of spin states, exact diagonalisation.
 # * K. De Raedt *et al.*, *Massively parallel quantum computer simulator*, Comput. Phys. Commun. **176**, 121 (2007) — state-vector simulation by local updates of amplitudes.
+# * D. Deutsch, *Quantum computational networks*, Proc. R. Soc. Lond. A **425**, 73 (1989) — the quantum circuit model.
+# * H. F. Trotter, *On the product of semi-groups of operators*, Proc. Amer. Math. Soc. **10**, 545 (1959).
+# * G. Strang, *On the construction and comparison of difference schemes*, SIAM J. Numer. Anal. **5**, 506 (1968).
 # * M. Suzuki, *Generalized Trotter's formula and systematic approximants of exponential operators and inner derivations with applications to many-body problems*, Commun. Math. Phys. **51**, 183 (1976).
+# * G. Vidal, *Efficient classical simulation of slightly entangled quantum computations*, Phys. Rev. Lett. **91**, 147902 (2003).
 # * G. Vidal, *Efficient simulation of one-dimensional quantum many-body systems*, Phys. Rev. Lett. **93**, 040502 (2004) — the TEBD algorithm.
+# * C. Lanczos, *An iteration method for the solution of the eigenvalue problem of linear differential and integral operators*, J. Res. Natl. Bur. Stand. **45**, 255 (1950).
+# * H. Tal-Ezer and R. Kosloff, *An accurate and efficient scheme for propagating the time dependent Schrödinger equation*, J. Chem. Phys. **81**, 3967 (1984) — the Chebyshev propagator.
+# * T. J. Park and J. C. Light, *Unitary quantum time evolution by iterative Lanczos reduction*, J. Chem. Phys. **85**, 5870 (1986) — the Krylov (Lanczos) propagator.
+# * P. Pfeuty, *The one-dimensional Ising model with a transverse field*, Ann. Phys. **57**, 79 (1970) — the exact quasi-particle dispersion of the TFIM.
 # * U. Schollwöck, *The density-matrix renormalization group in the age of matrix product states*, Ann. Phys. **326**, 96 (2011) — Trotter gates and tensor-network notation.
 # * E. H. Lieb and D. W. Robinson, *The finite group velocity of quantum spin systems*, Commun. Math. Phys. **28**, 251 (1972).
 # * P. Calabrese and J. Cardy, *Time dependence of correlation functions following a quantum quench*, Phys. Rev. Lett. **96**, 136801 (2006) — quasi-particle light cone.
+# * A. Peres, *Stability of quantum motion in chaotic and regular systems*, Phys. Rev. A **30**, 1610 (1984); R. A. Jalabert and H. M. Pastawski, *Environment-independent decoherence rate in classically chaotic systems*, Phys. Rev. Lett. **86**, 2490 (2001) — the Loschmidt echo.
 # * M. Heyl, A. Polkovnikov and S. Kehrein, *Dynamical quantum phase transitions in the transverse-field Ising model*, Phys. Rev. Lett. **110**, 135704 (2013).
 # * J. Bradbury *et al.*, *JAX: composable transformations of Python+NumPy programs* (2018), http://github.com/jax-ml/jax ; documentation of `jax.numpy.einsum`, `jax.jit`, `jax.vmap`, `jax.lax.scan`.
 

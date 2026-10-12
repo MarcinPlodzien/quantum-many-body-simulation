@@ -97,7 +97,7 @@
 #
 # Nothing in Eq. (1) decays — every term oscillates forever. But a many-body state overlaps with *exponentially many* eigenstates, and
 # the $\sim 4^N$ frequencies $E_m-E_n$ are incommensurate. After a short time the phases are effectively random, the second sum averages to
-# (almost) zero, and the observable settles to the first sum, the **diagonal ensemble**. *Relaxation of a closed quantum system is dephasing.*
+# (almost) zero, and the observable settles to the first sum, the **diagonal ensemble** (so named by Rigol, Dunjko and Olshanii 2008). *Relaxation of a closed quantum system is dephasing.*
 # In a small system the cancellation is imperfect (we will see fluctuations that shrink with $N$), and after a very long time the phases can re-align (revivals).
 #
 # What is conserved: the energy $E=\langle\psi_0|H|\psi_0\rangle$ — and in fact every $|c_n|^2$. A quench from a product state injects an
@@ -106,9 +106,9 @@
 #
 # > **Physics insight.** By Eq. (1) the long-time value of an observable is fixed by the weights $|c_n|^2$, i.e. by what the initial state and $H$ have in
 # > common. How much of the initial state survives in these weights depends on $H$. A generic ("non-integrable") Hamiltonian conserves little besides the
-# > energy, and the local observables of initial states with the same energy relax to nearly the same stationary values. *Integrable* models — models with an
+# > energy, and the local observables of initial states with the same energy relax to nearly the same stationary values (eigenstate thermalization: Deutsch 1991; Srednicki 1994; Rigol, Dunjko and Olshanii 2008). *Integrable* models — models with an
 # > extensive number of local conservation laws $Q_\alpha$, such as free fermions or Bethe-ansatz solvable chains — keep much more memory: every
-# > $\langle Q_\alpha\rangle$ is fixed by the initial state, and the stationary values of local observables depend on all of them (Essler & Fagotti 2016).
+# > $\langle Q_\alpha\rangle$ is fixed by the initial state, and the stationary values of local observables depend on all of them, through the generalized Gibbs ensemble of Rigol, Dunjko, Yurovsky and Olshanii (2007) (review: Essler & Fagotti 2016).
 # > We will meet both kinds.
 #
 # ### 2.3 The models
@@ -122,7 +122,7 @@
 # |---|---|---|---|
 # | XXZ chain in a transverse field | $J_{xx}=J_{yy}=1,\ J_{zz}=0.5,\ h_x=1$ | generic (no known exact solution); the field breaks the conservation of $\sum_j Z_j$ | §4, §5 |
 # | transverse-field Ising (TFIM) | $J_{zz}=-J,\ h_x=-h$ | integrable: maps to free fermions | §6, §9 |
-# | XXZ chain | $J_{xx}=J_{yy}=J,\ J_{zz}=J\Delta$ | integrable (Bethe ansatz); conserves $\sum_j Z_j$; $\Delta=0$: free fermions, $\Delta=1$: Heisenberg | §7 |
+# | XXZ chain | $J_{xx}=J_{yy}=J,\ J_{zz}=J\Delta$ | integrable (Bethe ansatz: Bethe 1931; Orbach 1958); conserves $\sum_j Z_j$; $\Delta=0$: free fermions, $\Delta=1$: Heisenberg | §7 |
 # | tilted-field Ising | $J_{zz}=J,\ h_x=g,\ h_z$ | non-integrable for $h_z\neq0$, integrable TFIM for $h_z=0$ | §8 |
 #
 # ### 2.4 The observables
@@ -150,7 +150,7 @@
 #    is a finite-size number.
 # 3. **Revivals and recurrences.** Reflected quasiparticles re-focus, so local observables show partial revivals on the scale $t\sim N/v_{\max}$;
 #    they are strong in integrable chains, where the quasiparticles keep their identity, and weak in generic ones, where they scatter. A *full*
-#    Poincaré recurrence of the state needs a time exponentially long in $N$ and is never reached here.
+#    Poincaré recurrence of the state (guaranteed for a finite quantum system by the recurrence theorem of Bocchieri and Loinger 1957) needs a time exponentially long in $N$ and is never reached here.
 #
 # Read as a rule: **the window in which a finite chain imitates an infinite one is $t\lesssim t_{\rm edge}$** ($t_{\rm edge}/2$ for correlations), and every plot in this notebook that
 # extends beyond it does so deliberately — §8 wants the plateau, §9 wants many critical times. The concrete numbers ($v_{\max}=2\min(J,h)$ for the
@@ -243,7 +243,7 @@ def evolve_and_observe(psi0, gates, n_meas, n_sub, observe):
 #
 #   $$\mathcal N=\sum_{k<l}\lambda_k\lambda_l=\frac{(\sum_k\lambda_k)^2-\sum_k\lambda_k^2}{2}=\frac{(\sum_k\lambda_k)^2-1}{2},\qquad E_{\mathcal N}=\log_2(2\mathcal N+1)=2\log_2\sum_k\lambda_k .$$
 #
-#   No $4^N$-sized density matrix is needed. ($E_{\mathcal N}$ of a pure state is its Rényi-$\tfrac12$ entropy; the Rényi-$\alpha$ entropy $S_\alpha=\frac{1}{1-\alpha}\log_2\sum_k\lambda_k^{2\alpha}$ gives $S_A$ for $\alpha\to1$ and the Rényi-2 entropy of notebook 06 for $\alpha=2$, and it decreases with $\alpha$ (Exercise 8), hence $E_{\mathcal N}\ge S_A$.)
+#   No $4^N$-sized density matrix is needed. ($E_{\mathcal N}$ of a pure state is its Rényi-$\tfrac12$ entropy; the Rényi-$\alpha$ entropy (introduced by Rényi 1961) $S_\alpha=\frac{1}{1-\alpha}\log_2\sum_k\lambda_k^{2\alpha}$ gives $S_A$ for $\alpha\to1$ and the Rényi-2 entropy of notebook 06 for $\alpha=2$, and it decreases with $\alpha$ (Exercise 8), hence $E_{\mathcal N}\ge S_A$.)
 #
 # We return the *Schmidt values themselves* from the time loop and post-process them; this also gives us the entanglement spectrum for §8.
 
@@ -873,7 +873,7 @@ print("chain-averaged <Z> at t = 0, 1, 2, 3:", {float(h): np.round(mz2[k][[0, 25
 # * $\lvert\Delta\rvert<1$: **ballistic** — the wall melts into a front that expands linearly in time, and the transferred magnetisation grows $\propto t$;
 # * $\Delta=1$ (the isotropic Heisenberg point): slower than ballistic. From *weakly polarised* inhomogeneous initial states (close to infinite temperature) transport is **superdiffusive**: the transferred magnetisation
 #   grows as $t^{1/z}$ with the dynamical exponent $z=3/2$, i.e. $\propto t^{2/3}$ (Ljubotina, Žnidarič, Prosen 2017), and the infinite-temperature magnetisation dynamics is described by the scaling function of the
-#   Kardar–Parisi–Zhang universality class (Ljubotina, Žnidarič, Prosen 2019). For the *fully polarised* wall used here the same study finds an exponent closer to $3/5$, and larger simulations up to $t=350$ are
+#   Kardar–Parisi–Zhang universality class (Kardar, Parisi, Zhang 1986; Ljubotina, Žnidarič, Prosen 2019). For the *fully polarised* wall used here the same study finds an exponent closer to $3/5$, and larger simulations up to $t=350$ are
 #   compatible with diffusive spreading with slowly decaying corrections (Misguich, Mallick, Krapivsky 2017): the long-time law of this particular initial state is not settled;
 # * $\Delta>1$: the wall is essentially **frozen** — the domain-wall state is close to an eigenstate of the Ising-dominated Hamiltonian, and the transferred magnetisation saturates at an $\mathcal O(1)$ value.
 #
@@ -882,7 +882,7 @@ print("chain-averaged <Z> at t = 0, 1, 2, 3:", {float(h): np.round(mz2[k][[0, 25
 #
 # ### 7.2 An exact benchmark at any $N$: free fermions
 #
-# At $\Delta=0$ the chain is equivalent to non-interacting fermions. The Jordan–Wigner transformation (Lieb, Schultz, Mattis 1961; quoted without proof) maps a down spin to a fermion, $n_j=(1-Z_j)/2$, and
+# At $\Delta=0$ the chain is equivalent to non-interacting fermions. The Jordan–Wigner transformation (Jordan, Wigner 1928; Lieb, Schultz, Mattis 1961; quoted without proof) maps a down spin to a fermion, $n_j=(1-Z_j)/2$, and
 # $J(XX+YY)$ to a hopping Hamiltonian $\sum_{ij}h_{ij}c_i^\dagger c_j$ with the $N\times N$ matrix $h_{j,j+1}=h_{j+1,j}=2J$. Free fermions evolve independently: a particle starting on site $l$ has amplitude
 # $u_{jl}(t)=[e^{-iht}]_{jl}$ on site $j$, and the density is the sum over the initially occupied sites,
 #
@@ -1040,7 +1040,7 @@ assert abs(alpha3[0] - 1.0) < 0.05 and alpha3[1] < 0.95      # control: exact ba
 #
 # The two chains differ by one term. At $h_z=0$ the longitudinal field is absent, the Jordan–Wigner transformation of §7.2 turns $H$ into free fermions, and the model has an extensive set of conserved mode
 # occupations. A longitudinal field maps to a string operator and destroys that structure: nothing is conserved beyond the energy, and the model is believed to be non-integrable — the usual numerical evidence
-# being the level-spacing statistics of the energy spectrum, which is Poissonian for an integrable model and Wigner–Dyson for a chaotic one (Atas *et al.* 2013). We take the classification as given here and
+# being the level-spacing statistics of the energy spectrum, which is Poissonian for an integrable model and Wigner–Dyson for a chaotic one (Berry & Tabor 1977; Bohigas, Giannoni & Schmit 1984; for the ratio of consecutive spacings used today, Atas *et al.* 2013). We take the classification as given here and
 # test its *consequences*; the level statistics of exactly these two chains is a natural exercise for the dense diagonalisation (`eigh`) of
 # [notebook 03 (Chapter 2)](../ch02_spin_systems_textbook_way/03_quantum_many_body_spin_systems.ipynb). Both chains are evolved from the same state, with the same code, at the same energy: "integrable" and "non-integrable"
 # are properties of $H$ alone.
@@ -1401,6 +1401,10 @@ plt.tight_layout(); plt.show()
 #
 # **Reviews**
 # * A. Polkovnikov, K. Sengupta, A. Silva, M. Vengalattore, *Colloquium: Nonequilibrium dynamics of closed interacting quantum systems*, Rev. Mod. Phys. **83**, 863 (2011).
+# * J. M. Deutsch, *Quantum statistical mechanics in a closed system*, Phys. Rev. A **43**, 2046 (1991); M. Srednicki, *Chaos and quantum thermalization*, Phys. Rev. E **50**, 888 (1994).
+# * M. Rigol, V. Dunjko, M. Olshanii, *Thermalization and its mechanism for generic isolated quantum systems*, Nature **452**, 854 (2008) — eigenstate thermalization and the diagonal ensemble.
+# * M. Rigol, V. Dunjko, V. Yurovsky, M. Olshanii, *Relaxation in a completely integrable many-body quantum system: an ab initio study of the dynamics of the highly excited states of 1D lattice hard-core bosons*, Phys. Rev. Lett. **98**, 050405 (2007) — the generalized Gibbs ensemble.
+# * P. Bocchieri, A. Loinger, *Quantum recurrence theorem*, Phys. Rev. **107**, 337 (1957).
 # * F. H. L. Essler, M. Fagotti, *Quench dynamics and relaxation in isolated integrable quantum spin chains*, J. Stat. Mech. 064002 (2016).
 # * M. Heyl, *Dynamical quantum phase transitions: a review*, Rep. Prog. Phys. **81**, 054001 (2018).
 #
@@ -1414,7 +1418,10 @@ plt.tight_layout(); plt.show()
 # * G. Vidal, R. F. Werner, *Computable measure of entanglement*, Phys. Rev. A **65**, 032314 (2002).
 #
 # **Integrability and level statistics**
+# * M. V. Berry, M. Tabor, *Level clustering in the regular spectrum*, Proc. R. Soc. Lond. A **356**, 375 (1977); O. Bohigas, M. J. Giannoni, C. Schmit, *Characterization of chaotic quantum spectra and universality of level fluctuation laws*, Phys. Rev. Lett. **52**, 1 (1984).
 # * Y. Y. Atas, E. Bogomolny, O. Giraud, G. Roux, *Distribution of the ratio of consecutive level spacings in random matrix ensembles*, Phys. Rev. Lett. **110**, 084101 (2013).
+# * P. Jordan, E. Wigner, *Über das Paulische Äquivalenzverbot*, Z. Phys. **47**, 631 (1928).
+# * H. Bethe, *Zur Theorie der Metalle. I. Eigenwerte und Eigenfunktionen der linearen Atomkette*, Z. Phys. **71**, 205 (1931); R. Orbach, *Linear antiferromagnetic chain with anisotropic coupling*, Phys. Rev. **112**, 309 (1958).
 # * E. Lieb, T. Schultz, D. Mattis, *Two soluble models of an antiferromagnetic chain*, Ann. Phys. **16**, 407 (1961).
 # * P. Pfeuty, *The one-dimensional Ising model with a transverse field*, Ann. Phys. **57**, 79 (1970).
 #
@@ -1424,6 +1431,7 @@ plt.tight_layout(); plt.show()
 # * V. Eisler, F. Iglói, I. Peschel, *Entanglement in spin chains with gradients*, J. Stat. Mech. P02011 (2009) — the logarithmic entanglement growth after the XX domain-wall quench.
 # * M. Ljubotina, M. Žnidarič, T. Prosen, *Spin diffusion from an inhomogeneous quench in an integrable system*, Nat. Commun. **8**, 16117 (2017) — inhomogeneous quenches at $\Delta=1$: exponent $2/3$ for weakly polarised walls, closer to $3/5$ near the pure domain wall.
 # * G. Misguich, K. Mallick, P. L. Krapivsky, *Dynamics of the spin-1/2 Heisenberg chain initialized in a domain-wall state*, Phys. Rev. B **96**, 195151 (2017).
+# * M. Kardar, G. Parisi, Y.-C. Zhang, *Dynamic scaling of growing interfaces*, Phys. Rev. Lett. **56**, 889 (1986).
 # * M. Ljubotina, M. Žnidarič, T. Prosen, *Kardar–Parisi–Zhang physics in the quantum Heisenberg magnet*, Phys. Rev. Lett. **122**, 210602 (2019) — the KPZ scaling function of the magnetisation dynamics at infinite temperature.
 #
 # **Loschmidt echo and dynamical quantum phase transitions**
@@ -1437,5 +1445,6 @@ plt.tight_layout(); plt.show()
 # * P. Richerme *et al.*, *Non-local propagation of correlations in quantum systems with long-range interactions*, Nature **511**, 198 (2014);
 #   P. Jurcevic *et al.*, *Quasiparticle engineering and entanglement propagation in a quantum many-body system*, Nature **511**, 202 (2014).
 # * R. Islam, R. Ma, P. M. Preiss, M. E. Tai, A. Lukin, M. Rispoli, M. Greiner, *Measuring entanglement entropy in a quantum many-body system*, Nature **528**, 77 (2015).
+# * A. Rényi, *On measures of entropy and information*, in *Proc. 4th Berkeley Symposium on Mathematical Statistics and Probability* **1**, 547 (1961) — the Rényi-$\alpha$ entropies.
 # * H. Bernien *et al.*, *Probing many-body dynamics on a 51-atom quantum simulator*, Nature **551**, 579 (2017).
 

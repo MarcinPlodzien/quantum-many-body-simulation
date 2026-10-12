@@ -8,7 +8,7 @@
 # A Bell inequality is a bound on correlations that follows from one assumption only: that the outcomes of the measurements
 # already exist before the measurements are made, and that each party's outcome depends on that party's setting and on shared
 # information from the past, not on what the other parties chose. Any theory of this kind is called a **local hidden-variable
-# (LHV)** model. Quantum mechanics violates such bounds, which is why they matter: a violated Bell inequality is a
+# (LHV)** model. Bell (1964) proved that quantum mechanics violates such bounds, which is why they matter: a violated Bell inequality is a
 # device-independent certificate — it says something about the physics without assuming anything about the apparatus
 # (the cryptographic use of this property appears in [notebook 53](../ch12_quantum_communication_and_cryptography/53_quantum_key_distribution.ipynb)).
 #
@@ -38,7 +38,11 @@
 # $$\mathcal E\le2^{-N}\quad\text{(every local hidden-variable model)},\qquad
 #   \mathcal E\le4^{-N}\quad\text{(every fully separable quantum state)} ,$$
 #
-# while the algebraic maximum over *all* states is $\mathcal E=1/4$, reached by the GHZ state. Taking logarithms turns the two
+# while the algebraic maximum over *all* states is $\mathcal E=1/4$, reached by the GHZ state. The local-realistic bound is the
+# qubit case of the multipartite Bell inequalities introduced by Cavalcanti, Foster, Reid and Drummond (2007) and extended to
+# a hierarchy of Bell, steering and entanglement bounds by Cavalcanti, He, Reid and Wiseman (2011). The correlator of Eq. (1),
+# a single matrix element of the locally rotated state, was developed as a probe of many-body Bell correlations and
+# entanglement by Niezgoda, Panfil and Chwedenczuk (2020), Niezgoda and Chwedenczuk (2021) and Chwedenczuk (2022). Taking logarithms turns the two
 # bounds into a pair of numbers that are positive exactly when the corresponding bound is violated:
 #
 # $$Q_{\rm B}=\log_2\mathcal E+N ,\qquad Q_{\rm E}=\tfrac12\log_2\mathcal E+N . \tag{3}$$
@@ -157,13 +161,13 @@ print("sigma^- = |1><0| :\n", np.asarray(SM))
 #
 # ### 3.2 The CHSH inequality
 #
-# For $N=2$, with $A_k,B_k=\pm1$, the algebraic identity
+# The inequality of Clauser, Horne, Shimony and Holt (1969) is the case $N=2$. With $A_k,B_k=\pm1$, the algebraic identity
 #
 # $$A_0A_1+A_0B_1+B_0A_1-B_0B_1=A_0(A_1+B_1)+B_0(A_1-B_1)$$
 #
 # has, for every $\lambda$, one bracket equal to $\pm2$ and the other equal to $0$, so the left-hand side is $\pm2$ and its
 # average obeys $\vert S\vert\le2$. Quantum mechanics reaches $S=2\sqrt2$ with a Bell state and the right angles — that is the
-# Tsirelson bound, derived in [notebook 19](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb).
+# bound proved by Tsirelson (Cirel'son, 1980), derived in [notebook 19](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb).
 #
 # ### 3.3 Why many parties need a different object
 #
@@ -273,7 +277,7 @@ print("sigma^- = |1><0| :\n", np.asarray(SM))
 #   **genuine $N$-partite entanglement**.
 # * More generally, if every group contains at most $k$ qubits then $m\ge\lceil N/k\rceil$, so
 #   $\mathcal E\le4^{-\lceil N/k\rceil}$; violating that bound certifies an entangled group of more than $k$ qubits (an
-#   "entanglement depth" larger than $k$). The bound is *tight*: $\lvert\mathrm{GHZ}_k\rangle^{\otimes N/k}$ reaches it
+#   "entanglement depth" larger than $k$, a notion introduced by Sørensen and Mølmer, 2001). The bound is *tight*: $\lvert\mathrm{GHZ}_k\rangle^{\otimes N/k}$ reaches it
 #   exactly, as Exercise 3 asks you to verify.
 #
 # ### 4.4 The algebraic maximum
@@ -301,8 +305,8 @@ print("sigma^- = |1><0| :\n", np.asarray(SM))
 #
 # Both bounds and both rulers of Eq. (3) are standard in the many-body Bell literature, under slightly different names.
 #
-# * The LHV bound $\mathcal E\le2^{-N}$ is the qubit case of the CFRD family of inequalities built from complex
-#   combinations of two local observables. Cavalcanti, He, Reid and Wiseman (2011) write it as
+# * The LHV bound $\mathcal E\le2^{-N}$ is the qubit case of the family of inequalities built from complex
+#   combinations of two local observables that Cavalcanti, Foster, Reid and Drummond (2007) introduced (CFRD). Cavalcanti, He, Reid and Wiseman (2011) write it as
 #   $\vert\langle\prod_j(X_j+iY_j)\rangle\vert\le2^{(N-T)/2}$, where $T$ counts the parties whose local state is assumed
 #   to be quantum: $T=0$ reproduces $\mathcal E\le2^{-N}$ and $T=N$ reproduces $\mathcal E\le4^{-N}$, with the values in
 #   between corresponding to multipartite EPR steering. Chwedenczuk (2022) derives the same bound by the Cauchy–Schwarz
@@ -507,7 +511,7 @@ assert abs(abs(b3) - abs(got_psi)) < 1e3 * TOL
 #
 # ### 6.2 GHZ reaches the algebraic maximum
 #
-# For $\vert\mathrm{GHZ}\rangle=(\vert0\cdots0\rangle+\vert1\cdots1\rangle)/\sqrt2$ and again $U_k=\mathbb 1$, Eq. (12) gives
+# For the state of Greenberger, Horne and Zeilinger (1989), $\vert\mathrm{GHZ}\rangle=(\vert0\cdots0\rangle+\vert1\cdots1\rangle)/\sqrt2$ and again $U_k=\mathbb 1$, Eq. (12) gives
 # $\langle\mathcal B\rangle=\overline{(1/\sqrt2)}\cdot(1/\sqrt2)=1/2$ and
 #
 # $$\mathcal E(\mathrm{GHZ})=\tfrac14,\qquad Q_{\rm B}=N-2,\qquad Q_{\rm E}=N-1 ,$$
@@ -520,7 +524,7 @@ assert abs(abs(b3) - abs(got_psi)) < 1e3 * TOL
 #
 # Let $\vert a\rangle=U\vert1\rangle=\alpha\vert0\rangle+\beta\vert1\rangle$ and $\vert b\rangle=U\vert0\rangle$, the same on
 # every site. Orthogonality fixes $\vert b\rangle=e^{i\chi}(-\bar\beta\vert0\rangle+\bar\alpha\vert1\rangle)$. For the Dicke
-# state $\vert D_N^m\rangle=\binom{N}{m}^{-1/2}\sum_{\vert s\vert=m}\vert s\rangle$ every basis state with $m$ excitations
+# state (Dicke, 1954) $\vert D_N^m\rangle=\binom{N}{m}^{-1/2}\sum_{\vert s\vert=m}\vert s\rangle$ every basis state with $m$ excitations
 # contributes the same amplitude, so
 #
 # $$\langle D_N^m\vert a^{\otimes N}\rangle=\binom{N}{m}^{-1/2}\binom{N}{m}\,\alpha^{N-m}\beta^{m}
@@ -537,7 +541,7 @@ assert abs(abs(b3) - abs(got_psi)) < 1e3 * TOL
 # $$\mathcal E(D_N^m)=\binom{N}{m}^{2}4^{-N},\qquad Q_{\rm E}=\log_2\binom{N}{m},\qquad
 #   Q_{\rm B}=2\log_2\binom{N}{m}-N . \tag{15}$$
 #
-# The W state is $m=1$, so $\mathcal E(W_N)=N^24^{-N}$, $Q_{\rm E}=\log_2N$ and $Q_{\rm B}=2\log_2N-N$. Two readings follow
+# The W state (Dür, Vidal and Cirac, 2000) is $m=1$, so $\mathcal E(W_N)=N^24^{-N}$, $Q_{\rm E}=\log_2N$ and $Q_{\rm B}=2\log_2N-N$. Two readings follow
 # immediately and will be checked numerically: W states are detected as entangled for every $N$ (since $\log_2N>0$), but they
 # violate local realism only for $N=3$ ($Q_{\rm B}=2\log_23-3=0.17$), reach exactly $Q_{\rm B}=0$ at $N=4$ and fall below the
 # bound from $N=5$ on. Eq. (15) assumes the same $U$ on every site; the numerics below optimise over all $2N$ angles freely
@@ -553,7 +557,8 @@ assert abs(abs(b3) - abs(got_psi)) < 1e3 * TOL
 # Three consequences that the scope of this notebook asks us to test:
 #
 # * a GHZ state written in randomly rotated local bases has exactly the same $\mathcal E$ as the GHZ state itself;
-# * the **star graph state** (a central qubit connected by $CZ$ to every other) is a GHZ state up to Hadamards on the leaves,
+# * the **star graph state** (a graph state in the sense of Hein, Eisert and Briegel, 2004, with a central qubit connected by
+#   $CZ$ to every other) is a GHZ state up to Hadamards on the leaves,
 #   so $\mathcal E=1/4$;
 # * applying a $T$ gate to every qubit of any state cannot change $\mathcal E$, because $T$ is a local unitary. The
 #   "$T$-doped" star graph, which is *not* a stabilizer state and has non-zero magic (the subject of [notebook 27](27_stabilizer_renyi_entropy.ipynb)), is
@@ -621,7 +626,7 @@ for N in (3, 4, 5, 6, 7):
 # * `lax.scan` runs the optimiser loop inside one compiled program instead of unrolling $200$ copies of the graph.
 # * `jax.vmap` runs many random restarts simultaneously, which is the practical answer to non-convexity.
 #
-# We use Adam (`adam_init`/`adam_update` from the engine, derived in
+# We use Adam (Kingma and Ba, 2015; `adam_init`/`adam_update` from the engine, derived in
 # [notebook 41](../ch13_quantum_machine_learning/41_optimizers.ipynb)) and *maximise* by feeding it $-\nabla\mathcal E$.
 
 # %%
@@ -906,7 +911,7 @@ print(f"\nrun time after compilation [s]: " + "; ".join(
 #
 # Now the full list: the product state, GHZ in the computational basis, GHZ written in randomly rotated local bases, the star
 # graph state, the star graph with a $T$ gate on every qubit, the W state, the Dicke state at half filling, the linear cluster
-# state and a Haar-random state. Every value is obtained by free optimisation over all $2N$ angles, so the analytic formulas
+# state of Briegel and Raussendorf (2001) and a Haar-random state. Every value is obtained by free optimisation over all $2N$ angles, so the analytic formulas
 # of Section 6 are now genuine predictions and not just evaluations at a guessed point.
 
 # %%
@@ -1383,7 +1388,7 @@ fig.tight_layout(); plt.show()
 # ### 10.1 Why trajectories
 #
 # The density tensor costs $O(4^N)$ in memory and $O(N4^N)$ per evaluation of the correlator, which is what confined Section 9
-# to $N\le6$. The Monte-Carlo wave-function unravelling of
+# to $N\le6$. The Monte-Carlo wave-function unravelling (Dalibard, Castin and Mølmer, 1992; Dum, Zoller and Ritsch, 1992) of
 # [notebook 17](../ch06_open_quantum_systems/17_monte_carlo_wave_function.ipynb) replaces it by $M$ pure states of $2^N$
 # amplitudes each: for every trajectory one Kraus branch is sampled per qubit with probability $\lVert K_m\psi\rVert^2$, and
 #
@@ -1645,7 +1650,7 @@ fig.tight_layout(); plt.show()
 # %% [markdown]
 # ## 11. One-axis twisting as a source of Bell correlations
 #
-# One-axis twisting is the standard way of producing metrologically useful states in cold-atom and trapped-ion experiments:
+# One-axis twisting, proposed by Kitagawa and Ueda (1993), is the standard way of producing metrologically useful states in cold-atom and trapped-ion experiments:
 # starting from the coherent spin state $\vert+\rangle^{\otimes N}$, the Hamiltonian $\chi J_z^2$ shears the uncertainty
 # region on the Bloch sphere, first producing spin squeezing and eventually, at $\chi t=\pi/2$, a GHZ-like cat state
 # ([notebooks 33 and 34](../ch10_quantum_metrology_protocols/33_spin_squeezing_one_axis_twisting.ipynb)). The evolution is
@@ -1661,8 +1666,8 @@ fig.tight_layout(); plt.show()
 # ([notebook 33](../ch10_quantum_metrology_protocols/33_spin_squeezing_one_axis_twisting.ipynb)). Since
 # $N^{-1}\ll N^{-2/3}$, Bell correlations are predicted to appear *before* the squeezing optimum, by a factor
 # $t_{\rm crit}/t_{\rm s}\sim N^{-1/3}$ that closes only slowly. We can now check that directly at one size: evaluate
-# $\mathcal E$ along the whole trajectory and report when each bound is crossed, alongside the Wineland squeezing
-# parameter $\xi^2$ so that the two resources can be compared on one axis.
+# $\mathcal E$ along the whole trajectory and report when each bound is crossed, alongside the squeezing
+# parameter $\xi^2$ of Wineland, Bollinger, Itano and Heinzen (1994) so that the two resources can be compared on one axis.
 #
 # One difference from the published calculation should be stated before the numbers appear. That work evaluates the
 # correlator in a *fixed* measurement plane (the twisting axis and one axis orthogonal to it); here every run maximises
@@ -1952,6 +1957,8 @@ assert all(2.98 < rows[N] < 3.0 for N in Ns_fp)                   # exact onset 
 #   Phys. Rev. A **84**, 032115 (2011), arXiv:1008.5014 — the family
 #   $\vert\langle\prod_j(X_j+iY_j)\rangle\vert\le2^{(N-T)/2}$ that contains both bounds of Section 4 as the cases $T=0$
 #   and $T=N$, and the steering criteria in between.
+# * A. Niezgoda, M. Panfil and J. Chwedenczuk, *Quantum correlations in spin chains*, Phys. Rev. A **102**, 042206 (2020) —
+#   a single element of the density matrix as a witness of many-body entanglement and Bell correlations in spin chains.
 # * J. Chwedenczuk, *Many-body Bell inequalities for bosonic qubits*, SciPost Phys. Core **5**, 025 (2022),
 #   arXiv:2109.15156 — the correlator of Eq. (1), the Cauchy–Schwarz derivation of the bound $2^{-N}$, and the version for
 #   indistinguishable particles.
@@ -1973,6 +1980,20 @@ assert all(2.98 < rows[N] < 3.0 for N in Ns_fp)                   # exact onset 
 # * M. Plodzien, M. Lewenstein and J. Chwedenczuk, *Many-body quantum resources of graph states*,
 #   Rep. Prog. Phys. **88**, 077601 (2025), arXiv:2410.12487 — graph states as in Section 8 and a classification of their
 #   Bell correlations; there the maximisation in Eq. (2) is restricted to the three Pauli frames per site.
+# * R. H. Dicke, *Coherence in spontaneous radiation processes*, Phys. Rev. **93**, 99 (1954) — the symmetric (Dicke) states.
+# * D. M. Greenberger, M. A. Horne and A. Zeilinger, *Going beyond Bell's theorem*, in *Bell's Theorem, Quantum Theory and
+#   Conceptions of the Universe*, ed. M. Kafatos (Kluwer, Dordrecht, 1989), pp. 69–72; arXiv:0712.0921 — the GHZ state.
+# * W. Dür, G. Vidal and J. I. Cirac, *Three qubits can be entangled in two inequivalent ways*, Phys. Rev. A **62**, 062314
+#   (2000) — the W state.
+# * A. S. Sørensen and K. Mølmer, *Entanglement and extreme spin squeezing*, Phys. Rev. Lett. **86**, 4431 (2001) — the
+#   depth of entanglement.
+# * H. J. Briegel and R. Raussendorf, *Persistent entanglement in arrays of interacting particles*, Phys. Rev. Lett. **86**,
+#   910 (2001) — cluster states.
+# * M. Hein, J. Eisert and H. J. Briegel, *Multiparty entanglement in graph states*, Phys. Rev. A **69**, 062311 (2004) —
+#   graph states.
+# * J. Dalibard, Y. Castin and K. Mølmer, *Wave-function approach to dissipative processes in quantum optics*, Phys. Rev. Lett.
+#   **68**, 580 (1992); R. Dum, P. Zoller and H. Ritsch, *Monte Carlo simulation of the atomic master equation for spontaneous
+#   emission*, Phys. Rev. A **45**, 4879 (1992) — the Monte-Carlo wave-function method of Section 10.
 # * J. C. Spall, *Multivariate stochastic approximation using a simultaneous perturbation gradient approximation*,
 #   IEEE Trans. Autom. Control **37**, 332 (1992) — SPSA.
 # * D. P. Kingma and J. Ba, *Adam: a method for stochastic optimization*, arXiv:1412.6980, ICLR 2015 — the optimiser.

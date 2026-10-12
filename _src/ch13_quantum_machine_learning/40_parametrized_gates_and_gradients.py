@@ -334,7 +334,8 @@ for name, G in [("X/2  (single-qubit rotation)", 0.5 * X),
 # path. Evolving under the
 # time-dependent Hamiltonian and Trotterising each small step (see
 # [12 — TEBD](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb)) gives a product of factors
-# $e^{-i\gamma H_{ZZ}}e^{-i\beta H_X}$ with *prescribed* small angles. The **Hamiltonian-variational ansatz** keeps the
+# $e^{-i\gamma H_{ZZ}}e^{-i\beta H_X}$ with *prescribed* small angles. The **Hamiltonian-variational ansatz**, introduced
+# by Wecker, Hastings and Troyer (2015) as a class of states motivated by adiabatic state preparation, keeps the
 # structure and throws away the prescription: let the angles be free.
 #
 # $$\vert\psi(\boldsymbol\gamma,\boldsymbol\beta)\rangle=\prod_{l=L}^{1}
@@ -830,8 +831,8 @@ fig.tight_layout(); plt.show()
 # 1. **Equation (18) is exact.** It has no truncation error, because the function it differentiates is exactly a
 #    sinusoid; the large step $\pi/2$ costs nothing in accuracy.
 # 2. **The shifted circuits are ordinary circuits.** They need no access to amplitudes and no extra hardware: the same
-#    device is run with one angle changed by $\pi/2$. For this reason the rule is used on hardware (Mitarai *et al.*,
-#    2018). Schuld *et al.* (2019) extended it to every gate $e^{-i\theta G}$ whose generator has two eigenvalues
+#    device is run with one angle changed by $\pi/2$. Mitarai *et al.* (2018) introduced the rule of Eq. (18) for this
+#    reason, to train circuits on hardware by gradient descent. Schuld *et al.* (2019) extended it to every gate $e^{-i\theta G}$ whose generator has two eigenvalues
 #    $\pm r$, with shift $\pi/(4r)$ and prefactor $r$, and treated other gates with one ancilla qubit.
 # 3. **The cost is $2n$ circuit evaluations** for $n$ parameters. This is the method's weakness, and Sections 9 and 10
 #    describe the two alternatives.
@@ -1712,8 +1713,8 @@ fig.tight_layout(); plt.show()
 # $\theta_k$. A zero mean is therefore no sign of a plateau. Second, the **variance** $\mathrm{Var}_{\boldsymbol\theta}
 # [\partial_kC]$ measures how large the gradient typically is, and this is what can vanish exponentially with $N$.
 #
-# McClean *et al.* (2018) computed it for random circuits in which the part before or after the differentiated gate (or
-# both) forms a unitary 2-design, i.e. reproduces the first two moments of Haar-random unitaries
+# The phenomenon was identified by McClean *et al.* (2018), who computed the variance for random circuits in which the
+# part before or after the differentiated gate (or both) forms a unitary 2-design, i.e. reproduces the first two moments of Haar-random unitaries
 # ([10 — random unitaries](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb)). For a circuit
 # $\cdots e^{-i\theta_kV}\cdots$ with both parts 2-designs, an observable $H$ and a pure input state, their result reads
 #
@@ -1985,6 +1986,8 @@ print(f"\nVar(local)/Var(global) at N = {N_LIST[-1]}:  L=2: {res['l2'][-1] / res
 # * A. Kandala, A. Mezzacapo, K. Temme, M. Takita, M. Brink, J. M. Chow and J. M. Gambetta, *Hardware-efficient
 #   variational quantum eigensolver for small molecules and quantum magnets*, Nature **549**, 242 (2017) — the
 #   hardware-efficient ansatz of Section 4.1 (Euler rotations and native cross-resonance entanglers).
+# * D. Wecker, M. B. Hastings and M. Troyer, *Progress towards practical quantum variational algorithms*, Phys. Rev. A
+#   **92**, 042303 (2015) — the Hamiltonian-variational ansatz of Section 4.2, motivated by adiabatic state preparation.
 # * K. Mitarai, M. Negoro, M. Kitagawa and K. Fujii, *Quantum circuit learning*, Phys. Rev. A **98**, 032309 (2018) —
 #   the parameter-shift rule for Pauli-generated gates.
 # * M. Schuld, V. Bergholm, C. Gogolin, J. Izaac and N. Killoran, *Evaluating analytic gradients on quantum hardware*,

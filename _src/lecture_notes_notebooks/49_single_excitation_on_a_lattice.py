@@ -34,7 +34,7 @@
 # that the total magnetisation $\sum_j \hat Z_j$ commutes with the XX Hamiltonian, so the number of reversed spins is
 # conserved and the $2^N$-dimensional spectrum splits into magnetisation sectors. In the sector with exactly one reversed
 # spin, that Hamiltonian is the matrix of this notebook with $w = 2J$, and the same Bessel function then describes a
-# magnon. The Jordan-Wigner transformation, quoted in
+# magnon. The Jordan-Wigner transformation (Jordan and Wigner 1928), quoted in
 # [notebook 06](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb), extends the statement from one
 # excitation to any number, making the XX chain a gas of free fermions on the same lattice.
 #
@@ -127,7 +127,7 @@ print("\nand as a ring:\n", hop(5, periodic=True))
 # %% [markdown]
 # ## 2. The ring: plane waves and the band
 #
-# On a ring of $N$ sites the model is invariant under $j \to j+1$, so the eigenvectors are plane waves. Put
+# On a ring of $N$ sites the model is invariant under $j \to j+1$, so the eigenvectors are plane waves (Bloch's theorem, Bloch 1929). Put
 #
 # $$ \vert k\rangle = \frac{1}{\sqrt N}\sum_j e^{ikj}\vert j\rangle, \qquad k = \frac{2\pi m}{N},\quad m=0,\dots,N-1, $$
 #
@@ -360,7 +360,7 @@ print(f"  the image form degrades only as the front approaches the FAR end, reac
 # so no wave packet moves faster than $2w$ and the excitation is confined to a *light cone* $\vert j\vert \lesssim 2wt$.
 # The Bessel function says the same thing more sharply: $J_n(z)$ is exponentially small for $z<n$, so site $n$ is
 # not reached before $t\approx n/(2w)$, apart from an exponentially small tail. For any lattice Hamiltonian with
-# local terms a velocity of this kind exists; the general statement is the Lieb-Robinson bound (see the references).
+# local terms a velocity of this kind exists; the general statement is the bound proved by Lieb and Robinson (1972).
 #
 # The density at site $n$ peaks later than the arrival time $n/(2w)$, at the *Airy edge*
 #
@@ -589,10 +589,11 @@ for N in (12, 40):
 # the state stays in the one-reversed-spin sector for ever. Label the $N$ states of that sector by the position $j$ of
 # the reversed spin: the $2^N$-dimensional Hamiltonian restricted to them is the matrix of this notebook with $w = 2J$,
 # the band becomes $E_k = 4J\cos k$ and the propagator $(-i)^nJ_n(4Jt)$. A many-body problem whose state vector has
-# $2^N$ amplitudes has collapsed onto an $N\times N$ one by symmetry. The excitation is then called a *magnon*.
+# $2^N$ amplitudes has collapsed onto an $N\times N$ one by symmetry. The excitation is then called a *magnon*, the quantum of the spin waves
+# introduced by Bloch (1930).
 #
 # The Jordan-Wigner transformation, quoted in notebook 06, extends this from one excitation to any number, making the XX
-# chain a gas of non-interacting fermions hopping on the same lattice. The one-magnon result is the special case in which
+# chain a gas of non-interacting fermions hopping on the same lattice (Lieb, Schultz and Mattis 1961). The one-magnon result is the special case in which
 # a single level is occupied.
 #
 # The practical use is different. Notebook 18 (Section 10.1) evolves matrix product states of 60-spin XX chains and
@@ -609,7 +610,7 @@ for N in (12, 40):
 # in it and $\vert\phi_R\rangle$ likewise on the right. On each side the two states that appear (one excitation, or none)
 # are orthogonal. This is a Schmidt decomposition, so the Schmidt rank is at
 # most two, the Schmidt values are $\sqrt{P_L}$ and $\sqrt{P_R}$, the entanglement entropy is at most one bit, and a matrix
-# product state of bond dimension two is exact at every time. The Trotterised time evolution of TEBD conserves
+# product state of bond dimension two is exact at every time. The Trotterised (Trotter 1959) time evolution of TEBD (Vidal 2004) conserves
 # $\sum_j\hat Z_j$ as well, so the state never leaves the sector. A disagreement between TEBD at bond dimension two and the
 # Bessel function, beyond the Trotter error, therefore locates a mistake in the implementation, with truncation ruled out
 # in advance.
@@ -744,6 +745,16 @@ for l in range(1, N):
 #   §10.12 (the generating function and Jacobi-Anger expansions), §10.19(iii) (Bessel functions in the transition region,
 #   in terms of Airy functions), Eq. 10.21.40 (the first maximum $j'_{\nu,1}$ for large order), and Chapter 9 (Airy
 #   functions).
+# * F. Bloch, *Über die Quantenmechanik der Elektronen in Kristallgittern*, Z. Phys. **52**, 555–600 (1929) —
+#   Bloch's theorem: eigenstates of a periodic lattice Hamiltonian are plane waves modulated by the lattice period.
+# * F. Bloch, *Zur Theorie des Ferromagnetismus*, Z. Phys. **61**, 206–219 (1930) — spin waves, whose quanta are the
+#   magnons of Section 6.
+# * P. Jordan and E. Wigner, *Über das Paulische Äquivalenzverbot*, Z. Phys. **47**, 631–651 (1928) — the
+#   Jordan-Wigner transformation.
+# * H. F. Trotter, *On the product of semi-groups of operators*, Proc. Amer. Math. Soc. **10**, 545–551 (1959) — the
+#   product formula behind Trotterised time evolution.
+# * G. Vidal, *Efficient simulation of one-dimensional quantum many-body systems*, Phys. Rev. Lett. **93**, 040502
+#   (2004) — time-evolving block decimation (TEBD).
 # * E. H. Lieb and D. W. Robinson, *The finite group velocity of quantum spin systems*, Commun. Math. Phys. **28**,
 #   251–257 (1972) — the general light cone of lattice Hamiltonians with local terms.
 # * V. Hunyadi, Z. Rácz and L. Sasvári, *Dynamic scaling of fronts in the quantum XX chain*, Phys. Rev. E **69**, 066103

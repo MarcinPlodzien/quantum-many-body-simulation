@@ -46,8 +46,8 @@
 #
 # The scalar product in $\mathcal F$ is computed without forming $\boldsymbol\phi$, which is the **kernel trick**. It
 # matters when $\mathcal F$ is large: the Gaussian kernel $k(\mathbf x,\mathbf x')=e^{-\gamma\vert\mathbf x-\mathbf x'\vert^2}$
-# corresponds to a feature space of infinite dimension and costs one exponential per pair. The SVM (Cortes and
-# Vapnik, 1995) chooses, among all separating planes in $\mathcal F$, the one with the largest distance to the nearest training
+# corresponds to a feature space of infinite dimension and costs one exponential per pair. The SVM, introduced with
+# kernels by Boser, Guyon and Vapnik (1992) and given its soft margin by Cortes and Vapnik (1995), chooses, among all separating planes in $\mathcal F$, the one with the largest distance to the nearest training
 # points, and Section 3.3 shows that its training needs nothing but the $M\times M$ **kernel matrix**
 # $K_{ij}=k(\mathbf x_i,\mathbf x_j)$ and the labels. The parameter $\gamma$ of the Gaussian kernel sets the length scale
 # $1/\sqrt\gamma$ over which two points are considered similar; it is called the *bandwidth* and has to be tuned.
@@ -531,8 +531,8 @@ except ImportError:
 # $$\mathbf c^{\rm T}K\mathbf c=\sum_{i,j}c_ic_j\,\boldsymbol\phi_i\cdot\boldsymbol\phi_j=\Big\vert\sum_ic_i\boldsymbol\phi_i\Big\vert^2\geq0 , \tag{15}$$
 #
 # and the converse also holds: a symmetric function all of whose kernel matrices are PSD is the scalar product of some
-# feature map (the Moore–Aronszajn theorem; Mercer's theorem gives an explicit construction for continuous kernels;
-# Schölkopf and Smola, 2002). For the SVM the property is essential: with
+# feature map (the Moore–Aronszajn theorem, Aronszajn 1950; the theorem of Mercer (1909) gives an explicit construction
+# for continuous kernels; see also Schölkopf and Smola, 2002). For the SVM the property is essential: with
 # $Q=\mathrm{diag}(\mathbf y)\,K\,\mathrm{diag}(\mathbf y)$ the function $D$ of Eq. (9) is concave exactly when $K$ is
 # PSD, and only then is every local maximum a global one, so that projected gradient ascent is guaranteed to reach the
 # optimal value. The maximiser $\boldsymbol\alpha$ itself need not be unique: the polynomial kernel of Eq. (3) has rank
@@ -1757,10 +1757,17 @@ print(f"   {'total (Sections 3-10)':36s} {sum(v for k, v in SECTION_TIMES.items(
 #   optimised by kernel-target alignment, noise and finite sampling in kernel matrices (Exercise 4).
 # * H. Buhrman, R. Cleve, J. Watrous and R. de Wolf, *Quantum fingerprinting*, Phys. Rev. Lett. **87**, 167902 (2001) —
 #   the swap test (Section 4.4).
+# * B. E. Boser, I. M. Guyon and V. N. Vapnik, *A training algorithm for optimal margin classifiers*, in *Proceedings of
+#   the Fifth Annual Workshop on Computational Learning Theory* (ACM, 1992), p. 144 — the maximal-margin classifier
+#   with kernels, whose solution is a combination of support vectors.
 # * C. Cortes and V. Vapnik, *Support-vector networks*, Mach. Learn. **20**, 273 (1995) — the soft-margin support
 #   vector machine of Eq. (6).
 # * B. Schölkopf, A. Smola and K.-R. Müller, *Nonlinear component analysis as a kernel eigenvalue problem*, Neural
 #   Comput. **10**, 1299 (1998) — kernel principal component analysis (Section 5.2).
+# * N. Aronszajn, *Theory of reproducing kernels*, Trans. Amer. Math. Soc. **68**, 337 (1950) — reproducing-kernel
+#   Hilbert spaces and the Moore–Aronszajn theorem (Section 3.5).
+# * J. Mercer, *Functions of positive and negative type, and their connection with the theory of integral equations*,
+#   Phil. Trans. R. Soc. Lond. A **209**, 415 (1909) — Mercer's theorem for continuous kernels of positive type.
 # * B. Schölkopf and A. J. Smola, *Learning with Kernels* (MIT Press, Cambridge MA, 2002) — kernels, Mercer's theorem
 #   and the SVM.
 # * A. Beck and M. Teboulle, *A fast iterative shrinkage-thresholding algorithm for linear inverse problems*, SIAM J.

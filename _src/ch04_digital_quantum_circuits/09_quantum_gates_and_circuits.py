@@ -8,7 +8,7 @@
 # In the previous notebooks we simulated **spin chains**: we stored the state of $N$ spins-1/2 as a rank-$N$ tensor,
 # we learned to act on it with small matrices through one `einsum` (the function `apply_gate` of
 # [notebook 05](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb)), and we evolved it in time by chopping $e^{-iHt}$ into a product of
-# many small two-spin unitaries (Trotterization, [notebook 04](../ch02_spin_systems_textbook_way/04_time_evolution_the_textbook_way.ipynb)).
+# many small two-spin unitaries (Trotterization, after Trotter 1959 and Suzuki 1976; [notebook 04](../ch02_spin_systems_textbook_way/04_time_evolution_the_textbook_way.ipynb)).
 #
 # *A product of many small unitaries acting on a register of two-level systems* is, word for word, the definition of a
 # **quantum circuit**. A quantum computer is a many-body spin system in
@@ -253,7 +253,7 @@ for K in (2, 4, 6, 8, 12, 16):
 #
 # The name "rotation" refers to the Bloch sphere. Every pure qubit state can be written as
 # $\lvert\psi\rangle = \cos\frac\vartheta2\lvert0\rangle + e^{i\varphi}\sin\frac\vartheta2\lvert1\rangle$ and is represented by the
-# **Bloch vector** $\mathbf r = (\langle X\rangle,\langle Y\rangle,\langle Z\rangle) = (\sin\vartheta\cos\varphi,\ \sin\vartheta\sin\varphi,\ \cos\vartheta)$
+# **Bloch vector** (Bloch 1946) $\mathbf r = (\langle X\rangle,\langle Y\rangle,\langle Z\rangle) = (\sin\vartheta\cos\varphi,\ \sin\vartheta\sin\varphi,\ \cos\vartheta)$
 # (notebook 03). Apply $R_z(\theta)$ from Eq. (3):
 #
 # $$ R_z(\theta)\lvert\psi\rangle = e^{-i\theta/2}\Big(\cos\tfrac\vartheta2\lvert0\rangle + e^{i(\varphi+\theta)}\sin\tfrac\vartheta2\lvert1\rangle\Big). $$
@@ -310,7 +310,7 @@ plt.show()
 # The numerical Bloch vectors follow the predicted great circles: $R_x$ moves the vector in the $y$-$z$ plane
 # ($\langle Y\rangle=-\sin\theta$), $R_y$ in the $x$-$z$ plane. At $\theta=\pi$ the spin is flipped
 # ($\langle Z\rangle=-1$): a "$\pi$ pulse" is an $X$ gate. At $\theta=\pi/2$ the state lies on the equator: a
-# "$\pi/2$ pulse" creates an equal superposition, like the Hadamard gate. These are exactly the Rabi oscillations you
+# "$\pi/2$ pulse" creates an equal superposition, like the Hadamard gate. These are exactly the Rabi oscillations (Rabi 1937) you
 # integrated in the mini-project of notebook 01, now obtained from a closed-form gate.
 #
 # > **Physics insight.** $\langle Z\rangle$ returns to $+1$ at $\theta = 2\pi$, but the *state* does not:
@@ -543,7 +543,7 @@ assert max(d_single, d_ctrl_z) < TOL and d_ctrl_id > 0.5
 #
 # $Z\otimes Z=\mathrm{diag}(1,-1,-1,1)$ is diagonal, so $R_{zz}(\theta) = \mathrm{diag}(e^{-i\theta/2},e^{i\theta/2},e^{i\theta/2},e^{-i\theta/2})$:
 # a phase that depends on whether the two spins are parallel or antiparallel - precisely what an Ising interaction does.
-# These gates are *native* on several platforms: $R_{xx}$ is the Mølmer-Sørensen gate of trapped ions (Sørensen and Mølmer 1999), $R_{zz}$ arises
+# These gates are *native* on several platforms: $R_{xx}$ is the Mølmer-Sørensen gate of trapped ions (Mølmer and Sørensen 1999; Sørensen and Mølmer 1999), $R_{zz}$ arises
 # from the dispersive/Ising couplings of superconducting and Rydberg qubits. Unlike CNOT they have a continuous
 # parameter: $\theta\to0$ is the identity and $\theta=\pi/2$ is maximally entangling.
 
@@ -578,7 +578,7 @@ for th in (0.0, jnp.pi / 8, jnp.pi / 4, jnp.pi / 2):
 #
 # Nothing in `apply_gate` is specific to one or two qubits: an $8\times8$ matrix is reshaped to a rank-6 tensor and
 # contracted with three axes. Two important three-qubit gates are the **CCZ** gate, which multiplies $\lvert111\rangle$ by
-# $-1$, and the **Toffoli** gate (CCNOT), which flips the target if both controls are 1 - the quantum version of the
+# $-1$, and the **Toffoli** gate (CCNOT, Toffoli 1980), which flips the target if both controls are 1 - the quantum version of the
 # classical AND gate, universal for reversible classical computing. Both are "doubly controlled" gates,
 # $\mathrm{CC}U = \mathrm{diag}(1_6, U)$.
 
@@ -707,16 +707,16 @@ def draw_circuit(circuit, N, title=""):
 #
 # **Bell state.** $H$ on qubit 0 turns $\lvert00\rangle$ into $(\lvert0\rangle+\lvert1\rangle)\lvert0\rangle/\sqrt2$; the CNOT then copies the
 # *basis value* of qubit 0 into qubit 1: $(\lvert00\rangle+\lvert11\rangle)/\sqrt2=\lvert\Phi^+\rangle$. The result is a
-# perfectly correlated pair; a copy of the *state*, $\lvert+\rangle\lvert+\rangle$, is forbidden by the no-cloning theorem.
+# perfectly correlated pair; a copy of the *state*, $\lvert+\rangle\lvert+\rangle$, is forbidden by the no-cloning theorem (Wootters and Zurek 1982; Dieks 1982).
 #
-# **GHZ state.** Continue the CNOT cascade along the register:
+# **GHZ state** (Greenberger, Horne and Zeilinger 1989). Continue the CNOT cascade along the register:
 # $\lvert0\dots0\rangle\to(\lvert0\dots0\rangle+\lvert1\dots1\rangle)/\sqrt2$. This takes $N$ gates and depth $N$.
 #
-# **Cluster state.** Prepare $\lvert+\rangle^{\otimes N}$ with a layer of Hadamards, then apply CZ on every bond of the chain.
+# **Cluster state** (Briegel and Raussendorf 2001). Prepare $\lvert+\rangle^{\otimes N}$ with a layer of Hadamards, then apply CZ on every bond of the chain.
 # All CZ gates are diagonal and commute, so they can be arranged in two layers (even bonds, odd bonds): the depth is 3
-# for any $N$. The 1D cluster state is characterised by its *stabilizers* $K_q = Z_{q-1}X_qZ_{q+1}$, operators of
+# for any $N$. The 1D cluster state is characterised by its *stabilizers* (Gottesman 1997) $K_q = Z_{q-1}X_qZ_{q+1}$, operators of
 # which it is the $+1$ eigenstate, $\langle K_q\rangle=1$ (it is the resource state of measurement-based quantum
-# computing).
+# computing, Raussendorf and Briegel 2001).
 #
 # We build the three circuits as functions returning labelled lists, run them, and compare with the states constructed
 # directly as tensors in [notebook 06](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb) (`bell_state`, `ghz_state`,
@@ -866,7 +866,7 @@ assert err < 100 * TOL
 # ### 6.2 Parameter sweeps with `vmap`
 #
 # Because the circuit is a pure function of its angles, a parameter sweep is one line: `vmap` over the quantity that
-# changes. Example: a Ramsey-type interferometer on a GHZ state. We prepare the GHZ state, let every qubit precess by
+# changes. Example: a Ramsey-type interferometer (Ramsey 1950) on a GHZ state. We prepare the GHZ state, let every qubit precess by
 # $R_z(\phi)$ and measure the parity $\langle X^{\otimes N}\rangle$. Since
 # $R_z(\phi)^{\otimes N}(\lvert0..0\rangle+\lvert1..1\rangle) \propto \lvert0..0\rangle+e^{iN\phi}\lvert1..1\rangle$, the prediction is
 # $\langle X^{\otimes N}\rangle=\cos(N\phi)$: the fringes oscillate $N$ times faster than for a single qubit
@@ -1069,7 +1069,7 @@ assert max(err1, err2, d_swap) < 100 * TOL
 #    nothing about efficiency).
 # 2. The *finite* set $\{H, T, \mathrm{CNOT}\}$ is universal in the approximate sense: its circuits form a dense subset
 #    of the unitary group, so any target can be reached to accuracy $\varepsilon$. The **Solovay-Kitaev theorem**
-#    bounds the price: $O(\log^c(1/\varepsilon))$ gates per single-qubit target. The algorithm of Dawson and Nielsen
+#    (Kitaev 1997; Kitaev, Shen and Vyalyi 2002) bounds the price: $O(\log^c(1/\varepsilon))$ gates per single-qubit target. The algorithm of Dawson and Nielsen
 #    (2006) achieves $c\approx3.97$; the variant of Kitaev, Shen and Vyalyi discussed in the same paper reaches
 #    $c=3+\delta$ for any $\delta>0$. The
 #    counting bound of the next paragraph shows $c\ge1$ is unavoidable; $c=1$ is in fact *reached*, but not by
@@ -1202,14 +1202,14 @@ for name, vals in best.items():
 #
 # $$ H_{\rm TFIM} = J\sum_{q=0}^{N-2} Z_qZ_{q+1} + h\sum_{q=0}^{N-1}X_q \equiv H_{zz}+H_x . $$
 #
-# The first-order Trotter formula (notebook 04) approximates one time step by
+# The first-order Trotter formula (Trotter 1959; notebook 04) approximates one time step by
 # $e^{-iH_{\rm TFIM}\,dt}\approx e^{-iH_x dt}e^{-iH_{zz}dt}$ with an error $O(dt^2)$ per step. All terms inside $H_{zz}$ commute
 # with each other, and so do all terms of $H_x$, hence each factor is *exactly* a product of gates we know:
 #
 # $$ e^{-iH_{zz}dt} = \prod_q e^{-iJdt\,Z_qZ_{q+1}} = \prod_q R_{zz}^{(q,q+1)}(2J\,dt),\qquad
 #    e^{-iH_xdt} = \prod_q R_x^{(q)}(2h\,dt). \tag{8}$$
 #
-# (The factor 2 comes from the $\theta/2$ in the definition of the rotation gates.) The second-order (Strang)
+# (The factor 2 comes from the $\theta/2$ in the definition of the rotation gates.) The second-order (Strang 1968)
 # splitting $e^{-iH_x dt/2}e^{-iH_{zz}dt}e^{-iH_xdt/2}$ has error $O(dt^3)$ per step and costs only one extra layer of
 # single-qubit gates. This is **digital quantum simulation**: the time evolution of a spin model becomes a circuit of
 # $R_{zz}$ and $R_x$ gates that a quantum processor can run (Lloyd 1996). The "Trotter gates" `exp(-i h dt)` that we
@@ -1690,11 +1690,32 @@ for p, (n_best, val) in best_steps.items():
 # * A. Barenco, C. H. Bennett, R. Cleve, D. P. DiVincenzo, N. Margolus, P. Shor, T. Sleator, J. A. Smolin and
 #   H. Weinfurter, *Elementary gates for quantum computation*, Phys. Rev. A **52**, 3457 (1995).
 # * S. Lloyd, *Universal quantum simulators*, Science **273**, 1073 (1996).
+# * H. F. Trotter, *On the product of semi-groups of operators*, Proc. Amer. Math. Soc. **10**, 545 (1959); M. Suzuki,
+#   *Generalized Trotter's formula and systematic approximants of exponential operators and inner derivations with
+#   applications to many-body problems*, Commun. Math. Phys. **51**, 183 (1976); G. Strang, *On the construction and
+#   comparison of difference schemes*, SIAM J. Numer. Anal. **5**, 506 (1968).
+# * F. Bloch, *Nuclear induction*, Phys. Rev. **70**, 460 (1946); I. I. Rabi, *Space quantization in a gyrating magnetic
+#   field*, Phys. Rev. **51**, 652 (1937); N. F. Ramsey, *A molecular beam resonance method with separated oscillating
+#   fields*, Phys. Rev. **78**, 695 (1950).
+# * T. Toffoli, *Reversible computing*, in *Automata, Languages and Programming (ICALP 1980)*, Lecture Notes in Computer
+#   Science, pp. 632–644 (Springer, 1980).
+# * W. K. Wootters and W. H. Zurek, *A single quantum cannot be cloned*, Nature **299**, 802 (1982); D. Dieks,
+#   *Communication by EPR devices*, Phys. Lett. A **92**, 271 (1982).
+# * D. M. Greenberger, M. A. Horne and A. Zeilinger, *Going beyond Bell's theorem*, in *Bell's Theorem, Quantum Theory
+#   and Conceptions of the Universe*, ed. M. Kafatos (Kluwer, 1989), pp. 69–72.
+# * H. J. Briegel and R. Raussendorf, *Persistent entanglement in arrays of interacting particles*, Phys. Rev. Lett.
+#   **86**, 910 (2001); R. Raussendorf and H. J. Briegel, *A one-way quantum computer*, Phys. Rev. Lett. **86**, 5188 (2001).
+# * D. Gottesman, *Stabilizer codes and quantum error correction*, PhD thesis, California Institute of Technology (1997),
+#   arXiv:quant-ph/9705052.
+# * K. Mølmer and A. Sørensen, *Multiparticle entanglement of hot trapped ions*, Phys. Rev. Lett. **82**, 1835 (1999).
 # * D. Loss and D. P. DiVincenzo, *Quantum computation with quantum dots*, Phys. Rev. A **57**, 120 (1998).
 # * A. Sørensen and K. Mølmer, *Quantum computation with ions in thermal motion*, Phys. Rev. Lett. **82**, 1971 (1999).
 # * D. Gottesman, *The Heisenberg representation of quantum computers*, arXiv:quant-ph/9807006 (1998).
 # * K. Matsumoto and K. Amano, *Representation of quantum circuits with Clifford and $\pi/8$ gates*,
 #   arXiv:0806.3834 (2008).
+# * A. Yu. Kitaev, *Quantum computations: algorithms and error correction*, Russ. Math. Surv. **52**, 1191 (1997);
+#   A. Kitaev, A. Shen and M. Vyalyi, *Classical and Quantum Computation*, Graduate Studies in Mathematics **47**
+#   (American Mathematical Society, 2002).
 # * C. M. Dawson and M. A. Nielsen, *The Solovay-Kitaev algorithm*, Quantum Inf. Comput. **6**, 81 (2006)
 #   (the $O(\log^{3.97}(1/\varepsilon))$ gate count quoted in Section 8).
 # * N. J. Ross and P. Selinger, *Optimal ancilla-free Clifford+T approximation of z-rotations*,

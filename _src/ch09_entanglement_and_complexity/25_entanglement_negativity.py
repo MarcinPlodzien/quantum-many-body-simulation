@@ -596,8 +596,9 @@ fig.tight_layout(); plt.show()
 #
 # ### 6.4 Negativity against concurrence for two qubits
 #
-# For two qubits there is a second computable measure, Wootters' **concurrence** $C(\rho)$ (1998), from which the entanglement
-# of formation follows exactly. Negativity and concurrence are different functions of $\rho$, but they are tied together:
+# For two qubits there is a second computable measure, the **concurrence** $C(\rho)$, introduced by Hill and Wootters (1997) and
+# extended by Wootters (1998) to every two-qubit state, from which the entanglement of formation follows exactly.
+# Negativity and concurrence are different functions of $\rho$, but they are tied together:
 # Verstraete, Audenaert, Dehaene and De Moor (2001) proved
 #
 # $$\sqrt{(1-C)^2+C^2}-(1-C)\ \le\ 2\mathcal N\ \le\ C . \tag{8}$$
@@ -845,7 +846,8 @@ assert worst < 1e3 * TOL
 #
 # ### 7.4 Analytic values for GHZ, W and Dicke states
 #
-# Eq. (11) turns the standard states into closed formulas. Split $N$ qubits into $A$ = the first $k$ and $B$ = the rest.
+# Eq. (11) turns the standard states into closed formulas: the GHZ state of Greenberger, Horne and Zeilinger (1989), the W state
+# singled out by Dür, Vidal and Cirac (2000) and the symmetric Dicke states (Dicke, 1954). Split $N$ qubits into $A$ = the first $k$ and $B$ = the rest.
 #
 # * **GHZ.** $\vert\mathrm{GHZ}\rangle=\tfrac{1}{\sqrt2}(\vert0^N\rangle+\vert1^N\rangle)
 #   =\tfrac{1}{\sqrt2}\vert0^k\rangle\vert0^{N-k}\rangle+\tfrac{1}{\sqrt2}\vert1^k\rangle\vert1^{N-k}\rangle$ is already in
@@ -1501,7 +1503,8 @@ fig.tight_layout(); plt.show()
 # ### 10.1 The light cone of block negativity after a quench
 #
 # Prepare the paramagnetic product state $\vert+\rangle^{\otimes N}$ — the ground state of Eq. (16) at $h=\infty$ — and switch
-# the Hamiltonian on at $h=1$ at $t=0$. Information spreads at a finite maximal speed (a Lieb–Robinson bound), so two blocks
+# the Hamiltonian on at $h=1$ at $t=0$. Information spreads at a finite maximal speed, as Lieb and Robinson (1972) proved for
+# quantum spin systems with short-range interactions, so two blocks
 # far apart cannot become entangled before that speed has carried a signal between them. For the TFIM the quasiparticle
 # dispersion, derived in Section 6 of
 # [notebook 15](../ch05_ground_states_and_unitary_dynamics/15_quench_dynamics_spin_chains.ipynb) with $J=1$, is $\varepsilon(k)=2\sqrt{1+h^2-2h\cos k}$ and the maximal group velocity at $h=1$ is
@@ -2060,6 +2063,15 @@ print(f"  the full density tensor of {N_big} spins would need {16*4**N_big/1e9:.
 #   the standard review; separability criteria, measures, bound entanglement.
 # * W. K. Wootters, *Entanglement of formation of an arbitrary state of two qubits*, Phys. Rev. Lett. **80**, 2245 (1998) —
 #   the concurrence used in Sections 6.4 and 9.2.
+# * S. Hill and W. K. Wootters, *Entanglement of a pair of quantum bits*, Phys. Rev. Lett. **78**, 5022 (1997) — the
+#   concurrence and the entanglement-of-formation formula for two-qubit states of rank at most two, Section 6.4.
+# * D. M. Greenberger, M. A. Horne and A. Zeilinger, *Going beyond Bell's theorem*, in *Bell's Theorem, Quantum Theory and
+#   Conceptions of the Universe*, ed. M. Kafatos (Kluwer, Dordrecht, 1989), pp. 69–72; arXiv:0712.0921 — the GHZ state.
+# * W. Dür, G. Vidal and J. I. Cirac, *Three qubits can be entangled in two inequivalent ways*, Phys. Rev. A **62**, 062314
+#   (2000) — the W state, Section 7.4.
+# * R. H. Dicke, *Coherence in spontaneous radiation processes*, Phys. Rev. **93**, 99 (1954) — the symmetric (Dicke) states.
+# * E. H. Lieb and D. W. Robinson, *The finite group velocity of quantum spin systems*, Commun. Math. Phys. **28**, 251
+#   (1972) — the light cone of Section 10.1.
 # * F. Verstraete, K. Audenaert, J. Dehaene and B. De Moor, *A comparison of the entanglement measures negativity and
 #   concurrence*, J. Phys. A **34**, 10327 (2001) — the bounds of Eq. (8).
 # * R. F. Werner, *Quantum states with Einstein-Podolsky-Rosen correlations admitting a hidden-variable model*,

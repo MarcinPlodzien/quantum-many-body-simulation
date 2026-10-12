@@ -9,7 +9,7 @@
 # interferometer measure a phase with uncertainty $\Delta\varphi=1/\sqrt{NM}$, and no readout or estimator can do better with
 # that probe. The only remaining variable is the probe state.
 #
-# Replace the coherent spin state by the maximally entangled state
+# Replace the coherent spin state by the maximally entangled state of Greenberger, Horne and Zeilinger (1989)
 #
 # $$\vert\mathrm{GHZ}_N\rangle=\frac{\vert0\cdots0\rangle+\vert1\cdots1\rangle}{\sqrt2}$$
 #
@@ -149,15 +149,15 @@ def std_of_std(sigma, n):
 # From [29](./29_quantum_fisher_information.ipynb) and [30](./30_qfi_from_the_sld_prepare_encode_estimate.ipynb), restated
 # without proof:
 #
-# * **Classical Fisher information** of a distribution $p(x\vert\varphi)$:
+# * **Classical Fisher information** (Fisher 1925) of a distribution $p(x\vert\varphi)$:
 #
 # $$F_C(\varphi)=\sum_x\frac{1}{p(x\vert\varphi)}\left(\frac{\partial p(x\vert\varphi)}{\partial\varphi}\right)^{\!2},$$
 #
 # additive over independent repetitions.
 #
-# * **Cramér–Rao bound**: any unbiased estimator obeys $\Delta\varphi\ge1/\sqrt{MF_C(\varphi)}$, with $M$ the number of
+# * **Cramér–Rao bound** (Rao 1945; Cramér 1946): any unbiased estimator obeys $\Delta\varphi\ge1/\sqrt{MF_C(\varphi)}$, with $M$ the number of
 #   repetitions; the maximum-likelihood estimator saturates it asymptotically.
-# * **Quantum Fisher information**: $F_Q=\max_{\text{measurements}}F_C$, giving $\Delta\varphi\ge1/\sqrt{MF_Q}$. For a pure
+# * **Quantum Fisher information** (Helstrom 1967; Braunstein and Caves 1994): $F_Q=\max_{\text{measurements}}F_C$, giving $\Delta\varphi\ge1/\sqrt{MF_Q}$. For a pure
 #   state encoded as $e^{-i\varphi G}\vert\psi\rangle$,
 #
 # $$F_Q=4\,\mathrm{Var}(G)=4\big(\langle G^2\rangle-\langle G\rangle^2\big), \tag{1}$$
@@ -178,7 +178,7 @@ def std_of_std(sigma, n):
 # strengths $p$, $p$ and $g$, the $N$-body coherence $\rho_{\bar0\bar1}$ is multiplied by $(1-2p)^N$, $\lambda^N$ with
 # $\lambda=1-\tfrac{4p}{3}$, and $(1-g)^{N/2}$ respectively.
 #
-# For $N$ qubits, $F_Q\le N^2$ always, and $F_Q>N$ is a sufficient criterion for entanglement. The GHZ state sits at the
+# For $N$ qubits, $F_Q\le N^2$ always, and $F_Q>N$ is a sufficient criterion for entanglement (Pezzè and Smerzi 2009). The GHZ state sits at the
 # maximum.
 
 # %% [markdown]
@@ -2031,8 +2031,8 @@ fig.tight_layout(); plt.show()
 # [notebook 10](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb)) the weight is spread
 # over essentially all of them, including the ones of full Pauli weight $N$.
 #
-# The randomised-measurement (classical-shadow) protocol of
-# [notebook 24](../ch08_quantum_information_protocols/24_classical_shadows.ipynb) estimates any $\langle P_s\rangle$ from
+# The randomised-measurement (classical-shadow) protocol of Huang, Kueng and Preskill (2020), derived in
+# [notebook 24](../ch08_quantum_information_protocols/24_classical_shadows.ipynb), estimates any $\langle P_s\rangle$ from
 # snapshots in random local Pauli bases: each snapshot draws a basis $b_q\in\{X,Y,Z\}$ per atom, measures, and contributes
 #
 # $$o_s=\prod_{q\in\mathrm{supp}(P_s)}3\,[\,b_q=s_q\,]\,(-1)^{\mathrm{bit}_q}$$
@@ -2567,4 +2567,15 @@ for N in (4, 6, 8):
 #   states and GHZ interferometry with trapped ions, Section VII.A noise and decoherence.
 # * H.-Y. Huang, R. Kueng and J. Preskill, *Predicting many properties of a quantum system from very few measurements*,
 #   Nature Physics **16**, 1050 (2020) — the classical-shadow estimator of Section 14.
+# * C. W. Helstrom, *Minimum mean-squared error of estimates in quantum statistics*, Phys. Lett. A **25**, 101 (1967) — the
+#   symmetric logarithmic derivative and the quantum Cramér–Rao bound (Section 3).
 # * C. W. Helstrom, *Quantum Detection and Estimation Theory* (Academic Press, 1976) — the quantum Cramér–Rao bound.
+# * S. L. Braunstein and C. M. Caves, *Statistical distance and the geometry of quantum states*, Phys. Rev. Lett. **72**,
+#   3439 (1994) — the quantum Fisher information as the maximum of the classical one over all measurements (Section 3).
+# * R. A. Fisher, *Theory of statistical estimation*, Proc. Cambridge Philos. Soc. **22**, 700 (1925) — the Fisher
+#   information (Section 3).
+# * C. R. Rao, *Information and the accuracy attainable in the estimation of statistical parameters* (1945), reprinted in
+#   S. Kotz and N. L. Johnson (eds.), *Breakthroughs in Statistics* (Springer, New York, 1992), p. 235, and H. Cramér,
+#   *Mathematical Methods of Statistics* (Princeton University Press, 1946) — the Cramér–Rao bound.
+# * L. Pezzè and A. Smerzi, *Entanglement, nonlinear dynamics, and the Heisenberg limit*, Phys. Rev. Lett. **102**, 100401
+#   (2009) — $F_Q>N$ as a sufficient condition for multiparticle entanglement (Section 3).

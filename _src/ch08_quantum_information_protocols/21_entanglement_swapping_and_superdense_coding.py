@@ -17,7 +17,7 @@
 # whatsoever. Charlie then performs a **Bell measurement**, a joint measurement in the basis of the four Bell states, on qubits $1$
 # and $2$ — and afterwards $0$ and $3$ are in a maximally entangled state. Nothing travelled between the two outer qubits except a
 # two-bit classical message saying which of four outcomes occurred. The idea is due to Żukowski, Zeilinger, Horne and Ekert (1993),
-# was demonstrated with photons by Pan and co-workers (1998), and is the elementary step of a **quantum repeater**, the standard
+# was demonstrated with photons by Pan and co-workers (1998), and is the elementary step of a **quantum repeater** (Briegel, Dür, Cirac and Zoller 1998), the standard
 # proposal for distributing entanglement through optical fibre over distances much larger than its attenuation length (the distance over
 # which the transmission of the fibre falls by a factor $e$).
 #
@@ -541,7 +541,8 @@ for lab, (o1, o2) in zip(BELL_LABELS, BELL_BITS):
 #
 # Two standard measures quantify the entanglement of a two-qubit **mixed** state.
 #
-# **Negativity** (Vidal and Werner, 2002) uses the Peres–Horodecki criterion: transpose the state on one subsystem only,
+# **Negativity** (Vidal and Werner, 2002) uses the positive-partial-transpose criterion of Peres (1996) and
+# M. Horodecki, P. Horodecki and R. Horodecki (1996): transpose the state on one subsystem only,
 #
 # $$\big(\rho^{T_A}\big)_{i\alpha,\,j\beta}=\rho_{j\alpha,\,i\beta},$$
 #
@@ -867,7 +868,7 @@ fig.tight_layout(); plt.show()
 # ## 10. Noisy links: Werner states and the product rule $v_{\text{out}}=v_1v_2$
 #
 # Real links are not Bell pairs. A fibre, a memory or an imperfect source produces a mixed state, and the standard one-parameter
-# model is the **Werner (isotropic) state**
+# model is the **Werner (isotropic) state** (Werner 1989)
 #
 # $$\rho_W(v)=v\,\vert\Phi^+\rangle\langle\Phi^+\vert+(1-v)\,\frac{\mathbb 1_4}{4},\qquad 0\le v\le1, \tag{7}$$
 #
@@ -950,7 +951,7 @@ fig.tight_layout(); plt.show()
 # $$\mathcal N(\rho_W)=\max\Big(0,\ \frac{3v-1}{4}\Big),\qquad C(\rho_W)=\max\Big(0,\ \frac{3v-1}{2}\Big),$$
 #
 # and the state is **entangled if and only if $v>1/3$**: the partial transpose of this family turns negative exactly there
-# (Peres, 1996), and for two qubits a positive partial transpose implies separability (Horodecki, 1996). We check all of this
+# (Peres, 1996), and for two qubits a positive partial transpose implies separability (M. Horodecki, P. Horodecki and R. Horodecki, 1996). We check all of this
 # numerically now, on the density tensor.
 
 # %%
@@ -1123,8 +1124,8 @@ assert max_abs(rho_g - werner_matrix(werner_parameter(rho_g))) > 0.01  # but not
 # links. For $v=0.95$ that is about $21$ links; for $v=0.9$ about $10$. Every link and every Bell measurement was assumed to
 # succeed, so photon loss plays no role here: the decay is caused by error accumulation alone.
 #
-# The remedy, proposed in 1998 by Briegel, Dür, Cirac and Zoller in the paper that introduced the quantum repeater, is
-# **entanglement purification**: take two noisy pairs of visibility $v$, perform local operations and classical communication, and
+# The remedy, built into the quantum repeater by Briegel, Dür, Cirac and Zoller (1998), is **entanglement purification**,
+# introduced by Bennett, Brassard, Popescu, Schumacher, Smolin and Wootters (1996): take two noisy pairs of visibility $v$, perform local operations and classical communication, and
 # with some probability obtain *one* pair with a **higher** $v$. Interleaving purification with swapping keeps the working fidelity
 # above threshold at every nesting level. In the scheme of Briegel, Dür, Cirac and Zoller the channel is cut into $N$ segments and
 # purification alternates with swapping over $\log_L N$ nesting levels; the total number of elementary pairs consumed then scales as
@@ -1804,7 +1805,7 @@ print("\n(The first call includes tracing and XLA compilation; it is paid once p
 #    why the additive structure survives even though the channel is not a Pauli channel. (Hint: conjugating amplitude damping by
 #    $X$ turns it into amplitude *raising*, which has the same Bell populations.) Then compute $I$ for several non-uniform priors
 #    and decide whether any of them beats the uniform one — this is the question the Blahut–Arimoto algorithm answers in general.
-# 7. ★★★ **Purification (extend the code).** Implement one round of the recurrence purification protocol: take two copies of a
+# 7. ★★★ **Purification (extend the code).** Implement one round of the recurrence purification protocol of Bennett et al. (1996): take two copies of a
 #    Werner state with visibility $v$ (four qubits), apply a bilateral $\mathrm{CNOT}$ (each party from their half of the first pair
 #    to their half of the second), measure the target pair in the $Z$ basis, keep the source pair only if the two results agree.
 #    Measure the success probability and the output state. It is Bell-diagonal but no longer isotropic, so define $v'$ from its
@@ -1836,6 +1837,9 @@ print("\n(The first call includes tracing and XLA compilation; it is paid once p
 #   classical and Einstein-Podolsky-Rosen channels*, Phys. Rev. Lett. **70**, 1895 (1993) — the dual protocol of Section 12.3.
 # * H.-J. Briegel, W. Dür, J. I. Cirac and P. Zoller, *Quantum repeaters: the role of imperfect local operations in quantum
 #   communication*, Phys. Rev. Lett. **81**, 5932 (1998) — nested swapping and purification, Section 11.
+# * C. H. Bennett, G. Brassard, S. Popescu, B. Schumacher, J. A. Smolin and W. K. Wootters, *Purification of noisy entanglement and
+#   faithful teleportation via noisy channels*, Phys. Rev. Lett. **76**, 722 (1996) — entanglement purification with the bilateral
+#   CNOT, Section 11 and Exercise 7.
 # * A. S. Holevo, *Bounds for the quantity of information transmitted by a quantum communication channel*, Problems of Information
 #   Transmission **9**(3), 177–183 (1973) — the bound of Section 13.
 # * T. Hiroshima, *Optimal dense coding with mixed state entanglement*, J. Phys. A: Math. Gen. **34**, 6907 (2001);

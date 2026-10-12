@@ -7,7 +7,8 @@
 #
 # In the previous notebook we learned how to write down a chain of $N$ interacting spins-1/2, how to build its Hamiltonian as a
 # $2^N\times2^N$ matrix, and how to find its ground state. That is *statics*. This notebook is about **dynamics**: we prepare the chain in
-# some simple state $|\psi_0\rangle$, let it evolve under its Hamiltonian $H$, and ask what happens,
+# some simple state $|\psi_0\rangle$, let it evolve under its Hamiltonian $H$ according to the time-dependent equation of
+# Schrödinger (1926), and ask what happens,
 #
 # $$ i\,\frac{d}{dt}|\psi(t)\rangle = H\,|\psi(t)\rangle ,\qquad |\psi(0)\rangle=|\psi_0\rangle \qquad(\hbar=1). $$
 #
@@ -557,7 +558,8 @@ plt.show()
 # The cure uses the group property: $e^{A}=\big(e^{A/2^s}\big)^{2^s}$. Choose $s$ such that $\|A\|/2^s\lesssim1$; for such a small argument a short expansion is both accurate and free of
 # cancellation (libraries use a *Padé approximant*, a ratio of two polynomials, which is more economical than the Taylor polynomial); then square the result $s$ times.
 # Cost: a handful of $D\times D$ matrix products plus $s\approx\log_2\|A\|$ squarings — $O(D^3)$, the same order as `eigh`. This is what `jax.scipy.linalg.expm`
-# (like SciPy and MATLAB) implements; we quote the algorithm without proof, see Moler & Van Loan and Higham in the references.
+# (like SciPy and MATLAB) implements; we quote the algorithm without proof. Scaling and squaring with a Padé approximant was introduced by
+# Ward (1977); the choice of Padé degrees up to 13 used by JAX is that of Higham (2005); a survey of the alternatives is Moler & Van Loan (2003).
 #
 # `expm` needs no Hermiticity, so it also works for non-Hermitian generators (open systems, imaginary time). For Hermitian $H$ the eigendecomposition is usually preferable:
 # one factorisation serves *all* times, while `expm` must be called again for each new $t$.
@@ -690,7 +692,7 @@ plt.show()
 #
 # ### 6.3 Runge–Kutta 4: much better, still not unitary
 #
-# The classical fourth-order Runge–Kutta method (RK4; Press *et al.*, *Numerical Recipes*, §17.1) evaluates $f$ four times per step and combines the results so that the Taylor expansion of the exact solution is reproduced up
+# The classical fourth-order Runge–Kutta method (RK4; Press *et al.*, *Numerical Recipes*, §17.1; introduced by Kutta 1901, extending the multi-stage idea of Runge 1895) evaluates $f$ four times per step and combines the results so that the Taylor expansion of the exact solution is reproduced up
 # to $dt^4$. For our *linear* equation one can substitute the stages into each other and finds that a step is multiplication with the degree-4 Taylor polynomial,
 #
 # $$ \psi_{n+1}=R(-iH\,dt)\,\psi_n,\qquad R(z)=1+z+\frac{z^2}{2}+\frac{z^3}{6}+\frac{z^4}{24}. $$
@@ -881,7 +883,7 @@ assert max_abs(U_closed - U_joint) < 100 * TOL
 #
 # **The error of factorising a short-time propagator is second order in the time step, and its prefactor is the commutator.** One can go further and ask: the product $e^{\varepsilon A}e^{\varepsilon B}$ is *some* exponential
 # $e^{\Omega(\varepsilon)}$ — of what? Write $\Omega=\varepsilon\Omega_1+\varepsilon^2\Omega_2+\dots$, expand $e^{\Omega}=1+\varepsilon\Omega_1+\varepsilon^2(\Omega_2+\tfrac12\Omega_1^2)+\dots$ and compare with the first line above:
-# $\Omega_1=A+B$ and $\Omega_2=\tfrac12(A^2+2AB+B^2)-\tfrac12(A+B)^2=\tfrac12[A,B]$. Continuing to the next order (tedious; we quote the result) gives the **Baker–Campbell–Hausdorff (BCH) formula**
+# $\Omega_1=A+B$ and $\Omega_2=\tfrac12(A^2+2AB+B^2)-\tfrac12(A+B)^2=\tfrac12[A,B]$. Continuing to the next order (tedious; we quote the result) gives the **Baker–Campbell–Hausdorff (BCH) formula** (Campbell 1897; Baker 1905; Hausdorff 1906)
 #
 # $$ e^{\varepsilon A}e^{\varepsilon B}=\exp\Big(\varepsilon(A+B)+\frac{\varepsilon^2}{2}[A,B]+\frac{\varepsilon^3}{12}\big([A,[A,B]]+[B,[B,A]]\big)+O(\varepsilon^4)\Big). \tag{10}$$
 #
@@ -991,8 +993,8 @@ for name in res:
 #
 # (The coefficients are quoted, and verified numerically in the next cell.) The local error is $O(dt^3)$; by Eq. (12) the **global error is $O(t\,dt^2)$: second order**. The price is almost nothing: in a sequence of steps
 # the last half-step of one step and the first half-step of the next merge, $e^{-iH_Adt/2}e^{-iH_Adt/2}=e^{-iH_Adt}$, so $U_2^{\,n}$ needs only one more exponential than $U_1^{\,n}$.
-# This splitting is known as *Strang splitting* in numerical analysis (Strang 1968; Hairer, Lubich and Wanner, Chapter II), as the *second-order Suzuki–Trotter decomposition* in physics (Suzuki 1976), and — for $H=p^2/2m+V(x)$ — it is the *split-operator* or
-# *leapfrog/Verlet* method. Higher orders exist (Suzuki's fourth-order formula is covered in
+# This splitting is known as *Strang splitting* in numerical analysis (Strang 1968; Hairer, Lubich and Wanner, Chapter II), as the *second-order Suzuki–Trotter decomposition* in physics (Suzuki 1976), and — for $H=p^2/2m+V(x)$ — it is the *split-operator* method of Feit, Fleck and Steiger (1982) or, in classical mechanics, the
+# *leapfrog/Verlet* method (Verlet 1967). Higher orders exist (Suzuki's (1990) fourth-order formula is covered in
 # [notebook 12, Chapter 5](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb)).
 #
 # The merging happens between consecutive steps: our `trotter_step_unitary` below builds the three-factor matrix $U_2(dt)$
@@ -1321,7 +1323,8 @@ plt.tight_layout(); plt.show()
 # splittings exist if needed). It wins on **structure** — exact unitarity, no stability limit, bounded energy error — and, decisively, on the fact that it only ever needs exponentials of *small* matrices. That property is what will scale.
 #
 # > **Physics insight.** A Trotterised evolution is the *exact* evolution of a periodically driven system in which $H_{\rm even}$ and $H_{\rm odd}$ are switched on alternately. For small $dt$ this driven system behaves like
-# > $H_{\rm eff}\approx H$. This is precisely how a "digital quantum simulator" implements a Hamiltonian it does not natively have.
+# > $H_{\rm eff}\approx H$. This is precisely how a "digital quantum simulator" implements a Hamiltonian it does not natively have, the
+# > scheme proposed by Lloyd (1996).
 #
 # ### 7.9 A conservation law as a free diagnostic
 #
@@ -1379,7 +1382,9 @@ assert float(jnp.max(jnp.abs(sz_tot))) < 100 * TOL
 #
 # * the magnetisation $m_z(t)=\frac1N\sum_j\langle Z_j\rangle$: does the order survive?
 # * connected correlations $C^{\alpha\alpha}_{0j}(t)=\langle\sigma^\alpha_0\sigma^\alpha_j\rangle-\langle\sigma^\alpha_0\rangle\langle\sigma^\alpha_j\rangle$ ($\alpha=x,z$) between the first spin and spin $j$. They vanish in a product state; how fast do they build up at distance $j$?
-# * the Loschmidt echo $\mathcal L(t)=|\langle\psi_0|\psi(t)\rangle|^2$, the probability of finding the system back in its initial state.
+# * the Loschmidt echo $\mathcal L(t)=|\langle\psi_0|\psi(t)\rangle|^2$, the probability of finding the system back in its initial state. (Peres (1984)
+#   introduced the overlap of states evolved with two different Hamiltonians as a measure of stability, and Jalabert and Pastawski (2001) studied it under the
+#   name Loschmidt echo; here the initial state is an eigenstate of the pre-quench Hamiltonian, so one of the two evolutions is a trivial phase.)
 #
 # **Method.** Exact evolution on a time grid (`evolve_eigh_many`), cross-checked against second-order Trotter. **Observables.** Everything diagonal in $z$ comes from the probabilities $|\psi_s|^2$ and the $z$-table. For the $x$-correlations we use a
 # change of basis: the matrix $W=(X+Z)/\sqrt2$ is Hermitian, unitary, and satisfies $WXW=Z$ (its columns are the eigenvectors of $X$). Hence $\langle\psi|X_iX_j|\psi\rangle=\langle\psi'|Z_iZ_j|\psi'\rangle$ with $|\psi'\rangle=W^{\otimes N}|\psi\rangle$:
@@ -1765,7 +1770,7 @@ for n in (8, 10):
 #    (`assert` the maximal deviation is below `TOL`).
 # 2. ★ **Group property as a test.** Verify numerically that `propagator_eigh(E, V, t)` equals `jnp.linalg.matrix_power(propagator_eigh(E, V, t/64), 64)`. Then replace the short-time propagator by one Euler step matrix $\mathbb 1-iH\,t/64$ and by one Trotter step,
 #    and compare the three errors. Which of them are unitary?
-# 3. ★★ **Extend the code: an implicit, unitary ODE solver.** The Crank–Nicolson step is $\psi_{n+1}=(\mathbb 1+iH\,dt/2)^{-1}(\mathbb 1-iH\,dt/2)\psi_n$. Show analytically that its amplification factor on an eigenstate has modulus exactly 1 (so it is unitary and
+# 3. ★★ **Extend the code: an implicit, unitary ODE solver.** The Crank–Nicolson step (Crank and Nicolson 1947) is $\psi_{n+1}=(\mathbb 1+iH\,dt/2)^{-1}(\mathbb 1-iH\,dt/2)\psi_n$. Show analytically that its amplification factor on an eigenstate has modulus exactly 1 (so it is unitary and
 #    unconditionally stable). Implement `crank_nicolson_step` (precompute the step matrix with `jnp.linalg.solve`), plug it into `integrate`-like code, and measure its order on the log–log plot of Section 6.3. (Expected: 2.)
 # 4. ★★ **The Ising-specific splitting.** For the TFIM implement the splitting $H=H_{zz}+H_x$ of Section 7.1: $e^{-iH_{zz}dt}$ is a diagonal matrix (a vector of phases, obtained from the $z$-table), $e^{-iH_xdt}$ is a Kronecker product of $2\times2$ matrices.
 #    Measure local and global errors as in Section 7.7 and compare the error prefactors with the even/odd splitting: compute $\|[H_{zz},H_x]\|_2$ and $\|[H_{\rm even},H_{\rm odd}]\|_2$. Which splitting is more accurate, and why is that plausible?
@@ -1774,7 +1779,7 @@ for n in (8, 10):
 #    (iii) along the first-order Trotter trajectory of Section 7.8 the drift of $\langle H^{(1)}_{\rm eff}\rangle$ is $O(dt^2)$ while that of $\langle H\rangle$ is $O(dt)$ — so the *ratio* of the two
 #    maximal deviations should double every time $dt$ is halved (at $dt=0.05$ the gain is only a factor of a few; the point is how it scales).
 # 7. ★★ **Physics: light-cone velocity versus field.** Repeat the light-cone analysis of Section 8.3 for $h=0.5J$ and $h=2J$ and extract front velocities. Compare with $2v_{\max}=4\min(J,h)$. For which $h$ is the agreement worst, and what limits it at $N=10$?
-# 8. ★★★ **Fourth order.** Suzuki's fourth-order formula is $U_4(dt)=U_2(s\,dt)^2\,U_2\big((1-4s)dt\big)\,U_2(s\,dt)^2$ with $s=1/(4-4^{1/3})\approx0.4145$ (so $1-4s\approx-0.6579$: one step
+# 8. ★★★ **Fourth order.** Suzuki's fourth-order formula (Suzuki 1990) is $U_4(dt)=U_2(s\,dt)^2\,U_2\big((1-4s)dt\big)\,U_2(s\,dt)^2$ with $s=1/(4-4^{1/3})\approx0.4145$ (so $1-4s\approx-0.6579$: one step
 #    of the sequence runs *backwards* in time). Implement it on top of `trotter_step_unitary`, verify slope 4 for the global error, and determine — for a target error of $10^{-6}$ at $T=2$ —
 #    which of the orders 1, 2, 4 needs the fewest **layer exponentials** in total. Count them as they would be applied to a state, with the merging of Section 7.4: $2n$ for $U_1^n$,
 #    $2n+1$ for $U_2^n$, and $10n+1$ for $U_4^n$ (five symmetric steps per $U_4$, of which four neighbouring half-steps merge).
@@ -1793,11 +1798,28 @@ for n in (8, 10):
 # * A. Polkovnikov, K. Sengupta, A. Silva and M. Vengalattore, *Colloquium: Nonequilibrium dynamics of closed interacting quantum systems*, Rev. Mod. Phys. **83**, 863 (2011).
 # * M. Heyl, *Dynamical quantum phase transitions: a review*, Rep. Prog. Phys. **81**, 054001 (2018).
 #
+# *The Schrödinger equation*
+# * E. Schrödinger, *Quantisierung als Eigenwertproblem (Vierte Mitteilung)*, Annalen der Physik (4th series) **81**, 109–139 (1926); in the
+#   publisher's continuous numbering vol. **386**, DOI 10.1002/andp.19263861802 — the time-dependent wave equation.
+#
 # *Matrix exponential*
+# * R. C. Ward, *Numerical computation of the matrix exponential with accuracy estimate*, SIAM J. Numer. Anal. **14**, 600 (1977) — scaling
+#   and squaring combined with Padé approximants.
 # * C. Moler and C. Van Loan, *Nineteen dubious ways to compute the exponential of a matrix, twenty-five years later*, SIAM Review **45**, 3 (2003).
 # * N. J. Higham, *The scaling and squaring method for the matrix exponential revisited*, SIAM J. Matrix Anal. Appl. **26**, 1179 (2005).
 #
+# *Commutators and product formulas*
+# * J. E. Campbell, *On a law of combination of operators bearing on the theory of continuous transformation groups*, Proc. London Math. Soc.
+#   **s1-28**, 381 (1897); H. F. Baker, *Alternants and continuous groups*, Proc. London Math. Soc. **s2-3**, 24 (1905); F. Hausdorff,
+#   *Die symbolische Exponentialformel in der Gruppentheorie*, Ber. Verh. Sächs. Akad. Wiss. Leipzig, Math.-Phys. Kl. **58**, 19 (1906) — the BCH formula.
+#
 # *ODE integration and numerical practice*
+# * C. Runge, *Ueber die numerische Auflösung von Differentialgleichungen*, Mathematische Annalen **46**, 167 (1895) — the first Runge–Kutta
+#   (multi-stage) integrator.
+# * W. Kutta, *Beitrag zur näherungsweisen Integration totaler Differentialgleichungen*, Zeitschrift für Mathematik und Physik **46**,
+#   435 (1901) — the classical fourth-order scheme (RK4).
+# * J. Crank and P. Nicolson, *A practical method for numerical evaluation of solutions of partial differential equations of the heat-conduction
+#   type*, Proc. Cambridge Philos. Soc. **43**, 50 (1947).
 # * W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes: The Art of Scientific Computing*, 3rd ed., Cambridge University Press (2007),
 #   ISBN 978-0-521-88068-8 — Chapter 17 (*Integration of Ordinary Differential Equations*, from p. 899): §17.1 is the classical fourth-order Runge–Kutta scheme
 #   implemented in `rk4_step`, §17.2 its adaptive step-size control, §17.5 stiff equations (the general setting of the stability limit, Eq. (7a));
@@ -1810,12 +1832,20 @@ for n in (8, 10):
 # * H. F. Trotter, *On the product of semi-groups of operators*, Proc. Amer. Math. Soc. **10**, 545 (1959).
 # * G. Strang, *On the construction and comparison of difference schemes*, SIAM J. Numer. Anal. **5**, 506 (1968).
 # * M. Suzuki, *Generalized Trotter's formula and systematic approximants of exponential operators and inner derivations with applications to many-body problems*, Commun. Math. Phys. **51**, 183 (1976).
+# * M. Suzuki, *Fractal decomposition of exponential operators with applications to many-body theories and Monte Carlo simulations*, Phys. Lett. A
+#   **146**, 319 (1990) — the fourth-order formula of Exercise 8.
+# * M. D. Feit, J. A. Fleck and A. Steiger, *Solution of the Schrödinger equation by a spectral method*, J. Comput. Phys. **47**, 412 (1982) — the
+#   split-operator method.
+# * L. Verlet, *Computer "experiments" on classical fluids. I. Thermodynamical properties of Lennard-Jones molecules*, Phys. Rev. **159**, 98 (1967).
+# * S. Lloyd, *Universal quantum simulators*, Science **273**, 1073 (1996) — digital quantum simulation by Trotterization.
 # * A. M. Childs, Y. Su, M. C. Tran, N. Wiebe and S. Zhu, *Theory of Trotter error with commutator scaling*, Phys. Rev. X **11**, 011020 (2021).
 #
 # *Quench physics*
 # * P. Pfeuty, *The one-dimensional Ising model with a transverse field*, Ann. Phys. **57**, 79 (1970).
 # * E. H. Lieb and D. W. Robinson, *The finite group velocity of quantum spin systems*, Commun. Math. Phys. **28**, 251 (1972).
 # * P. Calabrese and J. Cardy, *Time dependence of correlation functions following a quantum quench*, Phys. Rev. Lett. **96**, 136801 (2006).
+# * A. Peres, *Stability of quantum motion in chaotic and regular systems*, Phys. Rev. A **30**, 1610 (1984); R. A. Jalabert and H. M. Pastawski,
+#   *Environment-independent decoherence rate in classically chaotic systems*, Phys. Rev. Lett. **86**, 2490 (2001) — the Loschmidt echo.
 # * M. Cheneau *et al.*, *Light-cone-like spreading of correlations in a quantum many-body system*, Nature **481**, 484 (2012).
 # * M. Heyl, A. Polkovnikov and S. Kehrein, *Dynamical quantum phase transitions in the transverse-field Ising model*, Phys. Rev. Lett. **110**, 135704 (2013).
 # * P. Jurcevic *et al.*, *Direct observation of dynamical quantum phase transitions in an interacting many-body system*, Phys. Rev. Lett. **119**, 080501 (2017).

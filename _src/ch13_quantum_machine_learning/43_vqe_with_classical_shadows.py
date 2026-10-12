@@ -12,7 +12,8 @@
 # bit per qubit drawn from the Born distribution. Every expectation value has to be **estimated** from repetitions, and
 # the number of repetitions is what a real experiment pays for.
 #
-# That cost is the subject of this notebook. A VQE iteration with a parameter-shift gradient needs $2n$ energy
+# That cost is the subject of this notebook. The variational quantum eigensolver (VQE) was introduced by Peruzzo
+# *et al.* (2014). One VQE iteration with a parameter-shift gradient (Mitarai *et al.*, 2018; Schuld *et al.*, 2019) needs $2n$ energy
 # evaluations; each energy is a sum of $O(N)$ (for a spin chain) or $O(N^4)$ (for a molecule) Pauli terms; each term
 # needs enough shots to be resolved. For molecular Hamiltonians the number of measurements is one of the dominant
 # costs of the algorithm, and reducing it is an active field of its own (Tilly *et al.*, 2022, review the strategies).
@@ -36,7 +37,7 @@
 # including the covariances between terms measured in the same shot and the optimal split of the shots. Section 5
 # prepares the state to be measured with the VQE of notebook 42. Section 6 checks all three predictions against
 # simulation. Section 7 estimates the six observables of notebook 42's panel (33 Pauli strings) from one shadow data
-# set. Section 8 puts shadow energies inside an SPSA loop and measures accuracy against snapshot budget. Section 9
+# set. Section 8 puts shadow energies inside an SPSA loop (Spall, 1992) and measures accuracy against snapshot budget. Section 9
 # derives and measures the selection bias that noisy costs create. Section 10 is a remark on derandomisation.
 # Section 11 is the final characterisation of the converged state with bootstrap error bars.
 #
@@ -240,7 +241,7 @@ def bootstrap_std(key, values, n_boot=200):
 # $$T=3(N-1)+N=4N-3 , \tag{2}$$
 #
 # which is $21$ at $N=6$. For the transverse-field Ising model only the $ZZ$ bonds and the $X$ fields survive, so
-# $T=2N-1$. A molecular Hamiltonian in second quantisation, after the Jordan-Wigner transformation, has
+# $T=2N-1$. A molecular Hamiltonian in second quantisation, after the Jordan-Wigner transformation (Jordan and Wigner, 1928), has
 # $T=O(N^4)$ terms — the reason the accounting below matters.
 #
 # By linearity,
@@ -402,7 +403,7 @@ def bootstrap_std(key, values, n_boot=200):
 # ## 5. The state to be measured: a VQE ground state
 #
 # The scenario is the realistic one: a variational circuit has been trained (notebook 42) and we now want to know what
-# it produced. We reproduce that first step compactly — hardware-efficient ansatz, exact gradients, Adam, several
+# it produced. We reproduce that first step compactly — hardware-efficient ansatz (Kandala *et al.*, 2017), exact gradients, Adam (Kingma and Ba, 2015), several
 # random restarts — and keep the best run. Everything measured afterwards is measured on *that* state, whose exact
 # properties we know but pretend not to.
 
@@ -1448,7 +1449,7 @@ fig.tight_layout(); plt.show()
 # Section 5 — the one all the measurement studies were performed on — because it is the well-converged one; the
 # shadow-driven states of Section 8 were already re-measured independently in Section 9.
 #
-# The error bars come from the **bootstrap** of notebook 24: resample the snapshots with replacement, recompute, and
+# The error bars come from the **bootstrap** (Efron, 1979) of notebook 24: resample the snapshots with replacement, recompute, and
 # take the spread. For the sample means reported here it must reproduce the analytic $\sigma/\sqrt M$, which makes it a
 # check of the pipeline; its real use is for non-linear functions of the same snapshots (ratios, purities, the
 # quantum Fisher information of notebook 36), for which no simple formula exists.
@@ -1711,6 +1712,19 @@ fig.tight_layout(); plt.show()
 #   (2022) — the measurement problem in context, with cost estimates for molecular Hamiltonians.
 # * J. C. Spall, *Multivariate stochastic approximation using a simultaneous perturbation gradient approximation*,
 #   IEEE Trans. Autom. Control **37**, 332 (1992) — the SPSA gradient rule used in Section 8.
+# * K. Mitarai, M. Negoro, M. Kitagawa and K. Fujii, *Quantum circuit learning*, Phys. Rev. A **98**, 032309 (2018) —
+#   the parameter-shift rule for Pauli-generated gates.
+# * M. Schuld, V. Bergholm, C. Gogolin, J. Izaac and N. Killoran, *Evaluating analytic gradients on quantum hardware*,
+#   Phys. Rev. A **99**, 032331 (2019) — the shift rule for every generator with two eigenvalues $\pm r$.
+# * A. Kandala, A. Mezzacapo, K. Temme, M. Takita, M. Brink, J. M. Chow and J. M. Gambetta, *Hardware-efficient
+#   variational quantum eigensolver for small molecules and quantum magnets*, Nature **549**, 242 (2017) — the
+#   hardware-efficient ansatz of Section 5.
+# * D. P. Kingma and J. Ba, *Adam: a method for stochastic optimization*, 3rd International Conference on Learning
+#   Representations (ICLR 2015), arXiv:1412.6980 — the optimiser of Section 5.
+# * P. Jordan and E. Wigner, *Über das Paulische Äquivalenzverbot*, Z. Phys. **47**, 631 (1928) — the
+#   fermion-to-qubit mapping of Section 3.1.
+# * B. Efron, *Bootstrap methods: another look at the jackknife*, Ann. Statist. **7**, 1 (1979) — the bootstrap error
+#   bars of Section 11.
 # * M. Cerezo, A. Arrasmith, R. Babbush, S. C. Benjamin, S. Endo, K. Fujii, J. R. McClean, K. Mitarai, X. Yuan,
 #   L. Cincio and P. J. Coles, *Variational quantum algorithms*, Nat. Rev. Phys. **3**, 625 (2021) — the review, with a
 #   section on measurement cost.

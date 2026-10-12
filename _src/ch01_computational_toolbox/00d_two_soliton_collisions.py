@@ -25,10 +25,12 @@
 # has exactly the shape, the norm and the velocity it had before. Nothing is radiated away, to the $10^{-5}$
 # resolution of the measurements below. The only record of the encounter is that each soliton is displaced from
 # where free motion would have put it, and that its internal phase has jumped. This is the property that gave
-# the objects their name: Zabusky and Kruskal, integrating the Korteweg-de Vries equation numerically in 1965,
+# the objects their name: Zabusky and Kruskal, integrating numerically the Korteweg-de Vries equation (derived by
+# Korteweg and de Vries in 1895 for shallow-water waves) in 1965,
 # found solitary waves that survived collisions like particles and coined the word *soliton* for them
 # (Phys. Rev. Lett. **15**, 240 (1965)). Zakharov and Shabat proved in 1972 that Eq. (1) has the same structure:
-# it is integrable, solvable by inverse scattering, and its solitons scatter elastically for ever
+# it is integrable, solvable by the inverse scattering method that Gardner, Greene, Kruskal and Miura (1967) had
+# introduced for the Korteweg-de Vries equation, and its solitons scatter elastically for ever
 # (Sov. Phys. JETP **34**, 62 (1972)).
 #
 # The experiments are real. In an optical fibre the same equation governs a light pulse (Section 2.4 of 00c;
@@ -201,8 +203,10 @@ print("extra imports OK")
 # The next cell is bookkeeping: the grid, the exact one-soliton solution, the energy functional, the
 # observables and the split-step propagator, all copied verbatim from
 # [00c](00c_bright_soliton_imaginary_time_nonlinear_schroedinger.ipynb), each with a one-line pointer to where
-# it was derived (the FFT and operator splitting are treated in Press *et al.*, *Numerical Recipes*, Chapters 12
-# and 20, with array-based Fortran 90 routines in the companion volume).
+# it was derived. The propagator is the split-step Fourier method of Feit, Fleck and Steiger (1982) with the
+# symmetric splitting of Strang (1968); the FFT is the algorithm of Cooley and Tukey (1965). Press *et al.*,
+# *Numerical Recipes*, Chapters 12 and 20, treat the FFT and operator splitting, with array-based Fortran 90
+# routines in the companion volume.
 #
 # > **JAX practice.** `jax.jit` compiles a Python function once, for the shapes of its arguments, into a single
 # > fused program, and `lax.scan(body, init, xs, length=n)` is a compiled `for` loop that carries a state
@@ -2303,7 +2307,8 @@ print(f"   central lump at the end (g5 = 4): peak density {np.max(np.abs(FR_Q[10
 # $2\pi/\omega$ and explain the difference using the shift of Eq. (11), as Section 10.3 did for the ring.
 #
 # **8. (★★★) The two-soliton solution in closed form.** Look up or construct the exact two-soliton solution of
-# Eq. (1) by the Hirota bilinear method, evaluate it on the grid, and compare with the numerical propagation
+# Eq. (1) by the bilinear method that Hirota introduced for the Korteweg-de Vries equation (1971) and applied to
+# the nonlinear Schrödinger equation (1973), evaluate it on the grid, and compare with the numerical propagation
 # during the overlap, where this notebook has no analytic reference at all. Then read the shifts of Eq. (11)
 # directly off its asymptotics instead of measuring them.
 #
@@ -2334,6 +2339,19 @@ print(f"   central lump at the end (g5 = 4): peak density {np.max(np.abs(FR_Q[10
 # * G. P. Agrawal, *Nonlinear Fiber Optics*, 5th ed., Academic Press (2013) — Chapter 5 (*Optical Solitons*)
 #   for the optical form of Eq. (1), its inverse-scattering solution and higher-order solitons; the appendix
 #   *Numerical Code for the NLS Equation* gives the split-step Fourier method as photonics uses it.
+# * D. J. Korteweg and G. de Vries, *On the change of form of long waves advancing in a rectangular canal, and on a
+#   new type of long stationary waves*, Phil. Mag. **39**, 422 (1895) — the Korteweg-de Vries equation.
+# * C. S. Gardner, J. M. Greene, M. D. Kruskal and R. M. Miura, *Method for solving the Korteweg-deVries
+#   equation*, Phys. Rev. Lett. **19**, 1095 (1967) — the inverse scattering method.
+# * R. Hirota, *Exact solution of the Korteweg-de Vries equation for multiple collisions of solitons*, Phys. Rev.
+#   Lett. **27**, 1192 (1971); R. Hirota, *Exact envelope-soliton solutions of a nonlinear wave equation*,
+#   J. Math. Phys. **14**, 805 (1973) — the bilinear method and the $N$-soliton solutions of Eq. (1)
+#   (Exercise 8).
+# * M. D. Feit, J. A. Fleck Jr. and A. Steiger, *Solution of the Schrödinger equation by a spectral method*,
+#   J. Comput. Phys. **47**, 412 (1982); G. Strang, *On the construction and comparison of difference schemes*,
+#   SIAM J. Numer. Anal. **5**, 506 (1968) — the split-step Fourier propagator and its symmetric splitting.
+# * J. W. Cooley and J. W. Tukey, *An algorithm for the machine calculation of complex Fourier series*, Math.
+#   Comp. **19**, 297 (1965) — the fast Fourier transform.
 # * W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes: The Art of Scientific
 #   Computing*, 3rd ed., Cambridge University Press (2007) — Chapter 12 (fast Fourier transform) and Chapter 20
 #   (partial differential equations, including operator splitting).

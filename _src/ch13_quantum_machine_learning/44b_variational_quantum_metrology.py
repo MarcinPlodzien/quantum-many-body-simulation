@@ -8,8 +8,9 @@
 # The notebooks of Chapter 10 built the quantum Fisher information (QFI) $F_Q$ and the protocols that reach its two
 # landmarks. For $N$ two-level atoms (qubits) whose phase $\theta$ is imprinted by the collective rotation
 # $e^{-i\theta J_z}$, with $J_z=\tfrac12\sum_q Z_q$, an unentangled probe reaches at best $F_Q=N$, the standard quantum
-# limit, and the GHZ state $(\vert0\cdots0\rangle+\vert1\cdots1\rangle)/\sqrt2$ reaches $F_Q=N^2$, the Heisenberg limit.
-# The quantum Cramér–Rao bound $\Delta\theta\ge1/\sqrt{MF_Q}$ for $M$ repetitions turns these numbers into error bars
+# limit, and the GHZ state $(\vert0\cdots0\rangle+\vert1\cdots1\rangle)/\sqrt2$ of Greenberger, Horne and Zeilinger (1989)
+# reaches $F_Q=N^2$, the Heisenberg limit, as Bollinger *et al.* (1996) showed for spectroscopy. The quantum Cramér–Rao
+# bound $\Delta\theta\ge1/\sqrt{MF_Q}$ for $M$ repetitions (Helstrom 1967; Braunstein and Caves 1994) turns these numbers into error bars
 # ([notebook 29](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb)).
 #
 # [Notebook 32](../ch10_quantum_metrology_protocols/32_ghz_interferometry_heisenberg_limit.ipynb) showed how fragile the
@@ -165,7 +166,8 @@ def run_timed(compiled, *args):
 #
 # Every experiment below has four stages.
 #
-# 1. **Prepare.** A circuit $U(\boldsymbol\varphi)$ acts on $\vert0\cdots0\rangle$. We use the hardware-efficient ansatz of
+# 1. **Prepare.** A circuit $U(\boldsymbol\varphi)$ acts on $\vert0\cdots0\rangle$. We use the hardware-efficient ansatz
+#    (Kandala *et al.* 2017) of
 #    [notebook 40](../ch13_quantum_machine_learning/40_parametrized_gates_and_gradients.ipynb): $L$ layers, each a
 #    rotation $R_z R_y$ on every qubit followed by a chain of CZ gates, and a final rotation layer, $2N(L+1)$ angles in
 #    total. Unless stated otherwise $L=N$.
@@ -1712,6 +1714,15 @@ for name, psi in rows.items():
 # * K. Macieszczak, *Quantum Fisher information: variational principle and simple iterative algorithm for its efficient
 #   computation*, arXiv:1312.1356 (2013) — the variational formula of Eqs. (10)–(11) and an alternating algorithm built on
 #   it.
+# * C. W. Helstrom, *Minimum mean-squared error of estimates in quantum statistics*, Phys. Lett. A **25**, 101 (1967) —
+#   the symmetric logarithmic derivative and the quantum Cramér–Rao bound.
+# * D. M. Greenberger, M. A. Horne and A. Zeilinger, *Going beyond Bell's theorem*, in *Bell's Theorem, Quantum Theory,
+#   and Conceptions of the Universe*, ed. M. Kafatos (Kluwer, Dordrecht, 1989), p. 69 — the GHZ state.
+# * J. J. Bollinger, W. M. Itano, D. J. Wineland and D. J. Heinzen, *Optimal frequency measurements with maximally
+#   correlated states*, Phys. Rev. A **54**, R4649 (1996) — the GHZ state reaches the Heisenberg limit in spectroscopy.
+# * A. Kandala, A. Mezzacapo, K. Temme, M. Takita, M. Brink, J. M. Chow and J. M. Gambetta, *Hardware-efficient
+#   variational quantum eigensolver for small molecules and quantum magnets*, Nature **549**, 242 (2017) — the
+#   hardware-efficient ansatz.
 # * S. L. Braunstein and C. M. Caves, *Statistical distance and the geometry of quantum states*, Phys. Rev. Lett. **72**,
 #   3439 (1994) — $F_C\le F_Q$ and its saturation, Section 8.
 # * M. Kitagawa and M. Ueda, *Squeezed spin states*, Phys. Rev. A **47**, 5138 (1993) — one-axis twisting.

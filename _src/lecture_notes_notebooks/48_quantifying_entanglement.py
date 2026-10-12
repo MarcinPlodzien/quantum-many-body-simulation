@@ -238,7 +238,7 @@ print("[ok] local unitaries leave S unchanged; a unitary across the cut does not
 # %% [markdown]
 # ### The meaning of the entropy
 #
-# The formula $S_A=-\sum_k p_k\log_2 p_k$ with $p_k=\lambda_k^2$ is the Shannon entropy of an ordinary probability
+# The formula $S_A=-\sum_k p_k\log_2 p_k$ with $p_k=\lambda_k^2$ is the Shannon (1948) entropy of an ordinary probability
 # distribution: $p_k$ is the probability of finding the pair in the $k$-th Schmidt branch when both sides are measured in
 # the Schmidt basis.
 #
@@ -274,7 +274,8 @@ print(f"  S of one Bell pair = {float(entanglement_entropy(jnp.asarray(bell2).re
 #
 # ## 3. The zoo classified
 #
-# Take the standard states and look at them through **three different cuts**: one spin, two spins, and half the chain.
+# Take the standard states (GHZ, introduced by Greenberger, Horne and Zeilinger 1989; W, by Dür, Vidal and Cirac
+# 2000; the Dicke state, by Dicke 1954) and look at them through **three different cuts**: one spin, two spins, and half the chain.
 # A single number at a single cut is not a classification.
 
 # %%
@@ -321,7 +322,8 @@ print(f"and indeed the negativity is {neg(rdm(ghz_state(6),(0,1))):.1e} and the 
 #
 # $$ \mathcal N_W = \frac{\sqrt{(N-2)^2+4}-(N-2)}{2N} \;>\; 0 \quad\text{for every } N . $$
 #
-# A second two-qubit measure, the **concurrence** of Wootters (1998), will be needed for monogamy. With
+# A second two-qubit measure, the **concurrence**, introduced by Hill and Wootters (1997) and extended to all two-qubit states by
+# Wootters (1998), will be needed for monogamy. With
 # $\tilde\rho = (Y\otimes Y)\rho^*(Y\otimes Y)$ and $l_1\ge l_2\ge l_3\ge l_4$ the square roots of the eigenvalues of
 # $\rho\tilde\rho$,
 #
@@ -424,7 +426,8 @@ for name, r in (("Bell (|00>+|11>)/sqrt2", rho_bell), ("coin toss: |00> or |11>"
 #
 # $$ E_F(\rho) = \min_{\{p_i,\psi_i\}} \sum_i p_i\, S\big(\rho_A^{(i)}\big), \qquad \rho = \sum_i p_i\vert\psi_i\rangle\langle\psi_i\vert, $$
 #
-# the **entanglement of formation**: a minimisation over all pure-state decompositions of $\rho$. It vanishes exactly on
+# the **entanglement of formation**, introduced with the distillable entanglement by Bennett, DiVincenzo, Smolin and
+# Wootters (1996): a minimisation over all pure-state decompositions of $\rho$. It vanishes exactly on
 # separable states and is an LOCC monotone. It has a closed form for two qubits (Wootters 1998, through the concurrence)
 # and none in general. Deciding whether a given mixed state is entangled at all, even to within a small tolerance, is
 # NP-hard as the dimension grows (Gurvits 2003). Other measures do not remove the difficulty: the distillable
@@ -568,7 +571,8 @@ print(f"  Bell pair: N = {n_b:.6f},  E_N = {en_b:.6f} bit")
 #
 # ### Calibration on Werner states
 #
-# A new quantity has to be run where the answer is known. The **Werner state** is a Bell pair mixed with white noise,
+# A new quantity has to be run where the answer is known. The **Werner state**, a two-qubit member of the family introduced by Werner (1989), is a Bell
+# pair mixed with white noise,
 #
 # $$ \rho_W(v) = v\,\vert\Phi^+\rangle\langle\Phi^+\vert + (1-v)\,\frac{\mathbb 1}{4}, \qquad 0\le v\le1 . $$
 #
@@ -687,7 +691,7 @@ plt.tight_layout(); plt.show()
 # * the **entropy** $S(\rho_{ij})$ of the pair itself.
 #
 # The four parameter points are a gapless point $\Delta=0.5$, the Heisenberg point $\Delta=1$, the point $\Delta=1.5$
-# (on the Néel side, but close to the Kosterlitz–Thouless point $\Delta=1$, where the gap opens exponentially slowly),
+# (on the Néel side, but close to the Kosterlitz–Thouless point $\Delta=1$, named after Kosterlitz and Thouless (1973), where the gap opens exponentially slowly),
 # and the XX chain in a transverse field $h_x=1.5$.
 
 # %%
@@ -878,8 +882,9 @@ plt.show()
 #
 # ## 11. The same measures from a matrix product state
 #
-# An exact state vector limits us to about twenty spins. Both quantities can be had from a matrix product state, at
-# very different cost.
+# An exact state vector limits us to about twenty spins. Both quantities can be had from a matrix product state
+# (introduced as finitely correlated states by Fannes, Nachtergaele and Werner 1992), found here by DMRG (White 1992),
+# at very different cost.
 #
 # **The entropy is free.** An MPS in canonical form *stores* the Schmidt values of every cut, so the entanglement
 # entropy is a sum over numbers already in the data structure; that is what `mps_entropies` returns. This presupposes
@@ -1240,6 +1245,22 @@ plt.show()
 # * V. Coffman, J. Kundu, W. K. Wootters, *Distributed entanglement*, Phys. Rev. A **61**, 052306 (2000).
 # * T. J. Osborne, F. Verstraete, *General monogamy inequality for bipartite qubit entanglement*, Phys. Rev. Lett.
 #   **96**, 220503 (2006).
+# * C. H. Bennett, D. P. DiVincenzo, J. A. Smolin, W. K. Wootters, *Mixed-state entanglement and quantum error
+#   correction*, Phys. Rev. A **54**, 3824 (1996) — the entanglement of formation and the distillable entanglement of
+#   mixed states.
+# * S. Hill, W. K. Wootters, *Entanglement of a pair of quantum bits*, Phys. Rev. Lett. **78**, 5022 (1997) — the
+#   concurrence.
+# * C. E. Shannon, *A mathematical theory of communication*, Bell Syst. Tech. J. **27**, 379 (1948) — the Shannon
+#   entropy.
+# * D. M. Greenberger, M. A. Horne, A. Zeilinger, *Going beyond Bell's theorem*, in *Bell's Theorem, Quantum Theory,
+#   and Conceptions of the Universe*, ed. M. Kafatos (Kluwer, Dordrecht, 1989), p. 69; arXiv:0712.0921 — the GHZ state.
+# * R. H. Dicke, *Coherence in spontaneous radiation processes*, Phys. Rev. **93**, 99 (1954) — the Dicke states.
+# * J. M. Kosterlitz, D. J. Thouless, *Ordering, metastability and phase transitions in two-dimensional systems*,
+#   J. Phys. C **6**, 1181 (1973) — the Kosterlitz–Thouless transition.
+# * M. Fannes, B. Nachtergaele, R. F. Werner, *Finitely correlated states on quantum spin chains*, Commun. Math. Phys.
+#   **144**, 443 (1992) — matrix product states.
+# * S. R. White, *Density matrix formulation for quantum renormalization groups*, Phys. Rev. Lett. **69**, 2863
+#   (1992) — DMRG.
 # * L. Gurvits, *Classical deterministic complexity of Edmonds' problem and quantum entanglement*, in Proceedings of the
 #   35th Annual ACM Symposium on Theory of Computing (STOC '03), 10–19 (2003) — NP-hardness of the weak membership
 #   problem for separable bipartite states.

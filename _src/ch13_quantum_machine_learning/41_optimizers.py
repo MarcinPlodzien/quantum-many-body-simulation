@@ -411,7 +411,7 @@ fig.tight_layout(); plt.show()
 #
 # ### 5.1 The update equation
 #
-# Gradient descent treats each step independently. The **heavy-ball** method (Polyak) gives the iterate inertia:
+# Gradient descent treats each step independently. The **heavy-ball** method, introduced by Polyak (1964), gives the iterate inertia:
 #
 # $$\boxed{\;\mathbf v_{k+1}=\beta\,\mathbf v_k+\mathbf g_k,\qquad
 #   \boldsymbol\theta_{k+1}=\boldsymbol\theta_k-\eta\,\mathbf v_{k+1}\;}\tag{7}$$
@@ -534,7 +534,7 @@ fig.tight_layout(); plt.show()
 #
 # ### 6.1 The update equation
 #
-# Adam (Kingma and Ba, ICLR 2015) combines momentum with a **per-parameter** step size inferred from the recent magnitude of
+# Adam, introduced by Kingma and Ba (2015), combines momentum with a **per-parameter** step size inferred from the recent magnitude of
 # each gradient component:
 #
 # $$\begin{aligned}
@@ -675,8 +675,9 @@ for lr in (0.01, 0.05, 0.4, 1.0, 3.0):
 #
 # and steps with $\boldsymbol\theta_{k+1}=\boldsymbol\theta_k-a_k\hat g_k$. Because $\hat g_k$ is random, a **constant**
 # step size cannot converge: the iterate would keep jittering with an amplitude set by $a\,\mathrm{std}(\hat g)$. Both
-# gains must therefore decay, and stochastic-approximation theory (Robbins and Monro for root finding from noisy
-# measurements, here of the gradient; extended by Spall to the estimator of Eq. (12)) says how.
+# gains must therefore decay, and stochastic-approximation theory says how: it was founded by Robbins and Monro (1951)
+# for root finding from noisy measurements, here of the gradient, and extended by Spall (1992) to the estimator of
+# Eq. (12).
 #
 # ### 7.1 The three conditions
 #
@@ -810,7 +811,8 @@ for al, ga in ((0.602, 0.101), (1.0, 1 / 6), (0.4, 0.101), (0.602, 0.4)):
 # angle acting on a qubit that is nearly in an eigenstate of its generator changes the state hardly at all, whatever the
 # numerical value of $\partial C/\partial\theta$.
 #
-# The natural gradient replaces the Euclidean penalty by the proper distance on the manifold of states. For pure states
+# The natural gradient, proposed by Amari (1998) for learning in statistical models, replaces the Euclidean penalty by
+# the proper distance on the manifold of the model; here the model is the family of states. For pure states
 # that distance is the **Fubini–Study metric**, and it is defined by the fidelity between neighbouring states:
 #
 # $$\bigl\lvert\langle\psi(\boldsymbol\theta)\vert\psi(\boldsymbol\theta+\boldsymbol\delta)\rangle\bigr\rvert^{2}
@@ -861,7 +863,7 @@ for al, ga in ((0.602, 0.101), (1.0, 1 / 6), (0.4, 0.101), (0.602, 0.4)):
 # direction the gradient component vanishes, because $C$ depends on $\boldsymbol\theta$ only through the state; the
 # danger comes from near-kernel directions with small but non-zero $g$, where the amplification $\eta/g$ would be
 # enormous and the ridge caps it at $\eta/\lambda_{\mathrm{reg}}=10^3\eta$. For $g\gg\lambda_{\mathrm{reg}}$ the ridge has
-# no effect. This is the **quantum natural gradient** (Stokes *et al.*, 2020);
+# no effect. This is the **quantum natural gradient** introduced by Stokes *et al.* (2020);
 # $\mathbf G$ is one quarter of the quantum Fisher information matrix for the pure state family (see
 # [29 — quantum Fisher information](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb)).
 #
@@ -1824,6 +1826,8 @@ fig.tight_layout(); plt.show()
 # * W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes: The Art of Scientific
 #   Computing*, 3rd ed. (Cambridge University Press, 2007), Chapter 10 — minimisation; §10.8 conjugate gradients and
 #   §10.9 quasi-Newton (variable-metric, BFGS) methods (Exercise 4).
+# * S. Amari, *Natural gradient works efficiently in learning*, Neural Comput. **10**, 251 (1998) — the natural gradient
+#   as the steepest-descent direction in a parameter space with a Riemannian metric (Section 9.1).
 # * J. Stokes, J. Izaac, N. Killoran and G. Carleo, *Quantum natural gradient*, Quantum **4**, 269 (2020) — the
 #   Fubini–Study metric of Eq. (17), the update of Eq. (18) (with the pseudo-inverse of the metric in place of the ridge)
 #   and the block-diagonal approximation.

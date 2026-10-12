@@ -758,7 +758,8 @@ assert err < TOL
 # to step.
 #
 # ### 7.1 Iterating a map: the logistic map
-# The logistic map $x_{n+1} = r\,x_n(1-x_n)$ is the textbook example of the period-doubling route to chaos. We
+# The logistic map $x_{n+1} = r\,x_n(1-x_n)$ is the textbook example of the period-doubling route to chaos, whose
+# rich dynamics was brought to wide attention by May (1976). We
 # iterate it with `scan`, and — since a parameter sweep is a batch — we `vmap` the whole iteration over 1200 values
 # of $r$.
 
@@ -816,7 +817,7 @@ plt.show()
 # explicit schemes with step $\Delta t$:
 #
 # * **Euler**: $y_{n+1} = y_n + \Delta t\, f(y_n,t_n)$ — local error $O(\Delta t^2)$, global error $O(\Delta t)$.
-# * **Runge–Kutta 4 (RK4)**: four evaluations of $f$ per step,
+# * **Runge–Kutta 4 (RK4)**, the classical scheme introduced by Kutta (1901) as an extension of Runge's (1895) multi-stage idea: four evaluations of $f$ per step,
 #
 #   $$k_1 = f(y_n,t_n),\quad k_2 = f(y_n+\tfrac{\Delta t}{2}k_1,t_n+\tfrac{\Delta t}{2}),\quad
 #     k_3 = f(y_n+\tfrac{\Delta t}{2}k_2,t_n+\tfrac{\Delta t}{2}),\quad k_4 = f(y_n+\Delta t\,k_3,t_n+\Delta t),$$
@@ -824,7 +825,8 @@ plt.show()
 #   $$y_{n+1} = y_n + \tfrac{\Delta t}{6}(k_1+2k_2+2k_3+k_4),$$
 #
 #   constructed so that the Taylor expansion of the exact solution is matched up to $\Delta t^4$: local error
-#   $O(\Delta t^5)$, global error $O(\Delta t^4)$ (quoted without proof; see Press *et al.* in the references).
+#   $O(\Delta t^5)$, global error $O(\Delta t^4)$ (quoted without proof; see Press *et al.* in the references). The idea
+#   of several evaluations of $f$ per step was introduced by Runge (1895).
 #
 # "Global error $O(\Delta t^p)$" means: halving the step reduces the error at a fixed final time by $2^p$.
 # We implement a generic integrator — the carry is the pair $(y, t)$ — and test it on the harmonic oscillator
@@ -1008,8 +1010,10 @@ print("static `if` on the shape is allowed:", normalise(jnp.array([3.0, 4.0], dt
 #   function of $n$ parameters needs $2n$ evaluations for one gradient.
 # * **Automatic differentiation (AD)**: every program is a composition of elementary operations whose derivatives
 #   are known; the chain rule is applied *mechanically, operation by operation, to the traced program*
-#   (see the survey by Baydin *et al.*, J. Mach. Learn. Res. **18**(153), 1 (2018)). The result is
-#   exact to round-off. In *reverse mode* — the mode used by `jax.grad`, identical to "back-propagation" — the
+#   (forward mode was introduced by Wengert (1964), reverse mode by Linnainmaa (1976); see also the survey by
+#   Baydin *et al.*, J. Mach. Learn. Res. **18**(153), 1 (2018)). The result is
+#   exact to round-off. In *reverse mode* — the mode used by `jax.grad`, identical to the "back-propagation" of
+#   Rumelhart, Hinton and Williams (1986) — the
 #   gradient of a scalar function with respect to **all** $n$ inputs costs only a small multiple (typically 2–4) of
 #   one function evaluation, *independently of $n$*. The price is memory: intermediate results of the forward pass
 #   must be stored for the backward pass.
@@ -1135,7 +1139,7 @@ print("gradient at x=0, double where:", jax.grad(safe)(zero))
 #
 # Since $H = \tfrac12(\Omega,0,\Delta)\cdot\vec\sigma$ and $(\vec n\cdot\vec\sigma)^2=1$ for a unit vector $\vec n$,
 # we have $H^2=\tfrac14(\Omega^2+\Delta^2)\,\mathbb{1}$, so the eigenvalues are $\pm\tfrac12\sqrt{\Omega^2+\Delta^2}$.
-# The variational principle says that for *any* normalised state $E(\theta,\varphi) =
+# The variational principle (Ritz 1909) says that for *any* normalised state $E(\theta,\varphi) =
 # \langle\theta,\varphi|H|\theta,\varphi\rangle \ge E_0$, with equality for the ground state. Every spin-1/2 state is
 # of the form $|\theta,\varphi\rangle$, so minimising $E$ over the two angles must give exactly
 # $E_0=-\tfrac12\sqrt{\Omega^2+\Delta^2}$.
@@ -1210,7 +1214,8 @@ plt.show()
 # are not unique: $(-\theta,\varphi+\pi)$ describes the same state, and another starting point may converge to that
 # representation. The Bloch vector, a physical quantity, is the meaningful comparison.)
 #
-# > **Physics insight.** This is a *variational quantum eigensolver* in miniature: a parametrised state, an energy
+# > **Physics insight.** This is a *variational quantum eigensolver* (proposed by Peruzzo *et al.* 2014) in miniature:
+# > a parametrised state, an energy
 # > expectation value as cost function, a gradient-based optimiser. In Chapter 13 the state will be an $N$-qubit circuit
 # > with hundreds of angles — and the code pattern `scan(value_and_grad(energy))` will be the same.
 
@@ -1253,6 +1258,7 @@ print("after splitting :", jax.random.normal(sub1, (3,), dtype=RDTYPE), jax.rand
 # > at every use protects you.
 #
 # ### 10.1 Monte-Carlo estimate of $\pi$, with error bars from `vmap`
+# The Monte Carlo method was named and first described in print by Metropolis and Ulam (1949).
 # Draw $n$ points uniformly in the unit square; the fraction that falls inside the quarter disc $x^2+y^2<1$ estimates
 # $\pi/4$. Each point is a Bernoulli trial with success probability $p=\pi/4$, so the estimator
 # $\hat\pi = 4\,n_{\rm in}/n$ has the standard deviation
@@ -1399,7 +1405,8 @@ plt.show()
 #   (dipole matrix element times field amplitude, divided by $\hbar$);
 # * the **detuning** $\Delta=\omega-\omega_0$ — how far the drive is from resonance.
 #
-# In the frame rotating with the drive, and after the *rotating-wave approximation* (dropping terms that oscillate at
+# In the frame rotating with the drive (the rotating coordinates of Rabi, Ramsey and Schwinger 1954), and after the
+# *rotating-wave approximation* (dropping terms that oscillate at
 # the very high frequency $2\omega$; we quote this standard result, see Foot, *Atomic Physics*, Chapter 7), the
 # Hamiltonian becomes **time independent**. With $\hbar=1$, the identification $|g\rangle=|0\rangle=(1,0)^T$,
 # $|e\rangle=|1\rangle=(0,1)^T$, and the constant energy offset removed, it reads
@@ -1615,7 +1622,8 @@ plt.show()
 # *Synthetic experiment.* At each of $K=40$ pulse durations $t_k$ the experiment is repeated $N_{\rm shots}=200$
 # times; every repetition ends with a projective measurement that yields "excited" with probability $P_e(t_k)$.
 # The recorded fraction $\hat P_k=n_k/N_{\rm shots}$ is therefore a binomial random variable with mean $P_e(t_k)$ and
-# standard deviation $\sqrt{P_e(1-P_e)/N_{\rm shots}}\le0.035$ — the *quantum projection noise* (shot noise).
+# standard deviation $\sqrt{P_e(1-P_e)/N_{\rm shots}}\le0.035$ — the *quantum projection noise* (shot noise), analysed
+# for two-level systems by Itano *et al.* (1993).
 #
 # *Model and cost function.* The model prediction $P_e^{\rm model}(t_k;\Omega,\Delta)$ is obtained **by running our
 # RK4 solver**, and the cost is the mean squared residual
@@ -2009,6 +2017,12 @@ assert np.all(np.isfinite(om_hat)) and np.all(de_hat > 0)     # every fit stayed
 #   <https://github.com/jax-ml/jax>; documentation at <https://docs.jax.dev> — see in particular the chapters
 #   "🔪 JAX – The Sharp Bits 🔪", "Just-in-time compilation", "Automatic vectorization" and "Pseudorandom numbers".
 # * R. Frostig, M. J. Johnson, C. Leary, *Compiling machine learning programs via high-level tracing*, SysML Conference (2018).
+# * R. E. Wengert, *A simple automatic derivative evaluation program*, Communications of the ACM **7**, 463–464 (1964)
+#   — forward-mode automatic differentiation.
+# * S. Linnainmaa, *Taylor expansion of the accumulated rounding error*, BIT **16**, 146–160 (1976) — reverse-mode
+#   automatic differentiation.
+# * D. E. Rumelhart, G. E. Hinton, R. J. Williams, *Learning representations by back-propagating errors*, Nature
+#   **323**, 533–536 (1986).
 # * A. G. Baydin, B. A. Pearlmutter, A. A. Radul, J. M. Siskind, *Automatic differentiation in machine learning: a
 #   survey*, Journal of Machine Learning Research **18**(153), 1–43 (2018).
 # * J. K. Salmon, M. A. Moraes, R. O. Dror, D. E. Shaw, *Parallel random numbers: as easy as 1, 2, 3*, Proc. SC'11,
@@ -2019,9 +2033,26 @@ assert np.all(np.isfinite(om_hat)) and np.all(de_hat > 0)     # every fit stayed
 #   Computing*, 3rd ed., Cambridge University Press (2007) — Runge–Kutta methods, numerical derivatives, Monte Carlo.
 # * D. Goldberg, *What every computer scientist should know about floating-point arithmetic*, ACM Computing Surveys
 #   **23**(1), 5–48 (1991).
+# * C. Runge, *Ueber die numerische Auflösung von Differentialgleichungen*, Mathematische Annalen **46**, 167–178
+#   (1895) — the first multi-stage (Runge–Kutta type) integrator.
+# * W. Kutta, *Beitrag zur näherungsweisen Integration totaler Differentialgleichungen*, Zeitschrift für Mathematik und Physik
+#   **46**, 435–452 (1901) — the classical fourth-order scheme (RK4).
+# * W. Ritz, *Über eine neue Methode zur Lösung gewisser Variationsprobleme der mathematischen Physik*, Journal für
+#   die reine und angewandte Mathematik **135**, 1–61 (1909) — the variational method.
+# * N. Metropolis, S. Ulam, *The Monte Carlo method*, Journal of the American Statistical Association **44**,
+#   335–341 (1949).
+# * R. M. May, *Simple mathematical models with very complicated dynamics*, Nature **261**, 459–467 (1976) — the
+#   logistic map.
 #
 # *Physics*
 # * I. I. Rabi, *Space quantization in a gyrating magnetic field*, Physical Review **51**, 652 (1937).
+# * I. I. Rabi, N. F. Ramsey, J. Schwinger, *Use of rotating coordinates in magnetic resonance problems*, Reviews of
+#   Modern Physics **26**, 167–171 (1954).
+# * W. M. Itano, J. C. Bergquist, J. J. Bollinger, J. M. Gilligan, D. J. Heinzen, F. L. Moore, M. G. Raizen,
+#   D. J. Wineland, *Quantum projection noise: Population fluctuations in two-level systems*, Physical Review A
+#   **47**, 3554–3570 (1993).
+# * A. Peruzzo, J. McClean, P. Shadbolt, M.-H. Yung, X.-Q. Zhou, P. J. Love, A. Aspuru-Guzik, J. L. O'Brien,
+#   *A variational eigenvalue solver on a photonic quantum processor*, Nature Communications **5**, 4213 (2014).
 # * C. J. Foot, *Atomic Physics*, Oxford University Press (2005), Chapter 7 *The interaction of atoms with
 #   radiation*: the rotating-wave approximation, Rabi oscillations, $\pi$ pulses and the Bloch sphere.
 # * D. J. Griffiths, D. F. Schroeter, *Introduction to Quantum Mechanics*, 3rd ed., Cambridge University Press (2018)

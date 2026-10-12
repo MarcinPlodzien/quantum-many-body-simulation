@@ -296,9 +296,10 @@ for a in (0, 1):
 # 4. **Parameter estimation.** They choose a random subset of the sifted rounds, announce those bits and compare them.
 #    The fraction of disagreements is the **quantum bit error rate** (QBER) $Q$. The announced bits are discarded.
 # 5. **Abort test.** If $Q$ exceeds a threshold, they abort.
-# 6. **Error correction.** Public parity checks remove the remaining errors (notebook 50, Section 6.3).
-# 7. **Privacy amplification.** A public random hash shortens the key and removes Eve's partial knowledge
-#    (notebook 51, Section 9).
+# 6. **Error correction.** Public parity checks remove the remaining errors (Brassard and Salvail 1994; notebook 50,
+#    Section 6.3).
+# 7. **Privacy amplification.** A public random hash shortens the key and removes Eve's partial knowledge (Bennett,
+#    Brassard and Robert 1988; notebook 51, Section 9).
 #
 # The order of the steps matters. The bases are announced only after Bob has measured, so while the qubit is in
 # flight nobody except Alice knows its basis. If Eve knew the basis, she could measure in it, learn the bit, and
@@ -785,8 +786,8 @@ for x in (0, 1):
 #
 # Ekert (1991) proposed the first entanglement-based protocol, in which the pairs are tested with a Bell inequality.
 # Alice measures $\pm1$-valued observables $A_0$ or $A_1$ and Bob $B_0$ or $B_1$, chosen at random, and from the rounds
-# with each pair of settings they estimate the CHSH combination of
-# [notebook 19](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb),
+# with each pair of settings they estimate the combination introduced by Clauser, Horne, Shimony and Holt (1969),
+# derived in [notebook 19](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb),
 #
 # $$S=\langle A_0B_0\rangle+\langle A_0B_1\rangle+\langle A_1B_0\rangle-\langle A_1B_1\rangle . \tag{10}$$
 #
@@ -797,7 +798,7 @@ for x in (0, 1):
 # $$A_0\otimes(B_0+B_1)+A_1\otimes(B_0-B_1)=\sqrt2\,\big(Z\otimes Z+X\otimes X\big), \tag{11}$$
 #
 # because $B_0+B_1=\sqrt2Z$ and $B_0-B_1=\sqrt2X$. For $\vert\Phi^+\rangle$, $\langle ZZ\rangle=\langle XX\rangle=1$
-# and $S=2\sqrt2$. For the Werner pair of visibility $v$,
+# and $S=2\sqrt2$. For the Werner pair of visibility $v$ (Werner 1989),
 # $\rho_W(v)=v\,\vert\Phi^+\rangle\langle\Phi^+\vert+(1-v)\,\mathbb 1/4$ (notebook 19, Section 11), the noise term has
 # zero correlators, so $\langle ZZ\rangle=\langle XX\rangle=v$ and $S=2\sqrt2\,v$. The error rate in either basis is
 # the probability of unequal outcomes, $Q=(1-\langle ZZ\rangle)/2=(1-v)/2$, hence
@@ -1261,7 +1262,10 @@ for k in (100, 1_000, 10_000):
 #
 # Every argument above assumes that Alice's and Bob's devices measure exactly $Z$ and $X$ on qubits. Real devices
 # deviate from their models, and Section 9 shows that such deviations have been exploited. **Device-independent** key
-# distribution drops this assumption. The devices are black boxes with a setting as input and a bit as output, and
+# distribution drops this assumption. The idea goes back to Mayers and Yao (1998), who proposed to test untrusted
+# apparatus through its EPR correlations, and to Barrett, Hardy and Kent (2005), who derived security from a Bell
+# violation alone, against an eavesdropper limited only by the impossibility of signalling faster than light. The
+# devices are black boxes with a setting as input and a bit as output, and
 # security is derived from the observed CHSH value $S$ of Eq. (10) alone. A value above $2$ certifies that the outcomes
 # were not fixed in advance, and a value near $2\sqrt2$ certifies a nearly maximally entangled pair, whatever the
 # devices do inside. For collective attacks Acín, Brunner, Gisin, Massar, Pironio and Scarani (2007) derived the bound
@@ -1352,7 +1356,8 @@ plt.tight_layout(); plt.show()
 # number of photons, and occasionally two or more. Eve can then keep one photon and forward the others, and once the
 # basis is announced she measures her photon in the right basis, learning the bit without causing any error. On a
 # lossy line she can also block single-photon pulses, so that Bob's detection rate stays at its expected value. This is
-# the **photon-number-splitting** attack. The **decoy-state** method defeats it (Hwang 2003; Lo, Ma and Chen 2005; Wang
+# the **photon-number-splitting** attack, with which Brassard, Lütkenhaus, Mor and Sanders (2000) showed that weak-pulse
+# systems over lossy lines can be totally insecure. The **decoy-state** method defeats it (Hwang 2003; Lo, Ma and Chen 2005; Wang
 # 2005). Alice varies the intensity of her pulses at random and reveals the intensities only afterwards. Eve cannot
 # treat pulses differently without knowing their intensity, and from the detection rates at each intensity Alice and
 # Bob estimate how many detections came from single-photon pulses; only those enter the key-rate formula.
@@ -1444,6 +1449,13 @@ plt.tight_layout(); plt.show()
 # * C. H. Bennett, G. Brassard and N. D. Mermin, *Quantum cryptography without Bell's theorem*, Phys. Rev. Lett. **68**,
 #   557 (1992), doi:10.1103/PhysRevLett.68.557 — the entanglement-based protocol BBM92, proved secure without Bell's
 #   theorem, and its equivalence with BB84.
+# * G. Brassard and L. Salvail, *Secret-key reconciliation by public discussion*, in *Advances in Cryptology —
+#   EUROCRYPT '93*, Lecture Notes in Computer Science **765**, 410 (Springer, 1994), doi:10.1007/3-540-48285-7\_35 —
+#   reconciliation of a shared key by public parity checks.
+# * C. H. Bennett, G. Brassard and J.-M. Robert, *Privacy amplification by public discussion*, SIAM J. Comput. **17**,
+#   210 (1988), doi:10.1137/0217014 — privacy amplification.
+# * R. F. Werner, *Quantum states with Einstein-Podolsky-Rosen correlations admitting a hidden-variable model*,
+#   Phys. Rev. A **40**, 4277 (1989), doi:10.1103/PhysRevA.40.4277 — the Werner states.
 # * J. F. Clauser, M. A. Horne, A. Shimony and R. A. Holt, *Proposed experiment to test local hidden-variable
 #   theories*, Phys. Rev. Lett. **23**, 880 (1969), doi:10.1103/PhysRevLett.23.880 — the CHSH inequality.
 # * P. W. Shor and J. Preskill, *Simple proof of security of the BB84 quantum key distribution protocol*, Phys. Rev.
@@ -1474,11 +1486,20 @@ plt.tight_layout(); plt.show()
 #   cryptography against collective attacks*, Phys. Rev. Lett. **98**, 230501 (2007),
 #   doi:10.1103/PhysRevLett.98.230501 — the bound on Eve's information as a function of the CHSH violation, and the
 #   device-independent key rate.
+# * D. Mayers and A. Yao, *Quantum cryptography with imperfect apparatus*, in Proceedings of the 39th Annual Symposium
+#   on Foundations of Computer Science (IEEE, 1998), p. 503, doi:10.1109/SFCS.1998.743501 — self-checking sources:
+#   apparatus whose adequacy for key distribution is certified by tests of its EPR correlations.
+# * J. Barrett, L. Hardy and A. Kent, *No signaling and quantum key distribution*, Phys. Rev. Lett. **95**, 010503
+#   (2005), doi:10.1103/PhysRevLett.95.010503 — key distribution secure against an eavesdropper limited only by
+#   no-signalling, with security from the violation of a Bell inequality.
 # * U. Vazirani and T. Vidick, *Fully device-independent quantum key distribution*, Phys. Rev. Lett. **113**, 140501
 #   (2014), doi:10.1103/PhysRevLett.113.140501 — device-independent security against general attacks with noisy devices.
 # * H.-K. Lo, M. Curty and B. Qi, *Measurement-device-independent quantum key distribution*, Phys. Rev. Lett. **108**,
 #   130503 (2012), doi:10.1103/PhysRevLett.108.130503 — key distribution through an untrusted relay, which removes all
 #   detector side channels.
+# * G. Brassard, N. Lütkenhaus, T. Mor and B. C. Sanders, *Limitations on practical quantum cryptography*, Phys. Rev.
+#   Lett. **85**, 1330 (2000), doi:10.1103/PhysRevLett.85.1330 — the photon-number-splitting attack, which makes
+#   weak-pulse systems over lossy lines insecure.
 # * W.-Y. Hwang, *Quantum key distribution with high loss: toward global secure communication*, Phys. Rev. Lett.
 #   **91**, 057901 (2003), doi:10.1103/PhysRevLett.91.057901 — the decoy-state idea against the photon-number-splitting
 #   attack.

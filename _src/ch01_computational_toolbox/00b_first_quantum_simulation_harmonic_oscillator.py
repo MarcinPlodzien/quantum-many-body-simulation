@@ -148,7 +148,7 @@ print("extra imports OK -- scipy, matplotlib.animation, IPython.display")
 #
 # A particle of mass $m$ moves in one dimension in the potential $V(x) = \tfrac12 m\omega_0^2 x^2$. Its state is a
 # complex-valued wave function $\psi(x,t)$, and everything we can ask about the particle is encoded in it. The
-# **time-dependent Schrödinger equation** (TDSE) is
+# **time-dependent Schrödinger equation** (TDSE), introduced by Schrödinger in his 1926 papers on wave mechanics, is
 #
 # $$ i\hbar\,\frac{\partial \psi(x,t)}{\partial t} \;=\; \hat H\,\psi(x,t), \qquad
 #    \hat H \;=\; -\frac{\hbar^2}{2m}\frac{\partial^2}{\partial x^2} \;+\; \frac{1}{2} m \omega_0^2 x^2 . \tag{1} $$
@@ -161,7 +161,9 @@ print("extra imports OK -- scipy, matplotlib.animation, IPython.display")
 #
 # $$ -\frac{\hbar^2}{2m}\,\phi''(x) \;+\; \frac{1}{2} m \omega_0^2 x^2\,\phi(x) \;=\; E\,\phi(x) . \tag{2} $$
 #
-# The textbook answer, which we will *not* assume but *reproduce*, is
+# The textbook answer, which we will *not* assume but *reproduce*, was first obtained by Heisenberg (1925) in his
+# founding paper on matrix mechanics and then by Schrödinger (1926), who solved Eq. (2) with Hermite functions in
+# the second communication on wave mechanics:
 #
 # $$ E_n = \hbar\omega_0\left(n + \tfrac{1}{2}\right), \qquad n = 0, 1, 2, \dots $$
 #
@@ -799,7 +801,8 @@ for i, N_x in enumerate(N_LIST):
 #
 # $$ \delta H = -\frac{\Delta x^2}{24}\,\frac{d^4}{dx^4} = -\frac{\Delta x^2}{24}\,\hat p^{\,4} , $$
 #
-# because in our units $\hat p = -i\,d/dx$, hence $\hat p^{\,4} = d^4/dx^4$. First-order perturbation theory gives
+# because in our units $\hat p = -i\,d/dx$, hence $\hat p^{\,4} = d^4/dx^4$. First-order perturbation theory, which
+# Schrödinger (1926) formulated for wave mechanics in his third communication, gives
 # the shift of the $n$-th level as the expectation value of $\delta H$ in the *unperturbed* state:
 #
 # $$ \Delta E_n \;=\; \langle \phi_n \vert \delta H \vert \phi_n\rangle
@@ -1063,7 +1066,8 @@ print(f"\ncheckpoints passed: same sign convention, overlaps > 0.999, "
 # only $\epsilon^2/2$ — which is why overlaps always look better than pointwise differences. Both are reported above
 # so that you learn to read the difference.)
 #
-# We also confirmed $\langle x^2\rangle_n = n + \tfrac12$, the virial theorem at work: in the oscillator the average
+# We also confirmed $\langle x^2\rangle_n = n + \tfrac12$, the virial theorem of Clausius (1870) at work: in the
+# oscillator the average
 # kinetic and potential energies are equal, so $\tfrac12\langle x^2\rangle = \tfrac12 E_n$.
 #
 # ### 9.3 The classic picture, and the correspondence principle
@@ -1160,7 +1164,8 @@ print(f"                  at n = 30 they never differ by more than {kolmogorov[-
 # beyond them (tunnelling into the classically forbidden region), and the leak becomes relatively smaller as $n$
 # grows.
 #
-# The middle panel is the **correspondence principle**. A classical particle oscillating with energy $E$ spends most
+# The middle panel is the **correspondence principle**, a term coined by Bohr (1920). A classical particle oscillating
+# with energy $E$ spends most
 # of its time near the turning points, where it moves slowly; the time it spends in $[x, x+dx]$ is
 # $dx/\vert v(x)\vert$ with $v = \sqrt{2E-x^2}$, and normalising gives
 # $P_{\rm cl}(x) = 1/(\pi\sqrt{2E-x^2})$, the orange curve. The quantum density at $n=30$ oscillates rapidly around it.
@@ -1172,7 +1177,8 @@ print(f"                  at n = 30 they never differ by more than {kolmogorov[-
 # $$ F(x) = \int_{-\infty}^{x}\vert\phi_n(x')\vert^2 dx', \qquad
 #    F_{\rm cl}(x) = \int_{-\infty}^{x} P_{\rm cl}(x')dx' = \frac{1}{\pi}\left[\arcsin\frac{x}{x_{\rm tp}} + \frac{\pi}{2}\right], $$
 #
-# and report the largest gap between them (the "Kolmogorov distance"). The right-hand panel shows the two curves for
+# and report the largest gap between them (the "Kolmogorov distance", the statistic introduced by Kolmogorov in 1933).
+# The right-hand panel shows the two curves for
 # $n=2, 10, 30$, and the printed table shows the distance falling monotonically — at $n=30$ the quantum and the
 # classical description never disagree about the probability of finding the particle in any interval by more than
 # $0.025$.
@@ -1204,8 +1210,8 @@ print(f"                  at n = 30 they never differ by more than {kolmogorov[-
 #    \langle p\rangle(t), \qquad \mathrm{Var}(p)(t) = \langle p^2\rangle - \langle p\rangle^2 . $$
 #
 # The first pair says *where the packet is and how wide it is*; the second says *how fast it is moving and how
-# spread out its velocities are*. Their product is constrained by Heisenberg,
-# $\mathrm{Var}(x)\,\mathrm{Var}(p) \ge \tfrac14$ in our units.
+# spread out its velocities are*. Their product is constrained by Heisenberg's uncertainty relation (Heisenberg,
+# 1927), in the form $\mathrm{Var}(x)\,\mathrm{Var}(p) \ge \tfrac14$ (in our units) proved by Kennard (1927).
 #
 # In the dimensionless variables of Section 4 the momentum operator is
 #
@@ -1225,7 +1231,7 @@ print(f"                  at n = 30 they never differ by more than {kolmogorov[-
 #
 # ### 10.1 Ehrenfest's theorem: the centre moves classically
 #
-# The derivation follows Sakurai and Napolitano, §§2.2.3–2.2.4. Start from the TDSE. For an operator $\hat A$ that does not depend on time,
+# The theorem is due to Ehrenfest (1927); the derivation follows Sakurai and Napolitano, §§2.2.3–2.2.4. Start from the TDSE. For an operator $\hat A$ that does not depend on time,
 #
 # $$ \frac{d}{dt}\langle \hat A\rangle
 #   = \left\langle \frac{\partial\psi}{\partial t}\right\vert \hat A \left\vert \psi \right\rangle
@@ -1798,7 +1804,9 @@ fig.tight_layout(); plt.show()
 #
 # $$ \psi(x, 0) \;=\; \pi^{-1/4}\,e^{-(x-x_d)^2/2} . $$
 #
-# This is a **coherent state**. Everything about it follows from Section 10 without any new work. The initial
+# This is a **coherent state**, the state Schrödinger (1926) constructed as the quantum counterpart of a classical
+# oscillation, and which Glauber (1963) introduced for the radiation field. Everything about it follows from
+# Section 10 without any new work. The initial
 # moments are $\langle x\rangle_0 = x_d$, $\langle p\rangle_0 = 0$ (the wave function is real), and
 # $V_x(0) = V_p(0) = \tfrac12$ (a displaced Gaussian has the same spreads as the ground state). Substituting into
 # Eqs. (14) and (16) with $r=1$:
@@ -1898,7 +1906,7 @@ print("checkpoints passed: classical circle in phase space, constant variances, 
 # %% [markdown]
 # The populations $\vert c_n\vert^2$ printed above are a Poisson distribution with mean
 # $\bar n = x_d^2/2 = 2$ — the defining property of a coherent state, and the reason a laser beam (a coherent state
-# of light) has Poissonian photon statistics.
+# of light) has Poissonian photon statistics (Glauber, 1963).
 #
 # The phase-space panel is worth a second look. A classical oscillator is a *point* going round a circle of radius
 # $x_d$; the coherent state is that same point surrounded by an irreducible fuzz,
@@ -1972,10 +1980,11 @@ print("checkpoints passed: classical circle in phase space, constant variances, 
 # 3\pi/2, \dots$ its $\mathrm{Var}(x) = 1/(2r^2)$ is, for $r>1$, *narrower in position than the ground state of the
 # new trap* (whose variance is $1/(2r)$), at the price of being correspondingly broader in momentum; at
 # $rt = \pi, 2\pi, \dots$ it is the initial Gaussian, too narrow in momentum for the new trap. A minimum-uncertainty
-# state with unequal, rescaled variances is exactly what is called a **squeezed state**. Modulating a trap frequency
+# state with unequal, rescaled variances is exactly what is called a **squeezed state**; that a sudden jump of the
+# oscillator frequency produces one was shown by Janszky and Yushin (1986). Modulating a trap frequency
 # (the sudden quench, followed by a quarter of the new trap period, is its simplest form) is how squeezed motional
 # states of trapped ions are prepared, and its optical analogue, parametric amplification, produces the squeezed
-# light that lowers the quantum noise of LIGO below the shot-noise level.
+# light that lowers the quantum noise of LIGO below the shot-noise level (LIGO Scientific Collaboration, 2013).
 #
 # ### 12.3 The plan
 #
@@ -2091,7 +2100,8 @@ print("checkpoints passed: injected energy and the breathing law of Eq. (19) bot
 #
 # $$ U(\Delta t) = e^{-iH\Delta t} $$
 #
-# **once** (with `scipy.linalg.expm`, which uses a scaling-and-squaring Padé algorithm) and then apply it over and
+# **once** (with `scipy.linalg.expm`, which uses the scaling-and-squaring Padé algorithm of Al-Mohy and Higham
+# (2009)) and then apply it over and
 # over: $\psi_{k+1} = U\psi_k$. Because $U$ is exactly unitary (up to round-off), this conserves the norm exactly and
 # has **no time-step error at all** — $U(\Delta t)$ is the exact propagator, not an approximation to it. The price is
 # a dense $N_x \times N_x$ matrix: $O(N_x^3)$ to build, $O(N_x^2)$ memory, $O(N_x^2)$ per step.
@@ -2137,7 +2147,8 @@ print("checkpoint passed: (a) and (b) agree to machine precision -- both are exa
 #
 # $$ \frac{d\psi}{dt} \;=\; f(\psi) \;=\; -\,i\,H\psi . $$
 #
-# **The classical fourth-order Runge–Kutta scheme** (Press *et al.*, *Numerical Recipes*, §17.1). Given $\psi_k$ at
+# **The classical fourth-order Runge–Kutta scheme**, introduced by Runge (1895) and Kutta (1901) (Press *et al.*,
+# *Numerical Recipes*, §17.1, give a modern account). Given $\psi_k$ at
 # time $t_k$, evaluate the derivative four times:
 #
 # $$ \begin{aligned}
@@ -3137,7 +3148,8 @@ fig.tight_layout(); plt.show()
 # **2. (★★) The double well and tunnelling.** Use $V(x) = \lambda(x^2-a^2)^2$ with $a=2$ and $\lambda$ between
 # $0.05$ and $0.5$. Plot $\phi_0$ and $\phi_1$: they are the symmetric and antisymmetric combinations of states
 # localised in the two wells. Measure the **tunnelling splitting** $\Delta = E_1-E_0$ as a function of the barrier
-# height $V(0)=\lambda a^4$ and verify that $\ln\Delta$ falls roughly linearly with $\sqrt{V(0)}$ (the WKB
+# height $V(0)=\lambda a^4$ and verify that $\ln\Delta$ falls roughly linearly with $\sqrt{V(0)}$ (the
+# Wentzel–Kramers–Brillouin (WKB) approximation of 1926 gives the
 # prediction $\Delta \propto e^{-S}$). Then start from a state localised in the left well,
 # $(\phi_0+\phi_1)/\sqrt2$, and watch it tunnel back and forth with period $2\pi/\Delta$ — an animation is worth it.
 #
@@ -3152,7 +3164,7 @@ fig.tight_layout(); plt.show()
 # compared with the $53\,000$ estimated in Section 8.2?
 #
 # **4. (★★) Crank–Nicolson to fourth order.** The error of Crank–Nicolson is a smooth function of $\Delta t^2$ (Eq. (29)). Combine two runs,
-# $\psi^{(4)}=\big(4\psi_{\Delta t/2}-\psi_{\Delta t}\big)/3$ (Richardson extrapolation), and show that the infidelity of $\psi^{(4)}$ falls as $\Delta t^8$. Is $\psi^{(4)}$ still exactly normalised?
+# $\psi^{(4)}=\big(4\psi_{\Delta t/2}-\psi_{\Delta t}\big)/3$ (Richardson extrapolation, introduced by Richardson (1911)), and show that the infidelity of $\psi^{(4)}$ falls as $\Delta t^8$. Is $\psi^{(4)}$ still exactly normalised?
 # Then repeat the comparison of Section 12.11 on a grid with $\Delta x=0.0125$: by how much does the RK4 limit shrink, and how does the Crank–Nicolson error change?
 #
 # **5. (★) Quench in the other direction.** Repeat Section 12 with $r = 1/2$ (a *softer* trap). Predict from
@@ -3220,6 +3232,43 @@ fig.tight_layout(); plt.show()
 # * M. D. Feit, J. A. Fleck Jr. and A. Steiger, *Solution of the Schrödinger equation by a spectral method*, Journal
 #   of Computational Physics **47**, 412-433 (1982), DOI 10.1016/0021-9991(82)90091-2 — the split-operator/FFT
 #   alternative to the grid Hamiltonian used here, and the method that escapes the step limit of Eq. (24).
+#
+# **Original papers**
+# * W. Heisenberg, *Über quantentheoretische Umdeutung kinematischer und mechanischer Beziehungen*, Z. Phys.
+#   **33**, 879 (1925) — matrix mechanics, and the oscillator levels $\hbar\omega_0(n+\tfrac12)$.
+# * E. Schrödinger, *Quantisierung als Eigenwertproblem*, Ann. Phys. **384** (4th series **79**), 361 and 489
+#   (1926); **385** (4th series **80**), 437 (1926); **386** (4th series **81**), 109 (1926) — the four
+#   communications on wave mechanics: the stationary equation, the harmonic oscillator (second), perturbation
+#   theory (third) and the time-dependent equation (fourth).
+# * E. Schrödinger, *Der stetige Übergang von der Mikro- zur Makromechanik*, Naturwissenschaften **14**, 664
+#   (1926) — the coherent state of Section 11.4.
+# * W. Heisenberg, *Über den anschaulichen Inhalt der quantentheoretischen Kinematik und Mechanik*, Z. Phys.
+#   **43**, 172 (1927); E. H. Kennard, *Zur Quantenmechanik einfacher Bewegungstypen*, Z. Phys. **44**, 326
+#   (1927) — the uncertainty relation and its standard-deviation form.
+# * P. Ehrenfest, *Bemerkung über die angenäherte Gültigkeit der klassischen Mechanik innerhalb der
+#   Quantenmechanik*, Z. Phys. **45**, 455 (1927) — Ehrenfest's theorem, Section 10.1.
+# * N. Bohr, *Über die Serienspektra der Elemente*, Z. Phys. **2**, 423 (1920) — the correspondence principle.
+# * R. Clausius, *Ueber einen auf die Wärme anwendbaren mechanischen Satz*, Ann. Phys. **217**, 124 (1870) — the
+#   virial theorem.
+# * R. J. Glauber, *Coherent and incoherent states of the radiation field*, Phys. Rev. **131**, 2766 (1963).
+# * J. Janszky and Y. Y. Yushin, *Squeezing via frequency jump*, Opt. Commun. **59**, 151 (1986) — the squeezed
+#   state produced by the quench of Section 12.
+# * LIGO Scientific Collaboration (J. Aasi *et al.*), *Enhanced sensitivity of the LIGO gravitational wave
+#   detector by using squeezed states of light*, Nature Photon. **7**, 613 (2013).
+# * C. Runge, *Ueber die numerische Auflösung von Differentialgleichungen*, Math. Ann. **46**, 167 (1895);
+#   W. Kutta, *Beitrag zur näherungsweisen Integration totaler Differentialgleichungen*, Z. Math. Phys. **46**,
+#   435 (1901) — the Runge–Kutta methods; the classical fourth-order scheme of Eq. (22) is Kutta's.
+# * A. H. Al-Mohy and N. J. Higham, *A new scaling and squaring algorithm for the matrix exponential*, SIAM J.
+#   Matrix Anal. Appl. **31**, 970 (2009) — the algorithm behind `scipy.linalg.expm`.
+# * L. F. Richardson, *The approximate arithmetical solution by finite differences of physical problems involving
+#   differential equations, with an application to the stresses in a masonry dam*, Phil. Trans. R. Soc. A **210**,
+#   307 (1911) — Richardson extrapolation (Exercise 4).
+# * G. Wentzel, *Eine Verallgemeinerung der Quantenbedingungen für die Zwecke der Wellenmechanik*, Z. Phys. **38**,
+#   518 (1926); H. A. Kramers, *Wellenmechanik und halbzahlige Quantisierung*, Z. Phys. **39**, 828 (1926);
+#   L. Brillouin, *La mécanique ondulatoire de Schrödinger; une méthode générale de résolution par approximations
+#   successives*, C. R. Acad. Sci. **183**, 24 (1926) — the WKB approximation (Exercise 2).
+# * A. Kolmogorov, *Sulla determinazione empirica di una legge di distribuzione*, Giorn. Ist. Ital. Attuari **4**,
+#   83 (1933) — the Kolmogorov distance of Section 9.3.
 #
 # ### 14.5 Where to go next
 #

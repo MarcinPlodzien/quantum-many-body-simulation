@@ -12,9 +12,10 @@
 # > Given a laboratory that can rotate each qubit and measure it, how many measurements does it take to **know** the
 # > quantum Fisher information of the state it just prepared, and with what error bar?
 #
-# The answer matters for experiments. $F_Q>N$ certifies entanglement, $F_Q>kN$ certifies that at least $k+1$
-# particles are genuinely entangled, and the same number carries an operational promise: a phase uncertainty
-# $\Delta\theta\ge1/\sqrt{\nu F_Q}$ after $\nu$ repetitions of the interferometer. A claim of "entanglement depth
+# The answer matters for experiments. $F_Q>N$ certifies entanglement (Pezzè and Smerzi 2009), $F_Q>kN$ certifies
+# that at least $k+1$ particles are genuinely entangled (Hyllus *et al.* 2012; Tóth 2012), and the same number
+# carries an operational promise: a phase uncertainty $\Delta\theta\ge1/\sqrt{\nu F_Q}$ after $\nu$ repetitions of
+# the interferometer, the quantum Cramér–Rao bound (Helstrom 1976; Braunstein and Caves 1994). A claim of "entanglement depth
 # $12$" based on the quantum Fisher information is a claim about a *measured* $F_Q$ with a *measured* uncertainty,
 # and it is only as good as the statistics behind it.
 #
@@ -25,13 +26,13 @@
 # * For a **pure state** and a collective generator $G=\mathbf n\cdot\mathbf J$ the nonlinearity is mild:
 #   $F_Q=4\,\mathrm{Var}(G)=4\left(\langle G^2\rangle-\langle G\rangle^2\right)$ involves only one- and two-body
 #   Pauli expectation values — $O(N^2)$ numbers, each of weight at most $2$ — plus one squared mean. Classical
-#   shadows (notebook 24) estimate all of them from a *single* data set, with a variance that does not grow with
+#   shadows, introduced by Huang, Kueng and Preskill (2020) and treated in notebook 24, estimate all of them from a *single* data set, with a variance that does not grow with
 #   $N$. The squared mean is the only nonlinear part, it biases the naive estimator by a computable amount, and a
 #   $U$-statistic removes the bias exactly.
 # * For a **mixed state** $4\,\mathrm{Var}(G)$ is only an upper bound on $F_Q$, and it can be far from it: we will
 #   exhibit a state whose $4\,\mathrm{Var}(J_z)$ is $N^2$ while its true $F_Q$ is $0.15$. What randomised
-#   measurements can still deliver is a *converging series of lower bounds* $F_0\le F_1\le\cdots\le F_Q$, each a
-#   polynomial in $\rho$, which we derive from a geometric series and verify against the exact
+#   measurements can still deliver is a *converging series of lower bounds* $F_0\le F_1\le\cdots\le F_Q$,
+#   introduced by Rath, Branciard, Minguzzi and Vermersch (2021), each a polynomial in $\rho$, which we derive from a geometric series and verify against the exact
 #   symmetric-logarithmic-derivative value.
 #
 # **Road map.**
@@ -171,7 +172,7 @@ def timed(f, *args, budget=0.3, min_reps=3, max_reps=200):
 # %% [markdown]
 # ## 3. The classical-shadow protocol
 #
-# The protocol of notebook 24, in four lines. For each of $M$ repetitions:
+# The protocol of Huang, Kueng and Preskill (2020), treated in notebook 24, in four lines. For each of $M$ repetitions:
 #
 # 1. draw a measurement basis $c_q\in\{X,Y,Z\}$ independently and uniformly for every qubit;
 # 2. rotate qubit $q$ into that basis ($U=H$ for $X$, $U=HS^\dagger$ for $Y$, $U=\mathbb 1$ for $Z$);
@@ -586,7 +587,7 @@ print(f"\n(N = {N_DEMO}: standard quantum limit {N_DEMO}, Heisenberg limit {N_DE
 #   \;=\;\frac{\left(\sum_mv^a_m\right)\left(\sum_{m'}v^b_{m'}\right)-\sum_mv^a_mv^b_m}{M(M-1)} . \tag{14}$$
 #
 # For $m\neq m'$ the two snapshots are independent, so $\mathbb E[v^a_mv^b_{m'}]=m_am_b$ exactly, and Eq. (14) is
-# **exactly unbiased for every $M\ge2$**. This is a $U$-statistic — an average over all distinct tuples — and the
+# **exactly unbiased for every $M\ge2$**. This is a $U$-statistic (Hoeffding 1948) — an average over all distinct tuples — and the
 # right-hand form shows it costs the same $O(M)$ as the plug-in. (A cruder alternative, *sample splitting*,
 # estimates $m_a$ from one half of the data and $m_b$ from the other; it is also unbiased but throws away half of
 # each estimate and has a larger variance.)
@@ -707,7 +708,7 @@ fig.tight_layout(); plt.show()
 #
 # The entries of $\widehat{\mathcal{F}}$ are built from the *same* snapshots, so they are correlated, and so are any
 # functions of them — the largest eigenvalue, for example. Propagating errors analytically through an eigenvalue
-# problem is unpleasant. The **bootstrap** avoids it entirely: resample the $M$ snapshots with replacement $B$
+# problem is unpleasant. The **bootstrap**, introduced by Efron (1979), avoids it entirely: resample the $M$ snapshots with replacement $B$
 # times, recompute the whole quantity on each resample, and take the spread of the $B$ answers as the error bar. It
 # needs no formula for the quantity and it automatically carries every correlation, because the resampled
 # snapshots enter every entry simultaneously.
@@ -999,8 +1000,8 @@ fig.tight_layout(); plt.show()
 # budget, and compare with the exact values:
 #
 # * $\vert+\rangle^{\otimes N}$, the coherent spin state, $F_Q=N$;
-# * one-axis-twisting states at three twisting angles — squeezed, over-squeezed, and the cat at $\mu=\pi/2$;
-# * the textbook GHZ state, $F_Q=N^2$;
+# * one-axis-twisting states (Kitagawa and Ueda 1993) at three twisting angles — squeezed, over-squeezed, and the cat at $\mu=\pi/2$;
+# * the GHZ state (Greenberger, Horne and Zeilinger 1989), $F_Q=N^2$;
 # * a Haar-scrambled cat, the state of notebook 35, whose collective quantum Fisher information has collapsed to
 #   about $N$ (its average over Haar unitaries is $Nd/(d+1)$ with $d=2^N$ for a fixed generator, notebook 35; the
 #   largest eigenvalue over directions, reported below, lies above that average).
@@ -1245,7 +1246,8 @@ assert max(z_rate) < 4.0 and z_rate_wrong > 4.0
 # ### 10.1 The bound, and why it must be there
 #
 # Everything so far used $F_Q=4\,\mathrm{Var}(G)$, which holds for **pure** states. For a mixed state the quantum
-# Fisher information is given by the symmetric-logarithmic-derivative formula of notebook 30,
+# Fisher information is given by the symmetric-logarithmic-derivative formula of notebook 30 (Helstrom 1976;
+# Braunstein and Caves 1994),
 #
 # $$F_Q[\rho,G]=2\sum_{m,n\,:\,\lambda_m+\lambda_n>0}\frac{\left(\lambda_m-\lambda_n\right)^2}{\lambda_m+\lambda_n}
 #   \left\vert\left\langle m\vert G\vert n\right\rangle\right\vert^2,\qquad
@@ -1377,7 +1379,7 @@ print(f"\nCHECKPOINT the exact mixed-state value follows Eq. (17) to {1e4 * TOL:
 #   dephased GHZ state, whose density matrix has rank $2$ inside the relevant subspace with $\lambda_++\lambda_-=1$.
 #   Prediction: $F_0$ is already exact there.
 #
-# The hierarchy of Eq. (18) and the bounds (20)–(21) are those of Rath, Branciard, Minguzzi and Vermersch (2021).
+# The hierarchy of Eq. (18) and the bounds (20)–(21) were introduced by Rath, Branciard, Minguzzi and Vermersch (2021).
 # We now verify Eq. (19) against the exact value from the engine's `qfi_mixed`.
 #
 # One family can be solved by hand and gives a sharp test of the convergence rate. For GHZ mixed with white noise,
@@ -1795,7 +1797,7 @@ for N in (4, 6, 8, 10):
 # 2. ★ **The origin of the $2N$ in Eq. (12).** Re-derive Eq. (12) for a product state $\vert+\rangle^{\otimes N}$
 #    and $a=z$ by hand, then confirm it numerically by computing the sample variance of $v^z_m$ from a data set.
 # 3. ★★ **Squeezing from the same data (extend the code).** The Wineland parameter
-#    $\xi_R^2=N\min_{\mathbf n_\perp}\mathrm{Var}(J_{\mathbf n_\perp})/\vert\langle\mathbf J\rangle\vert^2$ needs
+#    (Wineland *et al.* 1992, 1994) $\xi_R^2=N\min_{\mathbf n_\perp}\mathrm{Var}(J_{\mathbf n_\perp})/\vert\langle\mathbf J\rangle\vert^2$ needs
 #    exactly the same one- and two-body data. Implement it on top of `collective_snapshot_moments`, measure it for
 #    the one-axis-twisting states of Section 8, and derive and verify the bias of the plug-in version.
 # 4. ★★ **Median of means against the plain mean (extend the code).** Replace the sample means in Eq. (10) by
@@ -1827,6 +1829,8 @@ for N in (4, 6, 8, 10):
 #
 # ## References
 #
+# * C. W. Helstrom, *Quantum Detection and Estimation Theory* (Academic Press, New York, 1976) — the symmetric
+#   logarithmic derivative and the quantum Cramér–Rao bound.
 # * H.-Y. Huang, R. Kueng and J. Preskill, *Predicting many properties of a quantum system from very few
 #   measurements*, Nat. Phys. **16**, 1050 (2020) — classical shadows, the single-snapshot estimator of Eq. (1) and
 #   the shadow-norm sample complexity.
@@ -1849,5 +1853,15 @@ for N in (4, 6, 8, 10):
 #   and of the states measured in Section 8.
 # * M. Kitagawa and M. Ueda, *Squeezed spin states*, Phys. Rev. A **47**, 5138 (1993) — the one-axis-twisting
 #   Hamiltonian that produces the probes of Section 8.
+# * D. M. Greenberger, M. A. Horne and A. Zeilinger, *Going beyond Bell's theorem*, in *Bell's Theorem, Quantum
+#   Theory, and Conceptions of the Universe*, ed. M. Kafatos (Kluwer, Dordrecht, 1989), pp. 69–72;
+#   arXiv:0712.0921 — the GHZ state.
+# * W. Hoeffding, *A class of statistics with asymptotically normal distribution*, Ann. Math. Statist. **19**, 293
+#   (1948) — the $U$-statistic of Eq. (14).
+# * B. Efron, *Bootstrap methods: another look at the jackknife*, Ann. Statist. **7**, 1 (1979) — the bootstrap of
+#   Section 7.
+# * D. J. Wineland, J. J. Bollinger, W. M. Itano, F. L. Moore and D. J. Heinzen, *Spin squeezing and reduced quantum
+#   noise in spectroscopy*, Phys. Rev. A **46**, R6797 (1992) — squeezed spin states that raise the signal-to-noise
+#   ratio of spectroscopy.
 # * D. J. Wineland, J. J. Bollinger, W. M. Itano and D. J. Heinzen, *Squeezed atomic states and projection noise in
 #   spectroscopy*, Phys. Rev. A **50**, 67 (1994) — the spectroscopic squeezing parameter $\xi_R^2$ of Exercise 3.

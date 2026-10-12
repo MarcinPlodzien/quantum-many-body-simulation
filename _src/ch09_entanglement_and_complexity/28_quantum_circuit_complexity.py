@@ -134,8 +134,9 @@ print(f"reference gap ratios:  Poisson 2 ln2 - 1 = {R_POISSON:.4f} | GOE {R_GOE}
 # $$ \chi_{\rm exact}\;\ge\;2^{S} . \tag{1} $$
 #
 # Memory and time of the tensor-network algorithm grow like $\chi^2$ and $\chi^3$. Eq. (1) is the **entanglement
-# barrier**: a state with a half-chain entropy of $S$ bits costs at least $2^{S}$ per bond. Ground states of gapped
-# one-dimensional Hamiltonians obey an *area law*, $S=O(1)$, and are therefore cheap. States produced by a deep random
+# barrier**: a state with a half-chain entropy of $S$ bits costs at least $2^{S}$ per bond; that the cost of simulating a
+# quantum computation grows linearly in $N$ and exponentially only in its entanglement was shown by Vidal (2003). Ground
+# states of gapped one-dimensional Hamiltonians obey an *area law*, $S=O(1)$ (proved by Hastings 2007), and are therefore cheap. States produced by a deep random
 # circuit obey a *volume law*, $S\propto N$, and are not.
 #
 # ### 2.3 Stabilizer simulation: the magic barrier
@@ -143,7 +144,8 @@ print(f"reference gap ratios:  Poisson 2 ln2 - 1 = {R_POISSON:.4f} | GOE {R_GOE}
 # A stabilizer state is defined by $N$ commuting Pauli strings $g_1,\dots,g_N$ with $g_i\lvert\psi\rangle=\lvert\psi\rangle$;
 # the whole state is stored in $O(N^2)$ bits, and every Clifford gate (Hadamard $H$, phase $S$, CNOT) maps Pauli strings to
 # Pauli strings and therefore updates the list in $O(N)$ steps — one column operation on each of the $O(N)$ rows of the
-# tableau. A computational-basis measurement is the expensive step, $O(N^2)$. This is the **Gottesman-Knill theorem**;
+# tableau. A computational-basis measurement is the expensive step, $O(N^2)$. This is the **Gottesman-Knill theorem**
+# (stated by Gottesman in 1999, who credits Knill);
 # the efficient tableau algorithm is due to Aaronson and Gottesman (2004). Such circuits can produce a half-chain
 # entropy of $N/2$ bits, the maximum, and are still simulated in polynomial time — entanglement is *free* here.
 #
@@ -922,7 +924,7 @@ assert abs(stages[:, 0].mean() - N_MAG * m2_one_qubit) < 4 * stages[:, 0].std() 
 # ### 6.1 Definition
 #
 # The entropy $S$ compresses the whole Schmidt decomposition into one number. The **entanglement spectrum** keeps all of
-# it. With $p_j=\lambda_j^2$ the eigenvalues of $\rho_A=\mathrm{Tr}_B\lvert\psi\rangle\langle\psi\rvert$, write
+# it; the notion was introduced by Li and Haldane (2008). With $p_j=\lambda_j^2$ the eigenvalues of $\rho_A=\mathrm{Tr}_B\lvert\psi\rangle\langle\psi\rvert$, write
 #
 # $$ \rho_A=e^{-H_E},\qquad \xi_j=-\ln p_j , $$
 #
@@ -941,6 +943,9 @@ assert abs(stages[:, 0].mean() - N_MAG * m2_one_qubit) < 4 * stages[:, 0].std() 
 # $\mathcal S_A=\{g\in\mathcal S:\ g \text{ acts as the identity on } B\}$. Consequently
 #
 # $$ S_A=(n_A-a)\ \text{bits, an integer},\qquad \xi_j=(n_A-a)\ln2\ \text{for every } j . $$
+#
+# The result and the proof below are those of Fattal, Cubitt, Yamamoto, Bravyi and Chuang (2004); Hamma, Ionicioiu and
+# Zanardi (2005) computed the entanglement entropy of states stabilized by groups of spin flips.
 #
 # **Proof.** A stabilizer state is the uniform projector onto the joint $+1$ eigenspace of its stabilizers,
 #
@@ -1033,7 +1038,7 @@ for lab in (f"doped, k={K_DOPE}", "universal"):
 #
 # $$ \rho_A=\frac{1}{d_A}\,W,\qquad W=\frac{1}{d_B}GG^\dagger , $$
 #
-# and $W$ is exactly a **Wishart matrix**: the sample covariance of $d_B$ independent $d_A$-dimensional Gaussian vectors.
+# and $W$ is exactly a **Wishart matrix** (Wishart 1928): the sample covariance of $d_B$ independent $d_A$-dimensional Gaussian vectors.
 # The Marchenko-Pastur theorem (1967) gives the limiting density of its eigenvalues $x=d_A\,p$ for aspect ratio
 # $\gamma=d_A/d_B\le1$:
 #
@@ -1624,7 +1629,8 @@ plt.show()
 # $$ \mathbb E\big[Z\big]=\mathbb E\Big[D\sum_sp_s^2\Big]=D\cdot D\cdot\frac{2}{D(D+1)}=\frac{2D}{D+1}\;\xrightarrow[D\to\infty]{}\;2 . \tag{5} $$
 #
 # $Z=2$ is the standard statement that a random circuit output is *anticoncentrated*: the distribution is spread out, but
-# with fluctuations of order one relative to the mean. It is also the number that makes cross-entropy benchmarking work:
+# with fluctuations of order one relative to the mean. It is also the number that makes cross-entropy benchmarking
+# (introduced by Boixo et al. 2018) work:
 # the linear XEB of a perfect device is $\mathcal F_{\rm XEB}=Z-1\approx1$
 # ([notebook 10](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb), Section 9).
 #
@@ -2178,6 +2184,20 @@ plt.show()
 # * Z. Webb, *The Clifford group forms a unitary 3-design*, Quantum Inf. Comput. **16**, 1379 (2016).
 # * H. Zhu, *Multiqubit Clifford groups are unitary 3-designs*, Phys. Rev. A **96**, 062336 (2017).
 # * S. Aaronson and D. Gottesman, *Improved simulation of stabilizer circuits*, Phys. Rev. A **70**, 052328 (2004).
+# * D. Gottesman, *The Heisenberg representation of quantum computers*, in *Group22: Proceedings of the XXII International
+#   Colloquium on Group Theoretical Methods in Physics*, edited by S. P. Corney, R. Delbourgo and P. D. Jarvis
+#   (International Press, Cambridge MA, 1999), pp. 32-43; arXiv:quant-ph/9807006 — the Gottesman-Knill theorem.
+# * G. Vidal, *Efficient classical simulation of slightly entangled quantum computations*, Phys. Rev. Lett. **91**,
+#   147902 (2003).
+# * M. B. Hastings, *An area law for one-dimensional quantum systems*, J. Stat. Mech. P08024 (2007).
+# * H. Li and F. D. M. Haldane, *Entanglement spectrum as a generalization of entanglement entropy: identification of
+#   topological order in non-Abelian fractional quantum Hall effect states*, Phys. Rev. Lett. **101**, 010504 (2008).
+# * D. Fattal, T. S. Cubitt, Y. Yamamoto, S. Bravyi and I. L. Chuang, *Entanglement in the stabilizer formalism*,
+#   arXiv:quant-ph/0406168 (2004) — the reduced state and entanglement entropy of a stabilizer state, Section 6.2.
+# * A. Hamma, R. Ionicioiu and P. Zanardi, *Bipartite entanglement and entropic boundary law in lattice spin systems*,
+#   Phys. Rev. A **71**, 022315 (2005).
+# * J. Wishart, *The generalised product moment distribution in samples from a normal multivariate population*,
+#   Biometrika **20A**, 32 (1928).
 # * S. Bravyi and D. Gosset, *Improved classical simulation of quantum circuits dominated by Clifford gates*,
 #   Phys. Rev. Lett. **116**, 250501 (2016).
 # * S. Boixo, S. V. Isakov, V. N. Smelyanskiy, R. Babbush, N. Ding, Z. Jiang, M. J. Bremner, J. M. Martinis and

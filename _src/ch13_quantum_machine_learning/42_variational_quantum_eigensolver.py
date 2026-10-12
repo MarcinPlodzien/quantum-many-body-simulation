@@ -23,7 +23,7 @@
 #                        +------------- classical optimiser <-----------------+
 # ```
 #
-# The algorithm was first demonstrated on a photonic chip (Peruzzo *et al.*, 2014), was run on up to six
+# The algorithm was introduced by Peruzzo *et al.* (2014), who demonstrated it on a photonic chip; it was run on up to six
 # superconducting qubits for small molecules and a quantum magnet with a hardware-efficient circuit (Kandala *et al.*,
 # 2017), and is one of the most studied applications of noisy intermediate-scale devices (Tilly *et al.*, 2022).
 #
@@ -1432,8 +1432,9 @@ fig.tight_layout(); plt.show()
 # * $h\to\infty$: the field wins, and the unique ground state is the product state
 #   $\vert-\rangle^{\otimes N}$ with $\langle X_q\rangle=-1$ — the **paramagnetic** phase.
 #
-# In the thermodynamic limit these are separated by a quantum critical point at $\lvert h\rvert=1$, where the gap
-# closes as $1/N$ and the half-chain entanglement grows logarithmically with $N$. On a finite open chain there is no
+# In the thermodynamic limit these are separated by a quantum critical point at $\lvert h\rvert=1$ (Pfeuty, 1970), where
+# the gap closes as $1/N$ and the half-chain entanglement grows logarithmically with $N$ (Holzhey, Larsen and Wilczek,
+# 1994). On a finite open chain there is no
 # true degeneracy: tunnelling between the two ordered configurations splits the doublet by an amount that vanishes
 # **exponentially** in $N$, and the two lowest eigenvectors are, deep in the ordered phase, close to the symmetric and
 # antisymmetric combinations
@@ -2112,6 +2113,10 @@ fig.tight_layout(); plt.show()
 #   networks*, Nat. Comput. Sci. **3**, 542 (2023) — overparametrisation sets in when the rank of the quantum Fisher
 #   information saturates, at most at the dimension of the dynamical Lie algebra and, for a pure state, at
 #   $2\cdot2^N-2$; the threshold used in Section 10.2.
+# * P. Pfeuty, *The one-dimensional Ising model with a transverse field*, Ann. Phys. **57**, 79 (1970) — the exact
+#   solution of the transverse-field Ising chain and its critical point.
+# * C. Holzhey, F. Larsen and F. Wilczek, *Geometric and renormalized entropy in conformal field theory*, Nucl. Phys. B
+#   **424**, 443 (1994) — the logarithmic entanglement entropy of a critical system.
 # * S. Sachdev, *Quantum Phase Transitions*, 2nd ed., Cambridge University Press (2011) — the transverse-field Ising
 #   chain, its critical point and the symmetry-broken doublet of Section 11.
 # * P. Calabrese and J. Cardy, *Entanglement entropy and quantum field theory*, J. Stat. Mech. (2004) P06002 — the

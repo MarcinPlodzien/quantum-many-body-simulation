@@ -12,7 +12,8 @@
 # laws of its own.
 #
 # This notebook follows metrological usefulness — the quantum Fisher information $F_Q$ — through space and time after
-# a quench. Two complementary experiments.
+# a quench. The QFI density after a global quench of the Ising chain was studied by Pappalardi, Russomanno, Silva and
+# Fazio (2017). Two complementary experiments.
 #
 # 1. **A global quench.** A whole chain is prepared in a product state and evolved. How fast does $F_Q$ per particle
 #    grow, what does it saturate at, and how much multipartite entanglement does it certify along the way? Here $F_Q$ is
@@ -141,7 +142,7 @@ def timed(f, *args, budget=0.3, min_reps=3, max_reps=200):
 # ### 3.1 The quantum Fisher information *is* the sum of the connected correlations
 #
 # Take a pure state $\vert\psi\rangle$ and the collective generator $G=J_a=\tfrac12\sum_i\sigma^a_i$. Notebook 29
-# established $F_Q=4\,\mathrm{Var}(G)$. Expand the variance:
+# established $F_Q=4\,\mathrm{Var}(G)$ (Braunstein and Caves 1994). Expand the variance:
 #
 # $$\begin{aligned}
 # F_Q\left[\psi,J_a\right]&=4\left[\langle J_a^2\rangle-\langle J_a\rangle^2\right]
@@ -178,7 +179,8 @@ def timed(f, *args, budget=0.3, min_reps=3, max_reps=200):
 # $$F_Q\left[\rho,J_{\mathbf n}\right]\le sk^2+r^2\;\le\;kN . \tag{4}$$
 #
 # Here $J_{\mathbf n}=\tfrac12\sum_i\mathbf n\cdot\vec\sigma_i$ with the same normalisation as Eq. (1): a product state
-# ($k=1$, $s=N$, $r=0$) gives the bound $N$, the standard quantum limit, and $k=N$ gives $N^2$. The second inequality
+# ($k=1$, $s=N$, $r=0$) gives the bound $N$, the standard quantum limit and the separability criterion of Pezzè and
+# Smerzi (2009), and $k=N$ gives $N^2$. The second inequality
 # follows from $r^2\le rk$. So $F_Q/N>k$ certifies that some block of at least $k+1$ qubits is genuinely entangled: for
 # a non-integer QFI **density** $f_Q=F_Q/N$, the entanglement depth is at least $\lfloor f_Q\rfloor+1$. We use the sharp
 # form $sk^2+r^2$, which can certify one more qubit than the corollary $kN$ (Section 5.1 meets such a case).
@@ -212,7 +214,7 @@ def timed(f, *args, budget=0.3, min_reps=3, max_reps=200):
 #   where $\Psi$ and $\Phi$ are $\psi$ and $\phi$ reshaped into $2^{\vert A\vert}\times2^{N-\vert A\vert}$ matrices.
 # * **Physically:** the effective generator at time $t$ is the *Heisenberg-evolved* operator $G(t)=U(t)GU^\dagger(t)$.
 #   If $G$ acts on one site, $G(t)$ acts on a growing region — this is **operator spreading**, the same object that
-#   Lieb–Robinson bounds constrain and that out-of-time-order correlators measure. The light cone of Section 7 is the
+#   Lieb–Robinson bounds (Lieb and Robinson 1972) constrain and that out-of-time-order correlators measure. The light cone of Section 7 is the
 #   light cone of $G(t)$, seen through the quantum Fisher information.
 #
 # One special case is worth stating now because it will be our sharpest test. If $\left[G,H\right]=0$ then
@@ -324,10 +326,12 @@ assert err_id < 1e4 * TOL
 #   \qquad
 #   H_{\rm TFIM}=\sum_i\sigma^z_i\sigma^z_{i+1}+h\sum_i\sigma^x_i . \tag{8}$$
 #
-# At $\Delta=0$ the XXZ chain is the **XX chain**, which the Jordan–Wigner transformation (notebook 15, Section 7.2) maps to free fermions; it is
-# our exactly solvable reference. The transverse-field Ising chain is free as well, and critical at $h=1$.
+# At $\Delta=0$ the XXZ chain is the **XX chain**, which the Jordan–Wigner transformation (Jordan and Wigner 1928;
+# notebook 15, Section 7.2) maps to free fermions, as shown by Lieb, Schultz and Mattis (1961); it is our exactly
+# solvable reference. The transverse-field Ising chain is free as well (Pfeuty 1970), and critical at $h=1$.
 #
-# The evolution is second- or fourth-order Trotter–Suzuki (notebook 12): one step is a fixed list of two-site gates,
+# The evolution is second- or fourth-order Trotter–Suzuki (Trotter 1959; Suzuki 1976; the fourth-order scheme of
+# Suzuki 1990; notebook 12): one step is a fixed list of two-site gates,
 # applied by `apply_gates`. The loop over steps is a `lax.scan`, so it compiles once instead of unrolling; the carry is
 # the **pair** $(\psi,\phi)$ of Eq. (6), which is what makes the whole notebook cheap.
 
@@ -566,12 +570,12 @@ fig.tight_layout(); plt.show()
 # still growing slowly and crosses $1$ only at $t\approx2.4$. After $t\approx4$ the Ising curve at $h=1$ rises to
 # $f_Q=4.82$ at $t=6$. That late rise is a finite-size effect: the half-chain entropy in the right panel peaks near
 # $t\approx4$ and then *falls*, which is what a chain of $N=12$ does when the quasiparticles that left the middle come
-# back from the ends. The window in which this chain behaves like a long one is therefore roughly $t\lesssim4$.
+# back from the ends (the quasiparticle picture of Calabrese and Cardy 2005). The window in which this chain behaves like a long one is therefore roughly $t\lesssim4$.
 # Section 6 shows that the plateau of the critical Ising curve is a property of the bulk, and that its height at
 # $N=12$ is reduced by the open ends.
 #
 # > **Physics insight.** A growing half-chain entropy and a growing QFI density are different statements about
-# > different quantities. The half-chain entropy here climbs to $3$–$4$ bits, below the Page value $\approx5.3$ bits of a
+# > different quantities. The half-chain entropy here climbs to $3$–$4$ bits, below the Page value (Page 1993) $\approx5.3$ bits of a
 # > random state of $12$ qubits, and a random state would have $f_Q\approx1$. The quantum Fisher information density
 # > measures only the *collective, two-point* correlations of Eq. (2), and a state with an extensive entanglement
 # > entropy can still have large ones. This is why $f_Q$ is a diagnostic in its own right and not just another entropy.
@@ -1046,8 +1050,8 @@ fig.tight_layout(); plt.show()
 # $t=1$, $F_Q=1.9\times10^{-5}$ at $k=8$ and $9.9\times10^{-7}$ at $k=9$). Both pictures are the same data.
 #
 # The dark wedge in the lower right of both panels is not an artefact: it is the region outside the causal cone, where
-# the block QFI is below $10^{-8}$. Almost no information about $\theta$ has arrived there: by the Cramér–Rao bound,
-# a measurement on those spins alone would need more than $10^{8}$ repetitions to reach an error of order one.
+# the block QFI is below $10^{-8}$. Almost no information about $\theta$ has arrived there: by the quantum Cramér–Rao
+# bound (Helstrom 1976; Braunstein and Caves 1994), a measurement on those spins alone would need more than $10^{8}$ repetitions to reach an error of order one.
 #
 # ### 7.4 Where the threshold dependence comes from
 #
@@ -1723,6 +1727,8 @@ for l in (1, 2, 4, 7, 10, 13):
 # * S. L. Braunstein and C. M. Caves, *Statistical distance and the geometry of quantum states*,
 #   Phys. Rev. Lett. **72**, 3439 (1994) — the quantum Fisher information as the maximum of the classical Fisher
 #   information over all measurements.
+# * C. W. Helstrom, *Quantum Detection and Estimation Theory* (Academic Press, New York, 1976) — the symmetric
+#   logarithmic derivative and the quantum Cramér–Rao bound.
 # * L. Pezzè and A. Smerzi, *Entanglement, nonlinear dynamics, and the Heisenberg limit*,
 #   Phys. Rev. Lett. **102**, 100401 (2009) — $F_Q>N$ as a witness of entanglement for collective generators.
 # * P. Hyllus, W. Laskowski, R. Krischek, C. Schwemmer, W. Wieczorek, H. Weinfurter, L. Pezzè and A. Smerzi,
@@ -1738,6 +1744,18 @@ for l in (1, 2, 4, 7, 10, 13):
 # * P. Calabrese, F. H. L. Essler and M. Fagotti, *Quantum quench in the transverse-field Ising chain*,
 #   Phys. Rev. Lett. **106**, 227203 (2011) — the exact stationary correlation length $\xi^{-1}=-\int\frac{\mathrm dk}{2\pi}\ln\vert\cos\Delta_k\vert$
 #   of the order parameter after a quench, used in Section 6.1.
+# * P. Jordan and E. Wigner, *Über das Paulische Äquivalenzverbot*, Z. Phys. **47**, 631 (1928) — the
+#   Jordan–Wigner transformation.
+# * E. Lieb, T. Schultz and D. Mattis, *Two soluble models of an antiferromagnetic chain*, Ann. Phys. **16**, 407
+#   (1961) — the free-fermion solution of the XY chain, which contains the XX chain of Section 4.
+# * P. Pfeuty, *The one-dimensional Ising model with a transverse field*, Ann. Phys. **57**, 79 (1970) — the
+#   free-fermion solution of the transverse-field Ising chain.
+# * H. F. Trotter, *On the product of semi-groups of operators*, Proc. Amer. Math. Soc. **10**, 545 (1959), and
+#   M. Suzuki, *Generalized Trotter's formula and systematic approximants of exponential operators and inner
+#   derivations with applications to many-body problems*, Commun. Math. Phys. **51**, 183 (1976) — the product
+#   formulas behind the time evolution.
+# * M. Suzuki, *Fractal decomposition of exponential operators with applications to many-body theories and Monte Carlo
+#   simulations*, Phys. Lett. A **146**, 319 (1990) — the five-stage fourth-order scheme used here.
 # * E. H. Lieb and D. W. Robinson, *The finite group velocity of quantum spin systems*,
 #   Commun. Math. Phys. **28**, 251 (1972) — the theorem that there is a velocity at all.
 # * M. Ganahl, E. Rabel, F. H. L. Essler and H. G. Evertz, *Observation of complex bound states in the spin-1/2
