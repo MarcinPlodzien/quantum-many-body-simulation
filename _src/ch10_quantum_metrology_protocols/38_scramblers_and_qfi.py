@@ -1284,7 +1284,8 @@ assert abs(m1 - haar1) > 4 * s1
 # Eqs. (5) and (6) used only the second moment $\mathbb{E}[\vert\psi\rangle\langle\psi\vert^{\otimes2}]$. Any ensemble of states that
 # reproduces this moment, a *state 2-design*, therefore has the same leading-order mean locking curve as Haar
 # states. Uniformly random stabilizer states form such a design, because the Clifford group is a unitary 2-design
-# (Roberts and Yoshida 2017 give a proof; quoted here without one), and a deep random
+# (Dankert *et al.* 2009; it is even a 3-design, Webb 2016 and Zhu 2017, as checked numerically in
+# [notebook 10](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb)), and a deep random
 # Clifford circuit approaches that uniform distribution. The prediction is that the Clifford **mean** is the
 # Haar curve, while each realisation is integer-valued, so that for small blocks most realisations give exactly
 # zero and a few give a large value. Six realisations are not enough to see the rare non-zero ones, so we draw many
@@ -1705,6 +1706,10 @@ print(f"rough crossover (ignoring the factor N of the evolution and all prefacto
 # * P. Hayden and J. Preskill, *Black holes as mirrors: quantum information in random subsystems*,
 #   J. High Energy Phys. **2007**(09), 120 (2007) — the half-system threshold for recovering information from a
 #   scrambled system (Section 4.3).
+# * C. Dankert, R. Cleve, J. Emerson and E. Livine, *Exact and approximate unitary 2-designs and their application to
+#   fidelity estimation*, Phys. Rev. A **80**, 012304 (2009) — the Clifford group as a unitary 2-design (Section 6.2).
+# * Z. Webb, *The Clifford group forms a unitary 3-design*, Quantum Inf. Comput. **16**, 1379 (2016);
+#   H. Zhu, *Multiqubit Clifford groups are unitary 3-designs*, Phys. Rev. A **96**, 062336 (2017) (Section 6.2).
 # * D. A. Roberts and B. Yoshida, *Chaos and complexity by design*, J. High Energy Phys. **2017**(04), 121 (2017)
 #   — chaos and unitary designs, Clifford against Haar averages, and the role of the gate set (Section 6.2).
 # * A. Nahum, J. Ruhman, S. Vijay and J. Haah, *Quantum entanglement growth under random unitary dynamics*,
