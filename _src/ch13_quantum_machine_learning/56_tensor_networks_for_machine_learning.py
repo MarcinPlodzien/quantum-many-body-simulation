@@ -149,7 +149,8 @@ section_timer("3 data")
 #
 # A pixel value $g\in\{0,\dots,255\}$ becomes $x=g/255\in[0,1]$, with $0$ for the background. The pixels are put
 # in a line row by row, each row from left to right, as in Fig. 8 of [[1]](#ref-1): the pixel in row $r$ and column $q$
-# (both from 0 to 13) becomes site $j=14r+q$ of the chain. The MPS will be a chain along this line.
+# (both from 0 to 13) becomes site $j=14r+q$ of the chain. The MPS will be a chain along this line. The text of
+# [[1]](#ref-1) calls this ordering "zig-zag".
 
 # %%
 # ==============================================================================
@@ -569,8 +570,9 @@ section_timer("6 DMRG sweeps")
 # $A^{[j]}$ is left-canonical, $\sum_sA^{[j]s\dagger}A^{[j]s}=1$, and the label leg has moved to site $j+1$ together with
 # the orthogonality centre. Moving left, the rows are $(a,s,\ell)$ and the columns $(t,b)$, $A^{[j+1]}=V^\dagger$ is
 # right-canonical and $US$ carries the label to site $j$. Keeping the $\chi$ largest singular values is the best rank-$\chi$
-# approximation in the Frobenius norm (Eckart–Young theorem [[6]](#ref-6), notebook 18, Section 3.5), and the relative
-# error is the discarded weight $\varepsilon=\sum_{k\geq\chi}S_k^2/\sum_kS_k^2$ (singular values counted from $k=0$).
+# approximation in the Frobenius norm (Eckart–Young theorem [[6]](#ref-6), notebook 18, Section 3.5), and the squared
+# relative error in that norm is the discarded weight $\varepsilon=\sum_{k\geq\chi}S_k^2/\sum_kS_k^2$ (singular
+# values counted from $k=0$).
 #
 # ### 6.5 Environments: cached, advanced by one site, and rescaled
 #
@@ -602,8 +604,8 @@ section_timer("6 DMRG sweeps")
 # kept separately as `C`, of shape $(\chi,2,10,\chi)$; the entry of `As` at the centre's site is not used until the
 # centre moves on and the split writes it. The end bonds are handled as in Section 5, with the boundary index fixed to
 # 0. The rows $a\neq0$ of the site-0 tensor and the columns $b\neq0$ of the site-$(N-1)$ tensor therefore never meet an
-# image: they receive no gradient and do not change any score, but they are kept as initialised and take part in the
-# SVDs of the end bonds and in their discarded weight. Exercise 9 sets these entries to zero, as a boundary bond of
+# image: they receive no gradient and never enter a score. They are not zero, however: they take part in the SVDs of
+# the end bonds and in their discarded weight, and each split of an end bond rewrites them. Exercise 9 sets these entries to zero, as a boundary bond of
 # dimension 1 would, and compares the training.
 #
 # A whole half sweep is one `lax.scan` over the bond index $j$: the carry holds the site tensors, the centre tensor and

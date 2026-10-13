@@ -732,7 +732,7 @@ print(f"power method reaches 1e-10 after {k_pm} iterations" if k_pm else
 # ### 7.1 The Gram matrix of plain Lanczos
 #
 # In exact arithmetic the three-term recurrence produces vectors that are orthogonal to *all* previous ones. In floating-point arithmetic each step commits a round-off error of relative size
-# $\varepsilon\approx10^{-16}$. One might hope that these errors stay small. They do not. We repeat the run of Section 5 with `lanczos_basic` for $m=150$ and look at the Gram matrix
+# $\varepsilon\approx10^{-16}$. One might hope that these errors stay small. They do not. We repeat the run of Section 5 with `lanczos_basic` for $m=200$ and look at the Gram matrix
 # $G_{ij}=\langle v_i|v_j\rangle$, which should be the identity.
 
 # %%
