@@ -5,9 +5,7 @@
 # %% [markdown]
 # ## 1. Introduction
 #
-# The previous notebook,
-# [40 — parametrized gates and gradients](../ch13_quantum_machine_learning/40_parametrized_gates_and_gradients.ipynb),
-# built the quantum half of the variational loop: a circuit $U(\boldsymbol\theta)$, a cost
+# The quantum half of the variational loop consists of a circuit $U(\boldsymbol\theta)$, a cost
 # $C(\boldsymbol\theta)=\langle\psi(\boldsymbol\theta)\vert\hat O\vert\psi(\boldsymbol\theta)\rangle$, and four ways to
 # obtain $\nabla C$. This notebook builds the classical half — the rule that turns a gradient into the next set of angles —
 # and then measures which rules actually work.
@@ -21,8 +19,8 @@
 # 2. **The cost is noisy.** It is an average over a finite number of measurements, so the "function" being minimised is a
 #    random variable. Classical optimisers built on the assumption of exact function values — line searches, quasi-Newton
 #    curvature estimates — degrade badly.
-# 3. **The landscape is not convex.** Section 6 of the previous notebook showed that the cost is a bounded trigonometric
-#    polynomial of the angles; nothing makes such a function convex, and in many angles it can have local minima that
+# 3. **The landscape is not convex.** The cost is a bounded trigonometric polynomial of the angles
+#    ([notebook 40, parametrised gates and gradients](40_parametrized_gates_and_gradients.ipynb), Section 6); nothing makes such a function convex, and in many angles it can have local minima that
 #    are not global. Section 14 below measures how often random starts end in one of them, and how that depends on the circuit depth.
 #
 # **Road map.** Every optimiser is introduced the same way: the update equation, a derivation or a motivation for it, an
@@ -71,23 +69,10 @@
 # * timing a compiled program with its compilation separated from its run (`jit(...).lower(...).compile()`);
 # * `jax.jacfwd` through a circuit to build a metric tensor, and `jnp.linalg.solve` with a regulariser inside a scan.
 #
-# ### Prerequisites
-#
-# * [40 — parametrized gates and gradients](../ch13_quantum_machine_learning/40_parametrized_gates_and_gradients.ipynb):
-#   ansätze, cost functions, the parameter-shift rule, SPSA, reverse-mode AD, shot noise;
-# * [11 — Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb):
-#   Hamiltonians as term lists and the exact ground state from Lanczos;
-# * [06 — states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb):
-#   fidelity between pure states;
-# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, `lax.scan`, `grad`,
-#   `jacfwd`, PRNG keys.
-#
-# **What comes next.**
-# [42a — the variational quantum eigensolver: Hamiltonians, ansätze, training](../ch13_quantum_machine_learning/42a_variational_quantum_eigensolver_hamiltonians_ansatze_training.ipynb)
-# and [42 — the variational quantum eigensolver](../ch13_quantum_machine_learning/42_variational_quantum_eigensolver.ipynb)
-# put the circuit of notebook 40 and the optimisers of this notebook together into the full algorithm and study the
-# physics of the optimised state — energy, fidelity and entanglement against the exact ground state, the effect of depth,
-# and statistics over random starts.
+# The notebook assumes the ansätze, cost functions and gradient estimators of
+# [notebook 40, parametrised gates and gradients](40_parametrized_gates_and_gradients.ipynb), Lanczos ground energies
+# ([notebook 11, Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb))
+# and `jit`, `vmap`, `lax.scan`, `jacfwd` ([notebook 01, JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)).
 #
 # **Conventions and sizes.** All costs are minimised. Benchmarks use $N=4$ and $N=6$ qubits with a hardware-efficient
 # ansatz, so a full training run of hundreds of iterations and dozens of restarts fits comfortably in one compiled
@@ -668,7 +653,8 @@ for lr in (0.01, 0.05, 0.4, 1.0, 3.0):
 # %% [markdown]
 # ## 7. SPSA and Spall's gain sequences
 #
-# SPSA replaces $\nabla C$ by the two-evaluation estimate of notebook 40,
+# SPSA replaces $\nabla C$ by the two-evaluation estimate derived in
+# [notebook 40, parametrised gates and gradients](40_parametrized_gates_and_gradients.ipynb), Section 9,
 #
 # $$\hat g_k=\frac{C(\boldsymbol\theta_k+c_k\boldsymbol\Delta_k)-C(\boldsymbol\theta_k-c_k\boldsymbol\Delta_k)}
 #   {2c_k}\,\boldsymbol\Delta_k^{\odot-1}, \tag{12}$$
@@ -691,7 +677,7 @@ for lr in (0.01, 0.05, 0.4, 1.0, 3.0):
 # The reading is physical. (i) and (iv): the steps and the probe radius must shrink, otherwise the iterate cannot settle
 # and the $O(c^2)$ bias of the estimator never vanishes. (ii): the steps must not shrink *so* fast that their total length
 # is finite — otherwise the iterate can stall before reaching the minimum. (iii): $\mathrm{Var}(\hat g_k)$ grows like
-# $c_k^{-2}$ once the cost is noisy (notebook 40, Eq. (29)), so $a_k^2/c_k^2$ is the variance actually injected into the
+# $c_k^{-2}$ once the cost is noisy ([notebook 40, parametrised gates and gradients](40_parametrized_gates_and_gradients.ipynb), Eq. (29)), so $a_k^2/c_k^2$ is the variance actually injected into the
 # iterate at step $k$, and the total injected noise must be finite.
 #
 # ### 7.2 Where the exponents come from
@@ -790,7 +776,8 @@ for al, ga in ((0.602, 0.101), (1.0, 1 / 6), (0.4, 0.101), (0.602, 0.4)):
 # * averages the very noisy estimate over $\sim1/(1-\beta_1)=10$ iterations through the first moment. If the estimates were
 #   independent with variance $\sigma^2$ and $\boldsymbol\theta$ moved little over that window, the stationary variance of
 #   $\mathbf m$ would be $(1-\beta_1)^2\sum_{j\ge0}\beta_1^{2j}\sigma^2=\frac{1-\beta_1}{1+\beta_1}\sigma^2=\sigma^2/19$, a
-#   reduction of the error of Eq. (24) of notebook 40 by a factor of about $19$ in variance;
+#   reduction of the error of Eq. (24) of
+#   [notebook 40, parametrised gates and gradients](40_parametrized_gates_and_gradients.ipynb) by a factor of about $19$ in variance;
 # * normalises the step by $\sqrt{\hat v}$, which removes the need to guess the scale of $a$.
 #
 # The hybrid keeps Adam's *constant* $\eta$. By the argument of Section 7 it therefore cannot converge to the minimum; the
@@ -865,7 +852,7 @@ for al, ga in ((0.602, 0.101), (1.0, 1 / 6), (0.4, 0.101), (0.602, 0.4)):
 # enormous and the ridge caps it at $\eta/\lambda_{\mathrm{reg}}=10^3\eta$. For $g\gg\lambda_{\mathrm{reg}}$ the ridge has
 # no effect. This is the **quantum natural gradient** introduced in [[7]](#ref-7);
 # $\mathbf G$ is one quarter of the quantum Fisher information matrix for the pure state family (see
-# [29 — quantum Fisher information](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb)).
+# [notebook 29, quantum Fisher information](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb)).
 #
 # On a simulator $\mathbf G$ is one `jacfwd` away. On hardware every entry has to be estimated from its own circuits, so
 # the full metric costs $O(n^2)$ circuits per iteration; Section 12 counts it as one circuit per independent entry,
@@ -1330,13 +1317,10 @@ fig.tight_layout(); plt.show()
 # on an open chain of $N=6$ spins, and minimise $C(\boldsymbol\theta)=\langle\psi(\boldsymbol\theta)\vert H
 # \vert\psi(\boldsymbol\theta)\rangle$. The variational principle guarantees $C\ge E_0$, and $E_0$ is available exactly
 # from the Lanczos ground state of
-# [11 — Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb),
+# [notebook 11, Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb),
 # so the quantity to plot is the **energy error** $C-E_0$, which must stay positive.
 #
-# (The full physics of this optimised state — its fidelity with the true ground state, its entanglement, its correlation
-# functions — is the subject of
-# [42 — the variational quantum eigensolver](../ch13_quantum_machine_learning/42_variational_quantum_eigensolver.ipynb).
-# Here we use it only as a landscape on which to compare optimisers.)
+# Here the energy serves only as a landscape on which to compare optimisers.
 
 # %%
 # ==============================================================================
@@ -1488,8 +1472,7 @@ for name, opt, gr, ev in METHODS_H[:3]:                       # gradient descent
 # starts) the natural-gradient runs end, all but one, at
 # $E-E_0=8.6\cdot10^{-3}$, $1.14\cdot10^{-2}$, $1.18\cdot10^{-2}$ or $1.20\cdot10^{-2}$ (the median $1.18\cdot10^{-2}$ in the
 # table is one of them); the lowest value found here, $8.6\cdot10^{-3}$, is an upper bound on the error of the best
-# $L=3$ circuit, which does not contain the exact ground state. How this error depends on the depth is the subject of
-# notebook 42.
+# $L=3$ circuit, which does not contain the exact ground state.
 
 # %%
 # ==============================================================================
@@ -1703,7 +1686,8 @@ fig.tight_layout(); plt.show()
 # happens between the depths with $n=24$ and $n=32$, the two grid points that bracket it; the depth grid, in steps of
 # $2N=8$ parameters, cannot locate it more precisely.
 #
-# This has to be weighed against Section 13 of notebook 40, where hardware-efficient circuits whose depth grows with $N$
+# This has to be weighed against the barren-plateau measurement of
+# [notebook 40, parametrised gates and gradients](40_parametrized_gates_and_gradients.ipynb), Section 13, where hardware-efficient circuits whose depth grows with $N$
 # were measured to have *exponentially smaller* gradient variances as $N$ grows. Depth helps trainability at fixed small
 # $N$ and hurts it as $N$ grows with the depth; which effect dominates has to be measured for the problem at hand.
 
@@ -1724,7 +1708,7 @@ fig.tight_layout(); plt.show()
 #
 # Four decision rules that these measurements support:
 #
-# * **On a simulator, use reverse-mode AD with Adam as the default.** The gradient is cheap (notebook 40, Section 11), so
+# * **On a simulator, use reverse-mode AD with Adam as the default.** The gradient is cheap ([notebook 40, parametrised gates and gradients](40_parametrized_gates_and_gradients.ipynb), Section 11), so
 #   the per-iteration circuit count is irrelevant, and Adam has no divergence threshold and a usable step-size window of
 #   about a decade.
 # * **Try the natural gradient when the landscape has slow saddle regions.** On the energy landscape it reached the target
@@ -1804,7 +1788,8 @@ fig.tight_layout(); plt.show()
 #    metric, and count the circuits each would need.
 # 7. ★★★ **Overparametrisation at larger $N$ (physics).** Repeat Section 14 for $N=5$ and $N=6$ with a Haar-random
 #    target. Does the parameter count at which the success rate rises track $2\cdot2^N-2$? Combine the answer with the
-#    barren-plateau exponents of notebook 40 and state the regime in which both requirements can be met at once.
+#    barren-plateau exponents of
+#    [notebook 40, parametrised gates and gradients](40_parametrized_gates_and_gradients.ipynb) and state the regime in which both requirements can be met at once.
 # 8. ★★★ **An optimiser that spends its shots adaptively (extend the code).** Make the shot budget per iteration grow
 #    with $k$ (for instance $M_k\propto k$) at a fixed *total* budget, and compare with the constant-$M$ runs of
 #    Section 13 at the same total number of shots. Does spending more shots late beat spending them uniformly?

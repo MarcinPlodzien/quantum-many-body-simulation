@@ -10,8 +10,7 @@
 # so does $\psi_1+\psi_2$, so the two waves never notice each other at all: the superposition is a solution from
 # the start, and "the collision" is a picture we draw on top of a sum that was always there.
 #
-# Notebook [00c](00c_bright_soliton_imaginary_time_nonlinear_schroedinger.ipynb) left that world. The equation
-# of this notebook is
+# The equation of this notebook leaves that world. It is
 #
 # $$ i\,\frac{\partial\psi}{\partial t} \;=\; -\frac{1}{2}\frac{\partial^{2}\psi}{\partial x^{2}}
 #    \;-\; g\,\vert\psi\vert^{2}\psi , \tag{1} $$
@@ -32,8 +31,8 @@
 # it is integrable, solvable by the inverse scattering method introduced in [[4]](#ref-4) for the Korteweg-de Vries
 # equation, and its solitons scatter elastically for ever.
 #
-# The experiments are real. In an optical fibre the same equation governs a light pulse (Section 2.4 of 00c;
-# [[5]](#ref-5), Chapter 5), and
+# The experiments are real. In an optical fibre the same equation governs a light pulse ([[5]](#ref-5),
+# Chapter 5), and
 # soliton collisions in fibres are a design constraint for long-haul transmission: neighbouring pulses in a bit
 # stream attract or repel depending on their relative phase, which is precisely what was computed in [[6]](#ref-6).
 # With atoms, matter-wave solitons made of lithium-7 were collided in [[7]](#ref-7) with a controlled *relative phase*, which is what decides what happens at the moment of
@@ -62,6 +61,10 @@
 # * **Section 11** — animations and space-time maps.
 # * **Section 12** — summary, exercises, references.
 #
+# The notebook assumes the bright soliton, its Galilean boost, its conserved quantities and the split-step Fourier
+# propagator of [notebook 00c, bright solitons](00c_bright_soliton_imaginary_time_nonlinear_schroedinger.ipynb), which are used here without re-derivation, and the periodic grid
+# of [notebook 00a, a free Gaussian wave packet](00a_free_particle_gaussian_wave_packet.ipynb).
+#
 # ### What you will learn
 #
 # *Physics*
@@ -84,26 +87,14 @@
 #   compiled program;
 # * reusing a propagator written in an earlier notebook without rewriting or re-deriving it;
 # * a perturbed propagator built by changing one line of the split-step body.
-#
-# ### Prerequisites
-#
-# [00c — bright solitons](00c_bright_soliton_imaginary_time_nonlinear_schroedinger.ipynb) is essential: the
-# soliton profile, the Galilean boost, the conserved quantities and the split-step Fourier propagator are all
-# taken from it and are not re-derived here.
-# [00a — a free Gaussian wave packet on a ring](00a_free_particle_gaussian_wave_packet.ipynb) supplies the
-# periodic grid, `fftfreq` and the sampling theorem, and
-# [00b — the harmonic oscillator](00b_first_quantum_simulation_harmonic_oscillator.ipynb) the habit of checking
-# an integrator before believing it. One semester of quantum mechanics. The three JAX features used here
-# (`jit`, `lax.scan`, `vmap`) are each explained in two sentences where they appear and properly in
-# [01 — JAX](01_jax_from_scratch.ipynb).
 
 # %% [markdown]
 # ## 2. Two solitons on one ring
 #
-# ### 2.1 The one-soliton family of notebook 00c
+# ### 2.1 The one-soliton family
 #
-# Notebook 00c derived the stationary solutions of Eq. (1) on the infinite line. With the normalisation left
-# free, the family is (Eq. (25) of 00c)
+# The stationary solutions of Eq. (1) on the infinite line are derived in [notebook 00c, bright solitons](00c_bright_soliton_imaginary_time_nonlinear_schroedinger.ipynb),
+# Eq. (25) there. With the normalisation left free, the family is
 #
 # $$ \phi_N(x) \;=\; \frac{N\sqrt g}{2}\;\mathrm{sech}\!\left[\kappa_N\,(x-x_c)\right] , \qquad
 #    \kappa_N \;\equiv\; \frac{Ng}{2} , \qquad
@@ -121,11 +112,11 @@
 # Because the whole notebook keeps the *total* norm equal to one, a pair of solitons must share it:
 # $N_1+N_2 = 1$. Two equal solitons therefore have $N_1 = N_2 = \tfrac12$, hence $\kappa = g/4 = 0.5$ at $g=2$,
 # a width $1/\kappa = 2$ and a peak density $0.125$ — each of them *twice* as wide as the single unit-norm
-# soliton of 00c ($\kappa=1$, width $1$, peak density $0.5$), and each four times less dense. The relation
+# soliton ($\kappa=1$, width $1$, peak density $0.5$), and each four times less dense. The relation
 # $\kappa_N \propto N$ is the statement that a soliton made of fewer atoms is wider and flatter, and the physical soliton that a
 # laboratory makes is set by $N_jg$, not by $g$ alone.
 #
-# The Galilean boost of 00c (its Eq. (26)) turns a stationary profile into a moving one:
+# The Galilean boost (Eq. (26) of [notebook 00c, bright solitons](00c_bright_soliton_imaginary_time_nonlinear_schroedinger.ipynb)) turns a stationary profile into a moving one:
 #
 # $$ \psi_j(x,t) \;=\; \phi_{N_j}\!\left(x - x_j - k_j t\right)\,
 #    \exp\!\left[\,i k_j x - i\left(\tfrac{k_j^{2}}{2}+\mu_{N_j}\right)t + i\varphi_j\right] , \tag{3} $$
@@ -195,11 +186,11 @@ C_NUM, C_ANA, C_THIRD, C_FOURTH, C_GREY = "#0072B2", "#D55E00", "#009E73", "#CC7
 print("extra imports OK")
 
 # %% [markdown]
-# ### 2.4 The grid and the functions taken over from notebook 00c
+# ### 2.4 The grid and the one-soliton functions
 #
 # The next cell is bookkeeping: the grid, the exact one-soliton solution, the energy functional, the
 # observables and the split-step propagator, all copied verbatim from
-# [00c](00c_bright_soliton_imaginary_time_nonlinear_schroedinger.ipynb), each with a one-line pointer to where
+# [notebook 00c, bright solitons](00c_bright_soliton_imaginary_time_nonlinear_schroedinger.ipynb), each with a one-line pointer to where
 # it was derived. The propagator is the split-step Fourier method introduced in [[8]](#ref-8) with the
 # symmetric splitting of [[9]](#ref-9); the FFT is the algorithm of [[10]](#ref-10). Chapters 12 and 20 of [[11]](#ref-11)
 # treat the FFT and operator splitting, with array-based Fortran 90
@@ -207,8 +198,7 @@ print("extra imports OK")
 #
 # > **JAX practice.** `jax.jit` compiles a Python function once, for the shapes of its arguments, into a single
 # > fused program, and `lax.scan(body, init, xs, length=n)` is a compiled `for` loop that carries a state
-# > forward. Both are used exactly as in 00c and are explained properly in
-# > [01 — JAX](01_jax_from_scratch.ipynb).
+# > forward. Both are explained properly in [notebook 01, JAX](01_jax_from_scratch.ipynb).
 
 # %%
 # ==============================================================================
@@ -445,7 +435,7 @@ print(f"density midway        : {np.abs(psi0_main[N_X // 2]) ** 2:.3e}   "
 #    p \;=\; \int \psi^{*}(-i\partial_x)\psi\,dx \;=\; \sum_j N_j k_j , \qquad
 #    E \;=\; \sum_j\left[-\frac{\kappa_j^{3}}{3g} + \frac{N_jk_j^{2}}{2}\right] . \tag{7} $$
 #
-# The energy of one soliton comes straight from 00c: for norm $N$ it found
+# The energy of one soliton of norm $N$, derived in [notebook 00c, bright solitons](00c_bright_soliton_imaginary_time_nonlinear_schroedinger.ipynb), is
 # $E_{\rm kin} = \kappa_N^{3}/(3g)$ and $E_{\rm int} = -2\kappa_N^{3}/(3g)$, whose sum is $-\kappa_N^{3}/(3g)$,
 # and the boost adds $N k^{2}/2$ because $\vert\psi'\vert^{2} = (\phi')^{2}+k^{2}\phi^{2}$ and
 # $\int\phi^{2}=N$. For $N=\tfrac12$, $g=2$ that is $-0.0208\overline{3}$ per soliton.
@@ -507,13 +497,12 @@ print("\nCHECKPOINT 1 passed: the deviations fall like exp(-kappa d), Eq. (6).")
 # %% [markdown]
 # ## 3. The conserved quantities
 #
-# Section 4 of 00c derived three conservation laws for Eq. (1): the norm, the momentum
+# Equation (1) has three conservation laws, derived in Section 4 of [notebook 00c, bright solitons](00c_bright_soliton_imaginary_time_nonlinear_schroedinger.ipynb): the norm, the momentum
 # $p = \int\mathrm{Im}(\psi^{*}\psi')dx$ and the energy
 #
 # $$ E[\psi] \;=\; \int\left[\frac{1}{2}\vert\psi'\vert^{2} - \frac{g}{2}\vert\psi\vert^{4}\right]dx . \tag{8} $$
 #
-# Their value here is different from their value in 00c. There, the state was a single soliton whose exact
-# solution was known, so the conservation laws were a bonus. Here there is no closed form on the ring for what
+# For a single soliton, whose exact solution is known, the conservation laws are a bonus. Here there is no closed form on the ring for what
 # the field does during the overlap, the initial state is not exactly a solution, and the whole question is
 # whether an elaborate nonlinear rearrangement leaves the two objects intact. The conserved quantities are then
 # the only *independent* referee available, and only one of the three is independent of the integrator:
@@ -528,7 +517,7 @@ print("\nCHECKPOINT 1 passed: the deviations fall like exp(-kappa d), Eq. (6).")
 #   from Eq. (8) at $O(\Delta t^{2})$, so $E$ drifts at that order, and a larger drift means the run is wrong.
 #
 # A fourth quantity is worth watching for a two-body problem: the centre of mass. Ehrenfest's relation survives
-# the nonlinearity (00c, Eq. (14)), $d\langle x\rangle/dt = p$, so with $p$ conserved the centre of mass moves
+# the nonlinearity ([notebook 00c, bright solitons](00c_bright_soliton_imaginary_time_nonlinear_schroedinger.ipynb), Eq. (14)), $d\langle x\rangle/dt = p$, so with $p$ conserved the centre of mass moves
 # in a straight line through the collision no matter what happens during it. Section 8 turns that into a sum
 # rule that the two position shifts must obey.
 
@@ -565,7 +554,7 @@ print("CHECKPOINT 2 passed: norm, energy and momentum survive the collision.")
 # The norm holds to $2\times10^{-12}$ and the momentum to $8\times10^{-13}$, both guaranteed by the method. The
 # energy, which is not, holds to $3\times10^{-7}$. The initial energy also agrees with
 # the infinitely-separated value of Eq. (7) to $9\times10^{-10}$, the floor of Section 2.6. Section 10 shows
-# that the energy drift falls as $\Delta t^{2}$, i.e. it is the Strang splitting error of 00c and not a
+# that the energy drift falls as $\Delta t^{2}$, i.e. it is the error of the Strang splitting and not a
 # physical leak.
 
 # %% [markdown]
@@ -877,7 +866,7 @@ print("\nCHECKPOINT 3 passed: nothing about either soliton changed except where 
 # > **JAX practice.** `jax.vmap(f)` turns a function written for one input into a function that applies it to a
 # > whole stacked batch, generating vectorised code rather than a Python loop — but every array shape and every
 # > loop length inside must be the same across the batch, which is why the *step size* is batched here and the
-# > *step count* is not. See [01 — JAX](01_jax_from_scratch.ipynb).
+# > *step count* is not. See [notebook 01, JAX](01_jax_from_scratch.ipynb).
 
 # %%
 # ==============================================================================
@@ -1238,7 +1227,7 @@ plt.show()
 #
 # > **Physics insight.** What the relative phase controls is the *density during the overlap*, which is a factor
 # > of two here and can be much more for slower collisions; and density is exactly what decides whether an
-# > attractive condensate collapses. Equation (1) has no collapse (00c, Section 6.2), so in it the density spike
+# > attractive condensate collapses. Equation (1) has no collapse ([notebook 00c, bright solitons](00c_bright_soliton_imaginary_time_nonlinear_schroedinger.ipynb), Section 6.2), so in it the density spike
 # > does nothing that survives the collision. A laboratory soliton is only *quasi*-one-dimensional: it keeps a
 # > transverse degree of freedom on which the spike can act, which is why a phase-resolved collision experiment
 # > such as that of [[7]](#ref-7) can see an outcome that Eq. (1) forbids.
@@ -1519,7 +1508,7 @@ print("CHECKPOINT 8 passed: in phase the pair is bound, with the period Eq. (16)
 #
 # Nothing so far required $N_1=N_2$. For unequal solitons Eq. (11) predicts two *different* shifts, and they are
 # not independent: the centre of mass constrains them. Ehrenfest's relation for Eq. (1) is
-# $d\langle x\rangle/dt = p$ with $p$ conserved (00c, Section 4.4), so $\langle x\rangle$ is exactly linear in
+# $d\langle x\rangle/dt = p$ with $p$ conserved ([notebook 00c, bright solitons](00c_bright_soliton_imaginary_time_nonlinear_schroedinger.ipynb), Section 4.4), so $\langle x\rangle$ is exactly linear in
 # $t$ — through the collision and everything in it. Writing the field as two solitons plus negligible radiation,
 #
 # $$ \langle x\rangle(t) \;=\; N_1x_1(t) + N_2x_2(t) , $$
@@ -1608,7 +1597,7 @@ print("CHECKPOINT 9 passed: unequal solitons obey Eq. (11) and the sum rule (17)
 #   the transverse cloud contracts, which strengthens the effective interaction; expanding that effect in the
 #   density produces an attractive $\vert\psi\vert^{4}\psi$ term. It is also the term that makes a
 #   one-dimensional equation collapse, since $\int\vert\psi\vert^{6}dx$ scales as $w^{-2}$, exactly like the
-#   kinetic energy (00c, Section 6.2, with $d=1$ and a quintic nonlinearity in place of the cubic one).
+#   kinetic energy ([notebook 00c, bright solitons](00c_bright_soliton_imaginary_time_nonlinear_schroedinger.ipynb), Section 6.2, with $d=1$ and a quintic nonlinearity in place of the cubic one).
 # * a **Gaussian barrier**, $V(x) = V_0e^{-x^{2}/2\sigma_b^{2}}$, placed at the collision point. An external
 #   potential breaks translation invariance, so momentum is no longer conserved and the inverse-scattering
 #   machinery is gone.
@@ -1828,7 +1817,7 @@ for V0 in V0_LIST:
 #
 # so a soliton boosted to velocity $k_0$ has a spectrum centred on $k_0$ and falling as
 # $e^{-\pi\vert q-k_0\vert/(2\kappa)}$. Requiring that the spectrum has fallen below a tolerance $\varepsilon$
-# at the Nyquist wave number $k_{\max} = \pi/\Delta x$ of the grid (rule 2 of notebook 00a) gives
+# at the Nyquist wave number $k_{\max} = \pi/\Delta x$ of the grid gives
 #
 # $$ \frac{\pi}{\Delta x} \;\gtrsim\; \vert k_0\vert \;+\; \frac{2\kappa}{\pi}\,\ln\frac{2}{\varepsilon} . \tag{19} $$
 #
@@ -1916,7 +1905,7 @@ for x0_try in (12.0, 16.0, 20.0, 24.0):
 # the $O(\Delta t^{2})$ of Strang splitting, measured. The shift converges at the same rate but from a much
 # lower starting point — it moves only from $1.77123$ to $1.77155$ as $\Delta t$ falls by eight, an absolute
 # change of $3\times10^{-4}$ — and the coarsest step tried, $\Delta t = 0.191$, is $24$ times the stability
-# limit an explicit integrator would have had on this grid (00c, Eq. (43)), printed in the header of the table.
+# limit an explicit integrator would have had on this grid ([notebook 00c, bright solitons](00c_bright_soliton_imaginary_time_nonlinear_schroedinger.ipynb), Eq. (43)), printed in the header of the table.
 # Unconditional stability is what makes such a step legal; the measurement is what makes it acceptable.
 #
 # Panel (c). The initial separation is the third constraint, and it is not a discretisation at all. At $x_0=12$
@@ -2021,7 +2010,7 @@ print(f"   the 10-velocity vmapped sweep, already compiled: {t_sweep:.3f} s for 
 # %% [markdown]
 # ## 11. Animations
 #
-# The function below is the one written in notebook 00a and reused in 00c: `FuncAnimation` updates artists
+# The animation function below works as follows: `FuncAnimation` updates artists
 # created once, `PillowWriter` encodes the frames, the GIF is written to a temporary directory that deletes
 # itself, and the bytes are emitted as **one output carrying two representations** — a plain `image/gif` for
 # Jupyter and the GitHub notebook viewer, and a base64 `<img>` tag for static website renderers, which drop
@@ -2265,7 +2254,7 @@ print(f"   central lump at the end (g5 = 4): peak density {np.max(np.abs(FR_Q[10
 # interferometer.
 #
 # **3. (★★) The higher-order soliton and its period.** The initial condition $\psi(x,0) = 2\phi_1(x)$, i.e. the
-# unit-norm soliton of 00c with its amplitude doubled (its norm is then $4$, not $1$: doubling the amplitude of
+# unit-norm soliton $\phi_1$ of Eq. (2) with its amplitude doubled (its norm is then $4$, not $1$: doubling the amplitude of
 # a fixed profile quadruples the norm, so this one experiment leaves the unit-norm convention of the notebook),
 # is not a soliton: Ref. [[15]](#ref-15) showed that
 # $A\,\mathrm{sech}$ with $A$ an integer multiple of the fundamental amplitude is an $N$-soliton *bound state*
@@ -2374,14 +2363,3 @@ print(f"   central lump at the end (g5 = 4): peak density {np.max(np.abs(FR_Q[10
 #
 # <span id="ref-18">[18]</span> R. Hirota, *Exact envelope-soliton solutions of a nonlinear wave equation*, J. Math. Phys. **14**, 805 (1973)
 # — the bilinear method applied to Eq. (1), and its $N$-soliton solutions (Exercise 8).
-#
-# ### 12.4 What comes next
-#
-# This is the last notebook of the wave-function-on-a-grid part of the course. Everything so far has been one
-# complex field on one grid, propagated with two FFTs per step, and the physics has been the physics of a single
-# orbital occupied by many particles. [01 — JAX](01_jax_from_scratch.ipynb) explains the tools
-# used on trust here — `jit`, `lax.scan`, `vmap`, and the rest — and
-# [02 — einsum from scratch](02_einsum_from_scratch.ipynb) the contraction notation the rest of the course
-# runs on. After them the course leaves the mean field
-# for the many-body Hilbert space, where the state is no longer a function of $x$ but a tensor with one index
-# per particle, and where no amount of grid refinement helps.

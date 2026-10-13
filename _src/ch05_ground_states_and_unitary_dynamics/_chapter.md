@@ -13,14 +13,16 @@ and ends with a table for choosing an integrator. The final notebook uses them f
 spin chains: relaxation of the magnetisation, light cones, domain-wall melting, entanglement growth, integrable
 versus non-integrable chains and the Loschmidt echo with its dynamical phase transitions.
 
-Read the notebooks in the listed order. Notebook 14 builds on the Lanczos iteration of notebook 11 and compares
-against notebooks 12 and 13; notebook 15 uses mainly the Trotter–Suzuki evolution of notebook 12 and needs the other
+Read the notebooks in the listed order. Notebook 12 takes the Ising and XXZ models and their symmetries from
+notebook 11; notebook 13 uses the Lanczos iteration of notebook 11 for its spectral bounds and compares against
+notebook 12; notebook 14 builds on the Lanczos iteration of notebook 11 and compares against notebooks 12 and 13; notebook 15 uses mainly the Trotter–Suzuki evolution of notebook 12 and needs the other
 two integrators only as cross-checks, so a reader interested in the physics can go from 12 to 15 directly.
 
 Prerequisites are notebook 01 (JAX: `jit`, `vmap`, `lax.scan`) of [Chapter 1](ch01_computational_toolbox.qmd), the
 models, dense diagonalisation and textbook time evolution of notebooks 03 and 04 in
 [Chapter 2](ch02_spin_systems_textbook_way.qmd), and [Chapter 3](ch03_matrix_free_engine.qmd): `apply_gate` and
-`apply_hamiltonian` of notebook 05 and the entanglement entropy and Page value of notebook 06. The Trotter circuit of notebook 09 in
+`apply_hamiltonian` of notebook 05 and the reduced density matrices, Schmidt decomposition, entanglement entropy and
+Page value of notebook 06. The Trotter circuit of notebook 09 in
 [Chapter 4](ch04_digital_quantum_circuits.qmd) is the gate sequence of notebook 12. Open systems follow in
 [Chapter 6](ch06_open_quantum_systems.qmd), and the same Trotter gates act on matrix product states in
 [Chapter 7](ch07_tensor_networks.qmd).

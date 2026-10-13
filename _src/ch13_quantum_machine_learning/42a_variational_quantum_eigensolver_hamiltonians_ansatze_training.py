@@ -10,21 +10,20 @@
 # transition sits, and its energy, differentiated with respect to the couplings, gives magnetisations and forces.
 #
 # Exact diagonalisation answers the question for small systems and then stops, because a state of $N$ spins-$1/2$ has
-# $2^N$ amplitudes. [Notebook 11](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb)
-# measured this wall in its Section 14: with a matrix-free Lanczos solver one application of the Hamiltonian of a
+# $2^N$ amplitudes. The wall is measured in
+# [notebook 11, Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb), Section 14: with a matrix-free Lanczos solver one application of the Hamiltonian of a
 # critical Ising chain took a fraction of a millisecond at $N=10$ and a few tenths of a second at $N=20$, a Krylov
 # basis of $80$ vectors needs $1.3$ GB at $N=20$, where the dense Hamiltonian would need $17.6$ terabytes, and the
 # $N=20$ ground state took between half a minute and a minute and a half of wall time, depending on the load of the machine. Every added spin doubles the memory, and from $N\approx14$ on it roughly doubles the time.
 #
-# Matrix product states push the limit much further for a large and important class of states.
-# [Notebook 18](../ch07_tensor_networks/18_mps_tebd.ipynb) builds them (Sections 2 and 3) and runs DMRG on chains of a
-# hundred spins (Section 6.9). They work because ground states of gapped one-dimensional Hamiltonians obey an area law:
+# Matrix product states push the limit much further for a large and important class of states: DMRG reaches chains of a
+# hundred spins ([notebook 18, matrix product states](../ch07_tensor_networks/18_mps_tebd.ipynb), Section 6.9). They work because ground states of gapped one-dimensional Hamiltonians obey an area law:
 # the entanglement entropy across a cut stays bounded as the chain grows, as proved in [[1]](#ref-1) and reviewed in
 # [[2]](#ref-2), so a modest bond dimension suffices. The cost rises whenever the entanglement grows.
 # At a critical point the entropy grows logarithmically with the system size [[3]](#ref-3),
 # [[4]](#ref-4), which is still manageable in one dimension; after a global quench it grows linearly in
 # time [[5]](#ref-5), volume-law states cannot be compressed at all, and a two-dimensional lattice snaked into a chain
-# needs a bond dimension exponential in its width (notebook 18, Section 12).
+# needs a bond dimension exponential in its width ([notebook 18, matrix product states](../ch07_tensor_networks/18_mps_tebd.ipynb), Section 12).
 #
 # The variational quantum eigensolver (VQE), introduced in [[6]](#ref-6), uses a representation of a different
 # kind. A parametrised quantum circuit
@@ -80,20 +79,10 @@
 #   the depth;
 # * forward-mode differentiation (`jax.jvp`) for one gradient component over a thousand random angle vectors.
 #
-# ### Prerequisites
-#
-# * [11 — Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb):
-#   Hamiltonians as lists of local terms, the Lanczos ground state, and the physics of both chains (Sections 11 and 12);
-# * [40 — parametrised gates and gradients](../ch13_quantum_machine_learning/40_parametrized_gates_and_gradients.ipynb):
-#   rotation gates, the hardware-efficient and Hamiltonian-variational ansätze, the parameter-shift rule and barren
-#   plateaus;
-# * [41 — optimisers](../ch13_quantum_machine_learning/41_optimizers.ipynb): Adam and the `lax.scan` training loop;
-# * [06 — states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb):
-#   reduced density matrices, entanglement entropy and fidelity.
-#
-# The advanced questions of the method (rigorous relations between energy error and fidelity, symmetry leakage,
-# depth studies, excited states by deflation, and optimisation under shot noise) are the subject of
-# [notebook 42](../ch13_quantum_machine_learning/42_variational_quantum_eigensolver.ipynb).
+# The notebook assumes Hamiltonians as lists of local terms and Lanczos ground states
+# ([notebook 11, Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb)),
+# the ansätze and gradients of [notebook 40, parametrised gates and gradients](40_parametrized_gates_and_gradients.ipynb), and Adam with the
+# `lax.scan` training loop ([notebook 41, optimisers](41_optimizers.ipynb)).
 #
 # **Conventions.** Qubit $q$ is tensor axis $q$, and $\vert0\rangle$ is the $+1$ eigenstate of $Z$. Hamiltonians are
 # written with Pauli matrices $X,Y,Z$, never with spin-$1/2$ operators. The main chain length is $N=8$.
@@ -153,9 +142,7 @@ def var_with_error(g):
 # because every $E_n\ge E_0$ and the weights are non-negative and sum to one. Equality holds only when all the weight
 # lies in the ground eigenspace. This is the Rayleigh-Ritz variational principle. It turns the eigenvalue problem into a
 # minimisation over any family of trial states, and it gives a free test of every implementation: a computed energy
-# below $E_0$ is a bug. How the energy error relates to the error of the state is derived in
-# [notebook 42, Section 3](../ch13_quantum_machine_learning/42_variational_quantum_eigensolver.ipynb); Section 7.3
-# below uses one of its results.
+# below $E_0$ is a bug. How the energy error relates to the error of the state is the subject of Section 7.3.
 #
 # ### 3.2 The parametrised circuit and the cost
 #
@@ -188,8 +175,8 @@ def var_with_error(g):
 #    average the strings over the bit strings;
 # 3. add up $C(\boldsymbol\theta)=\sum_jc_j\langle P_j\rangle_{\boldsymbol\theta}$;
 # 4. estimate the gradient $\nabla_{\boldsymbol\theta}C$, for example by the parameter-shift rule, which needs two more
-#    cost evaluations per angle ([notebook 40, Section 8](../ch13_quantum_machine_learning/40_parametrized_gates_and_gradients.ipynb));
-# 5. update $\boldsymbol\theta$ with an optimiser, here Adam ([notebook 41, Section 6](../ch13_quantum_machine_learning/41_optimizers.ipynb)).
+#    cost evaluations per angle ([notebook 40, parametrised gates and gradients](40_parametrized_gates_and_gradients.ipynb), Section 8);
+# 5. update $\boldsymbol\theta$ with an optimiser, here Adam ([notebook 41, optimisers](41_optimizers.ipynb), Section 6).
 #
 # On the state-vector simulator of this notebook steps 2 and 3 are replaced by the exact value
 # $\langle\psi\vert H\vert\psi\rangle$, computed by applying the term list of $H$ to the state, and step 4 by reverse-mode
@@ -238,7 +225,7 @@ def var_with_error(g):
 # so the transverse magnetisation follows from the slope of the ground-state energy, which a VQE scan provides.
 #
 # We use three TFIM targets: the critical point $h=J=1$, the ordered regime $h=0.5$, and, in Section 10, a scan of $h$.
-# The engine writes Eq. (4) as `heisenberg_terms(N, Jxx=0, Jyy=0, Jzz=-J, hx=-h)`, the convention of notebook 11.
+# The engine writes Eq. (4) as `heisenberg_terms(N, Jxx=0, Jyy=0, Jzz=-J, hx=-h)`.
 #
 # ### 4.2 The XXZ chain
 #
@@ -262,7 +249,7 @@ def var_with_error(g):
 #   The transition at $\Delta=-1$ is first order: the fully polarised states are exact eigenstates with energy
 #   $(N-1)J\Delta$ for every $\Delta$, and they cross the bottom of the $S^z_{\mathrm{tot}}=0$ spectrum. The transition at
 #   $\Delta=1$ is of the Berezinskii-Kosterlitz-Thouless type, with a gap that opens exponentially slowly, so it leaves
-#   almost no trace in small-chain energies. Notebook 11, Section 12, studies these phases with Lanczos.
+#   almost no trace in small-chain energies.
 #
 # The main XXZ target is the Heisenberg point $\Delta=1$; Section 10 scans $\Delta$.
 #
@@ -415,7 +402,7 @@ assert max(abs(m_eng - m_exact), abs(m_inv - m_exact)) < 4 * np.sqrt(v_y / M)
 
 # %% [markdown]
 # The traced term list agrees with the engine's `heisenberg_terms` entry by entry, so Eqs. (4) and (7) are implemented
-# in the convention of notebook 11. The shot estimate is unbiased (the mean of forty repetitions lies within four
+# in the engine's convention. The shot estimate is unbiased (the mean of forty repetitions lies within four
 # standard errors of the mean of the exact value) and its scatter matches the prediction of Eq. (9) at every $M$, with
 # the ratio of observed to predicted standard deviation printed in the last column. The error falls as $M^{-1/2}$: a
 # hundred times more shots buy one more digit. The XXZ chain needs three settings instead of two, because its three
@@ -433,7 +420,7 @@ assert max(abs(m_eng - m_exact), abs(m_inv - m_exact)) < 4 * np.sqrt(v_y / M)
 # matrix, so we compute the full spectrum with dense `eigh` and, independently, the ground state with the engine's
 # matrix-free Lanczos solver. Two analytic limits test the term lists: the free-fermion energies of the open TFIM chain
 # (the singular values $s_k$ of the bidiagonal matrix with $h$ on the diagonal and $J$ above it give
-# $E_0=-\sum_ks_k$, as in notebook 11) and of the XX chain ($\Delta=0$, the sum of the negative single-particle energies
+# $E_0=-\sum_ks_k$) and of the XX chain ($\Delta=0$, the sum of the negative single-particle energies
 # of Section 4.2). Equation (6) is checked by a finite difference of $E_0(h)$.
 #
 # For each target we record the quantities that Section 7 will follow during training: the half-chain von Neumann
@@ -676,7 +663,7 @@ assert max(ov3[:2]) < 0.99 and ov3[2] > 1 - 1e-6
 # ### 5.3 The hardware-efficient ansatz
 #
 # The hardware-efficient ansatz of
-# [notebook 40, Section 4.1](../ch13_quantum_machine_learning/40_parametrized_gates_and_gradients.ipynb) is the
+# [notebook 40, parametrised gates and gradients](40_parametrized_gates_and_gradients.ipynb), Section 4.1, is the
 # alternating-layer structure built from the cheap block of Figure 4(b): $R_y$ and $R_z$ on every qubit, then a ladder
 # of $CZ$ gates, repeated $L$ times, with a final rotation block (the approach was introduced in [[14]](#ref-14), with
 # trial states tailored to the native interactions of the processor used there). It has
@@ -705,12 +692,12 @@ assert max(ov3[:2]) < 0.99 and ov3[2] > 1 - 1e-6
 #   \Bigl[\prod_{q}R_{ZZ}(-2\gamma_l)\Bigr]\vert+\rangle^{\otimes N},\qquad n_{\mathrm{HVA}}=2L , \tag{12}$$
 #
 # where $e^{-i\gamma(-\sum ZZ)}=\prod R_{ZZ}(-2\gamma)$ and similarly for the field; the field strength $h$ only rescales
-# $\beta_l$, so the same circuit serves every $h>0$. This is `hva_tfim` of notebook 40 called with $J=-1$, $h=-1$.
+# $\beta_l$, so the same circuit serves every $h>0$. This is `hva_tfim` below, called with $J=-1$, $h=-1$.
 # Every gate commutes with the parity $P=\prod_qX_q$ and the start is a $P=+1$ eigenstate, so every state of the family
 # has $P=+1$: the circuit cannot break the symmetry that the hardware-efficient ansatz breaks freely.
 #
 # ![Hamiltonian-variational ansatz on four qubits: Ry(-+pi/2) prepares the reference state, then each layer applies RZZ on every bond and Rx on every qubit](figures/hva_tfim.svg)\
-# **Figure 6.** The TFIM Hamiltonian-variational ansatz of notebook 40, drawn for $N=4$. Here the reference is
+# **Figure 6.** The TFIM Hamiltonian-variational ansatz, drawn for $N=4$. Here the reference is
 # $\vert+\rangle^{\otimes N}$ ($R_y(+\pi/2)$, the case $h<0$ of the code), and we use $L=8$ layers, $16$ angles.
 #
 # **XXZ.** For the XXZ chain we follow the construction studied in [[16]](#ref-16): the start is a product of
@@ -946,10 +933,11 @@ print(f"\nsinglet product start: <S^z_tot^2> = {float(sz_moments(singlet_product
 # **Cost and gradient.** The cost is Eq. (3), evaluated exactly as `energy(terms, ansatz(theta))`. Its gradient comes
 # from reverse-mode automatic differentiation: JAX records the circuit as a chain of differentiable einsums and
 # returns all $n$ partial derivatives at the cost of a few circuit evaluations. On hardware the same gradient is
-# measured with the parameter-shift rule, two shifted circuits per angle; notebook 40, Sections 8 and 10, derives both
+# measured with the parameter-shift rule, two shifted circuits per angle;
+# [notebook 40, parametrised gates and gradients](40_parametrized_gates_and_gradients.ipynb), Sections 8 and 10, derives both
 # methods and checks that they agree to machine precision.
 #
-# **Adam.** The update is Adam ([notebook 41, Section 6](../ch13_quantum_machine_learning/41_optimizers.ipynb)):
+# **Adam.** The update is Adam ([notebook 41, optimisers](41_optimizers.ipynb), Section 6):
 #
 # $$\mathbf m_k=\beta_1\mathbf m_{k-1}+(1-\beta_1)\mathbf g_k,\quad
 #   \mathbf v_k=\beta_2\mathbf v_{k-1}+(1-\beta_2)\mathbf g_k^2,\quad
@@ -957,11 +945,11 @@ print(f"\nsinglet product start: <S^z_tot^2> = {float(sz_moments(singlet_product
 #   \tag{14}$$
 #
 # with $\beta_1=0.9$, $\beta_2=0.999$, $\epsilon=10^{-8}$ and the operations taken element-wise. One **epoch** is one such
-# update. We use $\eta=0.1$ for the hardware-efficient ansatz and $\eta=0.05$ for the others; notebooks 41 and 42 show
-# how to choose $\eta$ by measurement.
+# update. We use $\eta=0.1$ for the hardware-efficient ansatz and $\eta=0.05$ for the others; the choice of $\eta$ by
+# measurement is made in [notebook 41, optimisers](41_optimizers.ipynb), Section 11.
 #
-# **Random starts.** A single training run says little: the landscape has many local minima, and notebook 41 measured
-# final errors spanning orders of magnitude between starts. Every configuration is trained from $R=6$ random starts and
+# **Random starts.** A single training run says little: the landscape has many local minima, and final errors can span
+# orders of magnitude between starts ([notebook 41, optimisers](41_optimizers.ipynb)). Every configuration is trained from $R=6$ random starts and
 # we report the median and the interquartile range. The hardware-efficient and block circuits start from angles drawn
 # uniformly in $[-\pi,\pi]$. The Hamiltonian-variational circuits start from angles uniform in $[-0.1,0.1]$, i.e. close
 # to their reference states, which is the natural start of an adiabatic path.
@@ -1206,9 +1194,8 @@ final_table("XXZ, Delta=1")
 # $$E-E_0=\sum_{n\geq1}\lvert c_n\rvert^2(E_n-E_0)\;\geq\;\Delta_{\mathrm{gap}}\sum_{n\geq1}\lvert c_n\rvert^2=\Delta_{\mathrm{gap}}\,(1-F) , \tag{15}$$
 #
 # from the expansion of Eq. (1) and $F=\lvert c_0\rvert^2$.
-# [Notebook 42](../ch13_quantum_machine_learning/42_variational_quantum_eigensolver.ipynb) derives the matching
-# upper bound in its Section 3.3 and the second-order relation $E-E_0=O(\varepsilon^2)$ for a state error
-# $\varepsilon$ in its Section 3.2. A measured energy error therefore certifies $1-F\le(E-E_0)/\Delta_{\mathrm{gap}}$, and a small gap
+# The matching upper bound and the second-order relation $E-E_0=O(\varepsilon^2)$ for a state error $\varepsilon$ are
+# derived in [notebook 42, the variational quantum eigensolver](42_variational_quantum_eigensolver.ipynb), Sections 3.3 and 3.2. A measured energy error therefore certifies $1-F\le(E-E_0)/\Delta_{\mathrm{gap}}$, and a small gap
 # makes the certificate weak.
 #
 # **Observables are bounded by the square root of the infidelity.** Let $\rho=\vert\psi\rangle\langle\psi\vert$ and
@@ -1318,7 +1305,7 @@ fig.tight_layout(); plt.show()
 # > **Physics insight.** In the ordered phase of a finite chain the symmetry-broken state is the physically relevant
 # > one in a large system: as $N\to\infty$ the doublet becomes degenerate and any superposition is a ground state.
 # > The finite-chain fidelity of $1/2$ measures the overlap with the $N=8$ cat state; the trained states do describe the
-# > ordered phase. Notebook 42, Section 11, studies this regime in detail.
+# > ordered phase.
 
 # %% [markdown]
 # ## 8. Comparison of the ansätze
@@ -1403,13 +1390,13 @@ for t, col in (("TFIM, h=1", 0), ("XXZ, Delta=1", 1)):
 # All the runs above started from uniformly random angles and trained without difficulty at $N=8$. Whether this
 # survives larger $N$ is the question of **barren plateaus**: for many circuits the gradient of the cost, at random
 # angles, is exponentially small in the number of qubits. The theory is in
-# [notebook 40, Section 13](../ch13_quantum_machine_learning/40_parametrized_gates_and_gradients.ipynb): the
+# [notebook 40, parametrised gates and gradients](40_parametrized_gates_and_gradients.ipynb), Section 13: the
 # mean of every gradient component over uniform angles is zero by periodicity, so its size is measured by the variance
 # $\mathrm{Var}_{\boldsymbol\theta}[\partial_kE]$; for circuits deep enough to act as unitary 2-designs the variance
 # decays exponentially [[17]](#ref-17); and for shallow circuits the locality of the cost decides, with
 # global costs decaying exponentially and local ones at worst polynomially for depths logarithmic in $N$
 # [[18]](#ref-18).
-# Noise produces plateaus of its own ([notebook 44, Section 8](../ch13_quantum_machine_learning/44_noisy_variational_circuits.ipynb)).
+# Noise produces plateaus of its own.
 # Here we measure the variance for the cost of this notebook, the TFIM energy at $h=J=1$, a sum of $2N-1$ local terms.
 #
 # **The 2-design reference.** Let $\theta_k$ be the angle of the first rotation $R_y(\theta_k)$ on qubit $0$, acting on
@@ -1430,7 +1417,7 @@ for t, col in (("TFIM, h=1", 0), ("XXZ, Delta=1", 1)):
 # PRNG key, and compute $\partial_kE$ for the angle of the first rotation on qubit $0$ ($\gamma_1$ for the
 # Hamiltonian-variational ansatz) by forward-mode differentiation, $\partial_kE=2\,\mathrm{Re}\langle\partial_k\psi\vert
 # H\vert\psi\rangle$ with $\vert\partial_k\psi\rangle$ from `jax.jvp`. Each variance is quoted with its standard error
-# $\sqrt{(\hat\mu_4-\widehat{\mathrm{Var}}^2)/R}$, as in notebook 40. The depth is either fixed, $L=2$, or grows with the
+# $\sqrt{(\hat\mu_4-\widehat{\mathrm{Var}}^2)/R}$. The depth is either fixed, $L=2$, or grows with the
 # chain, $L=N$, for $N=2,4,6,8,10$. The same cell records the per-shot variance $\sigma^2$ of the energy measurement of
 # Eq. (9) at every sampled state, used below to count shots.
 
@@ -1562,15 +1549,16 @@ fig.tight_layout(); plt.show()
 # * **Shallow circuits do not flatten.** At $L=2$ the hardware-efficient variance stays between $0.35$ and $0.39$ from
 #   $N=2$ to $N=10$ (fitted exponent $b=0.00$ in $\mathrm{Var}\propto2^{-bN}$), and the brick wall settles at about
 #   $0.22$ from $N=6$ on. The first rotation influences only the energy terms inside its light cone, a number of terms
-#   fixed by $L$, so the gradient does not know how long the chain is. This is the local-cost result of notebook 40,
-#   Section 13.1, for the energy.
+#   fixed by $L$, so the gradient does not know how long the chain is. This is the light-cone argument for local costs of
+#   [notebook 40, parametrised gates and gradients](40_parametrized_gates_and_gradients.ipynb), Section 13.1, applied to the energy.
 # * **A brick wall of depth $N$ approaches the 2-design.** Its variance falls from $0.40$ to $0.013$, with $b=0.70$
 #   over $N=4$ to $10$, against $b=0.76$ for Eq. (17); at $N=10$ it is $1.4$ times the 2-design value. Fifteen-angle
 #   blocks with uniform angles scramble quickly, and $L=N$ layers are enough for the light cone to cover the chain
 #   several times.
 # * **The hardware-efficient circuit at $L=N$ decays slowly** ($b=0.19$, from $0.35$ to $0.155$). Its entangler is a
 #   fixed $CZ$ ladder, which spreads information by one site per layer and is far from a 2-design at these depths,
-#   consistent with the local-cost, $L=N$ measurement of notebook 40.
+#   consistent with the local-cost, $L=N$ measurement of
+#   [notebook 40, parametrised gates and gradients](40_parametrized_gates_and_gradients.ipynb), Section 13.2.
 # * **The Hamiltonian-variational variance grows with $N$** (from $7.5$ to $54$), because each of its angles is shared
 #   by all $N-1$ bond rotations of a layer, so one angle moves the whole energy. Ref. [[16]](#ref-16) reports mild or
 #   entirely absent barren plateaus for this ansatz family, with VQE experiments on the TFIM and XXZ chains.
@@ -1757,8 +1745,7 @@ print(f"total wall time of the notebook so far: {time.perf_counter() - T_START:.
 # and $0.8$, in the crossover just below the critical point), and $\langle Z_iZ_{i+1}\rangle$ to within $0.012$ at every
 # field. As $h$ decreases, the exact entropy on the grid rises monotonically from $0.13$ bits at $h=2$ through $0.52$
 # at $h=1$ to $1.000$ bits (to the printed digits) for $h\le0.4$. An open chain of eight spins with a symmetric ground state therefore has no entropy maximum at
-# the critical point, because the cat state of the ordered side carries a full bit. (The logarithmic growth with $N$ at
-# the critical point is measured in notebook 11, Section 11.3.) The warm start carries a parity-symmetric state from the
+# the critical point, because the cat state of the ordered side carries a full bit. The warm start carries a parity-symmetric state from the
 # paramagnet down to $h=0.5$, where the VQE entropy is $0.95$ bits against $0.99$. Below that, at $h\le0.4$, the VQE
 # entropy drops to between $0.76$ and $0.89$ bits while the exact value is one bit, and the energy error is only
 # $1.1\cdot10^{-4}$ to $8\cdot10^{-7}$: the doublet gap falls from $1.1\cdot10^{-3}$ to $2\cdot10^{-8}$, so by Eq. (15)
@@ -1809,13 +1796,6 @@ print(f"total wall time of the notebook so far: {time.perf_counter() - T_START:.
 # * **Warm-started scans** reproduce both phase diagrams at $N=8$ with relative energy errors below $1.6\cdot10^{-3}$
 #   (Ising) and $1.2\cdot10^{-2}$ (XXZ), with half the epochs per point. The entanglement entropy is again the quantity
 #   that reveals what the energy hides: in the ordered Ising regime and near the XXZ first-order transition.
-#
-# For the rigorous relations between energy and state errors, symmetry leakage, depth studies, excited states and
-# training under shot noise, continue with
-# [notebook 42](../ch13_quantum_machine_learning/42_variational_quantum_eigensolver.ipynb); measuring the energy
-# with classical shadows is the subject of
-# [notebook 43](../ch13_quantum_machine_learning/43_vqe_with_classical_shadows.ipynb), and noise of
-# [notebook 44](../ch13_quantum_machine_learning/44_noisy_variational_circuits.ipynb).
 #
 # ## 12. Exercises
 #

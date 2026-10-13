@@ -5,11 +5,10 @@
 # %% [markdown]
 # ## 1. Introduction
 #
-# The previous notebook,
-# [29 — quantum Fisher information: how fast a quantum state changes under a small parameter shift](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb),
-# derived the symmetric logarithmic derivative (SLD), the quantum Fisher information $F_Q$ of a mixed state, and the
-# Braunstein–Caves theorem ($F_Q$ is the largest classical Fisher information any measurement can produce), and
-# tested the SLD and its optimal measurement on one full-rank two-qubit state. Three things were left open:
+# The symmetric logarithmic derivative (SLD), the quantum Fisher information $F_Q$ of a mixed state, and the
+# Braunstein–Caves theorem ($F_Q$ is the largest classical Fisher information any measurement can produce) are derived
+# in [notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb), where the SLD and its optimal measurement are tested on one full-rank
+# two-qubit state. Three things remain to be treated:
 #
 # 1. **rank-deficient** states (pure states, or the dephased GHZ state of rank two), where the SLD equation has a kernel;
 # 2. many-qubit states stored as density tensors, with noise applied before or after the encoding;
@@ -29,7 +28,7 @@
 # * **The QFI.** We solve the SLD equation $\partial_\theta\rho=\tfrac12(L\rho+\rho L)$ — a *Lyapunov equation* —
 #   numerically in the eigenbasis of $\rho$, treat the kernel where $\lambda_m+\lambda_n=0$ explicitly, and evaluate
 #   $F_Q=\mathrm{Tr}(\rho L^2)$.
-# * **The optimal measurement** is the projective measurement in the eigenbasis of $L$ (notebook 29, Section 5.3). We
+# * **The optimal measurement** is the projective measurement in the eigenbasis of $L$ ([notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb), Section 5.3). We
 #   build it from the numerical $L$ and check that it reaches $F_Q$ while naive readouts do not.
 # * **Simulated experiments.** We sample outcomes from the exact Born probabilities, estimate $\theta$ by maximum
 #   likelihood, repeat the experiment tens of thousands of times and compare the measured variance with $1/(M F_Q)$, and
@@ -66,20 +65,11 @@
 # * `jax.jacfwd` through a whole physical simulation;
 # * writing engine-style functions with `MATH` / `IMPLEMENTATION` / `COST` docstrings that later notebooks can reuse verbatim.
 #
-# ### Prerequisites
-# * [29 — quantum Fisher information: how fast a quantum state changes under a small parameter shift](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb):
-#   estimators, classical Fisher information, Cramér–Rao, $F_Q=4\mathrm{Var}(G)$, the SQL and Heisenberg limits;
-# * [07 — density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb):
-#   density tensors, `apply_gate_dm`, Kraus channels, fidelity;
-# * [08 — measurements](../ch03_matrix_free_engine/08_measurements.ipynb): Born rule, sampling bit strings;
-# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, `jacfwd`, PRNG keys.
-#
-# **What comes next.** With this machinery in hand the chapter turns to protocols:
-# [31 — Ramsey interferometry](../ch10_quantum_metrology_protocols/31_ramsey_interferometry.ipynb) (the baseline, end to
-# end with simulated data), [32 — GHZ interferometry and the Heisenberg limit](../ch10_quantum_metrology_protocols/32_ghz_interferometry_heisenberg_limit.ipynb),
-# [33 — spin squeezing by one-axis twisting](../ch10_quantum_metrology_protocols/33_spin_squeezing_one_axis_twisting.ipynb),
-# and [34 — the full one-axis-twisting to GHZ protocol](../ch10_quantum_metrology_protocols/34_oat_to_ghz_full_metrology_protocol.ipynb),
-# which uses the SLD machinery of this notebook to follow the QFI of a noisy twisted state along its whole evolution.
+# The notebook assumes the estimation theory, Cramér–Rao bounds and $F_Q=4\,\mathrm{Var}(G)$ of
+# [notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb), density tensors and Kraus channels
+# ([notebook 07, density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb)),
+# the Born rule and sampling ([notebook 08, measurements](../ch03_matrix_free_engine/08_measurements.ipynb)), and `jit`,
+# `vmap`, `jacfwd` and PRNG keys ([notebook 01, JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)).
 #
 # **Conventions and sizes.** Qubit $q$ = tensor axis $q$; $\vert0\rangle$ is the $+1$ eigenstate of $Z$;
 # $J_a=\tfrac12\sum_q\sigma^a_q$. The parameter is encoded by $U(\theta)=e^{-i\theta G}$ with $G$ Hermitian. Everything in
@@ -129,7 +119,7 @@ def maximally_mixed(N):
 # leaves weight in unwanted states, particles are lost. We represent it as a **density tensor** of rank $2N$: the first $N$ axes are
 # the ket indices $s_0\ldots s_{N-1}$, the last $N$ the bra indices $s'_0\ldots s'_{N-1}$, so that
 # $\rho[s;s']=\langle s\vert\rho\vert s'\rangle$ (see
-# [07 — density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb)).
+# [notebook 07, density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb)).
 #
 # **Encode.** The unknown parameter enters through a unitary generated by a Hermitian operator $G$:
 #
@@ -141,9 +131,9 @@ def maximally_mixed(N):
 # **Measure.** A POVM $\{E_x\}$ turns the state into outcome probabilities by the Born rule,
 # $p(x\vert\theta)=\mathrm{Tr}(\rho_\theta E_x)$.
 #
-# **Estimate.** From $M$ outcomes we compute $\hat\theta$, and the Cramér–Rao chain of notebook 29 bounds its error (the
+# **Estimate.** From $M$ outcomes we compute $\hat\theta$, and the Cramér–Rao chain bounds its error (the
 # classical bound of [[1]](#ref-1), [[2]](#ref-2), the quantum bound of [[3]](#ref-3), [[4]](#ref-4)), with
-# $I(\theta;\{E_x\})$ the classical Fisher information of the measurement (written $F_C$ in notebook 29):
+# $I(\theta;\{E_x\})$ the classical Fisher information of the measurement (written $F_C$ in [notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb)):
 #
 # $$\Delta\theta\;\ge\;\frac{1}{\sqrt{M\,I(\theta;\{E_x\})}}\;\ge\;\frac{1}{\sqrt{M\,F_Q[\rho_\theta]}}. \tag{2}$$
 #
@@ -168,8 +158,8 @@ def maximally_mixed(N):
 # Equation (4) is what makes the encoding cheap: $N$ single-qubit gates, no matrix exponential of anything large. (For a
 # generator that is *not* a sum of commuting local terms — an interaction, say — one would have to exponentiate properly,
 # by Trotterisation or a Krylov method; see
-# [12 — TEBD](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb) and
-# [14 — Krylov](../ch05_ground_states_and_unitary_dynamics/14_krylov_and_integrator_comparison.ipynb).)
+# [notebook 12, TEBD and Trotter–Suzuki](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb) and
+# [notebook 14, Krylov methods](../ch05_ground_states_and_unitary_dynamics/14_krylov_and_integrator_comparison.ipynb).)
 #
 # ### 3.3 From formula to code
 #
@@ -410,8 +400,8 @@ assert tr_abs < 1e3 * TOL and max_abs(dm - dm.conj().T) < 1e3 * TOL
 #
 # ### 5.1 Definition (recap)
 #
-# Notebook 29, Section 5.2, motivated and defined the **symmetric logarithmic derivative** (SLD), introduced in [[3]](#ref-3): the Hermitian operator
-# $L_\theta$ solving
+# The **symmetric logarithmic derivative** (SLD), introduced in [[3]](#ref-3) and motivated in
+# [notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb), Section 5.2, is the Hermitian operator $L_\theta$ solving
 #
 # $$\partial_\theta\rho_\theta=\frac{1}{2}\left(L_\theta\,\rho_\theta+\rho_\theta\,L_\theta\right). \tag{6}$$
 #
@@ -420,7 +410,7 @@ assert tr_abs < 1e3 * TOL and max_abs(dm - dm.conj().T) < 1e3 * TOL
 # ### 5.2 The solution in the eigenbasis of $\rho$
 #
 # With $\rho=\sum_m\lambda_m\vert m\rangle\langle m\vert$, $(\partial\rho)_{mn}=\langle m\vert\partial_\theta\rho\vert n\rangle$
-# and $L_{mn}=\langle m\vert L\vert n\rangle$, every matrix element of Eq. (6) decouples (notebook 29, Eq. (45)):
+# and $L_{mn}=\langle m\vert L\vert n\rangle$, every matrix element of Eq. (6) decouples ([notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb), Eq. (45)):
 #
 # $$\left(\lambda_m+\lambda_n\right)L_{mn}=2\,(\partial\rho)_{mn}. \tag{7}$$
 #
@@ -473,7 +463,7 @@ assert tr_abs < 1e3 * TOL and max_abs(dm - dm.conj().T) < 1e3 * TOL
 # %% [markdown]
 # ### 5.4 The quantum Fisher information from the SLD
 #
-# The quantum Fisher information is the mean square of the SLD, and notebook 29, Eqs. (46)–(49), expands it in the
+# The quantum Fisher information is the mean square of the SLD, and [notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb), Eqs. (46)–(49), expands it in the
 # eigenbasis of $\rho$ (inserting Eq. (8) and symmetrising the double sum). In this notebook's numbering:
 #
 # $$F_Q=\mathrm{Tr}\!\left(\rho\,L^2\right)=\sum_{m,n}\lambda_m\left\vert L_{mn}\right\vert^2, \tag{10}$$
@@ -510,17 +500,17 @@ assert tr_abs < 1e3 * TOL and max_abs(dm - dm.conj().T) < 1e3 * TOL
 #     =4\left(\langle G^2\rangle-\langle G\rangle^2\right),$$
 #
 # using the completeness relation $\sum_n\vert n\rangle\langle n\vert=\mathbb 1$ in the middle step. This is Eq. (75) of
-# notebook 29. $\square$
+# [notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb). $\square$
 #
 # **(c) Convexity.** For any mixture, $F_Q\!\left[\sum_ip_i\rho_i,G\right]\le\sum_ip_iF_Q[\rho_i,G]$. The proof takes two
-# lines since $F_Q$ is the largest classical Fisher information over all measurements (notebook 29, Eq. (58)). Fix a POVM.
+# lines since $F_Q$ is the largest classical Fisher information over all measurements ([notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb), Eq. (58)). Fix a POVM.
 # The outcome distribution of the mixture is the mixture of the outcome distributions, $p_x=\sum_ip_i\,p^{(i)}_x$, and
 # likewise for $\partial_\theta p_x$. The function $f(a,b)=a^2/b$ is jointly convex for $b>0$ (its Hessian is
 # $\tfrac{2}{b^3}\begin{pmatrix}b^2&-ab\\-ab&a^2\end{pmatrix}\succeq0$), so
 # $I[\text{mixture}]=\sum_xf(\partial_\theta p_x,p_x)\le\sum_ip_i\,I[\rho_i]\le\sum_ip_iF_Q[\rho_i,G]$. Maximising the
 # left-hand side over the POVM gives the claim (see also [[7]](#ref-7)). We *verify it numerically* in
 # Section 7. Physically: **classical uncertainty about which state was prepared can only reduce the information
-# you can extract.** It is also the step that notebook 29 quoted when it extended the standard quantum limit
+# you can extract.** It is also the step that extends the standard quantum limit
 # $F_Q\le N$ from pure product states to all separable mixed states.
 
 # %% [markdown]
@@ -625,7 +615,7 @@ for name, rho in test_states.items():
 # 1. `qfi_from_sld` — build $L$, take $\mathrm{Tr}(\rho L^2)$, Eq. (10);
 # 2. `qfi_sum_formula` — the explicit double sum, Eq. (11);
 # 3. the engine's `qfi_mixed` — the specialised unitary formula, Eq. (12);
-# 4. for pure states only, $4\,\mathrm{Var}(G)$ from notebook 29.
+# 4. for pure states only, $4\,\mathrm{Var}(G)$, Section 5.5(b).
 
 # %%
 # ==============================================================================
@@ -734,7 +724,7 @@ assert abs(f_x - var4_x) < 1e4 * TOL
 # factor $8$ versus $4$ is exactly the difference between them — always check which one your fidelity routine computes.
 # For pure states the squared form is immediate:
 # $F=\vert\langle\psi_\theta\vert\psi_{\theta+d\theta}\rangle\vert^2=1-\mathrm{Var}(G)\,d\theta^2+O(d\theta^4)$ and
-# $F_Q=4\mathrm{Var}(G)$ (notebook 29, Section 6.4); for mixed states Eq. (13) is the statistical-distance
+# $F_Q=4\mathrm{Var}(G)$ ([notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb), Section 6.4); for mixed states Eq. (13) is the statistical-distance
 # result of [[4]](#ref-4), which we now *test* rather than prove.
 #
 # This gives a completely independent estimator of $F_Q$: no SLD, no eigen-decomposition of $\partial_\theta\rho$, only two
@@ -872,7 +862,7 @@ fig.tight_layout(); plt.show()
 # **Theorem [[4]](#ref-4).** For every POVM $\{E_x\}$, the classical Fisher information of the outcome
 # distribution obeys $I(\theta;\{E_x\})\le F_Q$, and the projective measurement in the eigenbasis of $L_\theta$ attains it.
 #
-# The proof is in notebook 29, Section 5.3, Eqs. (50)–(57): the Cauchy–Schwarz inequality in the Hilbert–Schmidt inner
+# The proof is in [notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb), Section 5.3, Eqs. (50)–(57): the Cauchy–Schwarz inequality in the Hilbert–Schmidt inner
 # product bounds every outcome's contribution, and in the eigenbasis $\{\vert\ell_x\rangle\}$ of $L$ Eq. (6) gives
 # $\partial_\theta p_x=\ell_x\,p_x$, so that $I=\sum_x\ell_x^2\,p_x=\mathrm{Tr}(\rho L^2)=F_Q$. Three points are not
 # visible in the algebra:
@@ -1065,8 +1055,8 @@ fig.tight_layout(); plt.show()
 #      =-\frac{1}{2I^2}\sum_x\frac{\partial_\theta p_x\,\partial^2_\theta p_x}{p_x} . \tag{14a}$$
 #
 # The last form follows from $\ell'=p'/p$, $\ell''=p''/p-(p'/p)^2$, $\ell'''=p'''/p-3p'p''/p^2+2(p'/p)^3$ and
-# $\sum_xp'''_x=0$. For the binary model $p_\pm=(1\pm\cos\theta)/2$ of notebook 29 it gives $b_1=-\cot\theta/2$, the
-# delta-method result of that notebook, Eq. (36). The code evaluates Eq. (14a) with `jax.jacfwd` applied once and twice to
+# $\sum_xp'''_x=0$. For the binary model $p_\pm=(1\pm\cos\theta)/2$ it gives $b_1=-\cot\theta/2$, the
+# delta-method result of [notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb), Eq. (36). The code evaluates Eq. (14a) with `jax.jacfwd` applied once and twice to
 # the exact outcome probabilities. The bias is of order $1/M$ while the standard deviation is of order $1/\sqrt M$, so it
 # contributes $b_1^2/M^2$ to the mean squared error, negligible against $1/(MI)$ for large $M$.
 
@@ -1304,7 +1294,7 @@ fig.tight_layout(); plt.show()
 # %% [markdown]
 # The figure and the tables contain the central claim of the chapter. Both readouts give a maximum-likelihood estimator
 # whose variance falls like $1/M$ and approaches *its own* classical Cramér–Rao bound $1/(M\,I)$ from above, as the
-# asymptotic-efficiency discussion of notebook 29 predicts. With $R=50\,000$ experiments per point ($\pm0.63\%$ on each
+# asymptotic efficiency of maximum likelihood predicts. With $R=50\,000$ experiments per point ($\pm0.63\%$ on each
 # variance) the approach is resolved for both. In the $X$ basis $M\,I\,\mathrm{Var}=1.127,\,1.056,\,1.010$ at
 # $M=50,\,100,\,200$; in the SLD basis $1.062,\,1.031,\,1.014$. The excess shrinks roughly like $1/M$: times $M$ it is
 # about $3$ for the SLD readout at $M=50$–$200$, and $6.4$ and $5.6$ for the $X$ readout at $M=50$ and $100$ — the
@@ -1450,15 +1440,15 @@ for gname, P in (("J_z", Z), ("J_x", X)):
 # > **Physics insight.** This is why the noise model in a metrology paper always specifies *when* the noise acts. In a real
 # > interferometer the noise acts *during* the encoding, continuously, which is neither "before" nor "after" — that case
 # > belongs to the Lindblad machinery of
-# > [16 — Lindblad master equation](../ch06_open_quantum_systems/16_lindblad_master_equation.ipynb), and it is what sets the
-# > *optimal interrogation time* discussed in notebook 31.
+# > [notebook 16, the Lindblad master equation](../ch06_open_quantum_systems/16_lindblad_master_equation.ipynb), and it is what sets the
+# > *optimal interrogation time*.
 #
 # ### 10.3 Imperfect preparation: the cat doublet of the Ising chain
 #
 # In the ferromagnetic phase a finite transverse-field Ising chain has two lowest eigenstates $\vert E_0\rangle$ and
 # $\vert E_1\rangle$ that are almost degenerate: the symmetric and the antisymmetric superposition of the two
 # ferromagnetic configurations, two "cat" states of opposite spin-flip parity $P=\prod_qX_q$. The ground state is a
-# Heisenberg-type probe for $J_z$ (notebook 29 measured its $F_Q$). A preparation that is not perfect — for instance one
+# Heisenberg-type probe for $J_z$. A preparation that is not perfect — for instance one
 # exposed to a stray field that breaks the spin-flip symmetry — leaves some weight $q$ in the partner state $\vert E_1\rangle$, and
 # unless the relative phase between the two components is controlled, the state that the experiment actually holds is the
 # incoherent mixture
@@ -1576,7 +1566,7 @@ fig.tight_layout(); plt.show()
 # $\vert E_0\rangle$) to $4.81$ at $q=\tfrac12$, the average of the two pure-state values $5.65$ and $3.97$ — the
 # saturated-convexity case of Section 7.2, now produced by a symmetry rather than by construction.
 #
-# > **Physics insight.** This is the mixed-state counterpart of the fragility we saw for dephasing in notebook 29. A
+# > **Physics insight.** This is the mixed-state counterpart of the fragility of the GHZ state under dephasing. A
 # > Heisenberg-scaling resource built on a macroscopic superposition keeps only the fraction $(1-2q)^2$ of its sensitivity,
 # > a loss of $4q$ already at small admixture $q$ of the parity partner, and the partner is only $\Delta=0.047$ away in
 # > energy here: any symmetry-breaking perturbation
@@ -1592,7 +1582,7 @@ fig.tight_layout(); plt.show()
 # | derivative, Eq. (5) | $2N$ einsums | $O(N4^N)$ | $O(4^N)$ |
 # | SLD + $F_Q$, Eqs. (8), (11) | one Hermitian `eigh` of a $2^N\times2^N$ matrix | $O(8^N)$ | $O(4^N)$ |
 # | optimal measurement | a second `eigh`, of $L$ | $O(8^N)$ | $O(4^N)$ |
-# | pure state, $4\mathrm{Var}(G)$ | matrix-free, notebook 29 | $O(N2^N)$ | $O(2^N)$ |
+# | pure state, $4\mathrm{Var}(G)$ | matrix-free | $O(N2^N)$ | $O(2^N)$ |
 #
 # The eigendecomposition dominates and it is the reason this notebook stops at $N\le6$ or $7$. We measure it.
 
@@ -1658,18 +1648,17 @@ fig.tight_layout(); plt.show()
 # The dashed $8^N$ reference is therefore anchored at $N=5$ and is meant as an upper guide for the slope, not a fit; an
 # anchor at $N=2$ would compare a dispatch-bound call with an arithmetic-bound eigensolver. Compilation (the extra
 # column, in seconds) costs $0.06$–$0.4$ s per size, thousands of calls' worth at small $N$, and is excluded from the
-# timings. The pure-state shortcut of notebook 29 stays essentially flat over this range: it never leaves the
+# timings. The pure-state shortcut $4\,\mathrm{Var}(G)$ stays essentially flat over this range: it never leaves the
 # state-vector representation.
 #
 # **What to do when $N$ is larger.** Three escapes:
 #
 # * if the state stays **pure**, use $F_Q=4\,\mathrm{Var}(G)$ — $O(N2^N)$, good to $N\approx20$;
-# * if the state is mixed only because a **few qubits were traced out**, use the Schmidt/QR compression of notebook 29,
-#   Section 15: the rank of the reduced state is bounded by the dimension of what was removed;
+# * if the state is mixed only because a **few qubits were traced out**, use the Schmidt/QR compression of
+#   [notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb), Section 15: the rank of the reduced state is bounded by the dimension of what was removed;
 # * if the state is genuinely mixed by noise, either restrict to the **symmetric subspace** (dimension $N+1$ instead of
 #   $2^N$, legitimate whenever state, noise and generator are permutation-invariant; Exercise 7 below) or build the
-#   density matrix from **quantum-trajectory** samples and evaluate $F_Q$ on the averaged state (an exercise of
-#   notebook 34).
+#   density matrix from **quantum-trajectory** samples and evaluate $F_Q$ on the averaged state.
 
 # %% [markdown]
 # ## 12. Key takeaways
@@ -1754,7 +1743,6 @@ fig.tight_layout(); plt.show()
 #    gradient turns into `NaN` after a few hundred steps. A remedy is to solve the Lyapunov equation (6) directly as a
 #    $4^N\times4^N$ linear system, $\tfrac12(\rho\otimes\mathbb 1+\mathbb 1\otimes\rho^{\mathsf T})\,\mathrm{vec}(L)=\mathrm{vec}(\partial_\theta\rho)$
 #    in row-major vectorisation, which is differentiable as long as $\rho$ has full rank (true here for $g>0$).
-#    [Notebook 44b](../ch13_quantum_machine_learning/44b_variational_quantum_metrology.ipynb) carries out this optimisation in full.
 #
 # ## References
 #

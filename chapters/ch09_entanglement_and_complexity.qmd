@@ -17,8 +17,8 @@ statistics to discuss how random circuits generate states that are hard to simul
 Read notebook 25 first; it introduces the partial transpose and the PPT criterion. Notebook 48 covers the same criterion more briefly and adds the matrix-product-state route, for which it needs
 notebook 18 of [Chapter 7](ch07_tensor_networks.qmd). Notebook 26 can follow notebook 25 directly. Notebook 27 does
 not depend on notebooks 25 and 26, and notebook 28 builds on notebook 27. Prerequisites are notebooks 01 and 02 of
-[Chapter 1](ch01_computational_toolbox.qmd); the reduced density matrices, density tensors and channels of notebooks
-06 and 07 in [Chapter 3](ch03_matrix_free_engine.qmd); the gates, the Clifford group and the random circuits of
+[Chapter 1](ch01_computational_toolbox.qmd); the matrix-free gate application of notebook 05, for notebook 27, and the
+reduced density matrices, density tensors and channels of notebooks 06 and 07 in [Chapter 3](ch03_matrix_free_engine.qmd); the gates, the Clifford group and the random circuits of
 notebooks 09 and 10 in [Chapter 4](ch04_digital_quantum_circuits.qmd), for notebooks 27 and 28; Lanczos, TEBD and the
 light cone after a quench, notebooks 11, 12 and 15 in [Chapter 5](ch05_ground_states_and_unitary_dynamics.qmd); the
 quantum trajectories of notebook 17 in [Chapter 6](ch06_open_quantum_systems.qmd), for the noisy Bell correlator; and

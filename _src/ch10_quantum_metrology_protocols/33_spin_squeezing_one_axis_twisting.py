@@ -11,8 +11,7 @@
 #
 # after $M$ repetitions. This is the **standard quantum limit** (SQL). It is set by the projection noise of $N$
 # independent coin flips, so better electronics cannot remove it, and atomic clocks and atom interferometers are designed
-# to operate at it ([notebook 31](../ch10_quantum_metrology_protocols/31_ramsey_interferometry.ipynb)). Going *below* it
-# requires correlated atoms. The GHZ state of [notebook 32](../ch10_quantum_metrology_protocols/32_ghz_interferometry_heisenberg_limit.ipynb)
+# to operate at it ([notebook 31, Ramsey interferometry](31_ramsey_interferometry.ipynb)). Going *below* it requires correlated atoms. The GHZ state
 # is the extreme and most fragile case; a gentler way is to let the atoms interact with each other for a short time.
 #
 # The interaction we study is the simplest one imaginable: every pair of spins feels the same $Z_iZ_j$ coupling. The
@@ -75,24 +74,17 @@
 # * maximum-likelihood estimation on a grid as a single matrix–vector product, `vmap`-ed over independent experiments;
 # * embedding an animation as a GIF with a static multi-panel fallback.
 #
-# ### Prerequisites
-# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, PRNG keys;
-# * [05 — matrix-free operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb): states as rank-$N$ tensors;
-# * [08 — measurements](../ch03_matrix_free_engine/08_measurements.ipynb): Born rule, sampling bit strings, shot noise;
-# * [09 — quantum gates and circuits](../ch04_digital_quantum_circuits/09_quantum_gates_and_circuits.ipynb): two-qubit gates;
-# * [29 — quantum Fisher information](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb):
-#   $F_Q=4\,\mathrm{Var}(G)$, the $3\times3$ QFI matrix, the standard quantum and Heisenberg limits;
-# * [31 — Ramsey interferometry](../ch10_quantum_metrology_protocols/31_ramsey_interferometry.ipynb): the protocol whose
-#   input state we are about to improve. Section 8 recalls, self-contained, the one formula we need from it.
-#
-# **What comes next.** [34 — from one-axis twisting to GHZ: the full metrology protocol](../ch10_quantum_metrology_protocols/34_oat_to_ghz_full_metrology_protocol.ipynb)
-# follows the same evolution all the way to $\chi t=\pi/2$, where the state becomes a GHZ-like cat with
-# $F_Q=N^2$, and studies what noise does to it.
+# The notebook assumes `jit`, `vmap` and PRNG keys ([notebook 01, JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)),
+# states as rank-$N$ tensors ([notebook 05, matrix-free operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb)),
+# Born sampling and shot noise ([notebook 08, measurements](../ch03_matrix_free_engine/08_measurements.ipynb)), two-qubit
+# gates ([notebook 09, quantum gates and circuits](../ch04_digital_quantum_circuits/09_quantum_gates_and_circuits.ipynb)),
+# and $F_Q=4\,\mathrm{Var}(G)$, the $3\times3$ QFI matrix and the two metrological limits of
+# [notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb).
 #
 # **Conventions.** Qubit $q$ = tensor axis $q$; $\vert0\rangle$ is the $+1$ eigenstate of $Z$. The collective spin is
 # $J_a=\tfrac12\sum_q\sigma^a_q$, so $J_z$ has eigenvalues $m\in\{-N/2,\dots,N/2\}$ and the two metrological limits read
 # $F_Q\le N$ for every *separable* state (the SQL) and $F_Q\le N^2$ for *every* state (the Heisenberg limit); both are
-# proved in [29](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb). The whole point of this
+# proved in [notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb). The whole point of this
 # notebook is to produce entangled states that sit between the two. Throughout we measure time in units of $1/\chi$ and write the
 # dimensionless **twisting angle**
 #
@@ -394,7 +386,7 @@ assert abs(float(jnp.linalg.norm(mean_css)) - N_DEMO / 2) < 1e4 * TOL
 # The Baker–Campbell–Hausdorff series therefore terminates after the first term and Eq. (9) is an exact *identity*.
 # There is no time step to converge, the gates may be applied in any order, and the result is exact for
 # arbitrarily large $\mu$. Compare this with the TEBD evolution of a spin chain
-# ([12 — TEBD](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb)), where the $XX$ and $ZZ$ terms do
+# ([notebook 12, TEBD and Trotter–Suzuki](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb)), where the $XX$ and $ZZ$ terms do
 # *not* commute and the Trotter error is the dominant error source.
 #
 # The diagonal version is faster; the reason for implementing the propagator twice is **validation**: two code paths
@@ -541,7 +533,7 @@ for mu in (0.0, 0.05, 0.10, 0.2005, 0.40, 0.80):
 #
 # ### 8.1 The quantity measured by a Ramsey interferometer
 #
-# Recalled from [31 — Ramsey interferometry](../ch10_quantum_metrology_protocols/31_ramsey_interferometry.ipynb), in the
+# Recalled from [notebook 31, Ramsey interferometry](31_ramsey_interferometry.ipynb), in the
 # one form we need here. The interferometer prepares a state whose mean spin points along $\hat x$, lets the unknown
 # phase $\phi$ rotate it about $\hat z$,
 #
@@ -647,8 +639,8 @@ for mu in (0.0, 0.05, 0.10, 0.2005, 0.40, 0.80):
 # * $\xi_S^2<1$ certifies only that the noise in one direction is below the coherent-state value, which a product state
 #   can also achieve by giving up its mean spin. $\xi_S^2$ measures the noise reduction alone;
 # * neither is a *necessary* condition for metrological usefulness: a GHZ state has $\vert\langle\mathbf J\rangle\vert=0$
-#   and therefore $\xi_R^2=\infty$, and it is nevertheless the best state there is for a different readout. Section 13 and
-#   notebook 34 return to this.
+#   and therefore $\xi_R^2=\infty$, and it is nevertheless the best state there is for a different readout. Section 13
+#   returns to this.
 
 # %%
 # ==============================================================================
@@ -1199,7 +1191,7 @@ fig.tight_layout(); plt.show()
 #   $I\ge N$ for the squeezed input.
 # * **The bias of the estimator.** Maximum likelihood is biased at finite $M$; to first order in $1/M$ the bias is
 #   $b_1(\phi)/M$ with $b_1=-\sum_m p'p''/p\,\big/\,(2I^2)$, derived in
-#   [30](../ch10_quantum_metrology_protocols/30_qfi_from_the_sld_prepare_encode_estimate.ipynb), Eq. (14a).
+#   [notebook 30, QFI from the SLD](30_qfi_from_the_sld_prepare_encode_estimate.ipynb), Eq. (14a).
 #   At the working point $\phi=0$ this bias vanishes *exactly*, for a reason of symmetry. Both input states are invariant
 #   under the rotation $R=e^{-i\pi J_x}$ (the twisted state because $R$ maps $J_z\to-J_z$ and leaves $J_z^2$ and
 #   $\vert+x\rangle^{\otimes N}$ unchanged, the alignment and readout pulses because they commute with $R$), while
@@ -1293,7 +1285,7 @@ print(f"\nSQL Fisher information: I = N = {N_RAM};   N/xi_R^2 = {N_RAM / float(d
 # formula only uses the mean and the variance of the distribution; an estimator that uses the entire histogram can do
 # better, and it does — by $21\%$ in Fisher information, i.e. a further $10\%$ in $\Delta\phi$. Both numbers stay below
 # the quantum Fisher information $F_Q=39.61$ of that state, as the Braunstein–Caves theorem [[16]](#ref-16)
-# ([29](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb)) requires. We now check that a real
+# ([notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb), Section 5.3) requires. We now check that a real
 # estimator, fed real samples, reaches $1/\sqrt{MI}$.
 
 # %%
@@ -1529,7 +1521,7 @@ fig.tight_layout(); plt.show()
 #
 # The bias at $\phi=0$ is compatible with zero in all twelve rows (largest deviation $1.7$ standard errors), as the
 # symmetry argument of Section 11.2 requires; this tests the sampler and nothing else. At $\phi=0.2$, Step 9b resolves
-# the bias: $+0.00061\pm0.00008$ at $M=100$, against $b_1/M=0.00056$ from Eq. (14a) of notebook 30, and the hypothesis
+# the bias: $+0.00061\pm0.00008$ at $M=100$, against $b_1/M=0.00056$ from Eq. (14a) of [notebook 30, QFI from the SLD](30_qfi_from_the_sld_prepare_encode_estimate.ipynb), and the hypothesis
 # "unbiased" is rejected by $7$ to $18$ standard errors. At $M=25$ and $M=50$ the measured bias exceeds $b_1/M$ by
 # $4.7$ and $3.3$ standard errors. The excess shrinks with $M$ ($0.00082$, $0.00040$ and $0.00005$ at $M=25$, $50$,
 # $100$), as the higher-order terms of the $1/M$ expansion must. The bias is of order $10^{-3}$ against a standard deviation of order $10^{-2}$, so it is negligible in the mean
@@ -1548,7 +1540,7 @@ fig.tight_layout(); plt.show()
 # > Section 4.3. Under independent dephasing during
 # > the interrogation, spin-squeezed probes also reach asymptotically the best resolution available to generalised Ramsey
 # > spectroscopy, a factor $\sqrt e$ better than uncorrelated atoms ([[17]](#ref-17); the bound and its
-# > derivation are in [32](../ch10_quantum_metrology_protocols/32_ghz_interferometry_heisenberg_limit.ipynb),
+# > derivation are in [notebook 32, GHZ interferometry](32_ghz_interferometry_heisenberg_limit.ipynb),
 # > Section 13.2).
 
 # %% [markdown]
@@ -1677,8 +1669,7 @@ fig.tight_layout(); plt.show()
 #   coherent states, each of angular width $1/\sqrt N$, which is not yet small compared with their separation $\pi/2$.
 # * $\mu=\pi/2$: exactly two lobes, at $\varphi=0$ and $\varphi=\pi$ (the second one split across the periodic edge of
 #   the map) — the two poles of the $x$ axis. This is a GHZ-like cat state,
-#   $\left(\vert+x\rangle^{\otimes N}+e^{i\beta}\vert-x\rangle^{\otimes N}\right)/\sqrt2$ up to phases, and it is the
-#   subject of the next notebook.
+#   $\left(\vert+x\rangle^{\otimes N}+e^{i\beta}\vert-x\rangle^{\otimes N}\right)/\sqrt2$ up to phases.
 #
 # Note what the pictures do *not* show: the coherences. Two lobes of $Q$ are compatible both with a cat state and with a
 # classical mixture of two coherent states; $Q$ cannot distinguish them. The quantum Fisher information can, and does —
@@ -1773,11 +1764,11 @@ make_husimi_gif(psi_q0, MU_FRAMES, jnp.asarray(THETA_M), jnp.asarray(PHI_M), phi
 # $F_Q/(N/\xi_R^2)=39.6132/32.2727$ of Section 11). At the squeezing optimum the ratio does not return to $1$ at large
 # $N$: the anti-squeezed variance grows as $F_Q^{\max}\simeq N+3^{1/3}N^{5/3}$ while $N/\xi_R^2\simeq2\cdot3^{-2/3}N^{5/3}$,
 # so the ratio tends to $3/2$, as derived in
-# [34](../ch10_quantum_metrology_protocols/34_oat_to_ghz_full_metrology_protocol.ipynb), Section 6.2.
+# [notebook 34, from one-axis twisting to GHZ](34_oat_to_ghz_full_metrology_protocol.ipynb), Section 6.2.
 #
 # We measure both quantities along the whole evolution. $F_Q$ is $\lambda_{\max}$ of the $3\times3$ QFI matrix
 # $\mathcal F_{ab}=4C_{ab}$, the object derived in
-# [29](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb); the eigenvector tells us which
+# [notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb), Section 12; the eigenvector tells us which
 # collective generator is the best one at each time.
 
 # %%
@@ -1892,7 +1883,7 @@ fig.tight_layout(); plt.show()
 #   transverse.
 # * $F_Q^{\max}/N^2$ rises to $0.58$ near $\mu=0.39$ and then settles on a broad plateau between $0.54$ and $0.56$ over
 #   most of the evolution, close to the value $\tfrac12+\tfrac1{2N}=0.542$ derived in
-#   [34](../ch10_quantum_metrology_protocols/34_oat_to_ghz_full_metrology_protocol.ipynb), and then climbs to exactly $1$
+#   [notebook 34, from one-axis twisting to GHZ](34_oat_to_ghz_full_metrology_protocol.ipynb), Section 6.2, and then climbs to exactly $1$
 #   at $\mu=\pi/2$: the Heisenberg limit, reached by the cat state whose two lobes we saw in the Husimi maps. The optimal
 #   generator direction, read off the eigenvector, starts at $45^\circ$ between $\hat y$ and $\hat z$ (it is the
 #   anti-squeezed axis, perpendicular to the squeezed one of Section 5), turns towards $\hat y$ as the ellipse shears
@@ -1900,10 +1891,7 @@ fig.tight_layout(); plt.show()
 #   the axis joining the two lobes.
 #
 # So the useful entanglement keeps growing long after the squeezing parameter has given up. Extracting it requires a
-# different readout than "measure one quadrature and invert the mean" — and that is what
-# [34 — from one-axis twisting to GHZ](../ch10_quantum_metrology_protocols/34_oat_to_ghz_full_metrology_protocol.ipynb)
-# does: it follows the same evolution to $\mu=\pi/2$, identifies the cat and its axis, encodes the phase with the optimal
-# generator, reads out the parity, and reaches $F_Q=N^2$ — and then asks what noise does to all of it.
+# different readout than "measure one quadrature and invert the mean".
 
 # %% [markdown]
 # ## 14. Key takeaways
@@ -1964,7 +1952,7 @@ fig.tight_layout(); plt.show()
 #    evolution is still exact. Measure how $\xi_R^2$ at the optimum degrades with $\sigma$, averaging over several draws
 #    of $\chi_{ij}$.
 # 5. **(★★)** Dephasing during the twisting. Using the density-tensor machinery of
-#    [07](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb), split the evolution to $\mu$ into
+#    [notebook 07, density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb), split the evolution to $\mu$ into
 #    $n$ steps, each an OAT step of $\Delta\mu=\mu/n$ followed by the dephasing channel
 #    $\rho\to(1-p)\rho+pZ\rho Z$ on every qubit with $p=\gamma\,\Delta\mu$ ($\gamma$ is the dephasing rate in units of
 #    $\chi$). (a) Show that the two operations commute, so the splitting introduces no Trotter error and the result depends
@@ -1979,7 +1967,7 @@ fig.tight_layout(); plt.show()
 # 7. **(★★★)** Optimal readout. For the squeezed state at the $\mu_{\rm opt}$ of $\xi_R^2$ and $N=8$, compute the quantum
 #    Fisher information $F_Q$ of the aligned state for the generator $J_z$ and compare it with the classical Fisher
 #    information of the population readout used in Section 11. Then build the SLD eigenbasis as in
-#    [30](../ch10_quantum_metrology_protocols/30_qfi_from_the_sld_prepare_encode_estimate.ipynb) and check that its
+#    [notebook 30, QFI from the SLD](30_qfi_from_the_sld_prepare_encode_estimate.ipynb) and check that its
 #    classical Fisher information equals $F_Q$. How much is the population readout losing at the optimum, and at
 #    $\mu=2\mu_{\rm opt}$ (re-computing the alignment angle there)?
 # 8. **(★★★)** The echo protocol. A phase encoded with $J_z$ cannot be read out by an echo: $J_z$ commutes with

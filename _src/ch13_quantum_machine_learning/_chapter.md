@@ -67,8 +67,8 @@ maps every image to a product state of one qubit per pixel and stores the weight
 $2^{196}$-dimensional states as a matrix product state with a label index. It trains the model on handwritten digits
 by DMRG-like sweeps and by automatic differentiation of the whole contraction, and compares the entanglement of the
 trained classifier with that of the superposition of its training images. It needs the matrix product states, the
-singular value decomposition and the Schmidt values of notebook 18 in [Chapter 7](ch07_tensor_networks.qmd), the Adam
-optimiser of notebook 41, the tensor-leg diagrams of notebook 02 and notebook 01 (`jit`, `vmap`, `grad`, `lax.scan`) of
+singular value decomposition and the Schmidt values, the canonical forms and truncation, and the two-site DMRG sweeps of
+notebook 18 in [Chapter 7](ch07_tensor_networks.qmd), gradient descent and the Adam optimiser of notebook 41, the tensor-leg diagrams of notebook 02 and notebook 01 (`jit`, `vmap`, `grad`, `lax.scan`) of
 [Chapter 1](ch01_computational_toolbox.qmd).
 
 Notebook 57 turns the same matrix product state into a generative model. The probability of a binary image is the
@@ -76,4 +76,5 @@ squared amplitude of the state, the Born rule, so the normalisation follows from
 drawn exactly, pixel by pixel, without a Markov chain. The notebook trains the model by two-site sweeps on the negative
 log-likelihood, learns the bars-and-stripes data set exactly and relates the bond dimensions it needs to the Schmidt
 ranks of the data, and on handwritten digits generates samples, completes images with missing pixels and measures the
-gap between training and test likelihood. It builds on notebook 56 and needs the same prerequisites.
+gap between training and test likelihood. It builds on notebook 56 and needs the same prerequisites, together with the sampling of bit strings from a state
+vector of notebook 08 in [Chapter 3](ch03_matrix_free_engine.qmd).

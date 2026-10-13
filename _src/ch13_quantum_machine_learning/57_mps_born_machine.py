@@ -5,13 +5,12 @@
 # %% [markdown]
 # ## 1. Introduction
 #
-# The matrix product state (MPS) Born machine was introduced in [[1]](#ref-1). Below, the model is built on the MPS
-# toolbox of notebook 18 and on the supervised MPS model of notebook 56, and the bars-and-stripes experiment of
+# The matrix product state (MPS) Born machine was introduced in [[1]](#ref-1). Below, the bars-and-stripes experiment of
 # [[1]](#ref-1) and its MNIST experiments, at a reduced scale, are repeated and compared with the published numbers.
 #
 # ### 1.1 Generative modelling: learning a distribution over bit strings
 #
-# Notebook 56 trained a *classifier*: a function that assigns a label to an image. A *generative model* learns
+# A *classifier* is a function that assigns a label to an image. A *generative model* learns
 # instead the probability distribution of the images themselves. Given a training set $\mathcal T$ of $N_{\rm T}$
 # examples, all drawn from an unknown distribution, it builds a model distribution $P(\mathbf v)$ that can
 #
@@ -20,8 +19,8 @@
 # * fill in missing parts of an example by sampling them conditioned on the known parts.
 #
 # We consider binary data: an example is a string $\mathbf v=(v_0,v_1,\dots,v_{N-1})$ of $N$ bits $v_j\in\{0,1\}$,
-# for instance a black-and-white image of $N$ pixels. Pixels, bits and sites of the chain are counted from 0, as in
-# notebook 56. A distribution over such strings is a table of $2^N$ non-negative numbers that add up to one. For a
+# for instance a black-and-white image of $N$ pixels. Pixels, bits and sites of the chain are counted from 0.
+# A distribution over such strings is a table of $2^N$ non-negative numbers that add up to one. For a
 # $14\times14$ image, $N=196$ and $2^{196}\approx10^{59}$: the table cannot be stored, and a model must describe it with
 # far fewer parameters while keeping the three operations above cheap.
 #
@@ -33,12 +32,11 @@
 # wave function therefore defines a probability distribution over bit strings, positive by construction. A *Born
 # machine* uses this as a model: it parametrises a wave function and trains it so that the measurement statistics of
 # the state reproduce the data. The state never needs a quantum computer; it is a classical data structure that is
-# evaluated, trained and sampled on a CPU. The wave function is stored as a matrix product state, the format of
-# notebook 18 for weakly entangled many-body states, which makes the normalisation, the sampling and the training
+# evaluated, trained and sampled on a CPU. The wave function is stored as a matrix product state, the format
+# used for weakly entangled many-body states, which makes the normalisation, the sampling and the training
 # cheap (Sections 3–5).
 #
-# In notebook 56 the same chain of tensors was a weight tensor contracted with the product state of an image; here it
-# is a wave function, and an image is a basis state, the bit string itself. No label is involved: the training is
+# Here the chain of tensors is a wave function, and an image is a basis state, the bit string itself. No label is involved: the training is
 # unsupervised.
 #
 # ### 1.3 Road map
@@ -54,8 +52,7 @@
 #   dimensions by the block structure of the data and the signs of the amplitudes.
 # * **Section 7** trains on binarised $14\times14$ MNIST digits: likelihood against bond dimension and training-set
 #   size, overfitting, the map of learned bond dimensions, generated digits and the reconstruction of missing pixels.
-# * **Section 8** trains the same model by automatic differentiation of the whole contraction with Adam, as notebook 56
-#   did for the classifier, and compares.
+# * **Section 8** trains the same model by automatic differentiation of the whole contraction with Adam, and compares.
 # * **Section 9** compares the entanglement of the learned states with that of the data; **Sections 10–11** give the
 #   cost and the limits of the method.
 #
@@ -84,23 +81,18 @@
 #   dimension), `lax.scan` and `vmap` in the samplers;
 # * validation of every piece against the explicit state of a short chain.
 #
-# ### Prerequisites
-#
-# * [18 — matrix product states, DMRG and TEBD](../ch07_tensor_networks/18_mps_tebd.ipynb) (Chapter 7): MPS from
-#   repeated SVDs, canonical forms and truncation (Section 3), zero-padded storage (Section 4), environments, the SVD
-#   split and the sweeps of two-site DMRG (Section 6);
-# * [56 — tensor networks as machine-learning models](56_tensor_networks_for_machine_learning.ipynb): the MNIST data
-#   (Section 3), the sweeping training of a classifier (Section 6), automatic differentiation of a contraction (Section 7)
-#   and the entanglement of data states (Section 9);
-# * [08 — measurements](../ch03_matrix_free_engine/08_measurements.ipynb) (Chapter 3): sampling bit strings from a
-#   state vector (Section 10);
-# * [41 — optimisers](41_optimizers.ipynb): the Adam update (Section 6), and
-#   [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb) (Chapter 1): `jit`, `vmap`, `grad`, `lax.scan`.
+# The notebook assumes matrix product states, their canonical forms and truncation, and the sweeps of two-site DMRG
+# ([notebook 18, matrix product states](../ch07_tensor_networks/18_mps_tebd.ipynb)), the matrix product state classifier and its
+# training by sweeps and by automatic differentiation
+# ([notebook 56, tensor networks for machine learning](56_tensor_networks_for_machine_learning.ipynb)), the sampling of
+# bit strings from a state vector ([notebook 08, measurements](../ch03_matrix_free_engine/08_measurements.ipynb)), the Adam
+# optimiser ([notebook 41, optimisers](41_optimizers.ipynb)), and `jit`, `vmap`, `grad` and `lax.scan`
+# ([notebook 01, JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)).
 
 # %% [markdown]
 # ## 2. Engine recap and notebook helpers
 #
-# From the engine we take the Adam update of notebook 41, used in Section 8. The MPS Born machine, its training, the
+# From the engine we take the Adam update, used in Section 8. The MPS Born machine, its training, the
 # samplers and the entanglement analysis are defined in this notebook. The helper cell sets the plot style and a timer
 # for the sections. The model is real-valued, so only `RDTYPE` of the configuration cell is used.
 
@@ -170,18 +162,18 @@ section_timer("3 model")
 #
 # ### 3.2 The wave function as a matrix product state
 #
-# The amplitudes are stored as a matrix product state ([[1]](#ref-1), Eqs. (2)–(3); notebook 18, Eq. (1)),
+# The amplitudes are stored as a matrix product state ([[1]](#ref-1), Eqs. (2)–(3)),
 #
 # $$\psi(v_0,v_1,\dots,v_{N-1})=A^{[0]v_0}A^{[1]v_1}\cdots A^{[N-1]v_{N-1}}, \tag{2}$$
 #
 # where $A^{[j]s}$ is a $\chi_j\times\chi_{j+1}$ matrix for each value $s\in\{0,1\}$ of bit $j$, and the boundary
 # dimensions are $\chi_0=\chi_N=1$, so the product is a number. *Bond* $j$, for $j=1,\dots,N-1$, is the cut between
-# sites $j-1$ and $j$, as in notebook 56, and $\chi_j$ is its bond dimension; this numbering is used throughout. The
-# bond dimensions limit the entanglement of the state (notebook 18, Section 2.2): across bond $j$ the state has at most
+# sites $j-1$ and $j$, and $\chi_j$ is its bond dimension; this numbering is used throughout. The
+# bond dimensions limit the entanglement of the state ([notebook 18, matrix product states](../ch07_tensor_networks/18_mps_tebd.ipynb), Section 2.2): across bond $j$ the state has at most
 # $\chi_j$ Schmidt values and an entanglement entropy of at most $\ln\chi_j$. With all $\chi_j\leq\chi$, the state holds
 # at most $2N\chi^2$ numbers instead of $2^N$.
 #
-# For JAX we use the padded storage of notebook 18, Section 4: one array `As` of shape $(N,\chi_{\rm s},2,\chi_{\rm s})$,
+# For JAX we use a zero-padded storage: one array `As` of shape $(N,\chi_{\rm s},2,\chi_{\rm s})$,
 # with `As[j][a, s, b]` $=A^{[j]s}_{ab}$ and zeros where a bond is smaller than the storage width $\chi_{\rm s}$. The
 # boundary bonds are index 0: only the row $a=0$ of the first tensor and the column $b=0$ of the last tensor are
 # non-zero. Every function then sees the same shapes, so each is compiled once. In code `As[j][:, v, :]` is the matrix
@@ -197,14 +189,14 @@ section_timer("3 model")
 #
 # (einsum `"ab,asc,bsd->cd"`). Each step costs $O(\chi^3)$, the whole sum $O(N\chi^3)$ instead of $O(2^N)$. The
 # elements of $E^{[j]}$ can grow or shrink exponentially with $j$, so the code divides $E$ by its norm after every site
-# and adds the logarithm of that norm to $\ln Z$, as notebook 56, Section 5.3, did for the scores.
+# and adds the logarithm of that norm to $\ln Z$.
 #
 # ### 3.4 The canonical form makes $Z$ local
 #
-# The gauge freedom of the MPS (notebook 18, Section 3.4), the insertion of an invertible matrix and its inverse on a
+# The gauge freedom of the MPS, the insertion of an invertible matrix and its inverse on a
 # bond, is used to make $Z$ even cheaper. A tensor is
 # *right-canonical* if $\sum_sA^{[j]s}(A^{[j]s})^{\rm T}=\mathbb 1$, *left-canonical* if
-# $\sum_s(A^{[j]s})^{\rm T}A^{[j]s}=\mathbb 1$ (notebook 18, Eqs. (2)–(3), here for real tensors). If every tensor
+# $\sum_s(A^{[j]s})^{\rm T}A^{[j]s}=\mathbb 1$ (here for real tensors). If every tensor
 # right of site $c$ is right-canonical, the transfer matrices summed from the right end are all identities, and if every
 # tensor left of $c$ is left-canonical, so are those from the left end. In this *mixed-canonical form* with the
 # *centre* $c$ ([[1]](#ref-1), Appendix A, Eq. (A2)), only the centre tensor remains:
@@ -218,7 +210,7 @@ section_timer("3 model")
 # The initial state of [[1]](#ref-1), Appendix B, has random tensors with all inner bond dimensions equal to 2, brought
 # into canonical form; with all $\chi_j=1$ the bond dimensions could hardly grow (endnote 68 of [[1]](#ref-1)). The cell
 # builds such a state in the padded format and makes it right-canonical with the centre on site 0 by a sweep of SVDs
-# from the right (notebook 18, Section 3.5). This one-off sweep runs in NumPy: 195 small SVDs take milliseconds, while
+# from the right. This one-off sweep runs in NumPy: 195 small SVDs take milliseconds, while
 # compiling the sweep for every new shape would take seconds. The checkpoint compares Eq. (4) with the transfer-matrix
 # contraction (3) and with the explicit sum over all $2^{10}$ strings of a 10-site chain.
 
@@ -374,7 +366,7 @@ section_timer("4 learning")
 #
 # ### 4.2 The bond tensor and the environments of the data
 #
-# As in two-site DMRG (notebook 18, Section 6) and in the sweeps of notebook 56, Section 6, the training updates two
+# As in two-site DMRG ([notebook 18, matrix product states](../ch07_tensor_networks/18_mps_tebd.ipynb), Section 6), the training updates two
 # neighbouring tensors at a time. Merging sites $j$ and $j+1$ into the *bond tensor*
 # $B_{astb}=\sum_mA^{[j]s}_{am}A^{[j+1]t}_{mb}$ ([[1]](#ref-1), Eq. (B1); einsum `"asm,mtb->astb"`), the amplitude of a
 # training example is
@@ -383,10 +375,8 @@ section_timer("4 learning")
 # \mathbf l_{\mathbf v}=A^{[0]v_0}\cdots A^{[j-1]v_{j-1}},\quad \mathbf r_{\mathbf v}=A^{[j+2]v_{j+2}}\cdots A^{[N-1]v_{N-1}}, \tag{7}$$
 #
 # with $\mathbf l_{\mathbf v}$ a row and $\mathbf r_{\mathbf v}$ a column vector of length $\chi$: the *environments* of
-# example $\mathbf v$ (called $L_n$ and $R_n$ in notebook 56). They play the role of the projected inputs of
-# notebook 56, Eq. (7), with the feature vectors replaced by the bits themselves: a bit $v$ selects the matrix
-# $A^{[j]v}$, which is the contraction with the one-hot vector $(1-v,\,v)$, the linear feature map of notebook 56,
-# Section 4.3, on a black-and-white pixel. In mixed-canonical form with the centre on the bond, $Z=\Vert B\Vert^2$ by
+# example $\mathbf v$. A bit $v$ selects the matrix
+# $A^{[j]v}$, which is the contraction with the one-hot vector $(1-v,\,v)$. In mixed-canonical form with the centre on the bond, $Z=\Vert B\Vert^2$ by
 # Eq. (4).
 #
 # ### 4.3 The gradient
@@ -431,7 +421,7 @@ section_timer("4 learning")
 #
 # ### 4.5 The SVD split and adaptive bond dimensions
 #
-# After the update the bond tensor is split by an SVD, as in DMRG (notebook 18, Section 6.6, and [[1]](#ref-1),
+# After the update the bond tensor is split by an SVD, as in DMRG ([[1]](#ref-1),
 # Eq. (B5)):
 #
 # $$B_{(as),(tb)}=\sum_kU_{(as),k}\,\lambda_k\,V_{(tb),k},\qquad\text{keep }k\text{ with }\lambda_k>\varepsilon_{\rm cut}\lambda_0\text{ and }k<\chi_{\max}. \tag{10}$$
@@ -451,7 +441,7 @@ section_timer("4 learning")
 #
 # ### 4.6 Environments per example, cached and rescaled
 #
-# The environments are cached and advanced by one site per step, as in notebook 56, Section 6.5: moving right,
+# The environments are cached and advanced by one site per step: moving right,
 # $\mathbf l^{(j+1)}_{\mathbf v}=\mathbf l^{(j)}_{\mathbf v}A^{[j]v_j}$ (einsum `"na,ns,asb->nb"` with the one-hot
 # bits), and moving left $\mathbf r^{(j)}_{\mathbf v}=A^{[j]v_j}\mathbf r^{(j+1)}_{\mathbf v}$. Their norms shrink
 # exponentially along the chain: the whole amplitude is a product of such factors, and $\psi(\mathbf v)^2=P(\mathbf v)$
@@ -468,7 +458,7 @@ section_timer("4 learning")
 # $(N+1,N_{\rm T},\chi_{\rm s})$, with their log-norms; `Lst[j]` contracts the sites left of $j$, `Rst[j]` the sites from
 # $j$ on. The function `bond_update` does everything at one bond: merge, line-search steps, split, new environment.
 # A whole loop is compiled into one function, `training_loop`, as two `lax.scan`s over the bond index whose carry holds
-# the tensors and one of the stacks, read and written with `.at[j].set(...)` as in notebook 56, Section 6.6. The cap
+# the tensors and one of the stacks, read and written with `.at[j].set(...)`. The cap
 # $\chi_{\max}$ is a traced argument, so models with different caps but the same storage width $\chi_{\rm s}$ and the
 # same $N_{\rm T}$ share one compilation. The checkpoints use a chain of $N=8$ sites with $\chi=4$:
 #
@@ -737,7 +727,7 @@ section_timer("5 sampling")
 #
 # ### 5.1 Pixel by pixel from the chain rule
 #
-# A Born machine is sampled the way a quantum state is measured qubit by qubit (notebook 08, Section 10.1): by the chain
+# A Born machine is sampled the way a quantum state is measured qubit by qubit ([notebook 08, measurements](../ch03_matrix_free_engine/08_measurements.ipynb), Section 10.1): by the chain
 # rule of probability,
 #
 # $$P(v_0,\dots,v_{N-1})=P(v_0)\,P(v_1\vert v_0)\,P(v_2\vert v_0v_1)\cdots P(v_{N-1}\vert v_0\cdots v_{N-2}), \tag{11}$$
@@ -759,7 +749,7 @@ section_timer("5 sampling")
 # [[1]](#ref-1), Sec. II C, Eqs. (6)–(9), there written from the right end with left-canonical tensors. Measuring the
 # sites of an MPS one after the other with these probabilities, within one half-sweep, was introduced in
 # [[5]](#ref-5); its extension to other tensor networks is described in [[6]](#ref-6). For a state vector the same
-# procedure costs $O(2^N)$ per sample (notebook 08).
+# procedure costs $O(2^N)$ per sample.
 #
 # ### 5.2 Conditional sampling with fixed bits
 #
@@ -1205,7 +1195,7 @@ section_timer("7 MNIST")
 #
 # [[1]](#ref-1), Sec. III C, trains on MNIST digits [[8]](#ref-8) turned into binary images by a threshold and put on the
 # chain row by row; its capacity experiments use $28\times28$ images, its generalisation study (Fig. 7) $14\times14$
-# images. We use the $14\times14$ file of notebook 56, Section 3 (pixel values $0\dots255$ averaged over $2\times2$
+# images. We use the $14\times14$ MNIST file stored with this course (pixel values $0\dots255$ averaged over $2\times2$
 # blocks), and set a pixel to 1 if its value is at least 128 and to 0 otherwise. [[1]](#ref-1) does not state its
 # threshold or whether it binarised before or after the reduction, so our images can differ from its images in detail.
 # The training set has $N_{\rm T}=1000$ images, the training-set size of [[1]](#ref-1), Figs. 3–6 and the left panel of
@@ -1575,8 +1565,8 @@ section_timer("8 autodiff")
 # %% [markdown]
 # ## 8. Training by automatic differentiation
 #
-# Notebook 56, Section 7, trained the classifier by differentiating the whole contraction with `jax.grad` and Adam
-# [[9]](#ref-9). The same works for the NLL (5): $\ln Z$ from the transfer matrices (3), $\ln\vert\psi\vert$ from
+# The NLL (5) can also be minimised by differentiating the whole contraction with `jax.grad` and Adam
+# [[9]](#ref-9): $\ln Z$ from the transfer matrices (3), $\ln\vert\psi\vert$ from
 # `log_psi`, both differentiable, all tensors updated at once, mini-batches of 100 images, a fixed bond dimension
 # $\chi=16$ in the bulk and no SVD. The initial state is the same kind of random right-canonical MPS, now with all inner
 # bonds of dimension 16, because nothing would make the bond dimensions grow. We compare with the sweep at
@@ -1654,7 +1644,7 @@ plt.show()
 # And the sweep starts from bond dimension 2 and lets the SVD split add directions where the data need them, while the
 # gradient method has to shape all directions of a full $\chi=16$ state from a random start. The gradient method has
 # its own advantages: no SVD, any cost function, and a code that is the same for any network that `jax.grad` can
-# differentiate. It was the better choice for the classifier of notebook 56, whose sweep took small fixed steps.
+# differentiate.
 
 # %%
 section_timer("9 entanglement")
@@ -1666,10 +1656,10 @@ section_timer("9 entanglement")
 # $\vert\psi_{\hat p}\rangle=\sum_{\mathbf v}\sqrt{\hat p(\mathbf v)}\,\vert\mathbf v\rangle$; for bars and stripes it is
 # Eq. (15). Its entanglement entropy across a bond, $S=-\sum_k\lambda_k^2\ln\lambda_k^2$ in nats, is computed by
 # `data_state_profile` of Section 6.1, together with the number of blocks. For the trained MPS, which after a loop is
-# right-canonical with the centre on site 0, one sweep of SVDs from the left gives the Schmidt values of every bond
-# (notebook 18, Section 3.5): the singular values of the centre at each bond. The cell checks this profile against the
+# right-canonical with the centre on site 0, one sweep of SVDs from the left gives the Schmidt values of every bond:
+# the singular values of the centre at each bond. The cell checks this profile against the
 # dense state of the learned bars-and-stripes MPS, then compares the learned states with their data states and with
-# the bound $\ln\chi_{\max}$. Notebook 56, Section 9, made the same comparison for a classifier, there in bits.
+# the bound $\ln\chi_{\max}$.
 
 # %%
 # ==============================================================================
@@ -1761,8 +1751,8 @@ plt.show()
 # For MNIST the data state of 1000 images has an entropy close to $\ln1000\approx6.9$ nats, at least $6.4$ nats,
 # only at the bonds inside image rows 5 to 9 (bonds 73 to 129); it is lower towards the top and bottom of the image,
 # where most pixels are white, for example $2.22$ at bond 42 and $1.17$ at bond 168. In the middle the halves of
-# different images are almost all different, so each image contributes its own Schmidt value, as notebook 56,
-# Section 9.2, found for the superposition of grey-scale images. The learned states peak at $3.08$ nats
+# different images are almost all different, so each image contributes its own Schmidt value.
+# The learned states peak at $3.08$ nats
 # ($\chi_{\max}=32$, 89 % of $\ln32$) and $2.44$ nats ($N_{\rm T}=3000$, $\chi_{\max}=16$, 88 % of $\ln16$), far
 # below the data state.
 #

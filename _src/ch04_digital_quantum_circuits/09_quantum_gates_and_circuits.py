@@ -5,10 +5,9 @@
 # %% [markdown]
 # ## 1. Introduction
 #
-# In the previous notebooks we simulated **spin chains**: we stored the state of $N$ spins-1/2 as a rank-$N$ tensor,
-# we learned to act on it with small matrices through one `einsum` (the function `apply_gate` of
-# [notebook 05](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb)), and we evolved it in time by chopping $e^{-iHt}$ into a product of
-# many small two-spin unitaries (Trotterization [[1]](#ref-1), [[2]](#ref-2); [notebook 04](../ch02_spin_systems_textbook_way/04_time_evolution_the_textbook_way.ipynb)).
+# A **spin chain** is simulated by storing the state of $N$ spins-1/2 as a rank-$N$ tensor, acting on it with small
+# matrices through one `einsum` (the function `apply_gate`), and evolving it in time by chopping $e^{-iHt}$ into a
+# product of many small two-spin unitaries (Trotterization [[1]](#ref-1), [[2]](#ref-2)).
 #
 # *A product of many small unitaries acting on a register of two-level systems* is, word for word, the definition of a
 # **quantum circuit**. A quantum computer is a many-body spin system in
@@ -25,7 +24,7 @@
 # * *Digital quantum simulation*: present-day quantum processors (superconducting qubits, trapped ions, Rydberg-atom
 #   arrays) simulate spin models by running Trotter circuits. To understand those experiments, and their errors, you
 #   need to be able to count gates and to model noise.
-# * *State preparation*: GHZ states, cluster states, squeezed states, variational ansätze (Chapter 13) are
+# * *State preparation*: GHZ states, cluster states, squeezed states, variational ansätze are
 #   all defined by the circuits that prepare them.
 # * *Numerics*: thinking in gates is the natural way of organising fast simulation code. Every algorithm of this
 #   course - TEBD, quantum trajectories, classical shadows, variational eigensolvers - is "a loop over small einsums".
@@ -37,8 +36,11 @@
 # compiles whole circuits with `jax.jit`, sweeps parameters with `vmap` and folds deep circuits with `lax.scan`.
 # Section 7 verifies the standard circuit identities numerically, Section 8 comments on universality (with a small
 # numerical experiment), Section 9 rewrites a Trotter step of the transverse-field Ising model as a circuit and counts
-# its gates, and Section 10 runs circuits with noise after each gate on the density tensor
-# ([notebook 07](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb)).
+# its gates, and Section 10 runs circuits with noise after each gate on the density tensor.
+#
+# The notebook assumes `jit`, `vmap`, `scan` and PRNG keys from [notebook 01, JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb), the Trotterization of
+# [notebook 04, time evolution the textbook way](../ch02_spin_systems_textbook_way/04_time_evolution_the_textbook_way.ipynb), `apply_gate` from [notebook 05, matrix-free operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb) and, for Sections 5 and 10, the reduced density matrices of
+# [notebook 06, states, observables and entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb) and the Kraus channels and trajectories of [notebook 07, density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb).
 #
 # ### What you will learn
 #
@@ -59,17 +61,6 @@
 # * `jax.jit` of a whole circuit (compile time versus run time), `jax.vmap` over gate angles, `lax.scan` over layers,
 #   `lax.fori_loop` with a traced number of steps;
 # * comparing unitaries "up to a global phase" with a robust numerical criterion.
-#
-# ### Prerequisites
-#
-# * [01 JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb) (`jit`, `vmap`, `scan`, PRNG keys),
-#   [02 einsum from scratch](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb);
-# * [03 Many-body spin systems](../ch02_spin_systems_textbook_way/03_quantum_many_body_spin_systems.ipynb) (Pauli matrices, Kronecker products, bit-string
-#   labelling) and [04 Time evolution the textbook way](../ch02_spin_systems_textbook_way/04_time_evolution_the_textbook_way.ipynb) (Trotterization);
-# * [05 Matrix-free operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb): the primitive `apply_gate` - **the** prerequisite;
-# * [06 States, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb) (reduced density matrices,
-#   entanglement entropy), [07 Density matrices and channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb)
-#   (Kraus channels, trajectories) for Sections 5 and 10.
 
 # %% [markdown]
 # ## 2. Spins are qubits: a dictionary
@@ -77,7 +68,7 @@
 # A **qubit** is any quantum two-level system used to carry information; mathematically it is a spin-1/2. The two
 # communities use different words for the same objects:
 #
-# | many-body physics (notebooks 03-05) | quantum computing (this notebook) |
+# | many-body physics | quantum computing (this notebook) |
 # |---|---|
 # | spin-1/2 at site $q$, states $\lvert\uparrow\rangle,\lvert\downarrow\rangle$ | qubit $q$, states $\lvert 0\rangle = (1,0)^T$, $\lvert 1\rangle = (0,1)^T$ |
 # | product basis $\lvert\uparrow\downarrow\uparrow\rangle$ | computational basis $\lvert 010\rangle$ (a *bit string*) |
@@ -98,7 +89,7 @@
 #
 # and for a $4\times4$ matrix on qubits $(q_1,q_2)$ we first reshape $U \to U_{a_1 a_2 b_1 b_2}$ and contract two
 # axes. For $N=3$, $q=1$ the einsum string is `"Ab,abc->aAc"`. Cost: $O(2^k 2^N)$ for a $k$-qubit gate, no
-# $2^N\times2^N$ matrix ever appears. All of this was derived in notebook 05; the cell below (folded on the website)
+# $2^N\times2^N$ matrix ever appears. All of this is derived in [notebook 05, matrix-free operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb); the cell below (folded on the website)
 # recalls the production code of the primitives used in this notebook.
 
 # %%
@@ -239,8 +230,7 @@ for K in (2, 4, 6, 8, 12, 16):
 # The closed form agrees with the generic matrix exponential to machine precision, and the power series converges
 # factorially fast to the same matrix (about 16 terms are needed for $\theta\approx1.2$ in double precision). The closed form is
 # preferable: it is exact, costs two trigonometric functions, and is differentiable with respect to $\theta$ - which is
-# what variational algorithms ([notebook 40](../ch13_quantum_machine_learning/40_parametrized_gates_and_gradients.ipynb),
-# Chapter 13) need.
+# what variational algorithms need.
 #
 # The engine versions of the three rotations are the matrices of Eq. (3) written out explicitly. `theta` may be a
 # *traced* JAX scalar, so these functions can live inside `jit`, `vmap` and `grad`.
@@ -254,7 +244,7 @@ for K in (2, 4, 6, 8, 12, 16):
 # The name "rotation" refers to the Bloch sphere. Every pure qubit state can be written as
 # $\lvert\psi\rangle = \cos\frac\vartheta2\lvert0\rangle + e^{i\varphi}\sin\frac\vartheta2\lvert1\rangle$ and is represented by the
 # **Bloch vector** [[3]](#ref-3) $\mathbf r = (\langle X\rangle,\langle Y\rangle,\langle Z\rangle) = (\sin\vartheta\cos\varphi,\ \sin\vartheta\sin\varphi,\ \cos\vartheta)$
-# (notebook 03). Apply $R_z(\theta)$ from Eq. (3):
+# Apply $R_z(\theta)$ from Eq. (3):
 #
 # $$ R_z(\theta)\lvert\psi\rangle = e^{-i\theta/2}\Big(\cos\tfrac\vartheta2\lvert0\rangle + e^{i(\varphi+\theta)}\sin\tfrac\vartheta2\lvert1\rangle\Big). $$
 #
@@ -270,7 +260,7 @@ for K in (2, 4, 6, 8, 12, 16):
 # **From formula to code.** One function maps an angle to a Bloch vector: build $\lvert0\rangle$, apply the gate with
 # `apply_gate`, read out $(\langle X\rangle,\langle Y\rangle,\langle Z\rangle)$ from the one-qubit reduced density matrix
 # (`all_local_expectations`). `jax.vmap` turns this function of *one* angle into a function of a whole array of angles
-# without a Python loop (notebook 01), and `jax.jit` compiles the batched function.
+# without a Python loop, and `jax.jit` compiles the batched function.
 
 # %%
 # ==============================================================================
@@ -310,8 +300,8 @@ plt.show()
 # The numerical Bloch vectors follow the predicted great circles: $R_x$ moves the vector in the $y$-$z$ plane
 # ($\langle Y\rangle=-\sin\theta$), $R_y$ in the $x$-$z$ plane. At $\theta=\pi$ the spin is flipped
 # ($\langle Z\rangle=-1$): a "$\pi$ pulse" is an $X$ gate. At $\theta=\pi/2$ the state lies on the equator: a
-# "$\pi/2$ pulse" creates an equal superposition, like the Hadamard gate. These are exactly the Rabi oscillations [[5]](#ref-5) you
-# integrated in the mini-project of notebook 01, now obtained from a closed-form gate.
+# "$\pi/2$ pulse" creates an equal superposition, like the Hadamard gate. These are exactly the Rabi oscillations [[5]](#ref-5), here
+# obtained from a closed-form gate.
 #
 # > **Physics insight.** $\langle Z\rangle$ returns to $+1$ at $\theta = 2\pi$, but the *state* does not:
 # > $R_{\mathbf n}(2\pi) = -1$. A spin-1/2 needs a $4\pi$ rotation to come back to itself. For a single isolated qubit
@@ -456,8 +446,7 @@ assert float(jnp.max(errs)) < 100 * TOL
 # %% [markdown]
 # **Checkpoint.** (i) Truth table of CNOT with control 0 and target 1. (ii) A CNOT between *distant* qubits in
 # *reversed* order, control $=2$ and target $=0$ in a 3-qubit register, compared with the dense textbook matrix
-# $\;1\otimes1\otimes\lvert0\rangle\langle0\rvert + X\otimes1\otimes\lvert1\rangle\langle1\rvert\;$ built with Kronecker products as in
-# notebook 03.
+# $\;1\otimes1\otimes\lvert0\rangle\langle0\rvert + X\otimes1\otimes\lvert1\rangle\langle1\rvert\;$ built with Kronecker products.
 
 # %%
 # ==============================================================================
@@ -605,8 +594,7 @@ print("Toffoli computes  t -> t XOR (c1 AND c2)  on all 8 basis states")
 # > **Numerical practice.** The cost of a $k$-qubit gate is $O(2^k\,2^N)$: a Toffoli gate applied as one $8\times8$
 # > contraction costs twice as much as a CNOT. Dense $k$-qubit gates beyond $k\approx 5$ are rarely useful; structured
 # > gates (diagonal, controlled) can be applied more cheaply by exploiting the structure, e.g. a diagonal gate is an
-# > element-wise multiplication of the state tensor by a phase tensor (used for one-axis twisting in
-# > [notebook 33](../ch10_quantum_metrology_protocols/33_spin_squeezing_one_axis_twisting.ipynb), Chapter 10).
+# > element-wise multiplication of the state tensor by a phase tensor (used for one-axis twisting).
 
 # %% [markdown]
 # ## 5. A circuit is a list
@@ -618,8 +606,7 @@ print("Toffoli computes  t -> t XOR (c1 AND c2)  on all 8 basis states")
 # ```python
 # gates = [((0,), H), ((0, 1), CNOT), ((1, 2), CNOT)]          # [(qubits, matrix), ...]
 # ```
-# and running the circuit is a loop over `apply_gate`. This is the engine function `apply_gates` - we met it in
-# notebook 05, where the list held Trotter gates:
+# and running the circuit is a loop over `apply_gate`. This is the engine function `apply_gates`:
 
 # %%
 #@engine-show: apply_gates
@@ -719,7 +706,7 @@ def draw_circuit(circuit, N, title=""):
 # computing [[14]](#ref-14)).
 #
 # We build the three circuits as functions returning labelled lists, run them, and compare with the states constructed
-# directly as tensors in [notebook 06](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb) (`bell_state`, `ghz_state`,
+# directly as tensors by the engine (`bell_state`, `ghz_state`,
 # `cluster_state`).
 
 # %%
@@ -789,7 +776,7 @@ draw_circuit(cluster_circuit(N), N, title=f"cluster-state circuit, N={N} (depth 
 #
 # `jax.jit` removes this overhead: it *traces* the Python function once - the `for` loop in `apply_gates` is unrolled
 # during tracing - and hands the whole sequence of contractions to the XLA compiler, which produces one fused program.
-# The rules of the game (notebook 01):
+# The rules of the game:
 #
 # * the **structure** of the circuit - which gate acts on which qubits, the number of gates - is *static*: it is frozen
 #   into the compiled program (qubit labels define the einsum strings);
@@ -797,7 +784,7 @@ draw_circuit(cluster_circuit(N), N, title=f"cluster-state circuit, N={N} (depth 
 #   recompilation.
 #
 # The natural design is therefore a pure function `circuit(params, psi0) -> psi` with the structure written as ordinary
-# Python. As an example we take a layered parametrised circuit (the type used as a variational ansatz in Chapter 13): each
+# Python. As an example we take a layered parametrised circuit (the type used as a variational ansatz): each
 # layer applies $R_y$ and $R_z$ with individual angles to every qubit and then a chain of CZ gates.
 
 # %%
@@ -856,7 +843,7 @@ assert err < 100 * TOL
 # is a one-off compilation that takes far longer than a single run. Compilation pays off whenever the same circuit
 # *structure* is executed many times - with different angles (optimisation, parameter sweeps), different input states,
 # or different random numbers (trajectories). The precise numbers depend on your machine; the pattern does not.
-# (`block_until_ready()` is essential for timing because JAX dispatches work asynchronously, notebook 01.)
+# (`block_until_ready()` is essential for timing because JAX dispatches work asynchronously.)
 #
 # > **JAX practice.** A new compilation is triggered whenever the *shapes* or the *static structure* change: another
 # > $N$, another number of layers, another qubit pattern. Changing the *values* of `theta` or `psi0` never recompiles.
@@ -870,8 +857,7 @@ assert err < 100 * TOL
 # $R_z(\phi)$ and measure the parity $\langle X^{\otimes N}\rangle$. Since
 # $R_z(\phi)^{\otimes N}(\lvert0..0\rangle+\lvert1..1\rangle) \propto \lvert0..0\rangle+e^{iN\phi}\lvert1..1\rangle$, the prediction is
 # $\langle X^{\otimes N}\rangle=\cos(N\phi)$: the fringes oscillate $N$ times faster than for a single qubit
-# ($\langle X\rangle=\cos\phi$ for $\lvert+\rangle$). This is the origin of the Heisenberg limit of quantum metrology
-# ([notebook 32](../ch10_quantum_metrology_protocols/32_ghz_interferometry_heisenberg_limit.ipynb), Chapter 10).
+# ($\langle X\rangle=\cos\phi$ for $\lvert+\rangle$). This is the origin of the Heisenberg limit of quantum metrology.
 
 # %%
 # ==============================================================================
@@ -910,8 +896,7 @@ plt.show()
 # Unrolling has a cost: a circuit with $L$ identical-structure layers is traced and compiled as $L$ copies of the
 # layer, so the program handed to XLA grows linearly with $L$ and the compilation time grows at least that fast (the
 # optimisation passes inside XLA are not linear in the program size). When the layers differ only by their *angles*,
-# `lax.scan` compiles the layer **once** and loops inside XLA, feeding it one slice `theta[l]` per iteration
-# (notebook 01):
+# `lax.scan` compiles the layer **once** and loops inside XLA, feeding it one slice `theta[l]` per iteration:
 # ```python
 # psi_final, _ = lax.scan(step, psi0, theta)     # step(psi, theta_layer) -> (new_psi, None)
 # ```
@@ -985,7 +970,7 @@ assert err < 100 * TOL
 # **From formula to code.** To verify an identity between circuits we need the *unitary matrix of a circuit*. We obtain
 # it without any Kronecker product from the matrix-free action: column $j$ of $U$ is the circuit applied to the basis
 # state $\lvert j\rangle$. `jax.vmap` applies the circuit to all $2^N$ basis tensors at once - the same trick as
-# `dense_hamiltonian` in notebook 05. (Validation tool for small $N$ only: the result has $4^N$ entries.)
+# the engine's `dense_hamiltonian`. (Validation tool for small $N$ only: the result has $4^N$ entries.)
 
 # %%
 # ==============================================================================
@@ -1028,7 +1013,7 @@ for text, gates, target, n in identities:
 # the formula acts first (the pitfall of Section 5.1). The $R_{yy}$ line uses
 # $R_x(\tfrac\pi2)\,Z\,R_x(-\tfrac\pi2) = -Y$: the two minus signs cancel in $Y\otimes Y$.
 #
-# One further identity connects gates with the Heisenberg interaction of notebook 03. Because
+# One further identity connects gates with the Heisenberg interaction. Because
 # $X\otimes X$, $Y\otimes Y$ and $Z\otimes Z$ commute with each other, the evolution under the exchange interaction
 # factorises *exactly*, and using $X\otimes X+Y\otimes Y+Z\otimes Z = 2\,\mathrm{SWAP}-1$ together with
 # $\mathrm{SWAP}^2=1$ and Eq. (2):
@@ -1078,8 +1063,7 @@ assert max(err1, err2, d_swap) < 100 * TOL
 # 3. $H$, $S$ and CNOT generate the **Clifford group**, which is *not* universal: circuits built from these gates
 #    alone, acting on a computational-basis input and read out in the computational basis, can be simulated efficiently
 #    on a classical computer (Gottesman-Knill theorem [[21]](#ref-21)). The non-Clifford $T$ gate is the "magic"
-#    ingredient; we return to it in [notebook 10](10_random_unitaries_and_random_circuits.ipynb) and in
-#    [notebook 27](../ch09_entanglement_and_complexity/27_stabilizer_renyi_entropy.ipynb) (Chapter 9).
+#    ingredient.
 #
 # **A numerical experiment for statement 2.** Separately, $H$ and $T$ are rotations by *rational* multiples of $\pi$
 # ($H$ by $\pi$ about $(\hat x+\hat z)/\sqrt2$, $T$ by $\pi/4$ about $\hat z$), so each of them alone generates only a
@@ -1098,7 +1082,7 @@ assert max(err1, err2, d_swap) < 100 * TOL
 # $$ U = (T\ \text{or}\ 1)\;\underbrace{(HT\ \text{or}\ SHT)\cdots(HT\ \text{or}\ SHT)}_{m\ \text{syllables}}\;C,\qquad C\in\text{24 single-qubit Clifford gates}, $$
 #
 # which contains $m$ or $m+1$ $T$ gates. (The 24 Clifford gates - all products of $H$ and $S$ - are constructed in
-# [notebook 10](10_random_unitaries_and_random_circuits.ipynb); here we take them from the engine.) There are
+# [notebook 10, random unitaries and random circuits](10_random_unitaries_and_random_circuits.ipynb); here we take them from the engine.) There are
 # $2^m$ syllable strings, so the number of distinct gates grows like $2^{\text{T-count}}$ - and we can enumerate them
 # all up to $m=14$. For each $m$ we ask how well the best gate approximates a target rotation, here
 # $R_z(0.3)$, $R_y(1.0)$ and $R_x(\sqrt2)$, in the phase-blind distance of Eq. (4).
@@ -1198,11 +1182,11 @@ for name, vals in best.items():
 #
 # ### 9.1 From the Hamiltonian to gates
 #
-# We return to the transverse-field Ising model (TFIM) of notebooks 03-05 on an open chain (Pauli convention),
+# We take the transverse-field Ising model (TFIM) on an open chain (Pauli convention),
 #
 # $$ H_{\rm TFIM} = J\sum_{q=0}^{N-2} Z_qZ_{q+1} + h\sum_{q=0}^{N-1}X_q \equiv H_{zz}+H_x . $$
 #
-# The first-order Trotter formula ([[1]](#ref-1); notebook 04) approximates one time step by
+# The first-order Trotter formula ([[1]](#ref-1)) approximates one time step by
 # $e^{-iH_{\rm TFIM}\,dt}\approx e^{-iH_x dt}e^{-iH_{zz}dt}$ with an error $O(dt^2)$ per step. All terms inside $H_{zz}$ commute
 # with each other, and so do all terms of $H_x$, hence each factor is *exactly* a product of gates we know:
 #
@@ -1212,8 +1196,8 @@ for name, vals in best.items():
 # (The factor 2 comes from the $\theta/2$ in the definition of the rotation gates.) The second-order [[23]](#ref-23)
 # splitting $e^{-iH_x dt/2}e^{-iH_{zz}dt}e^{-iH_xdt/2}$ has error $O(dt^3)$ per step and costs only one extra layer of
 # single-qubit gates. This is **digital quantum simulation**: the time evolution of a spin model becomes a circuit of
-# $R_{zz}$ and $R_x$ gates that a quantum processor can run [[24]](#ref-24). The "Trotter gates" `exp(-i h dt)` that we
-# applied by einsum in notebook 05 were quantum gates all along.
+# $R_{zz}$ and $R_x$ gates that a quantum processor can run [[24]](#ref-24). The "Trotter gates" `exp(-i h dt)` of a
+# matrix-free simulation are quantum gates.
 #
 # We order the $R_{zz}$ gates as *even bonds, then odd bonds*. They commute, so the order does not change the unitary -
 # but it changes the depth: two layers instead of a staircase of $N-1$.
@@ -1257,9 +1241,9 @@ print(f"one step: gates {gate_counts(step1)}, depth {schedule(step1, N_tr)[1]}")
 #
 # ### 9.2 Running the digital simulation and checking it
 #
-# We repeat the quench of notebooks 04/05 - start from $\lvert0\dots0\rangle$ (all spins up), evolve with the TFIM - now as a
+# We simulate a quench - start from $\lvert0\dots0\rangle$ (all spins up), evolve with the TFIM - now as a
 # circuit of `n_steps` identical steps, folded with `lax.scan`, recording the magnetisation of the central spin after
-# every step. The reference is the dense exact evolution of notebook 04 (one diagonalisation of the $256\times256$
+# every step. The reference is the dense exact evolution (one diagonalisation of the $256\times256$
 # Hamiltonian matrix, affordable at $N=8$). Then we measure the
 # error of the final state against the step size for both Trotter orders; the expected *global* errors are $O(dt)$ and
 # $O(dt^2)$ in the state, i.e. slopes 2 and 4 for the infidelity $1-F$ on a log-log plot.
@@ -1345,8 +1329,7 @@ for order in (1, 2):
 # %% [markdown]
 # Left: already 20 first-order steps follow the exact magnetisation closely, while 5 steps ($dt=0.4$) show visible
 # deviations. Right: the infidelity falls with slopes close to 2 and 4, as expected from state errors $O(dt)$ and
-# $O(dt^2)$ (the infidelity is quadratic in the state error). A detailed study of Trotter errors is the subject of
-# [notebook 12](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb) (Chapter 5).
+# $O(dt^2)$ (the infidelity is quadratic in the state error).
 #
 # ### 9.3 Gate counting for hardware
 #
@@ -1401,11 +1384,10 @@ for n in (4, 8, 16, 32, 64):
 #
 # $$ \mathcal E_p(\rho) = (1-p)\rho+\frac p3\big(X\rho X+Y\rho Y+Z\rho Z\big), $$
 #
-# with error probability $p_1$ after single-qubit gates and $p_2>p_1$ after two-qubit gates (measured gate errors on
-# current processors, with their sources, are quoted in [notebook 44](../ch13_quantum_machine_learning/44_noisy_variational_circuits.ipynb), Section 3.2). Noise of this kind limits the size of the
+# with error probability $p_1$ after single-qubit gates and $p_2>p_1$ after two-qubit gates. Noise of this kind limits the size of the
 # circuits that such "noisy intermediate-scale quantum" (NISQ) devices can execute reliably [[25]](#ref-25).
 # The state is now mixed, so we simulate the
-# density tensor $\rho$ of rank $2N$ (notebook 07): a gate acts as $U$ on the ket axes and $U^*$ on the bra axes
+# density tensor $\rho$ of rank $2N$: a gate acts as $U$ on the ket axes and $U^*$ on the bra axes
 # (`apply_gate_dm`), a channel with Kraus operators $K_m$ acts as $\rho\to\sum_mK_m\rho K_m^\dagger$ in a single einsum
 # (`apply_kraus_dm`). A noisy circuit is again a loop over a list - the *same* list as before.
 #
@@ -1506,8 +1488,8 @@ for k, p in enumerate(p2_values):
 #
 # ### 10.3 Cross-check with quantum trajectories
 #
-# The noisy simulator is new, so we test it against an independent method. In notebook 07 we derived an
-# independent way to simulate a channel: the **stochastic unravelling**. Keep a pure state, and at every noise location
+# The noisy simulator is new, so we test it against an independent method. An independent way to
+# simulate a channel, derived in [notebook 07, density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb), is the **stochastic unravelling**. Keep a pure state, and at every noise location
 # draw one Kraus operator $K_m$ at random with probability $\lVert K_m\lvert\psi\rangle\rVert^2$ (`apply_kraus_mcwf`). Averaging
 # over many such trajectories reproduces $\rho$; in particular $F=\overline{\lvert\langle\psi_{\rm ideal}\vert\psi_{\rm traj}\rangle\rvert^2}$
 # with a statistical error $\propto 1/\sqrt{M}$ for $M$ trajectories. One trajectory is a pure function of its PRNG key,
@@ -1554,8 +1536,7 @@ assert abs(F_mc - F_wrong) > 5 * F_err
 # channel, $\rho\to(1-p)\rho+p\,1/2$ (our channel at strength $3p/4$), is rejected by many standard errors, whereas the
 # exact value and the no-error estimate of Section 10.2 lie within one standard error of each other at $M=4000$. The density
 # tensor is exact but needs $4^N$ numbers; trajectories need $2^N$ numbers per trajectory and converge as $1/\sqrt M$ -
-# the method of choice beyond $N\approx13$–$14$, where the density tensor no longer fits into a laptop's memory
-# ([notebook 17](../ch06_open_quantum_systems/17_monte_carlo_wave_function.ipynb), Chapter 6).
+# the method of choice beyond $N\approx13$–$14$, where the density tensor no longer fits into a laptop's memory.
 #
 # ### 10.4 The Trotter-step dilemma of noisy digital simulation
 #
@@ -1620,7 +1601,7 @@ for p, (n_best, val) in best_steps.items():
 # %% [markdown]
 # ## 11. Summary - key takeaways
 #
-# * **Qubits are spins, gates are small unitaries, a circuit is a list.** Our spin-chain simulator of notebook 05 *is*
+# * **Qubits are spins, gates are small unitaries, a circuit is a list.** The matrix-free spin-chain simulator *is*
 #   a circuit simulator: `apply_gates(psi, [(qubits, U), ...])`, cost $O(2^k2^N)$ per $k$-qubit gate, any qubits,
 #   no SWAPs.
 # * For any operator with $P^2=1$: $e^{-iaP}=\cos a-i\sin a\,P$. This single formula gives $R_x,R_y,R_z$,

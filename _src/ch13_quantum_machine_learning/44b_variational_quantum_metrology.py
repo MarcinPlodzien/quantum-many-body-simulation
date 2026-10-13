@@ -5,16 +5,13 @@
 # %% [markdown]
 # ## 1. Introduction
 #
-# The notebooks of Chapter 10 built the quantum Fisher information (QFI) $F_Q$ and the protocols that reach its two
-# landmarks. For $N$ two-level atoms (qubits) whose phase $\theta$ is imprinted by the collective rotation
+# The quantum Fisher information (QFI) $F_Q$ of a probe has two landmarks. For $N$ two-level atoms (qubits) whose phase $\theta$ is imprinted by the collective rotation
 # $e^{-i\theta J_z}$, with $J_z=\tfrac12\sum_q Z_q$, an unentangled probe reaches at best $F_Q=N$, the standard quantum
 # limit, and the GHZ state $(\vert0\cdots0\rangle+\vert1\cdots1\rangle)/\sqrt2$ [[1]](#ref-1)
 # reaches $F_Q=N^2$, the Heisenberg limit, as shown for spectroscopy in [[2]](#ref-2). The quantum Cramér–Rao
-# bound $\Delta\theta\ge1/\sqrt{MF_Q}$ for $M$ repetitions [[3]](#ref-3), [[4]](#ref-4) turns these numbers into error bars
-# ([notebook 29](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb)).
+# bound $\Delta\theta\ge1/\sqrt{MF_Q}$ for $M$ repetitions [[3]](#ref-3), [[4]](#ref-4) turns these numbers into error bars.
 #
-# [Notebook 32](../ch10_quantum_metrology_protocols/32_ghz_interferometry_heisenberg_limit.ipynb) showed how fragile the
-# second landmark is. Under independent dephasing of every atom the QFI of the GHZ state falls as $N^2(1-2p)^{2N}$, and
+# The second landmark is fragile. Under independent dephasing of every atom the QFI of the GHZ state falls as $N^2(1-2p)^{2N}$, and
 # for large enough $N$ this is smaller than the value $N(1-2p)^2$ of the unentangled probe. Once noise is present, the
 # GHZ state is in general no longer the best probe, and which probe is best depends on the noise. Ref. [[5]](#ref-5) found for
 # dephasing that maximally entangled and uncorrelated atoms give the same frequency resolution and that partially
@@ -31,9 +28,8 @@
 #
 # $$\max_{\boldsymbol\varphi}\;F_Q\Big[\,e^{-i\theta J_z}\,\mathcal E\big(\vert\psi(\boldsymbol\varphi)\rangle\langle\psi(\boldsymbol\varphi)\vert\big)\,e^{i\theta J_z}\Big],\qquad \vert\psi(\boldsymbol\varphi)\rangle=U(\boldsymbol\varphi)\vert0\cdots0\rangle,$$
 #
-# for a fixed encoding generator $J_z$ and a fixed noise channel $\mathcal E$. This is the variational eigensolver of
-# [notebook 42](../ch13_quantum_machine_learning/42_variational_quantum_eigensolver.ipynb) with the energy replaced by
-# the QFI. Numerical optimisation of the input state over the whole state space came first: Ref. [[9]](#ref-9)
+# for a fixed encoding generator $J_z$ and a fixed noise channel $\mathcal E$. This is the variational quantum eigensolver
+# with the energy replaced by the QFI. Numerical optimisation of the input state over the whole state space came first: Ref. [[9]](#ref-9)
 # found the optimal two-mode states of a lossy optical interferometer, and Ref. [[10]](#ref-10) gave an alternating
 # algorithm for the best input of a noisy channel. Parametrised circuits as the search space were proposed in
 # [[11]](#ref-11), [[12]](#ref-12) for programmable atomic sensors and in [[13]](#ref-13), which
@@ -44,6 +40,14 @@
 # density matrix, computed from its eigendecomposition, and differentiating through that eigendecomposition fails at
 # exactly the states the optimiser is looking for. Second, $F_Q$ is a bound: it is reached only by an optimal
 # measurement, which is a second circuit to be optimised.
+#
+# The notebook assumes the quantum Fisher information of pure and mixed states and the symmetric logarithmic derivative
+# ([notebook 29, quantum Fisher information](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb) and
+# [notebook 30, QFI from the symmetric logarithmic derivative](../ch10_quantum_metrology_protocols/30_qfi_from_the_sld_prepare_encode_estimate.ipynb)),
+# GHZ interferometry with parity readout ([notebook 32, GHZ interferometry](../ch10_quantum_metrology_protocols/32_ghz_interferometry_heisenberg_limit.ipynb)),
+# the hardware-efficient ansatz and Adam ([notebook 40, parametrised gates and gradients](40_parametrized_gates_and_gradients.ipynb)
+# and [notebook 41, optimisers](41_optimizers.ipynb)), and gradients through Kraus channels
+# ([notebook 44, noisy variational circuits](44_noisy_variational_circuits.ipynb)).
 #
 # **Road map.**
 #
@@ -83,31 +87,13 @@
 # * `lax.stop_gradient` to separate the value of a function from the quantity that is differentiated;
 # * one compiled training program per system size, with the noise channel and the step size as traced arguments;
 # * compile time measured separately from run time.
-#
-# ### Prerequisites
-#
-# * [29 — quantum Fisher information](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb): $F_Q$,
-#   $4\,\mathrm{Var}(G)$ for pure states, the standard quantum and Heisenberg limits;
-# * [30 — QFI from the symmetric logarithmic derivative](../ch10_quantum_metrology_protocols/30_qfi_from_the_sld_prepare_encode_estimate.ipynb):
-#   the SLD, the mixed-state QFI, convexity, and the optimal measurement;
-# * [32 — GHZ interferometry](../ch10_quantum_metrology_protocols/32_ghz_interferometry_heisenberg_limit.ipynb): parity
-#   readout and the closed-form decoherence of a GHZ probe;
-# * [33 — spin squeezing](../ch10_quantum_metrology_protocols/33_spin_squeezing_one_axis_twisting.ipynb) and
-#   [34 — from one-axis twisting to GHZ](../ch10_quantum_metrology_protocols/34_oat_to_ghz_full_metrology_protocol.ipynb):
-#   the one-axis-twisted probes used as a baseline;
-# * [37 — particle loss](../ch10_quantum_metrology_protocols/37_qfi_particle_loss_and_magic.ipynb): the QFI of the
-#   survivors;
-# * [40 — gradients](../ch13_quantum_machine_learning/40_parametrized_gates_and_gradients.ipynb),
-#   [41 — optimisers](../ch13_quantum_machine_learning/41_optimizers.ipynb) and
-#   [44 — noisy variational circuits](../ch13_quantum_machine_learning/44_noisy_variational_circuits.ipynb): the
-#   hardware-efficient ansatz, Adam, `lax.scan` training loops, and differentiating through Kraus channels.
 
 # %% [markdown]
 # ## 2. Engine recap and notebook helpers
 #
 # From the engine we need gates on states and density tensors, the Kraus channels, the GHZ and Dicke states, the
 # pure- and mixed-state QFI, the one-axis-twisting evolution, the hardware-efficient ansatz and Adam. The helper cell
-# adds plot settings, the Wilson interval of notebook 41 and two timing functions that separate compilation from
+# adds plot settings, the Wilson score interval and two timing functions that separate compilation from
 # execution.
 
 # %%
@@ -167,8 +153,7 @@ def run_timed(compiled, *args):
 # Every experiment below has four stages.
 #
 # 1. **Prepare.** A circuit $U(\boldsymbol\varphi)$ acts on $\vert0\cdots0\rangle$. We use the hardware-efficient ansatz
-#    [[16]](#ref-16) of
-#    [notebook 40](../ch13_quantum_machine_learning/40_parametrized_gates_and_gradients.ipynb): $L$ layers, each a
+#    [[16]](#ref-16): $L$ layers, each a
 #    rotation $R_z R_y$ on every qubit followed by a chain of CZ gates, and a final rotation layer, $2N(L+1)$ angles in
 #    total. Unless stated otherwise $L=N$.
 # 2. **Noise.** The same single-qubit channel $\mathcal E$ acts on every qubit; $\mathcal E^{\otimes N}$ denotes the whole
@@ -198,13 +183,12 @@ def run_timed(compiled, *args):
 #
 # Both commute with $R_z(\theta)=\mathrm{diag}(e^{-i\theta/2},e^{i\theta/2})$ up to a phase: $K_0$ and $Z$ are diagonal,
 # and $R_z K_1 R_z^\dagger=e^{-i\theta}K_1$, a phase that cancels in $K_1\rho K_1^\dagger$. Hence
-# $\mathcal E(R_z\rho R_z^\dagger)=R_z\mathcal E(\rho)R_z^\dagger$ ([notebook 32](../ch10_quantum_metrology_protocols/32_ghz_interferometry_heisenberg_limit.ipynb),
-# Section 10). This covariance is a property of these two channels: a bit flip, $K_1=\sqrt p\,X$, does not have it, since
+# $\mathcal E(R_z\rho R_z^\dagger)=R_z\mathcal E(\rho)R_z^\dagger$. This covariance is a property of these two channels: a bit flip, $K_1=\sqrt p\,X$, does not have it, since
 # $R_zXR_z^\dagger$ is not a multiple of $X$. For dephasing and damping, noise during or after the encoding gives the same
 # $\rho_\theta$ as Eq. (1), and $\rho_\theta$ is a unitary
 # orbit of the noisy probe $\sigma(\boldsymbol\varphi)=\mathcal E^{\otimes N}(\vert\psi\rangle\langle\psi\vert)$. The QFI
-# of a unitary orbit does not depend on $\theta$
-# ([notebook 30](../ch10_quantum_metrology_protocols/30_qfi_from_the_sld_prepare_encode_estimate.ipynb), Section 5.5),
+# of a unitary orbit does not depend on $\theta$ (derived in
+# [notebook 30, QFI from the symmetric logarithmic derivative](../ch10_quantum_metrology_protocols/30_qfi_from_the_sld_prepare_encode_estimate.ipynb), Section 5.5),
 # so the cost function is
 #
 # $$F(\boldsymbol\varphi)=F_Q\big[\sigma(\boldsymbol\varphi),\,J_z\big]. \tag{2}$$
@@ -213,8 +197,7 @@ def run_timed(compiled, *args):
 #
 # The third noise model removes particles. Each particle survives independently with probability $\eta$, and we assume
 # that the experiment records which particles survived (as when the atoms of a tweezer array are imaged at the end); this
-# is a different model from the deterministic loss of $k$ particles in
-# [notebook 37](../ch10_quantum_metrology_protocols/37_qfi_particle_loss_and_magic.ipynb). With probability
+# is a different model from the deterministic loss of a fixed number $k$ of particles. With probability
 # $p_S=\eta^{\vert S\vert}(1-\eta)^{N-\vert S\vert}$ the survivors are the subset $S$, and their state is the reduced
 # state $\rho_S=\mathrm{Tr}_{\bar S}\vert\psi\rangle\langle\psi\vert$, on which the phase acts through
 # $J_z^{(S)}=\tfrac12\sum_{q\in S}Z_q$ because a lost particle carries no phase. Loss also commutes with the encoding,
@@ -239,15 +222,15 @@ def run_timed(compiled, *args):
 #
 # with $F$ from Eq. (2) or Eq. (3). The Heisenberg limit is still an upper bound. The Kraus branches
 # $K_{k_1}\otimes\cdots\otimes K_{k_N}\vert\psi\rangle$ of the noisy state are pure states, each with $F_Q\le N^2$ (a
-# pure state has $F_Q=4\,\mathrm{Var}(J_z)\le N^2$), and $F_Q$ is convex
-# ([notebook 30](../ch10_quantum_metrology_protocols/30_qfi_from_the_sld_prepare_encode_estimate.ipynb), Section 5.5),
+# pure state has $F_Q=4\,\mathrm{Var}(J_z)\le N^2$), and $F_Q$ is convex (proved in
+# [notebook 30, QFI from the symmetric logarithmic derivative](../ch10_quantum_metrology_protocols/30_qfi_from_the_sld_prepare_encode_estimate.ipynb), Section 5.5),
 # so $F\le N^2$; in Eq. (3) every term has $F_Q\le\vert S\vert^2\le N^2$ and the weights sum to at most one.
 #
 # ### 3.5 Baselines in closed form
 #
 # **GHZ.** Under dephasing the GHZ state stays in the two-dimensional space spanned by $\vert\bar0\rangle=\vert0\cdots0\rangle$
 # and $\vert\bar1\rangle=\vert1\cdots1\rangle$ with coherence reduced by $(1-2p)^N$, and
-# [notebook 32](../ch10_quantum_metrology_protocols/32_ghz_interferometry_heisenberg_limit.ipynb) (Eq. 16) derives
+# [notebook 32, GHZ interferometry](../ch10_quantum_metrology_protocols/32_ghz_interferometry_heisenberg_limit.ipynb) (Eq. 16) derives
 # $F_Q=N^2(1-2p)^{2N}$. Under amplitude damping the coherence $\vert\bar1\rangle\langle\bar0\vert$ survives only in the
 # branch with no decay, where it is multiplied by $(1-g)^{N/2}$; all other branches produce diagonal terms. Inside the
 # block $\{\vert\bar0\rangle,\vert\bar1\rangle\}$ the populations are $\tfrac12(1+g^N)$ and $\tfrac12(1-g)^N$ (the first
@@ -255,7 +238,7 @@ def run_timed(compiled, *args):
 # QFI. A two-level block of total weight $w$, coherence $c$ and generator eigenvalues $\pm N/2$ is $w$ times a qubit with
 # transverse Bloch component $r_\perp=2\vert c\vert/w$ and generator $\tfrac N2\sigma_z$, so its QFI is
 # $w\,N^2r_\perp^2=4N^2\vert c\vert^2/w$ (the single-qubit QFI $r_\perp^2$ is derived in
-# [notebook 31](../ch10_quantum_metrology_protocols/31_ramsey_interferometry.ipynb), Section 15.3; blocks add as in
+# [notebook 31, Ramsey interferometry](../ch10_quantum_metrology_protocols/31_ramsey_interferometry.ipynb), Section 15.3; blocks add as in
 # Section 3.3). Under loss, every reduced state of a GHZ state on a proper subset is
 # $\tfrac12(\vert0\cdots0\rangle\langle0\cdots0\vert+\vert1\cdots1\rangle\langle1\cdots1\vert)$, which commutes with
 # $J_z^{(S)}$, so only $S=\{1,\dots,N\}$ contributes. Together:
@@ -293,10 +276,11 @@ def run_timed(compiled, *args):
 # decay moves into $\vert0\cdots0\rangle$. Under dephasing and loss the analogous calculation gives $4s(1-s)$ times Eq. (5a) or (5c), so
 # the balanced GHZ state is the best of its family there.
 #
-# **One-axis-twisted probes.** The third family is that of notebooks 33 and 34 [[17]](#ref-17),
+# **One-axis-twisted probes.** The third family consists of the one-axis-twisted states [[17]](#ref-17),
 # $\vert\psi_{\rm OAT}(\mu,a,b)\rangle=e^{-ibJ_y}e^{-iaJ_x}e^{-i\mu J_z^2}\vert+\rangle^{\otimes N}$. Small twisting
 # strengths $\mu$ give spin-squeezed states, and at $\mu=\pi/2$ the twisting produces a cat state, which the two rotations
-# can turn into a GHZ state along $z$ (notebook 34, Section 4). The family has no closed form under noise; we tune
+# can turn into a GHZ state along $z$ (derived in
+# [notebook 34, from one-axis twisting to GHZ](../ch10_quantum_metrology_protocols/34_oat_to_ghz_full_metrology_protocol.ipynb), Section 4). The family has no closed form under noise; we tune
 # $(\mu,a,b)$ numerically for every channel and every $N$ (Step 6), so that the comparison with the variational probe is
 # fair.
 #
@@ -376,7 +360,7 @@ for N in N_LIST:
 
 # %% [markdown]
 # Three features of this table set the scene. Under dephasing the GHZ value peaks at $N=4$–$5$ and the product state
-# overtakes it from $N=5$ on ($3.20$ against $2.68$), the crossover described in notebook 32. Under damping the GHZ state
+# overtakes it from $N=5$ on ($3.20$ against $2.68$). Under damping the GHZ state
 # stays far ahead of the product state up to $N=6$ ($14.95$ against $4.80$), and the unbalanced GHZ state of Eq. (8)
 # improves on it by $0.03$ at $N=2$ and by $1.56$ at $N=6$, with $s^\ast$ falling from $0.452$ to $0.339$. Under loss the
 # GHZ state is also ahead ($9.44$ against $4.80$ at $N=6$), but its advantage decays as $\eta^N$.
@@ -387,7 +371,7 @@ for N in N_LIST:
 # ### 4.1 Gradients through an eigendecomposition at degenerate spectra
 #
 # The mixed-state QFI is computed from the eigendecomposition $\sigma=\sum_k\lambda_k\vert k\rangle\langle k\vert$
-# ([notebook 30](../ch10_quantum_metrology_protocols/30_qfi_from_the_sld_prepare_encode_estimate.ipynb), Eq. 11):
+# ([notebook 30, QFI from the symmetric logarithmic derivative](../ch10_quantum_metrology_protocols/30_qfi_from_the_sld_prepare_encode_estimate.ipynb), Eq. 11):
 #
 # $$F_Q=2\sum_{k,l:\,\lambda_k+\lambda_l>0}\frac{\vert\langle k\vert\partial_\theta\sigma\vert l\rangle\vert^2}{\lambda_k+\lambda_l},\qquad \partial_\theta\sigma=-i[J_z,\sigma]. \tag{9}$$
 #
@@ -395,8 +379,8 @@ for N in N_LIST:
 # $1/(\lambda_k-\lambda_l)$ for every other eigenvalue $\lambda_l$. Noisy GHZ-like states have exactly degenerate spectra
 # (the dephased GHZ state has rank two and $2^N-2$ zero eigenvalues), and a pure state has $2^N-1$ zero eigenvalues. Such
 # states are met along the optimisation: without noise every probe is pure, and under damping and loss the optimum at
-# small $N$ is GHZ-like (Section 6). Notebook 30 (Exercise 8) proposed solving the SLD equation, a Lyapunov equation, as a linear system
-# instead, which is differentiable when $\sigma$ has full rank; at rank-deficient states its matrix is singular, and its
+# small $N$ is GHZ-like (Section 6). The SLD equation, a Lyapunov equation, can instead be solved as a linear system,
+# which is differentiable when $\sigma$ has full rank; at rank-deficient states its matrix is singular, and its
 # size $4^N\times4^N$ ($4096\times4096$ at $N=6$) makes every evaluation an $O(64^N)$ solve. We need a third route.
 #
 # ### 4.2 A variational formula for the QFI
@@ -438,13 +422,13 @@ for N in N_LIST:
 #
 # The right-hand side is the gradient of the expectation value of a **fixed** observable in a noisy circuit, the quantity
 # that reverse-mode differentiation through Kraus channels computes in
-# [notebook 44](../ch13_quantum_machine_learning/44_noisy_variational_circuits.ipynb). The SLD enters only as a
+# [notebook 44, noisy variational circuits](44_noisy_variational_circuits.ipynb). The SLD enters only as a
 # constant. Equation (10) gives more than the gradient: $\mathrm{Tr}(\sigma(\boldsymbol\varphi)M_{L_0})$ is a lower bound
 # of $F$ that touches it at $\boldsymbol\varphi_0$, so a step that raises this lower bound by $\delta$ raises $F$ by at
-# least $\delta$. This holds also at the points where $F$ is not differentiable, such as rank changes (notebook 30,
-# Section 5.3).
+# least $\delta$. This holds also at the points where $F$ is not differentiable, such as rank changes
+# ([notebook 30, QFI from the symmetric logarithmic derivative](../ch10_quantum_metrology_protocols/30_qfi_from_the_sld_prepare_encode_estimate.ipynb), Section 5.3).
 #
-# **From formula to code.** `qfi_and_sld` evaluates Eq. (9) and the SLD in the eigenbasis exactly as in notebook 30. Since
+# **From formula to code.** `qfi_and_sld` evaluates Eq. (9) and the SLD in the eigenbasis of $\sigma$. Since
 # $J_z$ is diagonal with entries $m(s)$, the commutator in Eq. (11) is elementwise, $[J_z,L]_{st}=(m_s-m_t)L_{st}$.
 # `qfi_dm` implements Eq. (12) with `lax.stop_gradient`, which returns its argument unchanged but has zero derivative: the
 # SLD is computed from `stop_gradient(rho)`, so no derivative ever reaches `eigh`, and the returned number
@@ -556,7 +540,7 @@ def qfi_after_loss(psi, eta, tables):
 #   `rdm` and `qfi_mixed`;
 # * **(c) gradients**: Eq. (12) against central finite differences of the value
 #   ($\epsilon=10^{-5}$, error of order $\epsilon^2$ plus round-off, about $10^{-10}$ here) and against `jax.grad` through
-#   the vectorised Lyapunov solve of notebook 30, which is legitimate here because the random noisy probe has full rank.
+#   the vectorised Lyapunov solve of Section 4.1, which is legitimate here because the random noisy probe has full rank.
 
 # %%
 # ==============================================================================
@@ -708,12 +692,12 @@ print(f"condition number of the Lyapunov matrix: pure probe {float(jnp.linalg.co
 #
 # ### 5.2 Training loop and success criterion
 #
-# `ascend` runs Adam [[18]](#ref-18) ([notebook 41](../ch13_quantum_machine_learning/41_optimizers.ipynb),
+# `ascend` runs Adam [[18]](#ref-18) ([notebook 41, optimisers](41_optimizers.ipynb),
 # Section 6) inside a `lax.scan`, and `jax.vmap` runs 32 random starts in one compiled program. The step size shrinks
 # geometrically from $\alpha_0=0.1$ to $0.01$ over the run. Adam divides the gradient by a running average of its own
 # magnitude, so its step does not shrink as the gradient goes to zero; with a constant step size the iterate keeps moving
 # around the maximum, which Section 9.2 measures. A run counts as a success if its final $F_Q$ exceeds $N^2-10^{-3}$.
-# The success probability is reported with the 95% Wilson score interval [[19]](#ref-19), used in notebook 41: for $k$
+# The success probability is reported with the 95% Wilson score interval [[19]](#ref-19): for $k$
 # successes in $n$ runs and $\hat p=k/n$, $z=1.96$,
 #
 # $$\hat p_\pm=\frac{\hat p+z^2/2n\pm z\sqrt{\hat p(1-\hat p)/n+z^2/4n^2}}{1+z^2/n},$$
@@ -844,7 +828,7 @@ assert ov.min() > 1 - 1e-4
 # ### 6.1 The step size
 #
 # The training program takes the Kraus array and the step size as traced arguments, so dephasing and damping and all
-# step sizes share one compilation. As in notebook 41, the step size is chosen by measurement: the
+# step sizes share one compilation. The step size is chosen by measurement: the
 # first cell brackets the initial step $\alpha_0$ at $N=4$ with the same geometric decay as in Section 5.
 
 # %%
@@ -978,7 +962,7 @@ for N in N_LIST:
 # Two patterns appear. Under
 # dephasing the tuned twisted state beats both GHZ and product states for every $N$, at moderate twisting
 # ($\mu\approx0.3$–$0.4$ for $N=5,6$). Under damping for $N=3$–$5$ and under loss for $N=2$–$4$ the best twisted state is
-# the GHZ state itself (at $\mu=\pi/2$ with a rotation, as derived in notebook 34): the family contains GHZ, and at these
+# the GHZ state itself (at $\mu=\pi/2$ with a rotation, Section 3.5): the family contains GHZ, and at these
 # $N$ no squeezed member does better.
 
 # %%
@@ -1271,7 +1255,9 @@ print(f"loss optimum, Eq. (3) split: all particles survive {f_all:.4f}, some los
 # $$F_C(\theta)=\sum_x\frac{\big(\partial_\theta p_x(\theta)\big)^2}{p_x(\theta)},\qquad p_x(\theta)=\langle x\vert V\rho_\theta V^\dagger\vert x\rangle. \tag{14}$$
 #
 # Ref. [[4]](#ref-4) showed $F_C\le F_Q$ for every measurement, with equality for the projective measurement in
-# the eigenbasis of the SLD (proved in notebook 29, Section 5.3, and constructed in notebook 30, Section 8). Every
+# the eigenbasis of the SLD (proved in [notebook 29, quantum Fisher information](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb),
+# Section 5.3, and constructed in
+# [notebook 30, QFI from the symmetric logarithmic derivative](../ch10_quantum_metrology_protocols/30_qfi_from_the_sld_prepare_encode_estimate.ipynb), Section 8). Every
 # projective measurement is a computational-basis measurement after some unitary $V$; the question is how deep $V$ must be.
 #
 # **From formula to code.** By linearity, $\partial_\theta p_x=\langle x\vert V(\partial_\theta\rho_\theta)V^\dagger\vert x\rangle$
@@ -1286,9 +1272,9 @@ print(f"loss optimum, Eq. (3) split: all particles survive {f_all:.4f}, some los
 # We compare with three fixed readouts that rotate every qubit by the same $R_y(b)R_z(a)$ (tuned over a $96\times49$ grid
 # of $(a,b)$) and then
 #
-# * record the **parity** $(-1)^{\vert x\vert}$, the GHZ readout of notebook 32;
+# * record the **parity** $(-1)^{\vert x\vert}$, the GHZ readout;
 # * record the **number of ones** $\vert x\vert$, spin counting, i.e. a measurement of the collective spin along the
-#   rotated axis, the readout of Ramsey and squeezing experiments (notebooks 31, 33);
+#   rotated axis, the readout of Ramsey and squeezing experiments;
 # * record the full bit string.
 #
 # Parity and counting are functions of the bit string, and coarse graining cannot increase the CFI: for a group $c$ of
@@ -1439,7 +1425,7 @@ for name, r in readout.items():
 # * **Fixed readouts.** For the dephasing probe, parity, counting and full bit strings after a common rotation give
 #   $1.20$, $1.25$ and $1.30$, about a third of $F_Q=3.69$. Independent local rotations ($L=0$) reach $2.09$
 #   ($57\%$). For the two damping probes the three common-rotation readouts coincide ($6.21$ and $6.55$); for the GHZ state
-#   under damping $6.55=N^2(1-g)^N$ is the parity result of notebook 32, $N^2C^2$ with contrast $C=(1-g)^{N/2}$, and
+#   under damping $6.55=N^2(1-g)^N$ is the parity result $N^2C^2$ with contrast $C=(1-g)^{N/2}$, and
 #   local rotations do not improve on it.
 # * **Entangling readouts.** One CZ layer lifts the damping probe from $6.24$ to $9.28$, and with $L=2$ the best start
 #   reaches $F_Q$ to the printed four digits, for the variational probe and for GHZ alike. The dephasing probe needs more:
@@ -1484,7 +1470,7 @@ plt.show()
 # %% [markdown]
 # Each readout was optimised at $\theta=0$, and the curves show that it is good only near that point. For the damping
 # probe every readout, including $L=0$, has zeros at $\theta=\pm\pi/(2N)=\pm0.39$, where the signal of the $N$-body coherence
-# is at an extremum and its derivative vanishes, as for the parity fringe of notebook 32; the pattern repeats with period
+# is at an extremum and its derivative vanishes, as at the extrema of a parity fringe; the pattern repeats with period
 # $\pi/N$. The dephasing probe gives broader curves, with the maximum at $\theta=0$ and a fall to $0.2$–$1.4$ at
 # $\vert\theta\vert\approx0.6$–$0.8$. In practice the phase must be known in advance to within a fraction of $\pi/N$, or the
 # readout must be adapted as the estimate improves; the QFI, independent of $\theta$ for a unitary orbit (Section 3.2),
@@ -1584,7 +1570,7 @@ print(np.round(C, 2))
 #
 # The constant-step control fails 13 of 32 starts, but all of them end within $0.05$ of $36$: they move around the maximum
 # without settling on it, the behaviour described in Section 5.2. A success rate measured with a constant step would have
-# been a statement about the schedule rather than about the landscape (the same lesson as in notebook 41).
+# been a statement about the schedule rather than about the landscape.
 #
 # ### 9.3 Sensitivity to the noise model
 #
@@ -1678,7 +1664,8 @@ for name, psi in rows.items():
 #    weight $0.94$ found in Section 7?
 # 8. ★★ **Gradient variance at random initialisation.** For the noiseless cost $4\,\mathrm{Var}(J_z)$ with $L=N$, estimate
 #    the variance of $\partial F/\partial\varphi_1$ over 200 random angle vectors for $N=2,\dots,8$. Does it decay
-#    exponentially with $N$, as it does for the global costs of notebook 40, Section 13? Relate the answer to the fact that
+#    exponentially with $N$, as it does for the global costs of
+#    [notebook 40, parametrised gates and gradients](40_parametrized_gates_and_gradients.ipynb), Section 13? Relate the answer to the fact that
 #    $4\,\mathrm{Var}(J_z)=\sum_{i,j}\big(\langle Z_iZ_j\rangle-\langle Z_i\rangle\langle Z_j\rangle\big)$ is a sum of
 #    one- and two-qubit correlators.
 

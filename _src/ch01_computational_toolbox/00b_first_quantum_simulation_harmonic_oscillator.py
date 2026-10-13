@@ -5,8 +5,7 @@
 # %% [markdown]
 # ## 1. Introduction
 #
-# Together with notebook 00a, which treats a free particle, this notebook is the first *quantum* simulation of the
-# course. The system is the one every physicist meets in the first weeks of a quantum-mechanics course: a particle of mass $m$ in a harmonic potential of angular frequency $\omega_0$,
+# This notebook is a first *quantum* simulation. The system is the one every physicist meets in the first weeks of a quantum-mechanics course: a particle of mass $m$ in a harmonic potential of angular frequency $\omega_0$,
 #
 # $$ V(x) = \tfrac{1}{2} m \omega_0^2 x^2 . $$
 #
@@ -18,8 +17,7 @@
 # recurring refrain of this notebook. Numerical wave-packet
 # propagation of this kind was put on film in [[1]](#ref-1).
 #
-# The companion notebook [00a — free particle: a Gaussian wave packet](00a_free_particle_gaussian_wave_packet.ipynb)
-# treated a particle with **no** potential. There the only scale in the problem was the one you put in by hand
+# A particle with **no** potential has no natural scale: the only scale in the problem is the one put in by hand
 # (the initial width of the packet). Here a potential is present, and with it comes a *natural* scale: the trap
 # supplies an energy $\hbar\omega_0$, a time $1/\omega_0$ and a length $\sqrt{\hbar/(m\omega_0)}$, all built out of
 # the constants of the problem. Turning the Schrödinger equation into a parameter-free equation with those scales
@@ -87,16 +85,6 @@
 # * writing small pure functions with docstrings, and validating each one against an exact result before using it;
 # * `jax.jit` and `lax.scan` for a time loop that never leaves the compiler, and a **matrix-free** Hamiltonian;
 # * making publication-quality figures and embedding animated GIFs in a notebook without writing files.
-#
-# ### Prerequisites
-#
-# One semester of quantum mechanics (the Schrödinger equation, eigenvalues, expectation values) and basic
-# NumPy/matplotlib. Notebook [00a](00a_free_particle_gaussian_wave_packet.ipynb) introduced grids, discretisation
-# error, log-log convergence plots and Riemann sums; we recall each of those in one sentence when it is needed, so
-# this notebook can also be read first. No JAX knowledge is assumed: the two JAX features we use are explained where
-# they appear, and [01 — JAX](01_jax_from_scratch.ipynb) tells the full story. The same ideas
-# reappear for many-body spin chains in
-# [04 — time evolution the textbook way](../ch02_spin_systems_textbook_way/04_time_evolution_the_textbook_way.ipynb).
 
 # %% [markdown]
 # ## 2. The configuration cell, and the tools of this notebook
@@ -957,8 +945,7 @@ print(f"checkpoint passed: at L = 20 the n=5 error is {abs(E_vs_L[-1,5]-5.5):.3e
 # $$ \phi_{n+1}(x) = \sqrt{\frac{2}{n+1}}\;x\,\phi_n(x) \;-\; \sqrt{\frac{n}{n+1}}\;\phi_{n-1}(x), \tag{12} $$
 #
 # starting from $\phi_0 = \pi^{-1/4} e^{-x^2/2}$ and $\phi_1 = \sqrt{2}\,x\,\phi_0$. Every quantity in Eq. (12) is of
-# order one, so nothing overflows. (This is the same trick that makes Chebyshev and Legendre expansions usable, and
-# we will meet it again in Chapter 5.)
+# order one, so nothing overflows. (This is the same trick that makes Chebyshev and Legendre expansions usable.)
 
 # %%
 # ==============================================================================
@@ -1822,7 +1809,7 @@ fig.tight_layout(); plt.show()
 #   line: with $r=1$ it reduces to $V_x(t) = V_x(0)\cos^2 t + V_p(0)\sin^2 t$, which is constant precisely when
 #   $V_x(0) = V_p(0)$: the spreading caused by the kinetic term is exactly balanced by the focusing of the trap. Every
 #   eigenstate, displaced or not, has the same property; the displaced Gaussian is the one among them that also
-#   saturates the Heisenberg bound. (A free Gaussian packet, as in notebook 00a, spreads without limit.)
+#   saturates the Heisenberg bound. (A free Gaussian packet spreads without limit.)
 # * $\mathrm{Var}(x)\,\mathrm{Var}(p) = \tfrac14$ at **all** times: the coherent state is a *minimum-uncertainty*
 #   state, the closest a quantum state comes to being a classical point in phase space.
 #
@@ -2170,8 +2157,8 @@ print("checkpoint passed: (a) and (b) agree to machine precision -- both are exa
 # $$ (H\psi)_j = -\frac{1}{2}\,\frac{\psi_{j+1} - 2\psi_j + \psi_{j-1}}{\Delta x^2} + V(x_j)\,\psi_j . $$
 #
 # Cost: $O(N_x)$ operations and $O(N_x)$ memory, instead of $O(N_x^2)$ and $O(N_x^2)$. This is the single most
-# important idea of the whole course; here it saves a factor of $600$, and in Chapter 3 it will be the difference
-# between possible and impossible.
+# important idea of the whole course; here it saves a factor of $600$, and for many-body states it is the
+# difference between possible and impossible.
 #
 # **Two JAX features.**
 #
@@ -2182,7 +2169,7 @@ print("checkpoint passed: (a) and (b) agree to machine precision -- both are exa
 #   state forward, and (unlike a Python loop inside `jit`) compiles to a *loop* rather than to $n$ copies of the body,
 #   so compilation stays fast however many steps you take.
 #
-# Both are explained properly in [01 — JAX](01_jax_from_scratch.ipynb); today, treat them as "a `for`
+# Both are explained properly in [notebook 01, JAX](01_jax_from_scratch.ipynb); today, treat them as "a `for`
 # loop that the compiler sees".
 
 # %%
@@ -2342,9 +2329,9 @@ print("checkpoint passed: the hand-written matrix-free integrator agrees with th
 # > of a fixed physical time goes as $N_x \times N_x^2 = N_x^3$ for a one-dimensional matrix-free run. Budget for
 # > that before you decide to "just use a finer grid". The escape route is a scheme with no stability limit at all:
 # > the propagator $e^{-iH\Delta t}$ of Section 12.5 and Crank–Nicolson (Section 12.11) are exactly unitary for every
-# > $\Delta t$, and so is the split-step Fourier method of [[21]](#ref-21) that the next starter notebook builds. For those, $\Delta t$
+# > $\Delta t$, and so is the split-step Fourier method of [[21]](#ref-21). For those, $\Delta t$
 # > is set by *accuracy* alone — by how fast the physics moves — never by $\Delta x$. The unconditionally stable
-# > Chebyshev and Krylov propagators of Chapter 5 are the many-body version of the same idea.
+# > Chebyshev and Krylov propagators for many-body states are the many-body version of the same idea.
 #
 # We now measure both statements: the Euler growth rate, and the threshold of Eq. (23).
 
@@ -2863,7 +2850,7 @@ fig.tight_layout(); plt.show()
 # > components with $E\Delta t\gtrsim1$ are garbled. The norm cannot detect this, because it is conserved exactly; only a comparison at two step sizes (or Eq. (30)) can.
 #
 # > **Why this matters later.** For a many-body state the matrix $1+\tfrac{i\Delta t}{2}H$ is $2^N\times2^N$ and no longer tridiagonal, so the linear solve at every step becomes the
-# > bottleneck, and implicit schemes lose their appeal. The unconditionally stable propagators of Chapters 5–7 (Trotter gates, Chebyshev, Krylov) keep the unitarity of
+# > bottleneck, and implicit schemes lose their appeal. The unconditionally stable many-body propagators (Trotter gates, Chebyshev, Krylov) keep the unitarity of
 # > Crank–Nicolson without the linear solve.
 
 # %% [markdown]
@@ -3129,7 +3116,7 @@ fig.tight_layout(); plt.show()
 #   Eq. (24) — in SI, $\Delta t \lesssim \sqrt2\,m\,\Delta x^2/\hbar$, with no trap frequency in it. Refining the
 #   grid therefore costs $O(N_x^3)$, and within the stable range RK4 is fourth-order accurate with a $\Delta t^5$
 #   norm drift. All of it was derived *and* measured here. Unitary schemes ($e^{-iH\Delta t}$, Crank-Nicolson,
-#   split-step Fourier, and the Chebyshev and Krylov propagators of Chapter 5) have no such limit.
+#   split-step Fourier, and the Chebyshev and Krylov propagators) have no such limit.
 # * **Matrix-free.** $H\psi$ as three array shifts costs $O(N_x)$ instead of $O(N_x^2)$. The same
 #   move, applied to spin chains, is what makes the rest of this course possible.
 # * **Measure where the error lives.** In Sections 12.9–12.10 the space discretisation was eight to ten orders of
@@ -3297,16 +3284,3 @@ fig.tight_layout(); plt.show()
 # <span id="ref-26">[26]</span> L. F. Richardson, *The approximate arithmetical solution by finite differences of physical
 # problems involving differential equations, with an application to the stresses in a masonry dam*, Phil. Trans. R.
 # Soc. A **210**, 307 (1911) — Richardson extrapolation (Exercise 4).
-#
-# ### 14.5 Where to go next
-#
-# * [01 — JAX](01_jax_from_scratch.ipynb): the full story of `jit`, `vmap`, `lax.scan` and `grad`,
-#   which we used today on trust.
-# * [49 — a single excitation on a lattice](../lecture_notes_notebooks/49_single_excitation_on_a_lattice.ipynb): the
-#   tridiagonal matrix of Section 6, with the potential removed, read as the exact Hamiltonian of a particle hopping on
-#   a lattice; its band, its light cone and its closed-form propagator are the first contact with a discrete quantum
-#   system, and the same matrix returns as the reference solution of notebooks 06 and 18.
-# * [04 — time evolution the textbook way](../ch02_spin_systems_textbook_way/04_time_evolution_the_textbook_way.ipynb):
-#   exactly the ideas of Section 12 — spectral decomposition, the propagator, and step-by-step integration — but for
-#   a chain of interacting spins, where the Hilbert space grows as $2^N$ and the matrix-free habit becomes
-#   indispensable.

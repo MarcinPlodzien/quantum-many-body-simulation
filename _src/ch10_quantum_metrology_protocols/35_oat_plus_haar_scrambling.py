@@ -5,8 +5,8 @@
 # %% [markdown]
 # ## 1. Introduction
 #
-# A metrological probe is a fragile object. Notebook 34 built one: starting from $N$ atoms all pointing along $x$,
-# the one-axis-twisting interaction winds them into a spin-squeezed state and, at the right moment, into a
+# A metrological probe is a fragile object. Consider the one built by one-axis twisting: starting from $N$ atoms all
+# pointing along $x$, the twisting interaction winds them into a spin-squeezed state and, at the right moment, into a
 # Schrödinger-cat state whose quantum Fisher information reaches the Heisenberg value $F_Q=N^2$. Between the moment
 # the probe is made and the moment it is read out, the atoms keep interacting with each other and with their
 # surroundings. Generic interactions **scramble**: they take the information that was stored in a few simple,
@@ -39,7 +39,7 @@
 #   and a cat, four points along the same evolution with $F_Q$ from $N$ to $N^2$.
 # * **Section 4** defines the two scramblers: a global Haar-random unitary (the idealised, instantaneous scrambler)
 #   and a random brick-wall circuit of two-qubit gates (a local, time-resolved one).
-# * **Section 5** measures entanglement before and after: the Page curve, with Page's formula stated and checked.
+# * **Section 5** measures entanglement before and after: the Page curve, with the Page formula stated and checked.
 # * **Section 6** derives the Haar average $\mathbb{E}\left[4\,\mathrm{Var}(J_{\mathbf n})\right]=Nd/(d+1)$ with
 #   $d=2^N$ and verifies it. Every probe, whatever its $F_Q$ was, lands on this number.
 # * **Section 7** enlarges the search: $G=\tfrac12\sum_q\mathbf n_q\cdot\vec\sigma_q$ with a *different* direction on
@@ -80,21 +80,10 @@
 # * quoting ensemble averages with standard errors, and reporting what was measured rather than what was
 #   expected.
 #
-# ### Prerequisites
-# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, `grad`, PRNG keys;
-# * [06 — states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb):
-#   reduced density matrices, Schmidt values, entanglement entropy;
-# * [10 — random unitaries and random circuits](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb):
-#   the Haar measure, Mezzadri's QR recipe, brick-wall circuits, the Page value;
-# * [29 — quantum Fisher information](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb):
-#   $F_Q=4\,\mathrm{Var}(G)$, the $3\times3$ QFI matrix, the entanglement-witness inequalities, subsystem QFI;
-# * [33 — spin squeezing by one-axis twisting](../ch10_quantum_metrology_protocols/33_spin_squeezing_one_axis_twisting.ipynb)
-#   and [34 — from one-axis twisting to GHZ](../ch10_quantum_metrology_protocols/34_oat_to_ghz_full_metrology_protocol.ipynb):
-#   the probes we scramble here. Section 3 recalls everything this notebook uses from them.
-#
-# **What comes next.** [36 — quantum Fisher information with classical shadows](../ch10_quantum_metrology_protocols/36_qfi_with_classical_shadows.ipynb)
-# asks how the quantities computed here could be *measured* in an experiment, from randomised measurements, and
-# returns to the scrambled states of this notebook as a test case.
+# The notebook assumes `jit`, `vmap`, `grad` and PRNG keys ([notebook 01, JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)),
+# reduced density matrices and entanglement entropy ([notebook 06, states, observables and entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb)), the Haar measure and brick-wall circuits
+# ([notebook 10, random unitaries and random circuits](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb)), the quantum Fisher information with its $3\times3$ matrix and subsystem version ([notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb)),
+# and the one-axis-twisting probes ([notebook 33, spin squeezing by one-axis twisting](33_spin_squeezing_one_axis_twisting.ipynb) and [notebook 34, from one-axis twisting to GHZ](34_oat_to_ghz_full_metrology_protocol.ipynb)).
 #
 # **Conventions.** Qubit $q$ = tensor axis $q$; $\vert0\rangle$ is the $+1$ eigenstate of $Z$. Collective spin
 # operators are $J_a=\tfrac12\sum_q\sigma^a_q$, so the standard quantum limit is $F_Q=N$ and the Heisenberg limit
@@ -171,14 +160,14 @@ def timed(f, *args, budget=0.3, min_reps=3, max_reps=200):
 # %% [markdown]
 # ## 3. The probes: one-axis twisting in one page
 #
-# This section is a self-contained recap of what notebooks 33 and 34 established; nothing is re-derived.
+# The facts collected here are derived in [notebook 33, spin squeezing by one-axis twisting](33_spin_squeezing_one_axis_twisting.ipynb) and [notebook 34, from one-axis twisting to GHZ](34_oat_to_ghz_full_metrology_protocol.ipynb); nothing is re-derived.
 #
 # Start from the **coherent spin state** $\vert+\rangle^{\otimes N}$: every qubit points along $+x$, the collective
 # spin has length $\langle J_x\rangle=N/2$, and the transverse fluctuations are isotropic,
 # $\mathrm{Var}(J_y)=\mathrm{Var}(J_z)=N/4$. Its quantum Fisher information is $F_Q=N$ for any generator
 # perpendicular to $x$ — the standard quantum limit.
 #
-# The **one-axis-twisting** Hamiltonian is
+# The **one-axis-twisting** Hamiltonian, introduced in [[1]](#ref-1), is
 #
 # $$H_{\rm OAT}=\chi J_z^2,\qquad U(t)=e^{-i\chi t J_z^2}=e^{-i\mu J_z^2},$$
 #
@@ -195,14 +184,14 @@ def timed(f, *args, budget=0.3, min_reps=3, max_reps=200):
 # | over-squeezed | $0.5$ | past the minimum: $\xi_R^2>1$ but $F_Q$ still grows |
 # | cat | $\pi/2$ | a GHZ-like Schrödinger cat, $F_Q=N^2$ |
 #
-# Two facts from notebook 34 that we will use. At $\mu=\pi/2$ the state is a two-component cat whose two lobes sit
+# Two further facts will be used. At $\mu=\pi/2$ the state is a two-component cat whose two lobes sit
 # at the poles of the $x$ axis, so the optimal generator direction is $\mathbf n=\hat x$ (not $\hat z$); and the
-# Wineland squeezing parameter $\xi_R^2=N\min_{\mathbf n_\perp}\mathrm{Var}(J_{\mathbf n_\perp})/\vert\langle\mathbf
+# Wineland squeezing parameter [[2]](#ref-2) $\xi_R^2=N\min_{\mathbf n_\perp}\mathrm{Var}(J_{\mathbf n_\perp})/\vert\langle\mathbf
 # J\rangle\vert^2$ diverges there, because the mean spin vanishes — squeezing stops being a meaningful figure of
 # merit long before $F_Q$ stops growing.
 #
-# We build the four probes and read off their quantum Fisher information from the $3\times3$ matrix of Section 12 of
-# notebook 29: $F_Q(\mathbf n)=\mathbf n^{\mathsf T}\mathcal{F}\mathbf n$ with
+# We build the four probes and read off their quantum Fisher information from the $3\times3$ matrix derived in
+# Section 12 of [notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb): $F_Q(\mathbf n)=\mathbf n^{\mathsf T}\mathcal{F}\mathbf n$ with
 # $\mathcal{F}_{ab}=4\left[\tfrac12\langle J_aJ_b+J_bJ_a\rangle-\langle J_a\rangle\langle J_b\rangle\right]$, so the
 # best collective direction is the largest eigenvector of $\mathcal{F}$.
 
@@ -274,7 +263,7 @@ print(f"\nCHECKPOINT  coherent -> F_max = N = {N_MAIN} and cat -> F_max = N^2 = 
 # from $F_Q/N=1$ (nothing gained) to $F_Q/N=N$ (the Heisenberg limit). The optimal direction rotates as the state
 # twists: for the coherent state any direction perpendicular to the mean spin will do and the eigenvector returned
 # is an arbitrary one in that plane; by the cat time it has locked onto $\hat x$, the axis of the two cat lobes.
-# The Wineland parameter $\xi_R^2$ behaves as notebook 33 said it must: it reaches its minimum at $\mu_{\rm opt}$,
+# The Wineland parameter $\xi_R^2$ behaves as one-axis twisting predicts: it reaches its minimum at $\mu_{\rm opt}$,
 # rises above $1$ for the over-squeezed state (which nonetheless has a five times larger $F_Q$ than the coherent
 # state), and is astronomically large for the cat, where the mean spin in its denominator has collapsed to zero.
 #
@@ -289,9 +278,9 @@ print(f"\nCHECKPOINT  coherent -> F_max = N = {N_MAIN} and cat -> F_max = N^2 = 
 #
 # The idealised scrambler applies a unitary drawn uniformly from the group $\mathrm{U}(d)$, $d=2^N$, i.e. from the
 # **Haar measure** — the unique probability measure on the group that is invariant under left and right
-# multiplication, $\mathrm{d}\mu(U)=\mathrm{d}\mu(VU)=\mathrm{d}\mu(UV)$. Notebook 10 derives Mezzadri's
-# construction: QR-decompose a complex Ginibre matrix and fix the phases of the diagonal of $R$; that is the
-# engine's `haar_unitary`. Applying it means one dense matrix-vector product, $O(4^N)$ — affordable to
+# multiplication, $\mathrm{d}\mu(U)=\mathrm{d}\mu(VU)=\mathrm{d}\mu(UV)$. The construction introduced in [[3]](#ref-3) and
+# derived in [notebook 10, random unitaries and random circuits](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb) QR-decomposes a complex Ginibre matrix and fixes the phases of the diagonal of $R$; that
+# is the engine's `haar_unitary`. Applying it means one dense matrix-vector product, $O(4^N)$ — affordable to
 # $N\approx10$-$12$ and exactly the "instantaneous, maximal" scrambler that bounds what any dynamics can do.
 #
 # A consequence of the invariance of the Haar measure deserves to be stated before we measure anything, because it
@@ -310,7 +299,7 @@ print(f"\nCHECKPOINT  coherent -> F_max = N = {N_MAIN} and cat -> F_max = N^2 = 
 #
 # ### 4.2 The brick-wall circuit
 #
-# Physical dynamics is local and takes time. The minimal local model is the **brick-wall circuit** of notebook 10:
+# Physical dynamics is local and takes time. The minimal local model is the **brick-wall circuit**:
 # layer $\ell$ applies independent Haar-random two-qubit gates to the bonds $(0,1),(2,3),\dots$ when $\ell$ is even
 # and to $(1,2),(3,4),\dots$ when $\ell$ is odd. After a depth of order $N$ the state is indistinguishable from a
 # Haar-random one by any low-order statistic. Depth is the *clock* of this notebook: it lets us ask not only
@@ -388,12 +377,12 @@ assert err_gl < 1e3 * TOL and err_ctrl > 1e-3
 # %% [markdown]
 # ## 5. Entanglement before and after: the Page curve
 #
-# ### 5.1 Page's formula
+# ### 5.1 The Page formula
 #
 # Split the $N$ qubits into $A$ (the first $k$) and $B$ (the rest), with dimensions $d_A=2^k$ and $d_B=2^{N-k}$.
-# For a *random* pure state the reduced state $\rho_A$ is close to maximally mixed but not exactly so. Page (1993)
-# conjectured the exact average of its von Neumann entropy over the Haar measure, and the formula was proved shortly
-# afterwards (Foong and Kanno 1994; Sánchez-Ruiz 1995). Writing $m=\min(d_A,d_B)$ and
+# For a *random* pure state the reduced state $\rho_A$ is close to maximally mixed but not exactly so. The exact
+# average of its von Neumann entropy over the Haar measure was conjectured in [[4]](#ref-4) and proved in [[5]](#ref-5),
+# [[6]](#ref-6). Writing $m=\min(d_A,d_B)$ and
 # $n=\max(d_A,d_B)$, the average entropy in **nats** is
 #
 # $$\langle S_A\rangle=\left(\sum_{j=n+1}^{mn}\frac1j\right)-\frac{m-1}{2n}\;\approx\;\ln m-\frac{m}{2n}. \tag{1}$$
@@ -511,7 +500,7 @@ print(f"\nPage value at the middle cut: {page_entropy_bits(2 ** (N_MAIN // 2), 2
 # The left panel shows the two regimes. Before scrambling (filled symbols) the entropy profiles are flat and low:
 # the cat state has exactly one bit at every cut — that is what a two-component superposition carries, no matter
 # where you cut it — and the coherent state has exactly zero, being a product state. After a single global Haar
-# unitary (white symbols) *all four* probes lie on Page's curve, with a spread over realisations so small that the
+# unitary (white symbols) *all four* probes lie on the Page curve, with a spread over realisations so small that the
 # error bars are barely visible: the measured deviation from Eq. (1) never exceeds $0.01$ bit. Scrambling has
 # multiplied the half-chain entanglement of the cat state by more than three.
 #
@@ -763,9 +752,10 @@ fig.tight_layout(); plt.show()
 #
 # $$\max_{\{\mathbf n_q\}}F_Q\left[\psi,G_{\rm loc}\right]\;\ge\;\lambda_{\max}(\mathcal{F})$$
 #
-# always. It also obeys the same separability bound: the proof of $F_Q\le N$ in notebook 29 used only that the
-# generator is a sum of single-qubit operators with spectrum $\pm\tfrac12$, which Eq. (5) satisfies. So $F_Q>N$
-# still witnesses entanglement, and $F_Q>kN$ still certifies entanglement depth $k+1$.
+# always. It also obeys the same separability bound: the proof of $F_Q\le N$ for separable states (Section 7.3 of
+# [notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb)) uses only that the generator is a sum of single-qubit operators with spectrum
+# $\pm\tfrac12$, which Eq. (5) satisfies. So $F_Q>N$ still witnesses entanglement [[7]](#ref-7), and $F_Q>kN$ still
+# certifies entanglement depth $k+1$ [[8]](#ref-8), [[9]](#ref-9).
 #
 # Two remarks before we optimise. The Haar average of Eq. (4) applies **unchanged** to every
 # generator of the form (5): the derivation used only $\mathrm{Tr}\tilde G=0$ and $\mathrm{Tr}\tilde G^2=Nd$, and
@@ -1159,16 +1149,16 @@ fig.tight_layout(); plt.show()
 # of $UJ_zU^\dagger$ tracks Eq. (9) closely: the mean weight moves from $1.000$ to $4.529$, against the predicted
 # $(3N/4)\,4^N/(4^N-1)=4.501$, and the weight-one fraction collapses from $1$ to $0.006$. To use the surviving information one would have to measure a sum of thousands of Pauli strings acting
 # on typically three quarters of the register — either by implementing $U^\dagger$ on hardware (undoing the
-# scrambling with full knowledge of $U$, as the decoder in the information-retrieval scenario of Hayden and Preskill
-# must) or by estimating that many observables from data. Notebook 36 measures exactly how expensive the second route is: the variance of a
-# shadow estimator grows as $3^k$ with the weight $k$, so an observable of weight $3N/4$ costs $3^{3N/4}$
+# scrambling with full knowledge of $U$, as the decoder in the information-retrieval scenario of Ref. [[10]](#ref-10)
+# must) or by estimating that many observables from data. The second route is expensive: the variance of a
+# classical-shadow estimator grows as $3^k$ with the weight $k$ (derived in [notebook 36, QFI with classical shadows](36_qfi_with_classical_shadows.ipynb)), so an observable of weight $3N/4$ costs $3^{3N/4}$
 # snapshots.
 #
 # > **Physics insight.** "Scrambling" has a precise meaning here: simple operators evolve into complicated ones,
-# > the Heisenberg-picture view of scrambling. Its counterpart for states is entanglement: Sekino and Susskind call a system scrambled when its
-# > information can be recovered only from at least half of its degrees of freedom, Hayden and Preskill show how
-# > rapidly mixing dynamics hides information in this way, and Nahum *et al.* relate entanglement growth in random
-# > circuits to the spreading of operators. Metrology gives the picture an operational reading: the parameter is
+# > the Heisenberg-picture view of scrambling. Its counterpart for states is entanglement: a system is called
+# > scrambled when its information can be recovered only from at least half of its degrees of freedom [[11]](#ref-11),
+# > rapidly mixing dynamics hides information in this way [[10]](#ref-10), and entanglement growth in random
+# > circuits is related to the spreading of operators in Ref. [[12]](#ref-12). Metrology gives the picture an operational reading: the parameter is
 # > still encoded, and reading it requires a measurement of exponential complexity.
 
 # %% [markdown]
@@ -1395,7 +1385,7 @@ fig.tight_layout(); plt.show()
 # entanglement grows as $O(N)$. For a sensor, the first of these two time scales is the relevant one.
 #
 # In the language of correlations: the collective quantum Fisher information only knows about one- and two-body
-# correlations, as notebook 36 derives,
+# correlations, as derived in [notebook 36, QFI with classical shadows](36_qfi_with_classical_shadows.ipynb),
 # $\mathcal{F}_{ab}=N\delta_{ab}+\sum_{i\neq j}\langle\sigma^a_i\sigma^b_j\rangle
 # -\langle\sum_i\sigma^a_i\rangle\langle\sum_j\sigma^b_j\rangle$. The cat's $N^2$ comes from $\langle X_iX_j\rangle=1$
 # for all $N(N-1)$ pairs. A gate on pair $p$ replaces the definite values $\pm2$ of $g_p$ in the two branches by the
@@ -1412,7 +1402,7 @@ fig.tight_layout(); plt.show()
 #
 # Section 5 asked how much *entropy* a subsystem of $k$ qubits has. The metrological question is different: after
 # the phase has been imprinted on all $N$ qubits by $U(\theta)=e^{-i\theta G}$, how much information about $\theta$
-# survives in the reduced state of $k$ of them? This is notebook 29, Section 15: the reduced state
+# survives in the reduced state of $k$ of them? As derived in Section 15 of [notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb), the reduced state
 #
 # $$\rho_A(\theta)=\mathrm{Tr}_B\left[U(\theta)\vert\psi\rangle\langle\psi\vert U^\dagger(\theta)\right]$$
 #
@@ -1424,8 +1414,8 @@ fig.tight_layout(); plt.show()
 #
 # where $\Psi$ is the state tensor reshaped into a $2^k\times2^{N-k}$ matrix and $\Phi$ is $G\vert\psi\rangle$
 # reshaped the same way. The rank of $\rho_A$ is at most $2^{\min(k,N-k)}$, and a thin QR of $[\Psi\;\Phi]$ projects
-# everything into the active subspace so that keeping $k=N-1$ qubits costs no more than keeping one. We copy that
-# routine from notebook 29 and use the optimal collective generator of each state.
+# everything into the active subspace so that keeping $k=N-1$ qubits costs no more than keeping one. The routine
+# below implements this and uses the optimal collective generator of each state.
 
 # %%
 # ==============================================================================
@@ -1511,7 +1501,7 @@ axes[1].set_ylim(-1, 12)
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# Before scrambling the four probes behave as notebook 29 found. The cat loses everything the moment a single qubit
+# Before scrambling the four probes follow the known loss laws. The cat loses everything the moment a single qubit
 # is traced out: $F_Q$ drops from $N^2$ to $0$ at $K=N-1$, because the reduced state is a classical mixture of two
 # eigenstates of the generator and a mixture of eigenstates does not move when the generator acts. The coherent
 # state loses exactly one unit per lost qubit, $F_Q=K$, as $K$ independent qubits must. The squeezed and
@@ -1540,7 +1530,7 @@ fig.tight_layout(); plt.show()
 # | quantity | algorithm | time | memory |
 # |---|---|---|---|
 # | $3\times3$ QFI matrix | three collective applications, one $3\times3$ `eigh` | $O(N2^N)$ | $O(2^N)$ |
-# | global Haar scrambling | Mezzadri QR plus one matrix-vector product | $O(8^N)$ draw, $O(4^N)$ apply | $O(4^N)$ |
+# | global Haar scrambling | QR construction [[3]](#ref-3) plus one matrix-vector product | $O(8^N)$ draw, $O(4^N)$ apply | $O(4^N)$ |
 # | brick-wall layer | $N/2$ two-qubit einsums | $O(N2^N)$ | $O(2^N)$ |
 # | local-generator optimisation | $R$ restarts $\times$ $S$ Adam steps, reverse-mode gradient | $O(RSN2^N)$ | $O(R2^N)$ |
 # | subsystem QFI (compressed) | thin QR plus a small `eigh` | $O\!\left(8^{\min(K,N-K)}\right)$ | $O(2^N)$ |
@@ -1586,7 +1576,7 @@ for N in (4, 6, 8, 10):
 # ## 12. Key takeaways
 #
 # * **Scrambling raises entanglement and destroys metrological usefulness.** A global Haar unitary takes every
-#   one-axis-twisting probe — coherent, squeezed, over-squeezed, cat — onto Page's curve in entropy (measured
+#   one-axis-twisting probe — coherent, squeezed, over-squeezed, cat — onto the Page curve in entropy (measured
 #   deviation below $0.01$ bit) and onto $F_Q\approx N$ in collective quantum Fisher information. At $N=8$ the cat
 #   goes from $F_Q=64$ to $F_Q(J_z)=7.93\pm0.10$ (mean over $48$ unitaries).
 # * **The Haar average is exactly $Nd/(d+1)$, $d=2^N$**, derived from the second moment of the Haar measure
@@ -1668,35 +1658,50 @@ for N in (4, 6, 8, 10):
 #
 # ## References
 #
-# * D. N. Page, *Average entropy of a subsystem*, Phys. Rev. Lett. **71**, 1291 (1993) — Eq. (1), the average
+# <span id="ref-1">[1]</span> M. Kitagawa and M. Ueda, *Squeezed spin states*, Phys. Rev. A **47**, 5138 (1993) — the one-axis-twisting
+#   Hamiltonian that prepares the probes of Section 3.
+#
+# <span id="ref-2">[2]</span> D. J. Wineland, J. J. Bollinger, W. M. Itano and D. J. Heinzen, *Squeezed atomic states and projection noise in
+#   spectroscopy*, Phys. Rev. A **50**, 67 (1994) — the spectroscopic squeezing parameter $\xi_R^2$ of Section 3.
+#
+# <span id="ref-3">[3]</span> F. Mezzadri, *How to generate random matrices from the classical compact groups*, Notices Amer. Math. Soc.
+#   **54**, 592 (2007) — the QR construction of Haar-random unitaries used by the engine.
+#
+# <span id="ref-4">[4]</span> D. N. Page, *Average entropy of a subsystem*, Phys. Rev. Lett. **71**, 1291 (1993) — Eq. (1), the average
 #   entanglement entropy of a random pure state and the constant deficit at the symmetric cut.
-# * S. K. Foong and S. Kanno, *Proof of Page's conjecture on the average entropy of a subsystem*, Phys. Rev. Lett.
-#   **72**, 1148 (1994), and J. Sánchez-Ruiz, *Simple proof of Page's conjecture on the average entropy of a
-#   subsystem*, Phys. Rev. E **52**, 5653 (1995) — the proofs of Eq. (1).
-# * P. Hayden and J. Preskill, *Black holes as mirrors: quantum information in random subsystems*,
+#
+# <span id="ref-5">[5]</span> S. K. Foong and S. Kanno, *Proof of Page's conjecture on the average entropy of a subsystem*, Phys. Rev. Lett.
+#   **72**, 1148 (1994) — a proof of Eq. (1).
+#
+# <span id="ref-6">[6]</span> J. Sánchez-Ruiz, *Simple proof of Page's conjecture on the average entropy of a subsystem*, Phys. Rev. E **52**,
+#   5653 (1995) — a proof of Eq. (1).
+#
+# <span id="ref-7">[7]</span> L. Pezzè and A. Smerzi, *Entanglement, nonlinear dynamics, and the Heisenberg limit*,
+#   Phys. Rev. Lett. **102**, 100401 (2009) — $F_Q>N$ as an entanglement witness.
+#
+# <span id="ref-8">[8]</span> P. Hyllus, W. Laskowski, R. Krischek, C. Schwemmer, W. Wieczorek, H. Weinfurter, L. Pezzè and A. Smerzi,
+#   *Fisher information and multiparticle entanglement*, Phys. Rev. A **85**, 022321 (2012) — the
+#   entanglement-depth bounds used to read the numbers of Section 7.
+#
+# <span id="ref-9">[9]</span> G. Tóth, *Multipartite entanglement and high-precision metrology*, Phys. Rev. A **85**, 022322 (2012) — the
+#   entanglement-depth bounds used to read the numbers of Section 7.
+#
+# <span id="ref-10">[10]</span> P. Hayden and J. Preskill, *Black holes as mirrors: quantum information in random subsystems*,
 #   J. High Energy Phys. **2007** (09), 120 (2007) — information deposited in a rapidly mixing system stays concealed
 #   in the emitted part until that part exceeds half of the system, and then emerges quickly; the threshold at
 #   $K=N/2$ of Section 10, and the decoder of Section 8.
-# * Y. Sekino and L. Susskind, *Fast scramblers*, J. High Energy Phys. **2008** (10), 065 (2008) — the definition
+#
+# <span id="ref-11">[11]</span> Y. Sekino and L. Susskind, *Fast scramblers*, J. High Energy Phys. **2008** (10), 065 (2008) — the definition
 #   of a scrambled system as one in which every subsystem smaller than half is nearly maximally entangled, so that
 #   its information can be recovered only from at least half of the degrees of freedom; the scrambling time.
-# * A. Nahum, J. Ruhman, S. Vijay and J. Haah, *Quantum entanglement growth under random unitary dynamics*,
+#
+# <span id="ref-12">[12]</span> A. Nahum, J. Ruhman, S. Vijay and J. Haah, *Quantum entanglement growth under random unitary dynamics*,
 #   Phys. Rev. X **7**, 031016 (2017) — entanglement growth in random circuits, the linear-in-depth law and the
 #   saturation at a nearly maximal value seen in Sections 5 and 9, and the link to operator spreading of Section 8.
-# * F. Mezzadri, *How to generate random matrices from the classical compact groups*, Notices Amer. Math. Soc.
-#   **54**, 592 (2007) — the QR construction of Haar-random unitaries used by the engine.
-# * M. Oszmaniec, R. Augusiak, C. Gogolin, J. Kołodyński, A. Acín and M. Lewenstein, *Random bosonic states for
+#
+# <span id="ref-13">[13]</span> M. Oszmaniec, R. Augusiak, C. Gogolin, J. Kołodyński, A. Acín and M. Lewenstein, *Random bosonic states for
 #   robust quantum metrology*, Phys. Rev. X **6**, 041044 (2016) — the metrological usefulness of random states,
 #   and why the answer depends so strongly on which subspace the randomness is drawn from.
-# * L. Pezzè and A. Smerzi, *Entanglement, nonlinear dynamics, and the Heisenberg limit*,
-#   Phys. Rev. Lett. **102**, 100401 (2009) — $F_Q>N$ as an entanglement witness.
-# * P. Hyllus, W. Laskowski, R. Krischek, C. Schwemmer, W. Wieczorek, H. Weinfurter, L. Pezzè and A. Smerzi,
-#   *Fisher information and multiparticle entanglement*, Phys. Rev. A **85**, 022321 (2012), and G. Tóth,
-#   *Multipartite entanglement and high-precision metrology*, Phys. Rev. A **85**, 022322 (2012) — the
-#   entanglement-depth bounds used to read the numbers of Section 7.
-# * L. Pezzè, A. Smerzi, M. K. Oberthaler, R. Schmied and P. Treutlein, *Quantum metrology with nonclassical states
+#
+# <span id="ref-14">[14]</span> L. Pezzè, A. Smerzi, M. K. Oberthaler, R. Schmied and P. Treutlein, *Quantum metrology with nonclassical states
 #   of atomic ensembles*, Rev. Mod. Phys. **90**, 035005 (2018) — the standard review of collective-spin metrology.
-# * M. Kitagawa and M. Ueda, *Squeezed spin states*, Phys. Rev. A **47**, 5138 (1993) — the one-axis-twisting
-#   Hamiltonian that prepares the probes of Section 3.
-# * D. J. Wineland, J. J. Bollinger, W. M. Itano and D. J. Heinzen, *Squeezed atomic states and projection noise in
-#   spectroscopy*, Phys. Rev. A **50**, 67 (1994) — the spectroscopic squeezing parameter $\xi_R^2$ of Section 3.

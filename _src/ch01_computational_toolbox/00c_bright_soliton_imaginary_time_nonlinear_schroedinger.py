@@ -6,10 +6,8 @@
 # ## 1. Introduction
 #
 # Quantum mechanics is linear. The superposition principle is one of its axioms: if
-# $\psi_1$ and $\psi_2$ solve the Schrödinger equation, so does $\alpha\psi_1 + \beta\psi_2$. Notebook
-# [00a](00a_free_particle_gaussian_wave_packet.ipynb) used that linearity to solve the free particle exactly, and
-# notebook [00b](00b_first_quantum_simulation_harmonic_oscillator.ipynb) used it again to expand any state in
-# energy eigenstates.
+# $\psi_1$ and $\psi_2$ solve the Schrödinger equation, so does $\alpha\psi_1 + \beta\psi_2$. Linearity
+# is what makes the free particle exactly solvable and what lets any state be expanded in energy eigenstates.
 #
 # This notebook solves an equation that is **not** linear:
 #
@@ -25,20 +23,20 @@
 # [[2]](#ref-2), and it is also, with different symbols, the
 # equation for the envelope of a light pulse in a glass fibre.
 #
-# The physics that motivates it is one specific phenomenon. In 00a we watched a Gaussian wave packet spread: the
-# width grew as $\sigma(t) = \sigma_0\sqrt{1+(t/2\sigma_0^2)^2}$ and there was nothing anyone could do about it,
+# The physics that motivates it is one specific phenomenon. A free Gaussian wave packet spreads: its
+# width grows as $\sigma(t) = \sigma_0\sqrt{1+(t/2\sigma_0^2)^2}$ and there is nothing anyone can do about it,
 # because a localised packet necessarily contains a range of momenta and those momenta travel at different
 # speeds. When $g>0$ in Eq. (1) the particles **attract** each other, and the attraction can balance the
 # spreading exactly. The result is a **bright soliton**: a lump of matter that travels for ever at constant
 # velocity, with constant shape and constant width. Two laboratories produced one in 2002 [[3]](#ref-3), [[4]](#ref-4) out of a few thousand
 # lithium-7 atoms, and one of them watched it travel $1.1\,\mathrm{mm}$ without dispersing.
 #
-# Finding it on a computer needs a technique we have not used yet. In 00b the ground state came from
+# Finding it on a computer needs a new technique. For a linear problem the ground state comes from
 # *diagonalising* a matrix. That is impossible here: "the Hamiltonian" contains $\vert\psi\vert^2$, so it depends
 # on the very state we are looking for, and there is no matrix to hand to an eigensolver. The replacement is
 # **imaginary-time evolution**: run the Schrödinger equation with $t$ replaced by $-i\tau$ and every state decays
 # towards the lowest one. Sections 7 and 8 build that idea from the linear case, where everything can be checked
-# against 00b, up to the nonlinear case, where it becomes a gradient flow of the energy.
+# against the harmonic oscillator, up to the nonlinear case, where it becomes a gradient flow of the energy.
 #
 # ### Road map
 #
@@ -61,6 +59,10 @@
 #   against the spreading linear packet, a non-soliton initial state, convergence and conservation.
 # * **Section 10** — animations and space-time maps.
 # * **Section 11** — summary, an extended workflow checklist, exercises, references.
+#
+# The notebook assumes the non-dimensionalisation, periodic grid and spectral derivatives of
+# [notebook 00a, a free Gaussian wave packet](00a_free_particle_gaussian_wave_packet.ipynb) and the potentials, eigenstates and
+# explicit time integrators of [notebook 00b, the harmonic oscillator](00b_first_quantum_simulation_harmonic_oscillator.ipynb).
 #
 # ### What you will learn
 #
@@ -86,15 +88,6 @@
 # * one `lax.scan` body reused for imaginary and real time, compiled once with `jax.jit`;
 # * `jax.grad` for the derivative $\mu = dE_{\rm tot}/dN$;
 # * validating a nonlinear solver against a closed-form solution at every stage.
-#
-# ### Prerequisites
-#
-# [00a — a free Gaussian wave packet on a ring](00a_free_particle_gaussian_wave_packet.ipynb) for
-# non-dimensionalisation, periodic grids, `fftfreq`, spectral derivatives and expectation values on a grid, and
-# [00b — the harmonic oscillator](00b_first_quantum_simulation_harmonic_oscillator.ipynb) for potentials,
-# eigenstates, and the stability of explicit time integrators. One semester of quantum mechanics. No JAX
-# knowledge: the three features used here (`jit`, `lax.scan`, `grad`) are each explained in two sentences where
-# they appear, and properly in [01 — JAX](01_jax_from_scratch.ipynb).
 
 # %% [markdown]
 # ## 2. Where a nonlinear Schrödinger equation comes from
@@ -269,12 +262,12 @@
 #    -\frac{\hbar^{2}}{2m}\frac{\partial^{2}\Psi}{\partial X^{2}} + g_{\rm 1D}\vert\Psi\vert^{2}\Psi ,
 #    \qquad \int\vert\Psi\vert^{2}dX = N . $$
 #
-# Following 00a, introduce a length $x_0$ (still free), a time $t_0$ and an energy $E_0$, and write
+# As for the free particle, introduce a length $x_0$ (still free), a time $t_0$ and an energy $E_0$, and write
 #
 # $$ X = x_0\,x , \qquad T = t_0\,t , \qquad
 #    \psi(x,t) \;\equiv\; \sqrt{\frac{x_0}{N}}\;\Psi(x_0x,\,t_0t) . $$
 #
-# The factor $\sqrt{x_0/N}$ does two jobs at once: $\sqrt{x_0}$ makes $\psi$ dimensionless as in 00a, and
+# The factor $\sqrt{x_0/N}$ does two jobs at once: $\sqrt{x_0}$ makes $\psi$ dimensionless, and
 # $1/\sqrt{N}$ turns the normalisation $N$ into $1$,
 #
 # $$ \int\vert\psi(x)\vert^{2}dx \;=\; \int \frac{x_0}{N}\vert\Psi\vert^{2}\,\frac{dX}{x_0}
@@ -293,7 +286,7 @@
 #    \;=\; -\frac{\hbar t_0}{2mx_0^{2}}\,\frac{\partial^{2}\psi}{\partial x^{2}}
 #    \;+\; \frac{g_{\rm 1D}\,N\,t_0}{\hbar\,x_0}\,\vert\psi\vert^{2}\psi . $$
 #
-# Choosing $t_0$ exactly as in 00a,
+# Choosing
 #
 # $$ t_0 \;=\; \frac{m x_0^{2}}{\hbar} , \qquad E_0 \;=\; \frac{\hbar}{t_0} \;=\; \frac{\hbar^{2}}{m x_0^{2}} , $$
 #
@@ -315,7 +308,7 @@
 #
 # ### 3.3 Fixing $x_0$ so that $g$ is a pure number
 #
-# The free particle of 00a had no intrinsic length and we borrowed one from the initial state. Equation (8)
+# A free particle has no intrinsic length, and one has to be borrowed from the initial state. Equation (8)
 # is different: $g$ itself depends on $x_0$, so the choice of $x_0$ and the value of $g$ are not independent.
 # There is a distinguished choice. Section 5 will show that the soliton has a width $2/g$ in units of $x_0$,
 # i.e. a physical width
@@ -459,7 +452,7 @@ print("\ncheckpoint: x_0 = ell gives g = 2 for both experiments (to round-off)")
 #
 # so Eq. (8) is exactly $i\,\partial_t\psi = \delta E/\delta\psi^{*}$. The object $\hat H_{\rm GP}[\psi]$ is
 # written with a hat because it acts like an operator, but the square bracket is essential: it depends on the
-# state it acts on. It is not a matrix, it has no eigenbasis, and nothing in 00b applies to it.
+# state it acts on. It is not a matrix, it has no eigenbasis, and nothing from the linear eigenvalue problem applies to it.
 #
 # ### 4.2 Norm
 #
@@ -499,7 +492,7 @@ print("\ncheckpoint: x_0 = ell gives g = 2 for both experiments (to round-off)")
 # ### 4.4 Momentum
 #
 # The expectation value $\langle p\rangle = \int\psi^{*}(-i\partial_x)\psi\,dx = \int j\,dx$ is conserved for the
-# same reason as in 00a: Eq. (8) is invariant under translations. Ehrenfest's relation [[18]](#ref-18) also
+# same reason as for the free particle: Eq. (8) is invariant under translations. Ehrenfest's relation [[18]](#ref-18) also
 # survives unchanged,
 #
 # $$ \frac{d\langle x\rangle}{dt} \;=\; \langle p\rangle . \tag{14} $$
@@ -661,7 +654,7 @@ print("\ncheckpoint: x_0 = ell gives g = 2 for both experiments (to round-off)")
 # %% [markdown]
 # ### 5.5 The grid, and the functions that encode Sections 4 and 5
 #
-# The discretisation is the one of 00a: a periodic ring of circumference $L$ with $N_x$ points, the FFT wave
+# The discretisation is the one of [notebook 00a, a free Gaussian wave packet](00a_free_particle_gaussian_wave_packet.ipynb): a periodic ring of circumference $L$ with $N_x$ points, the FFT wave
 # numbers from `np.fft.fftfreq`, spectral derivatives, and Riemann sums for the integrals. One change: the grid
 # is **centred**, $x_j \in [-L/2, L/2)$, so that a soliton at $x_c = 0$ sits in the middle of the array rather
 # than on the seam.
@@ -774,7 +767,7 @@ print("STEP 1 functions defined:", ", ".join(
 # %% [markdown]
 # ### 5.6 Measuring position, width and momentum on a ring
 #
-# Three observables from 00a, unchanged except for the centred grid. The mean position uses the **circular
+# Three observables, the standard grid estimators adapted to the centred grid. The mean position uses the **circular
 # mean** — map each grid point to the unit circle, average with weight $\vert\psi_j\vert^2\Delta x$, read off the
 # angle — so that it keeps working when the soliton crosses the seam at $\pm L/2$; the variance uses the wrapped
 # distance to that mean; the mean momentum is computed in Fourier space, where $\hat p$ is diagonal.
@@ -913,7 +906,7 @@ print("CHECKPOINT 1 passed: Eqs. (22)-(24) verified on the grid.")
 #      \;-\; ik_0\phi' + \tfrac{k_0^{2}}{2}\phi\right]e^{i\theta} , $$
 #
 # which is exactly the left-hand side. The boost therefore works, and it works for the same reason as for the
-# free particle in 00a: Eq. (8) is Galilean invariant, and $\vert\psi\vert^2$ — the only thing the nonlinearity
+# free particle: Eq. (8) is Galilean invariant, and $\vert\psi\vert^2$ — the only thing the nonlinearity
 # sees — is invariant under multiplication by a phase.
 #
 # Reading Eq. (26): the envelope travels at velocity $k_0$ **without changing shape**, so
@@ -921,7 +914,7 @@ print("CHECKPOINT 1 passed: Eqs. (22)-(24) verified on the grid.")
 # $$ \langle x\rangle(t) = x_c + k_0 t , \qquad \mathrm{Var}(x)(t) = \frac{\pi^{2}}{3g^{2}} = \text{const} ,
 #    \qquad \langle p\rangle = k_0 , \tag{27} $$
 #
-# to be contrasted with the free packet of 00a, whose variance grew as
+# to be contrasted with a free packet, whose variance grows as
 # $\mathrm{Var}(x)(0) + \mathrm{Var}(p)\,t^{2}$. The energy gains the kinetic energy of the motion: from
 # $\vert\psi'\vert^{2} = \vert\phi' + ik_0\phi\vert^{2} = (\phi')^{2} + k_0^{2}\phi^{2}$ and
 # $\int\phi^2 = 1$,
@@ -995,8 +988,8 @@ print("CHECKPOINT 2 passed: Eqs. (26)-(28) verified.")
 #
 # The constants $a,b$ depend on the profile. Two choices can be worked out in closed form.
 #
-# **Gaussian.** Take $\psi = (2\pi\sigma^{2})^{-1/4}\exp[-x^{2}/(4\sigma^{2})]$, the packet of 00a, whose
-# density is a normal distribution of standard deviation $\sigma$. From 00a, $\langle p^{2}\rangle =
+# **Gaussian.** Take $\psi = (2\pi\sigma^{2})^{-1/4}\exp[-x^{2}/(4\sigma^{2})]$, whose
+# density is a normal distribution of standard deviation $\sigma$. Its momentum spread is $\langle p^{2}\rangle =
 # 1/(4\sigma^{2})$, so $E_{\rm kin} = 1/(8\sigma^{2})$. For the quartic term,
 #
 # $$ \int\vert\psi\vert^{4}dx = \frac{1}{2\pi\sigma^{2}}\int e^{-x^{2}/\sigma^{2}}dx
@@ -1183,7 +1176,7 @@ print(f"overlap | <Gaussian(sigma*) | soliton> |  = {ovl:.6f}")
 # > **JAX practice.** `jax.grad(f)` returns a new function that computes the exact derivative of `f` by
 # > differentiating the operations `f` performs, not by taking finite differences — no step size, no truncation
 # > error. It is the tool that makes variational optimisation practical later in this course; see
-# > [01 — JAX](01_jax_from_scratch.ipynb).
+# > [notebook 01, JAX](01_jax_from_scratch.ipynb).
 
 # %%
 # ==============================================================================
@@ -1379,8 +1372,8 @@ for N_try in (4200, 4500, 5200, 6000, 8000):
 #
 # ### 7.1 Ground states without diagonalisation
 #
-# Notebook 00b found the ground state of a harmonic trap by building the Hamiltonian as a tridiagonal matrix and
-# handing it to an eigensolver. That route is closed here for two independent reasons.
+# For a linear problem such as a harmonic trap, the ground state follows from building the Hamiltonian as a
+# tridiagonal matrix and handing it to an eigensolver. That route is closed here for two independent reasons.
 #
 # * $\hat H_{\rm GP}[\psi]$ depends on $\psi$. There is no fixed matrix to diagonalise; the "eigenvalue
 #   problem" (15) is nonlinear and an eigensolver has nothing to work on.
@@ -1533,11 +1526,11 @@ print("STEP 3: imaginary_time_ground_state and imaginary_time_frames compiled on
 # > fused program; `lax.scan(body, init, xs, length=n)` is a compiled `for` loop that carries a state forward
 # > and collects one output per iteration. Marking `n_steps` as a *static* argument tells the compiler that this
 # > number is known at compile time, which it must be for `scan` to fix the loop length; changing it triggers a
-# > recompilation. Both are explained in [01 — JAX](01_jax_from_scratch.ipynb).
+# > recompilation. Both are explained in [notebook 01, JAX](01_jax_from_scratch.ipynb).
 #
 # ### 7.4 Demonstration 1: the convergence rate is the gap
 #
-# The place to test the machinery is the problem of notebook 00b, where every answer is known: the harmonic
+# The place to test the machinery is a problem where every answer is known: the harmonic
 # oscillator $V(x) = x^{2}/2$, with $E_n = n+\tfrac12$, ground state $\phi_0 = \pi^{-1/4}e^{-x^{2}/2}$, and a
 # gap $E_1-E_0 = 1$. Setting $g = 0$ in Eq. (37) makes it a purely linear calculation.
 #
@@ -2236,8 +2229,7 @@ assert abs(E_rich + G ** 2 / 24) < 0.1 * abs(E_h[1] + G ** 2 / 24), "extrapolati
 # imaginary time is involved at all.
 #
 # * **Resolution $\Delta x = L/N_x$.** The $\mathrm{sech}$ is analytic and its Fourier transform decays like
-#   $e^{-\pi k/g}$, so the spectral method converges faster than any power of $\Delta x$ — the behaviour
-#   established in 00a.
+#   $e^{-\pi k/g}$, so the spectral method converges faster than any power of $\Delta x$.
 # * **Ring size $L$.** The soliton is not periodic; wrapping it onto a ring adds its own periodic images, whose
 #   amplitude at the far side is $\sim e^{-gL/4}$. The error must fall exponentially with $L$, by the factor
 #   $e^{-g\Delta L/4}$ per increment.
@@ -2282,8 +2274,8 @@ print(f"    minimum of |psi|^2 on the ring: {np.min(np.abs(p_s) ** 2):.3e}  (it 
 
 # %% [markdown]
 # Panel (a): from $N_x = 64$ to $N_x = 512$ the energy error falls from $2\times10^{-3}$ to $10^{-16}$ —
-# thirteen orders of magnitude for an eightfold refinement, which no power law can do. This is the spectral convergence
-# of 00a, reappearing because $\mathrm{sech}$ is analytic.
+# thirteen orders of magnitude for an eightfold refinement, which no power law can do. This is spectral convergence,
+# a consequence of $\mathrm{sech}$ being analytic.
 #
 # Panel (b): with $\Delta x$ held *exactly* fixed, every $10$ added to $L$ multiplies the residual by
 # $6.74\times10^{-3}$, $6.74\times10^{-3}$, $6.74\times10^{-3}$ and $6.77\times10^{-3}$, geometric mean
@@ -2405,9 +2397,9 @@ plt.show()
 #
 # ### 9.1 The stability limit of Runge-Kutta
 #
-# Notebook 00b integrated the Schrödinger equation with the fourth-order Runge-Kutta scheme [[40]](#ref-40), [[41]](#ref-41) and found a hard stability
+# The fourth-order Runge-Kutta scheme [[40]](#ref-40), [[41]](#ref-41), applied to the Schrödinger equation, has a hard stability
 # limit ([[42]](#ref-42), Chapters 17 and 20, treats the stability of explicit schemes; the
-# Fortran 90 volume [[43]](#ref-43) gives the corresponding array-based routines). The argument is worth repeating because it decides the choice of method here. Applying an explicit
+# Fortran 90 volume [[43]](#ref-43) gives the corresponding array-based routines). The argument decides the choice of method here. Applying an explicit
 # integrator to $\dot y = \lambda y$ multiplies $y$ by an amplification factor $R(\lambda\Delta t)$; for RK4,
 #
 # $$ R(z) \;=\; 1 + z + \frac{z^{2}}{2} + \frac{z^{3}}{6} + \frac{z^{4}}{24} . $$
@@ -2419,7 +2411,7 @@ plt.show()
 #    \Delta t \;\le\; \frac{2\sqrt2}{E_{\max}} . \tag{42} $$
 #
 # Every mode of the discretised Hamiltonian must satisfy this, so $E_{\max}$ is the largest energy the *grid*
-# can represent. With the three-point Laplacian of 00b, $E_{\max} = 2/\Delta x^{2}$ and
+# can represent. With the three-point Laplacian, $E_{\max} = 2/\Delta x^{2}$ and
 # $\Delta t \le \sqrt2\,\Delta x^{2}$ — the rule of thumb "the time step must be smaller than $\Delta x^{2}$".
 # With the **spectral** Laplacian used here the grid reaches all the way to the Nyquist wave number, so
 # $E_{\max} = (\pi/\Delta x)^{2}/2$ and the limit is *tighter*,
@@ -2598,11 +2590,11 @@ print("                      and the measured phase rate equals -mu = g^2/8.")
 # ### 9.3 Test 2: a soliton that moves, and a linear packet that does not survive
 #
 # Apply the Galilean boost of Section 5.8 by multiplying the profile by $e^{ik_0x}$, with $k_0$ commensurate
-# with the ring ($k_0 = 2\pi\times10/L$, rule 1 of notebook 00a). Equations (27) and (28) predict a centre
+# with the ring ($k_0 = 2\pi\times10/L$, so that $e^{ik_0x}$ is periodic on the ring). Equations (27) and (28) predict a centre
 # moving at exactly $k_0$, a constant variance, a constant momentum and an energy $-g^{2}/24 + k_0^{2}/2$.
 #
 # The comparison that makes the point is to propagate the **same initial state** with $g$ set to zero. That is
-# the free Schrödinger equation of 00a, whose exact solution predicts ballistic spreading,
+# the free Schrödinger equation, whose exact solution predicts ballistic spreading,
 # $\mathrm{Var}(x)(t) = \mathrm{Var}(x)(0) + \mathrm{Var}(p)\,t^{2}$. For the $\mathrm{sech}$ profile the
 # momentum variance can be computed in closed form from
 # $\int(\phi')^{2}dx = 2E_{\rm kin} = g^{2}/12$, giving
@@ -2807,7 +2799,7 @@ plt.show()
 # would relax onto an exact soliton. What the run does show is that the shedding happens once, quickly, and
 # then stops: the core is close to a fixed point and stays there.
 #
-# Contrast this with the free packet of 00a, which has no preferred shape and simply keeps spreading. The
+# Contrast this with a free packet, which has no preferred shape and simply keeps spreading. The
 # nonlinear equation has a shape it returns to.
 #
 # ### 9.5 Convergence in $\Delta t$, and what is conserved
@@ -2864,8 +2856,8 @@ print(f"   width      : max |Var(t) - Var(0)| = {np.max(np.abs(var_sol - var_sol
 # ratios $3.989$, $3.997$, $4.000$, $4.001$); the fitted slope is $1.999$, which is the Strang order of
 # Eq. (36). The comparison against the closed-form solution (26) lies on the same line until the smallest step,
 # where the two differ by $1.2\times10^{-8}$: below that level the comparison stops measuring the time step
-# and starts measuring the spatial discretisation and the periodic images — the point made in 00a about always
-# knowing which reference you are measuring against.
+# and starts measuring the spatial discretisation and the periodic images. It pays to know which reference
+# one is measuring against.
 #
 # The norm and the momentum hold to round-off, and both are conserved by the method itself: every factor has
 # modulus one, the kinetic factors leave each $\vert\hat\psi_k\vert$ unchanged, and the nonlinear phase
@@ -2878,7 +2870,7 @@ print(f"   width      : max |Var(t) - Var(0)| = {np.max(np.abs(var_sol - var_sol
 # %% [markdown]
 # ## 10. Animations and space-time maps
 #
-# The function below is the one written in notebook 00a: `FuncAnimation` updates
+# The animation function below works as follows: `FuncAnimation` updates
 # the data of artists created once, `PillowWriter` encodes the frames, the GIF is written to a temporary
 # directory that deletes itself, and the bytes are displayed as **one output carrying two representations** —
 # a plain `image/gif` for Jupyter and the GitHub notebook viewer, and a base64 `<img>` tag for static website
@@ -3103,7 +3095,7 @@ plt.show()
 # The first map is a ridge of constant width and constant brightness whose slope is $1/k_0$; the cyan dots are
 # the analytic $x_c + k_0t$ folded onto the ring, and they run along its crest. The second map, from the same
 # initial state with the interaction switched off, is a cone that opens until it fills the ring, at which point
-# its own tails meet and produce the interference fringes of 00a. The third is imaginary time: a broad bright
+# its own tails meet and produce interference fringes. The third is imaginary time: a broad bright
 # band that narrows and brightens as the Gaussian contracts onto the soliton, and stops changing at
 # $\tau\approx25$.
 
@@ -3153,7 +3145,7 @@ plt.show()
 #
 # ### 11.2 The workflow checklist
 #
-# The list from 00a and 00b, with the two steps this notebook adds.
+# The checklist of the linear single-particle problems, with two steps added for the nonlinear one.
 #
 # 1. **Non-dimensionalise.** Reduce the problem to the smallest set of dimensionless parameters, and build the
 #    conversion table back to the laboratory.
@@ -3407,12 +3399,9 @@ plt.show()
 # solitons*, Nature Physics **10**, 918 (2014), arXiv:1407.5087 — the dependence of soliton collisions on the relative
 # phase, observed in a lithium condensate (Section 11.5).
 #
-# ### 11.5 What comes next
+# ### 11.5 Outlook: two solitons
 #
-# In [00d — two-soliton collisions](00d_two_soliton_collisions.ipynb) the same propagator launches two
+# The same propagator can launch two
 # solitons at each other. They pass straight through and emerge with their shapes intact and only a shift in
 # position and phase, the signature of integrability. What happens during the overlap depends on the relative phase, which Ref. [[48]](#ref-48)
 # measured directly.
-#
-# Then [01 — JAX](01_jax_from_scratch.ipynb) explains the three tools used here on trust —
-# `jit`, `lax.scan` and `grad` — together with `vmap` and the rest of the library.

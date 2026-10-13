@@ -5,12 +5,12 @@
 # %% [markdown]
 # ## 1. Introduction
 #
-# **Where we are.** We want $|\psi(t)\rangle=e^{-iHt}|\psi(0)\rangle$ for a chain of $N$ spins, with the state stored as a tensor of $2^N$ amplitudes and the Hamiltonian available only through
-# its action $|\phi\rangle\mapsto H|\phi\rangle$ ([Matrix-free operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb)). So far we have met three ways to do it:
+# **The problem.** We want $|\psi(t)\rangle=e^{-iHt}|\psi(0)\rangle$ for a chain of $N$ spins, with the state stored as a tensor of $2^N$ amplitudes and the Hamiltonian available only through
+# its action $|\phi\rangle\mapsto H|\phi\rangle$ ([notebook 05, matrix-free operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb)). Three ways to do it are derived elsewhere in the course:
 #
-# * **exact diagonalisation** ([textbook way](../ch02_spin_systems_textbook_way/04_time_evolution_the_textbook_way.ipynb)): perfect, but $\mathcal O(4^N)$ memory and $\mathcal O(8^N)$ time — dead at $N\approx14$;
-# * **TEBD / Trotter–Suzuki** ([previous-but-one notebook](12_tebd_trotter_suzuki.ipynb)): split $e^{-iH\,dt}$ into local gates; exactly unitary, error $\mathcal O(dt^p)$ with $p=1,2,4$ (fourth order: [[1]](#ref-1));
-# * **Chebyshev expansion** ([previous notebook](13_chebyshev_propagation.ipynb)): a fixed, near-optimal polynomial in $H$ with Bessel-function coefficients [[2]](#ref-2); machine precision for $\approx a t$ applications of $H$
+# * **exact diagonalisation** ([notebook 04, time evolution with dense matrices](../ch02_spin_systems_textbook_way/04_time_evolution_the_textbook_way.ipynb)): perfect, but $\mathcal O(4^N)$ memory and $\mathcal O(8^N)$ time — dead at $N\approx14$;
+# * **TEBD / Trotter–Suzuki** ([notebook 12, Trotter–Suzuki evolution](12_tebd_trotter_suzuki.ipynb)): split $e^{-iH\,dt}$ into local gates; exactly unitary, error $\mathcal O(dt^p)$ with $p=1,2,4$ (fourth order: [[1]](#ref-1));
+# * **Chebyshev expansion** ([notebook 13, Chebyshev propagation](13_chebyshev_propagation.ipynb)): a fixed, near-optimal polynomial in $H$ with Bessel-function coefficients [[2]](#ref-2); machine precision for $\approx a t$ applications of $H$
 #   ($a$ = half the spectral width), but it needs bounds on the spectrum.
 #
 # **This notebook has two parts.**
@@ -25,6 +25,9 @@
 #
 # **Road map.** §2 the Krylov idea and its derivation; §3 a jit-compiled Lanczos with `lax.scan`, validated; §4 the Krylov step, convergence in $m$ and $dt$, comparison with Chebyshev; §5 the a-posteriori error bound and adaptive time stepping; §6 the exact dense reference and its cost;
 # §7 the Loschmidt echo as a test of integrators; §8 work–precision diagram of all integrators; §9 scaling with $N$ at fixed accuracy, memory and compile time; §10 guidance table; then summary, exercises, references.
+#
+# The notebook assumes `jit` and `lax.scan` ([notebook 01, JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)), the matrix-free product $H|\psi\rangle$
+# ([notebook 05, matrix-free operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb)), the Lanczos iteration ([notebook 11, Hamiltonians and ground states](11_hamiltonians_and_ground_states.ipynb)) and the two propagators above ([notebook 12, Trotter–Suzuki evolution](12_tebd_trotter_suzuki.ipynb); [notebook 13, Chebyshev propagation](13_chebyshev_propagation.ipynb)).
 #
 # ### What you will learn
 #
@@ -42,10 +45,6 @@
 # * a fixed-size, jit-able Lanczos iteration with `lax.scan` and full re-orthogonalisation (no Python-side convergence checks);
 # * `lax.while_loop` for adaptive stepping with a data-dependent number of steps;
 # * benchmarking: `block_until_ready`, compile time vs run time, best-of-$n$ timing, equal-accuracy comparisons, validated references for sizes where no exact answer exists.
-#
-# ### Prerequisites
-# [Hamiltonians and ground states](11_hamiltonians_and_ground_states.ipynb) (Lanczos iteration), [TEBD](12_tebd_trotter_suzuki.ipynb), [Chebyshev propagation](13_chebyshev_propagation.ipynb);
-# from Chapters 1 and 3: [JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb) (`jit`, `scan`), [Matrix-free operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb).
 
 # %% [markdown]
 # ## Engine recap
@@ -70,7 +69,7 @@
 # ### 2.2 An orthonormal basis: the Lanczos iteration
 #
 # The raw vectors $H^k|\psi\rangle$ are a terrible basis (they all turn towards the eigenvector with the largest $|E|$ and become numerically parallel). The **Lanczos iteration**, derived in
-# [Hamiltonians and ground states](11_hamiltonians_and_ground_states.ipynb) [[6]](#ref-6), orthonormalises them on the fly. For Hermitian $H$ each new vector needs to be orthogonalised only against the previous two:
+# [notebook 11, Hamiltonians and ground states](11_hamiltonians_and_ground_states.ipynb) [[6]](#ref-6), orthonormalises them on the fly. For Hermitian $H$ each new vector needs to be orthogonalised only against the previous two:
 #
 # $$ \beta_j|v_{j+1}\rangle = H|v_j\rangle-\alpha_j|v_j\rangle-\beta_{j-1}|v_{j-1}\rangle,\qquad \alpha_j=\langle v_j|H|v_j\rangle,\qquad \beta_j=\big\|\,H v_j-\alpha_jv_j-\beta_{j-1}v_{j-1}\big\| . $$
 #
@@ -101,7 +100,7 @@
 #
 # **(b) Norm is conserved exactly**, for any $m$ and $t$: $\|\psi_m(t)\|=\|c(t)\|=\|\psi\|$, because $V_m$ has orthonormal columns and $e^{-iT_mt}$ is unitary.
 # In floating point the statement is worth exactly as much as the orthonormality of $V_m$. The implementation of §3 re-orthogonalises fully and keeps $\max|V_m^\dagger V_m-1|\sim10^{-15}$ (measured below), so the norm is conserved to rounding.
-# A plain three-term recurrence loses orthogonality as soon as a Ritz pair converges ([Hamiltonians and ground states](11_hamiltonians_and_ground_states.ipynb)) and loses this guarantee with it: at $N=10$, $m=80$, $dt=8$ the norm then drifts by $5\times10^{-5}$ while the re-orthogonalised version stays at $2\times10^{-16}$ (Exercise 3).
+# A plain three-term recurrence loses orthogonality as soon as a Ritz pair converges ([notebook 11, Hamiltonians and ground states](11_hamiltonians_and_ground_states.ipynb)) and loses this guarantee with it: at $N=10$, $m=80$, $dt=8$ the norm then drifts by $5\times10^{-5}$ while the re-orthogonalised version stays at $2\times10^{-16}$ (Exercise 3).
 #
 # **(c) Energy is conserved exactly:** $\langle\psi_m(t)|H|\psi_m(t)\rangle=c^\dagger V_m^\dagger HV_mc=c^\dagger T_mc$, which is constant under $i\dot c=T_mc$.
 #
@@ -124,7 +123,7 @@
 # **Only the spectral width matters, not $\|H\|$.** Replacing $H$ by $H+c\,\mathbb 1$ leaves every $v_j$ and every $\beta_j$ unchanged and shifts every $\alpha_j$ by $c$, so $T_m\to T_m+c\,\mathbb 1$ and $|\psi_m\rangle\to e^{-ict}|\psi_m\rangle$: the approximation error is untouched. The right-hand side of (2a) is shift invariant for the same reason.
 # The scale that controls everything is therefore the **spectral half-width** $a=(E_{\max}-E_{\min})/2$; $\|H\|$ can be made arbitrarily large by adding a constant to $H$ without changing the physics or the difficulty of the problem.
 #
-# **The Chebyshev estimate of the previous notebook carries over unchanged.** Take for $p$ the Chebyshev expansion of $e^{-iEt}$ truncated after degree $m-1$. Its error is at most the sum of the omitted coefficients, $\sum_{k\ge m}2|J_k(a\,t)|\le4\big(e\,a\,t/2m\big)^{m}$ for $m\ge a\,t$ ([Chebyshev propagation](13_chebyshev_propagation.ipynb), Stirling form of the Bessel bound), so (2a) gives
+# **The Chebyshev estimate carries over unchanged.** Take for $p$ the Chebyshev expansion of $e^{-iEt}$ truncated after degree $m-1$. Its error is at most the sum of the omitted coefficients, $\sum_{k\ge m}2|J_k(a\,t)|\le4\big(e\,a\,t/2m\big)^{m}$ for $m\ge a\,t$ ([notebook 13, Chebyshev propagation](13_chebyshev_propagation.ipynb), Stirling form of the Bessel bound), so (2a) gives
 #
 # $$ \big\|\psi_m(t)-\psi(t)\big\|\;\le\;8\,\|\psi\|\left(\frac{e\,a\,t}{2m}\right)^{m},\qquad m\ge a\,t . \qquad (2b) $$
 #
@@ -149,9 +148,9 @@
 # The engine's `lanczos` (see the recap) is a Python loop that stops early when $\beta_j$ becomes tiny — this requires pulling a number from the device to Python at every iteration (`float(b)`), so it cannot be compiled as a whole. For time evolution the Lanczos
 # iteration sits *inside* the time loop and is executed thousands of times, so we want a version that compiles into a single XLA program:
 #
-# * **fixed number of iterations $m$** $\Rightarrow$ `lax.scan` over $j=0,\dots,m-1$ (see [JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb));
+# * **fixed number of iterations $m$** $\Rightarrow$ `lax.scan` over $j=0,\dots,m-1$ (see [notebook 01, JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb));
 # * the basis is a **pre-allocated array** `V` of shape $(m,2^N)$, filled row by row with the functional update `V.at[j+1].set(v)` (JAX arrays are immutable; under `jit` XLA performs the update in place);
-# * **full re-orthogonalisation** in matrix form. In exact arithmetic the three-term recurrence suffices; in floating point orthogonality is gradually lost ([Hamiltonians and ground states](11_hamiltonians_and_ground_states.ipynb)).
+# * **full re-orthogonalisation** in matrix form. In exact arithmetic the three-term recurrence suffices; in floating point orthogonality is gradually lost ([notebook 11, Hamiltonians and ground states](11_hamiltonians_and_ground_states.ipynb)).
 #   We therefore subtract from $w=Hv_j$ its projection onto *all* rows stored so far, $w\leftarrow w-V^{T}(V^{*}w)$ — two matrix–vector products. Rows not yet filled are zero and contribute nothing, so no masking is needed.
 #   This also removes the $\alpha_jv_j$ and $\beta_{j-1}v_{j-1}$ terms automatically. We do it twice ("twice is enough": two passes of classical Gram–Schmidt give orthogonality at the level of the unit round-off [[9]](#ref-9); for re-orthogonalised Lanczos in general see [[10]](#ref-10), §10.3);
 # * **no early exit**: if $\beta_j\approx0$ (the Krylov space is *invariant* — the state lives in fewer than $m$ eigenvectors, and the projection is already exact) we must not divide by it. `jnp.where` replaces the next vector by zero; all later $\alpha,\beta$ are then zero, $T_m$ becomes block-diagonal and the result (2) is unaffected.
@@ -313,7 +312,7 @@ assert max(err_exact, err_engine, err_engine_exact) < 100 * TOL
 #
 # We now measure the error of a single step as a function of $m$ for several step lengths, and for three different initial states: the product state $|0\dots0\rangle$, a Haar-random state (spread over the *whole* spectrum) and a local excitation of the ground state, $X_{N/2}|E_0\rangle$
 # (concentrated at the *bottom* of the spectrum; this is the kind of state that appears in the calculation of dynamical structure factors). For reference we overlay the error of the Chebyshev expansion of **equal cost**: $m$ applications of $H$ build the Chebyshev polynomial up to degree $m$,
-# whose leading omitted term is $2|J_{m+1}(a\,dt)|$ ([Chebyshev propagation](13_chebyshev_propagation.ipynb)). The spectral half-width $a$ that Chebyshev needs is taken from the dense spectrum here; Krylov needs no such input.
+# whose leading omitted term is $2|J_{m+1}(a\,dt)|$ ([notebook 13, Chebyshev propagation](13_chebyshev_propagation.ipynb)). The spectral half-width $a$ that Chebyshev needs is taken from the dense spectrum here; Krylov needs no such input.
 # The cell also prints, for one step length, how far the Galerkin state (2) is from the *best* element of the same Krylov space — the numerical counterpart of §2.5.
 #
 # **A trick that saves almost all the work: Krylov spaces are nested.** The first $m$ Lanczos vectors do not depend on how many more we compute afterwards. So a single run with $m_{\max}=64$ contains *every* smaller Krylov approximation: $V_m$ = the first $m$ rows of `V`, $T_m$ = the leading
@@ -400,7 +399,7 @@ plt.tight_layout(); plt.show()
 #
 # * *Quasi-optimality.* The printed table compares the Galerkin state with the best element of the same Krylov space. The ratio is $1.25$ at $m=10$ and falls to $1.02$ by $m=30$ (the last row, $m=40$, is already at the rounding floor, where the comparison measures nothing): the Galerkin condition, which costs nothing, is almost as good as an
 #   orthogonal projection onto $\mathcal K_m$, which we could not compute. This is the numerical content of Eq. (2a).
-# * *Left.* The Krylov error has the same anatomy as the Chebyshev error of the previous notebook: no convergence at all while $m\lesssim a\,dt$ (vertical lines), then a super-exponential collapse onto the rounding floor. This is Eq. (2b) — the Krylov
+# * *Left.* The Krylov error has the same anatomy as the Chebyshev error ([notebook 13, Chebyshev propagation](13_chebyshev_propagation.ipynb)): no convergence at all while $m\lesssim a\,dt$ (vertical lines), then a super-exponential collapse onto the rounding floor. This is Eq. (2b) — the Krylov
 #   approximation is within a factor $2$ of *any* polynomial approximation of degree $m-1$, so it inherits the Chebyshev convergence law. It reaches a given accuracy with **somewhat fewer applications of $H$** than a Chebyshev expansion of the same cost
 #   (dotted — a truncation estimate, which is why it continues below the rounding floor at which the solid curves stop; see the printed comparison, where the saving grows from about 8 % at $a\,dt\approx2$ to about 17 % at $a\,dt\approx35$) — it adapts the polynomial to the state and needs no safety margin on the spectrum — but the gain
 #   is a matter of per cent, not an order of magnitude. At *fixed* $m$ in the transition region the vertical gap between the two curves is much larger than that (orders of magnitude at $a\,dt=35$); it shrinks to a few per cent in the *horizontal* direction, which is the one that costs money,
@@ -450,7 +449,7 @@ plt.show()
 # Everything on the right-hand side is known from the *small* matrix: the bound costs $\mathcal O(m^2)$ per evaluation point and no additional application of $H$. For short times $c_m(s)\approx(-is)^{m-1}\beta_1\cdots\beta_{m-1}/(m-1)!$, so the bound behaves as
 # $t^{m}\,\beta_1\cdots\beta_m/m!$ — the $\mathcal O(t^m)$ law of §4.3 — and the integral is $\approx t\,|c_m(t)|/m$, giving the cheaper *estimate* $\;\varepsilon_{\rm est}=\beta_m|c_m(t)|\,t/m$.
 # Keep the two apart: (3) is a **bound**, valid for every $t$; $\varepsilon_{\rm est}$ is an **estimate**, valid while the leading term dominates. Up to the factor $1/m$, $\varepsilon_{\rm est}$ is the classical stopping criterion of [[7]](#ref-7) and the local error estimate on which the step-size controller of Expokit [[4]](#ref-4) is built.
-# The same quantity $\beta_m$ that measured the convergence of a Ritz pair for free in [Hamiltonians and ground states](11_hamiltonians_and_ground_states.ipynb) measures the accuracy of the propagator for free here: in both cases it is the single number in the Lanczos relation (1) that quantifies how far $H$ pushes the state out of the subspace.
+# The same quantity $\beta_m$ that measured the convergence of a Ritz pair for free in [notebook 11, Hamiltonians and ground states](11_hamiltonians_and_ground_states.ipynb) measures the accuracy of the propagator for free here: in both cases it is the single number in the Lanczos relation (1) that quantifies how far $H$ pushes the state out of the subspace.
 #
 # **From formula to code.** In the eigenbasis of $T_m$, $c_m(s)=\sum_jS_{m-1,j}\,e^{-i\theta_js}\,S_{0,j}$: for a whole grid of $s$ values this is one einsum `"j,sj,j->s"`. The integral is a cumulative trapezoidal sum, which yields the bound for *every* $t$ on the grid at once.
 
@@ -980,7 +979,7 @@ plt.show()
 #   the state still fits in the processor caches and wall times on a shared machine are noisy. The *ratios between the methods* at a given $N$, which is what this comparison is about, are far more stable.
 #   At this modest accuracy target Chebyshev, fourth-order TEBD and Krylov end up within a small factor of each other, with Chebyshev and fourth-order TEBD the fastest and second-order TEBD — which needs by far the most steps — the slowest. Tightening the target by four orders of magnitude would shift the two TEBD curves up by factors $\sim100$ (order 2) and $\sim10$ (order 4) and leave the other two almost unchanged (§8).
 #   Note also the different growth with $N$ at fixed $T$: a TEBD step costs $\propto N2^N$, whereas Chebyshev and Krylov need $\propto a\,T\propto N$ applications of $H$, so their cost grows as $N^22^N$ — an extra factor $N$, the price of resolving the growing spectral width.
-#   The extra factor is smaller than it looks, because the *number* of TEBD steps here is $N$-independent only by construction: the step was calibrated once at $N=10$, and the error column shows it creeping up with $N$. The Trotter error is extensive ([TEBD](12_tebd_trotter_suzuki.ipynb), §7.3),
+#   The extra factor is smaller than it looks, because the *number* of TEBD steps here is $N$-independent only by construction: the step was calibrated once at $N=10$, and the error column shows it creeping up with $N$. The Trotter error is extensive ([notebook 12, Trotter–Suzuki evolution](12_tebd_trotter_suzuki.ipynb), Section 7.3),
 #   so holding the accuracy fixed requires $dt\propto N^{-1/p}$ and TEBD-$p$ costs $\propto N^{1+1/p}2^N$. At equal accuracy, the asymptotic advantage of TEBD over the polynomial methods in $N$ is therefore $N^{1-1/p}$, that is $\sqrt N$ at order 2 and $N^{3/4}$ at order 4.
 # * **Compilation.** The first call (right panel) traces and compiles the whole program before running it once. Up to $N\approx12$ that dominates: for most contestants the first call costs several times the run that follows. The compile
 #   times themselves all sit within a factor of a few of each other (a fraction of a second at small $N$, one to a few seconds at $N=16$) and grow slowly with $N$ — what matters in practice is only that you compile once and then loop.
@@ -1006,7 +1005,7 @@ print(f"{'exact: H, V, work (3 x 4^N)':28s} | {'--':>13s} | " + " | ".join(f"{3 
 # %% [markdown]
 # ## 10. A guidance table for choosing an integrator
 #
-# The measurements of §§7–9 and of the two previous notebooks, condensed. "Cost" is for evolving to time $T$ with spectral half-width $a\propto N$; one application of $H$ costs $\mathcal O(N2^N)$.
+# The measurements of §§7–9 and of [notebook 12, Trotter–Suzuki evolution](12_tebd_trotter_suzuki.ipynb) and [notebook 13, Chebyshev propagation](13_chebyshev_propagation.ipynb), condensed. "Cost" is for evolving to time $T$ with spectral half-width $a\propto N$; one application of $H$ costs $\mathcal O(N2^N)$.
 #
 # | | **Exact (dense)** | **TEBD / Trotter** (order $p$) | **Chebyshev** | **Krylov** (dimension $m$) |
 # |---|---|---|---|---|
@@ -1026,11 +1025,11 @@ print(f"{'exact: H, V, work (3 x 4^N)':28s} | {'--':>13s} | " + " | ".join(f"{3 
 #
 # 1. *Always* validate a new simulation against the dense solution at $N\le10$ — for all the methods above this costs seconds.
 # 2. Need only local observables of a generic chain at percent accuracy? Second-order TEBD with $dt\approx0.05$–$0.1$ (in units of the inverse coupling) is simple, robust and hard to beat; use fourth order if you need $10^{-4}$–$10^{-6}$ in the *state*.
-#    The distinction matters: at $dt=0.05$ the TEBD-2 state error at $T=5$ is $10^{-2}$ (§8), while the error of a local expectation value is about an order of magnitude smaller and does not grow with $N$ ([TEBD](12_tebd_trotter_suzuki.ipynb), §7.3).
+#    The distinction matters: at $dt=0.05$ the TEBD-2 state error at $T=5$ is $10^{-2}$ (§8), while the error of a local expectation value is about an order of magnitude smaller and does not grow with $N$ ([notebook 12, Trotter–Suzuki evolution](12_tebd_trotter_suzuki.ipynb), Section 7.3).
 # 3. Need echoes, overlaps, long times, or a reference solution? Chebyshev (largest $N$, time-independent $H$) or adaptive Krylov (automatic error control, no spectral bounds).
 # 4. The Hamiltonian depends on time? TEBD, or Krylov with short steps; Chebyshev only if $H$ is piecewise constant. Freezing $H$ at the step midpoint is the lowest-order Magnus [[23]](#ref-23) or midpoint rule with a local error $\mathcal O(dt^3)$ and a global error $\mathcal O(dt^2)$, so $dt$ is again set by accuracy and the long steps of §5 are wasted (Exercise 7).
-# 5. $N>30$? None of the above in state-vector form — go to matrix-product states with TEBD ([MPS-TEBD](../ch07_tensor_networks/18_mps_tebd.ipynb)), which works as long as the entanglement stays moderate.
-# 6. Open systems with a non-Hermitian generator ([Lindblad master equation](../ch06_open_quantum_systems/16_lindblad_master_equation.ipynb))? The Chebyshev expansion as presented requires a real spectrum; the Krylov idea survives with the Arnoldi iteration [[24]](#ref-24) (full orthogonalisation, upper-Hessenberg instead of tridiagonal matrix); Trotterised Kraus steps and Runge–Kutta are the simple alternatives used in this course.
+# 5. $N>30$? None of the above in state-vector form — go to matrix-product states with TEBD, which works as long as the entanglement stays moderate.
+# 6. Open systems with a non-Hermitian generator? The Chebyshev expansion as presented requires a real spectrum; the Krylov idea survives with the Arnoldi iteration [[24]](#ref-24) (full orthogonalisation, upper-Hessenberg instead of tridiagonal matrix); Trotterised Kraus steps and Runge–Kutta are the simple alternatives used in this course.
 
 # %% [markdown]
 # ## 11. Summary — key takeaways

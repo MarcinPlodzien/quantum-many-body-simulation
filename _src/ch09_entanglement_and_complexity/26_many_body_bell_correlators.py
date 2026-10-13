@@ -9,10 +9,9 @@
 # already exist before the measurements are made, and that each party's outcome depends on that party's setting and on shared
 # information from the past, not on what the other parties chose. Any theory of this kind is called a **local hidden-variable
 # (LHV)** model. It was proved in [[1]](#ref-1) that quantum mechanics violates such bounds, which is why they matter: a violated Bell inequality is a
-# device-independent certificate — it says something about the physics without assuming anything about the apparatus
-# (the cryptographic use of this property appears in [notebook 53](../ch12_quantum_communication_and_cryptography/53_quantum_key_distribution.ipynb)).
+# device-independent certificate — it says something about the physics without assuming anything about the apparatus.
 #
-# [Notebook 19](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb) derived the archetype, the CHSH
+# The archetype is the CHSH
 # inequality for two parties: the classical bound is $2$ and quantum mechanics reaches $2\sqrt2$. This notebook asks the same
 # question for $N$ parties at once. The change has consequences. With two parties there is one way to be entangled; with $N$
 # there is a whole hierarchy, and a many-body Bell inequality can distinguish between "somewhere in this system there are two
@@ -92,21 +91,15 @@
 # * `lax.scan` for the optimiser loop so that the graph is compiled once, not unrolled 200 times;
 # * separating "what the optimiser found" from "what the state can give" by always comparing against an analytic optimum.
 #
-# ### Prerequisites
-# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb) and
-#   [02 — einsum from scratch](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb);
-# * [19 — Bell states and CHSH](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb): local hidden variables,
-#   the CHSH bound $2$, the Tsirelson bound $2\sqrt2$ — we build directly on it;
-# * [07 — density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb)
-#   and [17 — Monte-Carlo wave function](../ch06_open_quantum_systems/17_monte_carlo_wave_function.ipynb) for Sections 9–10;
-# * [22 — GHZ states and decoherence](../ch08_quantum_information_protocols/22_ghz_states_and_decoherence.ipynb): the GHZ
-#   coherence and its fragility, which is what Section 9 measures again through a different quantity;
-# * [25 — entanglement negativity](25_entanglement_negativity.ipynb) is the companion diagnostic of this chapter: the
-#   negativity detects entanglement across one cut, the Bell correlator detects it in all parties at once;
-# * [41 — optimizers](../ch13_quantum_machine_learning/41_optimizers.ipynb) for Adam and SPSA in Section 7, and the two
-#   notebooks below for Section 11; they belong to later chapters and can be read when those sections are reached;
-# * [33 — spin squeezing and one-axis twisting](../ch10_quantum_metrology_protocols/33_spin_squeezing_one_axis_twisting.ipynb)
-#   and [34 — from OAT to GHZ](../ch10_quantum_metrology_protocols/34_oat_to_ghz_full_metrology_protocol.ipynb) for Section 11.
+# The notebook assumes the CHSH inequality and Tsirelson's bound
+# ([notebook 19, Bell states and CHSH](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb)), Kraus channels and
+# quantum trajectories for Sections 9–10
+# ([notebook 07, density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb),
+# [notebook 17, Monte Carlo wave function](../ch06_open_quantum_systems/17_monte_carlo_wave_function.ipynb)), the Adam and SPSA
+# optimisers for Section 7 ([notebook 41, optimisers](../ch13_quantum_machine_learning/41_optimizers.ipynb)) and one-axis
+# twisting for Section 11
+# ([notebook 33, spin squeezing and one-axis twisting](../ch10_quantum_metrology_protocols/33_spin_squeezing_one_axis_twisting.ipynb),
+# [notebook 34, from one-axis twisting to GHZ](../ch10_quantum_metrology_protocols/34_oat_to_ghz_full_metrology_protocol.ipynb)).
 #
 # **Conventions.** Qubit $q$ = tensor axis $q$, counted from $0$; $\vert0\rangle$ is the $+1$ eigenstate of $Z$;
 # $\sigma^\pm=(X\pm iY)/2$, so that $\sigma^{-}=\vert1\rangle\langle0\vert$ lowers spin up $\vert0\rangle$ to spin down $\vert1\rangle$ and
@@ -167,7 +160,8 @@ print("sigma^- = |1><0| :\n", np.asarray(SM))
 #
 # has, for every $\lambda$, one bracket equal to $\pm2$ and the other equal to $0$, so the left-hand side is $\pm2$ and its
 # average obeys $\vert S\vert\le2$. Quantum mechanics reaches $S=2\sqrt2$ with a Bell state and the right angles — that is the
-# bound proved in [[8]](#ref-8) and derived in [notebook 19](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb).
+# bound proved in [[8]](#ref-8) and derived in
+# [notebook 19, Bell states and CHSH](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb).
 #
 # ### 3.3 Why many parties need a different object
 #
@@ -561,7 +555,7 @@ assert abs(abs(b3) - abs(got_psi)) < 1e3 * TOL
 #   $CZ$ to every other) is a GHZ state up to Hadamards on the leaves,
 #   so $\mathcal E=1/4$;
 # * applying a $T$ gate to every qubit of any state cannot change $\mathcal E$, because $T$ is a local unitary. The
-#   "$T$-doped" star graph, which is *not* a stabilizer state and has non-zero magic (the subject of [notebook 27](27_stabilizer_renyi_entropy.ipynb)), is
+#   "$T$-doped" star graph, which is *not* a stabilizer state and has non-zero magic, is
 #   indistinguishable from the star graph by this correlator.
 #
 # The third point has a consequence: $\mathcal E$ is a local-unitary invariant, so it measures a property of the entanglement
@@ -627,7 +621,7 @@ for N in (3, 4, 5, 6, 7):
 # * `jax.vmap` runs many random restarts simultaneously, which is the practical answer to non-convexity.
 #
 # We use Adam ([[19]](#ref-19); `adam_init`/`adam_update` from the engine, derived in
-# [notebook 41](../ch13_quantum_machine_learning/41_optimizers.ipynb)) and *maximise* by feeding it $-\nabla\mathcal E$.
+# [notebook 41, optimisers](../ch13_quantum_machine_learning/41_optimizers.ipynb)) and *maximise* by feeding it $-\nabla\mathcal E$.
 
 # %%
 # ==============================================================================
@@ -902,8 +896,7 @@ print(f"\nrun time after compilation [s]: " + "; ".join(
 # region with a decaying learning rate. In this simulator the exact gradient is essentially free: after compilation every
 # run of $32$ restarts at $200$ steps takes less than $0.15$ s for either method (last output line), so `jax.grad` wins on
 # accuracy at equal cost.
-# On hardware, where each evaluation costs thousands of shots and no gradient is available, the ranking reverses; that is the
-# regime [notebook 41](../ch13_quantum_machine_learning/41_optimizers.ipynb) analyses.
+# On hardware, where each evaluation costs thousands of shots and no gradient is available, the ranking reverses.
 
 
 # %% [markdown]
@@ -1077,7 +1070,7 @@ for N in (4, 6, 8):
 #
 # > **Physics insight.** A diagnostic that answers "yes" loudly for GHZ and "no" for a Haar-random state is working as
 # > designed: *Bell correlations of this type* are a specific structure, a single $N$-body coherence in some local frame,
-# > and a large amount of entanglement does not imply it. Notebook 25 measures a quantity (the negativity) that ranks the random state far above GHZ; the two
+# > and a large amount of entanglement does not imply it. The negativity ranks the random state far above GHZ; the two
 # > diagnostics see genuinely different things.
 
 # %% [markdown]
@@ -1086,9 +1079,8 @@ for N in (4, 6, 8):
 # ### 9.1 Closed forms at the identity angles
 #
 # Apply a single-qubit channel to every qubit of the GHZ state. At the identity angles, Eq. (13) says that
-# $\langle\mathcal B\rangle$ is simply the corner element $\rho_{0\cdots0,\,1\cdots1}$ — the $N$-body coherence whose decay
-# [notebook 22](../ch08_quantum_information_protocols/22_ghz_states_and_decoherence.ipynb) studies through parity
-# oscillations. Each channel multiplies it by a fixed factor per qubit:
+# $\langle\mathcal B\rangle$ is simply the corner element $\rho_{0\cdots0,\,1\cdots1}$, the $N$-body coherence of the GHZ
+# state. Each channel multiplies it by a fixed factor per qubit:
 #
 # * **dephasing** with probability $p$ maps $\rho_{01}\to(1-2p)\rho_{01}$ on each qubit, so the corner element picks up
 #   $(1-2p)^N$ and
@@ -1388,8 +1380,8 @@ fig.tight_layout(); plt.show()
 # ### 10.1 Why trajectories
 #
 # The density tensor costs $O(4^N)$ in memory and $O(N4^N)$ per evaluation of the correlator, which is what confined Section 9
-# to $N\le6$. The Monte-Carlo wave-function unravelling ([[22]](#ref-22), [[23]](#ref-23)) of
-# [notebook 17](../ch06_open_quantum_systems/17_monte_carlo_wave_function.ipynb) replaces it by $M$ pure states of $2^N$
+# to $N\le6$. The Monte-Carlo wave-function unravelling ([[22]](#ref-22), [[23]](#ref-23)), derived in
+# [notebook 17, Monte Carlo wave function](../ch06_open_quantum_systems/17_monte_carlo_wave_function.ipynb), replaces it by $M$ pure states of $2^N$
 # amplitudes each: for every trajectory one Kraus branch is sampled per qubit with probability $\lVert K_m\psi\rVert^2$, and
 #
 # $$\rho=\mathbb E\bigl[\vert\psi_i\rangle\langle\psi_i\vert\bigr]\qquad\Longrightarrow\qquad
@@ -1653,7 +1645,8 @@ fig.tight_layout(); plt.show()
 # One-axis twisting, proposed in [[25]](#ref-25), is the standard way of producing metrologically useful states in cold-atom and trapped-ion experiments:
 # starting from the coherent spin state $\vert+\rangle^{\otimes N}$, the Hamiltonian $\chi J_z^2$ shears the uncertainty
 # region on the Bloch sphere, first producing spin squeezing and eventually, at $\chi t=\pi/2$, a GHZ-like cat state
-# ([notebooks 33 and 34](../ch10_quantum_metrology_protocols/33_spin_squeezing_one_axis_twisting.ipynb)). The evolution is
+# ([notebook 33, spin squeezing and one-axis twisting](../ch10_quantum_metrology_protocols/33_spin_squeezing_one_axis_twisting.ipynb),
+# [notebook 34, from one-axis twisting to GHZ](../ch10_quantum_metrology_protocols/34_oat_to_ghz_full_metrology_protocol.ipynb)). The evolution is
 # diagonal in the computational basis, so `oat_evolve` applies it exactly with no Trotter error.
 #
 # The authors of [[14]](#ref-14) showed that this evolution is also a source of many-body Bell
@@ -1663,7 +1656,7 @@ fig.tight_layout(); plt.show()
 # $$\chi t_{\rm crit}\simeq\frac{2}{N}\sqrt{\frac{\pi^2}{8\ln2}-1}\approx\frac{1.77}{N} ,$$
 #
 # whereas the optimal squeezing time of one-axis twisting scales as $\chi t_{\rm s}\sim N^{-2/3}$
-# ([notebook 33](../ch10_quantum_metrology_protocols/33_spin_squeezing_one_axis_twisting.ipynb)). Since
+# (derived in [notebook 33, spin squeezing and one-axis twisting](../ch10_quantum_metrology_protocols/33_spin_squeezing_one_axis_twisting.ipynb)). Since
 # $N^{-1}\ll N^{-2/3}$, Bell correlations are predicted to appear *before* the squeezing optimum, by a factor
 # $t_{\rm crit}/t_{\rm s}\sim N^{-1/3}$ that closes only slowly. We can now check that directly at one size: evaluate
 # $\mathcal E$ along the whole trajectory and report when each bound is crossed, alongside the squeezing
@@ -1791,11 +1784,9 @@ fig.tight_layout(); plt.show()
 # small uncertainty patch on the Bloch sphere simply stops being defined once the state is a macroscopic superposition,
 # whereas $\mathcal E$ keeps working and reports the maximum possible value.
 #
-# > **Physics insight.** The same one-axis-twisting evolution that [notebook 33](../ch10_quantum_metrology_protocols/33_spin_squeezing_one_axis_twisting.ipynb)
-# > uses for metrology is, at later times, a generator of many-body Bell correlations — and the certificate reaches its
-# > algebraic maximum exactly at the cat time that
-# > [notebook 34](../ch10_quantum_metrology_protocols/34_oat_to_ghz_full_metrology_protocol.ipynb) uses for Heisenberg-limited
-# > interferometry. One interaction, three different resources, three different optimal times.
+# > **Physics insight.** The one-axis-twisting evolution that produces squeezed states for metrology is, at later times, a
+# > generator of many-body Bell correlations — and the certificate reaches its algebraic maximum exactly at the cat time
+# > used for Heisenberg-limited interferometry. One interaction, three different resources, three different optimal times.
 #
 # The fixed-plane correlator does not need a state vector. In the basis of $J_z$ eigenstates it is Eq. (10) of [[14]](#ref-14),
 #

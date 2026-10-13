@@ -5,9 +5,9 @@
 # %% [markdown]
 # ## 1. Introduction
 #
-# [Notebook 31](./31_ramsey_interferometry.ipynb) established the standard quantum limit: $N$ independent atoms in a Ramsey
-# interferometer measure a phase with uncertainty $\Delta\varphi=1/\sqrt{NM}$, and no readout or estimator can do better with
-# that probe. The only remaining variable is the probe state.
+# The standard quantum limit, derived in [notebook 31, Ramsey interferometry](31_ramsey_interferometry.ipynb), states that $N$ independent atoms in
+# a Ramsey interferometer measure a phase with uncertainty $\Delta\varphi=1/\sqrt{NM}$, and that no readout or estimator can
+# do better with that probe. The only remaining variable is the probe state.
 #
 # Replace the coherent spin state by the maximally entangled state introduced in [[1]](#ref-1)
 #
@@ -87,21 +87,12 @@
 # * building a $4^N$ tensor of Pauli coefficients by an `einsum` over $N$ copies of a $4\times2\times2$ array;
 # * checking every analytic contrast against exact Kraus evolution before using it in a sweep.
 #
-# ### Prerequisites
-# * [22 — GHZ states and decoherence](../ch08_quantum_information_protocols/22_ghz_states_and_decoherence.ipynb): the
-#   preparation circuits, the parity oscillation $\langle X^{\otimes N}\rangle(\varphi)=\cos(N\varphi)$ and the closed-form
-#   decoherence factors are derived there and reused here;
-# * [24 — classical shadows](../ch08_quantum_information_protocols/24_classical_shadows.ipynb): the randomised-measurement
-#   estimator used in Section 14;
-# * [29 — quantum Fisher information](./29_quantum_fisher_information.ipynb) and
-#   [30 — QFI from the SLD](./30_qfi_from_the_sld_prepare_encode_estimate.ipynb): Cramér–Rao bound, classical Fisher
-#   information, $F_Q=4\,\mathrm{Var}(G)$ for pure states and the SLD formula for mixed ones;
-# * [31 — Ramsey interferometry](./31_ramsey_interferometry.ipynb): the protocol we compare against, the standard quantum
-#   limit, and the optimal-interrogation-time argument we repeat here for an entangled probe;
-# * [07 — density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb).
-#
-# **What comes next.** [33 — spin squeezing by one-axis twisting](./33_spin_squeezing_one_axis_twisting.ipynb) gains less
-# than the GHZ state but keeps most of the robustness of the coherent spin state.
+# The notebook assumes the Cramér–Rao bound and the quantum Fisher information of pure and mixed states
+# ([notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb); [notebook 30, QFI from the SLD](30_qfi_from_the_sld_prepare_encode_estimate.ipynb)), the Ramsey protocol
+# and its optimal interrogation time ([notebook 31, Ramsey interferometry](31_ramsey_interferometry.ipynb)), the preparation, parity fringe and decoherence
+# of GHZ states ([notebook 22, GHZ states and decoherence](../ch08_quantum_information_protocols/22_ghz_states_and_decoherence.ipynb)), Kraus channels
+# ([notebook 07, density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb)),
+# and, for Section 14, classical shadows ([notebook 24, classical shadows](../ch08_quantum_information_protocols/24_classical_shadows.ipynb)).
 #
 # **Conventions.** Atom $q$ = tensor axis $q$; $\vert0\rangle$ is the $+1$ eigenstate of $Z$; $J_a=\tfrac12\sum_q\sigma^a_q$;
 # $\vert\bar0\rangle=\vert0\rangle^{\otimes N}$, $\vert\bar1\rangle=\vert1\rangle^{\otimes N}$; $\hbar=1$.
@@ -145,8 +136,8 @@ def std_of_std(sigma, n):
 # %% [markdown]
 # ## 3. What we carry over
 #
-# From [29](./29_quantum_fisher_information.ipynb) and [30](./30_qfi_from_the_sld_prepare_encode_estimate.ipynb), restated
-# without proof:
+# Restated without proof from [notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb) and
+# [notebook 30, QFI from the SLD](30_qfi_from_the_sld_prepare_encode_estimate.ipynb):
 #
 # * **Classical Fisher information** [[5]](#ref-5) of a distribution $p(x\vert\varphi)$:
 #
@@ -165,13 +156,13 @@ def std_of_std(sigma, n):
 #
 # $$F_Q=2\sum_{m,n:\ \lambda_m+\lambda_n>0}\frac{(\lambda_m-\lambda_n)^2}{\lambda_m+\lambda_n}\,\vert\langle m\vert G\vert n\rangle\vert^2. \tag{2}$$
 #
-# From [31](./31_ramsey_interferometry.ipynb): the Ramsey protocol with a coherent spin state has $F_C=F_Q=N$ at every phase in
+# From [notebook 31, Ramsey interferometry](31_ramsey_interferometry.ipynb): the Ramsey protocol with a coherent spin state has $F_C=F_Q=N$ at every phase in
 # the open interval $0<\varphi<\pi$, so $\Delta\varphi=1/\sqrt{NM}$ — the **standard quantum limit** (SQL) — and it is
 # saturated by counting excited atoms. (At the two fringe extrema $\varphi=0,\pi$ the binomial likelihood is degenerate, the
-# closed form is $0/0$, and the regularity assumptions behind the Cramér–Rao bound fail; notebook 31 discusses this, and
+# closed form is $0/0$, and the regularity assumptions behind the Cramér–Rao bound fail; [notebook 31, Ramsey interferometry](31_ramsey_interferometry.ipynb), Section 13, discusses this, and
 # Section 6.5 below repeats the argument for the GHZ fringe.)
 #
-# From [22](../ch08_quantum_information_protocols/22_ghz_states_and_decoherence.ipynb): the GHZ state is prepared by a
+# From [notebook 22, GHZ states and decoherence](../ch08_quantum_information_protocols/22_ghz_states_and_decoherence.ipynb): the GHZ state is prepared by a
 # Hadamard plus a cascade of $N-1$ controlled-NOT gates; a collective $R_z(\varphi)$ makes
 # $\langle X^{\otimes N}\rangle=\cos(N\varphi)$; under local dephasing, depolarising and amplitude damping of single-qubit
 # strengths $p$, $p$ and $g$, the $N$-body coherence $\rho_{\bar0\bar1}$ is multiplied by $(1-2p)^N$, $\lambda^N$ with
@@ -187,7 +178,7 @@ def std_of_std(sigma, n):
 #
 # $\vert\mathrm{GHZ}_N\rangle$ is made from $\vert\bar0\rangle$ by one Hadamard on atom $0$ followed by
 # $\mathrm{CNOT}(q-1\to q)$ for $q=1,\dots,N-1$; the derivation, the log-depth alternative and the certification of the state
-# are in [notebook 22](../ch08_quantum_information_protocols/22_ghz_states_and_decoherence.ipynb). Here it is a black box
+# are in [notebook 22, GHZ states and decoherence](../ch08_quantum_information_protocols/22_ghz_states_and_decoherence.ipynb). Here it is a black box
 # called `ghz_circuit`, which we check against the analytic tensor.
 #
 # ### 4.2 Encoding
@@ -263,7 +254,7 @@ assert err_prep < 1e3 * TOL and err_fq < 1e-9
 
 # %% [markdown]
 # The relative phase divided by $\varphi$ equals $N$ exactly, and the quantum Fisher information equals $N^2$ exactly, against
-# $N$ for the unentangled probe of notebook 31. At $N=10$ that is a factor of ten in $F_Q$, i.e. a factor
+# $N$ for an unentangled probe. At $N=10$ that is a factor of ten in $F_Q$, i.e. a factor
 # $\sqrt{10}\simeq3.16$ in the achievable $\Delta\varphi$.
 
 # %% [markdown]
@@ -278,8 +269,7 @@ assert err_prep < 1e3 * TOL and err_fq < 1e-9
 # applied to a GHZ probe. Worse, every *local* observable is blind: the reduced state of any single atom is the maximally
 # mixed state $\mathbb 1/2$, independent of $\varphi$. (Tracing the other $N-1$ atoms out of Eq. (3) removes the
 # cross terms, because those atoms are in the orthogonal states $\vert0\cdots0\rangle$ and $\vert1\cdots1\rangle$ in the two
-# branches; this is the one bit of entanglement entropy across every single-atom cut measured in
-# [notebook 22](../ch08_quantum_information_protocols/22_ghz_states_and_decoherence.ipynb).) The phase lives exclusively in the $N$-body coherence: reading the two amplitudes off
+# branches; this is the one bit of entanglement entropy across every single-atom cut.) The phase lives exclusively in the $N$-body coherence: reading the two amplitudes off
 # Eq. (3), $\rho_{\bar0\bar1}=\langle\bar0\vert\rho\vert\bar1\rangle$ is the first amplitude times the *conjugate* of the
 # second,
 #
@@ -288,7 +278,7 @@ assert err_prep < 1e3 * TOL and err_fq < 1e-9
 #
 # and only an $N$-body observable can see it. (The sign matters: with the engine's $R_z(\varphi)=e^{-i\varphi Z/2}$ the
 # coherence rotates *clockwise*, $\rho_{\bar0\bar1}\to\rho_{\bar0\bar1}e^{-iN\varphi}$, which is the convention of
-# [notebook 22](../ch08_quantum_information_protocols/22_ghz_states_and_decoherence.ipynb), where the parity fringe of a
+# [notebook 22, GHZ states and decoherence](../ch08_quantum_information_protocols/22_ghz_states_and_decoherence.ipynb), where the parity fringe of a
 # state with an initial coherence $c$ is $2\vert c\vert\cos(N\varphi-\arg c)$. Here $\arg c=0$ and the fringe is even in
 # $\varphi$, so the sign is invisible in $\langle P\rangle$ but not in the Bloch picture of Section 10.3.)
 
@@ -332,9 +322,7 @@ assert err_loc < 1e3 * TOL
 # $$\langle P\rangle(\varphi)=\frac12\Big(e^{+iN\varphi/2}e^{+iN\varphi/2}+e^{-iN\varphi/2}e^{-iN\varphi/2}\Big)
 # =\frac{e^{iN\varphi}+e^{-iN\varphi}}{2}=\cos(N\varphi). \tag{6}$$
 #
-# $N$ fringes per $2\pi$, against one for the Ramsey protocol. (This is the parity oscillation of
-# [notebook 22](../ch08_quantum_information_protocols/22_ghz_states_and_decoherence.ipynb), used there to certify the state
-# and used here to measure with it.)
+# $N$ fringes per $2\pi$, against one for the Ramsey protocol.
 #
 # ### 6.2 What the record looks like
 #
@@ -379,8 +367,8 @@ assert err_loc < 1e3 * TOL
 #
 # $$p(\text{atom }0\text{ excited})=\sin^2\!\frac{N\varphi}{2}=\frac{1-\cos(N\varphi)}{2}=p_-, \tag{9}$$
 #
-# the same binary distribution as (8). The GHZ interferometer is a single "super-atom" whose Ramsey fringe of
-# [notebook 31](./31_ramsey_interferometry.ipynb), $p=\sin^2(\varphi/2)$, has been sped up by $N$. Which of the two readouts is
+# the same binary distribution as (8). The GHZ interferometer is a single "super-atom" whose Ramsey fringe
+# $p=\sin^2(\varphi/2)$ has been sped up by $N$. Which of the two readouts is
 # preferable is a hardware question — the parity needs no extra entangling gates but $N$ perfect detectors, the decoding
 # circuit needs $N-1$ extra CNOTs but only one detector.
 #
@@ -553,8 +541,7 @@ fig.tight_layout(); plt.show()
 # The complete simulation measures all $N$ atoms in the $X$ basis with the engine's `sample_bitstrings` (which rotates each axis
 # and draws from the Born distribution over all $2^N$ strings) and forms the parity
 # $\pi=\prod_q(1-2s_q)$. Equation (7) says the result is a single Bernoulli variable with $p_+=(1+\cos N\varphi)/2$, so for the
-# large sweeps we may sample that Bernoulli directly — after checking the equivalence, exactly as in
-# [notebook 31](./31_ramsey_interferometry.ipynb).
+# large sweeps we may sample that Bernoulli directly — after checking the equivalence.
 #
 # ### 7.2 Estimator
 #
@@ -641,9 +628,8 @@ for N in (3, 4, 6):
 # row. The record is flat inside each class, as Eq. (7) demands, so the parity is the only thing worth keeping. From here on
 # we use the Bernoulli sampler.
 #
-# > **Common pitfall.** The one-bit shortcut is legitimate for a *different* reason than the one in
-# > [notebook 31](./31_ramsey_interferometry.ipynb). There the $N$ bits of a record were **independent**, because the state
-# > was a product; here they are maximally **correlated**, and only their product is a random variable with a
+# > **Common pitfall.** The one-bit shortcut is legitimate for a *different* reason than for the Ramsey protocol. There
+# > the $N$ bits of a record are **independent**, because the state is a product; here they are maximally **correlated**, and only their product is a random variable with a
 # > $\varphi$-dependent law. Sampling $N$ independent coins is wrong for a GHZ probe, and the cell above rejects it. The
 # > shortcut rests on the sufficiency of the parity, derived in Eq. (7) and tested above.
 #
@@ -689,14 +675,14 @@ assert 0.9 < est_H.std(ddof=1) / crb_H < 1.12
 #
 # ### 7.3 Bias and efficiency at finite $M$
 #
-# The parity estimator is the single-coin estimator of [notebook 29](./29_quantum_fisher_information.ipynb), Eq. (36),
+# The parity estimator is the single-coin estimator of [notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb), Eq. (36),
 # applied to the rescaled phase $\theta=N\varphi$: $\hat\theta=\arccos(2k/M-1)$ has bias $-\cot\theta/(2M)$ to first order,
 # so $\hat\varphi=\hat\theta/N$ has
 #
 # $$\mathbb E[\hat\varphi]-\varphi\simeq\frac{b_1}{M},\qquad b_1=-\frac{\cot(N\varphi)}{2N}. \tag{12a}$$
 #
 # The same coefficient follows from the general first-order formula of
-# [notebook 30](./30_qfi_from_the_sld_prepare_encode_estimate.ipynb), Eq. (14a),
+# [notebook 30, QFI from the SLD](30_qfi_from_the_sld_prepare_encode_estimate.ipynb), Eq. (14a),
 # $b_1=-\frac{1}{2I^2}\sum_xp_x'p_x''/p_x$ with the per-repetition Fisher information $I=N^2$: here
 # $p_\pm'=\mp\tfrac N2\sin N\varphi$ and $p_\pm''=\mp\tfrac{N^2}{2}\cos N\varphi$, so
 # $\sum_xp_x'p_x''/p_x=\tfrac{N^3}{4}\sin N\varphi\cos N\varphi\,\big(\tfrac1{p_+}+\tfrac1{p_-}\big)=N^3\cot N\varphi$ and
@@ -788,7 +774,7 @@ assert abs(r_wc[2] / r_wc[3]) > 8
 # One point is not a scaling law. We sweep $N$ at fixed $M$ for both protocols, each experiment repeated $K$ times so that the
 # standard deviation of $\hat\varphi$ is *measured* and carries its own error bar, and fit the exponent. Both protocols use
 # the same $N$ atoms and the same $M$ repetitions, so the comparison is at equal resources. The Ramsey estimator and sampler
-# are those of [notebook 31](./31_ramsey_interferometry.ipynb), reproduced here in three lines.
+# are those of [notebook 31, Ramsey interferometry](31_ramsey_interferometry.ipynb), reproduced here in three lines.
 
 # %%
 # ==============================================================================
@@ -904,7 +890,7 @@ fig.tight_layout(); plt.show()
 # $N\varphi=0,\pi$, where the reflection fixes the point), and a fundamental domain — the unambiguous window — has width
 # $\pi/N$. The corresponding count for the Ramsey fringe $\cos\varphi$ is $2$ maxima in $[0,2\pi)$ and a window $[0,\pi]$, so
 # the *ratio* of the two windows is $N$: what matters below. Compared with
-# the width $\pi$ of the Ramsey window ([notebook 31](./31_ramsey_interferometry.ipynb), Section 14), the range has shrunk by
+# the width $\pi$ of the Ramsey window ([notebook 31, Ramsey interferometry](31_ramsey_interferometry.ipynb), Section 14), the range has shrunk by
 # exactly the factor $N$ by which the fringe was accelerated — and that is the same factor $N$ by which the GHZ probe's own
 # resolution $\Delta\varphi=1/(N\sqrt M)$ improved. The product (resolution $\times$ range) $=\pi\sqrt M$ is therefore
 # independent of $N$; entanglement moves it from range into resolution. (Against the $N$-atom Ramsey protocol the net gain
@@ -1011,7 +997,7 @@ fig.tight_layout(); plt.show()
 # ### 9.1 Global estimation: the Bayesian posterior and a ladder of GHZ sizes
 #
 # Sections 6–8 are local: the Cramér–Rao bound (5) describes the scatter of the estimate inside one window and presumes
-# that the window is known ([notebook 29](./29_quantum_fisher_information.ipynb), Section 4.7). Without that knowledge the
+# that the window is known ([notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb), Section 4.7). Without that knowledge the
 # natural object is the Bayesian posterior over the whole circle. Let shot $s$ use a GHZ probe of $N_s$ atoms and a control
 # phase $\theta_s$, applied as $R_z(-\theta_s)$ on one atom before the readout; it shifts the relative phase of Eq. (3) from
 # $N_s\varphi$ to $N_s\varphi-\theta_s$. By Eq. (8) the parity $x_s=\pm1$ then has the law below, and Bayes' rule with a
@@ -1280,7 +1266,7 @@ fig.tight_layout(); plt.show()
 # ### 10.1 Contrasts
 #
 # The parity signal is the $N$-body coherence, $\langle X^{\otimes N}\rangle=2\,\mathrm{Re}\,\rho_{\bar1\bar0}$, and
-# [notebook 22](../ch08_quantum_information_protocols/22_ghz_states_and_decoherence.ipynb) derives what each channel does to
+# [notebook 22, GHZ states and decoherence](../ch08_quantum_information_protocols/22_ghz_states_and_decoherence.ipynb) derives what each channel does to
 # it. Collecting those results, the fringe keeps its shape and loses contrast:
 #
 # $$\langle P\rangle(\varphi)=C\cos(N\varphi),\qquad
@@ -1288,7 +1274,7 @@ fig.tight_layout(); plt.show()
 #
 # Each is the $N$-th power of a single-atom factor, because the coherence $\rho_{\bar0\bar1}$ connects two basis states that
 # differ on **every** atom. For dephasing the identification with a rate follows exactly as in
-# [notebook 31](./31_ramsey_interferometry.ipynb): $p=\tfrac12(1-e^{-\gamma T})$ gives $1-2p=e^{-\gamma T}$ and
+# [notebook 31, Ramsey interferometry](31_ramsey_interferometry.ipynb), Section 15.1: $p=\tfrac12(1-e^{-\gamma T})$ gives $1-2p=e^{-\gamma T}$ and
 #
 # $$C_{\text{deph}}=e^{-N\gamma T}. \tag{14}$$
 #
@@ -1301,7 +1287,7 @@ fig.tight_layout(); plt.show()
 #
 # $$F_C(\varphi)=\frac{N^2C^2\sin^2(N\varphi)}{1-C^2\cos^2(N\varphi)},\qquad \max_\varphi F_C=N^2C^2\ \text{ at }\ N\varphi=\frac\pi2,$$
 #
-# (the same expression as notebook 31's noisy Ramsey fringe with $\varphi\to N\varphi$ and an extra $N^2$; the maximum
+# (the same expression as the noisy Ramsey fringe of [notebook 31, Ramsey interferometry](31_ramsey_interferometry.ipynb), Section 15.3, with $\varphi\to N\varphi$ and an extra $N^2$; the maximum
 # follows the same way: writing $u=\cos N\varphi$, $\partial_uF\propto-u(1-C^2)$, so the extremum is at $u=0$). At the
 # operating point,
 #
@@ -1318,7 +1304,7 @@ fig.tight_layout(); plt.show()
 #
 # Inside that subspace the state is an effective qubit with Bloch vector $\mathbf r=(C\cos N\varphi,\ C\sin N\varphi,\ 0)$
 # (from $\rho_{\bar0\bar1}=\tfrac12(r_x-ir_y)=\tfrac C2e^{-iN\varphi}$),
-# and the generator $J_z$ acts as $\tfrac N2\sigma_z^{\mathrm{eff}}$ — that is, $N$ times the generator of notebook 31,
+# and the generator $J_z$ acts as $\tfrac N2\sigma_z^{\mathrm{eff}}$ — that is, $N$ times the generator of [notebook 31, Ramsey interferometry](31_ramsey_interferometry.ipynb),
 # Section 15.3, whose quantum Fisher information was $r_\perp^2$. Quantum Fisher information is quadratic in the generator,
 # so
 #
@@ -1366,8 +1352,7 @@ fig.tight_layout(); plt.show()
 #
 # $$\frac{F_Q}{N^2}\ \to\ \left[\frac{(1-\tfrac{4p}{3})^2}{1-\tfrac{2p}{3}}\right]^N ,$$
 #
-# the same per-atom decay factor that [notebook 34](./34_oat_to_ghz_full_metrology_protocol.ipynb) derives for its
-# cat state under depolarising noise.
+# the same per-atom decay factor as for the one-axis-twisting cat state under depolarising noise.
 #
 # This also names the **better measurement**, and it is a simple one. The three-outcome readout
 #
@@ -1459,7 +1444,7 @@ assert err_c < 1e-9 and err_t < 1e-9 and err_fq16 < 1e-9
 # Section 10.4 shows. Its effect is dilution: it contributes an unbiased coin to the parity bit, so a fraction $1-t$ of the runs are pure noise that
 # the parity readout cannot recognise as such. The three-outcome readout of Section 10.4 recognises them, throws them away,
 # and thereby reaches $F_Q$ exactly, with the *same* circuit at every noise strength. The eigenbasis of the symmetric
-# logarithmic derivative ([notebook 30](./30_qfi_from_the_sld_prepare_encode_estimate.ipynb)) also reaches $F_Q$, but it
+# logarithmic derivative ([notebook 30, QFI from the SLD](30_qfi_from_the_sld_prepare_encode_estimate.ipynb), Section 8) also reaches $F_Q$, but it
 # changes with the noise strength and the working point; Exercise 4 checks it.
 #
 # > **Physics insight.** This is why "parity is the optimal readout for a GHZ probe" is a statement about the *ideal* probe.
@@ -1477,7 +1462,7 @@ assert err_c < 1e-9 and err_t < 1e-9 and err_fq16 < 1e-9
 # \Delta\varphi_{\mathrm{SQL}}=\frac{1}{\sqrt{N}\,C_1\sqrt M}$$
 #
 # for the product state, whose contrast is the single-atom factor $C_1$ (each atom's coherence is attacked once, and the
-# Ramsey signal is a sum of single-atom coherences — see [notebook 31](./31_ramsey_interferometry.ipynb), Section 15). The GHZ
+# Ramsey signal is a sum of single-atom coherences — see [notebook 31, Ramsey interferometry](31_ramsey_interferometry.ipynb), Section 15). The GHZ
 # probe therefore wins only while
 #
 # $$\frac{1}{NC_1^N}<\frac{1}{\sqrt N C_1}\qquad\Longleftrightarrow\qquad C_1^{\,N-1}>\frac{1}{\sqrt N}
@@ -1623,9 +1608,9 @@ fig.tight_layout(); plt.show()
 #
 # All of this concerns the phase imprinted about the cat axis, $J_z$. The last printed table rotates the same noisy states
 # about a perpendicular axis, $J_x$. Under dephasing $F_Q(J_x)=N$ exactly at every $p$ (for $N\ge3$; this is the kernel
-# term of [notebook 30](./30_qfi_from_the_sld_prepare_encode_estimate.ipynb), Section 10.2), and under depolarising noise
-# $F_Q(J_x)/N$ is close to $(1-\tfrac{4p}{3})^2$, i.e. about $0.75$ at $p=0.1$, the perpendicular floor that
-# [notebook 34](./34_oat_to_ghz_full_metrology_protocol.ipynb) finds for its cat state. Beyond break-even the noisy cat
+# term of [notebook 30, QFI from the SLD](30_qfi_from_the_sld_prepare_encode_estimate.ipynb), Section 10.2), and under depolarising noise
+# $F_Q(J_x)/N$ is close to $(1-\tfrac{4p}{3})^2$, i.e. about $0.75$ at $p=0.1$, the perpendicular floor also found for the
+# one-axis-twisting cat state. Beyond break-even the noisy cat
 # is about as useful as an equally noisy product state for a perpendicular rotation: it has lost its entanglement advantage,
 # which was the only reason to prepare it.
 #
@@ -1683,16 +1668,15 @@ assert max(abs(d) for d in dev_nz) < 4
 # the interrogation. The experimenter is left with the reduced state of the remaining $N-1$ atoms, and the phase they can
 # estimate is the one imprinted on *those* atoms, i.e. with generator $J_z^{(N-1)}$.
 #
-# For the GHZ state the result is derived in [notebook 29](./29_quantum_fisher_information.ipynb), Section 10.1,
+# For the GHZ state the result is derived in [notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb), Section 10.1,
 # Eqs. (107)–(108): the lost atom is $\vert0\rangle$ in one branch and $\vert1\rangle$ in the other, so the partial trace
 # kills the coherence and leaves the classical mixture $\tfrac12\big(\vert\bar0\rangle\langle\bar0\vert+\vert\bar1\rangle\langle\bar1\vert\big)$,
 # which commutes with $J_z^{(N-1)}$ and does not change under the encoding:
 #
 # $$F_Q=0\ \text{ exactly.}$$
 #
-# A product state loses exactly one atom's worth, $F_Q=N\to N-1$. This is the operational meaning of "the entanglement is not
-# stored in any subsystem" from
-# [notebook 22](../ch08_quantum_information_protocols/22_ghz_states_and_decoherence.ipynb).
+# A product state loses exactly one atom's worth, $F_Q=N\to N-1$. This is the operational meaning of the statement that the
+# GHZ entanglement is not stored in any subsystem.
 
 # %%
 # ==============================================================================
@@ -1730,8 +1714,8 @@ assert err_loss < 1e-9
 # ### 13.1 The task
 #
 # A clock does not estimate a phase, it estimates a frequency $\delta=\varphi/T$ at a fixed total measurement time
-# $T_{\mathrm{tot}}$, which buys $M=T_{\mathrm{tot}}/T$ repetitions. [Notebook 31](./31_ramsey_interferometry.ipynb),
-# Section 16, did this for uncorrelated atoms:
+# $T_{\mathrm{tot}}$, which buys $M=T_{\mathrm{tot}}/T$ repetitions. For uncorrelated atoms the result, derived
+# in [notebook 31, Ramsey interferometry](31_ramsey_interferometry.ipynb), Section 16, is
 #
 # $$\Delta\delta_{\mathrm{SQL}}=\frac{e^{\gamma T}}{\sqrt{N\,T_{\mathrm{tot}}\,T}},\qquad
 # T^{\mathrm{SQL}}_{\mathrm{opt}}=\frac{1}{2\gamma},\qquad
@@ -1796,7 +1780,7 @@ assert err_loss < 1e-9
 # **The assumptions this rests on.** (i) The contrast is *exponential* in $T$, $C=e^{-N\gamma T}$, which is what a Markovian
 # (memoryless) dephasing bath gives. (ii) The atoms dephase **independently**, so the $N$-body coherence decays $N$ times
 # faster; correlated, common-mode noise gives $N^2$ instead and is worse still
-# ([notebook 22](../ch08_quantum_information_protocols/22_ghz_states_and_decoherence.ipynb)). (iii) The dephasing is
+# ([notebook 22, GHZ states and decoherence](../ch08_quantum_information_protocols/22_ghz_states_and_decoherence.ipynb)). (iii) The dephasing is
 # *parallel* to the generator ($Z$ noise for a $J_z$ phase). (iv) State preparation and readout are instantaneous, so
 # $M=T_{\mathrm{tot}}/T$ with no dead time, and $T$ may be chosen freely — in a real clock the dead time is what makes very
 # short $T$ expensive, and it hurts the GHZ probe more because the GHZ optimum is $N$ times shorter.
@@ -1816,8 +1800,8 @@ assert err_loss < 1e-9
 #
 # ### 13.3 Verification
 #
-# We scan $T$ for both probes, computing (18) and (19) analytically and simulating clock runs at each $T$. As in notebook 31
-# the clock is operated at mid-fringe by the conventional quarter-period offset, so that the signal is linear in $\delta$
+# We scan $T$ for both probes, computing (18) and (19) analytically and simulating clock runs at each $T$. As in
+# [notebook 31, Ramsey interferometry](31_ramsey_interferometry.ipynb), Section 16.3, the clock is operated at mid-fringe by the conventional quarter-period offset, so that the signal is linear in $\delta$
 # around $\delta=0$: for the GHZ probe the fringe is $p_+=\tfrac12(1+C\sin(N\delta T))$ and the estimator inverts it.
 
 # %%
@@ -1974,7 +1958,7 @@ fig.tight_layout(); plt.show()
 # ($C=e^{-3.2}=0.041$, $C\sqrt M=2.9$) the exact ratio is $1.094$, because the curvature of $\arcsin$ inflates the spread
 # as in Section 11, and at $T=0.6$ ($C=e^{-4.8}=0.008$, $C\sqrt M=0.47$) it is $0.625$, because most runs are clipped to
 # $\pm1$ and the spread is capped by the width of the window. The same two effects appear in the clock verification of
-# [notebook 31](./31_ramsey_interferometry.ipynb) (Section 16.3).
+# [notebook 31, Ramsey interferometry](31_ramsey_interferometry.ipynb) (Section 16.3).
 #
 # The measured minima are $0.018648\gamma$ at $T=0.05$ for the GHZ probe and $0.018612\gamma$ at $T=0.5$ for the product
 # state: identical within the $1.1\%$ error bars, and $1.2\%$ and $1.0\%$ above Eq. (21), i.e. about one error bar each.
@@ -1995,7 +1979,7 @@ fig.tight_layout(); plt.show()
 #
 # > **Physics insight.** A resource must be counted against the noise it is exposed to. The GHZ state converts one unit of
 # > coherence time into $N$ units of phase; Markovian dephasing charges it $N$ units of coherence time for the privilege, and
-# > the exchange rate is exactly one. Spin-squeezed probes ([notebook 33](./33_spin_squeezing_one_axis_twisting.ipynb)) and
+# > the exchange rate is exactly one. Spin-squeezed probes and
 # > other partially entangled states amplify the phase less and lose less coherence, which buys at most the factor
 # > $\sqrt e$ of Eq. (21a) under the same assumptions; larger gains need one of the assumptions of Section 13.2 to fail
 # > (non-Markovian or transversal noise, error correction).
@@ -2025,11 +2009,11 @@ fig.tight_layout(); plt.show()
 # \alpha_s=\frac{\mathrm{Tr}(P_sP')}{2^N}, \tag{22}$$
 #
 # with $4^N$ real coefficients obeying $\sum_s\alpha_s^2=\mathrm{Tr}(P'^2)/2^N=1$. For a Haar-random $U$ (drawn uniformly from all unitaries,
-# [notebook 10](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb)) the weight is spread
+# [notebook 10, random unitaries and random circuits](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb)) the weight is spread
 # over essentially all of them, including the ones of full Pauli weight $N$.
 #
 # The randomised-measurement (classical-shadow) protocol introduced in [[22]](#ref-22), derived in
-# [notebook 24](../ch08_quantum_information_protocols/24_classical_shadows.ipynb), estimates any $\langle P_s\rangle$ from
+# [notebook 24, classical shadows](../ch08_quantum_information_protocols/24_classical_shadows.ipynb), estimates any $\langle P_s\rangle$ from
 # snapshots in random local Pauli bases: each snapshot draws a basis $b_q\in\{X,Y,Z\}$ per atom, measures, and contributes
 #
 # $$o_s=\prod_{q\in\mathrm{supp}(P_s)}3\,[\,b_q=s_q\,]\,(-1)^{\mathrm{bit}_q}$$
@@ -2064,7 +2048,7 @@ fig.tight_layout(); plt.show()
 # value $3$ of a full-weight string, because a quarter of the labels are identities: most of the Pauli weight sits at
 # $w\simeq\tfrac34N$, and the $3^w$ penalty is paid on that typical weight. (The sum $\sum_s3^{w(s)}=(1+3\cdot3)^N=10^N$ is the same
 # combinatorial identity that fixes the cost of shadow tomography in
-# [notebook 24](../ch08_quantum_information_protocols/24_classical_shadows.ipynb).)
+# [notebook 24, classical shadows](../ch08_quantum_information_protocols/24_classical_shadows.ipynb).)
 #
 # Reaching a target error $\sigma$ therefore needs $n_{\mathrm{shadows}}\simeq(5/2)^N/\sigma^2$ snapshots. **Heisenberg
 # scaling in $N$ is recovered, but only at an exponentially growing measurement budget.** We measure both statements below.
@@ -2362,15 +2346,10 @@ fig.tight_layout(); plt.show()
 #
 # The $(5/2)^N$ is a statement about **local random Pauli bases**; it is a property of neither the state nor of randomised
 # measurements in general. Global Clifford shadows have a single-snapshot variance bounded by
-# $3\,\mathrm{Tr}(P'^2)=3\cdot2^N$ ([notebook 24](../ch08_quantum_information_protocols/24_classical_shadows.ipynb)),
+# $3\,\mathrm{Tr}(P'^2)=3\cdot2^N$ ([notebook 24, classical shadows](../ch08_quantum_information_protocols/24_classical_shadows.ipynb)),
 # still exponential but with a smaller base, at the price of a deep random circuit before every measurement; and since $U$ is assumed *known*, the cheapest route of all is to apply $U^\dagger$ and measure the ordinary parity,
 # which costs $O(1)$ snapshots at every $N$. The exponential price is what one pays for refusing to use that knowledge in the
 # measurement itself.
-#
-# Scrambling is taken further later in this chapter: [notebook 35](./35_oat_plus_haar_scrambling.ipynb) pushes squeezed
-# probes through Haar unitaries and brick-wall circuits and computes the Haar average of the collective quantum Fisher
-# information, and [notebook 38](./38_scramblers_and_qfi.ipynb) measures *how fast* analog and digital scramblers lock the
-# phase away into the global state.
 #
 # ## 15. Performance and cost
 #
@@ -2498,7 +2477,7 @@ for N in (4, 6, 8):
 #    Section 10, derive the closed form for each family, and find the probe that minimises $\Delta\varphi$ at
 #    $C_1=0.95$, $0.9$ and $0.8$. Compare with the GHZ and the product state.
 # 4. ★★ **Optimal measurement under depolarising noise.** Section 10.4 found $F_Q>N^2C^2$: parity is not optimal. Using the
-#    symmetric-logarithmic-derivative machinery of [notebook 30](./30_qfi_from_the_sld_prepare_encode_estimate.ipynb), build
+#    symmetric-logarithmic-derivative machinery of [notebook 30, QFI from the SLD](30_qfi_from_the_sld_prepare_encode_estimate.ipynb), build
 #    the SLD eigenbasis for $N=3$, $p=0.1$, simulate measurements in it, and check that the classical Fisher information of
 #    the simulated outcomes reaches $F_Q$.
 # 5. ★★ **Adaptive two-stage estimation (physics).** Implement the hierarchy of Section 9: stage one uses uncorrelated atoms
@@ -2512,7 +2491,7 @@ for N in (4, 6, 8):
 #    $N=4,5,6$ and compare with $(1-\eta)^NN^2$. Is discarding lossy runs better than using them?
 # 7. ★★★ **Scrambling with a shallow circuit.** Replace the Haar-random $U$ of Section 14 by a brick-wall circuit of depth
 #    $d$ (the engine's `brickwall`, introduced in
-#    [notebook 10](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb); build $U$ column by column by applying it to the basis states). Measure how the Pauli
+#    [notebook 10, random unitaries and random circuits](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb); build $U$ column by column by applying it to the basis states). Measure how the Pauli
 #    weight distribution of $P'$, and hence the single-snapshot cost $\sum_s\alpha_s^23^{w(s)}$, changes with $d$ for
 #    $N=5$. At $d=0$, $P'=X^{\otimes N}$ is a single string of weight $N$ and the cost is the worst case $3^N$; explain why
 #    scrambling *lowers* it, and find the depth at which it reaches the Haar value of Eq. (24) within the

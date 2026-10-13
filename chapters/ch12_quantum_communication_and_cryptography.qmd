@@ -50,7 +50,11 @@ pairs, distillation, quantum repeaters that carry
 them over long distances, and how to certify them before use. Every protocol is run as a
 simulation, round by round, with the eavesdropper and the noise included.
 
-The quantum part builds on notebook 07 (density matrices and quantum channels) and on chapter 8, where the Bell states and the CHSH inequality (notebook 19), quantum
+Read the notebooks in order; each one builds on those before it. Notebook 50 needs only basic probability and the JAX
+arrays and random keys of notebook 01 in [Chapter 1](ch01_computational_toolbox.qmd), and notebook 51 adds no quantum
+mechanics either. The quantum part builds on the trace distance and the Schmidt decomposition of notebook 06 and on the
+density matrices and quantum channels of notebook 07, both in [Chapter 3](ch03_matrix_free_engine.qmd), and on
+[Chapter 8](ch08_quantum_information_protocols.qmd), where the Bell states and the CHSH inequality (notebook 19), quantum
 teleportation (notebook 20) and entanglement swapping and superdense coding (notebook 21) are derived and simulated.
 
 ## Notebooks in this chapter

@@ -34,7 +34,7 @@
 # used to benchmark the devices at small sizes — and the devices are interesting precisely because simulations fail at large sizes.
 # We will see *why* they fail: entanglement.
 #
-# **What we will compute.** The integrators were derived in the previous notebooks; here we re-validate them and then use them
+# **What we will compute.** The integrators are first re-validated and then used
 # as tools:
 #
 # | Section | Experiment | Physics |
@@ -46,6 +46,10 @@
 # | 8 | tilted-field Ising chain, integrable vs. non-integrable | linear entanglement growth, Page saturation, relaxation of a local observable, cost of classical simulation |
 # | 9 | Loschmidt echo after an Ising quench | return probability, dynamical quantum phase transitions |
 # | 10 | performance | cost $O(N\,2^N)$ per step, compile vs. run time |
+#
+# The notebook assumes `jit`, `vmap` and `lax.scan` ([notebook 01, JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)), states as rank-$N$ tensors and `apply_gate`
+# ([notebook 05, matrix-free operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb)), the Schmidt decomposition and the entanglement entropy ([notebook 06, states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb)), and the three
+# integrators: Trotter–Suzuki ([notebook 12, Trotter–Suzuki evolution](12_tebd_trotter_suzuki.ipynb)), Chebyshev ([notebook 13, Chebyshev propagation](13_chebyshev_propagation.ipynb)) and Krylov ([notebook 14, Krylov propagation and the integrator shoot-out](14_krylov_and_integrator_comparison.ipynb)).
 #
 # ### What you will learn
 #
@@ -65,13 +69,6 @@
 # * `lax.scan` inside `lax.scan` (many cheap steps per expensive measurement), observables returned as a *pytree* (a dict of arrays);
 # * `jax.vmap` over Hamiltonian parameters (a traced coupling inside the gate exponentials) and over initial states;
 # * `jax.vmap` over time to build an exact reference trajectory; timing with compile and run time separated.
-#
-# ### Prerequisites
-# * [Matrix-free operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb) — states as rank-$N$ tensors, `apply_gate`;
-# * [States, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb) — reduced density matrices, Schmidt decomposition, entanglement entropy;
-# * [TEBD / Trotter–Suzuki](12_tebd_trotter_suzuki.ipynb), [Chebyshev propagation](13_chebyshev_propagation.ipynb),
-#   [Krylov propagation and the integrator comparison](14_krylov_and_integrator_comparison.ipynb) — the integrators used here;
-# * [JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb) — `jit`, `vmap`, `lax.scan`.
 #
 # Units: $\hbar = 1$, energies in units of the exchange coupling $J$, times in units of $1/J$.
 
@@ -101,8 +98,8 @@
 # In a small system the cancellation is imperfect (we will see fluctuations that shrink with $N$), and after a very long time the phases can re-align (revivals).
 #
 # What is conserved: the energy $E=\langle\psi_0|H|\psi_0\rangle$ — and in fact every $|c_n|^2$. A quench from a product state injects an
-# *extensive* amount of energy above the ground state ($E - E_{\rm gs} \propto N$): we are probing the middle of the many-body spectrum, far above the low-energy physics of notebook
-# [Hamiltonians and ground states](11_hamiltonians_and_ground_states.ipynb).
+# *extensive* amount of energy above the ground state ($E - E_{\rm gs} \propto N$): we are probing the middle of the many-body spectrum, far above the low-energy physics of ground states
+# ([notebook 11, Hamiltonians and ground states](11_hamiltonians_and_ground_states.ipynb)).
 #
 # > **Physics insight.** By Eq. (1) the long-time value of an observable is fixed by the weights $|c_n|^2$, i.e. by what the initial state and $H$ have in
 # > common. How much of the initial state survives in these weights depends on $H$. A generic ("non-integrable") Hamiltonian conserves little besides the
@@ -185,7 +182,7 @@
 # ```
 #
 # `observe` may return any *pytree* — we use a dict of arrays — and `scan` stacks each leaf separately: a dict entry of shape `(N, 3)` comes back as
-# `(n_meas, N, 3)`. (See [JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb) for `scan` and pytrees.)
+# `(n_meas, N, 3)`. (See [notebook 01, JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb) for `scan` and pytrees.)
 
 # %%
 # ==============================================================================
@@ -231,7 +228,7 @@ def evolve_and_observe(psi0, gates, n_meas, n_sub, observe):
 #
 # **Everything about the half-chain cut from one SVD.** Reshape the state tensor into a $2^{N/2}\times2^{N/2}$ matrix (left half = row index); its singular values
 # $\lambda_k$ are the Schmidt coefficients, $|\psi\rangle=\sum_k\lambda_k|u_k\rangle_A|v_k\rangle_B$ (derived in
-# [States, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb)). Then
+# [notebook 06, states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb)). Then
 #
 # * entanglement entropy $S_A=-\sum_k\lambda_k^2\log_2\lambda_k^2$ (in bits);
 # * **negativity.** For a mixed state, the negativity is $\mathcal N=\sum(\text{absolute values of the negative eigenvalues of }\rho^{T_A})$, where $T_A$ is the partial transpose on $A$ [[17]](#ref-17).
@@ -243,7 +240,7 @@ def evolve_and_observe(psi0, gates, n_meas, n_sub, observe):
 #
 #   $$\mathcal N=\sum_{k<l}\lambda_k\lambda_l=\frac{(\sum_k\lambda_k)^2-\sum_k\lambda_k^2}{2}=\frac{(\sum_k\lambda_k)^2-1}{2},\qquad E_{\mathcal N}=\log_2(2\mathcal N+1)=2\log_2\sum_k\lambda_k .$$
 #
-#   No $4^N$-sized density matrix is needed. ($E_{\mathcal N}$ of a pure state is its Rényi-$\tfrac12$ entropy; the Rényi-$\alpha$ entropy (introduced in [[18]](#ref-18)) $S_\alpha=\frac{1}{1-\alpha}\log_2\sum_k\lambda_k^{2\alpha}$ gives $S_A$ for $\alpha\to1$ and the Rényi-2 entropy of notebook 06 for $\alpha=2$, and it decreases with $\alpha$ (Exercise 8), hence $E_{\mathcal N}\ge S_A$.)
+#   No $4^N$-sized density matrix is needed. ($E_{\mathcal N}$ of a pure state is its Rényi-$\tfrac12$ entropy; the Rényi-$\alpha$ entropy (introduced in [[18]](#ref-18)) $S_\alpha=\frac{1}{1-\alpha}\log_2\sum_k\lambda_k^{2\alpha}$ gives $S_A$ for $\alpha\to1$ and the Rényi-2 entropy for $\alpha=2$, and it decreases with $\alpha$ (Exercise 8), hence $E_{\mathcal N}\ge S_A$.)
 #
 # We return the *Schmidt values themselves* from the time loop and post-process them; this also gives us the entanglement spectrum for §8.
 
@@ -386,7 +383,7 @@ def exact_trajectory(psi0, terms, times):
 # * the **infidelity** $1-F(t)$, $F=|\langle\psi_{\rm exact}(t)|\psi_{\rm TEBD}(t)\rangle|^2$ — the strictest test, sensitive to every amplitude and phase;
 # * the **root-mean-square deviation of all $6N-3$ local observables** — what actually matters for the physics plots.
 #
-# Recall from [TEBD / Trotter–Suzuki](12_tebd_trotter_suzuki.ipynb): a $p$-th order step has a *state* error that accumulates as $\epsilon(t)\sim C\,t\,\delta t^{\,p}$, so the
+# A $p$-th order step has a *state* error that accumulates as $\epsilon(t)\sim C\,t\,\delta t^{\,p}$ (derived in [notebook 12, Trotter–Suzuki evolution](12_tebd_trotter_suzuki.ipynb)), so the
 # infidelity behaves as $1-F\sim\epsilon^2\propto t^2\,\delta t^{\,2p}$.
 #
 # > **Physics insight.** On one bond the three terms $X\!X$, $Y\!Y$, $Z\!Z$ **commute** (each pair of them anticommutes on site $j$ *and* on site $j+1$, two minus signs cancel). Hence
@@ -495,8 +492,8 @@ plt.tight_layout(); plt.show()
 # ### 4.1 Cross-checking the other integrators
 #
 # The exact reference stops at $N\approx12$. For larger chains we need another *independent* high-accuracy method to validate TEBD against:
-# [Chebyshev propagation](13_chebyshev_propagation.ipynb) (polynomial expansion of $e^{-iHt}$, error down to round-off) and
-# [Krylov propagation](14_krylov_and_integrator_comparison.ipynb) (exponentiation in a small Lanczos subspace; we chain 25 steps of $\Delta t=0.2$ with subspace dimension 30).
+# [notebook 13, Chebyshev propagation](13_chebyshev_propagation.ipynb) (polynomial expansion of $e^{-iHt}$, error down to round-off) and
+# [notebook 14, Krylov propagation and the integrator shoot-out](14_krylov_and_integrator_comparison.ipynb) (exponentiation in a small Lanczos subspace; we chain 25 steps of $\Delta t=0.2$ with subspace dimension 30).
 # First they have to pass the exact test themselves.
 
 # %%
@@ -1028,7 +1025,7 @@ assert abs(alpha3[0] - 1.0) < 0.05 and alpha3[1] < 0.95      # control: exact ba
 # ### 8.2 Entanglement growth and the cost of classical simulation
 #
 # The Schmidt decomposition is the optimal way to compress a state across a cut: keeping $\chi$ terms requires $\chi\gtrsim2^{S}$ (for a flat Schmidt spectrum exactly $\chi=2^S$).
-# Matrix product states ([MPS-TEBD notebook](../ch07_tensor_networks/18_mps_tebd.ipynb)) store precisely such a truncated decomposition at every bond, with cost $\propto\chi^3$. Linear entropy growth therefore means
+# Matrix product states store precisely such a truncated decomposition at every bond, with cost $\propto\chi^3$. Linear entropy growth therefore means
 #
 # $$\chi(t)\sim2^{\,{\rm const}\cdot t}:\quad\text{the cost of a tensor-network simulation of a quench grows exponentially in time,}$$
 #
@@ -1042,7 +1039,7 @@ assert abs(alpha3[0] - 1.0) < 0.05 and alpha3[1] < 0.95      # control: exact ba
 # occupations. A longitudinal field maps to a string operator and destroys that structure: nothing is conserved beyond the energy, and the model is believed to be non-integrable — the usual numerical evidence
 # being the level-spacing statistics of the energy spectrum, which is Poissonian for an integrable model and Wigner–Dyson for a chaotic one ([[36]](#ref-36), [[37]](#ref-37); for the ratio of consecutive spacings used today, [[38]](#ref-38)). We take the classification as given here and
 # test its *consequences*; the level statistics of exactly these two chains is a natural exercise for the dense diagonalisation (`eigh`) of
-# [notebook 03 (Chapter 2)](../ch02_spin_systems_textbook_way/03_quantum_many_body_spin_systems.ipynb). Both chains are evolved from the same state, with the same code, at the same energy: "integrable" and "non-integrable"
+# [notebook 03, quantum many-body spin systems](../ch02_spin_systems_textbook_way/03_quantum_many_body_spin_systems.ipynb). Both chains are evolved from the same state, with the same code, at the same energy: "integrable" and "non-integrable"
 # are properties of $H$ alone.
 #
 # Initial state: all spins along $+y$. It has $\langle X\rangle=\langle Z\rangle=\langle Z_jZ_{j+1}\rangle=0$, hence $E=0={\rm Tr}H/2^N$: the centre of the spectrum, which is also the energy of the maximally mixed state $\mathbb 1/2^N$. If the local observables
@@ -1358,7 +1355,7 @@ plt.tight_layout(); plt.show()
 #   of the size of the **data** ($2^N$); it is paid once per chain length. The individual compile times scatter when the machine is doing other things, but the
 #   run time of the 20 benchmarked steps overtakes them near $N=16$–$18$ and leaves them far behind afterwards.
 # * Extrapolating with the cost model: $N=24$ ($\approx270$ MB state) costs roughly $100\times$ the $N=18$ step; $N\approx30$ is the practical end of the state-vector road on a workstation (17 GB per copy of the state). Beyond that, one needs
-#   either structure (low entanglement → [matrix product states](../ch07_tensor_networks/18_mps_tebd.ipynb)) or a quantum simulator.
+#   either structure (low entanglement → matrix product states) or a quantum simulator.
 #
 # > **JAX practice.** Everything in this notebook was compiled with a handful of `jax.jit` calls at the *outermost* level (a whole quench, including its measurements, is one XLA program) and parallelised over parameters by `jax.vmap`
 # > without touching the physics code. The price: shapes must be static (one compilation per $N$), and Python control flow must not depend on traced values (hence our own `tfim_terms`).

@@ -74,20 +74,14 @@
 # * `jax.jit` + `lax.scan` for the noisy dynamics, `jax.vmap` for the sudden-death parameter scan;
 # * keeping the density tensor out of the calculation whenever a small reduced density matrix suffices.
 #
-# ### Prerequisites
-# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb) and
-#   [02 — einsum from scratch](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb);
-# * [06 — states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb):
-#   reduced density matrices, Schmidt decomposition, entanglement entropy;
-# * [07 — density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb):
-#   density tensors, partial trace, Kraus channels, and — used constantly below — the difference between a *positive* and a
-#   *completely positive* map;
-# * [11 — Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb)
-#   and [12 — TEBD](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb) for Section 9 and Section 10,
-#   and [15 — quench dynamics](../ch05_ground_states_and_unitary_dynamics/15_quench_dynamics_spin_chains.ipynb) for the
-#   light cone and the quasiparticle picture used in Section 10.1;
-# * [21 — entanglement swapping and superdense coding](../ch08_quantum_information_protocols/21_entanglement_swapping_and_superdense_coding.ipynb):
-#   Werner states and the concurrence appear there as tools; here they are the subject.
+# The notebook assumes the Schmidt decomposition and the entanglement entropy
+# ([notebook 06, states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb)),
+# density tensors, Kraus channels and the difference between positive and completely positive maps
+# ([notebook 07, density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb)),
+# and, for Sections 9 and 10, Lanczos ground states
+# ([notebook 11, Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb)),
+# TEBD ([notebook 12, TEBD](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb)) and the light cone after a
+# quench ([notebook 15, quench dynamics](../ch05_ground_states_and_unitary_dynamics/15_quench_dynamics_spin_chains.ipynb)).
 #
 # **Conventions.** Qubit $q$ = tensor axis $q$, counted from $0$; $\vert0\rangle$ is the $+1$ eigenstate of $Z$. A density
 # *tensor* of $N$ qubits has rank $2N$: axes $0,\dots,N-1$ carry the ket indices and axes $N,\dots,2N-1$ the bra indices, so
@@ -409,8 +403,7 @@ assert np.max(np.abs(lam_A - lam_B)) < TOL
 # Transposition maps every density matrix to a density matrix: it is a **positive** map. If it were also **completely
 # positive** — that is, if $\mathsf T\otimes\mathrm{id}_R$ were positive for a spectator system $R$ of every dimension — then
 # Eq. (3) could never produce a negative eigenvalue, for any state at all. Transposition is the standard example of a map that
-# is positive but not completely positive, exactly as discussed in
-# [07 — density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb).
+# is positive but not completely positive.
 # The partial transpose is that map applied to half of a bipartite system, which is precisely the situation in which the
 # distinction becomes visible.
 #
@@ -535,8 +528,7 @@ assert abs(nb - 0.5) < 1e3 * TOL and abs(eb - 1.0) < 1e3 * TOL
 #
 # ### 6.3 Werner states and the threshold $v=1/3$
 #
-# The standard one-parameter family of noisy two-qubit states is the Werner (isotropic) state of visibility $v$, as in
-# [notebook 19](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb), Section 11:
+# The standard one-parameter family of noisy two-qubit states is the Werner (isotropic) state of visibility $v$:
 #
 # $$\rho_W(v)=v\,\vert\Phi^+\rangle\langle\Phi^+\vert+(1-v)\,\frac{\mathbb 1_4}{4},\qquad v\in[0,1] . \tag{6}$$
 #
@@ -722,7 +714,7 @@ fig.tight_layout(); plt.show()
 # ### 7.1 The derivation
 #
 # For a pure state the partial transpose can be diagonalised in closed form. Start from the Schmidt decomposition across the cut
-# $A\vert B$ (see [notebook 06](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb)),
+# $A\vert B$,
 #
 # $$\vert\psi\rangle=\sum_{k}\lambda_k\,\vert a_k\rangle_A\vert b_k\rangle_B ,\qquad \lambda_k\ge0,\quad\sum_k\lambda_k^2=1 ,$$
 #
@@ -949,7 +941,7 @@ fig.tight_layout(); plt.show()
 #
 # Take a Bell pair and apply an independent depolarising channel of strength $p$ to each qubit. A single depolarising channel
 # shrinks the Bloch vector by $\eta=1-\tfrac43p$ (derived in
-# [notebook 07](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb)); applying it to both halves of
+# [notebook 07, density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb)); applying it to both halves of
 # $\vert\Phi^+\rangle$ produces exactly the Werner state of Eq. (6) with
 #
 # $$v=\eta^2=\Bigl(1-\tfrac43p\Bigr)^2 ,$$
@@ -1101,9 +1093,7 @@ fig.tight_layout(); plt.show()
 # maximally mixed state is spread over $2^N$ levels and each of them carries only $p/2^N$. *Local* dephasing is the opposite:
 # each qubit multiplies the surviving coherence by $(1-2p)$, so the negativity decays as the $N$-th power. At $p=0.1$ the
 # table gives $\mathcal N=0.1311$ for $N=6$; Eq. (15) continues to $3.7\cdot10^{-3}$ at $N=22$ and to $1.1\cdot10^{-5}$ at
-# $N=48$. This exponential-in-$N$ fragility of GHZ coherence is the same effect that
-# [notebook 22](../ch08_quantum_information_protocols/22_ghz_states_and_decoherence.ipynb) measures through parity
-# oscillations, seen here through the partial transpose.
+# $N=48$. This is the exponential-in-$N$ fragility of GHZ coherence, seen through the partial transpose.
 
 # %% [markdown]
 # ## 9. Negativity between two blocks of a many-body ground state
@@ -1119,7 +1109,7 @@ fig.tight_layout(); plt.show()
 # At $h=0$ the ground state is the ferromagnetic product $\vert0\cdots0\rangle$ (or its flip); at $h\to\infty$ it is the
 # paramagnetic product $\vert+\cdots+\rangle$. In the thermodynamic limit the two phases are separated by a quantum critical
 # point at $h=1$, where the gap closes and correlations become scale free. Ground states come from the restarted Lanczos routine
-# of [notebook 11](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb).
+# derived in [notebook 11, Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb).
 #
 # **Which ground state?** This question has to be settled before any number below means anything. $H$ commutes with the parity
 # $P=\prod_iX_i$, so every eigenstate can be chosen with $P=\pm1$. For $h<1$ the two lowest eigenstates form a doublet split by
@@ -1506,13 +1496,13 @@ fig.tight_layout(); plt.show()
 # the Hamiltonian on at $h=1$ at $t=0$. Information spreads at a finite maximal speed, as proved in [[17]](#ref-17) for
 # quantum spin systems with short-range interactions, so two blocks
 # far apart cannot become entangled before that speed has carried a signal between them. For the TFIM the quasiparticle
-# dispersion, derived in Section 6 of
-# [notebook 15](../ch05_ground_states_and_unitary_dynamics/15_quench_dynamics_spin_chains.ipynb) with $J=1$, is $\varepsilon(k)=2\sqrt{1+h^2-2h\cos k}$ and the maximal group velocity at $h=1$ is
+# dispersion, given in Section 6 of
+# [notebook 15, quench dynamics](../ch05_ground_states_and_unitary_dynamics/15_quench_dynamics_spin_chains.ipynb) with $J=1$, is $\varepsilon(k)=2\sqrt{1+h^2-2h\cos k}$ and the maximal group velocity at $h=1$ is
 # $v_{\max}=\max_k\vert d\varepsilon/dk\vert=2$ sites per unit time. Two blocks whose nearest members are $\ell$ sites apart
 # should therefore stay unentangled until roughly $t\approx\ell/(2v_{\max})$ — quasiparticles are created in pairs and travel in
 # opposite directions, so each of the two halves of a pair covers half of the distance.
 #
-# We evolve with second-order TEBD from [notebook 12](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb)
+# We evolve with the second-order TEBD derived in [notebook 12, TEBD](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb)
 # and record four block negativities at every step through the `observe` hook of `tebd_evolve`, which runs the whole time loop
 # inside one `lax.scan`.
 

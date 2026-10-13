@@ -35,8 +35,7 @@
 # certifies that a device really produces entanglement, and it is the security foundation of device-independent quantum key
 # distribution, in which two parties establish a secret key without trusting the inner workings of their devices. The first key-distribution
 # protocol based on Bell's theorem was introduced in [[10]](#ref-10), and Ref. [[11]](#ref-11) proved the security of a
-# CHSH-based protocol against collective attacks with no assumption on how the devices work
-# ([53 — quantum key distribution](../ch12_quantum_communication_and_cryptography/53_quantum_key_distribution.ipynb)).
+# CHSH-based protocol against collective attacks with no assumption on how the devices work.
 #
 # **What we will do.** Everything, from the state to the measured number and its error bar.
 #
@@ -56,6 +55,12 @@
 #    difference between the **entanglement** threshold and the **nonlocality** threshold (CHSH violation): there are states that are provably
 #    entangled and provably local. Then the detection loophole: we measure how far the detection efficiency can fall before a
 #    maximally entangled pair stops violating CHSH at all (Sections 11–13).
+#
+# The notebook assumes pure and mixed states as tensors, Kraus channels and the negativity
+# ([notebook 06, states, observables and entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb);
+# [notebook 07, density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb)),
+# sampling measurement outcomes ([notebook 08, measurements](../ch03_matrix_free_engine/08_measurements.ipynb)) and the
+# Hadamard, CNOT and rotation gates ([notebook 09, quantum gates and circuits](../ch04_digital_quantum_circuits/09_quantum_gates_and_circuits.ipynb)).
 #
 # ### What you will learn
 #
@@ -77,16 +82,6 @@
 # * `jax.vmap` over measurement settings, over shots and over whole repeated experiments; explicit `jax.random` key splitting;
 # * no Python `if` on random data: detector losses and outcome assignment via `jnp.where`;
 # * a validation ladder — exact correlator vs sampled correlator, operator identity, analytic error bars vs measured scatter.
-#
-# ### Prerequisites
-# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, PRNG keys;
-# * [02 — einsum from scratch](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb): index notation as executable code;
-# * [06 — states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb): reduced density
-#   matrices, entanglement entropy;
-# * [07 — density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb):
-#   density tensors, Kraus channels, negativity;
-# * [08 — measurements](../ch03_matrix_free_engine/08_measurements.ipynb): Born rule, basis rotations, sampling bit strings;
-# * [09 — quantum gates and circuits](../ch04_digital_quantum_circuits/09_quantum_gates_and_circuits.ipynb): Hadamard, CNOT, rotations.
 #
 # **Conventions.** Qubit $q$ = tensor axis $q$; $\vert0\rangle$ is the $+1$ eigenstate of $Z$; a measurement result $s_q\in\{0,1\}$
 # means the eigenvalue $(-1)^{s_q}$; qubit 0 is the most significant bit of the flat index. Alice always holds qubit 0, Bob qubit 1.
@@ -146,7 +141,7 @@ def max_abs(a):
 # Orthonormality is immediate: each state is a normalised sum of two basis kets, and any two of them either use disjoint basis kets
 # ($\Phi$ versus $\Psi$) or differ by a sign ($+$ versus $-$), which makes the overlap $\tfrac12-\tfrac12=0$. Four orthonormal
 # vectors in a four-dimensional space form a basis, so **any** two-qubit state can be expanded in the Bell basis. We will use that
-# fact constantly, here and in the teleportation notebook.
+# fact constantly.
 #
 # All four are **maximally entangled**: we prove below that tracing out either qubit leaves the maximally mixed state $\mathbb 1/2$.
 # $\vert\Psi^-\rangle$ is the **singlet**, the only one that is invariant (up to a phase) under $U\otimes U$ for every
@@ -176,7 +171,7 @@ def max_abs(a):
 #
 # so the circuit is a **unitary map from the computational basis onto the Bell basis**. Run backwards
 # ($H_0$ after $\text{CNOT}_{0\to1}$) it is a *Bell measurement*: it rotates the Bell basis onto the computational basis, where an
-# ordinary detector can read it out. Teleportation (next notebook) uses this Bell measurement.
+# ordinary detector can read it out.
 #
 # ### 3.3 Code
 #
@@ -482,8 +477,7 @@ assert worst <= 2 + 1e-12
 #
 # ### 6.3 Measuring $A(\theta)$ in code: rotate, then measure $Z$
 #
-# A simulator (and a laboratory) measures in the computational basis. The trick, used in
-# [08 — measurements](../ch03_matrix_free_engine/08_measurements.ipynb), is the identity
+# A simulator (and a laboratory) measures in the computational basis. The trick is the identity
 #
 # $$R_y(\theta)\,Z\,R_y(\theta)^{\dagger}=\cos\theta\,Z+\sin\theta\,X=A(\theta),\qquad R_y(\theta)=e^{-i\theta Y/2},$$
 #
@@ -1128,7 +1122,7 @@ plt.show()
 # everywhere — for an isotropic mixture the optimal angles do not move, because white noise shrinks all three axes of $T$ equally.
 # The printed table confirms $S=2\sqrt2\,v$ and $\mathcal N=\max(0,(3v-1)/4)$ to machine precision, so the two crossings are exactly
 # at $v=1/\sqrt2$ and $v=1/3$. The shaded strip between them is the physically interesting region: those states are entangled (the
-# negativity is positive, and the next notebook shows that they teleport better than any classical protocol) yet no CHSH experiment
+# negativity is positive, and they teleport better than any classical protocol) yet no CHSH experiment
 # detects anything non-classical in them; for $v\le1/2$ no experiment with projective measurements does.
 #
 # > **Physics insight.** "Entangled" is a statement about the *state* (it is not a tensor product of local states). "Nonlocal" is a
@@ -1139,8 +1133,7 @@ plt.show()
 # ## 12. CHSH under realistic noise
 #
 # Werner noise is a convenient caricature. Real hardware applies *channels* to each qubit. We take the three standard single-qubit
-# channels from [07 — density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb)
-# and apply them to **both** qubits of $\vert\Phi^+\rangle$ with the same strength $p$:
+# channels and apply them to **both** qubits of $\vert\Phi^+\rangle$ with the same strength $p$:
 #
 # * **depolarising**, $\rho\to(1-p)\rho+\tfrac{p}{3}(X\rho X+Y\rho Y+Z\rho Z)$: the Bloch vector shrinks isotropically by
 #   $\eta=1-\tfrac{4p}{3}$;
@@ -1502,7 +1495,7 @@ print(f"  (sanity: mean S = {float(jnp.mean(r_v)):.4f} vmapped vs {float(jnp.mea
 # ## 15. Key takeaways
 #
 # * **The four Bell states are an orthonormal basis of the two-qubit space**, produced from the computational basis by one Hadamard
-#   and one CNOT. The same circuit read backwards is a Bell measurement — the workhorse of the next notebook.
+#   and one CNOT. The same circuit read backwards is a Bell measurement.
 # * A Bell state is **locally random and globally correlated**: every one-qubit marginal is exactly $\mathbb 1/2$ (purity $1/2$,
 #   entropy 1 bit, zero Bloch vector), while the correlation matrix has entries of modulus 1. No local statistics change when the
 #   distant party acts, which is why entanglement cannot signal.

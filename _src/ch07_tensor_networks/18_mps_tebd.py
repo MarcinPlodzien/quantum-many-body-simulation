@@ -5,8 +5,8 @@
 # %% [markdown]
 # ## 1. Introduction
 #
-# Every method of this course so far stored the **full state vector**: $2^N$ complex amplitudes for $N$ spins.
-# The matrix-free engine made each operation as cheap as it can possibly be, $O(2^N)$ per gate, but it cannot
+# A state-vector simulator stores the **full state vector**: $2^N$ complex amplitudes for $N$ spins.
+# The matrix-free engine makes each operation as cheap as it can possibly be, $O(2^N)$ per gate, but it cannot
 # remove the $2^N$ itself. At $N=30$ the state alone needs 17 GB, at $N=50$ about 18 million GB.
 # Yet experiments with cold atoms, trapped ions and Rydberg arrays study the dynamics of chains far longer than
 # that, and theorists simulate such chains on laptops. How?
@@ -17,7 +17,7 @@
 # finitely correlated states of [[1]](#ref-1): instead of one tensor with $N$
 # indices we store $N$ small tensors with three indices each, $O(N\chi^2)$ numbers in total, where the
 # **bond dimension** $\chi$ is a knob that controls how much entanglement the format can hold.
-# The algorithm you learned in [notebook 12 (Chapter 5)](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb) - a sequence of
+# The Trotter–Suzuki algorithm ([notebook 12, Trotter–Suzuki evolution](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb)) - a sequence of
 # two-site gates $e^{-i h\,\delta t}$ - can be run *directly on the compressed format*: each gate touches only
 # two of the small tensors, and one singular value decomposition (SVD) per gate keeps the format compressed.
 # This is the original **time-evolving block decimation (TEBD)** algorithm introduced in [[2]](#ref-2), [[3]](#ref-3), and together
@@ -37,6 +37,11 @@
 # 6. Runs that no state vector can do: quenches of $N=60$ and $N=40$ spins, light cone, entanglement growth,
 #    truncation-error monitoring, and how to judge convergence when there is no reference (Sec. 10).
 # 7. Cost and performance (Sec. 11) and the limits of the method (Sec. 12).
+#
+# The notebook assumes `jit`, `vmap` and `lax.scan` ([notebook 01, JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)), einsum and tensor-leg diagrams
+# ([notebook 02, Section 10, index notation and einsum](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb)), the Schmidt decomposition, the entanglement entropy and the area law
+# ([notebook 06, Sections 6 and 9, states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb)), the Lanczos algorithm ([notebook 11, Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb)) and the
+# Trotter–Suzuki evolution of a state vector ([notebook 12, Trotter–Suzuki evolution](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb)).
 #
 # ### What you will learn
 # *Physics*
@@ -59,14 +64,6 @@
 #   layer and `lax.scan` over time.
 # - Avoiding division by small numbers (the right-canonical trick of Hastings).
 # - Building a chain of trust: state vector ($N=12$) $\leftrightarrow$ free-fermion solution $\leftrightarrow$ MPS ($N=60$).
-#
-# ### Prerequisites
-# - einsum and tensor-leg diagrams: [notebook 02 (Chapter 1)](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb), Section 10
-# - Schmidt decomposition, entanglement entropy, area law: [notebook 06 (Chapter 3)](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb), Sections 6 and 9
-# - Lanczos and the Rayleigh–Ritz idea (used by DMRG, Sec. 6): [notebook 11 (Chapter 5)](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb)
-# - State-vector TEBD and Trotter errors: [notebook 12 (Chapter 5)](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb)
-# - `jit`, `vmap`, `lax.scan`: [notebook 01 (Chapter 1)](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)
-# - helpful for the physics of Sec. 10 (light cones, domain wall, free fermions): [notebook 15 (Chapter 5)](../ch05_ground_states_and_unitary_dynamics/15_quench_dynamics_spin_chains.ipynb)
 
 # %%
 #@engine: I2, X, Y, Z, XX, YY, ZZ, dense_hamiltonian, product_state, ghz_state, haar_state, apply_gate, heisenberg_terms, apply_hamiltonian, energy, lanczos_ground_state, tebd_evolve, expect_local, schmidt_values, entanglement_entropy, fidelity_pure
@@ -107,8 +104,8 @@ for N_ in (10, 20, 30, 40, 50, 60):
 #
 # ### 2.2 Compressibility = low Schmidt rank
 #
-# Recall the **Schmidt decomposition** from
-# [notebook 06 (Chapter 3)](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb). Cut the chain into a left
+# We use the **Schmidt decomposition** derived in
+# [notebook 06, Section 6, states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb). Cut the chain into a left
 # part $A$ (spins $0..\ell-1$) and a right part $B$ (the rest), and reshape the state tensor into a matrix
 # $M_{(a),(b)}$ of shape $2^{\ell}\times 2^{N-\ell}$ whose row index $a$ collects the spins of $A$ and whose column index
 # $b$ the spins of $B$. The **singular value decomposition** (SVD) of any matrix,
@@ -134,7 +131,7 @@ for N_ in (10, 20, 30, 40, 50, 60):
 #
 # Let us look at the Schmidt spectrum across the central cut of four 12-spin states: a product state, the GHZ state,
 # the ground state of the Heisenberg antiferromagnet $H=\sum_j (X_jX_{j+1}+Y_jY_{j+1}+Z_jZ_{j+1})$ (computed with the
-# Lanczos routine of [notebook 11 (Chapter 5)](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb)), and a Haar-random state.
+# Lanczos routine of [notebook 11, Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb)), and a Haar-random state.
 
 # %%
 # ==============================================================================
@@ -182,7 +179,7 @@ plt.show()
 # > **Physics insight.** Ground states of gapped local Hamiltonians in one dimension obey an **area law**
 # > [[5]](#ref-5): $S_A$ is bounded by a constant independent of the size of $A$, because only the spins near the cut are
 # > correlated across it. At a critical point (the Heisenberg chain is critical) $S_A$ grows only logarithmically with
-# > the block size, with a prefactor set by the central charge $c$ of the critical chain ([[6]](#ref-6), [[7]](#ref-7); [notebook 06](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb), Section 9). Both are tiny compared with the volume law of a random state. The physically relevant states
+# > the block size, with a prefactor set by the central charge $c$ of the critical chain ([[6]](#ref-6), [[7]](#ref-7); [notebook 06, Section 9, states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb)). Both are tiny compared with the volume law of a random state. The physically relevant states
 # > live in a small, weakly entangled corner of Hilbert space - and MPS are a parametrisation of that corner.
 
 # %% [markdown]
@@ -191,7 +188,7 @@ plt.show()
 # ### 3.1 Tensor-leg diagrams
 #
 # We use the diagram notation of
-# [notebook 02 (Chapter 1)](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb): a tensor is a box, each index is a *leg*,
+# [notebook 02, Section 10, index notation and einsum](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb): a tensor is a box, each index is a *leg*,
 # a leg shared by two boxes is summed over (contracted). The state tensor of five spins has five open legs:
 # ```
 #        s0   s1   s2   s3   s4                     s0    s1    s2    s3    s4
@@ -802,7 +799,7 @@ print(f"(for reference: <Z_2 Z_9> = {float(mps_correlator(B_g, lam_g, Z, 2, Z, 9
 #
 # **The idea of DMRG.** We look for the MPS with the lowest energy $\langle\psi|H|\psi\rangle/\langle\psi|\psi\rangle$. Varying all tensors at once is a hard non-linear problem. DMRG
 # varies **two neighbouring tensors at a time** and keeps all others fixed. With the other tensors in canonical form (Section 3.4), this local problem is exactly the
-# Rayleigh–Ritz problem of [notebook 11 (Chapter 5)](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb): minimise the energy in a subspace, which
+# Rayleigh–Ritz problem of [notebook 11, Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb): minimise the energy in a subspace, which
 # is a small eigenvalue problem, solved with Lanczos. The subspace is spanned by the states "left block $\otimes$ two free spins $\otimes$ right block". After solving it, we move
 # one site to the right and repeat. Walking through the chain from left to right and back is called a **sweep**, and a few sweeps converge to the ground state.
 #
@@ -858,7 +855,7 @@ print(f"(for reference: <Z_2 Z_9> = {float(mps_correlator(B_g, lam_g, Z, 2, Z, 9
 #
 # and the energy is $\langle\psi|H|\psi\rangle=\theta^\dagger H_{\rm eff}\,\theta$.
 #
-# Minimising $\theta^\dagger H_{\rm eff}\theta$ at $\theta^\dagger\theta=1$ is exactly the Rayleigh–Ritz problem of notebook 11: with a Lagrange multiplier $E$, the stationarity condition is
+# Minimising $\theta^\dagger H_{\rm eff}\theta$ at $\theta^\dagger\theta=1$ is exactly the Rayleigh–Ritz problem: with a Lagrange multiplier $E$, the stationarity condition is
 #
 # $$ H_{\rm eff}\,\theta=E\,\theta , \tag{9}$$
 #
@@ -1137,7 +1134,7 @@ assert err_heff < 1e3 * TOL
 # ### 6.5 The local solver: Lanczos on the two-site tensor
 #
 # Equation (9) asks for the lowest eigenvector of $H_{\rm eff}$, and Section 6.4 gives us exactly what Lanczos needs: a function $\theta\mapsto H_{\rm eff}\theta$. We use the algorithm of
-# notebook 11 [[16]](#ref-16) — three-term recurrence, full reorthogonalisation, Ritz vector from the small tridiagonal matrix — with two choices specific to DMRG.
+# [notebook 11, Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb) [[16]](#ref-16) — three-term recurrence, full reorthogonalisation, Ritz vector from the small tridiagonal matrix — with two choices specific to DMRG.
 #
 # * **Warm start.** The start vector is the current $\theta$, the contraction of the two tensors from the previous step. After the first sweep it is already close to the answer, so a small fixed
 #   number of Lanczos steps ($m\approx20$) is enough. We do not need to solve the local problem to machine precision in early sweeps, since the environments are still changing.
@@ -1515,7 +1512,7 @@ print(f"for comparison, a run converged at chi=2 (10 sweeps): E - E_exact = {h_c
 # > **Numerical practice.** A product-state start needs one full sweep before the bond dimension can grow, because the environment on the not-yet-visited side offers only one block
 # > state. This is harmless for the two-site algorithm used here; one-site DMRG, which cannot grow the bond dimension at all, needs extra tricks for this reason.
 #
-# > **Common pitfall.** DMRG is a *local* optimisation: unlike the Lanczos runs of notebook 11 it can get stuck. With the environments held fixed a sweep may settle in an excited state, and the
+# > **Common pitfall.** DMRG is a *local* optimisation: unlike a Lanczos run on the full state vector it can get stuck. With the environments held fixed a sweep may settle in an excited state, and the
 # > symptom is an energy that stops falling while the discarded weight is still large. The cures are more sweeps, a larger $\chi$, a better initial state (below we start each parameter point
 # > inside its expected phase) or a little noise added to the first sweeps.
 
@@ -1525,9 +1522,9 @@ print(f"for comparison, a run converged at chi=2 (10 sweeps): E - E_exact = {h_c
 # Two tests of increasing difficulty. First, the Heisenberg chain of twelve spins against the Lanczos energy of Section 2, now with truncation ($\chi=32<64$). Second, sixty spins — a Hilbert space
 # of dimension $10^{18}$ — for two chains whose ground-state energies are known exactly from free fermions:
 #
-# * the **XX chain** $H=\sum_i(X_iX_{i+1}+Y_iY_{i+1})$: single-particle levels $4\cos\frac{k\pi}{N+1}$, $k=1,\dots,N$, and $E_0$ is the sum of the negative ones (notebook 06, Section 10.4, Eq. (13);
+# * the **XX chain** $H=\sum_i(X_iX_{i+1}+Y_iY_{i+1})$: single-particle levels $4\cos\frac{k\pi}{N+1}$, $k=1,\dots,N$, and $E_0$ is the sum of the negative ones ([notebook 06, Section 10.4, states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb), Eq. (13);
 #   the factor $4$ is the Pauli convention of this course, $X_iX_j=4S^x_iS^x_j$);
-# * the **critical transverse-field Ising chain** $H=-\sum_iZ_iZ_{i+1}-\sum_iX_i$: $E_0=-\sum_ks_k$, with $s_k$ the singular values of the bidiagonal matrix with $1$ on the diagonal and the first superdiagonal (notebook 11).
+# * the **critical transverse-field Ising chain** $H=-\sum_iZ_iZ_{i+1}-\sum_iX_i$: $E_0=-\sum_ks_k$, with $s_k$ the singular values of the bidiagonal matrix with $1$ on the diagonal and the first superdiagonal ([notebook 11, Section 11.2, Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb)).
 
 # %%
 # ==============================================================================
@@ -1559,7 +1556,7 @@ assert abs(val[64][1][-1][3] - E_tfim_exact) < 1e-8 and abs(val[64][0][-1][3] - 
 # %% [markdown]
 # Both chains are critical, yet they behave differently. The Ising chain is converged to rounding already at $\chi=32$, the XX chain needs $\chi=64$ for a relative error of $10^{-9}$, and its
 # error follows the discarded weight. The reason is entanglement: the central charge $c$ fixes the coefficient of the logarithm, $S\approx\tfrac c6\log_2N+\text{const}$ bits at the
-# central cut of an open chain (notebook 06, Section 9). The critical Ising chain has $c=\tfrac12$, the XX chain $c=1$, so the logarithm in the entropy of the XX
+# central cut of an open chain ([notebook 06, Section 9, states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb)). The critical Ising chain has $c=\tfrac12$, the XX chain $c=1$, so the logarithm in the entropy of the XX
 # ground state has twice the coefficient, and the XX chain needs more Schmidt values for the same accuracy. The non-universal constant does not double with it: the printed central
 # entropies at $N=60$ are $1.38$ bits for the XX chain against $0.78$ for the Ising chain, a ratio of $1.8$ rather than $2$. The discarded weight, which DMRG reports at every step, is the quantity that tells us this
 # without knowing the answer.
@@ -1567,7 +1564,7 @@ assert abs(val[64][1][-1][3] - E_tfim_exact) < 1e-8 and abs(val[64][0][-1][3] - 
 # %% [markdown]
 # ### 6.9 Physics: the XXZ chain in a transverse field at $N=100$
 #
-# Notebooks 06 and 11 studied the chain $H=\sum_i(X_iX_{i+1}+Y_iY_{i+1}+\Delta Z_iZ_{i+1})+h_x\sum_iX_i$ with exact diagonalisation up to $N=18$ and left open whether the chain has a finite gap on the Néel
+# Exact diagonalisation of the chain $H=\sum_i(X_iX_{i+1}+Y_iY_{i+1}+\Delta Z_iZ_{i+1})+h_x\sum_iX_i$ up to $N=18$ ([notebook 06, Section 10, states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb); [notebook 11, Section 12.3, Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb)) leaves open whether the chain has a finite gap on the Néel
 # side $(\Delta,h_x)=(2,0)$ and in the field at $(0,1)$, and whether the transverse field induces antiferromagnetic order along $y$, as predicted in [[17]](#ref-17).
 # DMRG as built here computes ground states, and a gap needs the first excited state as well, so we answer the questions about order: is there long-range Néel order at $(2,0)$, and long-range
 # $y$ order in the field? Every run below uses $\chi=64$ and six sweeps. Order means that the connected
@@ -1641,12 +1638,12 @@ plt.tight_layout(); plt.show()
 # * **Field-induced order along $y$.** At $(0,1)$ the $zz$ correlations vanish within a few sites, while $C^{yy}_{\rm st}(r)$ settles at about $0.43$ at $N=100$, decreasing only from $0.440$ at $r=10$ to
 #   $0.429$ at $r=50$. At $N=60$ it is lower, $0.420$ at $r=10$ and $0.393$ at $r=30$, so at this point the height of the plateau still depends on the length of the chain. At $(0,2)$ the plateau is
 #   $0.62$ at both lengths. The transverse field has produced long-range antiferromagnetic order along $y$, the direction perpendicular to the anisotropy axis and to the field — the prediction of
-#   [[17]](#ref-17). The hints from the parity splitting at $N=18$ in notebook 11 were real.
+#   [[17]](#ref-17). The hints from the parity splitting at $N=18$ ([notebook 11, Section 12.3, Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb)) were real.
 # * **Why DMRG could do this.** Both ordered phases are gapped according to the exact [[19]](#ref-19) and scaling/mean-field [[17]](#ref-17) results, so they obey an area law (Section 2), and
 #   $\chi=64$ is ample: the largest discarded weight of the last sweep lies between $2\times10^{-13}$ and about $10^{-9}$ at the six points. The same calculation for the critical XX chain needs more
 #   Schmidt values, as the validation showed.
 #
-# > **Physics insight.** A finite chain has no spontaneous symmetry breaking (notebook 11), so one expects $\langle Z_j\rangle=\langle Y_j\rangle=0$, and the order to show up only in the correlations — which is why
+# > **Physics insight.** A finite chain has no spontaneous symmetry breaking ([notebook 11, Section 10.3, Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb)), so one expects $\langle Z_j\rangle=\langle Y_j\rangle=0$, and the order to show up only in the correlations — which is why
 # > the order parameter is measured as the long-distance limit of $C_{\rm st}(r)$ and not as a single expectation value. The printed values follow this at $N=60$ ($\max_j|\langle Z_j\rangle|$ between $4\times10^{-11}$ and $2\times10^{-7}$) and in the
 # > field, but the six-sweep run at $N=100$ on the Néel side ends with $\max_j|\langle Z_j\rangle|=0.13$. The sweeps start from the Néel product state, one side of the doublet, and at a
 # > hundred spins six sweeps do not complete the way to the symmetric ground state: the last sweep still lowers the energy by far more than the discarded weight. The eight-sweep rerun printed above
@@ -1869,7 +1866,7 @@ assert max(err_best, err_eps, err_lam2) < 100 * TOL and dev_can > 1e-2
 #
 # ### 8.1 Even/odd splitting and the Trotter scheme
 #
-# Exactly as in [notebook 12 (Chapter 5)](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb) we split the nearest-neighbour Hamiltonian
+# As in [notebook 12, Trotter–Suzuki evolution](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb), we split the nearest-neighbour Hamiltonian
 # into even and odd bonds (the product formulas of [[21]](#ref-21), [[22]](#ref-22)), $H=H_{\rm even}+H_{\rm odd}$, $H_{\rm even}=\sum_{j\ {\rm even}}h_{j,j+1}$. Terms inside one group act on
 # disjoint pairs of spins and commute, so $e^{-iH_{\rm even}\tau}=\prod_{j\,\rm even}e^{-ih_{j,j+1}\tau}$ exactly. The
 # second-order symmetric step [[23]](#ref-23) is
@@ -1993,7 +1990,7 @@ def mps_tebd_evolve(B, lam, h_bonds, dt, n_steps):
 # > **JAX practice.** `n_steps` is declared static because `lax.scan` needs the loop length at compile time; `dt` and
 # > `h_bonds` are traced, so changing the model or the time step does **not** trigger a recompilation. The index arrays
 # > `even`, `odd` are built from `B.shape[0]`, a static Python integer under `jit`. See
-# > [notebook 01 (Chapter 1)](../ch01_computational_toolbox/01_jax_from_scratch.ipynb) for `jit`/`vmap`/`scan` basics.
+# > [notebook 01, JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb) for `jit`/`vmap`/`scan` basics.
 #
 # > **Numerical practice.** Two consecutive Strang steps end and begin with a half step on the even bonds; merging
 # > them into one full step saves a third of the SVDs when no measurement is needed in between. We keep the three-layer
@@ -2171,7 +2168,7 @@ print(f"  SV |            |            |                  |            | {float(
 #
 # We study the **XX chain** $H=J\sum_j(X_jX_{j+1}+Y_jY_{j+1})$, $J=1$ (time in units of $1/J$, $\hbar=1$), started from two
 # product states - the classic **quench** protocols of cold-atom experiments (see
-# [notebook 15 (Chapter 5)](../ch05_ground_states_and_unitary_dynamics/15_quench_dynamics_spin_chains.ipynb)):
+# [notebook 15, quench dynamics in spin chains](../ch05_ground_states_and_unitary_dynamics/15_quench_dynamics_spin_chains.ipynb)):
 #
 # * **domain wall** $|\!\uparrow\cdots\uparrow\downarrow\cdots\downarrow\rangle$: magnetisation flows from left to right; how fast, and how
 #   much entanglement does the flow create?
@@ -2179,7 +2176,7 @@ print(f"  SV |            |            |                  |            | {float(
 #
 # Writing $X_jX_{j+1}+Y_jY_{j+1}=2(\sigma^+_j\sigma^-_{j+1}+\sigma^-_j\sigma^+_{j+1})$, with $\sigma^\pm=(X\pm iY)/2$ ($\sigma^-=|1\rangle\langle0|$ lowers spin up $|0\rangle$ to spin down $|1\rangle$), shows what $H$ does: it moves a down spin one site to the left or right with
 # amplitude $2J$, and it conserves the total magnetisation $\sum_jZ_j$. The Jordan-Wigner transformation ([[24]](#ref-24); quoted without
-# proof; applied to the XY chain in [[25]](#ref-25); used in notebook 15, Section 7.2) maps down spins to *non-interacting* fermions hopping on the chain. For free
+# proof; applied to the XY chain in [[25]](#ref-25); used in [notebook 15, Section 7.2, quench dynamics in spin chains](../ch05_ground_states_and_unitary_dynamics/15_quench_dynamics_spin_chains.ipynb)) maps down spins to *non-interacting* fermions hopping on the chain. For free
 # particles everything follows from the single-particle propagator $U(t)=e^{-i\,h_1t}$, where $h_1$ is the $N\times N$ hopping matrix
 # with $2J$ on its first off-diagonals:
 #
@@ -2595,7 +2592,7 @@ plt.show()
 #
 # > **Numerical practice.** The SVD is the bottleneck, and on CPUs it runs through LAPACK one matrix at a time. On a
 # > GPU the batched SVD over the bonds of a layer is where the `vmap` design pays off - but GPU SVDs of small matrices
-# > are comparatively slow, so MPS codes profit less from GPUs than the state-vector einsums of the earlier notebooks.
+# > are comparatively slow, so MPS codes profit less from GPUs than state-vector einsums.
 # > Production codes additionally exploit the conservation of $\sum_jZ_j$: the tensors become block-sparse and the SVDs
 # > split into many small ones.
 
@@ -2631,7 +2628,7 @@ plt.show()
 # * **Canonical forms** (left/right/mixed, Vidal's $\Gamma$-$\Lambda$) turn environments into identities: local expectation values cost
 #   $O(\chi^2)$-$O(\chi^3)$ and entanglement entropies are read off from the stored Schmidt values.
 # * **DMRG** varies two neighbouring tensors at a time. In mixed-canonical form their coefficients are coordinates in an orthonormal basis, so the energy
-#   minimisation is the eigenvalue problem $H_{\rm eff}\theta=E\theta$ (Rayleigh–Ritz, notebook 11). $H$ enters as a **matrix product operator** (a finite-state
+#   minimisation is the eigenvalue problem $H_{\rm eff}\theta=E\theta$ (Rayleigh–Ritz). $H$ enters as a **matrix product operator** (a finite-state
 #   machine with $D=5$ for the XXZ chain), the fixed parts of the chain as **environments** $L_j$, $R_j$ updated one site per step, and $H_{\rm eff}$ is applied
 #   matrix-free at $O(\chi^3)$ and diagonalised by Lanczos. An SVD splits the result and moves the centre; sweeps back and forth converge to the ground state.
 # * The **TEBD two-site update** is merge $\to$ gate $\to$ SVD $\to$ truncate $\to$ split: three einsums and one SVD, $O(\chi^3)$. Storing
@@ -2649,7 +2646,7 @@ plt.show()
 # ## 14. Exercises
 #
 # 1. ★ **Bond dimensions of simple states.** Predict the bond dimensions of the W state $(|10\dots0\rangle+|01\dots0\rangle+\dots)/\sqrt N$ and of the
-#    cluster state ([notebook 06](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb), Section 2), then check with `state_to_mps_left` (build the states with the engine or by hand for $N=8$).
+#    cluster state ([notebook 06, Section 2.3, states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb)), then check with `state_to_mps_left` (build the states with the engine or by hand for $N=8$).
 # 2. ★ **Trotter versus truncation.** Repeat the domain-wall run of Sec. 10.2 with $\chi=8$ and $\chi=16$. At what time -
 #    if at all before $t=6$ - does the cumulative discarded weight rise above the Trotter floor $3\times10^{-3}$ of that
 #    section, and does the error against the exact solution follow it? Then go the other way: $\chi=32$ with
@@ -2666,7 +2663,7 @@ plt.show()
 # 5. ★★ **Entanglement barrier, quantitatively.** For the Néel quench extract $t_{\rm fail}(\chi)$ for $\chi=4,8,\dots,64$ and plot
 #    it against $\log_2\chi$. Compare the slope with the inverse entropy growth rate $\pi/8J$.
 # 6. ★★ **Extend the code: fourth-order Trotter.** Build a fourth-order step from five second-order steps with the
-#    Suzuki coefficients of [notebook 12 (Chapter 5)](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb) and show, against the free-fermion
+#    Suzuki coefficients of [notebook 12, Trotter–Suzuki evolution](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb) and show, against the free-fermion
 #    reference, that the Trotter floor of Sec. 10.2 drops by orders of magnitude at fixed $\delta t$. How many SVDs per unit time
 #    does it cost, and how does the truncation error per unit time change? (One of the five sub-steps runs *backwards*
 #    in time. That is free for a unitary gate, but it still performs its share of truncations, so the fourth-order

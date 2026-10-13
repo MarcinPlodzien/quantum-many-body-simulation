@@ -39,8 +39,11 @@
 # `reshape` and `transpose` really do. Sections 7-9: composite indices (a $4\times4$ matrix *is* a $(2,2,2,2)$ tensor),
 # the Kronecker product and partial traces. Sections 10-13: tensor-network diagrams, batched contractions, the cost of a
 # contraction and why the order matters, `einsum` vs `tensordot` vs `matmul`. Section 14: building einsum strings
-# *programmatically*. Section 15: einsum in JAX (`jit`, `vmap`, `grad`) with timings of the compiled functions. Section 16: a preview of
-# notebook 05. Then summary, exercises (with self-checking `assert`s), references, and solutions at the very end.
+# *programmatically*. Section 15: einsum in JAX (`jit`, `vmap`, `grad`) with timings of the compiled functions. Section 16: a preview,
+# acting on the middle spin of a three-spin state. Then summary, exercises (with self-checking `assert`s), references, and solutions at the very end.
+#
+# Section 15 assumes `jit`, `vmap`, `grad` and `block_until_ready` from [notebook 01, JAX](01_jax_from_scratch.ipynb);
+# Sections 2-14 use plain NumPy.
 #
 # ### What you will learn
 #
@@ -57,12 +60,6 @@
 # * verifying every new piece of code against an independent reference (`assert err < TOL`);
 # * `einsum` vs `tensordot` vs `matmul`; building einsum strings with Python code;
 # * `jnp.einsum` under `jax.jit`, `jax.vmap` and `jax.grad`; measuring compile time and run time separately.
-#
-# ### Prerequisites
-# * NumPy arrays, `for` loops, matrix multiplication.
-# * [01_jax_from_scratch](01_jax_from_scratch.ipynb) for Section 15 (`jit`, `vmap`, `grad`, `block_until_ready`). Sections 2-14 use plain NumPy.
-# * The two opening notebooks of this chapter, [00a_free_particle_gaussian_wave_packet](00a_free_particle_gaussian_wave_packet.ipynb) and
-#   [00b_first_quantum_simulation_harmonic_oscillator](00b_first_quantum_simulation_harmonic_oscillator.ipynb), are *not* required here.
 #
 # > **How to read this notebook.** Run it top to bottom. Whenever a new einsum string appears, *cover the code, and try to
 # > write the string yourself from the sum formula.* This is a skill like mental arithmetic: it comes only with repetition.
@@ -468,8 +465,8 @@ for k in range(8):
     print(f"   {k}    | {tuple(int(s) for s in np.unravel_index(k, (2, 2, 2)))}  | {k:03b}")
 
 # %% [markdown]
-# Example: flat index 5 = binary `101` = $(s_0,s_1,s_2)=(1,0,1)$. When later notebooks
-# label basis states of $N$ spins by bit strings like $|101\rangle$, the position of that state in the state vector is exactly this number.
+# Example: flat index 5 = binary `101` = $(s_0,s_1,s_2)=(1,0,1)$. When basis states
+# of $N$ spins are labelled by bit strings like $|101\rangle$, the position of that state in the state vector is exactly this number.
 #
 # ### 5.3 `reshape`: same memory line, new index grouping
 #
@@ -632,7 +629,7 @@ check("middle index: naive_einsum vs np.einsum", naive_einsum("ab,xbz->xaz", M, 
 
 # %% [markdown]
 # Remember the string `"ab,xbz->xaz"`. With $M$ a $2\times2$ matrix and $T$ of shape $(2,2,2)$ this is *exactly* how an operator acts on the
-# middle spin of a three-spin chain (Section 16 and notebook [05_matrix_free_operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb)).
+# middle spin of a three-spin chain (Section 16).
 
 # %% [markdown]
 # ## 7. Composite indices: a $4\times4$ matrix *is* a $(2,2,2,2)$ tensor
@@ -817,8 +814,7 @@ check("(A(x)1)v: einsum 'ab,bd->ad'  vs dense kron", np.einsum("ab,bd->ad", A, V
 #
 # The result is an operator on the remaining subsystem ($d_A\times d_A$ or $d_B\times d_B$). In the block picture of Section 7,
 # $\mathrm{Tr}_B$ replaces each block by its trace. In quantum mechanics the partial trace is the operation of *ignoring* a subsystem;
-# it produces the reduced density matrix ([[3]](#ref-3), Sec. 2.4.3) that you will meet in
-# [06_states_observables_entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb). Here we treat it purely as an index operation.
+# it produces the reduced density matrix ([[3]](#ref-3), Sec. 2.4.3). Here we treat it purely as an index operation.
 #
 # Independent references: (i) `np.trace(T, axis1=1, axis2=3)`, which sums the diagonal over a chosen pair of axes; (ii) the identities
 # $\mathrm{Tr}_B(A\otimes B)=A\cdot\mathrm{Tr}B$, $\mathrm{Tr}_A(A\otimes B)=\mathrm{Tr}A\cdot B$ and $\mathrm{Tr}(\mathrm{Tr}_B M)=\mathrm{Tr}M$.
@@ -978,8 +974,7 @@ plt.show()
 # In the partial-trace panel the upper legs of $T$ are the row indices $(a,b)$, the lower ones the column indices $(c,d)$; the legs of subsystem $B$ are joined.
 #
 # > **Physics insight.** Diagrams of this kind are the daily language of *tensor-network* methods (introductions: [[5]](#ref-5),
-# > [[6]](#ref-6)), which you will meet in
-# > [notebook 18 (Chapter 7)](../ch07_tensor_networks/18_mps_tebd.ipynb) (matrix product states). A diagram fixes *what* is
+# > [[6]](#ref-6)). A diagram fixes *what* is
 # > contracted; it says nothing about the *order* in which a computer should do the sums. That is a separate question with large practical consequences (Section 12).
 
 # %% [markdown]
@@ -1238,8 +1233,7 @@ with single_thread():
 # suitable transposes and reshapes. (In JAX these differences largely disappear, because all of them are lowered to the same XLA operation and compiled.)
 #
 # **Our choice for this course is einsum**: the string *is* the formula, any index order and any number of target indices are handled uniformly, traces and
-# batch indices come for free, and -- as the next section shows -- the strings can be generated by a program. Notebook
-# [05_matrix_free_operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb) benchmarks the alternatives carefully for the many-spin case.
+# batch indices come for free, and -- as the next section shows -- the strings can be generated by a program.
 
 # %% [markdown]
 # ## 14. Building einsum strings programmatically
@@ -1379,13 +1373,13 @@ check("keep nothing = full trace", partial_trace(M3, dims, ()), np.trace(M3).res
 # `jnp.einsum` (JAX [[8]](#ref-8)) has the same interface as `np.einsum`. Three differences matter in practice:
 #
 # * JAX arrays are **immutable**, so the loop-and-accumulate style of step (b) (`y[i] += ...`) is not even available: whole-array
-#   operations like einsum are *the* way to express index formulas in JAX (see [01_jax_from_scratch](01_jax_from_scratch.ipynb)).
+#   operations like einsum are *the* way to express index formulas in JAX (see [notebook 01, JAX](01_jax_from_scratch.ipynb)).
 # * The einsum **string is static**: it is ordinary Python data that exists while JAX *traces* the function. Only the arrays are traced.
 #   Building strings programmatically (Section 14) therefore costs nothing at run time -- under `jit` it happens once, during compilation.
 # * `jnp.einsum` always searches for a contraction path (`optimize="auto"`, Section 12.3), whereas `np.einsum` does not unless you ask.
 #
 # As a test problem we take a rank-$n$ tensor of shape $(2,2,\dots,2)$ with $n=18$ ($2^{18}=262\,144$ entries) and apply a $2\times2$ matrix to
-# **every** axis in turn -- 18 einsum calls with 18 different strings. In notebook 05 this tensor will be the state of 18 spins. We compare
+# **every** axis in turn -- 18 einsum calls with 18 different strings. Such a tensor is the state of 18 spins. We compare
 # NumPy, JAX without `jit` ("eager": each einsum is dispatched separately) and JAX with the whole sweep compiled into one XLA program.
 
 # %%
@@ -1503,7 +1497,7 @@ print(f"16 angles: Python loop over jitted sweeps {t_loop * 1e3:8.2f} ms | one v
 # ### 15.2 `grad`: the derivative of an einsum is an einsum
 #
 # A contraction is linear in each of its inputs, so its derivative is again a contraction. Example: $f(A)=\sum_{ij}x_iA_{ij}y_j$ has
-# $\partial f/\partial A_{ij}=x_iy_j$, an outer product. `jax.grad` finds this automatically -- the basis of the variational algorithms of Chapter 13.
+# $\partial f/\partial A_{ij}=x_iy_j$, an outer product. `jax.grad` finds this automatically -- the basis of variational algorithms.
 
 # %%
 # ==============================================================================
@@ -1523,8 +1517,7 @@ check("grad of 'i,ij,j->' w.r.t. A  =  outer product 'i,j->ij'", jax.grad(biline
 # %% [markdown]
 # ## 16. Preview: three spins and "acting on the middle index"
 #
-# The tools above are enough to act on a three-spin state (the systematic treatment is notebook
-# [05_matrix_free_operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb), after the physics of spin chains in notebooks 03-04).
+# The tools above are enough to act on a three-spin state.
 #
 # **States.** From your quantum-mechanics course: a spin-1/2 has the basis states $|{\uparrow}\rangle\equiv|0\rangle=(1,0)^T$ and $|{\downarrow}\rangle\equiv|1\rangle=(0,1)^T$. A state of three spins is
 #
@@ -1609,9 +1602,7 @@ check("engine product_state('0+1') vs einsum(outer_string(3), up, plus, down)",
 print("shape:", product_state("0+1").shape, "| dtype:", product_state("0+1").dtype)
 
 # %% [markdown]
-# In notebook [05_matrix_free_operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb) our `apply_matrix_to_axis` will grow into the engine's central routine, which applies operators to
-# one *or several* spins at once (Exercise 7 lets you take that step yourself), and the partial-trace builder of Section 14.3 returns in
-# [06_states_observables_entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb).
+# The function `apply_matrix_to_axis` generalises to operators acting on one *or several* spins at once; Exercise 7 takes that step.
 
 # %% [markdown]
 # ## 17. Summary -- key takeaways
@@ -1720,8 +1711,7 @@ run_exercise(3, ex3_answer, check_ex3)
 # **Exercise 4 (★★) -- partial transpose.** For a matrix $M$ on a composite space $(d_A,d_B)$ the *partial transpose* with respect to $B$ swaps the row and column index of subsystem $B$ only:
 # $\big(M^{T_B}\big)_{(ab),(cd)}=M_{(ad),(cb)}$. Implement `partial_transpose_B(M, dA, dB)` with one reshape, one einsum and one reshape. For product operators it must give
 # $(A\otimes B)^{T_B}=A\otimes B^T$. (The partial transpose is the key to detecting entanglement in mixed states, as shown in
-# [[9]](#ref-9), [[10]](#ref-10); it returns in
-# [25 — entanglement negativity](../ch09_entanglement_and_complexity/25_entanglement_negativity.ipynb).)
+# [[9]](#ref-9), [[10]](#ref-10).)
 
 # %%
 def check_ex4(partial_transpose_B):
@@ -1758,7 +1748,7 @@ run_exercise(5, ex5_answer, check_ex5)
 # **Exercise 6 (★★, physics) -- the singlet.** Two spins-1/2 in the state $\psi_{s_0s_1}$ (a $(2,2)$ array). (a) Write `expect_op_spin0(psi, O)` that returns
 # $\langle\psi|\,O\otimes\mathbb 1\,|\psi\rangle=\sum_{a,c,b}\psi^*_{ab}\,O_{ac}\,\psi_{cb}$ as **one** einsum, without `np.kron`. (b) Write `reduced_matrix_spin0(psi)` that returns the $2\times2$ matrix
 # $\rho_{ac}=\sum_b\psi_{ab}\psi^*_{cb}$. Evaluate both for the singlet $(|{\uparrow\downarrow}\rangle-|{\downarrow\uparrow}\rangle)/\sqrt2$ and for the product state $|{\uparrow\downarrow}\rangle$, with $O=\sigma^z$.
-# Interpret: what does spin 0 "look like" if spin 1 is ignored? (The matrix $\rho$ is the *reduced density matrix*, the subject of notebook 06, and $\langle O\rangle=\mathrm{Tr}(\rho\,O)$.)
+# Interpret: what does spin 0 "look like" if spin 1 is ignored? (The matrix $\rho$ is the *reduced density matrix*, and $\langle O\rangle=\mathrm{Tr}(\rho\,O)$.)
 
 # %%
 def check_ex6(functions):
@@ -1924,8 +1914,7 @@ for name, state in (("singlet", singlet), ("|up,down>", up_down)):
 # %% [markdown]
 # *Interpretation of Exercise 6.* In the product state spin 0 simply points up: $\rho=|{\uparrow}\rangle\langle{\uparrow}|$ and $\langle\sigma^z_0\rangle=+1$. In the singlet
 # $\rho=\mathbb 1/2$: looked at alone, spin 0 is *completely random* -- every measurement direction gives $\pm1$ with probability $1/2$ -- although the two-spin state is perfectly well defined.
-# All the information sits in the correlations between the spins. This is the hallmark of entanglement, quantified in notebook
-# [06_states_observables_entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb).
+# All the information sits in the correlations between the spins. This is the hallmark of entanglement.
 
 # %%
 # ==============================================================================

@@ -11,10 +11,10 @@
 #
 # $$ i\,\frac{d}{dt}|\psi(t)\rangle=H|\psi(t)\rangle\qquad\Longrightarrow\qquad|\psi(t)\rangle=e^{-iHt}|\psi(0)\rangle , $$
 #
-# but for $N$ spins $e^{-iHt}$ is a $2^N\times2^N$ matrix. In [notebook 04 (Chapter 2)](../ch02_spin_systems_textbook_way/04_time_evolution_the_textbook_way.ipynb) we computed it by full diagonalisation — $O(8^N)$ operations, $O(4^N)$ memory, hopeless beyond $N\approx12$–$14$.
+# but for $N$ spins $e^{-iHt}$ is a $2^N\times2^N$ matrix. Computing it by full diagonalisation ([notebook 04, time evolution with dense matrices](../ch02_spin_systems_textbook_way/04_time_evolution_the_textbook_way.ipynb)) costs $O(8^N)$ operations and $O(4^N)$ memory, hopeless beyond $N\approx12$–$14$.
 #
 # **The idea of this notebook.** The Hamiltonians of interest are sums of *local* terms, $H=\sum_kh_k$, each acting on one or two spins. The exponential of a single term, $e^{-ih_k\,dt}$, is a tiny $4\times4$ (or $2\times2$) unitary that we can compute exactly
-# and apply to the state tensor with one einsum at cost $O(2^N)$ ([notebook 05, Chapter 3](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb)). If the terms commuted, $e^{-iH\,dt}$ would simply be the product of these small unitaries. They do not commute — but for a **short** time step
+# and apply to the state tensor with one einsum at cost $O(2^N)$ ([notebook 05, matrix-free operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb)). If the terms commuted, $e^{-iH\,dt}$ would simply be the product of these small unitaries. They do not commute — but for a **short** time step
 # the product is a good approximation, with an error we can *derive*, *measure* and *systematically reduce*:
 #
 # $$ e^{-iH\,dt}\;\approx\;\prod_k e^{-ih_k\,dt}. $$
@@ -23,8 +23,8 @@
 #
 # **A word on the name.** In the literature **TEBD — time-evolving block decimation** [[3]](#ref-3), [[4]](#ref-4) denotes one specific algorithm: this sequence of two-site gates applied to a *matrix product state*, each gate followed by a singular-value truncation that keeps the bond dimension bounded — the "decimation" of the name (Section 7 of [[5]](#ref-5) compares it with the other MPS time-evolution schemes).
 # What we do here is the same gate sequence applied to the **full state vector**, stored as a rank-$N$ tensor: no matrix product state, no truncation. Strictly, that is Trotterised state-vector evolution; calling it TEBD, as is common, names the gate layout rather than the data structure.
-# The distinction matters because it decides what limits the simulation: here memory ($2^N$ amplitudes) and **the Trotter error as the only source of error**, there the bond dimension and the truncation error on top of the Trotter error. The MPS version is the subject of [notebook 18 (Chapter 7)](../ch07_tensor_networks/18_mps_tebd.ipynb);
-# everything derived below about Trotter errors carries over to it unchanged, which is why this is the place to understand them thoroughly.
+# The distinction matters because it decides what limits the simulation: here memory ($2^N$ amplitudes) and **the Trotter error as the only source of error**, there the bond dimension and the truncation error on top of the Trotter error.
+# Everything derived below about Trotter errors carries over to the MPS version unchanged, which is why this is the place to understand them thoroughly.
 # The same product formula is also the basic algorithm of *digital quantum simulation* [[6]](#ref-6): every gate below could be executed on a quantum computer, so what we learn about Trotter errors applies there verbatim.
 #
 # **Road map.**
@@ -37,6 +37,11 @@
 # 6. **Conserved quantities as diagnostics**: what the norm, the magnetisation and the energy can and cannot tell you; commuting special cases with zero Trotter error (Sections 8–9).
 # 7. **Cost**: gates per step, gate fusion, compile vs run time, work–precision diagram and the choice of the order (Section 10)
 # 8. A convergence test that needs no exact reference, and a domain-wall quench of $N=18$ spins checked against free fermions (Section 11).
+#
+# The notebook assumes `jit` and `lax.scan` ([notebook 01, JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)), exact propagators and the step-size rule of explicit RK4
+# ([notebook 04, time evolution with dense matrices](../ch02_spin_systems_textbook_way/04_time_evolution_the_textbook_way.ipynb)), `apply_gate` and Hamiltonians as lists of local terms
+# ([notebook 05, matrix-free operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb)), and the TFIM and XXZ models with their symmetries
+# ([notebook 11, Hamiltonians and ground states](11_hamiltonians_and_ground_states.ipynb)).
 #
 # ### What you will learn
 #
@@ -53,12 +58,6 @@
 # * A time step as a list of `(qubits, 4x4 unitary)` gates applied by einsum; gate lists as data that can be reordered and fused.
 # * `jax.jit` + `lax.scan` for time loops with observables, `lax.fori_loop` for a traced number of steps; tracing `dt` so that one compilation serves all step sizes.
 # * Timing (compile vs run), counting gates as a hardware-independent cost measure.
-#
-# ### Prerequisites
-# * [Notebook 04 (Chapter 2) — Time evolution the textbook way](../ch02_spin_systems_textbook_way/04_time_evolution_the_textbook_way.ipynb): exact propagators, a first look at Trotterisation with dense matrices, and the step-size rule of explicit RK4.
-# * [Notebook 05 (Chapter 3) — Matrix-free operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb): `apply_gate`, Hamiltonians as lists of local terms.
-# * [Notebook 11 (Chapter 5) — Hamiltonians and ground states](11_hamiltonians_and_ground_states.ipynb): the models (TFIM, XXZ) and their symmetries.
-# * [Notebook 01 (Chapter 1) — JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `lax.scan`.
 
 # %% [markdown]
 # ## 2. The engine functions used in this notebook
@@ -111,7 +110,7 @@ plt.rcParams.update({"axes.prop_cycle": plt.cycler(color=CB), "axes.grid": True,
 #
 # ### 3.3 How the gate acts on the state tensor
 #
-# A reminder from [notebook 05 (Chapter 3)](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb). The state of $N$ spins is a tensor $\psi[s_0,\dots,s_{N-1}]$ of shape $(2,)^N$. A two-site gate $U$ (a $4\times4$ matrix, reshaped to $U[a',b';a,b]$ with shape $(2,2,2,2)$) on sites $(1,2)$ of an $N=4$ chain acts as
+# The state of $N$ spins is a tensor $\psi[s_0,\dots,s_{N-1}]$ of shape $(2,)^N$ ([notebook 05, matrix-free operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb)). A two-site gate $U$ (a $4\times4$ matrix, reshaped to $U[a',b';a,b]$ with shape $(2,2,2,2)$) on sites $(1,2)$ of an $N=4$ chain acts as
 #
 # $$ \psi'[s_0,a',b',s_3]=\sum_{a,b}U[a',b';a,b]\;\psi[s_0,a,b,s_3]\qquad\Longleftrightarrow\qquad\texttt{einsum("ABab,sabt->sABt", U4, psi)} . $$
 #
@@ -447,7 +446,7 @@ assert abs(r - 1) < 0.05
 # ### 6.1 The pieces
 #
 # One TEBD step is `apply_gates(psi, gates)`: a Python loop over einsums. Under `jax.jit` the loop is unrolled at trace time and XLA compiles the whole step into one program. The time loop is a `lax.scan` whose carry is the state and whose per-step output is whatever
-# `observe(psi)` returns — this is the engine's `tebd_evolve`. Two JAX facts to remember ([JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)):
+# `observe(psi)` returns — this is the engine's `tebd_evolve`. Two JAX facts to remember ([notebook 01, JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)):
 #
 # * `lax.scan` compiles the step **once**; a Python `for` loop inside `jit` would unroll `n_steps` copies of the step into the program (compile time and memory grow with the number of steps).
 # * Anything that determines *shapes or program structure* must be static: the qubit labels, the number of gates, the scan length `n_steps`. Anything that is just a number inside the arrays may be traced: the state, and also **`dt`** — the gates
@@ -568,7 +567,7 @@ plt.tight_layout(); plt.show()
 
 # %% [markdown]
 # The checkerboard pattern of the Néel state fades within a time of order $1/J$: the hopping term $XX+YY$ exchanges neighbouring antiparallel spins, and the staggered magnetisation relaxes to small values with damped oscillations. TEBD (line) follows the exact result
-# (dots) with an error at the $10^{-3}$ level or below at this step size. The physics of such quenches is the subject of [notebook 15 (Chapter 5)](15_quench_dynamics_spin_chains.ipynb); here we care about the *error*.
+# (dots) with an error at the $10^{-3}$ level or below at this step size. Here we care about the *error*.
 
 # %% [markdown]
 # ## 7. Measured error scaling
@@ -1022,7 +1021,7 @@ for target in (1e-2, 1e-4, 1e-6, 1e-8):
 # blow up. The numbers confirm it: Section 8 ran the second-order scheme with $dt=1.0$, where the norm stayed at $1$ to $10^{-14}$ while the fidelity with the true state fell to $0.008$. Where an unstable method signals failure by blowing up, a Trotter step with too large a $dt$
 # returns a normalised, plausible and wrong state.
 #
-# This is the practical difference from the explicit integrators of [notebook 04 (Chapter 2)](../ch02_spin_systems_textbook_way/04_time_evolution_the_textbook_way.ipynb), where RK4 is stable only for $dt\,\|H\|\le2\sqrt2$ — a restriction that *tightens as the chain grows*, because
+# This is the practical difference from the explicit integrators of [notebook 04, time evolution with dense matrices](../ch02_spin_systems_textbook_way/04_time_evolution_the_textbook_way.ipynb), where RK4 is stable only for $dt\,\|H\|\le2\sqrt2$ — a restriction that *tightens as the chain grows*, because
 # $\|H\|$ is extensive, and which has nothing to do with accuracy. For a product formula the step size is governed by accuracy alone, and the practical procedure is:
 #
 # 1. Decide **which quantity** must be accurate (the state, an energy, a local observable — their errors differ by orders of magnitude, Sections 7.2–7.3).
@@ -1139,8 +1138,7 @@ plt.show()
 #   the domain wall is invariant under this map, hence $\langle H\rangle=0$ after every step, whatever $dt$. A diagnostic can be blind; for $\Delta=1$ the energy deviation has the expected small $O(dt^4)$ size.)
 # * **Physics:** in the XX chain the wall melts **ballistically**: a light-cone with the maximal velocity $v_{\max}=4J$ (dashed) opens, and the transferred magnetisation grows linearly in time until the fronts hit the ends of the chain ($t\approx N/(2v_{\max})\approx2.2$) and reflect.
 #   At the Heisenberg point the same light-cone limits the spreading, but the $ZZ$ interaction slows the transport of magnetisation down markedly and the curve bends. Eighteen spins up to $t=3$ cannot decide the asymptotic law. In the infinite chain the melting of the fully polarised domain wall at $\Delta=1$ is compatible with diffusive spreading with slowly decaying corrections [[29]](#ref-29),
-#   while from weakly polarised, mixed initial states spin transport at $\Delta=1$ is superdiffusive with exponent close to $2/3$ [[30]](#ref-30); the question is still under study. More physics of quenches in closed systems in [[31]](#ref-31) and in
-#   [notebook 15 (Chapter 5)](15_quench_dynamics_spin_chains.ipynb).
+#   while from weakly polarised, mixed initial states spin transport at $\Delta=1$ is superdiffusive with exponent close to $2/3$ [[30]](#ref-30); the question is still under study. More physics of quenches in closed systems in [[31]](#ref-31).
 #
 # For $\Delta=1$ there is no free-fermion solution, and the step-halving test of Section 11.1 is the only convergence measure left. We apply it to both runs: for $\Delta=0$ we can compare the *estimated* error of the magnetisation profile with the *true* one (from free fermions) —
 # a validation of the error estimator itself at $N=18$ — and for $\Delta=1$ the estimate is all we have.
@@ -1204,7 +1202,7 @@ for Delta_big in (0.0, 1.0):
 # 6. **(★★) Physics: light cone.** Start from $|\!\uparrow\cdots\uparrow\downarrow\uparrow\cdots\uparrow\rangle$ (one flipped spin in the middle of an $N=19$ XX chain). Plot $\langle Z_j(t)\rangle$, compare with the free-fermion formula, and extract the front velocity. How does the picture change for $\Delta=1$ and $\Delta=3$? (For large $\Delta$: think about why a single flipped spin still moves freely but a *pair* of neighbouring flipped spins is nearly stuck.)
 # 7. **(★★★) Two dimensions.** Build the bond list of a $4\times4$ square lattice, colour the bonds into four groups of mutually disjoint bonds (horizontal-even, horizontal-odd, vertical-even, vertical-odd), and run second-order TEBD for the 2D transverse-field Ising model from $|\!\uparrow\cdots\uparrow\rangle$.
 #    Use energy conservation and step halving to choose $dt$. Which part of the code had to change compared with the chain?
-# 8. **(★★★) Imaginary time.** Replace $dt\to-i\,d\tau$: the gates $e^{-h\,d\tau}$ are no longer unitary, and repeated application (with renormalisation) projects onto the ground state. Implement it, compare the energy with the Lanczos result of [notebook 11 (Chapter 5)](11_hamiltonians_and_ground_states.ipynb),
+# 8. **(★★★) Imaginary time.** Replace $dt\to-i\,d\tau$: the gates $e^{-h\,d\tau}$ are no longer unitary, and repeated application (with renormalisation) projects onto the ground state. Implement it, compare the energy with the Lanczos result of [notebook 11, Hamiltonians and ground states](11_hamiltonians_and_ground_states.ipynb),
 #    and study how the Trotter error of the *ground-state energy* scales with $d\tau$ for orders 1 and 2. Then repeat with `order=4` and examine what the negative sub-step does (Section 5.2): compute the amplification factor $e^{|1-4s|\,d\tau\,\lambda_{\max}(h)}$ of one bond gate at
 #    $d\tau=0.1$, and check whether the energy still decreases monotonically along the imaginary-time trajectory as it does for orders 1 and 2.
 

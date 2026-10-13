@@ -5,9 +5,9 @@
 # %% [markdown]
 # ## 1. Introduction
 #
-# [33 — spin squeezing by one-axis twisting](../ch10_quantum_metrology_protocols/33_spin_squeezing_one_axis_twisting.ipynb)
-# stopped where the squeezing parameter stops being useful: at a twisting angle of order $N^{-2/3}$, where the
-# uncertainty disc has been sheared into a thin ellipse and the Wineland parameter reaches $\xi_R^2\sim N^{-2/3}$. But the
+# Spin squeezing by one-axis twisting ([notebook 33, spin squeezing](33_spin_squeezing_one_axis_twisting.ipynb)) is useful up to a twisting angle of
+# order $N^{-2/3}$, where the uncertainty disc has been sheared into a thin ellipse and the Wineland parameter reaches
+# $\xi_R^2\sim N^{-2/3}$. But the
 # quantum Fisher information of the same evolution keeps growing long after that, and at $\chi t=\pi/2$ it reaches
 # $F_Q=N^2$ — the Heisenberg limit, the largest value any state of $N$ qubits can have for a collective generator.
 #
@@ -35,11 +35,11 @@
 #   $N$, $m$ is a half-integer, the phase has period $4$ in $m$, and the cat comes out along $\hat y$. Both results are
 #   verified by fidelity with the predicted state.
 # * **Section 5.** The evolution implemented twice — diagonal phases and a circuit of commuting $ZZ$ gates — and shown
-#   identical, as in notebook 33.
+#   identical.
 # * **Section 6.** The $3\times3$ QFI matrix evaluated at every twisting angle: its largest eigenvalue is $F_Q^{\max}(\mu)$
 #   and its eigenvector is the axis of the cat. We identify four features — $F_Q=N$ at $\mu=0$, the squeezing regime,
 #   where $F_Q$ lies above the Wineland bound $N/\xi_R^2$ by the factor $V_{\min}V_{\max}/(\vert\langle\mathbf J\rangle\vert^2/4)$
-#   of notebook 33, Eq. (26a) ($1.19$–$1.26$ at the optimum for $N=6$–$16$, tending to $3/2$), a plateau near $N^2/2$,
+#   of [notebook 33, spin squeezing](33_spin_squeezing_one_axis_twisting.ipynb), Eq. (26a) ($1.19$–$1.26$ at the optimum for $N=6$–$16$, tending to $3/2$), a plateau near $N^2/2$,
 #   and $F_Q=N^2$ at $\mu=\pi/2$ — and measure how each scales with $N$.
 # * **Section 7.** At $\mu=\pi/q$ the state is a superposition of $q$ coherent states. Husimi-$Q$ maps for
 #   $q=2,3,4,5,6,8$.
@@ -83,21 +83,10 @@
 # * reusing derived functions across notebooks instead of re-deriving them;
 # * working within a time budget: pure states to $N=16$, density tensors to $N=6$.
 #
-# ### Prerequisites
-# * [29 — quantum Fisher information](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb):
-#   $F_Q=4\,\mathrm{Var}(G)$, the $3\times3$ QFI matrix, the standard quantum and Heisenberg limits;
-# * [30 — QFI from the SLD](../ch10_quantum_metrology_protocols/30_qfi_from_the_sld_prepare_encode_estimate.ipynb):
-#   the symmetric logarithmic derivative, the mixed-state QFI, the optimal measurement, maximum-likelihood estimation;
-# * [31 — Ramsey interferometry](../ch10_quantum_metrology_protocols/31_ramsey_interferometry.ipynb) and
-#   [32 — GHZ interferometry and the Heisenberg limit](../ch10_quantum_metrology_protocols/32_ghz_interferometry_heisenberg_limit.ipynb):
-#   the two reference protocols; Section 3 recalls the one formula we need from each;
-# * [33 — spin squeezing by one-axis twisting](../ch10_quantum_metrology_protocols/33_spin_squeezing_one_axis_twisting.ipynb):
-#   the Hamiltonian, the exact propagator, the squeezing parameters;
-# * [07 — density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb):
-#   density tensors, Kraus channels.
-#
-# **What comes next.** [35 — scrambling a metrological probe](../ch10_quantum_metrology_protocols/35_oat_plus_haar_scrambling.ipynb)
-# asks what is left of these probes after a unitary scrambles them.
+# The notebook assumes the $3\times3$ QFI matrix and the two metrological limits ([notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb)),
+# the symmetric logarithmic derivative and the mixed-state QFI ([notebook 30, QFI from the SLD](30_qfi_from_the_sld_prepare_encode_estimate.ipynb)), the one-axis-twisting
+# Hamiltonian and the squeezing parameters ([notebook 33, spin squeezing](33_spin_squeezing_one_axis_twisting.ipynb)), and density tensors with Kraus channels
+# ([notebook 07, density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb)).
 #
 # **Conventions.** $J_a=\tfrac12\sum_q\sigma^a_q$; $\vert0\rangle$ is the $+1$ eigenstate of $Z$; the twisting angle is
 # $\mu=\chi t$ and the propagator is $e^{-i\mu J_z^2}$. SQL $=N$, Heisenberg limit $=N^2$.
@@ -107,8 +96,8 @@
 #
 # From the engine: the state constructors, `apply_gate` and `apply_kraus_dm`, the two-qubit rotation `rzz`, the Kraus
 # channels, `spin_moments`, `spin_squeezing`, `collective_dense`, `qfi_mixed`, `oat_evolve` and `sample_bitstrings`.
-# The symmetric-logarithmic-derivative routines of notebook 30 and the Husimi-$Q$ machinery of notebook 33 are
-# re-created below.
+# The symmetric-logarithmic-derivative routines of [notebook 30, QFI from the SLD](30_qfi_from_the_sld_prepare_encode_estimate.ipynb) and the Husimi-$Q$ machinery of
+# [notebook 33, spin squeezing](33_spin_squeezing_one_axis_twisting.ipynb) are re-created below.
 
 # %%
 #@engine: apply_gate, apply_kraus_dm, to_dm, dm_matrix, product_state, ghz_state, rzz, I2, X, Y, Z, spin_moments, spin_squeezing, collective_dense, qfi_mixed, oat_evolve, sample_bitstrings, kraus_dephasing, kraus_bit_flip, kraus_depolarizing, kraus_amplitude_damping, purity
@@ -180,16 +169,16 @@ print("helpers ready")
 #
 # Every experiment in this chapter has the same three stages, and the notebooks differ only in how they fill them in.
 #
-# | stage | Ramsey (nb 31) | GHZ (nb 32) | this notebook |
+# | stage | Ramsey | GHZ | this notebook |
 # |---|---|---|---|
 # | prepare | $\vert+x\rangle^{\otimes N}$ | $\left(\vert0\rangle^{\otimes N}+\vert1\rangle^{\otimes N}\right)/\sqrt2$ | $e^{-i\mu J_z^2}\vert+x\rangle^{\otimes N}$ |
 # | encode | $e^{-i\theta J_z}$ | $e^{-i\theta J_z}$ | $e^{-i\theta\,\mathbf n\cdot\mathbf J}$, $\mathbf n$ optimal |
 # | read out | population imbalance | parity in the $X$ basis | parity in the $Z$ basis |
 # | ideal $F_Q$ | $N$ | $N^2$ | $N$ to $N^2$, depending on $\mu$ |
 #
-# Three facts are carried over, each stated here in the form we need and derived in the notebook indicated.
+# Three facts are carried over, each stated here in the form we need and derived in the notebook linked.
 #
-# **(a) Quantum Cramér–Rao bound** ([[4]](#ref-4), [[5]](#ref-5); notebook 29). For $M$ repetitions of a protocol whose prepared state has quantum
+# **(a) Quantum Cramér–Rao bound** ([[4]](#ref-4), [[5]](#ref-5); [notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb)). For $M$ repetitions of a protocol whose prepared state has quantum
 # Fisher information $F_Q$ with respect to the encoding generator,
 #
 # $$\Delta\theta\;\ge\;\frac{1}{\sqrt{M\,F_Q}},$$
@@ -198,12 +187,12 @@ print("helpers ready")
 # collective generator $G=\mathbf n\cdot\mathbf J$ this is the quadratic form $F_Q(\mathbf n)=\mathbf n^{\mathsf T}\mathcal F\mathbf n$
 # with $\mathcal F_{ab}=4C_{ab}$; the best direction is the top eigenvector of $\mathcal F$.
 #
-# **(b) Ramsey and GHZ** (notebooks 31, 32; [[6]](#ref-6) for the GHZ protocol). A coherent spin state reaches $\Delta\theta=1/\sqrt{NM}$ — the standard
+# **(b) Ramsey and GHZ** ([notebook 31, Ramsey interferometry](31_ramsey_interferometry.ipynb); [notebook 32, GHZ interferometry](32_ghz_interferometry_heisenberg_limit.ipynb); [[6]](#ref-6) for the GHZ protocol). A coherent spin state reaches $\Delta\theta=1/\sqrt{NM}$ — the standard
 # quantum limit; a GHZ state encoded with $J_z$ and read out with the parity $\prod_qX_q$ reaches $\Delta\theta=1/(N\sqrt M)$
 # — the Heisenberg limit. The GHZ fringe has period $2\pi/N$, so the phase is only determined modulo $2\pi/N$ unless one
 # already knows it that well.
 #
-# **(c) One-axis twisting** (notebook 33; [[7]](#ref-7)). $H=\chi J_z^2$ is diagonal in the computational
+# **(c) One-axis twisting** ([notebook 33, spin squeezing](33_spin_squeezing_one_axis_twisting.ipynb); [[7]](#ref-7)). $H=\chi J_z^2$ is diagonal in the computational
 # basis: with $m(s)=\sum_q(\tfrac12-s_q)$,
 #
 # $$e^{-i\mu J_z^2}\,\psi[s]=e^{-i\mu\,m(s)^2}\,\psi[s],$$
@@ -263,7 +252,7 @@ print("helpers ready")
 #
 # This is a **GHZ state in the $x$ basis**: two coherent spin states pointing at opposite poles of the $x$ axis, in a
 # coherent superposition with a relative phase $\pm i$. Up to the local basis change that maps $\hat x$ to $\hat z$
-# (a Hadamard on every qubit), it is exactly the state of notebook 32.
+# (a Hadamard on every qubit), it is exactly the GHZ state.
 #
 # ### 4.2 Odd $N$: a cat along $\hat y$
 #
@@ -361,7 +350,7 @@ for N in range(4, 12):
 # > entanglement involves all $N$ qubits but is *of the simplest possible kind*: the two branches are orthogonal product
 # > states on both sides of any cut, so the state has Schmidt rank $2$ with equal weights across every bipartition, i.e.
 # > exactly one bit of entanglement entropy — far below the $\min(N_A,N_B)$ bits a cut allows — while carrying $F_Q=N^2$. Metrological usefulness is not
-# > entanglement entropy (notebook 29, Section 13).
+# > entanglement entropy ([notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb), Section 13).
 
 # %% [markdown]
 # ## 5. The same state from a circuit of commuting $ZZ$ gates
@@ -415,7 +404,7 @@ for N in (5, 8, 9):
 #
 # ### 6.1 What the $3\times3$ matrix tells us
 #
-# For a collective generator $G=\mathbf n\cdot\mathbf J$ and a pure state, notebook 29 derived
+# For a collective generator $G=\mathbf n\cdot\mathbf J$ and a pure state, [notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb), Section 12, derives
 #
 # $$F_Q(\mathbf n)=\mathbf n^{\mathsf T}\mathcal F\,\mathbf n,\qquad
 #   \mathcal F_{ab}=4\left[\tfrac12\langle J_aJ_b+J_bJ_a\rangle-\langle J_a\rangle\langle J_b\rangle\right],$$
@@ -435,11 +424,11 @@ for N in (5, 8, 9):
 #    will measure its height relative to $N^2$.
 # 4. $\mu=\pi/2$: $F_Q^{\max}=N^2$ exactly, by Section 4.
 #
-# **Feature 2 in detail.** Notebook 33 derived the bound $F_Q^{\max}\ge N/\xi_R^2$ [[9]](#ref-9) and the asymptotic
+# **Feature 2 in detail.** [notebook 33, spin squeezing](33_spin_squeezing_one_axis_twisting.ipynb) derives the bound $F_Q^{\max}\ge N/\xi_R^2$ [[9]](#ref-9) and the asymptotic
 # optimum $\xi_R^2\simeq\tfrac12(3/N)^{2/3}$ at $\mu_{\rm opt}\simeq3^{1/6}N^{-2/3}$, so
 # $N/\xi_R^2\simeq2\cdot3^{-2/3}N^{5/3}\approx0.96\,N^{5/3}$. A lower bound alone does not fix the exponent of $F_Q$;
 # the anti-squeezed variance does. For a pure state $F_Q^{\max}=4V_+$, with $V_+$ the larger eigenvalue of the
-# transverse covariance (notebook 33, Section 9.5): $V_+=\tfrac N4\big[1+\tfrac{N-1}{4}\big(A+\sqrt{A^2+B^2}\big)\big]$
+# transverse covariance ([notebook 33, spin squeezing](33_spin_squeezing_one_axis_twisting.ipynb), Section 9.5): $V_+=\tfrac N4\big[1+\tfrac{N-1}{4}\big(A+\sqrt{A^2+B^2}\big)\big]$
 # with $A=1-\cos^{N-2}2\mu\simeq2N\mu^2$ and $B=4\sin\mu\cos^{N-2}\mu\simeq4\mu$. At $\mu_{\rm opt}$ one has
 # $B/A\sim N^{-1/3}\to0$, hence $V_+\simeq\tfrac N4(1+N^2\mu^2)$ and
 #
@@ -602,7 +591,7 @@ fig.tight_layout(); plt.show()
 # * In the squeezing regime the single power-law fit over $6\le N\le16$ gives $F_Q\sim N^{1.668}$, numerically within
 #   $0.1\%$ of the asymptotic $N^{5/3}=N^{1.667}$. This agreement is a coincidence of the fitting range, and the local
 #   slopes printed below the fit show it: $d\ln F_Q/d\ln N$ rises from $1.63$ ($N=6\to8$) to $1.70$ ($N=14\to16$), and
-#   the straight-line fit simply averages them. The analytic moments of notebook 33 (Section 9) continue the trend: the
+#   the straight-line fit simply averages them. The analytic moments of [notebook 33, spin squeezing](33_spin_squeezing_one_axis_twisting.ipynb) (Section 9) continue the trend: the
 #   local slope keeps rising to about $1.75$ near $N\sim100$ and comes back down to $5/3$ only for $N\gtrsim10^5$, the
 #   slow $N^{-1/3}$ corrections of Section 6.2. The quantity $N/\xi_R^2$ at the same twisting angle has the smaller
 #   fitted exponent $1.607$, with local slopes rising from $1.56$ to $1.65$. The bound $F_Q\ge N/\xi_R^2$ is respected
@@ -610,7 +599,7 @@ fig.tight_layout(); plt.show()
 #   at $N=6$ and by $26\%$ at $N=16$, on their way to the asymptotic ratio $3/2$ derived in Section 6.2. The last two
 #   columns of the table show where the gap comes from: the ratio $F_Q\xi_R^2/N$ equals the excess
 #   $V_{\min}V_{\max}/(\vert\langle\mathbf J\rangle\vert^2/4)$ of the transverse uncertainty product over its minimum,
-#   notebook 33, Eq. (26a), and the cell asserts the identity to $10^{-8}$ at every size.
+#   [notebook 33, spin squeezing](33_spin_squeezing_one_axis_twisting.ipynb), Eq. (26a), and the cell asserts the identity to $10^{-8}$ at every size.
 #
 # > **Numerical practice.** "Read the eigenvector as well as the eigenvalue." The $3\times3$ QFI matrix costs three
 # > applications of a collective operator, and it answers two questions at once: *how good* the state is and *what to do
@@ -757,7 +746,7 @@ fig.tight_layout(); plt.show()
 # standard readout, because $\Pi=(-1)^{k}$ with $k$ the number of qubits found in $\vert1\rangle$.
 #
 # The measurement has two outcomes, $\Pi=\pm1$, so the model is a two-outcome model, and its classical Fisher information
-# follows from the formula of notebook 29: for $p_\pm(\theta)=\left(1\pm\mathcal{A}\sin(N\theta+\varphi_0)\right)/2$ with
+# follows from Eq. (13) of [notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb): for $p_\pm(\theta)=\left(1\pm\mathcal{A}\sin(N\theta+\varphi_0)\right)/2$ with
 # visibility $\mathcal{A}$,
 #
 # $$I(\theta)=\frac{\left(\partial_\theta p_+\right)^2}{p_+}+\frac{\left(\partial_\theta p_-\right)^2}{p_-}
@@ -934,7 +923,7 @@ fig.tight_layout(); plt.show()
 # extrema of the fringe, where $\cos^2(N\theta)=0$ and the readout carries no information at all (the dashed curve on
 # the right axis is flat at $1$ and drops vertically to $0$ at $\theta=\pm\pi/(2N)$). The drop occurs at a single point,
 # where one outcome has probability exactly $0$, the score is undefined, and $I$ need not equal the limit of its
-# neighbours — the irregular model of notebook 29, Section 4.7. The table confirms it: $I=100.000$
+# neighbours — the irregular model of [notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb), Section 4.7. The table confirms it: $I=100.000$
 # at $\theta=0$, $0.0393$ and $0.0785$, and $0$ at $\theta=\pi/(2N)$. At the working point $I/F_Q=1.00000000$ — the
 # parity measurement is *exactly* optimal, with no need to build the SLD basis.
 #
@@ -994,7 +983,7 @@ fig.tight_layout(); plt.show()
 #
 # For a mixed state the pure-state formula $4\mathrm{Var}(G)$ is wrong, and the correct object is the symmetric
 # logarithmic derivative $L$ introduced in [[4]](#ref-4), defined by $\partial_\theta\rho=\tfrac12(L\rho+\rho L)$ and derived in
-# [30](../ch10_quantum_metrology_protocols/30_qfi_from_the_sld_prepare_encode_estimate.ipynb). In the eigenbasis
+# [notebook 30, QFI from the SLD](30_qfi_from_the_sld_prepare_encode_estimate.ipynb). In the eigenbasis
 # $\rho=\sum_m\lambda_m\vert m\rangle\langle m\vert$ and for unitary encoding $\partial_\theta\rho=-i[G,\rho]$, it gives
 #
 # $$F_Q[\rho,G]=2\sum_{\substack{m,n\\ \lambda_m+\lambda_n>0}}\frac{(\lambda_m-\lambda_n)^2}{\lambda_m+\lambda_n}
@@ -1010,7 +999,7 @@ fig.tight_layout(); plt.show()
 # so the optimal direction is again the top eigenvector of a $3\times3$ real symmetric matrix — for mixed states as for
 # pure ones. Second, the kernel of $\rho$ must be excluded, which is what the guarded division below does.
 #
-# We implement Eq. (9) twice: once through $L$ itself (`sld` / `qfi_from_sld`, the routines of notebook 30) and once
+# We implement Eq. (9) twice: once through $L$ itself (`sld` / `qfi_from_sld`, the routines of [notebook 30, QFI from the SLD](30_qfi_from_the_sld_prepare_encode_estimate.ipynb)) and once
 # through the engine's `qfi_mixed`, and check that they agree.
 
 # %%
@@ -1110,7 +1099,7 @@ for name, kraus in (("dephasing p=0.08", kraus_dephasing(0.08)), ("depolarising 
     assert abs(f_sld - f_eng) < 1e3 * TOL and abs(f_sld - f_mat) < 1e3 * TOL
 
 # %% [markdown]
-# Three independent code paths — the SLD construction of notebook 30, the engine's closed-form sum, and the quadratic
+# Three independent code paths — the SLD construction of [notebook 30, QFI from the SLD](30_qfi_from_the_sld_prepare_encode_estimate.ipynb), the engine's closed-form sum, and the quadratic
 # form of Eq. (10) — give the same quantum Fisher information on mixed states, and the mixed-state QFI matrix reduces to
 # $4C_{ab}$ on pure ones. From here on we use `qfi_matrix_mixed`, whose single eigendecomposition serves all three
 # directions at once.
@@ -1147,7 +1136,7 @@ for name, kraus in (("dephasing p=0.08", kraus_dephasing(0.08)), ("depolarising 
 # The decay rate is proportional to $N$. This is the precise statement of "cat states are exponentially fragile": the
 # Heisenberg *gain* is a factor $N$, and the extra decoherence *costs* a factor $e^{-4N\gamma\mu}$, so the advantage
 # survives only while $N\gamma\mu\lesssim\tfrac14\ln N$. The same $N$-fold faster decoherence of the maximally entangled
-# state is what removes its advantage in frequency estimation under Markovian dephasing ([[11]](#ref-11); notebook 32,
+# state is what removes its advantage in frequency estimation under Markovian dephasing ([[11]](#ref-11); [notebook 32, GHZ interferometry](32_ghz_interferometry_heisenberg_limit.ipynb),
 # Section 13).
 #
 # ### 10.2 The OAT cat lies along $\hat x$, which changes the answer
@@ -1453,13 +1442,13 @@ for N, vals in frag_rows:
 # complementary set $S^c=$ all qubits of Section 10.2). The second part carries no net coherence, because its $Y$ and
 # $Z$ contributions cancel qubit by qubit. All other strings land on other pairs, carry no coherence there, and do not
 # contribute, since $J_{\mathbf n_{\rm cat}}$ is diagonal in the cat basis. The two-level formula $F_Q=N^2C^2/t$ of
-# notebook 32, Eq. (16a), with coherence $C=(1-\tfrac{4\gamma}{3})^N$ and pair weight $t$, then gives the exact result
+# [notebook 32, GHZ interferometry](32_ghz_interferometry_heisenberg_limit.ipynb), Eq. (16a), with coherence $C=(1-\tfrac{4\gamma}{3})^N$ and pair weight $t$, then gives the exact result
 #
 # $$\frac{F_Q(J_{\mathbf n_{\rm cat}})}{N^2}
 #   =\frac{(1-\tfrac{4\gamma}{3})^{2N}}{(1-\tfrac{2\gamma}{3})^N+(\tfrac{2\gamma}{3})^N}. \tag{14}$$
 #
-# The depolarising channel is isotropic, so the same expression holds for the $x$-cat of this notebook and the $z$-cat of
-# notebook 32. Dropping the second term of the denominator gives the geometric law
+# The depolarising channel is isotropic, so the same expression holds for the $x$-cat of this notebook and for
+# the GHZ state, a $z$-cat. Dropping the second term of the denominator gives the geometric law
 #
 # $$\frac{F_Q(J_{\mathbf n_{\rm cat}})}{N^2}\simeq\left[\frac{(1-\tfrac{4\gamma}{3})^2}{1-\tfrac{2\gamma}{3}}\right]^N
 #   \equiv e^{-\kappa N}, \tag{14a}$$
@@ -1489,11 +1478,12 @@ for N, vals in frag_rows:
 #
 # $$\Delta\theta\sqrt M=\frac{1}{\sqrt{F_Q}},$$
 #
-# which is the quantum Cramér–Rao bound and, for the readouts of notebooks 31, 32 and Section 8, also the achieved value.
+# which is the quantum Cramér–Rao bound and, for the Ramsey and GHZ readouts and the parity readout of Section 8, also
+# the achieved value.
 #
-# * **Ramsey** (nb 31): $\vert+x\rangle^{\otimes N}$, $F_Q=N$, $\Delta\theta\sqrt M=1/\sqrt N$.
-# * **Squeezed** (nb 33): the OAT state at the optimal $\mu$, $F_Q\ge N/\xi_R^2$ with $\xi_R^2\sim N^{-2/3}$.
-# * **Ideal GHZ** (nb 32): $F_Q=N^2$, $\Delta\theta\sqrt M=1/N$.
+# * **Ramsey**: $\vert+x\rangle^{\otimes N}$, $F_Q=N$, $\Delta\theta\sqrt M=1/\sqrt N$.
+# * **Squeezed**: the OAT state at the optimal $\mu$, $F_Q\ge N/\xi_R^2$ with $\xi_R^2\sim N^{-2/3}$.
+# * **Ideal GHZ**: $F_Q=N^2$, $\Delta\theta\sqrt M=1/N$.
 # * **OAT cat** (this notebook): the same $F_Q=N^2$, prepared by letting the *same* interaction run to $\mu=\pi/2$.
 # * **Noisy cat and noisy squeezed**: the same quantities with depolarising noise of rate $\gamma$ acting during the
 #   twisting, evaluated for $N\le6$ where the density tensor fits.
@@ -1616,13 +1606,13 @@ fig.tight_layout(); plt.show()
 # A projective measurement $\{P_x\}$ of the encoded state $\rho_\theta=e^{-i\theta G}\rho\,e^{i\theta G}$ produces the
 # outcome $x$ with probability $p_x(\theta)=\mathrm{Tr}(P_x\rho_\theta)$. The information that one outcome carries about
 # $\theta$ is the score $\partial_\theta\ln p_x$, and the classical Fisher information [[14]](#ref-14) is its mean square
-# (notebook 29, Eq. (13)):
+# ([notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb), Eq. (13)):
 #
 # $$F_C(\theta)=\sum_xp_x\left(\frac{\partial_\theta p_x}{p_x}\right)^2=\sum_{x:\,p_x>0}\frac{(\partial_\theta p_x)^2}{p_x}. \tag{15}$$
 #
 # Only the probabilities and their derivatives enter. The code obtains $\partial_\theta p_x$ exactly with `jax.jacfwd`,
 # through the whole chain encode $\to$ rotate $\to$ $\vert\psi\vert^2$, which is what `classical_fisher` of Step 6 does.
-# The Braunstein–Caves inequality, proved in notebook 29, Section 5.3, states $F_C\le F_Q$ for every measurement. We
+# The Braunstein–Caves inequality, proved in [notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb), Section 5.3, states $F_C\le F_Q$ for every measurement. We
 # test it below on every readout and on random measurements.
 #
 # A second inequality organises the comparison between readouts. Suppose the recorded outcome $y=f(x)$ is a function of a
@@ -2279,7 +2269,7 @@ fig.tight_layout(); plt.show()
 #    How much of $F_Q=N^2$ does it capture, and why? Then drop the pulse and record $k$ directly: what changes, and how
 #    is the answer related to the parity readout?
 # 5. **(★★)** Reconstruct the noisy curves of Section 11 with quantum trajectories
-#    ([17 — Monte-Carlo wave function](../ch06_open_quantum_systems/17_monte_carlo_wave_function.ipynb)) instead of the
+#    ([notebook 17, Monte-Carlo wave function](../ch06_open_quantum_systems/17_monte_carlo_wave_function.ipynb)) instead of the
 #    density tensor. The QFI is *not* a linear function of $\rho$, so you cannot average it over trajectories — you must
 #    average $\rho$ first. How many trajectories are needed at $N=6$ to reproduce $F_Q$ to $1\%$?
 # 6. **(★★)** *Physics.* The lobe model of Section 6 gives $F_Q/N^2=\tfrac12+\tfrac1{2N}$ for $q\ge3$ and neglects

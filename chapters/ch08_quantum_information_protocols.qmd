@@ -42,10 +42,11 @@ observables without reconstructing the state.
 
 Read notebooks 19 to 22 in order: each one reuses the Bell basis, the Bell-measurement circuit and the noise models of
 the one before. Notebooks 23 and 24 do not depend on notebooks 20 to 22 and can follow notebook 19 directly; notebook 24
-continues notebook 23 and is read after it. Prerequisites are notebook 01 (JAX: `jit`, `vmap`, PRNG keys) of
-[Chapter 1](ch01_computational_toolbox.qmd); the reduced density matrices, density tensors, Kraus channels, negativity
+continues notebook 23 and is read after it. Prerequisites are notebooks 01 (JAX: `jit`, `vmap`, PRNG keys) and 02
+(einsum) of [Chapter 1](ch01_computational_toolbox.qmd); the reduced density matrices, density tensors, Kraus channels, negativity
 and measurements of notebooks 06, 07 and 08 in [Chapter 3](ch03_matrix_free_engine.qmd); the gates, circuits and random
-unitaries of notebooks 09 and 10 in [Chapter 4](ch04_digital_quantum_circuits.qmd); and, for the noisy teleportation and
+unitaries of notebooks 09 and 10 in [Chapter 4](ch04_digital_quantum_circuits.qmd); the Lanczos ground states of
+notebook 11 in [Chapter 5](ch05_ground_states_and_unitary_dynamics.qmd), for notebook 24; and, for the noisy teleportation and
 the GHZ decoherence, the quantum trajectories of notebook 17 in [Chapter 6](ch06_open_quantum_systems.qmd). The
 dense-coding rate in notebook 21 uses the Shannon entropy and the mutual information, which notebook 50 of
 [Chapter 12](ch12_quantum_communication_and_cryptography.qmd) introduces from the beginning. Entanglement measures and

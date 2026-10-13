@@ -58,6 +58,17 @@
 #   Section 10.1 collects the comparison with the classical baselines in one table.
 # * Section 11 collects the cost model and the timings.
 #
+# The notebook assumes density tensors, Kraus channels and measurement with reset
+# ([notebook 07, density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb);
+# [notebook 08, measurements](../ch03_matrix_free_engine/08_measurements.ipynb)), Trotter–Suzuki gate sequences
+# ([notebook 12, Trotter–Suzuki decomposition](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb)),
+# and the Lindblad equation and quantum trajectories
+# ([notebook 16, the Lindblad equation](../ch06_open_quantum_systems/16_lindblad_master_equation.ipynb);
+# [notebook 17, quantum trajectories](../ch06_open_quantum_systems/17_monte_carlo_wave_function.ipynb)).
+#
+# Units and conventions: $\hbar=1$, $\vert 0\rangle$ is the $+1$ eigenstate of $Z$, Hamiltonians are written with
+# Pauli matrices (not spin-$1/2$ operators), qubit $q$ is tensor axis $q$.
+#
 # ### What you will learn
 #
 # **Physics**
@@ -82,17 +93,6 @@
 # * `jax.vmap` over disorder realisations of the Hamiltonian and over quantum trajectories;
 # * a channel (partial trace plus re-preparation) implemented as two Kraus operators and validated against an independent
 #   dense-matrix computation.
-#
-# ### Prerequisites
-# * [Chapter 3 / 07 — density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb): density tensors, partial trace, Kraus channels;
-# * [Chapter 3 / 08 — measurements](../ch03_matrix_free_engine/08_measurements.ipynb): Born rule, collapse, reset, shot noise;
-# * [Chapter 5 / 12 — TEBD](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb): Trotter–Suzuki gate sequences;
-# * [Chapter 6 / 16 — Lindblad master equation](../ch06_open_quantum_systems/16_lindblad_master_equation.ipynb) and
-#   [Chapter 6 / 17 — quantum trajectories](../ch06_open_quantum_systems/17_monte_carlo_wave_function.ipynb): dissipative dynamics, density tensor versus trajectories;
-# * [Chapter 1 / 01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, `lax.scan`, PRNG keys.
-#
-# Units and conventions as before: $\hbar=1$, $\vert 0\rangle$ is the $+1$ eigenstate of $Z$, Hamiltonians are written with
-# Pauli matrices (not spin-$1/2$ operators), qubit $q$ is tensor axis $q$.
 
 # %%
 #@engine: I2, X, Y, Z, P0, SP, XX, YY, ZZ, ry, apply_gate, apply_gate_dm, apply_kraus_dm, zero_state, haar_state, to_dm, dm_matrix, rdm, rdm_dm, reset_qubit, sample_bitstrings, trace_distance, purity, kraus_from_jump, kraus_dephasing, kraus_amplitude_damping, tebd_gates, apply_gates, apply_gates_dm
@@ -505,8 +505,7 @@ for n, f in [("NARMA-2 ", narma2(u_demo)), ("NARMA-5 ", narma_n(u_demo, 5)), ("N
 #
 # $$ \sum_m K_m^\dagger K_m=\sum_m\vert m\rangle\langle0\vert0\rangle\langle m\vert=\sum_m\vert m\rangle\langle m\vert=\mathbb{1}, $$
 #
-# and completely positive by construction. In the language of [notebook 08](../ch03_matrix_free_engine/08_measurements.ipynb)
-# it is an *active reset*: measure $q$ in the computational basis and flip it if the outcome was $1$. Averaged over the
+# and completely positive by construction. It is an *active reset*: measure $q$ in the computational basis and flip it if the outcome was $1$. Averaged over the
 # measurement outcomes that procedure realises Eq. (10) exactly — which is why the same protocol can be simulated either on a
 # density tensor (the average) or on pure-state trajectories (single runs). One full input step is
 #
@@ -1006,8 +1005,8 @@ for name, Bf in (("1, u", np.stack([np.ones_like(u_fine), u_fine], 1)),
 #
 # ### 4.5 The same protocol on pure states: trajectories
 #
-# The density tensor costs $4^N$ numbers. The alternative of
-# [notebook 17](../ch06_open_quantum_systems/17_monte_carlo_wave_function.ipynb) is to keep a *pure* state of $2^N$ numbers
+# The density tensor costs $4^N$ numbers. The alternative, quantum trajectories
+# ([notebook 17, quantum trajectories](../ch06_open_quantum_systems/17_monte_carlo_wave_function.ipynb)), is to keep a *pure* state of $2^N$ numbers
 # and make the erasure stochastic: measure the input qubit in the computational basis and flip it if the outcome was $1$
 # (the engine's `reset_qubit`). A single run is then one experimental record; averaging $M$ independent runs reproduces the
 # channel of Eq. (10) exactly, because the average over the measurement outcome *is* the partial trace,
@@ -1804,9 +1803,9 @@ for q in range(N_QUBITS):
 #
 # > **Common pitfall.** `sample_bitstrings` builds a `(shots, 2^N)` array of log-probabilities, so `vmap`-ing it over
 # > thousands of repetitions is only safe because $N=4$ here. At $N=16$ the same line would try to allocate gigabytes; the
-# > cure is to loop over repetitions or to sample a sufficient statistic (the sampler is built in
-# > [notebook 08](../ch03_matrix_free_engine/08_measurements.ipynb), the sufficient-statistic shortcut is used in
-# > [notebook 32](../ch10_quantum_metrology_protocols/32_ghz_interferometry_heisenberg_limit.ipynb)).
+# > cure is to loop over repetitions or to sample a sufficient statistic (the sampler is derived in
+# > [notebook 08, measurements](../ch03_matrix_free_engine/08_measurements.ipynb); the sufficient-statistic shortcut is shown in
+# > [notebook 32, GHZ interferometry](../ch10_quantum_metrology_protocols/32_ghz_interferometry_heisenberg_limit.ipynb)).
 
 # ### 9.1 How shot noise propagates through the readout
 #
@@ -1962,8 +1961,8 @@ plt.tight_layout(); plt.show()
 #
 # A laboratory reservoir is not unitary between inputs. Add a Lindblad channel acting on every qubit during the evolution —
 # dephasing ($L=Z$, coherences decay as $e^{-2\gamma t}$) or amplitude damping ($L=\sigma^+=\vert0\rangle\langle1\vert$, excited population decays as
-# $e^{-\gamma t}$) with rate $\gamma$ — implemented as one Kraus pair per Trotter sub-step, as in
-# [notebook 16](../ch06_open_quantum_systems/16_lindblad_master_equation.ipynb). We use the *exact* single-qubit channel of
+# $e^{-\gamma t}$) with rate $\gamma$ — implemented as one Kraus pair per Trotter sub-step, as derived in
+# [notebook 16, the Lindblad equation](../ch06_open_quantum_systems/16_lindblad_master_equation.ipynb). We use the *exact* single-qubit channel of
 # each sub-step, $p=\tfrac12(1-e^{-2\gamma\delta t})$ for dephasing and $1-e^{-\gamma\delta t}$ for damping, rather than the
 # first-order pair of `kraus_from_jump`: for $\gamma\delta t=0.375$ (the case $\gamma=3$) the first-order pair would turn
 # a coherence factor $e^{-0.75}=0.47$ into $1-0.75=0.25$, and for $\gamma\delta t>1$ it is not even trace preserving. The

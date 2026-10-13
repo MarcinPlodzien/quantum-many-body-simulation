@@ -5,7 +5,7 @@
 # %% [markdown]
 # ## 1. Introduction
 #
-# Every variational quantum algorithm written so far in this chapter assumed a perfect device. The circuit
+# A variational quantum algorithm is usually formulated for a perfect device. The circuit
 # $U(\boldsymbol\theta)$ was a product of exact unitaries, the state stayed pure, and the cost
 # $C(\boldsymbol\theta)=\langle\psi(\boldsymbol\theta)\vert\hat H\vert\psi(\boldsymbol\theta)\rangle$ was the energy of
 # that pure state. Present-day hardware is not like that. A two-qubit gate on a superconducting processor fails a few
@@ -70,21 +70,12 @@
 #   time, so a whole two-dimensional sweep is one compiled program;
 # * keeping the *monitored* quantity exact while the *optimised* quantity is noisy.
 #
-# ### Prerequisites
-#
-# * [07 — density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb):
-#   the density tensor, the Kraus form, the channel zoo, the stochastic unravelling;
-# * [09 — quantum gates and circuits](../ch04_digital_quantum_circuits/09_quantum_gates_and_circuits.ipynb):
-#   circuits as gate lists, `noisy_circuit_dm` and `noisy_circuit_mcwf`;
-# * [40 — parametrized gates and gradients](../ch13_quantum_machine_learning/40_parametrized_gates_and_gradients.ipynb):
-#   ansätze, cost functions, the parameter-shift rule, SPSA, barren plateaus in the noiseless case;
-# * [41 — optimisers](../ch13_quantum_machine_learning/41_optimizers.ipynb): Adam, SPSA with Spall gains, the
-#   `lax.scan` training loop and `vmap` over random starts;
-# * [42 — the variational quantum eigensolver](../ch13_quantum_machine_learning/42_variational_quantum_eigensolver.ipynb):
-#   the algorithm itself, which is taken as given here.
+# The notebook assumes density tensors, Kraus channels and their stochastic unravelling ([notebook 07, density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb)), noisy circuits as gate
+# lists ([notebook 09, quantum gates and circuits](../ch04_digital_quantum_circuits/09_quantum_gates_and_circuits.ipynb)), the ansätze, gradients and optimisers of [notebook 40, parametrised gates and gradients](40_parametrized_gates_and_gradients.ipynb) and [notebook 41, optimisers](41_optimizers.ipynb), and the variational quantum eigensolver of
+# [notebook 42, the variational quantum eigensolver](42_variational_quantum_eigensolver.ipynb).
 #
 # **Conventions and sizes.** The test problem throughout is the ground state of an XXZ chain in a transverse field on
-# $N=4$ qubits, with the hardware-efficient ansatz [[3]](#ref-3) of notebook 40. Four qubits keep the density tensor at $4^4=256$
+# $N=4$ qubits, with the hardware-efficient ansatz [[3]](#ref-3). Four qubits keep the density tensor at $4^4=256$
 # complex numbers, so exact gradients through the channel are cheap and every experiment can be repeated over many
 # random initialisations. The trajectory simulator is pushed to $N=12$ in the cost study of Section 13.
 
@@ -395,7 +386,7 @@ fig.tight_layout(); plt.show()
 #
 # ### 4.1 The noisy hardware-efficient ansatz
 #
-# The circuit is the ansatz of notebook 40: $L$ repetitions of [a rotation block $R_y(\theta)R_z(\theta)$ on every
+# The circuit is the hardware-efficient ansatz: $L$ repetitions of [a rotation block $R_y(\theta)R_z(\theta)$ on every
 # qubit, then a chain of $CZ$ gates], followed by one final rotation block, so the parameter count is $n=2N(L+1)$. The
 # noisy version inserts the channels of Section 3.1: $\mathcal D_{p_1}$ on each qubit after its rotation pair, and
 # $\mathcal D_{p_2}$ on **both** qubits of every $CZ$. With $L=2$ and $N=4$ that makes $12$ channels of strength
@@ -418,7 +409,7 @@ fig.tight_layout(); plt.show()
 #
 # ### 4.2 Representation 1: the density tensor
 #
-# $\rho$ is a rank-$2N$ array (notebook 07): $N$ ket axes and $N$ bra axes. A unitary acts as $U$ on the ket axis and
+# $\rho$ is a rank-$2N$ array: $N$ ket axes and $N$ bra axes. A unitary acts as $U$ on the ket axis and
 # $U^*$ on the bra axis (`apply_gate_dm`); a channel is the single einsum of `apply_kraus_dm`, which sums over the Kraus
 # index internally. The result is **exact**: no sampling, no statistical error. The price is $4^N$ complex numbers and
 # $O(2^k4^N)$ work per $k$-qubit operation.
@@ -429,7 +420,7 @@ fig.tight_layout(); plt.show()
 #
 # ### 4.3 Representation 2: quantum trajectories
 #
-# The unravelling of notebook 07, introduced in [[9]](#ref-9), keeps a **pure** state and replaces each channel by a random choice of one Kraus
+# The stochastic unravelling, introduced in [[9]](#ref-9), keeps a **pure** state and replaces each channel by a random choice of one Kraus
 # operator, $\vert\psi\rangle\to K_m\vert\psi\rangle/\lVert K_m\vert\psi\rangle\rVert$ with probability
 # $\lVert K_m\vert\psi\rangle\rVert^2$ (`apply_kraus_mcwf`). The average of $\vert\psi\rangle\langle\psi\vert$ over
 # trajectories is exactly $\rho$, so any expectation value is estimated without bias:
@@ -1171,8 +1162,8 @@ for name, _ in MODELS[1:]:
 # %% [markdown]
 # ## 8. Noise-induced barren plateaus
 #
-# Notebook 40 measured the barren plateau of a *noiseless* circuit: for a hardware-efficient ansatz the variance of a
-# gradient component falls exponentially with the number of **qubits** [[12]](#ref-12). The authors of [[13]](#ref-13) identified a second,
+# The barren plateau of a *noiseless* circuit is set by the number of qubits: for a hardware-efficient ansatz the
+# variance of a gradient component falls exponentially with the number of **qubits** [[12]](#ref-12). The authors of [[13]](#ref-13) identified a second,
 # conceptually different mechanism caused by noise. For local Pauli noise acting on every qubit before and after each
 # of $L$ layers, with $q$ the largest factor by which the noise multiplies $X$, $Y$ or $Z$ ($q=\lambda$ for
 # depolarising noise), they proved an upper bound on **every** partial derivative of the noisy cost, at **every** point
@@ -1277,7 +1268,7 @@ fig.tight_layout(); plt.show()
 # %% [markdown]
 # At $N=4$ the noiseless variance (left panel, blue) changes little with depth (it falls by a factor $1.4$ between
 # $L=1$ and $L=12$, against a relative standard error of $0.15$ per point): four qubits are far too few for the *noiseless*
-# barren plateau of notebook 40, which needs the Hilbert-space dimension to be large. The noisy curves fall, and they
+# barren plateau, which needs the Hilbert-space dimension to be large. The noisy curves fall, and they
 # fall faster the larger $p_2$ is. This plateau is caused by the noise alone, and it appears at a system size where the
 # noiseless landscape has no plateau.
 #
@@ -1309,8 +1300,7 @@ fig.tight_layout(); plt.show()
 #    `jax.grad` differentiates straight through the Kraus operators and returns $\nabla C_{\rm noisy}$ exactly. This is
 #    a *simulator privilege*: no device can do it, because no device has $\rho$.
 # 2. **SPSA on a trajectory estimate.** The cost is estimated from $M$ trajectories, which is what a device with a
-#    finite measurement budget delivers, and the gradient comes from the two-evaluation SPSA rule introduced in [[15]](#ref-15),
-#    used in notebook 41, with
+#    finite measurement budget delivers, and the gradient comes from the two-evaluation SPSA rule introduced in [[15]](#ref-15), with
 #    Spall's probe schedule $c_k=c/k^{0.101}$ [[16]](#ref-16).
 #
 # The diagnostic recorded at every iteration is the **exact** density-tensor cost for both methods, and, separately, the
@@ -1422,7 +1412,7 @@ assert abs(E_mc_star - E_bug_star) > 5 * se_star
 # $-3.758$; most of the descent happens in the first 40 iterations, after which the median still falls by $0.16$. The
 # SPSA run reaches $-3.327$ after 150 iterations with $M=32$ trajectories per evaluation and is still improving. Its
 # Adam step was not tuned separately; halving it gives the same median to within $0.003$ and doubling it a clearly
-# worse one ($-3.00$), so $0.05$ is close to the best step for this budget. The stochastic method is slower per iteration, as it was in notebook 41: two noisy scalars per step
+# worse one ($-3.00$), so $0.05$ is close to the best step for this budget. The stochastic method is slower per iteration: two noisy scalars per step
 # against $n=24$ exact derivatives. Its interquartile band is also much wider, because the noise of the estimate is
 # inherited by the path the optimiser takes. (The exact gradient is a simulator privilege; on a device it would cost
 # $2n=48$ shot-limited circuit evaluations per iteration, so the two columns do not compare equal budgets.)
@@ -1559,7 +1549,7 @@ fig.tight_layout(); plt.show()
 # %% [markdown]
 # ## 11. The depth trade-off
 #
-# Notebook 41 measured that on a *noiseless* simulator more layers are better: extra parameters raise the success rate
+# On a *noiseless* simulator more layers are better ([notebook 41, optimisers](41_optimizers.ipynb), Section 14): extra parameters raise the success rate
 # and lower the achievable floor. Sections 5 and 8 measured that on a *noisy* device every extra layer contracts the
 # cost, and its gradients, further towards the maximally mixed value. The two effects pull in opposite directions, so
 # the reported energy has an optimum in depth, and that optimum should move to smaller depth as the error rate grows.
@@ -1959,7 +1949,8 @@ fig.tight_layout(); plt.show()
 #    of exactly, and plot the total error (bias plus statistics) of the $m=1,2,3$ estimates against $M$ at fixed
 #    $p_2=0.01$. Below which shot budget does mitigation make the answer *worse*?
 # 7. ★★★ **Where the plateau bites (physics).** Repeat Section 8 for $N=3,4,5,6$ and extract the decay rate per layer
-#    for each. Combine it with the noiseless variance scaling measured in Section 13 of notebook 40 (for a local cost it
+#    for each. Combine it with the noiseless variance scaling measured in Section 13 of
+#    [notebook 40, parametrised gates and gradients](40_parametrized_gates_and_gradients.ipynb) (for a local cost it
 #    is not a clean exponential, so use the measured values) to estimate the largest $(N,L)$ at which a gradient
 #    component of typical size could still be resolved with $10^6$ shots per circuit at $p_2=10^{-3}$.
 # 8. ★★★ **Mitigation inside the loop (extend the code).** Train with a *mitigated* cost: at each iteration evaluate

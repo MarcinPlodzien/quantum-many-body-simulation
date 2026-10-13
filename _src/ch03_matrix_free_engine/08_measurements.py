@@ -29,6 +29,10 @@
 # Bell pair measured along different axes (Section 12), and finally put measurements *inside* compiled loops: the quantum
 # Zeno effect and entanglement created by measurement (Section 13). Section 14 measures the cost.
 #
+# The notebook assumes `jit`, `vmap`, `lax.scan` and PRNG keys from [notebook 01, JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb), the state tensors and
+# `apply_gate` of [notebook 05, matrix-free operators](05_matrix_free_operators.ipynb) and the reduced density matrices, expectation values and
+# entanglement entropy of [notebook 06, states, observables and entanglement](06_states_observables_entanglement.ipynb).
+#
 # ### What you will learn
 #
 # *Physics*
@@ -47,19 +51,13 @@
 # * replacing `if random < p:` by `jnp.where` so that the code survives `jit`, `vmap` and `lax.scan`;
 # * `vmap` over keys = many shots; `lax.scan` with keys as the scanned input = repeated measurements in time.
 #
-# ### Prerequisites
-# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, `lax.scan`, PRNG keys;
-# * [05 — matrix-free operators](05_matrix_free_operators.ipynb): state tensors and `apply_gate`;
-# * [06 — states, observables, entanglement](06_states_observables_entanglement.ipynb): reduced density matrices `rdm`, expectation values, entanglement entropy;
-# * helpful but not required: [07 — density matrices and quantum channels](07_density_matrices_and_quantum_channels.ipynb).
-#
 # **Conventions**: spin/qubit $q$ = tensor axis $q$; $|0\rangle=(1,0)^T$ is the $+1$ eigenstate of $Z$ ("up"), $|1\rangle$ the $-1$ eigenstate;
 # measurement **outcome $m\in\{0,1\}$ means eigenvalue $(-1)^m$**; bit strings are written $s_0s_1\dots s_{N-1}$ with spin 0 leftmost (most significant bit of the flat index).
 
 # %% [markdown]
 # ## 2. Engine recap and helpers
 #
-# From earlier notebooks we reuse the state constructors, `apply_gate` (one einsum that applies a small matrix to chosen axes of the
+# We reuse the state constructors, `apply_gate` (one einsum that applies a small matrix to chosen axes of the
 # state tensor), the reduced density matrix `rdm`, expectation values and the entanglement entropy. The measurement functions themselves
 # are **not** in this recap; they are derived below.
 
@@ -117,7 +115,7 @@ def bits_to_str(bits):
 #
 # $$p(m)=\sum_{s\,:\,s_q=m}|\psi[s_0,\dots,s_{N-1}]|^2=\big(\rho_q\big)_{mm},\qquad(1)$$
 #
-# which we recognise as a diagonal element of the single-spin reduced density matrix $\rho_q[a,a']=\sum_{\rm rest}\psi[..a..]\psi^*[..a'..]$ of notebook 06.
+# which we recognise as a diagonal element of the single-spin reduced density matrix $\rho_q[a,a']=\sum_{\rm rest}\psi[..a..]\psi^*[..a'..]$.
 # This is general: **the statistics of any measurement on a subsystem depend only on its reduced density matrix.**
 #
 # ### 3.1 General measurements, the Lüders rule and unread outcomes
@@ -128,7 +126,7 @@ def bits_to_str(bits):
 #   postulate [[11]](#ref-11), [[12]](#ref-12) replaces the projectors by any family of operators $M_m$ with $\sum_mM_m^\dagger M_m=\mathbb 1$, giving
 #   $p(m)=\langle\psi\vert M_m^\dagger M_m\vert\psi\rangle$ and $\vert\psi_m\rangle=M_m\vert\psi\rangle/\sqrt{p(m)}$;
 #   projective measurements are the special case $M_m=\Pi_m$ with $\Pi_m^\dagger=\Pi_m=\Pi_m^2$. The $M_m$ are the Kraus
-#   operators of [notebook 07](07_density_matrices_and_quantum_channels.ipynb). A photodetector that absorbs the photon it
+#   operators derived in [notebook 07, density matrices and quantum channels](07_density_matrices_and_quantum_channels.ipynb). A photodetector that absorbs the photon it
 #   counts is a measurement of this general kind and is *not* described by the projection rule above.
 # * **The post-measurement state is a second assumption.** For a degenerate eigenvalue, $\vert\psi_m\rangle\propto\Pi_m\vert\psi\rangle$
 #   is the *Lüders rule* [[13]](#ref-13): the state is disturbed as little as the outcome allows. It is what an ideal repeatable apparatus does —
@@ -185,7 +183,7 @@ for m, P in enumerate((P0, P1)):
 #
 # **Drawing the outcome.** A two-outcome random variable with $P(m{=}0)=p_0$ is obtained from one uniform random number $u\in[0,1)$: set $m=0$ if $u<p_0$ and $m=1$ otherwise.
 #
-# **Randomness in JAX** (recap of notebook 01; [[14]](#ref-14)). There is no hidden global random state. Every random function takes an explicit **key**; the same key always produces the same number.
+# **Randomness in JAX** ([[14]](#ref-14)). There is no hidden global random state. Every random function takes an explicit **key**; the same key always produces the same number.
 # To get independent numbers we `split` a key into new ones and *never reuse a key*. This discipline is what makes a stochastic simulation reproducible, parallelisable
 # (each shot gets its own key — no ordering issues) and compatible with `jit`.
 #
@@ -462,7 +460,7 @@ assert float(jnp.min(fid)) > 1 - 1e2 * TOL
 # * **GHZ, $X$ basis**: write $|0\rangle=(|{+}\rangle+|{-}\rangle)/\sqrt2$, $|1\rangle=(|{+}\rangle-|{-}\rangle)/\sqrt2$; then GHZ$_N=\tfrac1{\sqrt2}\big[|{+}\rangle\,{\rm GHZ}^+_{N-1}+|{-}\rangle\,{\rm GHZ}^-_{N-1}\big]$ with
 #   ${\rm GHZ}^\pm=(|0..0\rangle\pm|1..1\rangle)/\sqrt2$. The rest remains a GHZ state ($S=1$ bit) whose *sign depends on the outcome*.
 # * **W, $Z$ basis**: with probability $1/N$ we find the excitation (outcome 1) and the rest collapses to $|0\dots0\rangle$; with probability $1-1/N$ we do not, and the rest is left in $W_{N-1}$, still entangled, with
-#   $S=h(2/5)\approx0.971$ bit ($h$ = binary entropy, see notebook 06). On average $\tfrac56\times0.971\approx0.809$ bit survives.
+#   $S=h(2/5)\approx0.971$ bit ($h$ = binary entropy). On average $\tfrac56\times0.971\approx0.809$ bit survives.
 # * **W, $X$ basis**: both outcomes have probability $1/2$ and leave the same entropy. Writing $|W_6\rangle=\tfrac1{\sqrt6}\big(|1\rangle|0^5\rangle+\sqrt5\,|0\rangle|W_5\rangle\big)$
 #   and expanding spin 0 in $|{\pm}\rangle$ leaves the other five spins in $\big(\pm|0^5\rangle+\sqrt5|W_5\rangle\big)/\sqrt6$. Splitting that further as $|W_5\rangle=\big(\sqrt2|W_2\rangle|0^3\rangle+\sqrt3|0^2\rangle|W_3\rangle\big)/\sqrt5$
 #   gives a reduced density matrix of the block $\{1,2\}$ that lives in the two-dimensional space spanned by $|0^2\rangle$ and $|W_2\rangle$, namely $\tfrac16\begin{pmatrix}4&\pm\sqrt2\\ \pm\sqrt2&2\end{pmatrix}$,
@@ -512,7 +510,7 @@ assert results[("GHZ", "Z")][4] < 1e3 * TOL and abs(results[("GHZ", "X")][4] - 1
 # $$\rho'=\sum_mp(m)|\psi_m\rangle\langle\psi_m|=\sum_m\Pi_m\,|\psi\rangle\langle\psi|\,\Pi_m .$$
 #
 # The derivation is one line ($p(m)|\psi_m\rangle\langle\psi_m|=\Pi_m|\psi\rangle\langle\psi|\Pi_m$ by the collapse rule). In the density matrix this *deletes all matrix elements between the sectors $s_q=0$ and $s_q=1$* and leaves the rest untouched: complete
-# **dephasing** of spin $q$, one of the noise channels of notebook 07, so an unread measurement and decoherence by an environment are the same map. The same fact underlies the principle of implicit measurement ([[7]](#ref-7), Sec. 4.4): an unread measurement of one qubit does not change the reduced state of the others. We verify it by averaging projectors over shots; the exact channel is two `apply_gate` calls per term on the density *tensor*
+# **dephasing** of spin $q$, one of the standard noise channels, so an unread measurement and decoherence by an environment are the same map. The same fact underlies the principle of implicit measurement ([[7]](#ref-7), Sec. 4.4): an unread measurement of one qubit does not change the reduced state of the others. We verify it by averaging projectors over shots; the exact channel is two `apply_gate` calls per term on the density *tensor*
 # ($\Pi_m$ on the ket axis $q$, $\Pi_m^*$ on the bra axis $N+q$). The size of the statistical error is known exactly: every post-measurement state is pure, $\||\psi\rangle\langle\psi|\|_F=1$, so the
 # average $\bar\rho$ of $M$ of them satisfies $\mathbb E\|\bar\rho-\rho'\|_F^2=(1-\mathrm{Tr}\,\rho'^2)/M$.
 
@@ -555,8 +553,7 @@ print(f"\nlargest coherence between the sectors s_1=0 and s_1=1:  before {coh_be
 # %% [markdown]
 # The trajectory average converges to the dephased density matrix: the rms error (over 20 independent repetitions) falls by roughly $\sqrt{10}\approx3.2$ for every tenfold increase of $M$ — measured factors $2.95$ and $3.59$ — and the product
 # rms$\,\times\sqrt M$ scatters by the $1/\sqrt{2\cdot20}\approx16\,\%$ that 20 repetitions allow around the exact value $\sqrt{1-\mathrm{Tr}\,\rho'^2}=0.697$; pooled over all 60 runs it agrees with it to $0.5\,\%$. The coherences between the two measurement sectors are gone.
-# The same idea — *average of random pure-state trajectories = deterministic evolution of a density matrix* — is the basis of the Monte-Carlo wave-function method for open systems
-# ([notebook 17, Chapter 6](../ch06_open_quantum_systems/17_monte_carlo_wave_function.ipynb)).
+# The same idea — *average of random pure-state trajectories = deterministic evolution of a density matrix* — is the basis of the Monte-Carlo wave-function method for open systems.
 
 # %% [markdown]
 # ## 10. Measuring all spins: sampling bit strings
@@ -810,7 +807,7 @@ assert abs(E_est - E0) < 4 * E_se
 
 # %% [markdown]
 # Every estimate agrees with its exact value within a few standard errors (the `assert`s allow four). By the spin-flip symmetry of the Hamiltonian the exact $\langle Z_3\rangle$ is 0, and its estimate is zero only within the error bar.
-# The energy comes out with a relative error of a fraction of a percent after $8000$ state preparations. Because of the $1/\sqrt M$ law, a variational algorithm that needs the energy with a standard error of $10^{-2}$ at every optimisation step would need about 30 times more shots, and $10^{-3}$ about 3000 times more: this measurement overhead is a central practical issue of near-term quantum algorithms ([notebook 41, Chapter 13](../ch13_quantum_machine_learning/41_optimizers.ipynb)).
+# The energy comes out with a relative error of a fraction of a percent after $8000$ state preparations. Because of the $1/\sqrt M$ law, a variational algorithm that needs the energy with a standard error of $10^{-2}$ at every optimisation step would need about 30 times more shots, and $10^{-3}$ about 3000 times more: this measurement overhead is a central practical issue of near-term quantum algorithms.
 #
 # ### 11.3 The $1/\sqrt M$ law and the central limit theorem over $R=400$ repetitions
 #
@@ -922,7 +919,7 @@ for kind in ("phi+", "psi-"):
 #
 # **Arbitrary axes.** Let spin 0 be measured along $z$ and spin 1 along the axis $\hat n(\theta)=(\sin\theta,0,\cos\theta)$ in the $x$–$z$ plane, i.e. the observable $\sigma_\theta=\cos\theta\,Z+\sin\theta\,X$. With the rotation gate
 # $R_y(\theta)=e^{-i\theta Y/2}=\cos\tfrac\theta2\,\mathbb 1-i\sin\tfrac\theta2\,Y$ (engine `ry`; `rx` is $R_x(\theta)=e^{-i\theta X/2}$; both are derived in
-# [notebook 08b, Section 4](08b_building_quantum_simulator_engine.ipynb)) one has
+# [notebook 08b, the quantum simulator engine](08b_building_quantum_simulator_engine.ipynb), Section 4) one has
 # $R_y(\theta)ZR_y(\theta)^\dagger=\cos\theta Z+\sin\theta X$, so the rule of Section 6 applies with $U=R_y(\theta)^\dagger=R_y(-\theta)$: rotate spin 1 with $R_y(-\theta)$, then read out in $Z$. Quantum mechanics predicts
 #
 # $$E(\theta)=\langle Z\otimes\sigma_\theta\rangle=\cos\theta\ \ (\Phi^+),\qquad E(\theta)=-\cos\theta\ \ (\Psi^-).$$
@@ -969,12 +966,12 @@ fig.tight_layout(); plt.show()
 # %% [markdown]
 # The sampled correlations follow $\pm\cos\theta$ within three standard errors (largest deviation $2.7$ SE among 50 points); the error bars shrink to zero where $|E|=1$ and are largest ($1/\sqrt M\approx0.03$) where $E=0$ — the $\sqrt{1-E^2}$ law of Section 11.
 # The smooth cosine is what makes quantum correlations stronger than any classical "hidden instruction set" could produce: such models are constrained by the CHSH inequality $|S|\le2$, while four well-chosen angles on this curve give $2\sqrt2$.
-# The derivation and a sample-based CHSH test are the subject of [notebook 19, Chapter 8](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb) (and of Exercise 6).
+# Exercise 6 carries out a sample-based CHSH test.
 
 # %% [markdown]
 # ## 13. Measurements inside compiled loops: mid-circuit measurement
 #
-# In many protocols a measurement sits *in the middle* of the dynamics and is repeated many times. The JAX pattern is `lax.scan` (notebook 01): the loop body is compiled once; the **carry** holds the
+# In many protocols a measurement sits *in the middle* of the dynamics and is repeated many times. The JAX pattern is `lax.scan`: the loop body is compiled once; the **carry** holds the
 # state (and any classical memory), and the **scanned input is an array of keys**, one per round, prepared beforehand with `jax.random.split`. `vmap` over a second batch of keys then runs many independent realisations in parallel.
 #
 # ### 13.1 The quantum Zeno effect
@@ -1038,7 +1035,7 @@ ax.set_title("Quantum Zeno effect"); ax.legend(fontsize=8); fig.tight_layout(); 
 #
 # ### 13.2 Entanglement *created* by measurement
 #
-# Section 9 showed measurements destroying entanglement. They can also **create** it between spins that never interacted directly. Take the 1D cluster state of notebook 06 ($|{+}\rangle^{\otimes N}$ followed by controlled-$Z$ on every bond; introduced in [[25]](#ref-25)), the resource of the one-way quantum computer, in which single-spin measurements are the whole computation [[1]](#ref-1). Its stabilisers
+# Section 9 showed measurements destroying entanglement. They can also **create** it between spins that never interacted directly. Take the 1D cluster state ($|{+}\rangle^{\otimes N}$ followed by controlled-$Z$ on every bond; introduced in [[25]](#ref-25)), the resource of the one-way quantum computer, in which single-spin measurements are the whole computation [[1]](#ref-1). Its stabilisers
 # connect a site only to its neighbours, and in fact **no pair of its spins is entangled at all**: every two-spin reduced state is separable, either exactly $\mathbb 1/4$ in the bulk or, at the two ends of the open chain, the classically correlated
 # $\rho_{01}=(\mathbb 1+X_0Z_1)/4$ and $\rho_{N-2,N-1}=(\mathbb 1+Z_{N-2}X_{N-1})/4$ that the end stabilisers $X_0Z_1$ and $Z_{N-2}X_{N-1}$ produce. The entanglement of the cluster state is genuinely multipartite, which is exactly why measurements can
 # concentrate it into a pair. Its two end spins in particular are **not entangled with each other**: for $N\ge4$ their reduced state is $\mathbb 1/4$ (no correlations whatsoever), and for $N=3$ it is the classical mixture
@@ -1090,7 +1087,7 @@ for N_c, basis in ((3, "X"), (3, "Z"), (7, "X")):
 # * $Z$ measurement: the ends are left in a product state ($S=0$), and the printed $\langle X_0X_2\rangle=+1$ is a classical correlation: $K_0=X_0Z_1$ and $K_2=Z_1X_2$ both commute with the measured $Z_1$, so the
 #   outcome fixes $X_0=X_2=(-1)^m$ separately on each end, and the state is the product $|x_0\rangle|z_1\rangle|x_2\rangle$.
 # * If the record is discarded, $\langle Z_0Z_2\rangle$ averages to zero (within shot noise): the entanglement is only *useful* together with the classical outcome. Turning "a random one of several Bell states" into "always $|\Phi^+\rangle$" requires a correction conditioned on the outcome — feedback,
-#   exactly as in `reset_qubit`, and exactly as in quantum teleportation ([notebook 20, Chapter 8](../ch08_quantum_information_protocols/20_quantum_teleportation.ipynb)).
+#   exactly as in `reset_qubit`, and exactly as in quantum teleportation.
 
 # %% [markdown]
 # ## 14. Performance
@@ -1184,7 +1181,7 @@ for shots in (1000, 10000):
 #    Propagate the four standard errors. How many shots per setting are needed to violate $|S|\le2$ by five standard errors?
 # 7. ★★★ **Zeno with a general measurement rate (extend the code).** Modify `zeno_shot` so that in each round the measurement happens only with probability $p$ (draw a second random number per round and select between the measured and the unmeasured state with `jnp.where` — think about how to do this for a state *tensor*).
 #    Plot the probability to find the spin in $|0\rangle$ at the end (not the survival of the whole record) versus $p$ for $n=64$ rounds.
-# 8. ★★★ **Measurement-induced disentangling in a many-body state (physics).** Take a Haar-random state of $N=10$ spins (volume-law entanglement, notebook 06). Measure a fraction $f$ of randomly chosen spins in $Z$ and compute the average half-chain entanglement entropy *of the post-measurement state*
+# 8. ★★★ **Measurement-induced disentangling in a many-body state (physics).** Take a Haar-random state of $N=10$ spins (volume-law entanglement). Measure a fraction $f$ of randomly chosen spins in $Z$ and compute the average half-chain entanglement entropy *of the post-measurement state*
 #    as a function of $f$ (average over shots and over the choice of spins with `vmap`; the measured positions must be static, so loop over a few random choices). Compare with the same experiment on the cluster state and on GHZ.
 #
 # ## References

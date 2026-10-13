@@ -39,6 +39,9 @@
 # which add carefully chosen redundancy: parity bits, sums modulo 2 of message bits, whose violations reveal where the
 # errors are.
 #
+# The notebook needs no quantum mechanics, only basic probability: distributions, expectation values, independent
+# events and the binomial distribution.
+#
 # ### 1.1 Road map
 #
 # * **Section 3** defines surprise and entropy, plots the binary entropy $h(q)$, and compresses a biased coin with
@@ -72,18 +75,6 @@
 # * syndrome decoding as a matrix product modulo 2;
 # * wrong controls that must fail: a Z-channel evaluated at the uniform input, a repetition code with an even number of
 #   copies, a parity check that cannot see two errors.
-#
-# ### Prerequisites
-#
-# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): arrays and pseudo-random keys
-#   (`jax.random.PRNGKey`, `fold_in`).
-# * Basic probability: a probability distribution, the expectation value, independent events, the binomial distribution.
-#
-# No quantum mechanics is needed in this notebook. Quantum states enter in the quantum part of this chapter, which
-# builds on the Bell states, teleportation and superdense coding of
-# [notebooks 19](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb),
-# [20](../ch08_quantum_information_protocols/20_quantum_teleportation.ipynb) and
-# [21](../ch08_quantum_information_protocols/21_entanglement_swapping_and_superdense_coding.ipynb).
 
 # %% [markdown]
 # ## 2. Notebook helpers
@@ -207,7 +198,7 @@ for M in (2, 3, 6, 16):
 #
 # $$h(q)=-q\log_2q-(1-q)\log_2(1-q), \tag{4}$$
 #
-# the **binary entropy function**. It will appear in every notebook of this chapter, because an error that hits each bit
+# the **binary entropy function**. It appears wherever errors on bits are counted, because an error that hits each bit
 # with probability $q$ is exactly such a biased bit. It rises from $h(0)=0$ to $h(1/2)=1$ and is symmetric,
 # $h(q)=h(1-q)$: a bit that is almost always wrong is as predictable as one that is almost always right. Its derivative,
 #

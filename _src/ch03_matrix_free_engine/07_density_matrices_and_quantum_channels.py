@@ -29,7 +29,7 @@
 #
 # * §2–§4: what a mixed state is. Two origins, *ignorance* (ensembles) and *entanglement* (subsystems), one object $\rho$.
 #   Purity, entropy, and the Bloch ball.
-# * §5: the numerical representation. In the spirit of [notebook 05](05_matrix_free_operators.ipynb) we store
+# * §5: the numerical representation. In the matrix-free spirit we store
 #   $\rho$ not as a $2^N\times2^N$ matrix but as a **density tensor of rank $2N$**, one "ket" axis and one "bra" axis per qubit.
 # * §6: unitary evolution $\rho\to U\rho U^\dagger$ = "$U$ on the ket axes, $U^*$ on the bra axes".
 # * §7–§8: quantum channels and their Kraus form $\rho\to\sum_m K_m\rho K_m^\dagger$, applied by **one einsum** that sums
@@ -41,6 +41,11 @@
 #   branch per trajectory. We prove that the trajectory average reproduces the channel exactly, parallelise over
 #   trajectories with `jax.vmap`, and measure the $1/\sqrt{M}$ statistical error.
 # * §12: cost. Memory $4^N$ (density tensor) against $2^N$ (trajectories), with measured timings.
+#
+# The notebook assumes `jit`, `vmap`, `lax.scan` and PRNG keys from [notebook 01, JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb), traces as repeated
+# letters from [notebook 02, einsum](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb), the state tensor and `apply_gate` of
+# [notebook 05, matrix-free operators](05_matrix_free_operators.ipynb) and the reduced density matrices, purity and von Neumann entropy of
+# [notebook 06, states, observables and entanglement](06_states_observables_entanglement.ipynb).
 #
 # ### What you will learn
 #
@@ -59,19 +64,12 @@
 # * Writing einsum strings by hand for small $N$, validating against dense `kron` matrices, then generalising programmatically.
 # * `jax.vmap` over noise strengths and over trajectories, `lax.scan` over noise layers, explicit PRNG keys, `lax.map` for memory-bounded batching.
 # * Statistical validation: comparing a Monte-Carlo estimate with an exact number *in units of its standard error*.
-#
-# ### Prerequisites
-# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, `lax.scan`, PRNG keys.
-# * [02 — einsum from scratch](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb): index notation, traces as repeated letters.
-# * [05 — Matrix-free operators](05_matrix_free_operators.ipynb): the state tensor and `apply_gate` (we reuse it on every page here).
-# * [06 — States, observables, entanglement](06_states_observables_entanglement.ipynb): GHZ states, reduced density
-#   matrices `rdm`, purity, von Neumann entropy. There $\rho_A$ appeared as a tool to quantify entanglement; here density
-#   operators become the state of the system itself.
 
 # %% [markdown]
-# ### Engine recap: what we bring from earlier notebooks
+# ### Engine recap
 #
-# The folded cell below contains the primitives derived in notebooks 05 and 06 that this notebook reuses: Pauli matrices
+# The folded cell below contains the primitives derived in [notebook 05, matrix-free operators](05_matrix_free_operators.ipynb) and
+# [notebook 06, states, observables and entanglement](06_states_observables_entanglement.ipynb) that are reused here: Pauli matrices
 # and elementary gates, `apply_gate` (a $k$-qubit operator acting on a tensor through one einsum), state constructors,
 # the pure-state reduced density matrix `rdm`, Pauli-string expectation values, `purity`, `von_neumann_entropy`,
 # `fidelity_pure` and Haar-random states/unitaries for testing. Everything *new* is derived below before its final
@@ -203,8 +201,7 @@ assert err < TOL
 # * **Von Neumann entropy** [[8]](#ref-8) $S(\rho)=-\mathrm{Tr}\,\rho\log_2\rho=-\sum_i\lambda_i\log_2\lambda_i$, the Shannon entropy of the
 #   eigenvalues, in bits. $S=0$ for pure states and $S=N$ bits for the maximally mixed state of $N$ qubits.
 #
-# Both were introduced in notebook 06 for *reduced* states; the engine functions `purity` and `von_neumann_entropy` take
-# any density matrix.
+# The engine functions `purity` and `von_neumann_entropy` take any density matrix, reduced or global.
 #
 # ### 3.2 The Bloch vector of a mixed qubit
 #
@@ -256,7 +253,7 @@ for name, rho in [("|+><+|", rho_plus), ("mixture", rho_mix)]:
 # $$ \langle O_A\rangle=\sum_{a,a',b}\psi^*_{a'b}\,(O_A)_{a'a}\,\psi_{ab}
 #    =\mathrm{Tr}\big(\rho_A O_A\big),\qquad (\rho_A)_{aa'}=\sum_b\psi_{ab}\psi^*_{a'b}\equiv(\mathrm{Tr}_B|\psi\rangle\langle\psi|)_{aa'} . $$
 #
-# This is the **reduced density matrix** (partial trace) of notebook 06, in einsum form `"ab,Ab->aA"`. For a product state
+# This is the **reduced density matrix** (partial trace), in einsum form `"ab,Ab->aA"`. For a product state
 # $\psi_{ab}=\alpha_a\beta_b$ it gives the pure state $\alpha_a\alpha^*_{a'}$. For the Bell state
 # $(|00\rangle+|11\rangle)/\sqrt2$ it gives $\rho_A=\mathbb 1/2$: **the whole is perfectly known, yet the part is maximally
 # random.** No classical ignorance is involved here; the mixedness of $A$ comes entirely from its entanglement with $B$.
@@ -269,7 +266,7 @@ for name, rho in [("|+><+|", rho_plus), ("mixture", rho_mix)]:
 # ($\theta=0$) and a Bell state ($\theta=\pi/4$). By hand, $\rho_A=\mathrm{diag}(\cos^2\theta,\sin^2\theta)$, so
 # $\mathbf r=(0,0,\cos2\theta)$ and $\gamma=\cos^4\theta+\sin^4\theta=1-\tfrac12\sin^22\theta$. We evaluate the whole family in
 # one call with `jax.vmap`, which turns a function written for one $\theta$ into a function of an array of $\theta$s
-# (see [notebook 01](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)).
+# (see [notebook 01, JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)).
 
 # %%
 # ==============================================================================
@@ -321,13 +318,13 @@ fig.tight_layout(); plt.show()
 # **Interpretation.** As $\theta$ grows from 0 the reduced state of qubit $A$ leaves the north pole $|0\rangle$ and travels
 # *through the interior* of the ball along the $z$-axis (left panel; colour encodes $\theta$), reaching the centre exactly at
 # the Bell state, and continues to the south pole $|1\rangle$ at $\theta=\pi/2$ where the pair is a product state again. The
-# right panel shows purity dropping from 1 to ½ while the entropy rises from 0 to 1 bit, which is, as in notebook 06, the
+# right panel shows purity dropping from 1 to ½ while the entropy rises from 0 to 1 bit, which is the
 # entanglement entropy of the pair. For a pure state of the pair, the depth of qubit $A$'s Bloch vector inside the ball
 # ($1-|\mathbf r|$) is a direct measure of its entanglement with $B$.
 #
 # > **Physics insight.** A mixed state can always be read in both ways. Given $\rho_A=\sum_i\lambda_i|i\rangle\langle i|$ one
 # > can *construct* a pure state $\sum_i\sqrt{\lambda_i}\,|i\rangle_A|i\rangle_B$ of a larger system whose reduced state is
-# > $\rho_A$ (a "purification"; it is the Schmidt decomposition of notebook 06 read backwards). Whether the randomness is
+# > $\rho_A$ (a "purification"; it is the Schmidt decomposition read backwards). Whether the randomness is
 # > "classical ignorance" or "entanglement with something we lost" cannot be decided by looking at $A$ alone.
 
 # %% [markdown]
@@ -335,8 +332,8 @@ fig.tight_layout(); plt.show()
 #
 # ### 5.1 Definition
 #
-# In notebook 05 the $2^N$ amplitudes became a rank-$N$ tensor $\psi[s_0,\dots,s_{N-1}]$ with one axis per qubit, and a
-# local operator became a contraction with one axis. We now do the same with $\rho$. A matrix element of an $N$-qubit
+# In the matrix-free engine the $2^N$ amplitudes form a rank-$N$ tensor $\psi[s_0,\dots,s_{N-1}]$ with one axis per qubit, and a
+# local operator is a contraction with one axis. We now do the same with $\rho$. A matrix element of an $N$-qubit
 # density operator carries a row bit string and a column bit string,
 #
 # $$ \rho[s_0,\dots,s_{N-1};\,s'_0,\dots,s'_{N-1}]=\langle s_0\dots s_{N-1}|\,\rho\,|s'_0\dots s'_{N-1}\rangle, $$
@@ -357,7 +354,7 @@ fig.tight_layout(); plt.show()
 # * **Trace**: $\mathrm{Tr}\rho=\sum_s\rho[s;s]$. Give each bra axis the *same letter* as its ket axis and keep nothing:
 #   `"abab->"` for $N=2$.
 # * **Partial trace**: tie only the axes of the qubits we discard. Trace out qubit 1 of two: $\rho_0[a,A]=\sum_b\rho[a,b;A,b]$,
-#   `"abAb->aA"`. Trace out qubit 0: `"abaB->bB"`. (For a pure state this reproduces `rdm` of notebook 06; for a mixed
+#   `"abAb->aA"`. Trace out qubit 0: `"abaB->bB"`. (For a pure state this reproduces the engine function `rdm`; for a mixed
 #   state there is no $\psi$ to start from, and this is the only way.)
 # * **Local expectation value**: $\mathrm{Tr}(\rho\,O_q)$ with $O$ acting on qubit $q$. Only the reduced state of qubit $q$
 #   matters: $\mathrm{Tr}(\rho\,O_q)=\sum_{aA}\rho_q[a,A]\,O[A,a]=\mathrm{Tr}(\rho_q O)$.
@@ -411,7 +408,7 @@ assert abs(float(purity(R)) - 0.58) < 1e3 * TOL
 #
 # ### 5.3 The engine versions
 #
-# The general-$N$ versions build the same strings programmatically, exactly as `apply_gate` did in notebook 05. Read them
+# The general-$N$ versions build the same strings programmatically, exactly as `apply_gate` does. Read them
 # next to the by-hand strings above:
 #
 # * `to_dm` is the outer product (written with `tensordot(axes=0)`, equivalent to `"ab..,AB..->ab..AB.."`);
@@ -427,7 +424,7 @@ assert abs(float(purity(R)) - 0.58) < 1e3 * TOL
 
 # %% [markdown]
 # **Checkpoint.** We need mixed test states. `random_mixed_state` mixes a few Haar-random pure states with random
-# weights. For validation we also need the dense textbook operators of [notebook 03](../ch02_spin_systems_textbook_way/03_quantum_many_body_spin_systems.ipynb):
+# weights. For validation we also need the dense textbook operators:
 # `embed_1q` builds $\mathbb 1\otimes\dots\otimes O\otimes\dots\otimes\mathbb 1$ with a `kron` chain, and `embed_2q` embeds
 # an arbitrary two-qubit matrix on *any* ordered pair of qubits by expanding it in Pauli products,
 # $U=\sum_{ij}c_{ij}\,\sigma_i\otimes\sigma_j$ with $c_{ij}=\tfrac14\mathrm{Tr}[(\sigma_i\otimes\sigma_j)U]$. These dense
@@ -538,7 +535,7 @@ assert max(err_pt, err_loc, err_str) < TOL
 # | $N=3$, two-qubit gate on qubits (0,2); axes `abc`,`def` | `"ABac,CDdf,abcdef->AbBCeD"` | kets 0,2 (`a`,`c`→`A`,`B`), bras 0,2 (`d`,`f`→`C`,`D`) |
 #
 # In the last line the $4\times4$ gate has been reshaped to $U[A,B,a,c]$ (outputs first, inputs second, first qubit =
-# most significant bit, as in notebook 05), and the two qubits are *not* neighbours, which costs nothing.
+# most significant bit, as in `apply_gate`), and the two qubits are *not* neighbours, which costs nothing.
 
 # %%
 # ==============================================================================
@@ -855,8 +852,7 @@ print(f"purity before {float(purity(R)):.4f} -> after {float(purity(dm_matrix(ou
 # In the first three, "with probability $p$ an error happens" is exactly true, and the Kraus operators are rescaled
 # unitaries. The last two are of the system–environment type of §7.2 and their Kraus operators are not proportional to
 # unitaries. If noise acts continuously at a rate, a time step $\Delta t$ corresponds to
-# $\gamma=1-e^{-\Delta t/T_1}$ for amplitude damping and $1-2p=e^{-\Delta t/T_\phi}$ for pure dephasing
-# (the continuous-time theory is the subject of [notebook 16](../ch06_open_quantum_systems/16_lindblad_master_equation.ipynb), Chapter 6).
+# $\gamma=1-e^{-\Delta t/T_1}$ for amplitude damping and $1-2p=e^{-\Delta t/T_\phi}$ for pure dephasing.
 #
 # The engine provides the first four (`kraus_phase_flip` is an alias of `kraus_dephasing`); we add phase damping here in
 # the same style.
@@ -1098,7 +1094,7 @@ assert err_u < TOL and err_K < TOL
 # * **fidelity with the initial state** $F=\langle\psi_0|\rho|\psi_0\rangle$: the probability that a measurement would still find $|\psi_0\rangle$.
 #
 # > **JAX practice.** A loop "apply the same function $n$ times and record something after each step" is `lax.scan`
-# > ([notebook 01](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)): `step(carry, x) -> (new_carry, record)`. The step is compiled once,
+# > ([notebook 01, JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)): `step(carry, x) -> (new_carry, record)`. The step is compiled once,
 # > instead of being unrolled $n$ times as a Python `for` loop under `jit` would be.
 
 # %%
@@ -1178,9 +1174,8 @@ for name, rec in curves.items():
 # ### 10.1 Setting and analytic expectations
 #
 # The GHZ state $|\mathrm{GHZ}_N\rangle=(|0\dots0\rangle+|1\dots1\rangle)/\sqrt2$ is the $N$-qubit version of Schrödinger's cat: a
-# superposition of two macroscopically distinct configurations, and the resource behind Heisenberg-limited metrology
-# (the subject of [notebook 32](../ch10_quantum_metrology_protocols/32_ghz_interferometry_heisenberg_limit.ipynb) in
-# Chapter 10). Its density matrix has only four non-zero
+# superposition of two macroscopically distinct configurations, and the resource behind Heisenberg-limited metrology.
+# Its density matrix has only four non-zero
 # entries: two **populations** $\rho[0..0;0..0]=\rho[1..1;1..1]=\tfrac12$ and two **coherences**
 # $\rho[0..0;1..1]=\rho[1..1;0..0]=\tfrac12$. The populations alone would describe a classical mixture "all up or all down";
 # the single pair of coherences carries *all* the quantumness.
@@ -1219,7 +1214,7 @@ for name, rec in curves.items():
 #   one `jnp.transpose`. The engine's `partial_transpose` (shown below) first passes its argument through `as_dm_tensor`,
 #   which reshapes a $(2^N,2^N)$ matrix such as the output of `rdm` or `dm_matrix` into the rank-$2N$ tensor. Without that
 #   step a matrix would have only two axes, the "swap" would transpose the whole matrix, the eigenvalues would not change,
-#   and the negativity would come out as exactly zero for every state. The details and proofs belong to notebook 25 of Chapter 9 ([[14]](#ref-14), [[15]](#ref-15)); here we use it as a ready-made thermometer. For the dephased GHZ state the partial transpose moves the coherence
+#   and the negativity would come out as exactly zero for every state. The details and proofs are in [notebook 25, entanglement negativity](../ch09_entanglement_and_complexity/25_entanglement_negativity.ipynb) ([[14]](#ref-14), [[15]](#ref-15)); here we use it as a ready-made thermometer. For the dephased GHZ state the partial transpose moves the coherence
 #   $\tfrac c2$, $c=(1-2p)^N$, to a $2\times2$ block between the *unpopulated* basis states $|10..0\rangle,|01..1\rangle$; its
 #   eigenvalues are $\pm\tfrac c2$, so $\mathcal N=\tfrac12(1-2p)^N$.
 
@@ -1415,8 +1410,7 @@ for name, rec in sweeps.items():
 #
 # where $\sigma_O^2$ is the variance of $\langle\psi|O|\psi\rangle$ over trajectories (at most 1 for a Pauli observable). This
 # is a Monte-Carlo method: the error decreases as $1/\sqrt M$ **independently of $N$**. It is known as the *Monte-Carlo
-# wave-function* (MCWF) or *quantum-jump* method ([[17]](#ref-17), [[18]](#ref-18), [[19]](#ref-19); review: [[20]](#ref-20)); its continuous-time
-# version is developed in [notebook 17](../ch06_open_quantum_systems/17_monte_carlo_wave_function.ipynb), Chapter 6.
+# wave-function* (MCWF) or *quantum-jump* method ([[17]](#ref-17), [[18]](#ref-18), [[19]](#ref-19); review: [[20]](#ref-20)).
 #
 # ### 11.2 From formula to code
 #
@@ -1946,7 +1940,7 @@ for n in (4, 8, 10, 12, 14, 16, 20, 24, 28):
 #
 # > **JAX practice.** `vmap` over 100 trajectories of $2^{20}$ amplitudes would allocate all of them (and the einsum
 # > intermediates) at once. `lax.map(f, keys, batch_size=b)` is the memory-bounded alternative: it vmaps over chunks of
-# > `b` keys and loops over the chunks sequentially. Timing follows the rules of notebook 01: call once to compile, then
+# > `b` keys and loops over the chunks sequentially. Timing rules: call once to compile, then
 # > time a second call and wait for the result with `block_until_ready()`.
 #
 # > **JAX practice.** The initial state is passed to the jitted functions as an *argument*. Had we built it inside, the
@@ -2113,11 +2107,6 @@ assert err < TOL
 #   batch, `lax.map` over batches when memory is tight, and time loops through `lax.scan`.
 # * Habit: every new contraction was written by hand for small $N$, compared with dense `kron` algebra, and only then
 #   generalised; every Monte-Carlo result was compared with an exact number in units of its standard error.
-#
-# **Where this is used next:** measurements as (non-trace-preserving) Kraus operators in
-# [08 — Measurements](08_measurements.ipynb); noisy circuits in [09 — Quantum gates and circuits](../ch04_digital_quantum_circuits/09_quantum_gates_and_circuits.ipynb);
-# continuous-time open systems in [16 — Lindblad master equation](../ch06_open_quantum_systems/16_lindblad_master_equation.ipynb) and
-# [17 — Monte-Carlo wave function](../ch06_open_quantum_systems/17_monte_carlo_wave_function.ipynb) (Chapter 6).
 
 # %% [markdown]
 # ## 14. Exercises

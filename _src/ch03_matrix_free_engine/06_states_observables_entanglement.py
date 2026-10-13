@@ -22,10 +22,10 @@
 # Entanglement entropy matters for three reasons.
 #
 # * It is *the* resource of quantum technologies: quantum-enhanced sensors, teleportation and quantum computers are
-#   useless without it (Chapters 8–10 and 13 of these notes).
+#   useless without it.
 # * It decides **what can be simulated classically**. Ground states of local Hamiltonians carry very little entanglement
-#   (the *area law*, reviewed in [[5]](#ref-5)) — this is the reason why matrix-product-state methods (DMRG, introduced in [[6]](#ref-6); TEBD, introduced in [[7]](#ref-7); review: [[8]](#ref-8);
-#   [notebook 18 (Chapter 7)](../ch07_tensor_networks/18_mps_tebd.ipynb)) handle hundreds of spins. A typical (random) state
+#   (the *area law*, reviewed in [[5]](#ref-5)) — this is the reason why matrix-product-state methods (DMRG, introduced in [[6]](#ref-6); TEBD, introduced in [[7]](#ref-7); review: [[8]](#ref-8))
+#   handle hundreds of spins. A typical (random) state
 #   carries almost the maximum possible amount (the *volume law*, Page's value) — and no classical compression helps.
 # * It is a modern diagnostic of physics: quantum phase transitions, the dynamics of isolated many-body systems, even
 #   the black-hole information problem are phrased in terms of entanglement entropy.
@@ -38,6 +38,11 @@
 # entanglement entropies (`schmidt_values`, `entanglement_entropy`). Sections 7–9 are the physics: entropies of the zoo
 # versus the position of the cut, the Page value of random states, and area law versus volume law with a ground state
 # obtained by the Lanczos method. Section 10 maps a first phase diagram, of the XXZ chain in a transverse field, and Section 11 measures the cost of everything.
+#
+# The notebook assumes `jit`, `vmap` and PRNG keys from [notebook 01, JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb), index notation and partial traces from
+# [notebook 02, einsum](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb), the tensor products and flat-index convention of
+# [notebook 03, many-body spin systems](../ch02_spin_systems_textbook_way/03_quantum_many_body_spin_systems.ipynb) and the rank-$N$ state tensor and `apply_gate` of
+# [notebook 05, matrix-free operators](05_matrix_free_operators.ipynb).
 #
 # ### What you will learn
 #
@@ -59,12 +64,6 @@
 # * broadcasting tricks that build states and correlation matrices without loops;
 # * `jax.jit` with static subsystem labels, `jax.vmap` over batches of random states, timing with compilation separated from execution.
 #
-# ### Prerequisites
-# * [02 — einsum from scratch](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb): index notation, `reshape`/`transpose`, partial traces of small matrices;
-# * [03 — quantum many-body spin systems](../ch02_spin_systems_textbook_way/03_quantum_many_body_spin_systems.ipynb): tensor products, `kron`, site operators, the flat-index convention;
-# * [05 — matrix-free operators](05_matrix_free_operators.ipynb): the state as a rank-$N$ tensor and `apply_gate`;
-# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, PRNG keys.
-#
 # **Conventions** (the same in the whole course): spin/qubit $q$ is tensor axis $q$ (0-indexed); $|0\rangle=(1,0)^T$ is the
 # $+1$ eigenstate of $Z\equiv\sigma^z$ ("up"), $|1\rangle=(0,1)^T$ is "down"; the flat index of $|s_0 s_1\dots s_{N-1}\rangle$
 # is $i=\sum_q s_q 2^{N-1-q}$ (spin 0 = most significant bit). Entropies are measured in **bits** ($\log_2$).
@@ -72,9 +71,9 @@
 # %% [markdown]
 # ## 2. A zoo of many-body states as rank-$N$ tensors
 #
-# We start from what notebook 05 established: an $N$-spin state is a **rank-$N$ array** `psi[s0, s1, ..., s_{N-1}]` of shape
+# An $N$-spin state is a **rank-$N$ array** `psi[s0, s1, ..., s_{N-1}]` of shape
 # `(2,)*N`, and a small operator acts on it through `apply_gate` (one einsum). The cell below is the *engine recap*:
-# the pieces derived in earlier notebooks that we reuse here (Pauli matrices, `apply_gate`, the conversion of a pure
+# the pieces reused here (Pauli matrices, `apply_gate`, the conversion of a pure
 # state to a density tensor).
 
 # %%
@@ -118,7 +117,7 @@ def max_abs(a):
 # No index is repeated, none is summed: in einsum language this is `"a,b,c->abc"` for $N=3$. A product state is
 # described by only $2N$ numbers; it is the *absence* of such a factorisation — entanglement — that forces us to store all $2^N$.
 #
-# We check the hand-written einsum against the Kronecker product of notebook 03. Because both use C-ordering
+# We check the hand-written einsum against the Kronecker product. Because both use C-ordering
 # (spin 0 = most significant bit), flattening the tensor must give exactly the `kron` vector.
 
 # %%
@@ -155,7 +154,7 @@ assert err < TOL
 # | Dicke $D_N^k$ [[13]](#ref-13) | equal superposition of all basis states with exactly $k$ ones | superradiance; eigenstates of the total spin; $W_N=D_N^1$ |
 #
 # **JAX detail.** JAX arrays are immutable, so `psi[0,0,0] = x` does not exist; `psi.at[idx].set(x)` returns an updated
-# *copy* (notebook 01). For the Dicke state we need "the number of ones in the bit string" *as a tensor*
+# *copy*. For the Dicke state we need "the number of ones in the bit string" *as a tensor*
 # $n[s_0,\dots,s_{N-1}]=\sum_q s_q$. A loop-free way to get it is **broadcasting**: the array `[0,1]` reshaped to
 # `(1,..,2,..,1)` (size 2 on axis $q$) is the function $s_q$ on the whole index grid, and adding $N$ such arrays
 # gives $n$. Then $D_N^k$ is just the mask `n == k`, normalised by $\sqrt{\binom{N}{k}}$.
@@ -239,11 +238,11 @@ assert err < TOL
 # *Why this works.* The probability density of a complex Gaussian vector $g$ whose $2D$ real components are independent
 # standard normals is $\propto e^{-\|g\|^2/2}$ — a function of the length alone — and
 # $\|Ug\|=\|g\|$ for every unitary $U$: the distribution of $g$, hence of the direction $g/\|g\|$, is unitarily
-# invariant. (Haar-random *unitaries* are the subject of [notebook 10](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb).)
+# invariant.
 #
 # > **JAX practice.** JAX has no hidden global random state. Every random function takes an explicit **key**;
 # > the same key always gives the same numbers, and `jax.random.split` derives independent keys. This makes stochastic
-# > simulations reproducible and lets `vmap` generate a whole batch of states in parallel (see notebook 01).
+# > simulations reproducible and lets `vmap` generate a whole batch of states in parallel.
 
 # %%
 # ==============================================================================
@@ -343,7 +342,7 @@ fig.tight_layout(); plt.show()
 # %% [markdown]
 # **What we see.** GHZ lives on 2 basis states, W on $N=4$, the Dicke state on $\binom42=6$; the product state
 # $|{+}\rangle^{\otimes4}$ and the cluster state are *both perfectly flat* ($P=16$); the random state is spread irregularly over everything
-# ($P\approx 2^N/2$; the factor $1/2$ is a property of Gaussian amplitudes discussed in notebook 10).
+# ($P\approx 2^N/2$; the factor $1/2$ is a property of Gaussian amplitudes).
 #
 # > **Common pitfall.** Probabilities in one basis say almost nothing about entanglement. The product state $|{+}\rangle^{\otimes N}$
 # > and the highly entangled cluster state have *identical* histograms — all the difference is in the signs.
@@ -375,8 +374,7 @@ fig.tight_layout(); plt.show()
 #
 # $\rho_A$ is the **reduced density matrix** (RDM) of $A$. It is a $2^{|A|}\times2^{|A|}$ matrix — *small* if $A$ is a few
 # spins, no matter how large $N$ is — and by Eq. (2) it contains **everything** that measurements on $A$ alone can reveal.
-# In operator language Eq. (1) is the *partial trace* $\rho_A=\mathrm{Tr}_B|\psi\rangle\langle\psi|$ that you met for small
-# matrices in notebook 02.
+# In operator language Eq. (1) is the *partial trace* $\rho_A=\mathrm{Tr}_B|\psi\rangle\langle\psi|$.
 #
 # **Properties** (each follows from Eq. (1) in one line):
 # * Hermitian: $\rho_A[a',a]^*=\sum_b\psi^*[a',b]\psi[a,b]=\rho_A[a,a']$;
@@ -385,8 +383,8 @@ fig.tight_layout(); plt.show()
 #
 # So the eigenvalues $p_k$ of $\rho_A$ are probabilities ($p_k\ge0$, $\sum_kp_k=1$). Any matrix with these three properties is
 # called a **density matrix**; it describes a *statistical mixture*: "the system is in eigenvector $|k\rangle$ with probability $p_k$".
-# A pure state $|\phi\rangle$ corresponds to the special case $\rho=|\phi\rangle\langle\phi|$ (one $p_k=1$). Density matrices get
-# their own lecture in [notebook 07](07_density_matrices_and_quantum_channels.ipynb); here we only need this definition.
+# A pure state $|\phi\rangle$ corresponds to the special case $\rho=|\phi\rangle\langle\phi|$ (one $p_k=1$). Here we
+# only need this definition.
 #
 # > **Physics insight.** Take the Bell state $(|00\rangle+|11\rangle)/\sqrt2$, i.e. $\psi=\mathbb 1/\sqrt2$ as a $2\times2$ array.
 # > Eq. (1) gives $\rho_A=\psi\psi^\dagger=\mathbb 1/2$: the *maximally mixed* state — a fair coin. The pair is in a perfectly
@@ -479,8 +477,8 @@ print(np.round(np.asarray(rho_0), 4))
 #
 # ### 3.3 The einsum string for arbitrary $N$ and `keep`
 #
-# For arbitrary $N$ and an arbitrary list `keep` we generate the string programmatically, exactly as we did for
-# `apply_gate` in notebook 05:
+# For arbitrary $N$ and an arbitrary list `keep` we generate the string programmatically, in the same way as
+# for `apply_gate`:
 #
 # 1. label the axes of $\psi$ with the first $N$ letters: `a = ['a','b','c',...]`;
 # 2. copy the list for $\psi^*$ and replace the letters of the kept spins by *fresh* letters (the next unused ones);
@@ -550,7 +548,7 @@ print(f"\nworst error over all subsystems: {worst:.1e}")
 #
 # ### 3.4 Partial trace of a density tensor: a repeated letter inside one operand
 #
-# Sometimes the *global* state is already mixed (noise, loss, imperfect preparation — notebook 07). An $N$-spin density matrix
+# Sometimes the *global* state is already mixed (noise, loss, imperfect preparation). An $N$-spin density matrix
 # $\rho$ is a $2^N\times2^N$ matrix; in this course we store it as a **density tensor** of rank $2N$,
 #
 # $$\rho[s_0,\dots,s_{N-1};\,s'_0,\dots,s'_{N-1}],$$
@@ -624,7 +622,7 @@ print("engine rdm / rdm_dm agree with the hand-derived versions.")
 # small operator, take the trace. Since an expectation value of a Hermitian operator is real, we return the real part
 # (the imaginary part is rounding noise).
 #
-# The dense reference is the textbook formula of notebook 03: embed the operator with a Kronecker chain,
+# The dense reference is the textbook formula: embed the operator with a Kronecker chain,
 # $O_q=\mathbb 1\otimes\dots\otimes O\otimes\dots\otimes\mathbb 1$, and evaluate $\langle\psi|O_q|\psi\rangle$ with $2^N\times2^N$ matrices.
 
 # %%
@@ -1338,13 +1336,13 @@ print(f"half-chain deficit  N/2 - <S> = {N / 2 - mean[N // 2 - 1]:.4f} bits    (
 # `heisenberg_terms`) and $A$ is always the first $\ell$ spins, so $c/6$ is the right prefactor; using $c/3$ by mistake halves the fitted $c$.
 # Compare all of this with the volume law $S\approx\ell$ of random states.
 #
-# We test this on the transverse-field Ising chain of [notebook 03](../ch02_spin_systems_textbook_way/03_quantum_many_body_spin_systems.ipynb),
+# We test this on the transverse-field Ising chain,
 #
 # $$H=-J\sum_{i}Z_iZ_{i+1}-h\sum_iX_i,\qquad J=1,$$
 #
 # in the gapped paramagnetic phase ($h=1.5$) and at the critical point ($h=1$, where $c=1/2$). The ground state comes from the **Lanczos method** [[38]](#ref-38), a matrix-free eigensolver that
-# needs nothing but the action $H|\psi\rangle$ (sum of local `apply_gate` contractions, notebook 05); it is derived in detail in
-# [notebook 11 (Chapter 5)](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb). Here we use the engine version as a black box and check it: we compare the energy
+# needs nothing but the action $H|\psi\rangle$ (sum of local `apply_gate` contractions); it is derived in detail in
+# [notebook 11, Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb). Here we use the engine version as a black box and check it: we compare the energy
 # against dense diagonalisation for a small chain, and for every $N$ we monitor the residual $\|H\psi-E\psi\|$, which vanishes only for a true eigenstate.
 
 # %%
@@ -1462,7 +1460,7 @@ for label, p in spectra.items():
 # — out of 128. The random state is the opposite: most of its 128 values lie within two decades of the largest, only the last few drop
 # steeply, and the discarded weight stays above $10^{-8}$ until every one of the 128 is kept. Keeping only the $\chi$ largest terms of Eq. (3) at *every* cut is exactly what a **matrix product state** does; the
 # discarded weight $\sum_{k>\chi}p_k$ is its truncation error. Area law $\Rightarrow$ small $\chi$ suffices $\Rightarrow$ memory $O(N\chi^2)$ instead of $O(2^N)$: this is why DMRG and MPS-TEBD
-# ([notebook 18 (Chapter 7)](../ch07_tensor_networks/18_mps_tebd.ipynb)) reach hundreds of spins for ground states, and why they fail for volume-law states (e.g. long after a quench).
+# reach hundreds of spins for ground states, and why they fail for volume-law states (e.g. long after a quench).
 #
 # > **Common pitfall.** In the ferromagnetic phase $h<J$ of the finite chain the two lowest states (the "cat" combinations of all-up and all-down) are split only by an exponentially small gap $\sim h^N$.
 # > An iterative eigensolver then returns an arbitrary superposition from this doublet, and the entropy you measure can be anything between the symmetry-broken value and that plus 1 bit. Always check what your solver converged to (Exercise 6).
@@ -1622,7 +1620,7 @@ for Delta_ring in (0.5, -2.0):
 # ### 10.5 Two numerical ideas: a Hamiltonian linear in its parameters, and a symmetry sector
 #
 # **Linearity.** $H(\Delta,h_x)=H_{xy}+\Delta\,H_{zz}+h_x\,H_x$ is linear in the parameters. We build the three dense matrices *once* (with
-# `dense_hamiltonian` of notebook 05, from the matrix-free action) and then every grid point costs only a linear combination and a diagonalisation.
+# `dense_hamiltonian`, from the matrix-free action) and then every grid point costs only a linear combination and a diagonalisation.
 # All three are real symmetric, since $X\otimes X$, $Y\otimes Y=\begin{pmatrix}0&0&0&-1\\0&0&1&0\\0&1&0&0\\-1&0&0&0\end{pmatrix}$, $Z\otimes Z$ and $X$ have real entries;
 # we therefore diagonalise real matrices, which is faster and needs half the memory.
 #
@@ -1950,7 +1948,7 @@ for n in (8, 12):
 # | `entanglement_entropy(psi, A)` | $O(D\,2^{\min(\vert A\vert,\vert B\vert)})$ | $O(D)$ | SVD; worst case (half cut) $O(D^{3/2})$ |
 # | dense textbook route | $O(D^2)$–$O(D^3)$ | $O(D^2)$ | impossible beyond $N\approx14$ |
 #
-# We now *measure* it. Rules for timing JAX code (notebook 01): JAX dispatches work asynchronously, so we wait for the result with `jax.block_until_ready`; the first call of a jitted function includes tracing and
+# We now *measure* it. Rules for timing JAX code: JAX dispatches work asynchronously, so we wait for the result with `jax.block_until_ready`; the first call of a jitted function includes tracing and
 # XLA compilation, so we time it separately. The subsystem labels are **static** arguments — they determine the einsum string, hence the compiled program — so each distinct `keep` compiles its own program;
 # we fix them with `functools.partial` before `jax.jit`.
 
@@ -2037,7 +2035,7 @@ ax.legend(fontsize=8); fig.tight_layout(); plt.show()
 #    Explain the scatter of the results using the near-degenerate doublet. Then add a tiny symmetry-breaking field $-10^{-3}\sum_iZ_i$ and repeat.
 # 7. ★★★ **Compression by Schmidt truncation (extend the code).** For the critical ground state at $N=14$, truncate Eq. (3) at the half cut to the $\chi$ largest Schmidt values, renormalise, and compute the fidelity with the exact state and the error of
 #    $\langle Z_6Z_7\rangle$ as functions of $\chi$. Show that the infidelity equals the discarded weight. Repeat with a random state. How many numbers does the truncated state need?
-# 8. ★★★ **Entanglement growth (physics).** Using `apply_gate` and the Trotter gates of notebook 05, evolve $|{\uparrow\uparrow\dots\uparrow}\rangle$ under the critical Ising Hamiltonian ($N=12$) and plot $S(N/2)$ versus time. Identify the linear growth and the saturation
+# 8. ★★★ **Entanglement growth (physics).** Using `apply_gate` and the Trotter gates of [notebook 05, matrix-free operators](05_matrix_free_operators.ipynb), evolve $|{\uparrow\uparrow\dots\uparrow}\rangle$ under the critical Ising Hamiltonian ($N=12$) and plot $S(N/2)$ versus time. Identify the linear growth and the saturation
 #    value; compare the latter with the Page value. What does this imply for MPS simulations of quenches?
 # 9. ★★ **The phase diagram at another size (physics).** Repeat the scan of Section 10 for $N=8$ and $N=12$ (at $N=12$ each sector has dimension 2048; use a coarser grid).
 #    Which features of the maps move with $N$ and which do not? Along the line $\Delta=0$, plot the gap in the sector against $h_x$ for the three sizes:

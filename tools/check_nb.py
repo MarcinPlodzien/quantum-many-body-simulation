@@ -3,7 +3,7 @@
 check_nb.py -- editorial audit of the built notebooks (no execution).
 
 For every part*/**.ipynb reports: #cells, #figures, error outputs, stderr/warning outputs, forbidden words,
-presence of the mandatory sections (learning goals, prerequisites, checkpoints/asserts, summary, exercises,
+presence of the mandatory sections (learning goals, checkpoints/asserts, summary, exercises,
 references), use of JAX transformations, hard-coded dtypes, and size on disk.
 
     python tools/check_nb.py            # table for all notebooks
@@ -17,7 +17,7 @@ import nbformat
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 FORBIDDEN = re.compile(r"smoq(?!\.jax)|julia|\bport(ed|ing)?\b|\.jl\b", re.I)
-SECTIONS = {"learn": r"what you will learn", "prereq": r"prerequisite", "summary": r"summary|takeaway",
+SECTIONS = {"learn": r"what you will learn", "summary": r"summary|takeaway",
             "exerc": r"exercise", "refs": r"reference"}
 
 

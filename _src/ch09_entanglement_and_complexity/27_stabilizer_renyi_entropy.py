@@ -85,20 +85,15 @@
 #   $2\alpha$ is odd, and the difference is invisible on the states one usually tests with;
 # * reporting what was measured, including where the measurement disagrees with the textbook expectation.
 #
-# ### Prerequisites
-# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb) and
-#   [02 — einsum from scratch](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb);
-# * [05 — matrix-free operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb): `apply_gate`, the one einsum
-#   that applies a small matrix to one tensor axis — the Walsh-Hadamard transform of Section 9 is exactly this;
-# * [06 — states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb):
-#   reduced density matrices and entanglement entropy, used in Section 10.2;
-# * [09 — quantum gates and circuits](../ch04_digital_quantum_circuits/09_quantum_gates_and_circuits.ipynb): the gate set,
-#   Clifford$+T$ universality, and the first statement of the Gottesman-Knill theorem;
-# * [10 — random unitaries and random circuits](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb):
-#   the 24-element single-qubit Clifford group, frame potentials, and the observation — made there, explained here — that
-#   the output distribution of a Clifford circuit is not Porter-Thomas;
-# * [11 — Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb)
-#   and [12 — TEBD](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb) for Section 10.3 and 10.4.
+# The notebook assumes `apply_gate`, the einsum that applies a small matrix to one tensor axis
+# ([notebook 05, matrix-free operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb)), the entanglement entropy
+# ([notebook 06, states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb)), the
+# Clifford$+T$ gate set ([notebook 09, quantum gates and circuits](../ch04_digital_quantum_circuits/09_quantum_gates_and_circuits.ipynb)),
+# the single-qubit Clifford group and random circuits
+# ([notebook 10, random unitaries and random circuits](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb))
+# and, for Sections 10.3 and 10.4, Lanczos ground states and TEBD
+# ([notebook 11, Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb),
+# [notebook 12, TEBD](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb)).
 #
 # **Conventions.** Qubit $q$ = tensor axis $q$, counted from $0$; $\vert0\rangle$ is the $+1$ eigenstate of $Z$. Flat
 # indices are C-ordered, so qubit $0$ is the most significant bit of $s=\sum_q s_q2^{N-1-q}$. All logarithms in $M_\alpha$
@@ -340,7 +335,8 @@ print("  " + "  ".join(f"({a},{b}):{pauli_letters(a, b, 2)}" for a in range(4) f
 # In words: a Clifford unitary maps Pauli strings to Pauli strings under conjugation. It therefore maps stabilizer groups to
 # stabilizer groups, and stabilizer states to stabilizer states. The group is generated — this is quoted, not proved here —
 # by the Hadamard $H$, the phase gate $S=\mathrm{diag}(1,i)$ and CNOT [[1]](#ref-1); modulo phases it is finite, with $24$ elements for
-# $N=1$ (enumerated in [notebook 10](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb)) and
+# $N=1$ (enumerated in
+# [notebook 10, random unitaries and random circuits](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb)) and
 # $2^{N^2+2N}\prod_{k=1}^N(4^k-1)$ elements in general ([[6]](#ref-6); in this form [[7]](#ref-7)) — $24$ at $N=1$ and $11520$ at $N=2$.
 #
 # ### 4.3 The Gottesman-Knill theorem
@@ -375,7 +371,7 @@ print("  " + "  ".join(f"({a},{b}):{pauli_letters(a, b, 2)}" for a in range(4) f
 #
 # which is a *sum* of two Pauli strings and therefore lies outside the Pauli group. A single $T$ therefore breaks the stabilizer bookkeeping: a
 # stabilizer group of $2^N$ Pauli operators is replaced by something that no longer fits in $N$ generators. Clifford$+T$ is
-# universal (see [notebook 09](../ch04_digital_quantum_circuits/09_quantum_gates_and_circuits.ipynb)), and the number of
+# universal ([notebook 09, quantum gates and circuits](../ch04_digital_quantum_circuits/09_quantum_gates_and_circuits.ipynb)), and the number of
 # $T$ gates is the natural measure of how far a circuit has travelled beyond the simulable set.
 #
 # The cell below verifies that $H$, $S$ and CNOT are Clifford and that $T$ is not, by conjugating every Pauli string.
@@ -429,8 +425,7 @@ assert np.abs(TXT - (np.asarray(X) + np.asarray(Y)) / np.sqrt(2)).max() < 1e3 * 
 #
 # $$ \rho=\frac{1}{2^N}\sum_{P}\langle P\rangle\,P ,\qquad \langle P\rangle=\mathrm{Tr}(\rho P), \tag{5} $$
 #
-# the familiar Bloch expansion, generalised to $N$ qubits (the same expansion is the starting point of quantum state
-# tomography in [notebook 23](../ch08_quantum_information_protocols/23_quantum_state_tomography.ipynb)). Now compute the
+# the familiar Bloch expansion, generalised to $N$ qubits. Now compute the
 # purity from Eq. (5), using Eq. (2) once:
 #
 # $$ \mathrm{Tr}(\rho^2)=\frac1{4^N}\sum_{P,P'}\langle P\rangle\langle P'\rangle\,\mathrm{Tr}(PP')=\frac{2^N}{4^N}\sum_P\langle P\rangle^2=\frac{1}{2^N}\sum_P\langle P\rangle^2 . $$
@@ -947,8 +942,8 @@ for N in (1, 2, 3):
 # The first implementation transcribes Eq. (9) with no cleverness: loop over all $4^N$ Pauli strings, evaluate
 # $\langle P\rangle$, accumulate $\vert\langle P\rangle\vert^{2\alpha}$.
 #
-# **Cost of this implementation.** One expectation value $\langle\psi\vert P\vert\psi\rangle$ is computed matrix-free, as
-# in [notebook 05](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb): apply up to $N$ single-qubit matrices to the
+# **Cost of this implementation.** One expectation value $\langle\psi\vert P\vert\psi\rangle$ is computed matrix-free:
+# apply up to $N$ single-qubit matrices to the
 # state tensor, each costing $O(2^N)$, then one inner product. That is $O(N2^N)$ per string, and with $4^N$ strings
 #
 # $$ \text{brute force:}\qquad O\big(N\,8^N\big)\ \text{time},\qquad O(2^N)\ \text{memory}. $$
@@ -1969,7 +1964,8 @@ plt.show()
 # $\Pi=+1$, and the whole Krylov space stays there. At $h=0$ this selects the GHZ cat, whose magic is exactly zero, as it
 # must be.
 #
-# We use the Lanczos routine of [notebook 11](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb)
+# We use the Lanczos routine derived in
+# [notebook 11, Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb)
 # with an $h$-parametrised matrix-free $H\vert\psi\rangle$ so that the whole field sweep compiles once.
 
 # %%
@@ -2122,8 +2118,8 @@ plt.show()
 # ### 10.4 Magic generated by a quench
 #
 # The last experiment is dynamical. Prepare $\vert0\cdots0\rangle$ — a stabilizer state with zero magic and zero
-# entanglement — and evolve it with the critical Ising Hamiltonian $H(1)$ using the second-order TEBD of
-# [notebook 12](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb). Both quantities start at zero;
+# entanglement — and evolve it with the critical Ising Hamiltonian $H(1)$ using the second-order TEBD derived in
+# [notebook 12, TEBD](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb). Both quantities start at zero;
 # the question is whether they grow on the same time scale.
 
 # %%
@@ -2219,8 +2215,7 @@ plt.show()
 #
 # which is *larger than Eq. (11) permits for any pure state* and equals the naive ceiling $2N-N=N$ — for a state that is an equal mixture of the $2^N$ computational
 # basis states, i.e. a state preparable for free inside the stabilizer formalism by flipping $N$ coins. The formula has
-# confused ignorance with magic, exactly as the subsystem entropy confuses ignorance with entanglement in
-# [notebook 25](25_entanglement_negativity.ipynb).
+# confused ignorance with magic, exactly as the subsystem entropy of a mixed state confuses ignorance with entanglement.
 
 # %%
 # ==============================================================================

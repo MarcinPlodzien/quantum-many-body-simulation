@@ -5,8 +5,8 @@
 # %% [markdown]
 # ## 1. Introduction
 #
-# Every notebook so far has solved the Schrödinger equation $i\,\partial_t|\psi\rangle = H|\psi\rangle$: the spin
-# chain was **closed**, perfectly isolated from the rest of the universe. No laboratory system is like that. An atom
+# The Schrödinger equation $i\,\partial_t|\psi\rangle = H|\psi\rangle$ describes a **closed** spin
+# chain, perfectly isolated from the rest of the universe. No laboratory system is like that. An atom
 # in an excited state emits a photon and the photon flies away; the phase of a superconducting qubit is scrambled by
 # fluctuating charges in the substrate; a Rydberg atom decays spontaneously to lower levels; a trapped ion feels noisy
 # electric fields. In all these cases the system we care about (a few spins) talks to an **environment** with an
@@ -24,7 +24,7 @@
 # is an active research field.
 #
 # The state of an open system is not a vector $|\psi\rangle$ but a **density matrix** $\rho$
-# (introduced in [notebook 07 (Chapter 3)](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb)), and the
+# (introduced in [notebook 07, density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb)), and the
 # Schrödinger equation is replaced by the **Lindblad master equation**, also called the GKSL equation; it was
 # introduced in [[1]](#ref-1), [[2]](#ref-2):
 #
@@ -35,7 +35,7 @@
 #
 # **Road map.**
 #
-# 1. Section 2 motivates the equation: starting from the Kraus channels of notebook 07 we build the most general
+# 1. Section 2 motivates the equation: starting from Kraus channels we build the most general
 #    memoryless, physically consistent evolution, name the approximations a real bath must satisfy, quote the GKSL
 #    theorem (nothing else is possible) and show which parts of $(H,\{L_j\})$ are convention rather than physics.
 # 2. Section 3 solves one qubit by hand ($T_1$ decay, $T_2$ dephasing, the driven-dissipative steady state and damped Rabi
@@ -48,7 +48,11 @@
 #    the three defining properties of a density matrix: trace, Hermiticity, positivity.
 # 5. Section 8 is physics: a dissipative XXZ chain, driven to the maximally mixed state by dephasing, a
 #    structured steady state under decay, the spectrum of the Lindbladian and the relaxation gap.
-# 6. Section 9 measures the cost, $O(4^N)$, and explains why the *next* notebook (quantum trajectories) exists.
+# 6. Section 9 measures the cost, $O(4^N)$, and explains why quantum trajectories are needed.
+#
+# The notebook assumes `jit`, `vmap` and `lax.scan` ([notebook 01, JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)), `apply_gate` and Hamiltonians as lists of
+# local terms ([notebook 05, matrix-free operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb)), the density tensor and Kraus channels ([notebook 07, density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb)),
+# and the Trotter–Suzuki splitting ([notebook 12, Trotter–Suzuki evolution](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb)).
 #
 # ### What you will learn
 #
@@ -68,12 +72,6 @@
 # * `lax.scan` for time loops with recorded observables, `lax.fori_loop` with a *traced* trip count for parameter studies without recompilation, `vmap` over a drive strength;
 # * validation against analytic results and against a dense superoperator on small $N$; timing with compilation separated from execution.
 #
-# ### Prerequisites
-# * [Notebook 05 (Chapter 3) — matrix-free operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb): `apply_gate`, Hamiltonians as lists of local terms;
-# * [Notebook 07 (Chapter 3) — density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb): density operator, density **tensor**, Kraus channels, `apply_kraus_dm`;
-# * [Notebook 12 (Chapter 5) — TEBD](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb): Trotter–Suzuki splitting and `tebd_gates`;
-# * [Notebook 01 (Chapter 1) — JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, `lax.scan`.
-#
 # Units: $\hbar = 1$ everywhere; energies and rates are measured in units of the exchange coupling $J$, times in units of $1/J$.
 
 # %%
@@ -84,8 +82,8 @@
 #
 # ### 2.1 Why a density matrix, and what a physical evolution must respect
 #
-# Recall from [notebook 07 (Chapter 3)](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb): if the system S is
-# entangled with an environment E, there is **no** state vector for S alone. All predictions for measurements on S
+# If the system S is
+# entangled with an environment E, there is **no** state vector for S alone ([notebook 07, density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb)). All predictions for measurements on S
 # follow from the reduced density matrix $\rho = \mathrm{Tr}_E\,|\Psi_{SE}\rangle\langle\Psi_{SE}|$, a matrix with three
 # defining properties:
 #
@@ -118,19 +116,19 @@
 #    M_{\mu\nu}=\langle\phi_\mu|U(t)|\phi_\nu\rangle . $$
 #
 # Each $M_{\mu\nu}$ acts on the system alone - it is what is left of the joint propagator once the environment bra and
-# ket have been contracted, the same kind of contraction as the partial trace of
-# [notebook 06 (Chapter 3)](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb). Absorbing $\sqrt{\lambda_\nu}$ and
+# ket have been contracted, the same kind of contraction as the partial trace
+# ([notebook 06, states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb)). Absorbing $\sqrt{\lambda_\nu}$ and
 # writing a single label $k$,
 #
 # $$ \rho(t)=\sum_k A_k\,\rho(0)\,A_k^\dagger ,\qquad \sum_k A_k^\dagger A_k=\mathbb{1} , \tag{1}$$
 #
 # where the second identity follows from $U^\dagger U=\mathbb{1}$ and completeness of the $|\phi_\mu\rangle$, and is
 # what makes $\mathrm{Tr}\,\rho(t)=\mathrm{Tr}\,\rho(0)$ at all times. **Equation (1) is exact**: any coupling
-# strength, any environment, no approximation. Its price is that the $A_k$ are as unknowable as the environment. (In
-# the language of notebook 07 this is the Kraus form of a quantum channel, with Kraus operators $A_k$.)
+# strength, any environment, no approximation. Its price is that the $A_k$ are as unknowable as the environment. (This
+# is the Kraus form of a quantum channel, with Kraus operators $A_k$.)
 #
 # > **The label $k$ is a record.** It says which state the environment was left in. Summing over it - not reading it -
-# > gives the master equation of this notebook. *Reading* it gives the quantum trajectories of notebook 17: the
+# > gives the master equation of this notebook. *Reading* it gives quantum trajectories: the
 # > likeliest outcome leaves the system in $A_0|\psi\rangle$, whose norm is less than one because learning that
 # > nothing happened is information, and a rare outcome leaves it in $L_j|\psi\rangle$ - a click in a detector. The
 # > two methods are one derivation read two ways.
@@ -227,7 +225,7 @@
 #
 # The theorem is what turns Section 2.3 from a plausible ansatz into a statement about *all* memoryless evolutions:
 # nothing else than (2) is possible. The three physical words in it are *completely positive* (defined in
-# [notebook 07 (Chapter 3)](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb): positivity must
+# [notebook 07, density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb): positivity must
 # survive when the system is viewed as part of a larger one), *trace preserving* (probability), and *semigroup*
 # (memorylessness: evolving for $t+s$ is the same as evolving for $t$ and then for $s$, with no reference to what
 # happened before). A bath with memory violates the last property, and then no Lindblad equation exists.
@@ -239,12 +237,12 @@
 # * $-\tfrac12\{L^\dagger L,\rho\}$ — the price for probability conservation. It removes exactly as much trace as the
 #   jump term adds: $\mathrm{Tr}\,\mathcal{D}[L](\rho) = \mathrm{Tr}(L^\dagger L\rho) - \mathrm{Tr}(L^\dagger L\rho) = 0$ by cyclicity of the trace.
 #   Together with $H$ it forms the non-Hermitian **effective Hamiltonian** $H_{\rm eff} = H - \tfrac i2\sum_j\gamma_jL_j^\dagger L_j$,
-#   which governs the [next notebook](17_monte_carlo_wave_function.ipynb).
+#   which governs quantum trajectories.
 #
 # ### 2.4 The jump operators used in this notebook
 #
 # Our basis convention: $|0\rangle=(1,0)^T$ is the $+1$ eigenstate of $Z$ ("up"), $|1\rangle=(0,1)^T$. For a single qubit we take
-# $|1\rangle$ as the *excited* level that decays to $|0\rangle$, consistent with the amplitude-damping channel of notebook 07.
+# $|1\rangle$ as the *excited* level that decays to $|0\rangle$, consistent with the amplitude-damping channel of [notebook 07, density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb).
 # Relaxation of $|1\rangle$ to $|0\rangle$ has the jump operator $|0\rangle\langle1|=\sigma^+$ in our convention. Quantum-optics
 # texts call the same operator $\sigma^-=|g\rangle\langle e|$: they take $\sigma^z=|e\rangle\langle e|-|g\rangle\langle g|$, which
 # is $-Z$ when the ground state is $|0\rangle$.
@@ -268,15 +266,15 @@
 # ### 2.5 The pair $(H, \{L_j\})$ is not unique
 #
 # Two different-looking pairs $(H,\{L_j\})$ can generate the *same* $\mathcal L$, exactly as two different Kraus sets can
-# describe the same channel (the unitary freedom of
-# [notebook 07 (Chapter 3)](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb)). Absorb the rates
+# describe the same channel (the unitary freedom of Kraus representations,
+# [notebook 07, density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb)). Absorb the rates
 # into the jump operators, $A_j := \sqrt{\gamma_j}\,L_j$, so that $\mathcal L(\rho) = -i[H,\rho]+\sum_j\mathcal D[A_j](\rho)$.
 # Then $\mathcal L$ is unchanged under:
 #
 # 1. **Mixing of the jump operators.** $A_j \mapsto \sum_k u_{jk}A_k$ with a unitary matrix $u$. Indeed
 #    $\sum_j\big(\sum_ku_{jk}A_k\big)\rho\big(\sum_lu_{jl}A_l\big)^\dagger = \sum_{kl}\big(\sum_ju_{jk}u_{jl}^*\big)A_k\rho A_l^\dagger = \sum_kA_k\rho A_k^\dagger$
-#    because $\sum_ju_{jk}u^*_{jl}=\delta_{kl}$, and the same cancellation happens in $\sum_jA_j^\dagger A_j$. (As in
-#    notebook 07, $u$ may be rectangular with zero-padding, which lets one add or remove jump operators that do nothing.)
+#    because $\sum_ju_{jk}u^*_{jl}=\delta_{kl}$, and the same cancellation happens in $\sum_jA_j^\dagger A_j$. ($u$ may be
+#    rectangular with zero-padding, which lets one add or remove jump operators that do nothing.)
 # 2. **Shifting a jump operator by a number.** $A_j\mapsto A_j+c_j\mathbb 1$ with $c_j\in\mathbb C$, provided the
 #    Hamiltonian is shifted too: $H \mapsto H - \tfrac{i}{2}\sum_j\big(c_j^*A_j - c_jA_j^\dagger\big)$, which is
 #    Hermitian, so it is a legitimate Hamiltonian. (Substituting $A+c$ into $\mathcal D$ and collecting the terms linear
@@ -287,7 +285,7 @@
 # $\mathcal L$ is. A jump operator proportional to the identity does nothing at all (take $A=c\mathbb 1$ in rule 2 with
 # $A=0$). And the split between "Hamiltonian" and "dissipator" is itself convention-dependent — rule 2 moves weight from
 # one to the other. What *is* unique, once the $A_j$ are chosen traceless and the constant is removed from $H$, is the
-# pair up to the unitary mixing of rule 1. The next notebook uses this freedom in reverse: different unravellings of the
+# pair up to the unitary mixing of rule 1. Quantum trajectories use this freedom in reverse: different unravellings of the
 # *same* $\mathcal L$ give different quantum trajectories with identical averages.
 
 # %% [markdown]
@@ -320,8 +318,8 @@
 # > $L=\sigma^z$ with rate $\gamma_\varphi$, so coherences decay as $e^{-2\gamma_\varphi t}$.** With the spin-1/2 operator
 # > $L=\sigma^z/2$ the dissipator is divided by $4$ and the coherence decays as $e^{-\gamma_\varphi t/2}$; with the
 # > projector $L=\lvert1\rangle\langle1\rvert$ (a bath that watches only the excited level) one finds $e^{-\gamma_\varphi t/2}$
-# > as well. Compare the quantum-channel language of
-# > [notebook 07 (Chapter 3)](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb): the dephasing
+# > as well. In the quantum-channel language of
+# > [notebook 07, density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb), the dephasing
 # > channel with parameter $p$ sends $\rho_{01}\mapsto(1-2p)\rho_{01}$, so dephasing for a time $t$ in *our* convention is
 # > that channel with $p = (1-e^{-2\gamma_\varphi t})/2$ — the expression used in `exact_local_kraus` in Section 6.1.
 #
@@ -342,7 +340,7 @@
 #   It does not care whether `y` is a $2\times2$ matrix or a rank-$2N$ tensor.
 # * `integrate` runs the time loop with **`lax.scan`**: the step function is compiled once and iterated inside XLA;
 #   the second output of the step (`observe(y)`) is stacked along a new leading time axis
-#   (see [JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)).
+#   (see [notebook 01, JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)).
 
 # %%
 # ==============================================================================
@@ -572,7 +570,7 @@ plt.tight_layout(); plt.show()
 # ### 4.1 The density tensor (recap)
 #
 # For $N$ spins, $\rho$ is a $2^N\times2^N$ matrix. As in
-# [notebook 07 (Chapter 3)](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb) we store it as a **tensor of rank $2N$**
+# [notebook 07, density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb), we store it as a **tensor of rank $2N$**
 #
 # $$ \rho[\underbrace{s_0,\dots,s_{N-1}}_{\text{ket axes }0\ldots N-1};\;\underbrace{s'_0,\dots,s'_{N-1}}_{\text{bra axes }N\ldots 2N-1}]
 #    = \langle s_0\dots s_{N-1}|\,\rho\,|s'_0\dots s'_{N-1}\rangle , $$
@@ -772,7 +770,7 @@ assert err_A < TOL and err_B < TOL
 # $P(\lambda\,dt)$. The scheme is stable if $|P|\le1$. The eigenvalues of $\mathcal L$ have imaginary parts as large as the
 # spread of the energy differences, $|{\rm Im}\lambda|\le E_{\max}-E_{\min}=:W$, and small negative real parts of the order of
 # the rates. For purely imaginary $\lambda=i\omega$, Euler gives $|1+i\omega dt|=\sqrt{1+\omega^2dt^2}>1$: **always unstable**
-# (we met this in [notebook 04 (Chapter 2)](../ch02_spin_systems_textbook_way/04_time_evolution_the_textbook_way.ipynb)); only a sufficiently strong damping
+# ([notebook 04, time evolution with dense matrices](../ch02_spin_systems_textbook_way/04_time_evolution_the_textbook_way.ipynb)); only a sufficiently strong damping
 # rescues it. For RK4, $P(z)=1+z+\tfrac{z^2}{2}+\tfrac{z^3}{6}+\tfrac{z^4}{24}$ and the set $|P(z)|\le1$ — the stability
 # region — meets the imaginary axis on $|{\rm Im}\,z|\le2\sqrt2\approx2.83$ and the negative real axis on
 # $|{\rm Re}\,z|\le2.785$. The Lindbladian populates both directions: imaginary parts up to $W$ from the coherent
@@ -784,7 +782,7 @@ assert err_A < TOL and err_B < TOL
 #    W = E_{\max}-E_{\min},\qquad R \lesssim N\gamma. \tag{7}$$
 #
 # Both bounds tighten as $N$ grows: for a spin chain $W$ is extensive, $W\propto N$, so the affordable step shrinks like
-# $1/N$ — the same $1/N$ that we met for explicit integrators of the Schrödinger equation. In every experiment of this
+# $1/N$ — the same $1/N$ as for explicit integrators of the Schrödinger equation. In every experiment of this
 # notebook $R\ll W$ (weak baths), so the first bound is the binding one and we quote it as $dt<2.83/W$. Eq. (7) is an
 # estimate, not a theorem: the RK4 stability region is not a rectangle. A *small* negative real part moves a mode
 # slightly *deeper* into the region (the region bulges just to the left of the imaginary axis), which is why the measured
@@ -843,11 +841,11 @@ assert abs(order(errs["Euler"]) - 1) < 0.2 and abs(order(errs["RK4"]) - 4) < 0.3
 # RK4 treats $\rho$ as an anonymous vector of numbers. Nothing in it knows that $\rho$ must stay positive. The
 # alternative is a **structure-preserving** step built only from operations that are physical by themselves — unitary
 # gates and Kraus channels. It is also the natural language of noisy quantum circuits ("gate, then noise"), and the
-# form that can be unravelled into quantum trajectories in the next notebook.
+# form that can be unravelled into quantum trajectories.
 #
 # **Step 1: split coherent and dissipative dynamics.** Write $\mathcal L = \mathcal L_H+\mathcal L_D$ with
 # $\mathcal L_H(\rho)=-i[H,\rho]$ and $\mathcal L_D=\sum_j\gamma_j\mathcal D[L_j]$. As in
-# [TEBD](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb),
+# [notebook 12, Trotter–Suzuki evolution](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb),
 #
 # $$ e^{(\mathcal L_H+\mathcal L_D)dt} = e^{\mathcal L_Ddt}\,e^{\mathcal L_Hdt} + O(dt^2), $$
 #
@@ -867,7 +865,7 @@ assert abs(order(errs["Euler"]) - 1) < 0.2 and abs(order(errs["RK4"]) - 4) < 0.3
 #
 # *Exactly trace preserving is not the same as exact.* The channel is a legitimate CPTP map for every $dt$, but it is the
 # wrong one at order $dt^2$. For $L=\sigma^+$ it is $K_0={\rm diag}(1,\sqrt{1-\gamma dt})$, $K_1=\sqrt{\gamma dt}\,\sigma^+$:
-# the amplitude-damping channel of notebook 07 with $g=\gamma\,dt$, whereas the exact solution of Section 3.1 requires
+# the amplitude-damping channel with $g=\gamma\,dt$, whereas the exact solution of Section 3.1 requires
 # $g=1-e^{-\gamma dt}=\gamma dt-\tfrac12(\gamma dt)^2+\dots$. For $L=\sigma^z$ it is the dephasing channel with
 # $p=\gamma\,dt$ instead of the exact $p=(1-e^{-2\gamma dt})/2$. Both discrepancies are $O(dt^2)$ per step, hence $O(dt)$
 # after $T/dt$ steps: this is the *second* source of first-order error, independent of the splitting of Step 1, and
@@ -1322,7 +1320,7 @@ plt.tight_layout(); plt.show()
 # steady state cannot spontaneously break a symmetry at finite $N$, and dissipative phase transitions are exactly the points
 # where the gap closes as $N\to\infty$; (iii) $\rho_{\rm ss}$ is obtainable as a null vector, with no time integration;
 # (iv) a single long trajectory time-averages to $\mathrm{tr}(O\rho_{\rm ss})$, which is what makes the Monte-Carlo wave
-# function of the next notebook usable for steady-state questions. A zero can also be built on purpose: a **dark state**, a pure state
+# function usable for steady-state questions. A zero can also be built on purpose: a **dark state**, a pure state
 # annihilated by every $L_j$ and an eigenstate of $H$, is stationary by construction (decay alone, $H=0$, $L_i=\sigma^+_i$, has the dark
 # state $|0\dots0\rangle$ and no other steady state). When the dark state is the *only* zero every initial state is driven into it, and
 # engineering such a dark state is how dissipation becomes a tool for *preparing* states; two dark states give two zeros.
@@ -1398,8 +1396,7 @@ for n in [2, 4, 6, 8, 10, 12, 13, 14, 16, 20]:
 
 # %% [markdown]
 # A laptop with 16 GB stops at $N=13$ for a single copy of $\rho$ (1 GB; about 6 GB for RK4) — and $N=14$ is already out of
-# reach. The state vector of the same 13 spins takes 131 kB. This factor $2^N$ is the motivation for the
-# [next notebook](17_monte_carlo_wave_function.ipynb).
+# reach. The state vector of the same 13 spins takes 131 kB. This factor $2^N$ is the motivation for quantum trajectories.
 #
 # Now the measured time per step. We time **one jitted step** for increasing $N$, separating the first call
 # (tracing + XLA compilation) from the steady-state run time, with `block_until_ready()` because JAX dispatches asynchronously.
@@ -1483,8 +1480,8 @@ plt.tight_layout(); plt.show()
 #   $\gamma=0.1$); relaxation at late times is governed by the Liouvillian gap.
 # * Always validate: analytic limits, the literal dense formula, the dense superoperator for $N\le4$, convergence orders,
 #   and the diagnostics $\mathrm{Tr}\rho$, $\|\rho-\rho^\dagger\|$, $\lambda_{\min}$.
-# * The $4^N$ wall stops density-tensor simulations at $N\approx13$. Trading the density matrix for an ensemble of pure
-#   states — quantum trajectories — is the subject of the [next notebook](17_monte_carlo_wave_function.ipynb).
+# * The $4^N$ wall stops density-tensor simulations at $N\approx13$. The remedy is to trade the density matrix for an
+#   ensemble of pure states: quantum trajectories.
 #
 # ## 11. Exercises
 #

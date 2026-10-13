@@ -5,11 +5,11 @@
 # %% [markdown]
 # ## 1. Introduction
 #
-# The [previous notebook](16_lindblad_master_equation.ipynb) solved the Lindblad master equation
+# The Lindblad master equation
 #
 # $$ \frac{d\rho}{dt} = -i[H,\rho] + \sum_j\gamma_j\Big(L_j\rho L_j^\dagger - \tfrac12\{L_j^\dagger L_j,\rho\}\Big) \tag{1}$$
 #
-# by evolving the density tensor $\rho$ with its $4^N$ entries. That works comfortably up to $N\approx8$ spins and hits a
+# can be solved by evolving the density tensor $\rho$ with its $4^N$ entries ([notebook 16, the Lindblad master equation](16_lindblad_master_equation.ipynb)). That works comfortably up to $N\approx8$ spins and hits a
 # wall at $N\approx13$, where a single copy of $\rho$ fills a gigabyte. A state vector of the same 13 spins takes 131 kB.
 # Could we simulate an *open* system at the price of a *closed* one?
 #
@@ -35,8 +35,7 @@
 # **Road map.**
 #
 # * Section 2 derives the method carefully: the effective Hamiltonian, the jump probabilities, the proof that the average over
-#   trajectories obeys Eq. (1), and the relation to the Kraus channels of notebook 07 (Chapter 3) and to the Trotter–Kraus step of the previous
-#   notebook; it closes with the rule for choosing $dt$ and with the waiting-time formulation of the algorithm.
+#   trajectories obeys Eq. (1), and the relation to Kraus channels and to the Trotter–Kraus step; it closes with the rule for choosing $dt$ and with the waiting-time formulation of the algorithm.
 # * Section 3 implements one MCWF step and tests it on a single qubit, where everything is known analytically — including
 #   the surprising role of *not* detecting a photon.
 # * Section 4 builds the many-body machinery, `lax.scan` over time and `jax.vmap` over trajectories, for two different steppers.
@@ -46,6 +45,11 @@
 # * Section 8 measures the memory/time trade-off against $N$ and finishes with an open chain of $N=16$ spins, where the density tensor
 #   would need 69 GB, checked against an exact analytic law.
 # * Section 9 uses trajectories for transport: dephasing turns the ballistic melting of a domain wall into diffusion.
+#
+# The notebook assumes `jit`, `vmap`, `lax.scan` and PRNG keys ([notebook 01, JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)), Kraus channels and their
+# stochastic unravelling ([notebook 07, density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb)), `tebd_gates`
+# ([notebook 12, Trotter–Suzuki evolution](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb)), and the Lindblad equation with its jump operators and its RK4 and Trotter–Kraus
+# steps on the density tensor ([notebook 16, the Lindblad master equation](16_lindblad_master_equation.ipynb)).
 #
 # ### What you will learn
 #
@@ -66,16 +70,10 @@
 # * `lax.scan` (time) inside `jax.vmap` (trajectories) inside `jax.jit`; random branching without Python `if` (`jax.random.categorical` + `lax.switch`);
 # * timing with compilation separated from execution, batches instead of wasted warm-up runs.
 #
-# ### Prerequisites
-# * [notebook 16 (Chapter 6) — the Lindblad master equation](16_lindblad_master_equation.ipynb): Eq. (1), jump operators, RK4 and Trotter–Kraus steps on the density tensor;
-# * [notebook 07 (Chapter 3) — density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb): Kraus channels and their stochastic unravelling `apply_kraus_mcwf`;
-# * [notebook 12 (Chapter 5) — TEBD](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb): `tebd_gates`;
-# * [notebook 01 (Chapter 1) — JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, `lax.scan`, PRNG keys.
-#
-# Units and conventions as before: $\hbar=1$; $|0\rangle$ is the $+1$ eigenstate of $Z$; $\sigma^\pm=(X\pm iY)/2$, so that
+# Units and conventions: $\hbar=1$; $|0\rangle$ is the $+1$ eigenstate of $Z$; $\sigma^\pm=(X\pm iY)/2$, so that
 # $\sigma^-=|1\rangle\langle0|$ lowers spin up $|0\rangle$ to spin down $|1\rangle$ and $\sigma^+=|0\rangle\langle1|$ (engine: `SP`)
 # raises it, taking the excited level $|1\rangle$ to $|0\rangle$: decay has the jump operator $\sigma^+$ (quantum-optics texts call it
-# $\sigma^-$, see [notebook 16](16_lindblad_master_equation.ipynb)).
+# $\sigma^-$, see [notebook 16, the Lindblad master equation](16_lindblad_master_equation.ipynb)).
 
 # %%
 #@engine: X, Y, Z, SP, XX, YY, ZZ, apply_gate, zero_state, basis_state, product_state, to_dm, rdm, rdm_dm, entanglement_entropy, kraus_from_jump, apply_kraus_mcwf, heisenberg_terms, tebd_gates, apply_gates, lindblad_rhs, lindblad_rk4_step, lindblad_trotter_step_dm, lindblad_trotter_step_mcwf
@@ -154,11 +152,11 @@
 # $|\psi\rangle\to K_m|\psi\rangle/\|K_m\psi\|$", and its average is the channel $\rho\mapsto\sum_mK_m\rho K_m^\dagger$. Both statements hold only
 # to $O(dt^2)$: $\sum_mK_m^\dagger K_m = \mathbb 1+dt^2H_{\rm eff}^\dagger H_{\rm eff}$, so the branch probabilities do not add up to exactly one and the
 # channel is not exactly trace preserving. (`kraus_from_jump` repairs this, see below.) This is *exactly* the
-# stochastic unravelling of a Kraus channel from [notebook 07 (Chapter 3), Section 11](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb)
-# (engine: `apply_kraus_mcwf`), applied to the short-time channel from which we *derived* the Lindblad equation in the
-# [previous notebook, Section 2.3](16_lindblad_master_equation.ipynb). Nothing new had to be invented.
+# stochastic unravelling of a Kraus channel from [notebook 07, Section 11, density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb)
+# (engine: `apply_kraus_mcwf`), applied to the short-time channel from which the Lindblad equation is *derived* in
+# [notebook 16, Section 2.3, the Lindblad master equation](16_lindblad_master_equation.ipynb). Nothing new had to be invented.
 #
-# This observation gives us a second algorithm for free. The **Trotter–Kraus step** of the previous notebook factorises the
+# This observation gives us a second algorithm for free. The **Trotter–Kraus step** ([notebook 16, the Lindblad master equation](16_lindblad_master_equation.ipynb)) factorises the
 # short-time channel into a product of simple CPTP maps,
 #
 # $$ \rho(t+dt)\approx\mathcal E_{J}\circ\dots\circ\mathcal E_{1}\circ\mathcal U\,(\rho),\qquad \mathcal U(\rho)=U\rho U^\dagger,\quad
@@ -272,8 +270,8 @@
 #
 # * **`apply_neg_i_heff`** — the right-hand side $-iH_{\rm eff}|\psi\rangle = -i\sum_kh_k|\psi\rangle-\tfrac12\sum_j\gamma_jL_j^\dagger L_j|\psi\rangle$. Every term is a
 #   small matrix acting on one or two tensor axes: `apply_gate` (which does not require unitarity).
-# * **No-jump propagation.** The Euler step $(\mathbb 1-iH_{\rm eff}dt)$ of Section 2.2 is fine for a proof but poor numerics: we saw in
-#   the previous notebook that Euler is unstable for oscillatory dynamics. We integrate $\partial_t|\psi\rangle=-iH_{\rm eff}|\psi\rangle$ over $dt$ with one
+# * **No-jump propagation.** The Euler step $(\mathbb 1-iH_{\rm eff}dt)$ of Section 2.2 is fine for a proof but poor numerics: Euler is
+#   unstable for oscillatory dynamics ([notebook 16, Section 5, the Lindblad master equation](16_lindblad_master_equation.ipynb)). We integrate $\partial_t|\psi\rangle=-iH_{\rm eff}|\psi\rangle$ over $dt$ with one
 #   **RK4** step instead; the norm then decays like $e^{-\delta p}$ to high accuracy.
 # * **Jump decision from the norm.** Following Eq. (3) we take the no-jump probability from the propagated state itself,
 #   $p_0=\langle\tilde\psi|\tilde\psi\rangle$, and distribute the remaining $1-p_0$ over the channels in proportion to the rates
@@ -357,7 +355,7 @@ def run_trajectory(step, psi0, key, n_steps, observe):
 # `run_trajectory` handles **one** trajectory. Many trajectories are obtained without touching it:
 # `jax.vmap(lambda key: run_trajectory(..., key, ...))(keys)` maps the function over an array of keys, and `jax.jit` compiles
 # the batched program. This is the standard JAX layering — write the code for a single sample, let `vmap` batch it
-# ([JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)).
+# ([notebook 01, JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)).
 #
 # ### 3.2 The single-qubit laboratory
 #
@@ -408,7 +406,7 @@ key_A, key_B, key_C, key_val, key_22, key_stair, key_big = jax.random.split(key_
 # Start in the excited state $|1\rangle$, no drive. The no-jump evolution multiplies the only non-zero amplitude by $e^{-\gamma dt/2}$ and
 # the renormalisation undoes it: the state stays exactly $|1\rangle$ until a jump takes it to $|0\rangle$, once and for all.
 # A single trajectory is a step function; all the physics is in the **random jump time**, which should be exponentially
-# distributed with rate $\gamma$, and the ensemble average must reproduce $\rho_{11}(t)=e^{-\gamma t}$ (previous notebook, Section 3.1).
+# distributed with rate $\gamma$, and the ensemble average must reproduce $\rho_{11}(t)=e^{-\gamma t}$ ([notebook 16, Section 3.1, the Lindblad master equation](16_lindblad_master_equation.ipynb)).
 
 # %%
 # ==============================================================================
@@ -498,7 +496,7 @@ plt.tight_layout(); plt.show()
 # **Interpretation.** *Left:* between $t=0$ and its jump every trajectory follows the same smooth no-click curve of Eq. (5) (thick line:
 # a run that never clicked, in agreement with the formula to the accuracy of RK4); a click sends it to $p_1=0$ instantly. About half of the runs never click.
 # *Right:* averaged over the ensemble, population and coherence follow the master-equation results $\tfrac12e^{-\gamma t}$ and $e^{-\gamma t/2}$
-# (previous notebook, $T_1$ and $T_2=2T_1$). The $T_2$ decay of $\langle X\rangle$ arises in two ways at once: partly from trajectories that jumped
+# ([notebook 16, Section 3.1, the Lindblad master equation](16_lindblad_master_equation.ipynb): $T_1$ and $T_2=2T_1$). The $T_2$ decay of $\langle X\rangle$ arises in two ways at once: partly from trajectories that jumped
 # (coherence gone), partly from the *drift* of those that did not.
 #
 # > **Common pitfall.** A tempting "simplified" algorithm applies the unitary $e^{-iHdt}$ and then jumps with probability
@@ -511,7 +509,7 @@ plt.tight_layout(); plt.show()
 # ### 3.5 Experiment C: a driven qubit — Rabi oscillations interrupted by jumps
 #
 # With a resonant drive, $H=\tfrac\Omega2X$, the ensemble shows damped Rabi oscillations towards the steady state
-# $z_{\rm ss}=\gamma^2/(\gamma^2+2\Omega^2)$ derived in the [previous notebook, Section 3.4](16_lindblad_master_equation.ipynb). The exact solution
+# $z_{\rm ss}=\gamma^2/(\gamma^2+2\Omega^2)$ derived in [notebook 16, Section 3.4, the Lindblad master equation](16_lindblad_master_equation.ipynb). The exact solution
 # of the optical Bloch equations, $\vec r(t)=\vec r_{\rm ss}+e^{Mt}(\vec r_0-\vec r_{\rm ss})$, serves as reference.
 
 # %%
@@ -560,7 +558,7 @@ plt.tight_layout(); plt.show()
 #
 # ### 4.1 The model, two steppers, and observables
 #
-# From here on: the open XXZ chain in a transverse field of the [previous notebook](16_lindblad_master_equation.ipynb),
+# From here on: the open XXZ chain in a transverse field,
 #
 # $$ H=\sum_{i=0}^{N-2}\big(X_iX_{i+1}+Y_iY_{i+1}+\Delta Z_iZ_{i+1}\big)+h_x\sum_iX_i,\qquad\text{one jump operator }L_i\text{ per site, rate }\gamma . $$
 #
@@ -629,7 +627,7 @@ obs_names = [r"$\overline{X}$", r"$\overline{Y}$", r"$\overline{Z}$", r"$\overli
 #
 # Before the production run we test both steppers where everything is cheap: $N=4$, **two** jump operators per site
 # ($\sigma^+$ with rate 0.2 and $Z$ with rate 0.1), initial state $|1{+}0{-}\rangle$ so that all observables are non-trivial. Reference:
-# the RK4 density-tensor evolution validated in the previous notebook. We print the final-time comparison and the
+# the RK4 density-tensor evolution validated in [notebook 16, the Lindblad master equation](16_lindblad_master_equation.ipynb). We print the final-time comparison and the
 # **pull** $(\bar O-O_{\rm ref})/\mathrm{SE}$, which should be of order one.
 
 # %%
@@ -684,7 +682,7 @@ assert worst < 4.0
 # What should we expect? For dephasing, $L^\dagger L=Z^2=\mathbb 1$, so $H_{\rm eff}=H-\tfrac i2N\gamma$: the no-jump evolution is ordinary unitary
 # evolution (the uniform damping is removed by the renormalisation), and a jump is a $Z$ flip on a random site at rate $N\gamma$ —
 # trajectories are random *phase kicks*. Physically the coherences and with them all six observables should be damped towards their
-# value 0 in the maximally mixed state (previous notebook, Section 8).
+# value 0 in the maximally mixed state ([notebook 16, Section 8, the Lindblad master equation](16_lindblad_master_equation.ipynb)).
 #
 # The four methods differ by $O(dt)$ *and* by $O(1/\sqrt M)$, and it pays to be precise about which difference sits where.
 # Along the columns, RK4 and Trotter differ by the splitting error, $O(dt)$ and systematic. Down the **Trotter** column the two entries
@@ -801,8 +799,7 @@ assert sys_err < 2e-2
 # **Interpretation.**
 #
 # * *Physics.* The chain starts fully polarised ($\bar Z=\overline{ZZ}=1$). The Hamiltonian drives coherent many-body oscillations, the
-#   dephasing damps them, and all six observables relax towards 0, their value in the maximally mixed state, as found in the previous
-#   notebook.
+#   dephasing damps them, and all six observables relax towards 0, their value in the maximally mixed state.
 # * *Columns (RK4 vs Trotter).* The two density-tensor curves lie on top of each other; their largest difference (printed) is of order
 #   $10^{-3}$–$10^{-2}$, the first-order splitting error at $dt=0.05$. It is *systematic*: it would shrink with $dt$, not with $M$.
 # * *Rows (density tensor vs trajectories).* The trajectory averages scatter around their density-tensor partners with the predicted standard error
@@ -1178,10 +1175,10 @@ plt.tight_layout(); plt.show()
 #
 # This section uses everything above to ask a question that the density tensor cannot reach.
 #
-# In [notebook 15 (Chapter 5), Section 7](../ch05_ground_states_and_unitary_dynamics/15_quench_dynamics_spin_chains.ipynb)
-# (and again with matrix product states in notebook 18 of Chapter 7) a domain wall
-# $|\!\uparrow\cdots\uparrow\downarrow\cdots\downarrow\rangle$ melted in the **XX chain** inside a sharp light cone: the
-# front moved at the maximal group velocity $4J$ and the melted region widened *linearly* in time. That is ballistic
+# In the **XX chain** a domain wall
+# $|\!\uparrow\cdots\uparrow\downarrow\cdots\downarrow\rangle$ melts inside a sharp light cone
+# ([notebook 15, Section 7, quench dynamics in spin chains](../ch05_ground_states_and_unitary_dynamics/15_quench_dynamics_spin_chains.ipynb)): the
+# front moves at the maximal group velocity $4J$ and the melted region widens *linearly* in time. That is ballistic
 # transport, and it happens because the quasi-particles of the XX chain are free - nothing scatters them.
 #
 # Now switch on an environment that only *watches*: a dephasing bath on every site, $L_i=Z_i$ at rate $\gamma$. It
@@ -1190,7 +1187,7 @@ plt.tight_layout(); plt.show()
 # The quasi-particles scatter, the light cone dissolves, and the wall spreads as $\sqrt t$ instead of $t$: the
 # transport becomes **diffusive** [[14]](#ref-14).
 #
-# Two numbers say why this section belongs here and not in notebook 16. To tell $\sqrt t$ from $t$ the chain must be
+# Two numbers say why this section needs trajectories. To tell $\sqrt t$ from $t$ the chain must be
 # long enough that the front does not reach the ends: $N=16$ at least. A density tensor for 16 spins holds
 # $4^{16}\approx4.3\times10^9$ numbers, **68.7 GB** - out of reach. A batch of 64 trajectories holds 16-spin *state
 # vectors*: $64\times2^{16}$ complex numbers, **67 MB**. The physics is reachable only by trajectories.
@@ -1209,7 +1206,7 @@ plt.tight_layout(); plt.show()
 # with $x_0$ the position of the wall. Ballistic transport gives $\sigma\propto t$, diffusion gives
 # $\sigma=\sqrt{2Dt}$. A hopping amplitude $J$ with coherence destroyed at rate $\gamma$ suggests $D\sim J^2/\gamma$:
 # the harder the environment looks, the slower the spin travels - the quantum Zeno effect of
-# [notebook 08 (Chapter 3), Section 13.1](../ch03_matrix_free_engine/08_measurements.ipynb) (frequent measurement freezes the
+# [notebook 08, Section 13.1, measurements](../ch03_matrix_free_engine/08_measurements.ipynb) (frequent measurement freezes the
 # dynamics), seen in transport.
 
 # %%
@@ -1312,7 +1309,7 @@ plt.tight_layout(); plt.show()
 
 # %% [markdown]
 # **Interpretation.**
-# - *Left*: the closed chain reproduces the light cone of notebook 15 - a sharp front travelling at $4J$, with the
+# - *Left*: the closed chain shows the ballistic light cone - a sharp front travelling at $4J$, with the
 #   region outside it untouched.
 # - *Centre left*: with dephasing the cone is gone. The profile spreads smoothly and much more slowly, and the edges
 #   are no longer sharp: the quasi-particles no longer propagate, they random-walk.

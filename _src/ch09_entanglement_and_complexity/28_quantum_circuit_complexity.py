@@ -72,20 +72,11 @@
 # * `jax.vmap` over circuit realisations, with explicit PRNG keys, so that an ensemble costs one batched call;
 # * validating every new function against an independent reference before using it.
 #
-# ### Prerequisites
-#
-# * [`01_jax_from_scratch`](../ch01_computational_toolbox/01_jax_from_scratch.ipynb) and
-#   [`02_einsum_from_scratch`](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb) — `jit`, `vmap`, `lax.scan`,
-#   PRNG keys, einsum.
-# * [`06_states_observables_entanglement`](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb) —
-#   reduced density matrices, Schmidt decomposition, entanglement entropy.
-# * [`10_random_unitaries_and_random_circuits`](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb) —
-#   Haar measure, brick-wall circuits, the Clifford group, the Page value, Porter-Thomas statistics, XEB.
-# * [`27_stabilizer_renyi_entropy`](27_stabilizer_renyi_entropy.ipynb) — the Pauli group, stabilizer states,
-#   Gottesman-Knill, and the stabilizer Renyi entropy together with its fast algorithm.
-#
-# Everything those notebooks derived is *used* here; the helper functions we borrow are reproduced in this notebook with
-# a pointer to where they were derived, so this notebook still runs on its own.
+# The notebook assumes the Schmidt decomposition and the entanglement entropy
+# ([notebook 06, states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb)), the
+# Haar measure, brick-wall circuits, the Clifford group, Porter-Thomas statistics and XEB
+# ([notebook 10, random unitaries and random circuits](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb)), and stabilizer states with the stabilizer Renyi entropy and its fast algorithm
+# ([notebook 27, stabilizer Renyi entropy](27_stabilizer_renyi_entropy.ipynb)).
 
 # %%
 #@engine: apply_gate, zero_state, product_state, ghz_state, cluster_state, haar_state, haar_unitary, single_qubit_cliffords, schmidt_values, entanglement_entropy, rdm, von_neumann_entropy, purity, expect_pauli_string, apply_pauli_string, sample_bitstrings, normalize, I2, X, Y, Z, H, S, T, CNOT, CZ, ry
@@ -122,7 +113,7 @@ print(f"reference gap ratios:  Poisson 2 ln2 - 1 = {R_POISSON:.4f} | GOE {R_GOE}
 # ### 2.2 Matrix product states: the entanglement barrier
 #
 # A matrix product state writes the amplitude tensor as a chain of small tensors with an internal "bond" index of size
-# $\chi$ on every link ([notebook 18](../ch07_tensor_networks/18_mps_tebd.ipynb)). Cutting the chain at one bond and
+# $\chi$ on every link ([notebook 18, matrix product states](../ch07_tensor_networks/18_mps_tebd.ipynb)). Cutting the chain at one bond and
 # performing the Schmidt decomposition
 #
 # $$ \lvert\psi\rangle=\sum_{j=1}^{\chi_{\rm exact}}\lambda_j\,\lvert u_j\rangle_A\lvert v_j\rangle_B ,\qquad \lambda_1\ge\lambda_2\ge\dots\ge0,\qquad \sum_j\lambda_j^2=1, $$
@@ -155,7 +146,7 @@ print(f"reference gap ratios:  Poisson 2 ln2 - 1 = {R_POISSON:.4f} | GOE {R_GOE}
 # $c<1$: Ref. [[6]](#ref-6) gives $c=0.5$ for computing one output probability and $c=0.23$ for sampling from the
 # output distribution (times polynomial factors in $t$ and in the number of measured qubits). The cost is exponential in
 # the number of $T$ gates and does not depend on the entanglement. We measure magic with the **stabilizer Renyi
-# entropy** $M_2$ derived in [notebook 27](27_stabilizer_renyi_entropy.ipynb):
+# entropy** $M_2$ derived in [notebook 27, stabilizer Renyi entropy](27_stabilizer_renyi_entropy.ipynb):
 #
 # $$ M_\alpha(\psi)=\frac{1}{1-\alpha}\log_2\!\Big(\frac{1}{2^N}\sum_{P}\lvert\langle\psi\vert P\vert\psi\rangle\rvert^{2\alpha}\Big), $$
 #
@@ -232,7 +223,8 @@ print(f"reference gap ratios:  Poisson 2 ln2 - 1 = {R_POISSON:.4f} | GOE {R_GOE}
 # | `doped(k)` | the same, plus $T$ on exactly $k$ of the $\text{depth}\times N$ slots | no | yes, for $k\ge1$ |
 # | `universal` | Haar-random $U(2)$ on every qubit | no | yes |
 #
-# As a fourth reference we also run the standard **Haar brick wall** of [notebook 10](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb),
+# As a fourth reference we also run the standard **Haar brick wall** introduced in
+# [notebook 10, random unitaries and random circuits](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb),
 # in which every *two-qubit* gate is an independent Haar-random $4\times4$ unitary. That circuit converges to a
 # Haar-random state fastest and serves as the "gold standard" the other three are compared with.
 #
@@ -240,8 +232,7 @@ print(f"reference gap ratios:  Poisson 2 ln2 - 1 = {R_POISSON:.4f} | GOE {R_GOE}
 #
 # A Python loop over gates works, but it forces JAX to unroll the whole circuit at trace time: a depth-48 circuit on 12
 # qubits contains about $10^3$ gates, and compiling $10^3$ copies of the einsum graph is slower than running it. The
-# remedy is the one used for time evolution in [notebook 12](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb):
-# store the gates in one **array** and execute the circuit with `lax.scan`, which compiles the body *once* and loops
+# remedy is to store the gates in one **array** and execute the circuit with `lax.scan`, which compiles the body *once* and loops
 # inside XLA.
 #
 # The natural unit of the scan is a **double layer** (even bonds, then odd bonds), because only then is the circuit
@@ -618,7 +609,7 @@ plt.show()
 #
 # ### 5.1 The stabilizer Renyi entropy in one page
 #
-# [Notebook 27](27_stabilizer_renyi_entropy.ipynb) derives everything used here; this is the summary.
+# Everything used here is derived in [notebook 27, stabilizer Renyi entropy](27_stabilizer_renyi_entropy.ipynb); this is the summary.
 #
 # Expand $\lvert\psi\rangle\langle\psi\rvert$ in the $4^N$ Pauli strings $P$. Because the strings are orthogonal,
 # $\mathrm{Tr}(PQ)=2^N\delta_{PQ}$, the expansion coefficients are the expectation values $\langle P\rangle$, and for a
@@ -731,20 +722,20 @@ assert abs(sre(t_plus_4) - 4 * LOG2_4_3) < 1e-9 and abs(sre(ghz_state(6))) < 1e-
 # afterwards. The system size drops to $N=8$: $4^8=65\,536$ Pauli strings per state is affordable, $4^{12}$ is not.
 # The half-chain entropy is computed from the same snapshots, so the two resources are compared on identical states.
 #
-# Two reference values, both derived in notebook 27:
+# Two reference values, both derived in [notebook 27, stabilizer Renyi entropy](27_stabilizer_renyi_entropy.ipynb):
 #
 # $$ M_2^{\rm Haar}=\log_2\frac{2^N+3}{4},\qquad M_2^{\max}=\log_2\frac{2^N+1}{2} . $$
 #
 # A third reference applies to the doped families. Ref. [[7]](#ref-7) computed the average linear
 # stabilizer entropy $M_{\rm lin}=1-2^{-M_2}$ of a state $C_kKC_{k-1}\cdots KC_0\vert0\cdots0\rangle$ in which every $C_j$
 # is a uniformly random element of the full $N$-qubit Clifford group and every $K$ is a $T$ gate on one qubit. With
-# $d=2^N$ their result (Eq. (19) of notebook 27) reads
+# $d=2^N$ their result (Eq. (19) of [notebook 27, stabilizer Renyi entropy](27_stabilizer_renyi_entropy.ipynb)) reads
 #
 # $$ \mathbb E\big[M_{\rm lin}\big]=1-\frac{4+(d-1)f^{k}}{d+3},\qquad f=\frac{6d^2-6d-8}{8(d^2-1)}\;\to\;\frac34 , $$
 #
 # and $M_2^{\rm LOH}(k)=-\log_2\big(1-\mathbb E[M_{\rm lin}]\big)$ is a lower bound on the average $M_2$ of that ensemble
 # by Jensen's inequality. It interpolates between $k\log_2\frac43$ for small $k$ and the Haar value for $k\gg N$.
-# Notebook 27 confirms it numerically with a control circuit in which every $T$ gate is followed by its own block of
+# Section 10.1 of [notebook 27, stabilizer Renyi entropy](27_stabilizer_renyi_entropy.ipynb) confirms it numerically with a control circuit in which every $T$ gate is followed by its own block of
 # $3N$ Clifford layers.
 #
 
@@ -893,7 +884,7 @@ assert abs(stages[:, 0].mean() - N_MAG * m2_one_qubit) < 4 * stages[:, 0].std() 
 #   state over the chain. A $T$ gate does nothing when the stabilizer group of the state contains $\pm Z_q$ on its
 #   qubit, which is much more likely after a few local layers than after a global random Clifford. In the first layer,
 #   for instance, the qubit is in one of the six single-qubit stabilizer states, and $T$ acts trivially on two of them,
-#   $\vert0\rangle$ and $\vert1\rangle$. Notebook 27 (Section 10.1) measures the same circuit against a control that
+#   $\vert0\rangle$ and $\vert1\rangle$. Section 10.1 of [notebook 27, stabilizer Renyi entropy](27_stabilizer_renyi_entropy.ipynb) measures the same circuit against a control that
 #   follows the LOH law.
 # * **The universal circuit is saturated almost immediately.** Already at depth $2$, $M_2=3.15\pm0.13$ bit. The
 #   bookkeeping is worth doing, because it shows where magic comes from. Depth $2$ is one *double* layer: single-qubit
@@ -1631,7 +1622,7 @@ plt.show()
 # with fluctuations of order one relative to the mean. It is also the number that makes cross-entropy benchmarking
 # (introduced in [[8]](#ref-8)) work:
 # the linear XEB of a perfect device is $\mathcal F_{\rm XEB}=Z-1\approx1$
-# ([notebook 10](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb), Section 9).
+# ([notebook 10, random unitaries and random circuits](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb), Section 9).
 #
 # ### 8.2 The output distribution of a stabilizer state: derivation
 #
@@ -2139,9 +2130,9 @@ plt.show()
 #
 # **8. (★★★ physics) Magic and entanglement under a Trotterised Hamiltonian.** Replace the random circuit by the
 # Trotterised evolution of the Ising chain $H=-\sum_jZ_jZ_{j+1}-h_x\sum_jX_j-h_z\sum_jZ_j$ with the tools of
-# [notebook 12](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb). For $h_z=0$ this is the
+# [notebook 12, TEBD](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb). For $h_z=0$ this is the
 # transverse-field Ising chain, which is integrable for every $h_x$ (it maps to free fermions by the Jordan-Wigner
-# transformation, [notebook 47](../ch11_quantum_phase_transitions/47_quantum_phase_transitions.ipynb)); a longitudinal field $h_z\neq0$ breaks integrability. Start from the product state with
+# transformation); a longitudinal field $h_z\neq0$ breaks integrability. Start from the product state with
 # every spin along $+y$, which has $\langle H\rangle=0$ for both models, and measure $S$, $M_2$ and
 # $\langle\tilde r\rangle$ against time for $h_x=1$ with $h_z=0$ and with $h_z=0.5$. Determine which of the three
 # separates the two models first. (Check values from exact evolution at $N=10$, averaged over $t=8$-$80$: integrable

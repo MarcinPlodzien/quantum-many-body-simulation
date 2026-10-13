@@ -12,10 +12,10 @@
 # numbers, which could only be estimated from many copies. Making those copies is forbidden by the **no-cloning theorem** (Section
 # 3). The best measure-and-phone strategy reaches an average **fidelity** of $2/3$ (Section 8); the fidelity
 # $\vert\langle\psi\vert\phi\rangle\vert^2$ is the probability that the delivered state $\vert\phi\rangle$ passes the test "are you
-# $\vert\psi\rangle$?" ([06](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb), Section 5).
+# $\vert\psi\rangle$?".
 #
 # The way out was found in [[1]](#ref-1). Alice and Bob share, before the protocol starts,
-# one Bell pair of [notebook 19](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb), the unit of entanglement
+# one Bell pair, the unit of entanglement
 # called one **ebit**. Alice performs a **Bell measurement**, a joint measurement of her unknown qubit *and* her half of the pair in
 # the basis of the four Bell states, and phones Bob the two classical bits that name the outcome. Bob then recovers the state
 # exactly by applying one of four fixed single-qubit Pauli gates. One ebit plus two classical bits thus replace one transmitted
@@ -24,7 +24,7 @@
 # and has since been run over distances up to 1400 km, from the ground to a satellite [[3]](#ref-3).
 #
 # Teleportation is the primitive behind **quantum repeaters** [[4]](#ref-4), which distribute entanglement
-# over long distances (notebook 21), **measurement-based quantum computing** [[5]](#ref-5), where every gate is a
+# over long distances, **measurement-based quantum computing** [[5]](#ref-5), where every gate is a
 # teleportation, and **fault-tolerant gate implementations** by gate teleportation [[6]](#ref-6), including
 # magic-state injection ([[7]](#ref-7); Exercise 8). The fidelity a noisy pair supports, Eq. (13) below, is a standard figure of merit for
 # quantum-network hardware.
@@ -43,11 +43,17 @@
 # 5. **The classical benchmark $2/3$**, derived by averaging the fidelity over all input states with the identity
 #    $\int d\psi\,(\vert\psi\rangle\langle\psi\vert)^{\otimes2}=P_{\rm sym}/3$, with $P_{\rm sym}$ the projector onto symmetric two-copy states (Section 8); the same identity gives the
 #    noisy-teleportation formula in Section 10.
-# 6. **Noisy resources.** A Bell pair mixed with white noise (a Werner state, notebook 19) with overlap $F_{\rm res}$ with the ideal
+# 6. **Noisy resources.** A Bell pair mixed with white noise (a Werner state) with overlap $F_{\rm res}$ with the ideal
 #    pair gives average fidelity $\bar F=(2F_{\rm res}+1)/3$; we verify this on the density tensor *and* with quantum trajectories
-#    (notebook 17), and find that the protocol beats the classical $2/3$ exactly when the resource is entangled (Sections 10–12).
+#    and find that the protocol beats the classical $2/3$ exactly when the resource is entangled (Sections 10–12).
 # 7. **Deferred measurement**: replacing the measurement and the feed-forward by two controlled gates gives literally the same state
 #    (Section 13).
+#
+# The notebook assumes density tensors, partial traces and Kraus channels
+# ([notebook 07, density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb)),
+# measurement with collapse ([notebook 08, measurements](../ch03_matrix_free_engine/08_measurements.ipynb)), quantum
+# trajectories ([notebook 17, Monte Carlo wave function](../ch06_open_quantum_systems/17_monte_carlo_wave_function.ipynb)) and
+# the Bell basis, the Bell-state circuit and the Werner states ([notebook 19, Bell states and CHSH](19_bell_states_and_chsh.ipynb)).
 #
 # ### What you will learn
 #
@@ -69,18 +75,6 @@
 # * classical feed-forward with `jnp.where` on a traced outcome, so the whole protocol is one jitted, vmappable function;
 # * `vmap` over shots, over input states and over trajectories; explicit PRNG key splitting;
 # * building $\rho_{\rm in}\otimes\rho_{\rm res}$ and partial traces of a rank-$2N$ density tensor with einsum.
-#
-# ### Prerequisites
-# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, PRNG keys;
-# * [06 — states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb): reduced density
-#   matrices, fidelity, the ebit;
-# * [07 — density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb):
-#   density tensors, partial trace, Kraus channels, fidelity;
-# * [08 — measurements](../ch03_matrix_free_engine/08_measurements.ipynb): Born rule, collapse, sampling;
-# * [09 — quantum gates and circuits](../ch04_digital_quantum_circuits/09_quantum_gates_and_circuits.ipynb): CNOT, CZ, rotations;
-# * [17 — Monte Carlo wave function](../ch06_open_quantum_systems/17_monte_carlo_wave_function.ipynb): trajectory unravelling of a channel;
-# * [19 — Bell states and CHSH](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb): the Bell basis, the Bell-state
-#   circuit, Werner states and the entanglement threshold $v>1/3$ — all of which reappear here.
 #
 # **Conventions.** Qubit 0 = Alice's unknown input, qubit 1 = Alice's half of the resource, qubit 2 = Bob's half.
 # $\vert0\rangle$ is the $+1$ eigenstate of $Z$; qubit $q$ is tensor axis $q$; qubit 0 is the most significant bit of the flat index.
@@ -297,8 +291,7 @@ plt.show()
 # ### 4.2 Rewriting in the Bell basis of qubits 0 and 1
 #
 # Alice will measure qubits 0 and 1 *jointly*, in the Bell basis. So express the first two kets of every term in that basis. Inverting
-# the definitions of the Bell states (Section 3 of the
-# [CHSH notebook](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb)):
+# the definitions of the Bell states ([notebook 19, Bell states and CHSH](19_bell_states_and_chsh.ipynb), Section 3):
 #
 # $$\begin{aligned}
 # \vert00\rangle&=\tfrac{1}{\sqrt2}\left(\vert\Phi^+\rangle+\vert\Phi^-\rangle\right), &
@@ -356,8 +349,9 @@ plt.show()
 #
 # ### 4.3 The circuit
 #
-# Alice cannot "measure in the Bell basis" directly; her detectors read the computational basis. But Section 3 of the CHSH notebook
-# showed that $H_0$ followed by $\text{CNOT}_{0\to1}$ maps the *computational* basis onto the Bell basis. The **inverse** of that
+# Alice cannot "measure in the Bell basis" directly; her detectors read the computational basis. But $H_0$ followed by
+# $\text{CNOT}_{0\to1}$ maps the *computational* basis onto the Bell basis
+# ([notebook 19, Bell states and CHSH](19_bell_states_and_chsh.ipynb), Section 3). The **inverse** of that
 # circuit is the same two gates in the opposite order, $\text{CNOT}_{0\to1}$ first and $H_0$ second (both gates are self-inverse, so
 # $\left(\text{CNOT}_{0\to1}H_0\right)^{-1}=H_0\,\text{CNOT}_{0\to1}$), and it maps the Bell basis onto the computational basis:
 #
@@ -382,7 +376,7 @@ plt.show()
 # ## 5. From formula to code: measurement with collapse
 #
 # Before the protocol we need one new primitive: a **projective measurement of one qubit with collapse**, written so that it survives
-# `jit` and `vmap`. The recipe from [08 — measurements](../ch03_matrix_free_engine/08_measurements.ipynb) is
+# `jit` and `vmap`. The recipe, derived in [notebook 08, measurements](../ch03_matrix_free_engine/08_measurements.ipynb), is
 #
 # $$p(0)=\langle\psi\vert\Pi_0^{(q)}\vert\psi\rangle=\left[\rho_q\right]_{00},\qquad
 #   \vert\psi\rangle\;\to\;\frac{\Pi_m^{(q)}\vert\psi\rangle}{\sqrt{p(m)}} ,$$
@@ -945,15 +939,16 @@ print(f"\n   F_avg of the ideal teleportation channel (2-design) = "
 #
 # ### 10.2 The Werner family, and the link to entanglement
 #
-# For the Werner resource of the [CHSH notebook](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb),
+# For the Werner resource
 # $\rho_W(v)=v\vert\Phi^+\rangle\langle\Phi^+\vert+(1-v)\mathbb 1/4$, the singlet fraction is $F=v+\tfrac{1-v}{4}=\tfrac{1+3v}{4}$,
 # so
 #
 # $$\bar F(v)=\frac{2\frac{1+3v}{4}+1}{3}=\frac{1+v}{2} ,$$
 #
 # and $\bar F>2/3$ requires $v>1/3$ — **exactly the value at which the Werner state becomes entangled** (its negativity turns
-# positive). Teleportation is therefore a sharper entanglement witness than CHSH: recall that CHSH needed $v>1/\sqrt2\approx0.707$,
-# so the entire band $1/3<v\le1/\sqrt2$ of entangled states that do not violate CHSH (Section 11 of the CHSH notebook) is
+# positive). Teleportation is therefore a sharper entanglement witness than CHSH, which needs $v>1/\sqrt2\approx0.707$
+# ([notebook 19, Bell states and CHSH](19_bell_states_and_chsh.ipynb), Section 11),
+# so the entire band $1/3<v\le1/\sqrt2$ of entangled states that do not violate CHSH is
 # *useful for teleportation*.
 # (For general two-qubit resources the correct statement, proved in [[14]](#ref-14), is that the best average fidelity is
 # $(2f_{\max}+1)/3$, with $f_{\max}$ the largest singlet fraction reachable from the resource by trace-preserving local operations
@@ -1530,8 +1525,7 @@ print("   p(m1,m2) = " + "  ".join(f"{lab}: {v:.4f}" for lab, v in zip(("00", "0
 #    the input — as no-cloning demands.
 # 3. ★★ **Entanglement swapping (extend the code).** Replace Alice's input qubit by half of a *second* Bell pair (4 qubits total) and
 #    run the same Bell measurement on the two inner qubits. Show that the two outer qubits, which have never interacted, end up in a
-#    Bell state, and compute their negativity for each outcome. This is the building block of a quantum repeater; notebook 21
-#    treats it in full.
+#    Bell state, and compute their negativity for each outcome. This is the building block of a quantum repeater.
 # 4. ★★ **Teleporting half of an entangled pair (physics).** Teleport one qubit of a Bell pair and verify that the entanglement is
 #    preserved: compute the negativity between the untouched qubit and Bob's output. Then repeat with a Werner resource of visibility
 #    $v$ and find the $v$ at which the output stops being entangled. Is it the same as the $\bar F=2/3$ threshold?
@@ -1543,7 +1537,7 @@ print("   p(m1,m2) = " + "  ".join(f"{lab}: {v:.4f}" for lab, v in zip(("00", "0
 #    protocol fall below $2/3$?
 # 7. ★★★ **Verifying teleportation like an experimentalist.** Instead of computing $\langle\psi\vert\rho_2\vert\psi\rangle$
 #    directly, *estimate* it from measurements: reconstruct Bob's qubit with the single-qubit tomography of
-#    [23 — quantum state tomography](../ch08_quantum_information_protocols/23_quantum_state_tomography.ipynb) using $M$ shots per
+#    [notebook 23, quantum state tomography](23_quantum_state_tomography.ipynb) using $M$ shots per
 #    Pauli setting, and plot the reconstructed fidelity with bootstrap error bars versus $M$. How many shots are needed to claim
 #    $\bar F>2/3$ at $5\sigma$ with a Werner resource of $v=0.5$?
 # 8. ★★★ **Gate teleportation** [[6]](#ref-6). Prepare the resource in the state $(\mathbb 1\otimes U)\vert\Phi^+\rangle$ instead of

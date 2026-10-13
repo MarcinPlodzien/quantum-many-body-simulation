@@ -38,7 +38,7 @@
 # estimator variance, how flat is the landscape at $N=10$ — and it lets us test the gradient formulas that hardware is
 # forced to use against the exact answer that only a simulator knows.
 #
-# **The problem this notebook solves.** Every optimiser in the next notebook needs a gradient
+# **The problem this notebook solves.** Every gradient-based optimiser needs a gradient
 # $\partial C/\partial\theta_k$. On a simulator we can call `jax.grad`. On hardware that is impossible: there is no
 # access to the amplitudes, only to measurement statistics. So four different methods are in use, and they differ by orders
 # of magnitude in accuracy, in the number of circuit executions, and in memory. We derive all four, implement all four,
@@ -98,25 +98,14 @@
 # * statistical checkpoints that come with a wrong control, i.e. a plausible but incorrect prediction that the same test
 #   must reject.
 #
-# ### Prerequisites
-#
-# * [09 — quantum gates and circuits](../ch04_digital_quantum_circuits/09_quantum_gates_and_circuits.ipynb): gates as
-#   unitaries, `apply_gate`, circuits as gate lists, rotations $R_x,R_y,R_z$;
-# * [05 — matrix-free operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb) and
-#   [06 — states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb):
-#   states as rank-$N$ tensors, expectation values of local operators;
-# * [08 — measurements](../ch03_matrix_free_engine/08_measurements.ipynb): the Born rule and sampling bit strings, needed
-#   for the shot-noise section;
-# * [11 — Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb):
-#   Hamiltonians as lists of local terms, the exact ground energy from Lanczos;
-# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, `grad`, PRNG keys.
-#
-# **What comes next.** [41 — optimisers](../ch13_quantum_machine_learning/41_optimizers.ipynb) takes the gradients
-# built here and feeds them to gradient descent, momentum, Adam, SPSA and the quantum natural gradient, with `lax.scan`
-# training loops and statistics over random initialisations;
-# [42a — the variational quantum eigensolver: Hamiltonians, ansätze, training](../ch13_quantum_machine_learning/42a_variational_quantum_eigensolver_hamiltonians_ansatze_training.ipynb)
-# and [42 — the variational quantum eigensolver](../ch13_quantum_machine_learning/42_variational_quantum_eigensolver.ipynb)
-# then run the full algorithm on spin chains and compare the optimised state with the exact ground state.
+# The notebook assumes quantum gates and circuits as gate lists
+# ([notebook 09, quantum gates and circuits](../ch04_digital_quantum_circuits/09_quantum_gates_and_circuits.ipynb)),
+# states as rank-$N$ tensors with local expectation values and sampled measurements
+# ([notebook 06, states and observables](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb);
+# [notebook 08, measurements](../ch03_matrix_free_engine/08_measurements.ipynb)), Hamiltonians as lists of local terms
+# with Lanczos ground energies
+# ([notebook 11, Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb))
+# and `jit`, `vmap`, `grad` ([notebook 01, JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)).
 #
 # **Conventions and sizes.** Qubit $q$ is tensor axis $q$; $\vert0\rangle$ is the $+1$ eigenstate of $Z$; Hamiltonians are
 # written in the Pauli convention $H=\sum J\,ZZ+\sum h\,X$. All states are pure state vectors; the largest registers
@@ -209,7 +198,7 @@ def compiled_bytes(fn, *args):
 # $$R_{PP}(\theta)=e^{-i\theta\,P\otimes P/2}=\cos\frac{\theta}{2}\,\mathbb 1_4-i\sin\frac{\theta}{2}\,P\otimes P ,\tag{3}$$
 #
 # which is `rxx`, `ryy`, `rzz` in the engine. $R_{XX}$ is the native entangling gate of trapped-ion processors, and $R_{ZZ}$ is the elementary factor of a Trotterised Ising evolution (see
-# [12 — TEBD](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb)).
+# [notebook 12, Trotter–Suzuki and TEBD](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb)).
 #
 # ### 3.3 Controlled rotations and their three-eigenvalue generator
 #
@@ -333,7 +322,7 @@ for name, G in [("X/2  (single-qubit rotation)", 0.5 * X),
 # Starting instead in the *highest* state of $H_X$ gives a valid circuit family, but not one that contains the adiabatic
 # path. Evolving under the
 # time-dependent Hamiltonian and Trotterising each small step (see
-# [12 — TEBD](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb)) gives a product of factors
+# [notebook 12, Trotter–Suzuki and TEBD](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb)) gives a product of factors
 # $e^{-i\gamma H_{ZZ}}e^{-i\beta H_X}$ with *prescribed* small angles. The **Hamiltonian-variational ansatz**, introduced
 # in [[5]](#ref-5) as a class of states motivated by adiabatic state preparation, keeps the
 # structure and throws away the prescription: let the angles be free.
@@ -689,8 +678,7 @@ assert resid_hva > 1e-2
 # The two-angle map shows the consequence of Eq. (13) in two variables: the cost is a sum of products of
 # $\{1,\cos\theta,\sin\theta\}$ in each angle, with no structure finer than one period. On the torus
 # $[-\pi,\pi)^2$ this particular cut has a single minimum and a single maximum; the two dark regions at the top of the map
-# are the same minimum, cut in two by the periodic boundary at $\theta_{17}=\pm\pi$. Local minima of the full
-# $n$-dimensional landscape are the subject of Section 14 of the next notebook.
+# are the same minimum, cut in two by the periodic boundary at $\theta_{17}=\pm\pi$.
 #
 # > **Numerical practice.** Fitting a model that theory says is exact is a cheap and strong test of an implementation.
 # > A residual of $10^{-15}$ says the gate conventions, the einsum axes and the cost function are mutually consistent;
@@ -1053,7 +1041,7 @@ fig.tight_layout(); plt.show()
 #
 # So a single SPSA sample has a *relative* error of order $\sqrt{n}$. Its advantage is the price: each sample costs $2$
 # evaluations instead of $2n$, so at equal budget one can average $n$ samples, which divides Eq. (24) by $n$; and the
-# optimisers of the next notebook average implicitly through momentum. Section 12 makes the comparison at equal shot
+# optimisers with momentum average implicitly over iterations. Section 12 makes the comparison at equal shot
 # budget when the cost itself is noisy.
 #
 # The cell below tests Eqs. (22)–(24) with $16\,000$ independent samples per value of $c$. Two checkpoints come with wrong
@@ -1142,7 +1130,7 @@ assert abs(z_var) < 4 and abs(z_var_wrong) > 4
 #
 # Equations (22) to (24) therefore describe the small-$c$ limit, and here "small" means $c\lesssim0.05$ radians. A
 # practitioner who picks $c=0.5$ to reduce the influence of shot noise (Section 12) pays for it with a large bias in the
-# search direction, which is why Spall's schedule shrinks $c_k$ as the optimisation proceeds (next notebook).
+# search direction, which is why Spall's schedule shrinks $c_k$ as the optimisation proceeds.
 #
 # > **Physics insight.** SPSA returns a random vector whose mean equals the gradient up to $O(c^2)$ and whose covariance
 # > is of order $\lVert\nabla C\rVert^2$ per component. An optimiser driven by it performs stochastic approximation, and
@@ -1463,7 +1451,7 @@ fig.tight_layout(); plt.show()
 # $(n-1)\lVert\nabla C\rVert^2+n\sigma^2/(2Mc^2)$, and the average of $m$ independent samples has $1/m$ of it, up to the
 # $O(c^2)$ bias. Unlike the noise-free case, $c$ now matters: too small and the shot noise
 # is amplified by $1/c^2$; too large and the $O(c^2)$ bias of Eq. (22) appears. This is exactly the trade-off that Spall's
-# decreasing schedule $c_k\propto k^{-\gamma}$ manages, and we come back to it in the next notebook.
+# decreasing schedule $c_k\propto k^{-\gamma}$ manages.
 #
 # The comparison below is at **equal shot budget** $B$: parameter shift spends $B$ shots spread over its $2n$ circuits
 # ($M=B/2n$ each); SPSA spends $B$ shots over its $2$ circuits ($M=B/2$ each), or over $n$ samples of $2$ circuits each.
@@ -1696,8 +1684,7 @@ fig.tight_layout(); plt.show()
 # On this problem, therefore, SPSA does not give a more accurate gradient for the same number of shots, as the scaling
 # argument of Section 12.3 predicts for $n<1/c^2$. Its case rests on *optimisation* rather than estimation: a noisy step
 # taken often can beat an accurate step taken rarely, and on hardware the cost per iteration may be dominated by the
-# number of distinct circuits rather than by shots. The next notebook measures that end-to-end comparison, where the
-# figure of merit is the cost reached per shot spent.
+# number of distinct circuits rather than by shots.
 
 # %% [markdown]
 # ## 13. Barren plateaus
@@ -1715,7 +1702,7 @@ fig.tight_layout(); plt.show()
 #
 # The phenomenon was identified in [[13]](#ref-13), which computed the variance for random circuits in which the
 # part before or after the differentiated gate (or both) forms a unitary 2-design, i.e. reproduces the first two moments of Haar-random unitaries
-# ([10 — random unitaries](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb)). For a circuit
+# ([notebook 10, random unitaries](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb)). For a circuit
 # $\cdots e^{-i\theta_kV}\cdots$ with both parts 2-designs, an observable $H$ and a pure input state, the result there reads
 #
 # $$\mathrm{Var}[\partial_kC]=2\,\mathrm{Tr}(H^2)\Bigl(\frac{\mathrm{Tr}(V^2)}{2^{3N}}-\frac{(\mathrm{Tr}V)^2}{2^{4N}}\Bigr).$$

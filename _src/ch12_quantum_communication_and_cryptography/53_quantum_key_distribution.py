@@ -5,14 +5,12 @@
 # %% [markdown]
 # ## 1. Introduction
 #
-# Alice and Bob want to encrypt their messages with the one-time pad of
-# [notebook 51](../ch12_quantum_communication_and_cryptography/51_secrecy_one_time_pad_and_authentication.ipynb), and
-# for that they need a long secret key: a string of uniformly random bits that both of them hold and that nobody else
+# Alice and Bob want to encrypt their messages with the one-time pad, and for that they need a long secret key: a string of uniformly random bits that both of them hold and that nobody else
 # knows. They are far apart. Between them runs an optical fibre that Eve may tap, cut, or replace by equipment of her
 # own, and a public line on which they can talk but on which Eve hears every word. On classical signals this problem
 # has no solution without assumptions on Eve's computing power, because Eve can copy every bit in transit and nobody
 # would notice. The task of this notebook is to show how the rules of quantum mechanics derived in
-# [notebook 52](../ch12_quantum_communication_and_cryptography/52_quantum_rules_channels_and_capacities.ipynb) solve it:
+# [notebook 52, quantum rules, channels and capacities](52_quantum_rules_channels_and_capacities.ipynb) solve it:
 # how Alice and Bob grow a secret key over a channel that Eve controls.
 #
 # ![BB84 from end to end: Alice sends random states in random bases through a channel that Eve controls, Bob measures in random bases, and four public steps (sifting, parameter estimation, error correction, privacy amplification) turn the raw data into a shared secret key](figures/bb84.svg)
@@ -27,9 +25,9 @@
 #
 # **The idea.** Alice encodes each key bit in one of two bases chosen at random, and she reveals the basis only after
 # Bob has measured. While the qubit is in flight, Eve faces a state from a set of four nonorthogonal states and cannot
-# read it without disturbing it (notebook 52, Section 5). Every disturbance turns into errors between Alice's and Bob's
+# read it without disturbing it ([notebook 52, quantum rules, channels and capacities](52_quantum_rules_channels_and_capacities.ipynb), Section 5). Every disturbance turns into errors between Alice's and Bob's
 # bits, so by comparing a random sample of their bits in public, Alice and Bob measure the error rate and from it bound
-# what Eve can know. Two classical steps from earlier in the chapter then finish the job: parity checks remove the
+# what Eve can know. Two classical steps then finish the job: parity checks remove the
 # errors, and hashing removes Eve's partial knowledge. The same protocol can be run with entangled pairs, and in that
 # picture the security argument becomes transparent: a pair that is strongly correlated in two complementary bases,
 # $Z$ and $X$, whose states overlap with probability $1/2$, is close to a pure entangled state, and by monogamy such a pair leaves no room for Eve. A quantitative version of this
@@ -38,12 +36,16 @@
 #
 # ### 1.1 Road map
 #
+# The notebook assumes the entropies and the parity-check reconciliation of [notebook 50, entropy and noisy channels](50_information_entropy_and_noisy_channels.ipynb), the threat model and privacy
+# amplification of [notebook 51, secrecy and authentication](51_secrecy_one_time_pad_and_authentication.ipynb), the rules for distinguishing, disturbing and sharing quantum states of [notebook 52, quantum rules, channels and capacities](52_quantum_rules_channels_and_capacities.ipynb), and the Bell states
+# and the CHSH inequality ([notebook 19, Bell states and CHSH](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb)).
+#
 # * **Section 3** states what Alice and Bob want and what they have.
 # * **Section 4** builds the BB84 protocol with the engine: states and measurements, a vectorised simulation of many
-#   rounds, a worked table of ten rounds, sifting and error-rate estimation, error correction with the parity checks of
-#   notebook 50, privacy amplification with the random hash of notebook 51, and the final key.
+#   rounds, a worked table of ten rounds, sifting and error-rate estimation, error correction with public parity checks,
+#   privacy amplification with a random hash, and the final key.
 # * **Section 5** derives the error rate $Q=1/4$ and Eve's information of $1/2$ bit of the intercept–resend attack,
-#   simulates it, and places it next to the probe attack of notebook 52.
+#   simulates it, and places it next to a probe attack of tunable strength.
 # * **Section 6** turns to entangled pairs: the BBM92 protocol, the source-replacement picture that shows its
 #   equivalence with BB84, and Ekert's protocol with the CHSH test.
 # * **Section 7** derives the secret-key rate: bit and phase errors, the Devetak–Winter rate, the uncertainty relation
@@ -71,34 +73,20 @@
 # *Implementation practice*
 # * states prepared with gates, measurements with `measure_qubit`, noise with `apply_kraus_mcwf`, all compiled with
 #   `jax.jit` and mapped over rounds with `jax.vmap`;
-# * the parity-check reconciliation of notebook 50 and the random hash of notebook 51 reused on simulated keys;
+# * the parity-check reconciliation of [notebook 50, information, entropy and noisy channels](50_information_entropy_and_noisy_channels.ipynb) and the random hash of [notebook 51, secrecy and authentication](51_secrecy_one_time_pad_and_authentication.ipynb) reused on simulated keys;
 # * wrong controls that must fail: an Eve who knows the basis, a classically correlated source, uncorrected keys fed to
 #   the hash, and the uncertainty relation applied to a single party.
-#
-# ### Prerequisites
-#
-# * [Notebook 50](../ch12_quantum_communication_and_cryptography/50_information_entropy_and_noisy_channels.ipynb):
-#   entropy, the binary entropy $h(q)$, conditional entropy and mutual information (Sections 3–4), and the parity-check
-#   reconciliation with its cost of about $h(Q)$ revealed bits per key bit (Section 6.3).
-# * [Notebook 51](../ch12_quantum_communication_and_cryptography/51_secrecy_one_time_pad_and_authentication.ipynb): the
-#   threat model (Section 3), why the public channel must be authenticated (Section 8), and privacy amplification by
-#   random linear hashing (Section 9).
-# * [Notebook 52](../ch12_quantum_communication_and_cryptography/52_quantum_rules_channels_and_capacities.ipynb):
-#   nonorthogonal states and the Helstrom bound (Section 3), information gain implies disturbance with the probe attack
-#   (Section 5), and monogamy with the von Neumann entropy and the quantum mutual information (Section 6).
-# * [Notebook 19](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb): the Bell states, the CHSH
-#   inequality and its quantum violation (Sections 3–8), and Werner states (Section 11).
 
 # %% [markdown]
 # ## 2. Engine recap and helpers
 #
-# A qubit is a tensor of shape $(2,)$ and two qubits a tensor of shape $(2,2)$; density matrices are density tensors,
-# as in notebook 07. Alice prepares her states with `apply_gate`, Eve and Bob measure with `measure_qubit`, which
+# A qubit is a tensor of shape $(2,)$ and two qubits a tensor of shape $(2,2)$; density matrices are density tensors.
+# Alice prepares her states with `apply_gate`, Eve and Bob measure with `measure_qubit`, which
 # returns
 # a random outcome and the collapsed state, and channel noise acts with `apply_kraus_mcwf`, which applies one randomly
 # chosen Kraus operator to a pure state, so that the average over many rounds is the channel. The helper cell repeats
-# the entropy functions of notebook 50, the reconciliation of notebook 50, Section 6.3, and the random linear hash of
-# notebook 51, Section 9.2, in compact form. As in the earlier notebooks of the chapter, experiment $i$ draws its random
+# in compact form the entropy functions and the parity-check reconciliation of [notebook 50, entropy and noisy channels](50_information_entropy_and_noisy_channels.ipynb), Section 6.3, and the random linear
+# hash of [notebook 51, secrecy and authentication](51_secrecy_one_time_pad_and_authentication.ipynb), Section 9.2. Experiment $i$ draws its random
 # numbers from its own key `jax.random.fold_in(MASTER, i)`.
 
 # %%
@@ -220,9 +208,9 @@ KETP, KETM = product_state("+"), product_state("-")
 #
 # * A **quantum channel** from Alice to Bob, for example an optical fibre that carries single photons. Eve controls it
 #   completely: she may measure the photons, entangle them with probes of her own, or replace them.
-# * A **public authenticated classical channel** (notebook 51, Section 3.2). Eve reads every message on it but cannot
-#   change, insert or suppress messages. Authentication costs a short secret key shared in advance (notebook 51,
-#   Section 8.3), so the protocol grows a key from a shorter one.
+# * A **public authenticated classical channel**. Eve reads every message on it but cannot
+#   change, insert or suppress messages. Authentication costs a short secret key shared in advance ([notebook 51, secrecy and authentication](51_secrecy_one_time_pad_and_authentication.ipynb),
+#   Sections 3.2 and 8.3), so the protocol grows a key from a shorter one.
 #
 # The protocol may **abort**: if Alice and Bob see too much disturbance, they output no key. Eve can always force an
 # abort, for instance by cutting the fibre, and no protocol can prevent that. What she must never achieve is a key that
@@ -296,10 +284,10 @@ for a in (0, 1):
 # 4. **Parameter estimation.** They choose a random subset of the sifted rounds, announce those bits and compare them.
 #    The fraction of disagreements is the **quantum bit error rate** (QBER) $Q$. The announced bits are discarded.
 # 5. **Abort test.** If $Q$ exceeds a threshold, they abort.
-# 6. **Error correction.** Public parity checks remove the remaining errors ([[2]](#ref-2); notebook 50,
+# 6. **Error correction.** Public parity checks remove the remaining errors ([[2]](#ref-2); [notebook 50, entropy and noisy channels](50_information_entropy_and_noisy_channels.ipynb),
 #    Section 6.3).
 # 7. **Privacy amplification.** A public random hash shortens the key and removes Eve's partial knowledge ([[3]](#ref-3);
-#    notebook 51, Section 9).
+#    [notebook 51, secrecy and authentication](51_secrecy_one_time_pad_and_authentication.ipynb), Section 9).
 #
 # The order of the steps matters. The bases are announced only after Bob has measured, so while the qubit is in
 # flight nobody except Alice knows its basis. If Eve knew the basis, she could measure in it, learn the bit, and
@@ -308,10 +296,10 @@ for a in (0, 1):
 # The function `one_round` below is one round of the quantum stage as a circuit. Alice prepares her state with
 # `prepare`; Eve, with probability $f$, measures in a basis $x_E$ of her own choice and passes on the collapsed state
 # (the intercept–resend attack of Section 5); the channel applies depolarising noise of strength $p_{\rm dep}$
-# (notebook 52, Section 8.2) through `apply_kraus_mcwf`; Bob measures in his basis. A measurement in a basis given by a
+# through `apply_kraus_mcwf`; Bob measures in his basis. A measurement in a basis given by a
 # traced bit is done by measuring in both bases with the same random key and selecting one result with `jnp.where`,
 # which keeps the function free of Python branches. `simulate_rounds` compiles the round with `jax.jit` and maps it
-# over many independent keys with `jax.vmap` (notebook 01), so that, once compiled, $10^5$ rounds take a fraction of
+# over many independent keys with `jax.vmap`, so that, once compiled, $10^5$ rounds take a fraction of
 # a second.
 #
 # For the depolarising channel two of the three Pauli errors flip a bit in either basis ($X$ and $Y$ flip a $Z$ bit,
@@ -423,7 +411,7 @@ assert np.array_equal(sifted_a, sifted_b)                    # no noise, no Eve:
 #
 # $$\hat Q=\frac mk,\qquad\sigma_{\hat Q}=\sqrt{\frac{\hat Q(1-\hat Q)}{k}}, \tag{4}$$
 #
-# because every test round is an independent trial with error probability $Q$ (notebook 50, Section 5). The test
+# because every test round is an independent trial with error probability $Q$. The test
 # rounds are chosen after all quantum signals have been measured, so Eve cannot know in advance which rounds will be
 # checked; if she disturbs some fraction of the rounds, the test sample sees roughly the same fraction. Alice and Bob
 # estimate the error rate separately in the two bases, $\hat Q_Z$ from the test rounds in which both used $Z$ and
@@ -473,11 +461,11 @@ assert abs(np.mean(a_key != b_key) - est["Q"]) < 5 * est["sigma"]
 # ### 4.5 Error correction
 #
 # The remaining $n$ key bits of Alice and Bob differ in a fraction $Q$ of positions. Alice and Bob remove these errors
-# with the parity-check reconciliation of notebook 50, Section 6.3: block parities, a binary search in each block whose
+# with the parity-check reconciliation of [notebook 50, entropy and noisy channels](50_information_entropy_and_noisy_channels.ipynb), Section 6.3: block parities, a binary search in each block whose
 # parities differ, and several passes after public random permutations, with first-pass blocks of about $0.73/\hat Q$
 # bits. Every announced parity is a bit that Eve hears, and the total, the **leak**, is at least $n\,h(Q)$
-# (notebook 50, Eq. (24)). To make sure that no error survived, Alice and Bob finally compare a $64$-bit random hash of
-# their corrected strings, computed with the function of notebook 51; the $64$ announced bits are added to the leak.
+# (Eq. (24) there). To make sure that no error survived, Alice and Bob finally compare a $64$-bit random hash of
+# their corrected strings, computed with the random linear hash; the $64$ announced bits are added to the leak.
 # Both parties announce parities here, so the exchange is interactive, while the key rate of Section 7.2 is stated for
 # one-way error correction. The simulation counts every parity of Alice's string that is announced as known to Eve; a
 # full security analysis of interactive error correction is beyond this chapter.
@@ -510,14 +498,14 @@ assert leak - N_VERIFY > n_key * h2(est["Q"])                             # note
 
 # %% [markdown]
 # All errors are gone, and the verification hashes agree. The reconciliation revealed somewhat more than the minimum
-# $n\,h(\hat Q)$, with an efficiency $f_{\rm EC}=\text{leak}/[n\,h(\hat Q)]$ (notebook 50, Eq. (24); the $64$ verification bits
-# not counted) in the range found in notebook 50. Bob's corrected string is now identical to
+# $n\,h(\hat Q)$, with an efficiency $f_{\rm EC}=\text{leak}/[n\,h(\hat Q)]$ (the $64$ verification bits
+# not counted), in the range found in [notebook 50, entropy and noisy channels](50_information_entropy_and_noisy_channels.ipynb), Section 6.3. Bob's corrected string is now identical to
 # Alice's, but it is not yet secret: Eve heard every parity, and she may have learned something on the quantum channel.
 #
 # ### 4.6 Privacy amplification and the final key
 #
 # The last step hashes the corrected string $x$ of $n$ bits to a key $k=G\,x\bmod2$ of $\ell$ bits with a public
-# random binary matrix $G$ (notebook 51, Eq. (15)). Notebook 51 showed that the hash removes Eve's knowledge if the key
+# random binary matrix $G$ (Eq. (15) of [notebook 51, secrecy and authentication](51_secrecy_one_time_pad_and_authentication.ipynb)). The hash removes Eve's knowledge if the key
 # is shortened by an upper bound on what she knows plus a safety margin of $s$ bits, Eq. (17) there. Eve's knowledge has
 # two parts: the leak of error correction, which Alice and Bob counted exactly, and what she learned on the quantum
 # channel. Section 7 proves that the second part is at most $n\,h(Q_X)$ bits for key bits from the $Z$ basis, and
@@ -583,8 +571,7 @@ assert abs(frac_diff - 0.5) < 5 * binom_se(0.5, ell)
 #
 # $$I(A{:}E)=\tfrac12\cdot1+\tfrac12\cdot0=\tfrac12,\qquad I(A{:}B)=1-h\big(\tfrac14\big)=0.189 , \tag{7}$$
 #
-# where Bob's value is the mutual information of a binary symmetric channel with flip probability $1/4$ (notebook 50,
-# Section 5). Eve knows more about the key than Bob. The attack is nevertheless harmless: it causes an error rate of
+# where Bob's value is the mutual information of a binary symmetric channel with flip probability $1/4$. Eve knows more about the key than Bob. The attack is nevertheless harmless: it causes an error rate of
 # $25\,\%$, which Alice and Bob detect in parameter estimation, and they abort. If Eve attacks only a fraction $f$ of
 # the rounds, both numbers scale with $f$,
 #
@@ -594,8 +581,8 @@ assert abs(frac_diff - 0.5) < 5 * binom_se(0.5, ell)
 #
 # The next cell runs the attack with the round simulator of Section 4.2 at $f=0,\tfrac14,\tfrac12,\tfrac34,1$, with
 # $2\times10^4$ rounds each. Eve's measurement is the engine's `measure_qubit`, and what she resends is its collapsed
-# state. Eve's knowledge per sifted round is the plug-in mutual information, Eq. (10) of notebook 50 evaluated on the
-# observed frequencies (notebook 50, Section 5.1), between Alice's bit and Eve's record, which is her outcome in the rounds that she attacked in the right basis and a blank symbol
+# state. Eve's knowledge per sifted round is the plug-in mutual information, Eq. (10) of [notebook 50, entropy and noisy channels](50_information_entropy_and_noisy_channels.ipynb) evaluated on the
+# observed frequencies, between Alice's bit and Eve's record, which is her outcome in the rounds that she attacked in the right basis and a blank symbol
 # otherwise, since after the announcement of the bases she knows that her other results are worthless. The wrong control
 # gives Eve the basis in advance: she then reads every bit without a single error, which is why the bases must stay
 # secret until Bob has measured.
@@ -637,10 +624,10 @@ assert Q_kb == 0.0 and IAE_kb > 0.999          # plug-in I = empirical H(A), sli
 # of the secret basis: an Eve who knows
 # it copies every bit perfectly, and Alice and Bob see nothing.
 #
-# ### 5.3 Intercept–resend and the probe attack of notebook 52
+# ### 5.3 Intercept–resend and a probe attack of tunable strength
 #
-# Intercept–resend is a crude attack: Eve learns everything about some rounds and nothing about the others. Notebook 52,
-# Section 5.2, studied a gentler family, in which Eve couples a probe to every qubit by a controlled rotation of
+# Intercept–resend is a crude attack: Eve learns everything about some rounds and nothing about the others. A gentler family,
+# derived in [notebook 52, quantum rules, channels and capacities](52_quantum_rules_channels_and_capacities.ipynb), Section 5.2, is one in which Eve couples a probe to every qubit by a controlled rotation of
 # strength $\theta$ and measures the probe after the bases are announced; Eq. (8) there gives the error rate and Eve's
 # information as functions of $\theta$. At $\theta=\pi$ the controlled rotation is a CNOT, which copies the $Z$ bit of
 # the signal into the probe; Bob then sees $Q=1/4$ and Eve holds $1/2$ bit per sifted round, the same numbers as full
@@ -715,7 +702,7 @@ plt.tight_layout(); plt.show()
 # ### 6.1 BBM92 and the source-replacement picture
 #
 # Suppose that a source, which could be a third party Charlie or Eve herself, distributes pairs of qubits that should
-# be in the Bell state $\vert\Phi^+\rangle=(\vert00\rangle+\vert11\rangle)/\sqrt2$ (notebook 19, Section 3). Alice and
+# be in the Bell state $\vert\Phi^+\rangle=(\vert00\rangle+\vert11\rangle)/\sqrt2$. Alice and
 # Bob each measure their qubit in a randomly chosen basis, $Z$ or $X$, and sift as in BB84. In the $Z$ basis the
 # outcomes of $\vert\Phi^+\rangle$ are equal; and since $H\otimes H$ leaves $\vert\Phi^+\rangle$ unchanged,
 #
@@ -732,12 +719,12 @@ plt.tight_layout(); plt.show()
 # $\vert\Phi^+\rangle$ in Alice's own laboratory, followed by a measurement of her half: from outside the laboratory the
 # two cannot be told apart. This is the **source-replacement** picture. Ref. [[4]](#ref-4) showed this
 # equivalence, and its use is that security can be analysed for the entanglement-based protocol, where monogamy
-# (notebook 52, Section 6.2) is directly applicable, and then holds for prepare-and-measure BB84 as well.
+# ([notebook 52, quantum rules, channels and capacities](52_quantum_rules_channels_and_capacities.ipynb), Section 6.2) is directly applicable, and then holds for prepare-and-measure BB84 as well.
 #
 # The next cell measures Alice's half of $\vert\Phi^+\rangle$ with projectors, computes Bob's conditional state with
 # `rdm`, and compares it with the BB84 state of Eq. (1). It also checks that Bob's state averaged over Alice's outcomes
-# is $\mathbb 1/2$ for both of Alice's bases, so that Bob cannot learn the basis from his qubit (no-signalling, notebook
-# 52, Eq. (9)). The wrong control is the classically correlated source $\tfrac12(\vert00\rangle\langle00\vert+
+# is $\mathbb 1/2$ for both of Alice's bases, so that Bob cannot learn the basis from his qubit (no-signalling, Eq. (9) of
+# [notebook 52, quantum rules, channels and capacities](52_quantum_rules_channels_and_capacities.ipynb)). The wrong control is the classically correlated source $\tfrac12(\vert00\rangle\langle00\vert+
 # \vert11\rangle\langle11\vert)$, which gives perfect $Z$ correlations as well: an $X$ measurement by Alice leaves
 # Bob's qubit maximally mixed, so this source cannot replace a BB84 sender.
 
@@ -780,7 +767,7 @@ for x in (0, 1):
 # Bob's average state is $\mathbb 1/2$ whichever basis Alice chose. The classical source passes the $Z$ test but
 # fails the $X$ test: after an $X$ measurement by Alice, Bob's qubit has fidelity $1/2$ with the expected state. Perfect
 # correlations in one basis can come from a classical mechanism, and a copy of such a mechanism could sit with Eve
-# (the GHZ control of notebook 52, Section 6.2); correlations in two complementary bases cannot.
+# (the GHZ control in [notebook 52, quantum rules, channels and capacities](52_quantum_rules_channels_and_capacities.ipynb), Section 6.2); correlations in two complementary bases cannot.
 #
 # ### 6.2 E91 and the CHSH test
 #
@@ -788,19 +775,19 @@ for x in (0, 1):
 # [[5]](#ref-5).
 # Alice measures $\pm1$-valued observables $A_0$ or $A_1$ and Bob $B_0$ or $B_1$, chosen at random, and from the rounds
 # with each pair of settings they estimate the combination introduced in [[6]](#ref-6),
-# derived in [notebook 19](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb),
+# derived in [notebook 19, Bell states and CHSH](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb),
 #
 # $$S=\langle A_0B_0\rangle+\langle A_0B_1\rangle+\langle A_1B_0\rangle-\langle A_1B_1\rangle . \tag{10}$$
 #
-# Notebook 19 proves that every local hidden-variable model, any mechanism in which the outcomes are fixed in advance
-# by shared classical data, obeys $\vert S\vert\leq2$ (Section 5 there), and that quantum mechanics reaches
-# $2\sqrt2$ (Sections 7–8). With $A_0=Z$, $A_1=X$ and $B_{0,1}=(Z\pm X)/\sqrt2$ the CHSH operator is
+# Every local hidden-variable model, any mechanism in which the outcomes are fixed in advance
+# by shared classical data, obeys $\vert S\vert\leq2$ (Section 5 there), and quantum mechanics reaches
+# $2\sqrt2$ (Sections 7–8 there). With $A_0=Z$, $A_1=X$ and $B_{0,1}=(Z\pm X)/\sqrt2$ the CHSH operator is
 #
 # $$A_0\otimes(B_0+B_1)+A_1\otimes(B_0-B_1)=\sqrt2\,\big(Z\otimes Z+X\otimes X\big), \tag{11}$$
 #
 # because $B_0+B_1=\sqrt2Z$ and $B_0-B_1=\sqrt2X$. For $\vert\Phi^+\rangle$, $\langle ZZ\rangle=\langle XX\rangle=1$
 # and $S=2\sqrt2$. For the Werner pair of visibility $v$ [[7]](#ref-7),
-# $\rho_W(v)=v\,\vert\Phi^+\rangle\langle\Phi^+\vert+(1-v)\,\mathbb 1/4$ (notebook 19, Section 11), the noise term has
+# $\rho_W(v)=v\,\vert\Phi^+\rangle\langle\Phi^+\vert+(1-v)\,\mathbb 1/4$, the noise term has
 # zero correlators, so $\langle ZZ\rangle=\langle XX\rangle=v$ and $S=2\sqrt2\,v$. The error rate in either basis is
 # the probability of unequal outcomes, $Q=(1-\langle ZZ\rangle)/2=(1-v)/2$, hence
 #
@@ -811,8 +798,7 @@ for x in (0, 1):
 # from rounds in which Alice and Bob measure along the same axis (for example a third setting $B_2=Z$ for Bob that
 # matches $A_0$), and the CHSH rounds serve as the test. The next cell computes $S$ for Werner pairs with the engine,
 # exactly from the density tensor and by sampling $10^4$ shots per setting, measuring each observable
-# $\cos\theta\,Z+\sin\theta\,X$ by a rotation $R_y(-\theta)$ followed by a $Z$ measurement, as in notebook 19,
-# Section 6.3. The wrong control is again the classically correlated source, for which $\langle ZZ\rangle=1$ and
+# $\cos\theta\,Z+\sin\theta\,X$ by a rotation $R_y(-\theta)$ followed by a $Z$ measurement. The wrong control is again the classically correlated source, for which $\langle ZZ\rangle=1$ and
 # $\langle XX\rangle=0$ give $S=\sqrt2$.
 
 # %%
@@ -884,7 +870,7 @@ assert abs(S_cl - np.sqrt(2)) < 1e3 * TOL
 # \end{aligned} \tag{13}$$
 #
 # A state with $\langle ZZ\rangle=1$ lives in the span of $\vert\Phi^+\rangle$ and $\vert\Phi^-\rangle$, and
-# $\langle XX\rangle=1$ then forces it onto $\vert\Phi^+\rangle$, a pure state. By monogamy (notebook 52, Section 6.2) a
+# $\langle XX\rangle=1$ then forces it onto $\vert\Phi^+\rangle$, a pure state. By monogamy ([notebook 52, quantum rules, channels and capacities](52_quantum_rules_channels_and_capacities.ipynb), Section 6.2) a
 # pure state of Alice and Bob is uncorrelated with every other system, so Eve knows nothing, and the $Z$ outcomes are
 # perfectly random and private.
 #
@@ -900,7 +886,7 @@ assert abs(S_cl - np.sqrt(2)) < 1e3 * TOL
 # errors therefore do not touch the $Z$ key at all. What they measure is how far the pair is from the pure state
 # $\vert\Phi^+\rangle$, and hence how much room is left for Eve to be correlated with the $Z$ key. The CNOT probe of
 # Section 5.3 shows this at work: it copies the $Z$ bit into Eve's probe and leaves every $Z$ round free of errors, but
-# Bob's $X$ outcome becomes random, $Q_X=1/2$ (notebook 52, Section 5.2, with $c=0$). Eve's knowledge of the $Z$ key
+# Bob's $X$ outcome becomes random, $Q_X=1/2$ ([notebook 52, quantum rules, channels and capacities](52_quantum_rules_channels_and_capacities.ipynb), Section 5.2, with $c=0$). Eve's knowledge of the $Z$ key
 # appears as phase errors. The next cell builds
 # random Bell-diagonal states, computes both error rates from the engine's outcome probabilities, and checks Eq. (14).
 
@@ -947,7 +933,7 @@ assert worst < TOL
 #
 # $$r=H(Z_A\vert E)-H(Z_A\vert B). \tag{15}$$
 #
-# The conditional entropies are those of notebook 50, Section 4, with Eve's or Bob's knowledge in the condition.
+# The conditional entropies are those of [notebook 50, entropy and noisy channels](50_information_entropy_and_noisy_channels.ipynb), Section 4, with Eve's or Bob's knowledge in the condition.
 # The first term is Eve's uncertainty about the key, which privacy amplification turns into secrecy; it is the number of
 # bits per round that remain hidden from her. The second term is Bob's uncertainty, which error correction must remove
 # by public messages that Eve hears too; it is the cost of the leak. When Eve holds quantum systems, $H(Z_A\vert E)$ is
@@ -956,13 +942,13 @@ assert worst < TOL
 #
 # $$H(Z_A\vert E)=S(\rho_{Z_AE})-S(\rho_E), \tag{16}$$
 #
-# the chain rule of notebook 50, Eq. (9), with von Neumann entropies (notebook 52, Section 6.2). For Bob, who measures
+# the chain rule, Eq. (9) of [notebook 50, entropy and noisy channels](50_information_entropy_and_noisy_channels.ipynb), with von Neumann entropies. For Bob, who measures
 # his qubit, $H(Z_A\vert B)$ is at most the classical value $H(Z_A\vert Z_B)$, since processing his system can only
 # lose information.
 #
 # Two limits of Eq. (16) show its meaning. If Eve's states $\rho_E^0$ and $\rho_E^1$ are orthogonal, she can read the
 # bit, and $H(Z_A\vert E)=0$; if they are equal, she has nothing, and $H(Z_A\vert E)=H(Z_A)$. For a uniformly random
-# key bit, $H(Z_A)=1$, and Eq. (10) of notebook 50 turns Eq. (15) into $r=I(Z_A{:}B)-I(Z_A{:}E)$: a secret key can be
+# key bit, $H(Z_A)=1$, and the definition of the mutual information turns Eq. (15) into $r=I(Z_A{:}B)-I(Z_A{:}E)$: a secret key can be
 # distilled at the rate by which Bob knows more about Alice's bit than Eve does. For intercept–resend the two curves
 # in the right panel of the figure in Section 5.3 cross at $Q\approx17\,\%$; the threshold derived below is lower,
 # because it must hold against every attack.
@@ -986,7 +972,7 @@ assert worst < TOL
 # Bob's prediction of $X_A$ can be tested: in the $X$ rounds his outcome differs from Alice's with probability $Q_X$, so
 # $H(X_A\vert B)\leq H(X_A\vert X_B)\leq h(Q_X)$. The last step holds because, once Bob's bit is known, Alice's bit is
 # fixed by the error bit $X_A\oplus X_B$, which is $1$ with probability $Q_X$, and conditioning cannot increase its
-# entropy $h(Q_X)$ (notebook 50, Section 4). Equation (17) then gives the bound on Eve's uncertainty,
+# entropy $h(Q_X)$. Equation (17) then gives the bound on Eve's uncertainty,
 #
 # $$H(Z_A\vert E)\;\geq\;1-h(Q_X). \tag{18}$$
 #
@@ -1069,7 +1055,7 @@ assert abs(single) < 1e-9
 # Under the assumption of independent rounds stated in Section 7.2, Eq. (19) holds for every state that Eve may have
 # prepared, which Alice and Bob need since they never learn which attack she used. The bound is also tight: some state
 # that Eve can prepare reaches it. The next cell purifies Bell-diagonal states with $Q_X=Q_Z=Q$, giving Eve the
-# purifying system (the worst case of notebook 52, Section 6.2), $\vert\Omega\rangle=\sum_k\sqrt{\lambda_k}\,\vert B_k\rangle_{AB}\vert k\rangle_E$, and scans the
+# purifying system (the worst case), $\vert\Omega\rangle=\sum_k\sqrt{\lambda_k}\,\vert B_k\rangle_{AB}\vert k\rangle_E$, and scans the
 # one free weight $\lambda_{\Psi^-}=t$ (by Eq. (14), $\lambda_{\Psi^+}=\lambda_{\Phi^-}=Q-t$). The smallest
 # $H(Z_A\vert E)$ equals $1-h(Q)$ and is reached at $t=Q^2$, the state produced by independent bit and phase flips
 # with probability $Q$ each, with weights $\big((1-Q)^2,Q(1-Q),Q(1-Q),Q^2\big)$. The Werner pair with the same error
@@ -1120,12 +1106,11 @@ assert abs(Q_STAR - 0.110028) < 1e-5
 #
 # $$v^\ast=1-2Q^\ast\approx0.78,\qquad F^\ast=\tfrac{1+3v^\ast}{4}\approx0.835 . \tag{21}$$
 #
-# Werner pairs are entangled for $v>1/3$ (notebook 19, Section 11) and violate the CHSH inequality for $v>1/\sqrt2$.
+# Werner pairs are entangled for $v>1/3$ ([notebook 19, Bell states and CHSH](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb), Section 11) and violate the CHSH inequality for $v>1/\sqrt2$.
 # Pairs with $1/3<v<0.78$ are entangled but give no key with the post-processing used here. Other post-processing
 # tolerates more noise: if Alice flips each of her key bits at random before error correction, one-way
 # communication still gives a key up to $Q=12.4\,\%$ [[11]](#ref-11), and the two-way protocol of
-# [[12]](#ref-12) tolerates $18.9\,\%$. The last part of this chapter returns to noisy pairs and
-# to how they can be purified before use.
+# [[12]](#ref-12) tolerates $18.9\,\%$.
 
 # %%
 # ==============================================================================
@@ -1151,7 +1136,7 @@ assert 1 / 3 < 1 / np.sqrt(2) < v_star                                       # e
 # estimated separately for each basis; the fraction of sifted rounds then approaches one.
 #
 # Security proofs distinguish three classes of attacks. In **individual attacks** Eve treats every qubit separately
-# with a fresh probe and measures each probe separately; intercept–resend and the probe attack of notebook 52 measured
+# with a fresh probe and measures each probe separately; intercept–resend and the probe attack of Section 5.3 measured
 # one probe at a time are examples. In **collective attacks** she still attacks every qubit separately and in the same
 # way, but stores all her probes in a quantum memory and measures them jointly at the end, after hearing all public
 # messages. In **coherent attacks** she does the most general thing quantum mechanics allows, entangling all qubits with
@@ -1218,7 +1203,7 @@ assert runs[0]["ell"] > 0 and runs[-1]["ell"] <= 0                           # k
 # grows with $h(Q)$ while the rate shrinks. In the last run, with an estimated error rate of $9.3\,\%$ and an
 # asymptotic rate of $0.11$, the leak of $1.39\,h(\hat Q)$ makes Eq. (5) negative, and the protocol aborts although the
 # error rate is below the threshold $Q^\ast$. Real systems use long low-density parity-check codes with $f$ close to
-# one (notebook 50, Section 5.3) to come closer to Eq. (19).
+# one ([notebook 50, entropy and noisy channels](50_information_entropy_and_noisy_channels.ipynb), Section 5.3) to come closer to Eq. (19).
 #
 # ### 7.8 A finite number of rounds
 #
@@ -1350,8 +1335,8 @@ plt.tight_layout(); plt.show()
 # key either. The key rate is
 # therefore proportional to the transmission $\eta$ of the link, and since a fibre attenuates the signal by a fixed
 # number of decibels per kilometre, $\eta$ and the rate fall exponentially with distance. No-cloning forbids amplifying
-# the quantum signal (notebook 52, Section 4); long distances need trusted relay stations or quantum repeaters, which
-# are built from entanglement swapping and purification and are the subject of the next notebook of this chapter.
+# the quantum signal; long distances need trusted relay stations or quantum repeaters, which
+# are built from entanglement swapping and purification.
 #
 # **Multi-photon pulses and decoy states.** Practical sources are attenuated lasers. Each pulse contains a random
 # number of photons, and occasionally two or more. Eve can then keep one photon and forward the others, and once the
@@ -1377,12 +1362,12 @@ plt.tight_layout(); plt.show()
 #   basis returns Alice's bit, one in the wrong basis a coin toss, Eq. (2); sifting keeps the half of the rounds with
 #   equal bases. The simulated protocol turned $4\times10^4$ qubits at $Q=3\,\%$ into a key of about $10^4$ bits that
 #   Alice and Bob share bit for bit.
-# * **The classical stage is the toolbox of notebooks 50 and 51.** The error rate is estimated on a random sample,
+# * **The classical stage uses only classical tools.** The error rate is estimated on a random sample,
 #   with a standard error $\sqrt{Q(1-Q)/k}$; parity checks correct the errors at a cost of $f_{\rm EC}\,h(Q)$ bits per key bit;
 #   a random hash removes Eve's knowledge, Eq. (5). Hashing before correcting leaves keys that differ in half of their
 #   bits.
 # * **Intercept–resend causes a $25\,\%$ error rate** and gives Eve half a bit per sifted round, Eqs. (6)–(8); the CNOT
-#   probe of notebook 52 gives the same numbers, and weaker probes give more information per error.
+#   probe of Section 5.3 gives the same numbers, and weaker probes give more information per error.
 # * **A BB84 sender is a source of $\vert\Phi^+\rangle$ with a measurement in Alice's laboratory.** This source
 #   replacement links BB84 with the entanglement-based protocols BBM92 and E91; Werner pairs of visibility $v$ have
 #   $S=2\sqrt2\,v$ and $Q=(1-v)/2$.
@@ -1412,16 +1397,16 @@ plt.tight_layout(); plt.show()
 #    that a sum close to $2$ forces a fidelity close to one.
 # 5. ★★ **Intercept–resend in the intermediate basis.** Eve measures every qubit along the Bloch direction halfway
 #    between $+z$ and $+x$ (the observable $(Z+X)/\sqrt2$) and resends the eigenstate she found. Extend `one_round`:
-#    rotate with `ry(-np.pi / 4)`, measure $Z$, rotate back with `ry(np.pi / 4)`, as in notebook 19, Section 6.3.
+#    rotate with `ry(-np.pi / 4)`, measure $Z$, rotate back with `ry(np.pi / 4)`.
 #    Compute the error rate, the probability with
 #    which Eve guesses Alice's bit, and her mutual information per sifted round. Compare with Eqs. (6)–(7).
 # 6. ★★ **Thresholds of Werner pairs.** For $\rho_W(v)$ list the values of $v$, the fidelity $F$ and the error rate $Q$
 #    at which the pair becomes entangled, violates the CHSH inequality, gives a device-independent key, and gives a BB84
 #    key. Which range of $v$ is entangled but useless for both protocols?
-# 7. ★★★ **The probe attack of notebook 52 inside the protocol.** Replace intercept–resend in `one_round` by the
-#    controlled rotation of notebook 52, Eq. (7) there, with $\theta=\pi/2$: let the signal control $R_y(\theta)$ on a
+# 7. ★★★ **The probe attack inside the protocol.** Replace intercept–resend in `one_round` by the
+#    controlled rotation of [notebook 52, quantum rules, channels and capacities](52_quantum_rules_channels_and_capacities.ipynb), Eq. (7), with $\theta=\pi/2$: let the signal control $R_y(\theta)$ on a
 #    second qubit in $\vert0\rangle$ before Bob measures. Measure the error rate, run `run_protocol`'s steps on the
-#    result, and compare the number of bits removed for Eve, $n\,h(\hat Q)$, with Eve's information from notebook 52,
+#    result, and compare the number of bits removed for Eve, $n\,h(\hat Q)$, with Eve's information from Eq. (8) of that notebook,
 #    $n\,I_{AE}$ for single-probe measurements and $n\,\chi_E$ for joint measurements.
 #
 # *Check values.* 1: $f<4Q^\ast=0.440$; Eve learns $f/2=0.220$ bit per sifted round, which privacy amplification

@@ -48,8 +48,14 @@
 # * **Section 10** trains on trajectory-estimated costs with SPSA [[4]](#ref-4) — the device-realistic version.
 # * **Section 11** tests **generalisation**: train on a few members of a family, then measure the compression of
 #   members never seen.
-# * **Section 12** puts gate noise into the encoder, reusing the model of
-#   [44 — noisy variational circuits](../ch13_quantum_machine_learning/44_noisy_variational_circuits.ipynb).
+# * **Section 12** puts depolarising gate noise into the encoder.
+#
+# The notebook assumes density tensors, partial traces and mid-circuit measurement with reset
+# ([notebook 07, density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb)
+# and [notebook 08, measurements](../ch03_matrix_free_engine/08_measurements.ipynb)), the hardware-efficient ansatz, Adam and
+# SPSA ([notebook 40, parametrised gates and gradients](40_parametrized_gates_and_gradients.ipynb) and
+# [notebook 41, optimisers](41_optimizers.ipynb)), and, in Section 12, the gate-noise model of
+# [notebook 44, noisy variational circuits](44_noisy_variational_circuits.ipynb).
 #
 # ### What you will learn
 #
@@ -72,23 +78,9 @@
 # * `lax.scan` over circuit layers, and the inverse circuit written as a scan over the reversed parameter array;
 # * mid-circuit measurement and reset inside `vmap` with `measure_qubit` and `reset_qubit`.
 #
-# ### Prerequisites
-#
-# * [06 — states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb):
-#   reduced density matrices, Schmidt decomposition, fidelity;
-# * [07 — density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb):
-#   the density tensor, partial trace, channels;
-# * [08 — measurements](../ch03_matrix_free_engine/08_measurements.ipynb): `measure_qubit`, `reset_qubit`, sampling and
-#   error bars;
-# * [40 — parametrized gates and gradients](../ch13_quantum_machine_learning/40_parametrized_gates_and_gradients.ipynb)
-#   and [41 — optimisers](../ch13_quantum_machine_learning/41_optimizers.ipynb): the ansatz, `jax.grad`, Adam, SPSA,
-#   the `lax.scan` training loop;
-# * [44 — noisy variational circuits](../ch13_quantum_machine_learning/44_noisy_variational_circuits.ipynb) for
-#   Section 12.
-#
 # **Conventions and sizes.** $N=6$ qubits throughout, with the trash register always the **last** $k$ qubits and
 # $k\le4$; the noise study of Section 12 drops to $N=4$ so that the density tensor stays cheap. The encoder is the
-# hardware-efficient ansatz [[5]](#ref-5) of notebook 40 with $L$ layers and $n=2N(L+1)$ angles.
+# hardware-efficient ansatz [[5]](#ref-5) with $L$ layers and $n=2N(L+1)$ angles.
 
 # %% [markdown]
 # ## 2. Engine recap and notebook helpers
@@ -224,7 +216,7 @@ def random_starts(n_runs, n_params, seed, scale=jnp.pi):
 #
 # ### 3.3 The circuit
 #
-# The encoder is the hardware-efficient ansatz of notebook 40 applied to an arbitrary input state rather than to
+# The encoder is the hardware-efficient ansatz applied to an arbitrary input state rather than to
 # $\vert0\cdots0\rangle$: $L$ repetitions of [$R_y(\theta)R_z(\theta)$ on every qubit, then a chain of $CZ$ gates],
 # followed by one final rotation block, giving $n=2N(L+1)$ angles. Writing the repeated layers as a `lax.scan` keeps the
 # compiled graph independent of $L$; the decoder is the same scan run over the reversed parameter array with
@@ -354,8 +346,8 @@ for k in range(1, K_MAX + 1):
 # trash measured with a SWAP test [[6]](#ref-6); for the reference $\vert0\cdots0\rangle$ a $Z$ measurement of the trash qubits is
 # enough.
 #
-# In the language of notebook 40 the trash fidelity is a **global** cost on the trash register: like Eq. (9) there, it
-# asks whether *all* $k$ trash qubits are in $\vert0\rangle$ at once. It involves only $k$ of the $N$ qubits, but its
+# The trash fidelity is a **global** cost on the trash register, in the sense of
+# [notebook 40, parametrised gates and gradients](40_parametrized_gates_and_gradients.ipynb), Section 5.3: it asks whether *all* $k$ trash qubits are in $\vert0\rangle$ at once. It involves only $k$ of the $N$ qubits, but its
 # observable is a $k$-qubit projector. The corresponding local cost averages single-qubit probabilities,
 # $1-\frac1k\sum_{q\in T}\langle0\vert\rho_q\vert0\rangle$; Ref. [[7]](#ref-7) used the
 # autoencoder as their example of a global cost whose gradients vanish exponentially in $k$ and whose local version does
@@ -410,8 +402,7 @@ for k in range(1, K_MAX + 1):
 #   $t\neq0$, is orthogonal to $\vert\chi\rangle$.
 # * Both coincide, and $F_{\rm rec}=F_{\rm trash}$ holds as an equality, at $F=1$ (and trivially at $F=0$).
 #
-# For a Haar-random encoded state $\vert\varphi\rangle$ (a uniformly random unit vector,
-# [notebook 10](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb)) the failed branches point in directions uncorrelated with
+# For a Haar-random encoded state $\vert\varphi\rangle$ (a uniformly random unit vector) the failed branches point in directions uncorrelated with
 # $\vert\chi\rangle$, so $\langle\chi\vert\sigma\vert\chi\rangle$ is on average $\mathrm{Tr}\,\sigma/2^{N-k}$ and
 # $F_{\rm rec}-F^2\approx F(1-F)/2^{N-k}$: random encoders sit close to the lower bound. For an ensemble the bounds hold
 # member by member; averaging and Jensen's inequality give
@@ -658,7 +649,7 @@ fig.tight_layout(); plt.show()
 # memory cost of $2^N$ instead of $4^N$.
 #
 # > **Physics insight.** Equation (11) is the statement that *an unread measurement is a channel*. The same identity
-# > underlies the dephasing channel of notebook 07 and the deferred-measurement principle: whether the outcome is looked
+# > underlies the dephasing channel and the deferred-measurement principle: whether the outcome is looked
 # > at changes what one knows; the reduced state of the rest of the system is the same either way.
 
 # %% [markdown]
@@ -882,8 +873,7 @@ fig.tight_layout(); plt.show()
 # (family $\times$ $k$ $\times$ random start) to compile into **one** program per depth.
 #
 # The gradient is exact: $U(\boldsymbol\theta)$ is a chain of einsums, so `jax.grad` differentiates through it, and Adam
-# takes it from there. Six uniformly random initialisations are run for every configuration, because — as in notebook
-# 41 — a single run says nothing about a landscape with many local minima; Section 8 shows that six are too few to
+# takes it from there. Six uniformly random initialisations are run for every configuration, because a single run says nothing about a landscape with many local minima; Section 8 shows that six are too few to
 # estimate how often a configuration succeeds, and uses more where that number matters.
 #
 # A reference point that costs nothing is the encoder with all angles zero. Its rotations are the identity and its
@@ -1115,7 +1105,7 @@ fig.tight_layout(); plt.show()
 # eight runs that all end at or below $5/6$ are equally compatible with a ceiling at $5/6$ and with a rare success.
 #
 # **Diagnosis 2: success fractions against depth.** With $32$ starts per depth no run at $L\le6$ exceeds $5/6$; the
-# 68 % Wilson interval [[13]](#ref-13) (notebook 41, Section 12) puts the success probability at these depths below $0.03$, an upper bound on the success rate that leaves open
+# 68 % Wilson interval [[13]](#ref-13) puts the success probability at these depths below $0.03$, an upper bound on the success rate that leaves open
 # whether the ansatz can reach the bound at these depths. At $L=9$ three starts in $32$ reach the bound ($0.09$, interval $[0.05,0.16]$) and at $L=12$
 # seven ($0.22$, interval $[0.16,0.30]$). The bound of Section 6 is therefore reachable by the hardware-efficient ansatz
 # from $L=9$ on, and every start that misses it ends at $5/6$ or $4/6$. Whether the success fraction keeps growing
@@ -1279,7 +1269,7 @@ for lab, opt, ns in (("constant step 0.05", opt_adam(LR), N_STEPS_DK),
 # replaces Eq. (16) by its measured estimate: run the circuit $M$ times on each ensemble member, measure the trash
 # qubits, and count how often they all come out zero. The cost is then a binomial proportion with standard error
 # $\sqrt{F(1-F)/M}$ per member. The gradient must then be estimated from costs as well: by the parameter-shift rule
-# ([[14]](#ref-14), [[15]](#ref-15); $2n$ cost evaluations per iteration) or by SPSA (notebook 41), which needs two cost evaluations per iteration
+# ([[14]](#ref-14), [[15]](#ref-15); $2n$ cost evaluations per iteration) or by SPSA [[4]](#ref-4), which needs two cost evaluations per iteration
 # regardless of the number of angles and is used here.
 #
 # The comparison below runs the same problem three ways from the same initialisations: exact gradients, SPSA on the
@@ -1574,7 +1564,7 @@ fig.tight_layout(); plt.show()
 # %% [markdown]
 # ## 12. Gate noise in the encoder
 #
-# On hardware the encoder is the noisy channel of notebook 44 rather than a unitary: a depolarising channel of strength
+# On hardware the encoder is a noisy channel rather than a unitary: a depolarising channel of strength
 # $p_1$ after every rotation pair and of strength $p_2$ on both qubits of every $CZ$, with $p_1=0.1\,p_2$ throughout. Two
 # expectations frame the measurement.
 #
@@ -1707,13 +1697,13 @@ fig.tight_layout(); plt.show()
 # $\mathrm{Tr}\,\mathcal E^\dagger(\Pi)=\mathrm{Tr}\bigl(\Pi\,\mathcal E(\mathbb 1)\bigr)=m$, holds when the channel is
 # **unital**, $\mathcal E(\mathbb 1)=\mathbb 1$, as unitaries and depolarising and dephasing channels are. So for this noise
 # model the bound still holds and is out of reach; the gap is the price of the hardware. For non-unital noise
-# the bound can be exceeded: a channel that resets the trash qubits to $\vert0\rangle$ (amplitude damping with $\gamma=1$,
-# notebook 44, Section 3.3) gives $\overline F_{\rm trash}=1$ for any ensemble — and destroys the information that the
+# the bound can be exceeded: a channel that resets the trash qubits to $\vert0\rangle$ (amplitude damping with $\gamma=1$)
+# gives $\overline F_{\rm trash}=1$ for any ensemble — and destroys the information that the
 # reconstruction needs, which is why the trash fidelity is a faithful cost only for unitary encoders.
 #
 # > **JAX practice.** The noise strength enters `noisy_encode_dm` as a traced number, so `vmap` over the noise axis and
 # > `vmap` over random starts nest into one compiled program: five noise levels and six initialisations are trained by a
-# > single call, exactly as in notebook 44.
+# > single call.
 
 # %% [markdown]
 # ## 13. What quantum autoencoders are used for
@@ -1793,7 +1783,8 @@ fig.tight_layout(); plt.show()
 #    `trash_fidelities` to take an arbitrary set of trash qubits and re-run one configuration of Section 7 with the trash
 #    at the two ends of the chain. Does the bound change? Does the depth needed to reach it change?
 # 3. ★★ **Ensembles with a non-flat spectrum (extend the code).** Build a family from the ground states of the
-#    transverse-field Ising chain at several field values (use `lanczos_ground_state` from notebook 11), compute the
+#    transverse-field Ising chain at several field values (use `lanczos_ground_state` from
+#    [notebook 11, Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb)), compute the
 #    spectrum of $\bar\rho$, and compare the bound of Eq. (13) with what training reaches. How many field values are
 #    needed before the rank stops growing?
 # 4. ★★ **Reconstruction fidelity as the training cost.** Train directly on $1-F_{\rm rec}$ using the density-tensor
@@ -1813,7 +1804,7 @@ fig.tight_layout(); plt.show()
 #    ansatz needs to come within $10^{-3}$ of it. What is the cost of insisting on a local gate set?
 # 8. ★★★ **Noise-aware bound (physics).** Section 12 showed that Eq. (13) is not attainable with a noisy encoder.
 #    Derive an upper bound on $\overline F_{\rm trash}$ for an encoder followed by global depolarising noise of strength
-#    $q$ (use notebook 44, Section 6), and check it against the measured curve. How much of the measured degradation
+#    $q$ (use [notebook 44, noisy variational circuits](44_noisy_variational_circuits.ipynb), Section 6), and check it against the measured curve. How much of the measured degradation
 #    does a global-depolarising model account for?
 #
 # ## References

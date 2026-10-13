@@ -7,8 +7,8 @@
 #
 # The matrix product state (MPS) classifier was introduced in [[1]](#ref-1). Training it by automatic differentiation
 # of the whole contraction was described in [[2]](#ref-2), and the entanglement of the data and of trained models was
-# studied in [[3]](#ref-3). This notebook implements the model and both training methods on top of the MPS toolbox of
-# notebook 18, and compares its results with those of [[1]](#ref-1), [[2]](#ref-2) and [[3]](#ref-3).
+# studied in [[3]](#ref-3). This notebook implements the model and both training methods with matrix product state tools,
+# and compares its results with those of [[1]](#ref-1), [[2]](#ref-2) and [[3]](#ref-3).
 #
 # The model is a **classical** classifier. It borrows its mathematics from quantum many-body physics (product states,
 # matrix product states, singular value decompositions, sweeps) and runs on an ordinary CPU; no quantum hardware and no
@@ -39,8 +39,8 @@
 # components for each label: a tensor $W^\ell_{s_0s_1\cdots s_{N-1}}$ with one index per pixel. For $N=196$ that is
 # $10\times2^{196}\approx10^{60}$ numbers, which no computer can store.
 #
-# This is the exponential wall of notebook 18, Section 2: a many-body wave function $\psi[s_0,\dots,s_{N-1}]$ of $N$ spins
-# also has $2^N$ components. Notebook 18 showed how a weakly entangled wave function is compressed into a matrix product
+# The same exponential wall appears in many-body physics: a many-body wave function $\psi[s_0,\dots,s_{N-1}]$ of $N$ spins
+# also has $2^N$ components. A weakly entangled wave function is compressed into a matrix product
 # state with $O(N\chi^2)$ numbers, where the bond dimension $\chi$ limits the entanglement across every cut of the chain.
 # The idea of [[1]](#ref-1) is to apply the same compression to the weight tensor: write $W^\ell$ as an MPS, with
 # one extra index $\ell$ on one of its tensors, and train the MPS tensors. The model then costs $O(N\chi^2)$ numbers and
@@ -58,7 +58,7 @@
 # * **Section 5** builds the MPS classifier, contracts it in $O(N\chi^2)$ per image, checks it against the full
 #   weight tensor on a small example, and rescales the contraction to avoid overflow.
 # * **Section 6** trains the classifier with the sweeping algorithm of [[1]](#ref-1), which is the two-site DMRG
-#   algorithm of notebook 18 applied to a classification cost.
+#   algorithm applied to a classification cost.
 # * **Section 7** trains it by automatic differentiation of the whole contraction, as in [[2]](#ref-2), shows that the
 #   gradient of a contraction is an environment, and discusses initialisation, normalisation, SVD gradients and memory.
 # * **Section 8** measures test accuracy against bond dimension and training-set size and compares with
@@ -87,23 +87,17 @@
 # * `vmap` over images, per-site rescaling of long products with a tracked logarithm of the norm, `jax.checkpoint`;
 # * validation of every piece against an independent reference on a small chain.
 #
-# ### Prerequisites
-#
-# * [18 — matrix product states, DMRG and TEBD](../ch07_tensor_networks/18_mps_tebd.ipynb) (Chapter 7): MPS from
-#   repeated SVDs, canonical forms and truncation (Section 3), environments, the SVD split and the sweeps of two-site
-#   DMRG (Section 6);
-# * [41 — optimisers](41_optimizers.ipynb): gradient descent (Section 4) and the Adam update (Section 6);
-# * [02 — index notation and einsum](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb), with its tensor-leg
-#   diagrams (Section 10), and
-#   [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb) (Chapter 1): `einsum`, `jit`, `vmap`, `grad`,
-#   `lax.scan`.
-#
-# No machine-learning background beyond notebook 41 is assumed.
+# The notebook assumes matrix product states, their canonical forms and truncation, and the sweeps of two-site DMRG
+# ([notebook 18, matrix product states](../ch07_tensor_networks/18_mps_tebd.ipynb)), gradient descent and the Adam
+# optimiser ([notebook 41, optimisers](41_optimizers.ipynb)), tensor-leg diagrams and `einsum`
+# ([notebook 02, einsum from scratch](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb)), and `jit`, `vmap`,
+# `grad` and `lax.scan` ([notebook 01, JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)); no
+# machine-learning background is assumed.
 
 # %% [markdown]
 # ## 2. Engine recap and notebook helpers
 #
-# From the engine we take the Adam update of notebook 41. Everything else, the MPS classifier, the sweeps and the
+# From the engine we take the Adam update. Everything else, the MPS classifier, the sweeps and the
 # entanglement analysis, is defined in this notebook. The helper cell sets the plot style and a timer for the sections.
 
 # %%
@@ -317,7 +311,7 @@ section_timer("5 MPS classifier")
 # $$W^\ell_{s_0\cdots s_{N-1}}=\sum_{a_1,\dots,a_{N-1}}A^{[0]s_0}_{a_1}A^{[1]s_1}_{a_1a_2}\cdots A^{[c]\,\ell s_c}_{a_ca_{c+1}}
 # \cdots A^{[N-1]s_{N-1}}_{a_{N-1}}, \tag{5}$$
 #
-# the same chain of rank-3 tensors as Eq. (1) of notebook 18, except that one tensor, at the *label site* $c$, carries
+# the chain of rank-3 tensors of a matrix product state, except that one tensor, at the *label site* $c$, carries
 # the extra label leg. The bond index $a_j$ connects sites $j-1$ and $j$ and runs over $\chi$ values (the bond
 # dimension, called $m$ in [[1]](#ref-1)). Figure 1
 # shows the diagrams. The MPS holds $(N-1)\cdot2\chi^2+2\chi^2\cdot10$ numbers, about $2N\chi^2$: for $N=196$ and $\chi=16$,
@@ -477,8 +471,8 @@ section_timer("6 DMRG sweeps")
 # %% [markdown]
 # ## 6. Training I: the sweeping algorithm, DMRG for a classification cost
 #
-# The sweeping algorithm of [[1]](#ref-1), Sec. V, is the two-site DMRG algorithm of notebook 18, Section 6
-# (DMRG was introduced in [[5]](#ref-5)), with the energy replaced by a cost function summed over the training images.
+# The sweeping algorithm of [[1]](#ref-1), Sec. V, is the two-site DMRG algorithm derived in
+# [notebook 18, matrix product states](../ch07_tensor_networks/18_mps_tebd.ipynb), Section 6 (DMRG was introduced in [[5]](#ref-5)), with the energy replaced by a cost function summed over the training images.
 # Figure 2 shows one step.
 #
 # ![Three diagrams: (a) the bond tensor B formed from sites j and j+1, carrying the label leg; (b) the projected input of one image: left environment, two feature vectors, right environment; (c) the SVD split of B into U, S, V-dagger with chi kept values, and the label leg moving to site j+1](figures/mps_sweep_step.svg)\
@@ -490,7 +484,7 @@ section_timer("6 DMRG sweeps")
 #
 # ### 6.1 The dictionary between DMRG and the sweep
 #
-# | DMRG for a ground state (notebook 18, Section 6) | sweeping training of the classifier ([[1]](#ref-1), Sec. V) |
+# | DMRG for a ground state | sweeping training of the classifier ([[1]](#ref-1), Sec. V) |
 # |---|---|
 # | two-site tensor $\theta$ of sites $j,j+1$ | bond tensor $B^\ell$ of sites $j,j+1$, with the label leg |
 # | left and right environments $L_j$, $R_j$ of the Hamiltonian (MPO) | left and right environments $L_n$, $R_n$ of every training image $n$ |
@@ -561,7 +555,7 @@ section_timer("6 DMRG sweeps")
 #
 # ### 6.4 The SVD split and the moving label
 #
-# After the update the bond tensor is split by a singular value decomposition, as in notebook 18, Section 6.6. Moving
+# After the update the bond tensor is split by a singular value decomposition, as in two-site DMRG. Moving
 # right, the rows of the matrix are $(a,s)$ and the columns $(t,\ell,b)$ ([[1]](#ref-1), Eq. (11)):
 #
 # $$B_{(as),(t\ell b)}=\sum_kU_{(as),k}\,S_k\,V^\dagger_{k,(t\ell b)},\qquad A^{[j]}=\text{first }\chi\text{ columns of }U,\qquad
@@ -570,7 +564,7 @@ section_timer("6 DMRG sweeps")
 # $A^{[j]}$ is left-canonical, $\sum_sA^{[j]s\dagger}A^{[j]s}=1$, and the label leg has moved to site $j+1$ together with
 # the orthogonality centre. Moving left, the rows are $(a,s,\ell)$ and the columns $(t,b)$, $A^{[j+1]}=V^\dagger$ is
 # right-canonical and $US$ carries the label to site $j$. Keeping the $\chi$ largest singular values is the best rank-$\chi$
-# approximation in the Frobenius norm (Eckart–Young theorem [[6]](#ref-6), notebook 18, Section 3.5), and the squared
+# approximation in the Frobenius norm (Eckart–Young theorem [[6]](#ref-6)), and the squared
 # relative error in that norm is the discarded weight $\varepsilon=\sum_{k\geq\chi}S_k^2/\sum_kS_k^2$ (singular
 # values counted from $k=0$).
 #
@@ -944,7 +938,7 @@ section_timer("7 automatic differentiation")
 # In the second approach, used by [[2]](#ref-2), all tensors are updated at once. Each update uses a *mini-batch*: a
 # random subset of $N_{\rm b}=100$ training images. The cost is the cross-entropy (8) over the mini-batch, the scores come
 # from the full contraction of Section 5, and the gradient with respect to every parameter is computed by reverse-mode
-# automatic differentiation (`jax.grad`, notebook 01) and fed to Adam [[7]](#ref-7) (notebook 41). One pass through all
+# automatic differentiation (`jax.grad`) and fed to Adam [[7]](#ref-7). One pass through all
 # training images, in shuffled mini-batches, is an *epoch*. Nothing is truncated and $\chi$ is fixed during training.
 #
 # ### 7.1 The gradient of a contraction is an environment
@@ -1299,7 +1293,7 @@ print(f"{'automatic differentiation, 6 epochs':34s} {hist_ad8[-1]['test']:9.4f} 
 # * a sweep spends $2\times195$ local optimisations, each over all 5000 images, while an epoch of Adam makes 50
 #   updates of all tensors at once, each on 100 images. The mini-batches give many more updates per pass through the data;
 # * the local gradient step uses the conservative step $1/\Lambda$, set by the largest curvature; directions of small
-#   curvature move slowly. Adam rescales every parameter separately (notebook 41).
+#   curvature move slowly. Adam rescales every parameter separately.
 #
 # One property of the sweep is not used here: with a cutoff on the singular values instead of a fixed $\chi$, every
 # bond can grow or shrink to what the data need ([[1]](#ref-1), Sec. V), while automatic differentiation keeps $\chi$
@@ -1506,7 +1500,7 @@ section_timer("9 entanglement")
 # ## 9. Entanglement of the data and of the trained classifier
 #
 # An MPS with bond dimension $\chi$ can carry at most $\log_2\chi$ bits of entanglement entropy across any cut
-# (notebook 18, Section 2.2). A trained classifier with $\chi=16$ therefore represents, for each label, a state of 196
+# ([notebook 18, matrix product states](../ch07_tensor_networks/18_mps_tebd.ipynb), Section 2.2). A trained classifier with $\chi=16$ therefore represents, for each label, a state of 196
 # qubits with at most 4 bits of entanglement across every bond. Which state does it represent? [[3]](#ref-3), Sec. III,
 # considers a natural candidate: the superposition of the product states of all training images of one class,
 #
@@ -1664,7 +1658,7 @@ plt.show()
 # ### 9.3 Entanglement of the trained classifier
 #
 # For the classifier of Section 8.3 we fix the label $\ell$, which turns Eq. (5) into an MPS of 196 qubits without a label
-# leg, and compute its Schmidt values across every bond. The method is that of notebook 18, Sections 3.4–3.5: a left-to-right
+# leg, and compute its Schmidt values across every bond. A left-to-right
 # sweep of QR decompositions makes every tensor left-canonical, a right-to-left sweep of SVDs then produces the Schmidt
 # values of every cut. The norm of the state is collected on the way, in logarithmic form. We also compute the overlap
 # of the normalised classifier state $\vert W^3\rangle$ with the normalised sum state $\vert\Sigma_3\rangle$ of the 1280
@@ -1918,11 +1912,11 @@ print(f"   {'total (Sections 3-10)':28s} {sum(v for k, v in SECTION_TIMES.items(
 #    images of one digit by minimising $-\sum_i\log\vert f(\mathbf x_i)\vert^2$ ([[1]](#ref-1), Eq. (24)) while keeping
 #    $\Vert W\Vert=1$. Then sample new images exactly, pixel by pixel: in right-canonical form the marginal of pixel 0 is
 #    $p(x_0)=\Vert\sum_s\phi_s(x_0)A^{[0]s}\Vert^2$ (with the measure $2\,dx$), and each further pixel is drawn from its conditional distribution given the
-#    pixels already drawn (as the bit-string sampling of an MPS, notebook 18).
+#    pixels already drawn (the bit-string sampling of an MPS).
 # 8. ★★★ **Automatic differentiation for a ground state.** Use the same machinery for physics: write
 #    $E(A)=\langle\psi\vert H\vert\psi\rangle/\langle\psi\vert\psi\rangle$ for an MPS $\vert\psi\rangle$ of the XXZ
-#    chain with the MPO of notebook 18, Section 6.2, minimise it with `jax.grad` and Adam, and compare the energy and the
-#    cost with DMRG of notebook 18 at the same $\chi$. Gradient-based optimisation of tensor networks by automatic
+#    chain with the MPO of [notebook 18, matrix product states](../ch07_tensor_networks/18_mps_tebd.ipynb), Section 6.2,
+#    minimise it with `jax.grad` and Adam, and compare the energy and the cost with DMRG at the same $\chi$. Gradient-based optimisation of tensor networks by automatic
 #    differentiation is developed in [[8]](#ref-8), which applies it to infinite PEPS.
 # 9. ★★ **Boundary rows in the sweep (extend the code).** Set the rows $a\neq0$ of the centre tensor on site 0 and the
 #    columns $b\neq0$ of the tensor on site $N-1$ to zero at the start and after every split (Section 6.6), so that the

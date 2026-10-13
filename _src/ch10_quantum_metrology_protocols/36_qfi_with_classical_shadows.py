@@ -5,7 +5,7 @@
 # %% [markdown]
 # ## 1. Introduction
 #
-# Everything Chapter 10 has computed so far started from a state vector stored in a computer. An experiment does not
+# A quantum Fisher information computed in a simulation starts from a state vector stored in a computer. An experiment does not
 # have one. It has a machine that prepares a state, and a detector that produces bit strings. The question of this
 # notebook is therefore the practical one:
 #
@@ -26,7 +26,7 @@
 # * For a **pure state** and a collective generator $G=\mathbf n\cdot\mathbf J$ the nonlinearity is mild:
 #   $F_Q=4\,\mathrm{Var}(G)=4\left(\langle G^2\rangle-\langle G\rangle^2\right)$ involves only one- and two-body
 #   Pauli expectation values — $O(N^2)$ numbers, each of weight at most $2$ — plus one squared mean. Classical
-#   shadows, introduced in [[6]](#ref-6) and treated in notebook 24, estimate all of them from a *single* data set, with a variance that does not grow with
+#   shadows, introduced in [[6]](#ref-6) and derived in [notebook 24, classical shadows](../ch08_quantum_information_protocols/24_classical_shadows.ipynb), estimate all of them from a *single* data set, with a variance that does not grow with
 #   $N$. The squared mean is the only nonlinear part, it biases the naive estimator by a computable amount, and a
 #   $U$-statistic removes the bias exactly.
 # * For a **mixed state** $4\,\mathrm{Var}(G)$ is only an upper bound on $F_Q$, and it can be far from it: we will
@@ -49,7 +49,7 @@
 #   cat-state estimate, and measures the statistical error of $F_{\max}$ and of the optimal generator direction
 #   against $M$ and against $N$.
 # * **Section 8** applies the machinery to a coherent state, to three one-axis-twisting states, to GHZ, and to a
-#   Haar-scrambled cat of notebook 35.
+#   Haar-scrambled cat.
 # * **Section 9** turns the variance into a **snapshot budget**: how many measurements are needed to certify
 #   $F_Q>N$ and $F_Q>kN$ at a given confidence, predicted and then verified by simulation.
 # * **Section 10** is the mixed-state story: the upper bound and its failure, the polynomial lower bounds, their
@@ -78,23 +78,11 @@
 # * rewriting an $O(MN^2)$ estimator as an $O(MN)$ one by recognising a sum of products as a product of sums;
 # * reusing one data set for every quantity in a section instead of re-simulating the experiment.
 #
-# ### Prerequisites
-# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, PRNG keys;
-# * [08 — measurements](../ch03_matrix_free_engine/08_measurements.ipynb): Born rule, basis rotations, shot noise;
-# * [24 — classical shadows](../ch08_quantum_information_protocols/24_classical_shadows.ipynb): the randomised
-#   measurement channel, the single-snapshot estimator, the $3^k$ variance law, median of means. Section 3 recalls
-#   everything used here;
-# * [29 — quantum Fisher information](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb):
-#   $F_Q=4\,\mathrm{Var}(G)$, the $3\times3$ matrix, the entanglement-witness inequalities;
-# * [30 — QFI from the SLD](../ch10_quantum_metrology_protocols/30_qfi_from_the_sld_prepare_encode_estimate.ipynb):
-#   the mixed-state formula used in Section 10;
-# * helpful: [33 — spin squeezing](../ch10_quantum_metrology_protocols/33_spin_squeezing_one_axis_twisting.ipynb),
-#   [34 — one-axis twisting to GHZ](../ch10_quantum_metrology_protocols/34_oat_to_ghz_full_metrology_protocol.ipynb)
-#   and [35 — scrambling a metrological probe](../ch10_quantum_metrology_protocols/35_oat_plus_haar_scrambling.ipynb),
-#   which supply the states of Section 8.
-#
-# **What comes next.** [37 — particle loss, magic and encoded probes](../ch10_quantum_metrology_protocols/37_qfi_particle_loss_and_magic.ipynb)
-# asks how much quantum Fisher information survives when particles are lost.
+# The notebook assumes `jit`, `vmap` and PRNG keys ([notebook 01, JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)),
+# basis rotations and shot noise ([notebook 08, measurements](../ch03_matrix_free_engine/08_measurements.ipynb)), the
+# classical-shadow protocol ([notebook 24, classical shadows](../ch08_quantum_information_protocols/24_classical_shadows.ipynb); Section 3 recalls what is used),
+# $F_Q=4\,\mathrm{Var}(G)$, the $3\times3$ QFI matrix and the entanglement-witness inequalities ([notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb)),
+# and the mixed-state quantum Fisher information ([notebook 30, QFI from the SLD](30_qfi_from_the_sld_prepare_encode_estimate.ipynb)).
 #
 # **Conventions.** Qubit $q$ = tensor axis $q$; $\vert0\rangle$ is the $+1$ eigenstate of $Z$. Collective spins are
 # $J_a=\tfrac12\sum_q\sigma^a_q$, so the standard quantum limit is $F_Q=N$ and the Heisenberg limit $F_Q=N^2$.
@@ -172,7 +160,7 @@ def timed(f, *args, budget=0.3, min_reps=3, max_reps=200):
 # %% [markdown]
 # ## 3. The classical-shadow protocol
 #
-# The protocol of [[6]](#ref-6), treated in notebook 24, in four lines. For each of $M$ repetitions:
+# The protocol of [[6]](#ref-6), derived in [notebook 24, classical shadows](../ch08_quantum_information_protocols/24_classical_shadows.ipynb), in four lines. For each of $M$ repetitions:
 #
 # 1. draw a measurement basis $c_q\in\{X,Y,Z\}$ independently and uniformly for every qubit;
 # 2. rotate qubit $q$ into that basis ($U=H$ for $X$, $U=HS^\dagger$ for $Y$, $U=\mathbb 1$ for $Z$);
@@ -180,7 +168,7 @@ def timed(f, *args, budget=0.3, min_reps=3, max_reps=200):
 # 4. store the pair of integer rows $(c,b)$ — that is the whole record. No amplitudes, no matrices.
 #
 # For a Pauli string $P=\bigotimes_qP_q$ with support $\mathrm{supp}(P)$ of size $k$ (the **weight**), the
-# single-snapshot estimator derived in notebook 24 is
+# single-snapshot estimator is
 #
 # $$\hat o(P)=\prod_{q\in\mathrm{supp}(P)}3\,(-1)^{b_q}\left[\,c_q=P_q\,\right], \tag{1}$$
 #
@@ -301,7 +289,7 @@ assert worst_wrong > 4.0
 # ### 4.1 The expansion
 #
 # Take a pure state and the collective generator $G=\mathbf n\cdot\mathbf J$ with $J_a=\tfrac12\sum_q\sigma^a_q$.
-# Notebook 29 showed that the dependence on $\mathbf n$ is a quadratic form,
+# As derived in [notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb), Section 12, the dependence on $\mathbf n$ is a quadratic form,
 # $F_Q(\mathbf n)=\mathbf n^{\mathsf T}\mathcal{F}\mathbf n$, with the $3\times3$ matrix
 #
 # $$\mathcal{F}_{ab}=4\left[\tfrac12\left\langle J_aJ_b+J_bJ_a\right\rangle-\left\langle J_a\right\rangle
@@ -522,7 +510,7 @@ print(f"\n(N = {N_DEMO}: standard quantum limit {N_DEMO}, Heisenberg limit {N_DE
 # The two implementations agree to about $10^{-14}$, as an algebraic rearrangement must. The estimated matrix reproduces
 # the exact one: the Heisenberg-limited entry $\mathcal{F}_{yy}=N^2=25$ comes out right, the two standard-quantum-limit
 # entries come out near $N=5$, and the optimal direction extracted from data points along $\hat y$ — the cat axis of
-# an odd-$N$ one-axis-twisting state (notebook 34 shows the axis alternates with the parity of $N$).
+# an odd-$N$ one-axis-twisting state (the axis alternates with the parity of $N$; [notebook 34, from one-axis twisting to GHZ](34_oat_to_ghz_full_metrology_protocol.ipynb), Section 4).
 #
 # > **Numerical practice.** "A sum over $O(N^2)$ products of pairs" and "a product of two sums minus its diagonal"
 # > are the same arithmetic, but one costs $O(MN^2)$ in time (here $O(MN^3)$, because each column is a product
@@ -1002,13 +990,13 @@ fig.tight_layout(); plt.show()
 # * $\vert+\rangle^{\otimes N}$, the coherent spin state, $F_Q=N$;
 # * one-axis-twisting states [[10]](#ref-10) at three twisting angles — squeezed, over-squeezed, and the cat at $\mu=\pi/2$;
 # * the GHZ state [[11]](#ref-11), $F_Q=N^2$;
-# * a Haar-scrambled cat, the state of notebook 35, whose collective quantum Fisher information has collapsed to
-#   about $N$ (its average over Haar unitaries is $Nd/(d+1)$ with $d=2^N$ for a fixed generator, notebook 35; the
+# * a Haar-scrambled cat, whose collective quantum Fisher information has collapsed to about $N$ (its average over
+#   Haar unitaries is $Nd/(d+1)$ with $d=2^N$ for a fixed generator, derived in [notebook 35, scrambling a metrological probe](35_oat_plus_haar_scrambling.ipynb), Section 6.1; the
 #   largest eigenvalue over directions, reported below, lies above that average).
 #
 # For each we report the estimate of $\lambda_{\max}(\mathcal{F})$ with its bootstrap error bar, the entanglement
 # certified by $F_Q>N$, and the entanglement depth certified by the Hyllus–Tóth bound
-# $F_Q\le\lfloor N/k\rfloor k^2+(N\bmod k)^2$ for $k$-producible states (notebook 29, Eq. (122)) — evaluated on the
+# $F_Q\le\lfloor N/k\rfloor k^2+(N\bmod k)^2$ for $k$-producible states ([notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb), Eq. (122)) — evaluated on the
 # *lower end of the error bar*, so that the claim survives the statistical error.
 
 # %%
@@ -1116,7 +1104,7 @@ fig.tight_layout(); plt.show()
 # Read the certification columns from left to right. The coherent state is correctly *not* certified as entangled.
 # The squeezed and over-squeezed states are certified, with depths that grow with the twisting angle. The cat and
 # GHZ states, sitting at $F_Q=N^2$, are certified as genuinely $6$-partite entangled, which is the strongest
-# statement available at $N=6$. The Haar-scrambled cat — the state of notebook 35, with nearly maximal
+# statement available at $N=6$. The Haar-scrambled cat — with nearly maximal
 # entanglement entropy — is certified only at depth $2$: the data agree with the exact value $8.3$, which is only
 # slightly above the separable bound $N=6$. A measurement of $F_Q$ is exactly as blind to entanglement that is not
 # aligned with a collective generator as $F_Q$ itself is.
@@ -1246,7 +1234,7 @@ assert max(z_rate) < 4.0 and z_rate_wrong > 4.0
 # ### 10.1 The bound, and why it must be there
 #
 # Everything so far used $F_Q=4\,\mathrm{Var}(G)$, which holds for **pure** states. For a mixed state the quantum
-# Fisher information is given by the symmetric-logarithmic-derivative formula of notebook 30 [[4]](#ref-4),
+# Fisher information is given by the symmetric-logarithmic-derivative formula of [notebook 30, QFI from the SLD](30_qfi_from_the_sld_prepare_encode_estimate.ipynb) [[4]](#ref-4),
 # [[5]](#ref-5),
 #
 # $$F_Q[\rho,G]=2\sum_{m,n\,:\,\lambda_m+\lambda_n>0}\frac{\left(\lambda_m-\lambda_n\right)^2}{\lambda_m+\lambda_n}
@@ -1256,7 +1244,7 @@ assert max(z_rate) < 4.0 and z_rate_wrong > 4.0
 # **Claim.** $F_Q[\rho,G]\le4\,\mathrm{Var}_\rho(G)$ for every state.
 #
 # *Proof.* $F_Q$ is unchanged by $G\to\tilde G=G-\langle G\rangle\mathbb 1$ (a shift of the generator is a global
-# phase, Section 6.5 of notebook 29), so evaluate Eq. (16) with $\tilde G$. For every pair,
+# phase, [notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb), Section 6.5), so evaluate Eq. (16) with $\tilde G$. For every pair,
 #
 # $$\frac{(\lambda_m-\lambda_n)^2}{\lambda_m+\lambda_n}\le\lambda_m+\lambda_n,$$
 #
@@ -1278,7 +1266,7 @@ assert max(z_rate) < 4.0 and z_rate_wrong > 4.0
 #
 # Apply single-qubit dephasing with probability $p$ to each qubit of a GHZ state. Dephasing leaves populations
 # untouched and multiplies the single coherence between $\vert0\cdots0\rangle$ and $\vert1\cdots1\rangle$ by
-# $(1-2p)$ per qubit. Notebook 29 derived the exact quantum Fisher information,
+# $(1-2p)$ per qubit. The exact quantum Fisher information, derived in [notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb), Section 10.2, is
 #
 # $$F_Q=N^2(1-2p)^{2N}. \tag{17}$$
 #
@@ -1801,7 +1789,7 @@ for N in (4, 6, 8, 10):
 #    exactly the same one- and two-body data. Implement it on top of `collective_snapshot_moments`, measure it for
 #    the one-axis-twisting states of Section 8, and derive and verify the bias of the plug-in version.
 # 4. ★★ **Median of means against the plain mean (extend the code).** Replace the sample means in Eq. (10) by
-#    median-of-means estimators (notebook 24) and compare the tails of the error distribution of
+#    median-of-means estimators ([notebook 24, classical shadows](../ch08_quantum_information_protocols/24_classical_shadows.ipynb)) and compare the tails of the error distribution of
 #    $\widehat{\mathcal{F}}_{xx}$ for the $N=6$ cat over $200$ independent data sets at $M=500$. Weight-$2$
 #    estimators are only mildly heavy-tailed; decide from the data whether the median of means wins or loses here.
 # 5. ★★ **Non-uniform bases (physics).** Draw $Z$ with probability $p_Z$ and $X$, $Y$ with probability
@@ -1811,7 +1799,7 @@ for N in (4, 6, 8, 10):
 #    monotonically to $0$ as $p_Z\to1$ (at $N=6$: $1440$ at $p_Z=1/3$, $660$ at $1/2$). (c) Implement the biased
 #    protocol, check (b) numerically, and measure what happens to the error of $\widehat{\mathcal{F}}_{xx}$ as
 #    $p_Z\to1$.
-# 6. ★★ **The scrambled probe, harder (physics).** Notebook 35 showed that a scrambled collective generator
+# 6. ★★ **The scrambled probe, harder (physics).** [Notebook 35, scrambling a metrological probe](35_oat_plus_haar_scrambling.ipynb), Section 8.2, shows that a scrambled collective generator
 #    $UJ_zU^\dagger$ is a sum of Pauli strings of typical weight $\approx3N/4$. For $N=4$, a Haar-random $U$ and the
 #    scrambled cat $U\vert\mathrm{cat}\rangle$, estimate $\langle UJ_zU^\dagger\rangle$ (exact value
 #    $\langle\mathrm{cat}\vert J_z\vert\mathrm{cat}\rangle$) from shadows by decomposing the operator into Pauli

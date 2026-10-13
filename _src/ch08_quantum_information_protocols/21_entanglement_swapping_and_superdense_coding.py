@@ -5,8 +5,8 @@
 # %% [markdown]
 # ## 1. Introduction
 #
-# Teleportation ([notebook 20](../ch08_quantum_information_protocols/20_quantum_teleportation.ipynb)) showed that one shared Bell
-# pair, one **ebit**, together with two classical bits can stand in for one transmitted qubit. This notebook follows that
+# In teleportation, one shared Bell
+# pair, one **ebit**, together with two classical bits stands in for one transmitted qubit. This notebook follows that
 # bookkeeping further and treats entanglement as a **resource that is distributed in advance, spent by protocols, and traded for
 # other resources**. Two protocols make the trade concrete.
 #
@@ -53,6 +53,12 @@
 #    the confusion matrix (sent against decoded message) and the transmission rate when the shared pair is depolarised or dephased
 #    (Sections 12–17).
 #
+# The notebook assumes density tensors, partial traces and Kraus channels
+# ([notebook 07, density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb)),
+# measurement with collapse ([notebook 08, measurements](../ch03_matrix_free_engine/08_measurements.ipynb)), the Bell basis
+# ([notebook 19, Bell states and CHSH](19_bell_states_and_chsh.ipynb)) and the Bell measurement with classical feed-forward
+# ([notebook 20, quantum teleportation](20_quantum_teleportation.ipynb)).
+#
 # ### What you will learn
 #
 # *Physics*
@@ -79,19 +85,6 @@
 # * two independent implementations of the same physics (projection of a pure state vs. Kraus/projection on a density tensor) used
 #   as a checkpoint against each other;
 # * binomial error bars on measured frequencies, and the discipline of never quoting a number the code did not print.
-#
-# ### Prerequisites
-# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, PRNG keys, `jnp.where`;
-# * [02 — einsum from scratch](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb): index notation as executable code;
-# * [06 — states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb): reduced density
-#   matrices, Schmidt decomposition;
-# * [07 — density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb):
-#   density tensors, partial trace, Kraus channels, fidelity;
-# * [08 — measurements](../ch03_matrix_free_engine/08_measurements.ipynb): Born rule, collapse, sampling;
-# * [19 — Bell states and CHSH](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb): the Bell basis and its
-#   correlations — we use them here, we do not re-derive them;
-# * [20 — quantum teleportation](../ch08_quantum_information_protocols/20_quantum_teleportation.ipynb): the Bell measurement and the
-#   classical feed-forward in their original setting.
 #
 # **Conventions.** Qubit $q$ = tensor axis $q$, counted from $0$; $\vert0\rangle$ is the $+1$ eigenstate of $Z$; a measurement result
 # $o\in\{0,1\}$ means the eigenvalue $(-1)^{o}$; the leftmost symbol of a ket is qubit $0$.
@@ -552,8 +545,7 @@ for lab, (o1, o2) in zip(BELL_LABELS, BELL_BITS):
 #
 # is zero for separable states and $1/2$ for a Bell state. For two qubits the criterion is also *sufficient*: $\mathcal N=0$ implies
 # separable. In the tensor representation the partial transpose is free — it is the swap of the ket axis $q$ with the bra axis
-# $N+q$, one `jnp.transpose` (see `partial_transpose` in the engine recap). Notebook
-# [25 — entanglement negativity](../ch09_entanglement_and_complexity/25_entanglement_negativity.ipynb) develops this in depth.
+# $N+q$, one `jnp.transpose` (see `partial_transpose` in the engine recap).
 #
 # **Concurrence** [[9]](#ref-9) is built from the spin-flipped state $\tilde\rho=(Y\otimes Y)\rho^*(Y\otimes Y)$:
 # with $\lambda_1\ge\lambda_2\ge\lambda_3\ge\lambda_4$ the square roots of the eigenvalues of $\rho\tilde\rho$,
@@ -871,8 +863,7 @@ fig.tight_layout(); plt.show()
 #
 # $$\rho_W(v)=v\,\vert\Phi^+\rangle\langle\Phi^+\vert+(1-v)\,\frac{\mathbb 1_4}{4},\qquad 0\le v\le1, \tag{7}$$
 #
-# i.e. "a Bell pair with probability $v$, white noise otherwise"; $v$ is the visibility of
-# [notebook 19](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb), Section 11. Its fidelity with $\vert\Phi^+\rangle$ is
+# i.e. "a Bell pair with probability $v$, white noise otherwise"; $v$ is called the visibility. Its fidelity with $\vert\Phi^+\rangle$ is
 # $F=v+\tfrac{1-v}{4}=\tfrac{1+3v}{4}$.
 #
 # ### 10.1 Werner states are random Pauli errors
@@ -1383,7 +1374,7 @@ assert abs(chi_bob - 2.0) < 1e-9 and abs(chi_eve) < 1e-9
 # Equation (11) turns the quantum problem into a classical one, so we can use classical information theory. The quantity to compute
 # is the mutual information $I(M{:}O)=H(O)-H(O\vert M)$ between the message and Bob's read-out, with $H$ the Shannon entropy in
 # bits; both, and the binary symmetric channel used below, are introduced in
-# [50 — information and noisy channels](../ch12_quantum_communication_and_cryptography/50_information_entropy_and_noisy_channels.ipynb). For an additive channel on a group the channel matrix
+# [notebook 50, information, entropy and noisy channels](../ch12_quantum_communication_and_cryptography/50_information_entropy_and_noisy_channels.ipynb). For an additive channel on a group the channel matrix
 # $P(o\vert m)=q_{o\ominus m}$ is doubly stochastic and every row is a permutation of every other, so a uniform prior maximises
 # $H(O)$ (it makes $O$ uniform) while leaving $H(O\vert M)=H(q)$ untouched; the maximum is therefore
 #
@@ -1616,7 +1607,7 @@ assert abs(I_dph[i_min] - 1.0) < 1e-9 and np.max(np.abs(I_dph - (2 - binary_entr
 # evaluated there returns $1.000000$ bits: the analytic break-even point of Eq. (12) and the simulated device agree. At that same $p$
 # the entropic formula Eq. (13) also returns $1$ bit, which says the same thing in the language of states: $S(\rho_{AB})=S(\rho_B)$,
 # the shared pair has exactly as much global entropy as Bob's half alone, and its coherent information $S(\rho_B)-S(\rho_{AB})$
-# ([52](../ch12_quantum_communication_and_cryptography/52_quantum_rules_channels_and_capacities.ipynb), Section 9.2) has run out. Beyond that
+# ([notebook 52, quantum channels and capacities](../ch12_quantum_communication_and_cryptography/52_quantum_rules_channels_and_capacities.ipynb), Section 9.2) has run out. Beyond that
 # point using the pair costs information; Alice should discard it and send a fresh qubit, which is why the *capacity* stays at
 # $1$ bit or above while the rate of this fixed protocol keeps falling. The pair is still entangled at the break-even
 # point — depolarising noise leaves it entangled up to $p=1/2$ — so "entangled" and "useful for dense coding" are different
@@ -1810,8 +1801,7 @@ print("\n(The first call includes tracing and XLA compilation; it is paid once p
 #    Measure the success probability and the output state. It is Bell-diagonal but no longer isotropic, so define $v'$ from its
 #    fidelity, $v'=(4F'-1)/3$, or re-twirl it back to Werner form. Plot $v'$ versus $v$, identify the fixed point (you should find
 #    $F'=F$ at $F=1/2$, i.e. exactly at the entanglement threshold $v=1/3$), and use it to explain why purification $+$ swapping
-#    beats pure swapping over a long chain. [Notebook 54](../ch12_quantum_communication_and_cryptography/54_noisy_entanglement_distillation_repeaters_certification.ipynb),
-#    Section 7, derives this protocol and runs it in a repeater chain.
+#    beats pure swapping over a long chain.
 # 8. ★★★ **Swapping with imperfect measurement (physics).** Model a relay whose Bell measurement occasionally reports the wrong
 #    outcome (probability $\varepsilon$ of a random other label). Derive the resulting end-to-end state, show that it is again
 #    Werner-like, and find the combined condition on $(v,\varepsilon)$ for the chain of $n$ links to remain entangled.

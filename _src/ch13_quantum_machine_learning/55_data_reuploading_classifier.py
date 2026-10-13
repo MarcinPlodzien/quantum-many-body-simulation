@@ -36,7 +36,7 @@
 # sphere with a plane, and on a circle in the data plane the best such boundary gets only three quarters of the
 # points right.
 # A qubit that already carries $\mathbf x$ cannot be copied into several neurons, as Eq. (1) does with $\mathbf x$,
-# because the no-cloning theorem ([notebook 20](../ch08_quantum_information_protocols/20_quantum_teleportation.ipynb))
+# because the no-cloning theorem ([notebook 20, quantum teleportation](../ch08_quantum_information_protocols/20_quantum_teleportation.ipynb))
 # forbids copying an unknown quantum state; the classical numbers $\mathbf x$, however, can be written into the
 # circuit as many times as we like.
 #
@@ -101,21 +101,14 @@
 #   data, gradients against finite differences, and the reduction of the non-entangled multi-qubit circuit to
 #   independent single qubits.
 #
-# ### Prerequisites
+# The notebook assumes `jit`, `vmap`, `grad` and `lax.scan` ([notebook 01, JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)),
+# Bloch vectors, fidelities and reduced density matrices
+# ([notebook 06, states, observables and entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb)),
+# the rotations and the CZ gate ([notebook 09, quantum gates and circuits](../ch04_digital_quantum_circuits/09_quantum_gates_and_circuits.ipynb)),
+# and reverse-mode gradients and the Adam optimiser ([notebook 40, parametrised gates and gradients](40_parametrized_gates_and_gradients.ipynb);
+# [notebook 41, optimisers](41_optimizers.ipynb)); no machine-learning background is assumed.
 #
-# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, `grad`, `lax.scan` and
-#   explicit random keys;
-# * [06 — states, observables and entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb):
-#   Bloch vectors, fidelity $\vert\langle\psi\vert\phi\rangle\vert^2$, reduced density matrices and purity;
-# * [09 — quantum gates and circuits](../ch04_digital_quantum_circuits/09_quantum_gates_and_circuits.ipynb): the
-#   rotations $R_y,R_z$, their action on the Bloch sphere, `apply_gate` and the CZ gate;
-# * [40 — parametrized gates and gradients](40_parametrized_gates_and_gradients.ipynb)
-#   and [41 — optimisers](41_optimizers.ipynb): the variational loop, reverse-mode
-#   gradients, and the Adam update;
-# * [45d — quantum kernel methods](45d_quantum_kernel_methods_classification.ipynb)
-#   uses a quantum circuit as a fixed feature map for a classical classifier; here the circuit itself is trained.
-#
-# No machine-learning background beyond these notebooks is assumed. Conventions as before: $\vert0\rangle$ is the
+# Conventions: $\vert0\rangle$ is the
 # $+1$ eigenstate of $Z$ (north pole of the Bloch sphere), $R_a(\vartheta)=e^{-i\vartheta\sigma^a/2}$, qubit $q$ is
 # tensor axis $q$.
 
@@ -123,7 +116,7 @@
 # ## 2. Engine recap and notebook helpers
 #
 # From the engine we take the rotations $R_y$, $R_z$, the CZ gate and $Z$, `apply_gate`, the all-zero state, the
-# reduced density matrix `rdm`, the pure-state fidelity, and the Adam update of notebook 41. The helper cell sets the
+# reduced density matrix `rdm`, the pure-state fidelity, and the Adam update. The helper cell sets the
 # plot style and a timer for the sections.
 
 # %%
@@ -275,15 +268,15 @@ section_timer("4 one upload")
 # $$U(\boldsymbol\phi)=\begin{pmatrix} e^{-i(\phi_2+\phi_3)/2}\,c & -e^{-i(\phi_2-\phi_3)/2}\,s\\
 # e^{i(\phi_2-\phi_3)/2}\,s & e^{i(\phi_2+\phi_3)/2}\,c\end{pmatrix}, \tag{3}$$
 #
-# a matrix of determinant $c^2+s^2=1$. Every element of $\mathrm{SU}(2)$ has this form (the Euler decomposition of
-# notebook 09, Section 3.4), so Eq. (2) is the general rotation of the Bloch sphere. The paper writes the same family in two other conventions. Its Eq. (12),
+# a matrix of determinant $c^2+s^2=1$. Every element of $\mathrm{SU}(2)$ has this form (the Euler decomposition derived in
+# [notebook 09, quantum gates and circuits](../ch04_digital_quantum_circuits/09_quantum_gates_and_circuits.ipynb), Section 3.4), so Eq. (2) is the general rotation of the Bloch sphere. The paper writes the same family in two other conventions. Its Eq. (12),
 # $e^{i\phi_2\sigma_z}e^{i\phi_1\sigma_y}e^{i\phi_3\sigma_z}$, is our $U(-2\phi_1,-2\phi_2,-2\phi_3)$, and its explicit
 # matrix, Eq. (29), is our $U(\phi_1,-\phi_3,-\phi_2)$; the authors' published code uses $U(\phi_1,-\phi_2,-\phi_3)$.
 # All are reparametrisations of the same set of rotations, which the trainable angles and weights absorb.
 #
 # A two-dimensional data point is uploaded by using its coordinates as angles,
 # $U(\mathbf x)\equiv U(x_1,x_2,0)$. Acting on $\vert0\rangle$, $R_z(0)$ does nothing, $R_y(x_1)$ tilts the Bloch
-# vector by the polar angle $x_1$ and $R_z(x_2)$ turns it by the azimuth $x_2$ (notebook 09, Section 3.3). The data
+# vector by the polar angle $x_1$ and $R_z(x_2)$ turns it by the azimuth $x_2$. The data
 # point lands on the Bloch sphere at
 #
 # $$\mathbf r(\mathbf x)=\big(\sin x_1\cos x_2,\ \sin x_1\sin x_2,\ \cos x_1\big). \tag{4}$$
@@ -521,7 +514,7 @@ section_timer("5 re-uploading circuit")
 # layer $l$ on qubit $q$ are `theta[q, l] + w[q, l] * x`, padded with zeros to three components, and the gate is
 # applied with `apply_gate(psi, u3(phi), [q])`.
 #
-# The loop over the layers is a `lax.scan` (notebook 01): the body is traced once, whatever $L$ is, which keeps the
+# The loop over the layers is a `lax.scan`: the body is traced once, whatever $L$ is, which keeps the
 # compilation time short when we train dozens of classifiers with different $L$. The loop over the qubits is a Python
 # loop, because qubit indices must be static. The CZ gates of Section 8 need one more idea inside the scan, where the
 # layer index $l$ is a traced number and cannot select gates by a Python `if`. A CZ gate is diagonal in the
@@ -869,7 +862,7 @@ section_timer("6 training")
 # ### 6.1 Optimiser and protocol
 #
 # The paper minimises the costs with L-BFGS-B, the limited-memory quasi-Newton method introduced in [[5]](#ref-5), from
-# SciPy, with its default settings. We use Adam [[6]](#ref-6) (notebook 41, Eq. (10) there) with the exact gradient from `jax.grad`, for two reasons: the whole training run can then be compiled into one
+# SciPy, with its default settings. We use Adam [[6]](#ref-6) ([notebook 41, optimisers](41_optimizers.ipynb), Eq. (10)) with the exact gradient from `jax.grad`, for two reasons: the whole training run can then be compiled into one
 # `lax.scan` and batched over random starts with `vmap`, and Adam with a fixed number of steps has a cost that is known
 # in advance, which keeps the notebook within its time budget. The price is that Adam with a few hundred steps does not
 # converge to a local minimum as tightly as a quasi-Newton method run to its stopping criterion; Section 7 compares the

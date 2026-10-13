@@ -57,6 +57,9 @@
 # 7. **The exponential wall** (Section 8): measured run times and memory, sparse matrices as the traditional
 #    remedy, and an announcement of the matrix-free remedy that this course is about.
 #
+# The notebook assumes arrays, `jit`, `vmap` and timing from [notebook 01, JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)
+# and index notation, `reshape` and C-ordering from [notebook 02, einsum](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb).
+#
 # ### What you will learn
 #
 # *Physics*
@@ -77,13 +80,6 @@
 # * index conventions (which spin is the most significant bit) — the classic source of silent bugs;
 # * timing of JAX code (`block_until_ready`, compile time versus run time), and `jax.jit` + `jax.vmap`
 #   to run a parameter sweep as a single compiled program.
-#
-# ### Prerequisites
-#
-# One semester of quantum mechanics (spin-1/2, Pauli matrices, eigenvalues and eigenvectors) and the two
-# previous notebooks: [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb) (arrays, `jit`, `vmap`, timing) and
-# [02 — einsum from scratch](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb) (index notation, `reshape` and C-ordering). We use
-# `jax.numpy` (imported as `jnp`) for all arrays, but nothing more advanced than matrix products and `kron`.
 
 # %% [markdown]
 # ## 2. One spin-1/2
@@ -198,7 +194,7 @@ checkpoint("X|0> = |1>   (X flips the spin)", jnp.abs(X @ up - down).max())
 # **From formula to code.** `bloch_state` is the formula above; `expval` computes $\psi^\dagger(O\psi)$ with
 # `jnp.vdot`, which complex-conjugates its first argument. To evaluate the Bloch vector for many angles at once
 # we do not write a loop: `jax.vmap` turns the function written for one $\theta$ into a function for a whole
-# array of $\theta$'s (see [notebook 01](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)). Writing numerical code as operations on whole
+# array of $\theta$'s (see [notebook 01, JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)). Writing numerical code as operations on whole
 # arrays rather than loops over components is also the style adopted in [[9]](#ref-9).
 
 # %%
@@ -420,7 +416,7 @@ for s0 in (0, 1):
 # * a product of operators on different spins is a Kronecker product: $Z_0Z_1 = Z\otimes Z$.
 #
 # We verify these statements with random matrices. JAX random numbers need an explicit key
-# ([notebook 01](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)); a fixed seed makes the notebook reproducible.
+# ([notebook 01, JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)); a fixed seed makes the notebook reproducible.
 
 # %%
 # ==============================================================================
@@ -460,7 +456,7 @@ checkpoint("Z_0 Z_1 = Z (x) Z", jnp.abs(Z0 @ Z1 - jnp.kron(Z, Z)).max())
 # **Claim: the singlet cannot be written as a product state.** Here is a test that works for any two-spin
 # state. Arrange the four amplitudes in a $2\times2$ matrix $\psi_{s_0s_1}$ — in code simply
 # `psi.reshape(2, 2)`, thanks to the index convention $i=2s_0+s_1$ (this is the C-ordering of
-# [notebook 02](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb)). For a product state this matrix is the outer product
+# [notebook 02, einsum](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb)). For a product state this matrix is the outer product
 # $\psi_{s_0s_1}=a_{s_0}b_{s_1}$, whose two rows are proportional to each other, hence
 # $\det\psi = a_0b_0\,a_1b_1 - a_0b_1\,a_1b_0 = 0$. Conversely, a $2\times2$ matrix with zero determinant has
 # rank $\le1$ and can be written as an outer product. So
@@ -470,8 +466,7 @@ checkpoint("Z_0 Z_1 = Z (x) Z", jnp.abs(Z0 @ Z1 - jnp.kron(Z, Z)).max())
 # For the singlet $\det\psi = 0\cdot0-\frac{1}{\sqrt2}\cdot\left(-\frac{1}{\sqrt2}\right)=\frac12\neq0$: it is
 # **entangled**, in the term coined in [[11]](#ref-11). (The quantity $2|\det\psi|\in[0,1]$ is known as the
 # *concurrence*, introduced in [[12]](#ref-12), [[13]](#ref-13); the systematic tool for
-# more than two spins, the Schmidt decomposition, is the subject of
-# [notebook 06](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb).)
+# more than two spins is the Schmidt decomposition.)
 #
 # Entanglement has a striking physical signature. We compute, for a product state and for the singlet, the
 # local expectation values $\langle \sigma^\alpha_0\rangle$ and the correlations
@@ -577,9 +572,9 @@ print(f"energy of the classical Neel state |01>: {float(expval(product, H2)):+.1
 # | $\vert s_0s_1s_2\rangle$ | 000 | 001 | 010 | 011 | 100 | 101 | 110 | 111 |
 # | spins | $\uparrow\uparrow\uparrow$ | $\uparrow\uparrow\downarrow$ | $\uparrow\downarrow\uparrow$ | $\uparrow\downarrow\downarrow$ | $\downarrow\uparrow\uparrow$ | $\downarrow\uparrow\downarrow$ | $\downarrow\downarrow\uparrow$ | $\downarrow\downarrow\downarrow$ |
 #
-# This is the same C-ordering that `reshape` uses ([notebook 02](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb)): the state
-# vector of length $2^N$ *is* the flattened rank-$N$ array $\psi_{s_0\ldots s_{N-1}}$. We will exploit that in
-# [notebook 05](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb); here we stay with plain vectors.
+# This is the same C-ordering that `reshape` uses ([notebook 02, einsum](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb)): the state
+# vector of length $2^N$ *is* the flattened rank-$N$ array $\psi_{s_0\ldots s_{N-1}}$. Here we stay
+# with plain vectors.
 #
 # **From formula to code.** Extracting bit $q$ from the integer $i$ is a shift and a mask:
 # `(i >> (N-1-q)) & 1`. With broadcasting we get the whole table of bits, shape $(2^N, N)$, in one line.
@@ -726,8 +721,7 @@ plt.tight_layout(); plt.show()
 #   entirely zeros, and the sum of $N$ such operators has $N$ non-zeros per row. Hamiltonians of spin systems
 #   are extremely **sparse**. We will come back to this in Section 8.
 # * the non-zero pattern is fully determined by bit manipulations on the index. One never really *needs* the
-#   big matrix — this observation is the seed of the matrix-free approach of
-#   [notebook 05](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb).
+#   big matrix — this observation is the seed of the matrix-free approach.
 #
 # ### 4.3 The total magnetisation
 #
@@ -853,8 +847,7 @@ assert list(counts) == [comb(N, k) for k in range(N, -1, -1)] and counts.sum() =
 # **From formula to code.** Eq. (4) is a sum of site operators, and the code is a literal transcription: loop
 # over the bonds and add $J_{\alpha\alpha}\,\sigma^\alpha_i\sigma^\alpha_j$ (one `two_site_operator` per Pauli
 # component), then loop over the sites and add the field terms (`site_operator`). Terms with a vanishing
-# coefficient are skipped. The function signature mirrors Eq. (4);
-# [notebook 04](04_time_evolution_the_textbook_way.ipynb) rebuilds the function with the same arguments in the same order.
+# coefficient are skipped. The function signature mirrors Eq. (4).
 
 # %%
 # ==============================================================================
@@ -1150,7 +1143,7 @@ print(f"<Z_0> in the ground state: {float(expval(V[:, 0].astype(CDTYPE), site_op
 # every $h$ (`tfim_parts`). The function `tfim_solve` diagonalises $H(h)$ for **one** field value and returns
 # the lowest levels plus two ground-state observables (used in Section 7.4). The sweep over all field values
 # is then `jax.vmap` of that function, wrapped in `jax.jit`, so the whole sweep is one compiled program (see
-# [notebook 01](../ch01_computational_toolbox/01_jax_from_scratch.ipynb) for both transformations). At the end of the cell we compare it
+# [notebook 01, JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb) for both transformations). At the end of the cell we compare it
 # with a plain Python loop over the fields; `timed` is a small stopwatch that respects JAX's asynchronous
 # execution.
 
@@ -1682,7 +1675,7 @@ assert all(nnz_measured[N] == (N + 1) * 2 ** N for N in nnz_measured if N % 2 ==
 # for all $2^N$ eigenpairs; ask for the ground state and a few excited states, which **iterative (Krylov)
 # methods** such as the Lanczos algorithm [[37]](#ref-37) deliver using nothing but matrix–vector products $H|\psi\rangle$, each
 # costing $O(N2^N)$ instead of $O(8^N)$. (Lanczos is derived in
-# [notebook 11 (Chapter 5)](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb).)
+# [notebook 11, Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb).)
 #
 # As a glimpse, the next cell uses SciPy's sparse matrices [[38]](#ref-38) and its Lanczos-type solver
 # `eigsh`, which calls the implicitly restarted Lanczos method of ARPACK [[39]](#ref-39), as a black box
@@ -1755,10 +1748,7 @@ checkpoint(f"sparse Lanczos gap at N={N_SPARSE} == Eq. (7)", abs(gap_sp - gap_ex
 # term of $H$ directly to the axes it acts on, as a tiny $2\times2$ or $4\times4$ contraction. The operator
 # $1\otimes\cdots\otimes\sigma\otimes\cdots\otimes1$ is never formed — neither densely nor sparsely. The cost
 # of $H|\psi\rangle$ is $O(N2^N)$ time and $O(2^N)$ memory, the code is a few lines, and it runs unchanged
-# (and fast) on a GPU under `jax.jit`. That is the subject of
-# [notebook 05 — matrix-free operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb), the core lecture of Chapter 3. Before
-# that, [notebook 04](04_time_evolution_the_textbook_way.ipynb) stays with the dense matrices of this notebook
-# for one more round and makes the spins *move*: time evolution, the textbook way.
+# (and fast) on a GPU under `jax.jit`.
 #
 # The dense constructions `site_operator` and `build_hamiltonian_dense` keep their value as the slow but
 # transparent **reference** against which every fast method is validated on small systems.

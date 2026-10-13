@@ -14,7 +14,8 @@ The second notebook solves the time-dependent Schrödinger equation with the sam
 propagator, the explicit Euler and Runge–Kutta integrators and their stability, and Trotterization with its error
 measured, applied to a quench of the Ising chain. Both notebooks end at the same place, the memory and time cost of a $2^N\times 2^N$
 matrix, which is the reason for the matrix-free approach of [Chapter 3](ch03_matrix_free_engine.qmd). Prerequisites are
-notebooks 01 (JAX) and 02 (einsum and `reshape`) of [Chapter 1](ch01_computational_toolbox.qmd).
+notebooks 01 (JAX) and 02 (einsum and `reshape`) of [Chapter 1](ch01_computational_toolbox.qmd), and notebook 04
+uses the dense Hamiltonians and exact diagonalisation of notebook 03.
 
 ## Notebooks in this chapter
 

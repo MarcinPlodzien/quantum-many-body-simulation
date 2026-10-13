@@ -5,9 +5,8 @@
 # %% [markdown]
 # ## 1. Introduction
 #
-# [42 — the variational quantum eigensolver](../ch13_quantum_machine_learning/42_variational_quantum_eigensolver.ipynb)
-# treated the energy $E(\boldsymbol\theta)=\langle\psi(\boldsymbol\theta)\vert H\vert\psi(\boldsymbol\theta)\rangle$ as a
-# number that is simply available. On a simulator it is: one einsum per Hamiltonian term. On a quantum computer it is
+# On a simulator the energy $E(\boldsymbol\theta)=\langle\psi(\boldsymbol\theta)\vert H\vert\psi(\boldsymbol\theta)\rangle$
+# of a variational circuit is a number that is simply available: one einsum per Hamiltonian term. On a quantum computer it is
 # not available at all. A quantum computer can only prepare a state and measure qubits, and a measurement returns one
 # bit per qubit drawn from the Born distribution. Every expectation value has to be **estimated** from repetitions, and
 # the number of repetitions is what a real experiment pays for.
@@ -24,8 +23,7 @@
 # 2. **qubit-wise-commuting grouping** — collect terms that can be read off from the same measurement setting and
 #    measure each group once [[5]](#ref-5);
 # 3. **classical shadows** — measure every qubit in a *random* Pauli basis, store the record, and estimate any
-#    observable afterwards [[6]](#ref-6), as built in
-#    [24 — classical shadows](../ch08_quantum_information_protocols/24_classical_shadows.ipynb).
+#    observable afterwards [[6]](#ref-6).
 #
 # The comparison is made at a **fixed total number of shots**, the quantity an experiment pays for, and each
 # deterministic strategy is also given its optimal split of those shots. We then put shadow-estimated energies inside
@@ -35,8 +33,8 @@
 # **Road map.** Section 3 counts terms and measurement settings and derives the minimum number of settings for a
 # nearest-neighbour chain. Section 4 derives the variance of the energy estimator for each strategy at fixed budget,
 # including the covariances between terms measured in the same shot and the optimal split of the shots. Section 5
-# prepares the state to be measured with the VQE of notebook 42. Section 6 checks all three predictions against
-# simulation. Section 7 estimates the six observables of notebook 42's panel (33 Pauli strings) from one shadow data
+# prepares the state to be measured with a VQE. Section 6 checks all three predictions against
+# simulation. Section 7 estimates six magnetisations and bond correlators (33 Pauli strings) from one shadow data
 # set. Section 8 puts shadow energies inside an SPSA loop [[7]](#ref-7) and measures accuracy against snapshot budget. Section 9
 # derives and measures the selection bias that noisy costs create. Section 10 is a remark on derandomisation.
 # Section 11 is the final characterisation of the converged state with bootstrap error bars.
@@ -64,18 +62,9 @@
 # * one batched Pauli estimator that turns a data set of integers into a (snapshots $\times$ observables) matrix, from
 #   which means, medians of means and bootstrap errors are cheap array operations.
 #
-# ### Prerequisites
-#
-# * [24 — classical shadows](../ch08_quantum_information_protocols/24_classical_shadows.ipynb): the randomised
-#   measurement protocol, the inverse measurement channel, the single-snapshot Pauli estimator and its $3^k$ variance,
-#   median of means and bootstrap errors. All of that is used here and not re-derived;
-# * [42 — the variational quantum eigensolver](../ch13_quantum_machine_learning/42_variational_quantum_eigensolver.ipynb):
-#   the VQE loop, the Hamiltonians, the observable panel and the exact references;
-# * [41 — optimisers](../ch13_quantum_machine_learning/41_optimizers.ipynb): SPSA with Spall gains, Adam, and the
-#   `lax.scan` training loop used again here;
-# * [08 — measurements](../ch03_matrix_free_engine/08_measurements.ipynb): the Born rule and sampling bit strings;
-# * [11 — Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb):
-#   the Lanczos ground state used as the exact reference.
+# The notebook assumes the classical-shadow protocol with its Pauli estimator, $3^k$ variance, median of means and
+# bootstrap errors ([notebook 24, classical shadows](../ch08_quantum_information_protocols/24_classical_shadows.ipynb)), the VQE loop and its Hamiltonians ([notebook 42, the variational quantum eigensolver](42_variational_quantum_eigensolver.ipynb)), and SPSA, Adam and the `lax.scan` training loop
+# ([notebook 41, optimisers](41_optimizers.ipynb)).
 #
 # **Conventions and sizes.** $N=6$ spins throughout, open chain, Pauli convention
 # $H=\sum_{\langle ij\rangle}(J_{xx}X_iX_j+J_{yy}Y_iY_j+J_{zz}Z_iZ_j)+h_x\sum_iX_i$. The main model is the XXZ chain
@@ -88,8 +77,7 @@
 # rotations `_BASIS_ROT` that define the measurement settings, `sample_bitstrings` for the deterministic protocols,
 # the Hamiltonian machinery and `lanczos_ground_state`. The batched shadow estimator, the chunked collector, the
 # median-of-means and bootstrap helpers are the ones derived in
-# [24 — classical shadows](../ch08_quantum_information_protocols/24_classical_shadows.ipynb); the optimiser and
-# training loop are those of [41 — optimisers](../ch13_quantum_machine_learning/41_optimizers.ipynb).
+# [notebook 24, classical shadows](../ch08_quantum_information_protocols/24_classical_shadows.ipynb); the optimiser and training loop are those of [notebook 41, optimisers](41_optimizers.ipynb).
 
 # %%
 #@engine: apply_gate, rx, ry, rz, X, Y, Z, XX, YY, ZZ, CZ, I2, PAULI, _BASIS_ROT, zero_state, fidelity_pure, expect_local, expect_pauli_string, all_local_expectations, entanglement_entropy, sample_bitstrings, collect_pauli_shadows, shadow_estimate_pauli, heisenberg_terms, apply_hamiltonian, energy, dense_hamiltonian, lanczos_ground_state, hea_num_params, hardware_efficient_ansatz, adam_init, adam_update
@@ -288,8 +276,8 @@ def bootstrap_std(key, values, n_boot=200):
 #
 # ### 3.4 Strategy 3: classical shadows
 #
-# Choose the basis of every qubit **at random** from $\{X,Y,Z\}$ and record the bases and the outcome bits. Notebook 24
-# derived the single-snapshot estimator of a Pauli string $P$ of weight $k$:
+# Choose the basis of every qubit **at random** from $\{X,Y,Z\}$ and record the bases and the outcome bits. The
+# single-snapshot estimator of a Pauli string $P$ of weight $k$, derived in [notebook 24, classical shadows](../ch08_quantum_information_protocols/24_classical_shadows.ipynb), is
 #
 # $$\hat o(P)=\prod_{q\in\mathrm{supp}(P)}3\,(-1)^{b_q}\,\bigl[\,c_q=\sigma^{(P)}_q\,\bigr],
 #   \qquad\mathbb E[\hat o]=\langle P\rangle,\qquad \mathbb E[\hat o^{\,2}]=3^{k} , \tag{4}$$
@@ -388,7 +376,7 @@ def bootstrap_std(key, values, n_boot=200):
 #   \mathrm{Cov}=3^{\lvert I\rvert}\langle P_tP_{t'}\rangle-\langle P_t\rangle\langle P_{t'}\rangle . \tag{8}$$
 #
 # Setting $t=t'$ gives $\lvert I\rvert=k$ and $\langle P^2\rangle=1$, reproducing
-# $\mathrm{Var}(\hat o)=3^{k}-\langle P\rangle^2$ — Eq. (7) of notebook 24. Equation (8) is the new ingredient, and it
+# $\mathrm{Var}(\hat o)=3^{k}-\langle P\rangle^2$ — Eq. (7) of [notebook 24, classical shadows](../ch08_quantum_information_protocols/24_classical_shadows.ipynb). Equation (8) is the new ingredient, and it
 # says something physical: two terms that overlap on $\lvert I\rvert$ qubits and agree there are **positively**
 # correlated by a factor $3^{\lvert I\rvert}$, so on a chain, where neighbouring bond terms share a site, the
 # off-diagonal part of Eq. (7) is comparable to the diagonal one.
@@ -402,7 +390,7 @@ def bootstrap_std(key, values, n_boot=200):
 # %% [markdown]
 # ## 5. The state to be measured: a VQE ground state
 #
-# The scenario is the realistic one: a variational circuit has been trained (notebook 42) and we now want to know what
+# The scenario is the realistic one: a variational circuit has been trained and we now want to know what
 # it produced. We reproduce that first step compactly — hardware-efficient ansatz [[9]](#ref-9), exact gradients, Adam [[10]](#ref-10), several
 # random restarts — and keep the best run. Everything measured afterwards is measured on *that* state, whose exact
 # properties we know but pretend not to.
@@ -799,8 +787,8 @@ assert min(abs(zc_g), abs(zc_s)) > 5                  # the covariance-free form
 # ## 7. One data set, many observables
 #
 # The comparison of Section 6 was for a *fixed, known* Hamiltonian, which is the situation grouping is designed for.
-# The situation shadows are designed for is different: many observables, not all known in advance. Notebook 42 tracked
-# nine quantities; six of them are observables — the mean magnetisations $\langle X\rangle,\langle Y\rangle,\langle
+# The situation shadows are designed for is different: many observables, not all known in advance. We take six
+# observables — the mean magnetisations $\langle X\rangle,\langle Y\rangle,\langle
 # Z\rangle$ and the mean bond correlators $\langle XX\rangle,\langle YY\rangle,\langle ZZ\rangle$ — built from
 # $3N+3(N-1)=33$ Pauli strings at $N=6$. We estimate all of them from the **same** shadow data set, and compare with
 # what the three grouped settings would give at the same total number of shots.
@@ -966,7 +954,7 @@ fig.tight_layout(); plt.show()
 # What shadows buy is elsewhere: the data set was collected before any of these $33$ strings was named, and
 # estimating a thirty-fourth — say $\langle X_0Y_2Z_4\rangle$ — costs nothing extra, whereas the grouped protocol
 # would need a new setting and a new experiment. The trade is **variance for adaptivity**, and the rigorous version of
-# that statement is the $\log K$ scaling of notebook 24, Eq. (8).
+# that statement is the $\log K$ scaling of Eq. (8) of [notebook 24, classical shadows](../ch08_quantum_information_protocols/24_classical_shadows.ipynb).
 #
 # > **Numerical practice.** Formulas that treat the $N$ site estimators (or $N-1$ bond estimators) of an average as
 # > independent are wrong in both directions here: they put the shadow error of $\langle XX\rangle$ at $0.0090$
@@ -980,7 +968,7 @@ fig.tight_layout(); plt.show()
 #
 # So far the state was fixed. Now the shadows drive the optimisation: at every iteration the cost is estimated from a
 # fresh data set of $M$ snapshots, and the optimiser never sees anything else. The gradient rule must therefore be one
-# that tolerates a noisy cost, which is SPSA (notebook 41): two cost evaluations per iteration, hence $2M$ snapshots
+# that tolerates a noisy cost, which is SPSA [[7]](#ref-7): two cost evaluations per iteration, hence $2M$ snapshots
 # per iteration, whatever the number of angles.
 #
 # Two changes with respect to the previous sections. First, the chain is shortened to $N=4$ with $L=2$ layers
@@ -1227,7 +1215,7 @@ fig.tight_layout(); plt.show()
 # **The step size dominates everything, again.** On the exact cost the median final error is $0.052$ at the best step
 # $\eta=0.02$, $0.13$ at both neighbours $0.01$ and $0.05$, and $4.32$ at $\eta=0.4$ — a factor of $80$ from one
 # hyper-parameter, measured without shadows so that the shadows are not blamed for it. The step $0.4$ that served Adam
-# with exact gradients in notebook 42 is the worst one here. With shadow costs the same step $\eta=0.02$ is again the
+# with exact gradients in Section 5 is the worst one here. With shadow costs the same step $\eta=0.02$ is again the
 # best at every budget; halving it or multiplying it by $2.5$ makes the median worse by a factor of $1.7$ to $3.6$. The
 # budget comparison below is therefore between tuned runs.
 #
@@ -1241,7 +1229,7 @@ fig.tight_layout(); plt.show()
 #
 # **Two references sit underneath, and only one of them is the ansatz.** The same optimiser with an exact cost
 # reaches $0.052$; the same circuit with exact gradients and Adam at $\eta=0.1$ reaches $0.0065$ in the same $500$
-# iterations. That second number is Adam's constant-step floor (notebook 42, Section 8.1) rather than a property of
+# iterations. That second number is Adam's constant-step floor ([notebook 42, the variational quantum eigensolver](42_variational_quantum_eigensolver.ipynb), Section 8.1) rather than a property of
 # the circuit: continuing those runs for $3000$ iterations at $\eta=0.01$ brings the median to $7.8\cdot10^{-4}$. So of the
 # $0.17$ reached with $10^{6}$ snapshots per run, a factor of three is the shadow noise, a factor of eight is SPSA
 # against exact gradients at an equal number of iterations, a further factor of eight is the constant step of the
@@ -1449,14 +1437,14 @@ fig.tight_layout(); plt.show()
 # Section 5 — the one all the measurement studies were performed on — because it is the well-converged one; the
 # shadow-driven states of Section 8 were already re-measured independently in Section 9.
 #
-# The error bars come from the **bootstrap** [[13]](#ref-13) of notebook 24: resample the snapshots with replacement, recompute, and
+# The error bars come from the **bootstrap** [[13]](#ref-13): resample the snapshots with replacement, recompute, and
 # take the spread. For the sample means reported here it must reproduce the analytic $\sigma/\sqrt M$, which makes it a
 # check of the pipeline; its real use is for non-linear functions of the same snapshots (ratios, purities, the
-# quantum Fisher information of notebook 36), for which no simple formula exists.
+# quantum Fisher information), for which no simple formula exists.
 #
 # The fidelity with the exact ground state deserves a comment. It is the expectation value of the projector
-# $\vert\psi_0\rangle\langle\psi_0\vert$, an $N$-body observable. For a product target measured on itself notebook 24
-# derived the single-snapshot second moment $(3/2)^N$ of the local-shadow estimator, $11.39$ at $N=6$. For the
+# $\vert\psi_0\rangle\langle\psi_0\vert$, an $N$-body observable. For a product target measured on itself the
+# single-snapshot second moment of the local-shadow estimator is $(3/2)^N$ ([notebook 24, classical shadows](../ch08_quantum_information_protocols/24_classical_shadows.ipynb)), $11.39$ at $N=6$. For the
 # entangled target used here we compute the exact value by enumerating all $3^N$ settings and $2^N$ outcomes: the
 # snapshot value is $\hat f(b,s)=\sum_x\lvert\langle x\vert U_b\vert\psi_0\rangle\rvert^2\prod_q\bigl(3\delta_{x_qs_q}-1\bigr)$
 # and it occurs with probability $3^{-N}\lvert\langle s\vert U_b\vert\psi\rangle\rvert^2$. A second moment near $11$

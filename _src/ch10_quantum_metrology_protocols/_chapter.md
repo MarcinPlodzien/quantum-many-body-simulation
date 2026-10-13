@@ -31,7 +31,9 @@ notebooks 33 and 34, and notebook 38 builds on notebook 35; notebooks 36, 37 and
 take the states of notebooks 33 to 35 only as examples. Prerequisites are notebooks 01 and 02 of
 [Chapter 1](ch01_computational_toolbox.qmd); the state tensors, reduced density matrices, channels and measurements of
 notebooks 05 to 08 in [Chapter 3](ch03_matrix_free_engine.qmd); the gates and Haar-random unitaries of notebooks 09
-and 10 in [Chapter 4](ch04_digital_quantum_circuits.qmd); TEBD and quench dynamics, notebooks 12 and 15 in
-[Chapter 5](ch05_ground_states_and_unitary_dynamics.qmd), for notebooks 38 and 39; GHZ states and classical shadows,
-notebooks 22 and 24 in [Chapter 8](ch08_quantum_information_protocols.qmd), for notebooks 32 and 36; and the
-stabilizer Rényi entropy of notebook 27 in [Chapter 9](ch09_entanglement_and_complexity.qmd), for notebook 37.
+and 10 in [Chapter 4](ch04_digital_quantum_circuits.qmd); in [Chapter 5](ch05_ground_states_and_unitary_dynamics.qmd),
+the Lanczos ground-state solver of notebook 11 for the Ising ground states of notebook 29, and TEBD and quench dynamics,
+notebooks 12 and 15, for notebooks 38 and 39; in [Chapter 8](ch08_quantum_information_protocols.qmd), the GHZ states of
+notebook 22 for notebooks 29 and 32, and the classical shadows of notebook 24 for notebooks 32 and 36; and the
+stabilizer Rényi entropy and the Gottesman–Knill theorem of notebook 27 in [Chapter 9](ch09_entanglement_and_complexity.qmd), for notebooks 37
+and 38.

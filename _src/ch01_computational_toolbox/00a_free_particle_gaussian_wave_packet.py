@@ -128,23 +128,6 @@
 # * `jax.jit`, `jax.vmap` and `lax.scan` in their simplest possible setting;
 # * validating every step with `assert` against the analytic result;
 # * producing animated GIFs from matplotlib and embedding them in a notebook without leaving files behind.
-#
-# ### Prerequisites
-#
-# One semester of quantum mechanics (the Schrödinger equation, wave functions, the Born rule, Fourier transforms at
-# the level of "plane waves are momentum eigenstates") and basic Python with NumPy and matplotlib.
-# **No numerical-methods background and no JAX knowledge are assumed.**
-#
-# ### Where this notebook sits
-#
-# It is the first one. Its direct continuation is
-# [00b — a first quantum simulation: the harmonic oscillator](00b_first_quantum_simulation_harmonic_oscillator.ipynb),
-# which adds a **potential**, builds the Hamiltonian as a matrix, *diagonalises* it to get stationary states and
-# energies, quenches the trap frequency, and compares matrix-exponential propagation with a Runge–Kutta
-# integrator. Everything about potentials, eigenstates and ODE integrators is left to that notebook; here the
-# particle is free. After it comes
-# [01 — JAX](01_jax_from_scratch.ipynb), which explains properly the library we use for the heavy
-# lifting. Today we use only three of its features and explain each one where it appears.
 
 # %% [markdown]
 # ## 2. The equation, and how to get rid of $\hbar$ and $m$
@@ -177,7 +160,7 @@
 # $\hbar$ and $m$. From them alone you *cannot* build a length: $\hbar$ has units
 # $\mathrm{J\,s} = \mathrm{kg\,m^2\,s^{-1}}$ and $m$ has units $\mathrm{kg}$, so $\hbar/m$ has units
 # $\mathrm{m^2\,s^{-1}}$ — a diffusion constant, not a length. **The free particle has no intrinsic length scale.**
-# (A harmonic trap of frequency $\omega$ would supply one, $\sqrt{\hbar/m\omega}$; that is the story of notebook 00b.)
+# (A harmonic trap of frequency $\omega$ would supply one, $\sqrt{\hbar/m\omega}$.)
 #
 # So *we* choose one. The only length in the problem is the one we put into the initial state: the initial width
 # $\sigma_0$ of the packet. Define
@@ -1004,8 +987,6 @@ assert np.sum(w_r * k) / np.sum(w_r) < 0.0, "an over-Nyquist kick is read back a
 # 3. transform back with the inverse FFT.
 #
 # This is a deliberate choice: it isolates the **spatial** discretisation error, which is what we want to study.
-# (Notebook 00b takes the other road — build the matrix, exponentiate it, or integrate the ODE in time — and
-# there you will meet the time-integration error as well.)
 
 # %%
 # ==============================================================================
@@ -1129,7 +1110,7 @@ plt.show()
 # > optimised machine program, so the FFT, the multiplication and the inverse FFT run without Python overhead.
 # > `jax.vmap(f)` turns a function written for **one** input into one that handles a whole batch — here, all the
 # > snapshot times at once, without a Python loop. Both are explained properly in
-# > [01 — JAX](01_jax_from_scratch.ipynb); for now, read `jnp` as "NumPy".
+# > [notebook 01, JAX](01_jax_from_scratch.ipynb); for now, read `jnp` as "NumPy".
 
 # %%
 # ==============================================================================
@@ -1300,8 +1281,7 @@ print("\nCHECKPOINT passed: both methods move at exactly the speed their own dis
 #
 # because $\hat H$ is a function of $\hat p$ and commutes with it. (With a potential one finds the general
 # Ehrenfest theorem $d\langle p\rangle/dt = -\langle V'(x)\rangle$ — "force equals mass times acceleration" for
-# averages. Here $V \equiv 0$, so there is no force and the momentum is frozen. This is the road that notebook
-# 00b takes.)
+# averages. Here $V \equiv 0$, so there is no force and the momentum is frozen.)
 #
 # Equations (12) and (13) say: *the centre of the packet moves like a classical free particle*. Nothing about the
 # spreading — that lives in the variances.
@@ -2251,7 +2231,7 @@ plt.show()
 # > **JAX practice.** `lax.scan(step, init, xs)` is a compiled `for` loop: it applies `step` repeatedly, carrying
 # > a state forward and collecting one output per iteration — here the wave function after each step. A Python
 # > loop inside a jitted function would be unrolled into $60$ copies of the body; `scan` compiles it **once**. See
-# > [01 — JAX](01_jax_from_scratch.ipynb).
+# > [notebook 01, JAX](01_jax_from_scratch.ipynb).
 
 # %%
 # ==============================================================================
@@ -2516,8 +2496,8 @@ plt.show()
 #    $e^{-iV\Delta t/2}$ in position space, then $e^{-ik^2\Delta t/2}$ in Fourier space, then
 #    $e^{-iV\Delta t/2}$ again. Implement it, send a packet of energy $E=k_0^2/2$ at a step $V(x)=V_0$ for
 #    $x>L/2$, and measure the transmitted probability for $V_0/E \in \{0.5, 0.9, 1.0, 1.1, 2\}$. Compare with the
-#    textbook plane-wave transmission coefficient. Why is the agreement imperfect? (Notebook 00b builds the
-#    machinery for potentials properly.)
+#    textbook plane-wave transmission coefficient. Why is the agreement imperfect? ([Notebook 00b, the harmonic
+#    oscillator](00b_first_quantum_simulation_harmonic_oscillator.ipynb) builds the machinery for potentials.)
 # 8. (★★★) **The Wigner function**, introduced in [[22]](#ref-22). Compute
 #    $W(x,p) = \frac{1}{\pi}\int \psi^{*}(x+y)\,\psi(x-y)\,e^{2ipy}\,dy$ on the grid and animate it. For the free
 #    particle it should simply shear: $W(x,p,t) = W(x-pt, p, 0)$ — the exact classical Liouville flow. Verify
@@ -2595,15 +2575,3 @@ plt.show()
 #
 # <span id="ref-22">[22]</span> E. Wigner, *On the quantum correction for thermodynamic equilibrium*, Phys. Rev. **40**, 749
 # (1932) — the Wigner function of Exercise 8.
-#
-# ### What comes next
-#
-# [00b — a first quantum simulation: the harmonic oscillator](00b_first_quantum_simulation_harmonic_oscillator.ipynb)
-# puts the particle in a trap: a potential, a tridiagonal Hamiltonian matrix, diagonalisation into stationary
-# states, a frequency quench, and two more ways to propagate (the matrix exponential and Runge–Kutta).
-# Then [01 — JAX](01_jax_from_scratch.ipynb) explains the three JAX tools we used today —
-# `jit`, `vmap` and `scan` — together with automatic differentiation, and the course proper begins.
-# [49 — a single excitation on a lattice](../lecture_notes_notebooks/49_single_excitation_on_a_lattice.ipynb) needs
-# nothing beyond this notebook and can be read at any point after it: it takes the three-point Laplacian of Section 6
-# and reads it as the exact Hamiltonian of a particle hopping on a lattice, so that the dispersion
-# $\omega_{\rm FD}(k)$, an artefact here, becomes the true band structure there.

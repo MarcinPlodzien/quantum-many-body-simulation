@@ -10,15 +10,15 @@
 #
 # $$ i\,\frac{d}{dt}|\psi(t)\rangle = H|\psi(t)\rangle \qquad\Longrightarrow\qquad |\psi(t)\rangle = e^{-iHt}\,|\psi(0)\rangle , $$
 #
-# for a time-independent Hamiltonian $H$. In the [previous notebook](12_tebd_trotter_suzuki.ipynb) we *split* the exponential
-# into many small two-spin gates (TEBD / Trotter–Suzuki). That method is simple and robust, but it has a built-in
+# for a time-independent Hamiltonian $H$. *Splitting* the exponential
+# into many small two-spin gates (TEBD / Trotter–Suzuki, [notebook 12, Trotter–Suzuki evolution](12_tebd_trotter_suzuki.ipynb)) is simple and robust, but it has a built-in
 # **Trotter error** that decreases only as a power of the time step, $\mathcal{O}(dt^{p})$: every additional digit of accuracy costs a
 # fixed *factor* more work. Three digits are cheap; ten digits, needed to compute an echo
 # $|\langle\psi(0)|\psi(t)\rangle|^2$ that is itself $10^{-6}$, to benchmark another code, to separate a genuinely small
 # physical effect from numerical error, or to evolve for a very long time, cost orders of magnitude more (§12, §13).
 #
 # **The idea of this notebook.** The only thing our matrix-free simulator can do with $H$ is to *apply it to a state*,
-# $|\phi\rangle \mapsto H|\phi\rangle$ (notebook [Matrix-free operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb)).
+# $|\phi\rangle \mapsto H|\phi\rangle$ ([notebook 05, matrix-free operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb)).
 # With $K$ such applications we can build $p(H)|\psi\rangle$ for **any polynomial** $p$ of degree $K$. So the question becomes one of
 # *approximation theory*:
 #
@@ -47,6 +47,10 @@
 # 6. Physics: a quench in a non-integrable spin chain, by chaining steps (§11).
 # 7. Cost compared with TEBD at fixed accuracy (§12); long-time evolution and the choice of the step (§13); the reach in system size (§14).
 #
+# The notebook assumes `jit` and `lax.scan` ([notebook 01, JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)), `apply_gate` and `apply_hamiltonian`
+# ([notebook 05, matrix-free operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb)), the exact propagator by diagonalisation ([notebook 04, time evolution with dense matrices](../ch02_spin_systems_textbook_way/04_time_evolution_the_textbook_way.ipynb)),
+# the Lanczos algorithm ([notebook 11, Hamiltonians and ground states](11_hamiltonians_and_ground_states.ipynb)) and the Trotter–Suzuki splitting ([notebook 12, Trotter–Suzuki evolution](12_tebd_trotter_suzuki.ipynb)).
+#
 # ### What you will learn
 #
 # *Physics*
@@ -66,19 +70,11 @@
 # * separating *set-up code* (NumPy/SciPy, run once: coefficients) from the *hot loop* (JAX, jit-compiled);
 # * using the outputs of `scan` to get a whole convergence curve from a single run;
 # * validating against dense linear algebra, conservation laws and time reversal.
-#
-# ### Prerequisites
-# * [JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb) (`jit`, `lax.scan`),
-#   [Matrix-free operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb) (`apply_gate`, `apply_hamiltonian`);
-# * [Time evolution the textbook way](../ch02_spin_systems_textbook_way/04_time_evolution_the_textbook_way.ipynb) (exact propagator by diagonalisation);
-# * [Hamiltonians and ground states](11_hamiltonians_and_ground_states.ipynb) (Lanczos) and
-#   [TEBD](12_tebd_trotter_suzuki.ipynb) (Trotter–Suzuki splitting), which we use as the competitor.
 
 # %% [markdown]
 # ## Engine recap
 #
-# The cell below (folded on the website) contains the simulator primitives used in this notebook, exactly as derived in
-# Chapters 1–4 and in the first two notebooks of this chapter: `apply_gate` (one einsum per local operator), `heisenberg_terms`
+# The cell below (folded on the website) contains the simulator primitives used in this notebook: `apply_gate` (one einsum per local operator), `heisenberg_terms`
 # (a Hamiltonian is a *list of local terms*), `apply_hamiltonian` (the matrix-free product $H|\psi\rangle$), `dense_hamiltonian` (dense reference for validation on small chains), `tebd_gates` (the competitor), `spectral_bounds` (a short
 # Lanczos run) and the production version of what we are about to derive, `chebyshev_evolve`.
 
@@ -178,7 +174,7 @@ plt.show()
 #
 # The recurrence is a loop that carries the pair $(T_{k-1}, T_k)$ and emits $T_{k+1}$. In JAX such a loop is written with
 # `lax.scan(body, carry, xs, length)`: `body(carry, x) -> (new_carry, output)` is compiled once and iterated inside the
-# compiled program; the outputs are stacked (see [JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)).
+# compiled program; the outputs are stacked (see [notebook 01, JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)).
 # We evaluate all polynomials on a whole grid of $x$ values at once — `x` is an array, the arithmetic is element-wise.
 
 # %%
@@ -546,7 +542,7 @@ assert abs(sum_rule - 1) < 1e3 * TOL
 #
 # Let $H=\sum_n E_n|n\rangle\langle n| = V\,\mathrm{diag}(E)\,V^\dagger$. Powers act on the eigenvalues, $H^k=V\,\mathrm{diag}(E^k)\,V^\dagger$ (because $V^\dagger V=1$), hence for
 # every polynomial $p(H)=V\,\mathrm{diag}\big(p(E_n)\big)V^\dagger$, and *by definition* $f(H)=V\,\mathrm{diag}\big(f(E_n)\big)V^\dagger$ for a general function —
-# in particular $e^{-iHt}$ (this is the exact propagator of [Time evolution the textbook way](../ch02_spin_systems_textbook_way/04_time_evolution_the_textbook_way.ipynb)). Any identity between functions that holds at all the eigenvalues therefore
+# in particular $e^{-iHt}$ (this is the exact propagator of [notebook 04, time evolution with dense matrices](../ch02_spin_systems_textbook_way/04_time_evolution_the_textbook_way.ipynb)). Any identity between functions that holds at all the eigenvalues therefore
 # holds for the matrices. The Jacobi–Anger identity (8) holds for $x\in[-1,1]$; we only have to bring the eigenvalues there.
 #
 # ### 7.2 Spectral rescaling
@@ -649,7 +645,7 @@ assert max(err_poly) < 1e3 * TOL and min(err_U) < 1e2 * TOL
 #
 # The rescaling needs $E_{\min}$ and $E_{\max}$, but computing the spectrum is exactly what we cannot afford. Two practical options:
 #
-# **(A) A short Lanczos run.** As shown in [Hamiltonians and ground states](11_hamiltonians_and_ground_states.ipynb), the extremal eigenvalues of the small tridiagonal
+# **(A) A short Lanczos run.** As derived in [notebook 11, Hamiltonians and ground states](11_hamiltonians_and_ground_states.ipynb), the extremal eigenvalues of the small tridiagonal
 # Lanczos matrix (the *Ritz values*) converge quickly to $E_{\min}$ and $E_{\max}$, using only $H|\phi\rangle$. There is a catch: Ritz values are always **inside** the true spectrum
 # (they are expectation values of $H$ in normalised states of the Krylov space, and $E_{\min}\le\langle H\rangle\le E_{\max}$), so Lanczos *under*-estimates the width. Hence the
 # **safety factor**: we enlarge the half-width, $a\to 1.02\,a$. The engine function `spectral_bounds(terms, N, m=40)` does the Lanczos part; `chebyshev_evolve` applies the safety factor.
@@ -959,7 +955,7 @@ assert float(jnp.linalg.norm(psi_back - psi0_big)) < 100 * TOL
 #
 # **The protocol** (a *quantum quench*): prepare all spins up, $|\psi(0)\rangle=|00\dots0\rangle$, and let it evolve under the full $H$. The fully polarised state is an eigenstate of the whole XXZ part (the exchange $XX+YY$ conserves the total $Z$ and annihilates it), so the dynamics is started by the transverse field alone.
 # We record the local magnetisation $\langle Z_j(t)\rangle$ and the entanglement entropy of the left half of the chain
-# (defined in [States, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb)).
+# (defined in [notebook 06, states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb)).
 #
 # **From formula to code.** $\langle Z_j\rangle=\sum_{s}(-1)^{s_j}|\psi[s_0,\dots,s_{N-1}]|^2$: square the tensor, sum over all axes except $j$ to get the two probabilities $p_j(0),p_j(1)$, return their
 # difference. No operator is applied at all.
@@ -1046,8 +1042,7 @@ plt.tight_layout(); plt.show()
 # * *Diagnostics.* Over the whole trajectory the norm is conserved to $2\times10^{-13}$ and the energy to $4\times10^{-12}$, i.e. $5\times10^{-13}$ relative to $E(0)$.
 #
 # > **Physics insight.** The model is non-integrable: apart from energy and two discrete symmetries (the reflection $j\leftrightarrow N-1-j$ and the spin-flip parity $\prod_jX_j$) it has no conservation laws, so local observables relax to stationary values that depend on the initial
-# > state essentially only through its energy density (the eigenstate thermalization scenario of [[19]](#ref-19), [[20]](#ref-20)). The relaxation of $\langle Z\rangle$ above is a small-scale view of this; the physics is explored in depth in
-# > [Quench dynamics in spin chains](15_quench_dynamics_spin_chains.ipynb).
+# > state essentially only through its energy density (the eigenstate thermalization scenario of [[19]](#ref-19), [[20]](#ref-20)). The relaxation of $\langle Z\rangle$ above is a small-scale view of this.
 #
 # ### 11.2 Checkpoint: the chained trajectory against the dense solution at every time
 #
@@ -1078,7 +1073,7 @@ assert err_t.max() < 100 * TOL
 #
 # * One application of $H$ = one einsum per local term: $N_{\rm terms}=(N-1)+N$ einsums (bonds + fields), plus cheap additions.
 # * One second-order TEBD step $=2N_{\rm terms}$ gate einsums (a forward and a backward sweep of half-step gates), i.e. **the cost of two $H$-applications**;
-#   a fourth-order step consists of five second-order steps $\to$ ten. (Fusing neighbouring gates lowers these constants somewhat, see [TEBD](12_tebd_trotter_suzuki.ipynb); it does not change the scaling.)
+#   a fourth-order step consists of five second-order steps $\to$ ten. (Fusing neighbouring gates lowers these constants somewhat, see [notebook 12, Trotter–Suzuki evolution](12_tebd_trotter_suzuki.ipynb); it does not change the scaling.)
 #
 # So we count work in **$H$-equivalents**: Chebyshev: $K$ per step; TEBD-2: $2\times$ steps; TEBD-4: $10\times$ steps. The scaling with the target error $\varepsilon$ at fixed final time $T$:
 #
@@ -1193,9 +1188,8 @@ plt.show()
 # > **Numerical practice.** Absolute timings depend on the machine and on what else is running on it (these notes were executed on a shared CPU); ratios and slopes are robust. Always compare algorithms **at equal accuracy** —
 # > "method A needs 0.1 s, method B 1 s" means nothing if A delivers 3 digits and B 13. And always *measure* the error against a trusted reference rather than assuming the nominal order.
 #
-# Two properties favour TEBD: (i) its gates act locally, which is what makes it extendable to matrix-product states for $N\gg30$ ([MPS-TEBD](../ch07_tensor_networks/18_mps_tebd.ipynb)), and to time-dependent
-# Hamiltonians and noisy circuits with no extra effort; (ii) if observables are needed on a very fine time grid anyway, small steps come for free. A full comparison, including the Krylov method, follows in the
-# [next notebook](14_krylov_and_integrator_comparison.ipynb).
+# Two properties favour TEBD: (i) its gates act locally, which is what makes it extendable to matrix-product states for $N\gg30$, and to time-dependent
+# Hamiltonians and noisy circuits with no extra effort; (ii) if observables are needed on a very fine time grid anyway, small steps come for free.
 
 # %% [markdown]
 # ## 13. Long times: one giant step against many small ones

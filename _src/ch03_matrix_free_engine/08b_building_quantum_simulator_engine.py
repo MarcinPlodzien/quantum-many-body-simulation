@@ -5,12 +5,12 @@
 # %% [markdown]
 # ## 1. Introduction
 #
-# Every notebook of these lecture notes runs on one file, `quantum_engine.py`. Notebooks 05–08 derived its core from first
-# principles: the state of $N$ spins-1/2 stored as a tensor with $N$ axes of length 2, operators that act on a few of those axes
+# Every notebook of these lecture notes runs on one file, `quantum_engine.py`. Its core consists of
+# the state of $N$ spins-1/2 stored as a tensor with $N$ axes of length 2, operators that act on a few of those axes
 # through a single `einsum`, reduced density matrices, channels and measurements. The later chapters add time-evolution
 # algorithms, open-system integrators, metrology tools, random circuits, variational circuits and matrix product states. Each
-# notebook copies the functions it needs into a folded *Engine recap* cell, so a reader who opens notebook 33 meets
-# `oat_evolve` and `spin_squeezing` already written.
+# notebook copies the functions it needs into a folded *Engine recap* cell, so that it can be read with those functions
+# already written out.
 #
 # This notebook reads the engine from its first line to its last. For every building block it gives
 #
@@ -55,6 +55,10 @@
 # | 18 | matrix product states | conversion, canonical forms, observables, MPO, DMRG and TEBD ingredients |
 # | 19 | summary | register of checks, function table |
 #
+# The notebook assumes [notebook 01, JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb), [notebook 02, einsum](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb), and the matrix-free state, observables,
+# channels and measurements of [notebook 05, matrix-free operators](05_matrix_free_operators.ipynb), [notebook 06, states, observables and entanglement](06_states_observables_entanglement.ipynb),
+# [notebook 07, density matrices and quantum channels](07_density_matrices_and_quantum_channels.ipynb) and [notebook 08, measurements](08_measurements.ipynb).
+#
 # ### What you will learn
 #
 # *Physics*
@@ -71,12 +75,6 @@
 # * writing tests that are independent of the code under test and that fail for realistic bugs (mutation testing);
 # * statistical checks of stochastic code with standard errors;
 # * reading production code: docstrings with a `MATH` part, static qubit labels, `jit`, `vmap` and `lax.scan` where they pay off.
-#
-# ### Prerequisites
-#
-# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb) and [02 — Index notation and einsum](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb);
-# * [05 — Matrix-free operators](05_matrix_free_operators.ipynb), [06 — States, observables and entanglement](06_states_observables_entanglement.ipynb),
-#   [07 — Density matrices and quantum channels](07_density_matrices_and_quantum_channels.ipynb), [08 — Measurements](08_measurements.ipynb).
 #
 # Sections 13–18 summarise material that later notebooks derive in full; each of these sections names the notebook to read for the complete derivation.
 
@@ -707,8 +705,8 @@ plt.show()
 # A Haar-random state, named after the invariant measure of Haar [[6]](#ref-6), is a unit vector whose direction is uniformly distributed, so that no basis is preferred. `haar_state` draws a vector $g$ of
 # $D=2^N$ independent standard complex Gaussian numbers and normalises it. The joint density of $g$ is proportional to
 # $\exp(-\sum_i\vert g_i\vert^2)=\exp(-\Vert g\Vert^2)$, which is unchanged under $g\to\hat Ug$ for every unitary $\hat U$ because $\Vert\hat Ug\Vert=\Vert g\Vert$;
-# hence the direction $g/\Vert g\Vert$ is uniformly distributed. Notebook 10 shows that the weight $x=\vert\psi_s\vert^2$ of one basis state then has the
-# density $p(x)=(D-1)(1-x)^{D-2}$ on $[0,1]$. Its moments follow from the Beta integral $\int_0^1x^n(1-x)^{D-2}\,dx=n!\,(D-2)!/(D+n-1)!$:
+# hence the direction $g/\Vert g\Vert$ is uniformly distributed. The weight $x=\vert\psi_s\vert^2$ of one basis state then has the
+# density $p(x)=(D-1)(1-x)^{D-2}$ on $[0,1]$ (the finite-$D$ Porter–Thomas law; [notebook 10, random unitaries and random circuits](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb), Section 5). Its moments follow from the Beta integral $\int_0^1x^n(1-x)^{D-2}\,dx=n!\,(D-2)!/(D+n-1)!$:
 #
 # $$ \begin{aligned} \mathbb{E}\big[\vert\psi_s\vert^2\big] &= (D-1)\,\frac{1!\,(D-2)!}{D!}=\frac{(D-1)!}{D!}=\frac{1}{D}, \\ \mathbb{E}\big[\vert\psi_s\vert^4\big] &= (D-1)\,\frac{2!\,(D-2)!}{(D+1)!}=\frac{2\,(D-1)!}{(D+1)!}=\frac{2}{D(D+1)}. \end{aligned} \tag{28} $$
 #
@@ -834,7 +832,7 @@ for name, st in [("product |0+r1-l+0>", product_state("0+r1-l+0")), ("GHZ_8", gh
 #
 # ### 7.3 Kraus channels on density tensors
 #
-# A quantum channel in Kraus form ([[7]](#ref-7); notebook 07; [[8]](#ref-8), Ch. 8) maps
+# A quantum channel in Kraus form ([[7]](#ref-7); [notebook 07, density matrices and quantum channels](07_density_matrices_and_quantum_channels.ipynb); [[8]](#ref-8), Ch. 8) maps
 #
 # $$ \hat\rho\;\to\;\sum_m\hat K_m\,\hat\rho\,\hat K_m^\dagger . \tag{31} $$
 #
@@ -1050,7 +1048,7 @@ print("Bloch vectors (rows: qubits 0..4; columns <X>, <Y>, <Z>):\n", np.round(np
 # $$ \mathcal{N}=\frac{\Vert\hat\rho^{T_A}\Vert_1-1}{2}=\frac{\sum_i\vert\mu_i\vert-\sum_i\mu_i}{2}=\sum_{\mu_i<0}\vert\mu_i\vert, \qquad E_{\mathcal N}=\log_2\Vert\hat\rho^{T_A}\Vert_1=\log_2(2\mathcal N+1). \tag{45} $$
 #
 # As an analytic test case we take the Werner state [[17]](#ref-17) of visibility $v$, $\hat\rho_v=v\,\vert\Psi^-\rangle\langle\Psi^-\vert+(1-v)\,\mathbb{1}/4$, written with the singlet;
-# it is related to the $\vert\Phi^+\rangle$ form $\rho_W(v)$ of notebook 19 (Section 11) by the local unitary $\mathbb 1\otimes(-iY)$, which leaves the spectrum of the partial transpose unchanged. By Eq. (10) the singlet projector is
+# it is related to the $\vert\Phi^+\rangle$ form of the Werner state by the local unitary $\mathbb 1\otimes(-iY)$, which leaves the spectrum of the partial transpose unchanged. By Eq. (10) the singlet projector is
 # $\vert\Psi^-\rangle\langle\Psi^-\vert=\tfrac12(\mathbb{1}-\mathrm{SWAP})=\tfrac14(\mathbb{1}-\hat X\hat X-\hat Y\hat Y-\hat Z\hat Z)$. Transposing the first factor leaves $\hat X$ and $\hat Z$ unchanged
 # and flips the sign of $\hat Y$ ($\hat Y^T=-\hat Y$), so
 #
@@ -1167,7 +1165,7 @@ check("negativity of Werner states, Eq. (47), v = 0..1", err, 100 * TOL, mutant=
 # One rotates with $\hat U$, measures $\hat Z$ and rotates back with $\hat U^\dagger$. For $\hat X$ the rotation is $\hat U=\hat H_{\mathrm d}$. For $\hat Y$ it is $\hat U=\hat H_{\mathrm d}\hat S^\dagger$, since
 # $\hat S^\dagger\hat Y\hat S=\hat X$ (a direct multiplication of $2\times2$ matrices) and then $\hat H_{\mathrm d}\hat X\hat H_{\mathrm d}=\hat Z$. The engine draws a uniform number $u\in[0,1)$ and
 # returns the outcome $m=1$ if $u\ge p(0)$. The selection of the projector uses `jnp.where`, so the function contains no Python `if` on random data and can be
-# compiled and batched over keys (notebook 08).
+# compiled and batched over keys.
 #
 # ### 10.2 Sampling complete bit strings
 #
@@ -1285,7 +1283,7 @@ check("sample_bitstrings in bases 'XYZ' of |+>|r>|0>: always 000",
 #
 # $$ \sum_m\hat K_m\hat\rho\hat K_m^\dagger=\hat\rho+\gamma\,dt\Big(\hat L\hat\rho\hat L^\dagger-\tfrac12\big\{\hat L^\dagger\hat L,\hat\rho\big\}\Big)+O(dt^2), \tag{56} $$
 #
-# the Lindblad dissipator of Section 14 to first order. Finally, a channel can act on a pure state stochastically (notebook 17; the quantum-jump method of [[18]](#ref-18)) by choosing the branch $m$
+# the Lindblad dissipator of Section 14 to first order. Finally, a channel can act on a pure state stochastically ([notebook 17, the Monte-Carlo wave function](../ch06_open_quantum_systems/17_monte_carlo_wave_function.ipynb); the quantum-jump method of [[18]](#ref-18)) by choosing the branch $m$
 # with probability $p_m=\Vert\hat K_m\vert\psi\rangle\Vert^2=\mathrm{Tr}(\hat K_m\hat\rho_A\hat K_m^\dagger)$ and continuing with $\hat K_m\vert\psi\rangle/\sqrt{p_m}$. The average over the random branch is
 #
 # $$ \mathbb{E}\big[\vert\psi'\rangle\langle\psi'\vert\big]=\sum_m p_m\,\frac{\hat K_m\vert\psi\rangle\langle\psi\vert\hat K_m^\dagger}{p_m}=\sum_m\hat K_m\vert\psi\rangle\langle\psi\vert\hat K_m^\dagger , \tag{57} $$
@@ -1451,8 +1449,8 @@ print(f"      {len(terms)} local terms represent a {2 ** N} x {2 ** N} Hamiltoni
 #
 # ## 13. Time evolution
 #
-# This section collects the ingredients of the four propagators of the engine. Notebooks 12–14 derive each of them in full and compare their
-# accuracy and cost; here we state the key equations and verify each propagator against `scipy.linalg.expm` of the dense Hamiltonian.
+# This section collects the ingredients of the four propagators of the engine. [Notebook 12, Trotter–Suzuki and TEBD](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb),
+# [notebook 13, Chebyshev propagation](../ch05_ground_states_and_unitary_dynamics/13_chebyshev_propagation.ipynb) and [notebook 14, Krylov propagation](../ch05_ground_states_and_unitary_dynamics/14_krylov_and_integrator_comparison.ipynb) derive each of them in full and compare their accuracy and cost; here we state the key equations and verify each propagator against `scipy.linalg.expm` of the dense Hamiltonian.
 #
 # ### 13.1 Exponentials of small Hermitian matrices
 #
@@ -1559,7 +1557,7 @@ plt.show()
 # In this basis $\hat H$ is the tridiagonal matrix $T=V^\dagger\hat HV$ with $\alpha_j$ on the diagonal and $\beta_j$ beside it. The extremal eigenvalues of the small matrix $T$
 # converge first to those of $\hat H$; `lanczos_ground_state` restarts the iteration from the current approximation of the lowest eigenvector, and
 # `spectral_bounds` returns the lowest and highest eigenvalue of a short run. Only the product $\hat H\vert v\rangle$ is required, so the method is matrix-free. In floating
-# point the vectors lose their mutual orthogonality once the first Ritz values have converged, and the engine reorthogonalises against all previous vectors (`reorth=True`). Notebook 11 derives the
+# point the vectors lose their mutual orthogonality once the first Ritz values have converged, and the engine reorthogonalises against all previous vectors (`reorth=True`). [Notebook 11, Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb) derives the
 # recurrence and its convergence.
 
 # %%
@@ -1599,7 +1597,7 @@ check("spectral_bounds vs eigh (E_min, E_max)", max(abs(Emin - w6[0]), abs(Emax 
 # $$ \vert\phi_0\rangle=\vert\psi\rangle,\qquad \vert\phi_1\rangle=\hat x\vert\psi\rangle,\qquad \vert\phi_{k+1}\rangle=2\hat x\vert\phi_k\rangle-\vert\phi_{k-1}\rangle . \tag{67} $$
 #
 # Since $J_k(at)$ decays faster than exponentially once $k>at$, about $at+20$ terms reach machine precision, and there is no time-step error. The expansion
-# converges only if the spectrum of $\hat x$ really lies in $[-1,1]$; wrong spectral bounds make $T_k(\hat x)$ grow exponentially. Notebook 13 derives Eq. (66).
+# converges only if the spectrum of $\hat x$ really lies in $[-1,1]$; wrong spectral bounds make $T_k(\hat x)$ grow exponentially. [Notebook 13, Chebyshev propagation](../ch05_ground_states_and_unitary_dynamics/13_chebyshev_propagation.ipynb) derives Eq. (66).
 #
 # ### 13.5 Krylov propagation
 #
@@ -1608,7 +1606,7 @@ check("spectral_bounds vs eigh (E_min, E_max)", max(abs(Emin - w6[0]), abs(Emax 
 # $$ \vert\psi(t)\rangle\approx\Vert\psi\Vert\;V\,e^{-iTt}\,e_1=\Vert\psi\Vert\sum_{j}c_j\vert v_j\rangle, \qquad c=S\,e^{-iwt}\,S^T e_1, \tag{68} $$
 #
 # with $T=S\,\mathrm{diag}(w)\,S^T$ the eigendecomposition of the real tridiagonal matrix. The formula is exact for every polynomial of degree below $m$ in $\hat H$ and
-# accurate as long as $\vert t\vert$ times the spectral width is small compared with $m$. Notebook 14 derives it and compares all propagators.
+# accurate as long as $\vert t\vert$ times the spectral width is small compared with $m$. [Notebook 14, Krylov propagation](../ch05_ground_states_and_unitary_dynamics/14_krylov_and_integrator_comparison.ipynb) derives it and compares all propagators.
 
 # %%
 #@engine-show: chebyshev_evolve, krylov_evolve
@@ -1631,7 +1629,7 @@ check("krylov_evolve (m = 32) vs expm (t = 2)", maxdiff(krylov_evolve(psi0, term
 # %% [markdown]
 # With the correct bounds the Chebyshev series reproduces the exact state to round-off. With bounds that are too narrow by a factor 2 the polynomials
 # $T_k(\hat x)$ are evaluated outside $[-1,1]$, where they grow exponentially with $k$, and the error of the mutant exceeds the norm of the state itself. The Krylov
-# error is of order $0.3$ for $m\le12$ and then falls by more than ten orders of magnitude between $m=16$ and $m=32$, the super-exponential convergence derived in notebook 14
+# error is of order $0.3$ for $m\le12$ and then falls by more than ten orders of magnitude between $m=16$ and $m=32$, the super-exponential convergence derived in [notebook 14, Krylov propagation](../ch05_ground_states_and_unitary_dynamics/14_krylov_and_integrator_comparison.ipynb)
 # (it sets in once $m$ exceeds a threshold of order $a\,t$, with $a$ the half-width of the spectrum). The mutant with the opposite sign of the exponent, $e^{+i\hat Ht}$, is rejected.
 #
 # ## 14. Open systems: the Lindblad equation
@@ -1671,7 +1669,7 @@ check("krylov_evolve (m = 32) vs expm (t = 2)", maxdiff(krylov_evolve(psi0, term
 # exactly, up to round-off. Positivity is preserved only approximately, because a polynomial in $dt\,\mathcal L$ is in general not a completely positive map. `lindblad_trotter_step_dm` applies the unitary Trotter gates and then, for
 # each jump operator, the Kraus pair of Eq. (55); every step is completely positive and trace preserving, and the splitting is first order in $dt$ for the dissipator.
 # `lindblad_trotter_step_mcwf` applies the same step to a pure state with `apply_kraus_mcwf`; by Eq. (57) its trajectory average equals the density-tensor step
-# exactly, so the two differ only by the statistical error. Notebooks 16 and 17 derive and benchmark these integrators.
+# exactly, so the two differ only by the statistical error. [Notebook 16, the Lindblad master equation](../ch06_open_quantum_systems/16_lindblad_master_equation.ipynb) and [notebook 17, the Monte-Carlo wave function](../ch06_open_quantum_systems/17_monte_carlo_wave_function.ipynb) derive and benchmark these integrators.
 
 # %%
 #@engine-show: lindblad_rhs, lindblad_rk4_step, lindblad_trotter_step_dm, lindblad_trotter_step_mcwf
@@ -1812,7 +1810,7 @@ check("MCWF trajectories vs density tensor, max |z|", np.max(np.abs(z_traj.mean(
 # $$ \hat J_a=\tfrac12\sum_{q=0}^{N-1}\hat\sigma^a_q, \qquad \hat G=\sum_{q=0}^{N-1}\hat P_q=2\hat J_P . \tag{74} $$
 #
 # `apply_collective` returns $\hat G\vert\psi\rangle$ with $N$ single-qubit contractions, and `collective_dense` builds the dense $\hat J_P$ for small systems. When a phase
-# $\theta$ is imprinted by $e^{-i\theta\hat J}$ on a pure state, the quantum Fisher information (QFI) is four times the variance of the generator (notebook 29):
+# $\theta$ is imprinted by $e^{-i\theta\hat J}$ on a pure state, the quantum Fisher information (QFI) is four times the variance of the generator ([notebook 29, quantum Fisher information](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb)):
 #
 # $$ F_Q=4\,\mathrm{Var}(\hat J)=\langle\hat G^2\rangle-\langle\hat G\rangle^2, \qquad \langle\hat G^2\rangle=\langle\phi\vert\phi\rangle,\quad \langle\hat G\rangle=\langle\psi\vert\phi\rangle,\quad \vert\phi\rangle=\hat G\vert\psi\rangle . \tag{75} $$
 #
@@ -1850,7 +1848,7 @@ check("MCWF trajectories vs density tensor, max |z|", np.max(np.abs(z_traj.mean(
 #
 # $$ \psi[s]\;\to\;e^{-i\chi t\,m(s)^2}\,\psi[s] , \tag{81} $$
 #
-# an exact $O(2^N)$ operation. The engine assembles $m(s)$ by broadcasting $N$ arrays of shape $(1,\dots,2,\dots,1)$. Notebooks 29, 30 and 33 derive and use these tools.
+# an exact $O(2^N)$ operation. The engine assembles $m(s)$ by broadcasting $N$ arrays of shape $(1,\dots,2,\dots,1)$. [Notebook 29, quantum Fisher information](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb), [notebook 30, QFI from the SLD](../ch10_quantum_metrology_protocols/30_qfi_from_the_sld_prepare_encode_estimate.ipynb) and [notebook 33, spin squeezing and one-axis twisting](../ch10_quantum_metrology_protocols/33_spin_squeezing_one_axis_twisting.ipynb) derive and use these tools.
 
 # %%
 #@engine-show: apply_collective, collective_dense, qfi_pure, qfi_mixed, spin_moments, spin_squeezing, oat_evolve
@@ -1940,7 +1938,7 @@ check("oat_evolve vs expm(-i chi t J_z^2)", maxdiff(oat_evolve(css, 0.2), sla.ex
 # $$ \mathbb{E}\big[\mathrm{Tr}\,\hat U\big]=0, \qquad \mathbb{E}\big[\vert\mathrm{Tr}\,\hat U\vert^2\big]=\sum_{i,k}\mathbb{E}\big[U_{ii}U^*_{kk}\big]=\sum_{i,k}\frac{\delta_{ik}}{d}=1 . \tag{83} $$
 #
 # A random brick-wall circuit [[39]](#ref-39) applies Haar-random two-qubit gates on the even bonds, then on the odd bonds, and so on. After a depth of order $N$ it produces
-# states whose half-chain entanglement approaches the Page value [[40]](#ref-40) for a random state of two subsystems of dimensions $m\le n$ (notebooks 06 and 10):
+# states whose half-chain entanglement approaches the Page value [[40]](#ref-40) for a random state of two subsystems of dimensions $m\le n$ ([notebook 06, states, observables and entanglement](06_states_observables_entanglement.ipynb); [notebook 10, random unitaries and random circuits](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb)):
 #
 # $$ S_{\mathrm{Page}}=\frac{1}{\ln2}\Big(\sum_{k=n+1}^{mn}\frac1k-\frac{m-1}{2n}\Big)\ \text{bits}. \tag{84} $$
 #
@@ -2061,7 +2059,7 @@ check("Cliffords closed under multiplication", 0.0 if closed else 1.0, 0.5)
 # $$ \langle\psi\vert\hat X^a\hat Z^b\vert\psi\rangle=\sum_s(-1)^{b\cdot s}\,\psi^*[s\oplus a]\,\psi[s]=\sum_s(-1)^{b\cdot s}f_a[s], \qquad f_a[s]=\psi^*[s\oplus a]\,\psi[s] . \tag{89} $$
 #
 # The sum over $s$ with the signs $(-1)^{b\cdot s}$ is the Walsh–Hadamard transform [[44]](#ref-44) of $f_a$, which is the matrix $\big(\begin{smallmatrix}1&1\\1&-1\end{smallmatrix}\big)$ applied to every tensor axis.
-# One transform gives all $2^N$ values of $b$ at once, so the cost drops from $O(8^N)$ to $O(N\,4^N)$. Notebook 27 derives the method; notebook 24 treats classical shadows.
+# One transform gives all $2^N$ values of $b$ at once, so the cost drops from $O(8^N)$ to $O(N\,4^N)$. [Notebook 27, stabilizer Rényi entropy](../ch09_entanglement_and_complexity/27_stabilizer_renyi_entropy.ipynb) derives the method; [notebook 24, classical shadows](../ch08_quantum_information_protocols/24_classical_shadows.ipynb) treats classical shadows.
 
 # %%
 #@engine-show: collect_pauli_shadows, shadow_estimate_pauli, shadow_snapshot_dm, _wht_all_axes, stabilizer_renyi_entropy, stabilizer_renyi_entropy_bruteforce
@@ -2156,7 +2154,8 @@ check("M_2(cluster state, N=5) = 0", abs(stabilizer_renyi_entropy(cluster_state(
 #
 # $$ \begin{aligned} m_t &= \beta_1m_{t-1}+(1-\beta_1)\,g_t, \qquad v_t=\beta_2v_{t-1}+(1-\beta_2)\,g_t^2, \\ \theta_t &= \theta_{t-1}-\eta\,\frac{m_t/(1-\beta_1^t)}{\sqrt{v_t/(1-\beta_2^t)}+\epsilon} . \end{aligned} \tag{93} $$
 #
-# Notebooks 40–42 derive and compare these tools.
+# [Notebook 40, parametrized gates and gradients](../ch13_quantum_machine_learning/40_parametrized_gates_and_gradients.ipynb), [notebook 41, optimisers](../ch13_quantum_machine_learning/41_optimizers.ipynb) and
+# [notebook 42, variational quantum eigensolver](../ch13_quantum_machine_learning/42_variational_quantum_eigensolver.ipynb) derive and compare these tools.
 
 # %%
 #@engine-show: hea_num_params, hardware_efficient_ansatz, parameter_shift_grad, spsa_grad, adam_init, adam_update
@@ -2244,7 +2243,7 @@ check("adam_update: 30 steps vs NumPy Adam, Eq. (93)", maxdiff(th_e, adam_numpy(
 #
 # $$ \psi[s_0,s_1,\dots,s_{N-1}]=A_0^{s_0}A_1^{s_1}\cdots A_{N-1}^{s_{N-1}}, \qquad A_j^{s}\ \text{of size}\ \chi_j\times\chi_{j+1},\quad \chi_0=\chi_N=1 . \tag{94} $$
 #
-# Notebook 18 (Chapter 7) derives the construction, DMRG [[51]](#ref-51) and TEBD [[52]](#ref-52) in full (review: [[53]](#ref-53)); this section shows the ingredients and checks each against the state vector. The
+# [Notebook 18, matrix product states](../ch07_tensor_networks/18_mps_tebd.ipynb) derives the construction, DMRG [[51]](#ref-51) and TEBD [[52]](#ref-52) in full (review: [[53]](#ref-53)); this section shows the ingredients and checks each against the state vector. The
 # construction by successive singular value decompositions produces tensors with one of the two canonical properties
 #
 # $$ \sum_s A_j^{s\dagger}A_j^{s}=\mathbb{1}\quad\text{(left-canonical)}, \qquad \sum_s B_j^{s}B_j^{s\dagger}=\mathbb{1}\quad\text{(right-canonical)} . \tag{95} $$
@@ -2318,7 +2317,7 @@ check("product_mps('0+1-0+1-') = product_state", maxdiff(mps_to_state(product_mp
 #
 # The same idea with a two-site centre gives bond energies (`mps_expect_bonds`), the stored Schmidt values give the entropies of all cuts (`mps_entropies`), and transfer matrices
 # $E\to\sum_sB_\phi^{s\dagger}E\,B_\psi^s$ give overlaps and correlators (`mps_overlap` as a `lax.scan` over sites, `mps_correlator`). The identification of the left environment with
-# $\mathrm{diag}(\lambda_j^2)$ is exact only when `lam` is consistent with `B`. `mps_rdm2`, derived leg by leg in [notebook 48](../lecture_notes_notebooks/48_quantifying_entanglement.ipynb), avoids this assumption by building the left environment with a transfer-matrix
+# $\mathrm{diag}(\lambda_j^2)$ is exact only when `lam` is consistent with `B`. `mps_rdm2`, derived leg by leg in [notebook 48, quantifying entanglement](../lecture_notes_notebooks/48_quantifying_entanglement.ipynb), avoids this assumption by building the left environment with a transfer-matrix
 # sweep from the left boundary.
 
 # %%
@@ -2634,56 +2633,56 @@ print(f"\nALL {len(CHECKS)} CHECKS PASSED; {n_mut} of them also rejected a delib
 #
 # | Function(s) | What it computes | Eq. | Check in this notebook | Derived in |
 # |---|---|---|---|---|
-# | `X`, `Y`, `Z`, `H`, `S`, `T`, `SM`, `SP`, `CNOT`, `CZ`, `SWAP`, `XX` ... | Pauli, Clifford, ladder and two-qubit matrices, first qubit = left factor | (5)–(10) | Pauli algebra, projector and Pauli-string forms | 09 |
-# | `rx`, `ry`, `rz`, `rpp`, `rxx`, `ryy`, `rzz` | $e^{-i\theta P/2}$ in closed form | (11)–(14) | `scipy.linalg.expm`, `jax.grad` | 09 |
-# | `controlled` | $C(U)$ with the control on the first qubit | (15) | projector form | 09 |
-# | `apply_gate` | $k$-qubit operator on any axes, one einsum | (16)–(20) | Pauli-string embedding, reversed pairs | 05 |
-# | `zero_state`, `basis_state`, `product_state` | basis and product states | (5), (21) | Kronecker products of vectors | 06, 02 |
-# | `ghz_state`, `ghz_circuit`, `dicke_state`, `w_state` | GHZ, Dicke, W states | (23)–(25) | eigenvalue, permutation symmetry | 06 |
-# | `cluster_state`, `bell_state` | cluster and Bell states | (26)–(27) | stabilisers, explicit vectors | 06 |
-# | `haar_state`, `normalize` | Haar-random state | (28) | moments of $\vert\psi_s\vert^2$ | 06, 10 |
-# | `to_dm`, `dm_matrix` | density tensor and its matrix view | (29) | outer product | 07 |
-# | `apply_gate_dm`, `apply_gates_dm` | $U\rho U^\dagger$ | (30) | $E\rho E^\dagger$ | 07 |
-# | `apply_kraus_dm` | Kraus channel, one einsum | (31) | random two-qubit channel | 07 |
-# | `rdm`, `rdm_dm` | partial trace | (32)–(33) | bit-string partial trace | 06 |
-# | `expect_local`, `expect_local_dm` | $\mathrm{Tr}(O\rho_A)$ | (34) | $v^\dagger Ov$, $\mathrm{Tr}(\rho O)$ | 06, 07 |
-# | `apply_pauli_string`, `expect_pauli_string(_dm)` | Pauli strings and their expectation values | (35) | Kronecker products | 06, 07 |
-# | `all_local_expectations` | Bloch vectors of all qubits | (36) | dense expectation values | 06 |
-# | `purity`, `von_neumann_entropy` | $\mathrm{Tr}\rho^2$, $S(\rho)$ | (37)–(38) | $\sum\vert\rho_{ij}\vert^2$, `eigvalsh` | 06 |
-# | `schmidt_values`, `entanglement_entropy`, `renyi2_entropy` | Schmidt values, $S_A$, $S_2$ | (39)–(40) | spectrum of the partial trace | 06 |
-# | `fidelity_pure`, `fidelity_dm`, `trace_distance`, `_sqrtm_psd` | fidelities, trace distance, matrix square root | (41)–(43) | `scipy.linalg.sqrtm`, $D=\sqrt{1-F}$, nuclear norm | 06 |
-# | `as_dm_tensor`, `partial_transpose`, `negativity` | partial transpose, negativity | (44)–(47) | bit-string transpose, random state, Werner states | 07, 25, 48 |
-# | `measure_qubit`, `reset_qubit` | Born rule and collapse in any Pauli basis | (48)–(49) | frequencies, dense post-state | 08 |
-# | `sample_bitstrings` | joint sampling of all qubits | (50) | $z$-scores of the frequencies | 08 |
-# | `kraus_depolarizing`, `kraus_dephasing`, `kraus_bit_flip`, `kraus_phase_flip`, `kraus_amplitude_damping` | standard noise channels | (51)–(54) | completeness, Bloch-vector maps | 07 |
-# | `kraus_from_jump` | Kraus pair of a jump operator | (55)–(56) | completeness, $O(dt^2)$ remainder | 16, 17 |
-# | `apply_kraus_mcwf` | stochastic branch of a channel | (57) | trajectory average | 07, 17 |
-# | `heisenberg_terms`, `apply_hamiltonian`, `energy`, `dense_hamiltonian` | Hamiltonian as local terms | (58)–(60) | Kronecker sum on a ring | 05 |
-# | `_expm_herm`, `expm_herm` | $e^{-i\tau h}$ of a small matrix | (61) | `scipy.linalg.expm` | 05, 12 |
-# | `tebd_gates`, `apply_gates`, `tebd_evolve`, `exact_evolve` | Trotter–Suzuki of orders 1, 2, 4; dense reference | (62)–(64) | measured orders 1, 2, 4 | 05, 12 |
-# | `lanczos`, `lanczos_ground_state`, `spectral_bounds` | Krylov basis, ground state, spectral range | (65) | $V^\dagger HV=T$, `eigh` | 11 |
-# | `chebyshev_evolve` | Chebyshev propagator | (66)–(67) | `scipy.linalg.expm`, wrong bounds | 13 |
-# | `krylov_evolve` | Krylov propagator | (68) | `scipy.linalg.expm`, error vs $m$ | 14 |
-# | `lindblad_rhs` | GKSL right-hand side | (69)–(72) | Liouvillian superoperator | 16 |
-# | `lindblad_rk4_step`, `lindblad_trotter_step_dm`, `lindblad_trotter_step_mcwf` | Lindblad integrators | (73) | orders 4 and 1, trajectories | 16, 17 |
-# | `apply_collective`, `collective_dense` | collective spin operators | (74) | Kronecker sums | 29 |
-# | `qfi_pure`, `qfi_mixed` | quantum Fisher information | (75)–(78) | $4\,\mathrm{Var}(J)$, fidelity curvature | 29, 30 |
-# | `spin_moments`, `spin_squeezing` | mean spin, covariance, $\xi^2$ | (79)–(80) | dense moments, angle scan | 33 |
-# | `oat_evolve` | one-axis twisting | (81) | `scipy.linalg.expm` | 33 |
-# | `haar_unitary`, `brickwall` | Haar unitaries, random circuits | (82)–(84) | trace moments, Page value | 10 |
-# | `single_qubit_cliffords` | the 24 single-qubit Cliffords | — | Clifford property, group closure | 10 |
-# | `collect_pauli_shadows`, `shadow_estimate_pauli`, `shadow_snapshot_dm` | classical shadows | (85)–(87) | exact snapshot average, estimates | 24 |
-# | `_wht_all_axes`, `stabilizer_renyi_entropy(_bruteforce)` | stabilizer Rényi entropy | (88)–(89) | `scipy.linalg.hadamard`, brute force | 27 |
-# | `hea_num_params`, `hardware_efficient_ansatz` | hardware-efficient ansatz | (90) | NumPy circuit | 40, 42 |
-# | `parameter_shift_grad` | exact gradient from shifted circuits | (91) | finite differences, `jax.grad` | 40 |
-# | `spsa_grad`, `adam_init`, `adam_update` | SPSA gradient, Adam optimiser | (92)–(93) | unbiasedness, NumPy Adam | 41 |
-# | `state_to_mps_left`, `mps_list_to_state`, `state_to_mps`, `mps_to_state`, `product_mps` | MPS conversion | (94)–(96) | round trip, canonical forms, Schmidt values | 18 |
-# | `mps_expect_sites`, `mps_expect_bonds`, `mps_entropies`, `mps_overlap`, `mps_correlator` | MPS observables | (97) | state-vector values, per bond | 18 |
-# | `mps_rdm2` | two-site reduced matrix by a transfer-matrix sweep | (97) | bit-string partial trace | 48 |
-# | `xxz_mpo`, `mpo_to_dense`, `left_env_update`, `right_env_update`, `mpo_expectation`, `boundary_environments` | MPO and environments | (98)–(99) | Kronecker sum, energy | 18 |
-# | `heff_apply`, `lanczos_lowest`, `split_two_site`, `make_local_step`, `dmrg` | DMRG ingredients | (100) | $P^\dagger HP$, `eigh`, SVD | 18 |
-# | `mps_recanonicalise` | canonical form and true Schmidt values | (101) | gauge transformation, DMRG after one sweep | 18 |
-# | `two_site_update`, `bond_hamiltonians`, `bond_gates`, `tebd_layer`, `mps_tebd_evolve`, `LAM_CUT` | TEBD on an MPS | (102) | dense gates, dense Strang product | 18 |
+# | `X`, `Y`, `Z`, `H`, `S`, `T`, `SM`, `SP`, `CNOT`, `CZ`, `SWAP`, `XX` ... | Pauli, Clifford, ladder and two-qubit matrices, first qubit = left factor | (5)–(10) | Pauli algebra, projector and Pauli-string forms | [09](../ch04_digital_quantum_circuits/09_quantum_gates_and_circuits.ipynb) |
+# | `rx`, `ry`, `rz`, `rpp`, `rxx`, `ryy`, `rzz` | $e^{-i\theta P/2}$ in closed form | (11)–(14) | `scipy.linalg.expm`, `jax.grad` | [09](../ch04_digital_quantum_circuits/09_quantum_gates_and_circuits.ipynb) |
+# | `controlled` | $C(U)$ with the control on the first qubit | (15) | projector form | [09](../ch04_digital_quantum_circuits/09_quantum_gates_and_circuits.ipynb) |
+# | `apply_gate` | $k$-qubit operator on any axes, one einsum | (16)–(20) | Pauli-string embedding, reversed pairs | [05](05_matrix_free_operators.ipynb) |
+# | `zero_state`, `basis_state`, `product_state` | basis and product states | (5), (21) | Kronecker products of vectors | [06](06_states_observables_entanglement.ipynb), [02](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb) |
+# | `ghz_state`, `ghz_circuit`, `dicke_state`, `w_state` | GHZ, Dicke, W states | (23)–(25) | eigenvalue, permutation symmetry | [06](06_states_observables_entanglement.ipynb) |
+# | `cluster_state`, `bell_state` | cluster and Bell states | (26)–(27) | stabilisers, explicit vectors | [06](06_states_observables_entanglement.ipynb) |
+# | `haar_state`, `normalize` | Haar-random state | (28) | moments of $\vert\psi_s\vert^2$ | [06](06_states_observables_entanglement.ipynb), [10](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb) |
+# | `to_dm`, `dm_matrix` | density tensor and its matrix view | (29) | outer product | [07](07_density_matrices_and_quantum_channels.ipynb) |
+# | `apply_gate_dm`, `apply_gates_dm` | $U\rho U^\dagger$ | (30) | $E\rho E^\dagger$ | [07](07_density_matrices_and_quantum_channels.ipynb) |
+# | `apply_kraus_dm` | Kraus channel, one einsum | (31) | random two-qubit channel | [07](07_density_matrices_and_quantum_channels.ipynb) |
+# | `rdm`, `rdm_dm` | partial trace | (32)–(33) | bit-string partial trace | [06](06_states_observables_entanglement.ipynb) |
+# | `expect_local`, `expect_local_dm` | $\mathrm{Tr}(O\rho_A)$ | (34) | $v^\dagger Ov$, $\mathrm{Tr}(\rho O)$ | [06](06_states_observables_entanglement.ipynb), [07](07_density_matrices_and_quantum_channels.ipynb) |
+# | `apply_pauli_string`, `expect_pauli_string(_dm)` | Pauli strings and their expectation values | (35) | Kronecker products | [06](06_states_observables_entanglement.ipynb), [07](07_density_matrices_and_quantum_channels.ipynb) |
+# | `all_local_expectations` | Bloch vectors of all qubits | (36) | dense expectation values | [06](06_states_observables_entanglement.ipynb) |
+# | `purity`, `von_neumann_entropy` | $\mathrm{Tr}\rho^2$, $S(\rho)$ | (37)–(38) | $\sum\vert\rho_{ij}\vert^2$, `eigvalsh` | [06](06_states_observables_entanglement.ipynb) |
+# | `schmidt_values`, `entanglement_entropy`, `renyi2_entropy` | Schmidt values, $S_A$, $S_2$ | (39)–(40) | spectrum of the partial trace | [06](06_states_observables_entanglement.ipynb) |
+# | `fidelity_pure`, `fidelity_dm`, `trace_distance`, `_sqrtm_psd` | fidelities, trace distance, matrix square root | (41)–(43) | `scipy.linalg.sqrtm`, $D=\sqrt{1-F}$, nuclear norm | [06](06_states_observables_entanglement.ipynb) |
+# | `as_dm_tensor`, `partial_transpose`, `negativity` | partial transpose, negativity | (44)–(47) | bit-string transpose, random state, Werner states | [07](07_density_matrices_and_quantum_channels.ipynb), [25](../ch09_entanglement_and_complexity/25_entanglement_negativity.ipynb), [48](../lecture_notes_notebooks/48_quantifying_entanglement.ipynb) |
+# | `measure_qubit`, `reset_qubit` | Born rule and collapse in any Pauli basis | (48)–(49) | frequencies, dense post-state | [08](08_measurements.ipynb) |
+# | `sample_bitstrings` | joint sampling of all qubits | (50) | $z$-scores of the frequencies | [08](08_measurements.ipynb) |
+# | `kraus_depolarizing`, `kraus_dephasing`, `kraus_bit_flip`, `kraus_phase_flip`, `kraus_amplitude_damping` | standard noise channels | (51)–(54) | completeness, Bloch-vector maps | [07](07_density_matrices_and_quantum_channels.ipynb) |
+# | `kraus_from_jump` | Kraus pair of a jump operator | (55)–(56) | completeness, $O(dt^2)$ remainder | [16](../ch06_open_quantum_systems/16_lindblad_master_equation.ipynb), [17](../ch06_open_quantum_systems/17_monte_carlo_wave_function.ipynb) |
+# | `apply_kraus_mcwf` | stochastic branch of a channel | (57) | trajectory average | [07](07_density_matrices_and_quantum_channels.ipynb), [17](../ch06_open_quantum_systems/17_monte_carlo_wave_function.ipynb) |
+# | `heisenberg_terms`, `apply_hamiltonian`, `energy`, `dense_hamiltonian` | Hamiltonian as local terms | (58)–(60) | Kronecker sum on a ring | [05](05_matrix_free_operators.ipynb) |
+# | `_expm_herm`, `expm_herm` | $e^{-i\tau h}$ of a small matrix | (61) | `scipy.linalg.expm` | [05](05_matrix_free_operators.ipynb), [12](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb) |
+# | `tebd_gates`, `apply_gates`, `tebd_evolve`, `exact_evolve` | Trotter–Suzuki of orders 1, 2, 4; dense reference | (62)–(64) | measured orders 1, 2, 4 | [05](05_matrix_free_operators.ipynb), [12](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb) |
+# | `lanczos`, `lanczos_ground_state`, `spectral_bounds` | Krylov basis, ground state, spectral range | (65) | $V^\dagger HV=T$, `eigh` | [11](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb) |
+# | `chebyshev_evolve` | Chebyshev propagator | (66)–(67) | `scipy.linalg.expm`, wrong bounds | [13](../ch05_ground_states_and_unitary_dynamics/13_chebyshev_propagation.ipynb) |
+# | `krylov_evolve` | Krylov propagator | (68) | `scipy.linalg.expm`, error vs $m$ | [14](../ch05_ground_states_and_unitary_dynamics/14_krylov_and_integrator_comparison.ipynb) |
+# | `lindblad_rhs` | GKSL right-hand side | (69)–(72) | Liouvillian superoperator | [16](../ch06_open_quantum_systems/16_lindblad_master_equation.ipynb) |
+# | `lindblad_rk4_step`, `lindblad_trotter_step_dm`, `lindblad_trotter_step_mcwf` | Lindblad integrators | (73) | orders 4 and 1, trajectories | [16](../ch06_open_quantum_systems/16_lindblad_master_equation.ipynb), [17](../ch06_open_quantum_systems/17_monte_carlo_wave_function.ipynb) |
+# | `apply_collective`, `collective_dense` | collective spin operators | (74) | Kronecker sums | [29](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb) |
+# | `qfi_pure`, `qfi_mixed` | quantum Fisher information | (75)–(78) | $4\,\mathrm{Var}(J)$, fidelity curvature | [29](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb), [30](../ch10_quantum_metrology_protocols/30_qfi_from_the_sld_prepare_encode_estimate.ipynb) |
+# | `spin_moments`, `spin_squeezing` | mean spin, covariance, $\xi^2$ | (79)–(80) | dense moments, angle scan | [33](../ch10_quantum_metrology_protocols/33_spin_squeezing_one_axis_twisting.ipynb) |
+# | `oat_evolve` | one-axis twisting | (81) | `scipy.linalg.expm` | [33](../ch10_quantum_metrology_protocols/33_spin_squeezing_one_axis_twisting.ipynb) |
+# | `haar_unitary`, `brickwall` | Haar unitaries, random circuits | (82)–(84) | trace moments, Page value | [10](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb) |
+# | `single_qubit_cliffords` | the 24 single-qubit Cliffords | — | Clifford property, group closure | [10](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb) |
+# | `collect_pauli_shadows`, `shadow_estimate_pauli`, `shadow_snapshot_dm` | classical shadows | (85)–(87) | exact snapshot average, estimates | [24](../ch08_quantum_information_protocols/24_classical_shadows.ipynb) |
+# | `_wht_all_axes`, `stabilizer_renyi_entropy(_bruteforce)` | stabilizer Rényi entropy | (88)–(89) | `scipy.linalg.hadamard`, brute force | [27](../ch09_entanglement_and_complexity/27_stabilizer_renyi_entropy.ipynb) |
+# | `hea_num_params`, `hardware_efficient_ansatz` | hardware-efficient ansatz | (90) | NumPy circuit | [40](../ch13_quantum_machine_learning/40_parametrized_gates_and_gradients.ipynb), [42](../ch13_quantum_machine_learning/42_variational_quantum_eigensolver.ipynb) |
+# | `parameter_shift_grad` | exact gradient from shifted circuits | (91) | finite differences, `jax.grad` | [40](../ch13_quantum_machine_learning/40_parametrized_gates_and_gradients.ipynb) |
+# | `spsa_grad`, `adam_init`, `adam_update` | SPSA gradient, Adam optimiser | (92)–(93) | unbiasedness, NumPy Adam | [41](../ch13_quantum_machine_learning/41_optimizers.ipynb) |
+# | `state_to_mps_left`, `mps_list_to_state`, `state_to_mps`, `mps_to_state`, `product_mps` | MPS conversion | (94)–(96) | round trip, canonical forms, Schmidt values | [18](../ch07_tensor_networks/18_mps_tebd.ipynb) |
+# | `mps_expect_sites`, `mps_expect_bonds`, `mps_entropies`, `mps_overlap`, `mps_correlator` | MPS observables | (97) | state-vector values, per bond | [18](../ch07_tensor_networks/18_mps_tebd.ipynb) |
+# | `mps_rdm2` | two-site reduced matrix by a transfer-matrix sweep | (97) | bit-string partial trace | [48](../lecture_notes_notebooks/48_quantifying_entanglement.ipynb) |
+# | `xxz_mpo`, `mpo_to_dense`, `left_env_update`, `right_env_update`, `mpo_expectation`, `boundary_environments` | MPO and environments | (98)–(99) | Kronecker sum, energy | [18](../ch07_tensor_networks/18_mps_tebd.ipynb) |
+# | `heff_apply`, `lanczos_lowest`, `split_two_site`, `make_local_step`, `dmrg` | DMRG ingredients | (100) | $P^\dagger HP$, `eigh`, SVD | [18](../ch07_tensor_networks/18_mps_tebd.ipynb) |
+# | `mps_recanonicalise` | canonical form and true Schmidt values | (101) | gauge transformation, DMRG after one sweep | [18](../ch07_tensor_networks/18_mps_tebd.ipynb) |
+# | `two_site_update`, `bond_hamiltonians`, `bond_gates`, `tebd_layer`, `mps_tebd_evolve`, `LAM_CUT` | TEBD on an MPS | (102) | dense gates, dense Strang product | [18](../ch07_tensor_networks/18_mps_tebd.ipynb) |
 #
 # ## 20. Key takeaways
 #
@@ -2725,7 +2724,7 @@ print(f"\nALL {len(CHECKS)} CHECKS PASSED; {n_mut} of them also rejected a delib
 #    `best_time`, and explain the result in terms of the cost of Eq. (20).
 # 8. ★★★ **Compressibility of ground states and random states (physics).** For $N=12$ compute the ground state of the Heisenberg chain with `lanczos_ground_state` and a Haar state with
 #    `haar_state`. Compress both with `state_to_mps(psi, chi)` for $\chi=1,2,4,\dots,64$ and plot the infidelity $1-\vert\langle\psi\vert\psi_\chi\rangle\vert^2$ (with `mps_to_state`) against $\chi$ on a logarithmic
-#    scale. Relate the two curves to the half-chain entanglement entropies of the two states (area law and volume law, notebook 06).
+#    scale. Relate the two curves to the half-chain entanglement entropies of the two states (area law and volume law, [notebook 06, states, observables and entanglement](06_states_observables_entanglement.ipynb)).
 #
 # ## 22. References
 #

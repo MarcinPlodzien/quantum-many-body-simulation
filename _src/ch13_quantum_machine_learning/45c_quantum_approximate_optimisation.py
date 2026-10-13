@@ -20,10 +20,9 @@
 # output is a quantum state, and measuring it gives bit strings; the algorithm is useful if good bit strings come out
 # with high probability.
 #
-# QAOA is the variational eigensolver of
-# [notebook 42](../ch13_quantum_machine_learning/42_variational_quantum_eigensolver.ipynb) with three changes: the
+# QAOA is a variational eigensolver with three changes: the
 # Hamiltonian is classical (diagonal), the ansatz is fixed by the problem, and the number of parameters, $2p$, does
-# not grow with $N$. These changes make some things exact that were numerical in notebook 42: at $p=1$ the
+# not grow with $N$. These changes make some things exact that are numerical in a general variational eigensolver: at $p=1$ the
 # expectation value of any unweighted MaxCut instance has a closed form, and the cost layer is a phase on every bit
 # string, which a state-vector simulation applies by one element-wise multiplication.
 #
@@ -113,6 +112,11 @@
 #   graph to others, **Section 11** samples bit strings and compares with classical baselines, and **Section 12**
 #   measures the cost of the simulation.
 #
+# The notebook assumes the parameter-shift rule and reverse-mode differentiation of circuits
+# ([notebook 40, parametrised gates and gradients](40_parametrized_gates_and_gradients.ipynb)), Adam in a `lax.scan`
+# training loop ([notebook 41, optimisers](41_optimizers.ipynb)) and the variational principle with random restarts
+# ([notebook 42, the variational quantum eigensolver](42_variational_quantum_eigensolver.ipynb)).
+#
 # ### What you will learn
 #
 # *Physics*
@@ -132,19 +136,6 @@
 # * one compiled training loop (`lax.scan`) vmapped over random initial angles;
 # * wrong controls: a formula that must fail on a graph with triangles, a parameter-shift rule that must fail on a layer,
 #   an annealing schedule with the wrong sign.
-#
-# ### Prerequisites
-#
-# * [05 — matrix-free operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb) and
-#   [09 — quantum gates and circuits](../ch04_digital_quantum_circuits/09_quantum_gates_and_circuits.ipynb): states as
-#   rank-$N$ tensors, `apply_gate`, rotations $R_x$ and $R_{ZZ}$;
-# * [12 — Trotter–Suzuki](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb): splitting
-#   $e^{-i(A+B)t}$ into products, used in Section 9;
-# * [40 — parametrised gates and gradients](../ch13_quantum_machine_learning/40_parametrized_gates_and_gradients.ipynb):
-#   the parameter-shift rule and reverse-mode automatic differentiation;
-# * [41 — optimisers](../ch13_quantum_machine_learning/41_optimizers.ipynb): Adam and training loops in `lax.scan`;
-# * [42 — the variational quantum eigensolver](../ch13_quantum_machine_learning/42_variational_quantum_eigensolver.ipynb):
-#   the variational principle and random restarts.
 
 # %% [markdown]
 # ## 2. Engine recap and notebook helpers
@@ -1032,14 +1023,14 @@ for name in ["ring", "cube", "Petersen", "partition"]:
 # ### 7.1 Automatic differentiation
 #
 # In simulation, `jax.grad(qaoa_energy)` differentiates through the `lax.scan` of Section 4 in reverse mode, at the cost
-# of a few energy evaluations, whatever $p$ is ([notebook 40](../ch13_quantum_machine_learning/40_parametrized_gates_and_gradients.ipynb),
+# of a few energy evaluations, whatever $p$ is ([notebook 40, parametrised gates and gradients](40_parametrized_gates_and_gradients.ipynb),
 # Section 10). On a quantum computer, gradients must be measured, and the standard tool is the parameter-shift rule
 # [[12]](#ref-12), [[13]](#ref-13).
 #
 # ### 7.2 The parameter-shift rule for a parameter that feeds many gates
 #
 # For a single gate $e^{-i\theta P/2}$ with $P^2=\mathbb 1$ the energy is a sinusoid $a+b\cos\theta+c\sin\theta$ in
-# $\theta$, and $\partial_\theta E=[E(\theta+\pi/2)-E(\theta-\pi/2)]/2$ exactly (notebook 40, Section 8). A QAOA angle
+# $\theta$, and $\partial_\theta E=[E(\theta+\pi/2)-E(\theta-\pi/2)]/2$ exactly ([notebook 40, parametrised gates and gradients](40_parametrized_gates_and_gradients.ipynb), Section 8). A QAOA angle
 # is not of this kind. $\beta_l$ multiplies $B=\sum_qX_q$, whose eigenvalues are $-N,-N+2,\dots,N$, and $\gamma_l$
 # multiplies $H_C$, whose eigenvalues span $[E_{\min},E_{\max}]$. Writing $U_B(\beta)=\sum_\mu e^{-i\beta\mu}\Pi_\mu$ with
 # spectral projectors $\Pi_\mu$, the energy as a function of $\beta_l$ alone is, with coefficients $a_{\mu\nu}$ that do
@@ -1170,7 +1161,7 @@ assert abs(float(g_last - g_ad[-1])) < TOL * 100
 #
 # The landscape at $p>1$ has $2p$ dimensions and, as the partition instance already showed at $p=1$, may have many local
 # minima. We compare two ways of starting Adam ([[15]](#ref-15);
-# [notebook 41](../ch13_quantum_machine_learning/41_optimizers.ipynb)):
+# [notebook 41, optimisers](41_optimizers.ipynb)):
 #
 # * **random restarts**: $R$ independent starts with angles drawn uniformly, all optimised in parallel (`vmap` over the
 #   compiled `lax.scan` loop), keeping the best;
@@ -1399,7 +1390,7 @@ for name in ["cube", "Petersen"]:
 # with $1/\Delta_{\min}^2$, where $\Delta_{\min}$ is the smallest gap above the ground level along the path (in the
 # spin-flip-symmetric sector, which the evolution never leaves), the state follows the instantaneous ground state. Split the
 # total time $T$ into $p$ steps of length $\Delta t=T/p$ and evaluate $s$ at the midpoint of each step,
-# $s_l=(l-\tfrac12)/p$. A first-order step of the Trotter product formula [[18]](#ref-18) ([notebook 12](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb)) is
+# $s_l=(l-\tfrac12)/p$. A first-order step of the Trotter product formula [[18]](#ref-18) ([notebook 12, Trotter–Suzuki decomposition](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb)) is
 #
 # $$e^{-i\Delta t\,H(s_l)}\approx e^{-i\Delta t(1-s_l)H_{\rm init}}\,e^{-i\Delta t\,s_lH_C}=e^{+i(1-s_l)\Delta t\,B}\,e^{-is_l\Delta t\,H_C}=U_B(\beta_l)\,U_C(\gamma_l),$$
 #

@@ -5,12 +5,12 @@
 # %% [markdown]
 # ## 1. Introduction
 #
-# In the two previous notebooks we did many-body quantum mechanics *the textbook way*. A chain of $N$ spins-1/2 lives in a
-# Hilbert space of dimension $2^N$; an operator that acts on a single spin $q$ was written as a Kronecker product
+# Many-body quantum mechanics *the textbook way* goes as follows. A chain of $N$ spins-1/2 lives in a
+# Hilbert space of dimension $2^N$; an operator that acts on a single spin $q$ is written as a Kronecker product
 #
 # $$ M_q \;=\; \underbrace{\mathbb 1\otimes\dots\otimes\mathbb 1}_{q}\otimes M\otimes\underbrace{\mathbb 1\otimes\dots\otimes\mathbb 1}_{N-q-1}, $$
 #
-# a matrix with $2^N\times 2^N = 4^N$ entries, and the Hamiltonian and the Trotter gates were sums and products of such
+# a matrix with $2^N\times 2^N = 4^N$ entries, and the Hamiltonian and the Trotter gates are sums and products of such
 # matrices. That approach is perfectly correct, and it collapses at $N\approx 12$–$14$: for $N=14$ a single dense operator
 # in double precision occupies $16\cdot 4^{14}$ bytes $\approx 4.3$ GB, and for $N=20$ it would need $17.6$ **tera**bytes.
 #
@@ -35,7 +35,7 @@
 #
 # 1. **State vector → tensor** (§2): `reshape`, "axis $q$ = spin $q$", the flat-index formula.
 # 2. **One-site operators** (§3): derive $\psi'[..a..]=\sum_b M[a,b]\,\psi[..b..]$, write the einsum strings by hand for $N=3$
-#    and check every one against the Kronecker matrix of notebook 03.
+#    and check every one against the dense Kronecker matrix.
 # 3. **Two-site operators** (§4): reshape $4\times4\to(2,2,2,2)$, which index is which, neighbours, distant sites, reversed order.
 # 4. **The general `apply_gate`** (§5): building the einsum string programmatically, line by line; the production version.
 # 5. **Alternative implementations and a benchmark** (§6): einsum vs reshape+matmul vs tensordot vs dense, time and memory vs $N$.
@@ -43,6 +43,10 @@
 # 7. **The first matrix-free time evolution** (§8): Trotter gates $e^{-ih\,dt}$ applied by einsum (this *is* the TEBD algorithm on a
 #    state vector), `jit` + `lax.scan`, machine-precision agreement with the dense Trotter code, then a quench of **$N=20$ spins**.
 # 8. **Cost model** $O(2^k 2^N)$ confronted with measurements (§9).
+#
+# The notebook assumes `jit`, `vmap`, `lax.scan` and timing from [notebook 01, JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb), einsum, `reshape` and
+# C-ordering from [notebook 02, einsum](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb), the Kronecker-product operators and dense Hamiltonians of
+# [notebook 03, many-body spin systems](../ch02_spin_systems_textbook_way/03_quantum_many_body_spin_systems.ipynb) and the dense Trotterization of [notebook 04, time evolution the textbook way](../ch02_spin_systems_textbook_way/04_time_evolution_the_textbook_way.ipynb); the few dense helpers needed are re-defined below.
 #
 # ### What you will learn
 #
@@ -60,15 +64,6 @@
 # * validating every new primitive against an independent brute-force reference on small $N$;
 # * benchmarking: compile time vs run time, `block_until_ready`, best-of-several, scaling rather than absolute numbers;
 # * `jax.jit`, `jax.vmap` and `jax.lax.scan` at work in a real simulation.
-#
-# ### Prerequisites
-#
-# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, `lax.scan`, timing compiled code.
-# * [02 — einsum from scratch](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb): the three rules of einsum, `reshape` and C-ordering, building strings by program.
-# * [03 — Quantum many-body spin systems](../ch02_spin_systems_textbook_way/03_quantum_many_body_spin_systems.ipynb): Kronecker products, `site_operator`, dense Hamiltonians, the transverse-field Ising model.
-# * [04 — Time evolution the textbook way](../ch02_spin_systems_textbook_way/04_time_evolution_the_textbook_way.ipynb): Trotterization with dense matrices, the TFIM quench.
-#
-# The few dense helpers we need from notebooks 03–04 are re-defined below.
 
 # %% [markdown]
 # ## 2. A state vector is a rank-$N$ tensor
@@ -80,7 +75,7 @@
 # | $N$ | number of spins-1/2 (qubits), labelled $q = 0,1,\dots,N-1$ from left to right |
 # | $s_q\in\{0,1\}$ | basis label of spin $q$: $\lvert0\rangle=(1,0)^T$ is "up" ($Z=+1$), $\lvert1\rangle=(0,1)^T$ is "down" ($Z=-1$) |
 # | $\lvert s_0s_1\dots s_{N-1}\rangle$ | product basis state $\lvert s_0\rangle\otimes\lvert s_1\rangle\otimes\dots\otimes\lvert s_{N-1}\rangle$ |
-# | $\psi_i$ | component $i=0,\dots,2^N-1$ of the state **vector** (notebook 03) |
+# | $\psi_i$ | component $i=0,\dots,2^N-1$ of the state **vector** |
 # | $\psi[s_0,\dots,s_{N-1}]$ | the same number, stored in a **tensor** of shape $(2,2,\dots,2)$ |
 # | $X,Y,Z$ | Pauli matrices; Hamiltonians are written with Pauli matrices (not spin-1/2 operators $S=\sigma/2$) |
 #
@@ -88,7 +83,7 @@
 #
 # $$ |\psi\rangle=\sum_{s_0=0}^{1}\cdots\sum_{s_{N-1}=0}^{1}\psi[s_0,s_1,\dots,s_{N-1}]\;|s_0s_1\dots s_{N-1}\rangle . $$
 #
-# The amplitudes carry $N$ binary indices — they *are* an array with $N$ axes. In notebook 03 we nevertheless stored them in a
+# The amplitudes carry $N$ binary indices — they *are* an array with $N$ axes. The textbook way nevertheless stores them in a
 # one-dimensional vector, numbering the basis states by reading the bit string as a binary number (the bit representation of
 # spin basis states standard in exact diagonalisation, see [[2]](#ref-2), Sec. 4.1.1, which stores spin $i$ in bit $i$, i.e. the reverse order):
 #
@@ -98,14 +93,14 @@
 # *left* factor varies slowest.
 #
 # Now the key observation. Equation (1) is *exactly* the rule by which NumPy/JAX lay out a multi-dimensional array in memory
-# ("C order" or "row-major": the **last index runs fastest**, see notebook 02). Therefore
+# ("C order" or "row-major": the **last index runs fastest**). Therefore
 #
 # $$ \texttt{psi\_tensor = psi\_vector.reshape((2,)*N)} \qquad\Longleftrightarrow\qquad \psi[s_0,\dots,s_{N-1}] = \psi_{i(s_0,\dots,s_{N-1})} $$
 #
 # without moving a single number in memory. `reshape` only changes how we *address* the $2^N$ amplitudes: with one big index
 # $i$, or with $N$ small ones. **Axis $q$ of the tensor is spin $q$.**
 #
-# We first re-create the small dense toolbox of notebook 03, which will serve as the independent reference for everything we build.
+# We first re-create the small dense toolbox of Kronecker products, which will serve as the independent reference for everything we build.
 
 # %%
 # ==============================================================================
@@ -250,7 +245,7 @@ axR.set_title("state TENSOR: three indices $s_0,s_1,s_2\\in\\{0,1\\}$  (same mem
 plt.tight_layout(); plt.show()
 
 # %% [markdown]
-# **Reading the figure.** Left: the vector of notebook 03, one box per flat index. Right: the same eight numbers at the corners
+# **Reading the figure.** Left: the state vector, one box per flat index. Right: the same eight numbers at the corners
 # of a cube. Blue corners have $s_0=0$ (first half of the vector), red corners $s_0=1$ (second half): axis 0 has the largest
 # stride. Neighbouring corners along axis 2 are neighbours in the vector (stride 1).
 #
@@ -264,7 +259,7 @@ plt.tight_layout(); plt.show()
 #
 # A product state makes the tensor structure explicit. For $|\psi\rangle=|u\rangle\otimes|v\rangle\otimes|w\rangle$ the amplitudes
 # are $\psi[s_0,s_1,s_2]=u[s_0]\,v[s_1]\,w[s_2]$, an outer product — in einsum language `"a,b,c->abc"` (no index is summed). Let us
-# confirm that this equals the Kronecker product of notebook 03 once reshaped.
+# confirm that this equals the Kronecker product once reshaped.
 
 # %%
 # ==============================================================================
@@ -305,7 +300,7 @@ assert err < TOL
 #
 # ### 3.2 Hand-written einsum strings for $N=3$
 #
-# Equation (2) is a sum over one repeated index, which is precisely what `einsum` executes (notebook 02). Label the axes of
+# Equation (2) is a sum over one repeated index, which is precisely what `einsum` executes. Label the axes of
 # $\psi$ with the letters `a b c`. We adopt the mnemonic **"the new index is the capital letter of the old one"**:
 #
 # | target | formula | einsum string |
@@ -316,7 +311,7 @@ assert err < TOL
 #
 # How to read `"Bb,abc->aBc"`: the operator has indices `B` (row = output) and `b` (column = input); the letter `b` appears in
 # both operands and not in the result, so it is summed; `a` and `c` pass through untouched; the result has `B` sitting
-# **where `b` used to be** — on axis 1. We now verify all three strings against the dense operator of notebook 03, using a
+# **where `b` used to be** — on axis 1. We now verify all three strings against the dense Kronecker operator, using a
 # random complex matrix $M$ (not Hermitian, not unitary — Eq. (2) does not care) and a random state.
 
 # %%
@@ -482,7 +477,7 @@ print("CNOT[a1=0, :, b1=1, :]  (control flips)   =\n", np.asarray(C[0, :, 1, :].
 # ### 4.3 An independent dense reference for two-site operators
 #
 # To test the strings we need the dense $2^N\times2^N$ matrix of "$U_4$ acting on sites $(q_1,q_2)$" built **without** any einsum
-# on the state. For neighbours $(j,j+1)$ notebook 03 gave us `two_site_operator(h2, j, N)` $=\mathbb 1\otimes h_2\otimes\mathbb 1$, but that does not cover distant or
+# on the state. For neighbours $(j,j+1)$ the dense toolbox has `two_site_operator(h2, j, N)` $=\mathbb 1\otimes h_2\otimes\mathbb 1$, but that does not cover distant or
 # reversed pairs. For a product operator $M\otimes K$ this is `site_operator(M,q1) @ site_operator(K,q2)`. A general $U_4$ is not a
 # product, but it is a **sum** of products: the 16 matrices $\sigma^\alpha\otimes\sigma^\beta$ ($\sigma^0=\mathbb 1$, $\sigma^{1,2,3}=X,Y,Z$)
 # form an orthogonal basis of all $4\times4$ matrices with respect to the trace inner product,
@@ -491,7 +486,7 @@ print("CNOT[a1=0, :, b1=1, :]  (control flips)   =\n", np.asarray(C[0, :, 1, :].
 # $$ U_4=\sum_{\alpha,\beta=0}^{3}c_{\alpha\beta}\,\sigma^\alpha\otimes\sigma^\beta,\qquad c_{\alpha\beta}=\tfrac14\mathrm{Tr}\big[(\sigma^\alpha\otimes\sigma^\beta)\,U_4\big]
 # \quad\Longrightarrow\quad U_{(q_1,q_2)}=\sum_{\alpha\beta}c_{\alpha\beta}\;\sigma^\alpha_{q_1}\sigma^\beta_{q_2}. $$
 #
-# (Pauli matrices are Hermitian, so the dagger can be dropped.) This uses only `kron` chains — exactly the technology of notebook 03.
+# (Pauli matrices are Hermitian, so the dagger can be dropped.) This uses only `kron` chains.
 
 # %%
 # ==============================================================================
@@ -574,12 +569,12 @@ assert abs(out[1, 0, 1, 0] - 1.0) < TOL
 #
 # > **Physics insight.** A distant pair costs exactly as much as a neighbouring pair. Long-range interactions (dipolar
 # > $1/r^3$ couplings of Rydberg atoms, all-to-all couplings of trapped ions) are therefore no harder for a state-vector
-# > simulator than nearest-neighbour ones — in contrast to matrix-product-state methods ([notebook 18](../ch07_tensor_networks/18_mps_tebd.ipynb), Chapter 7), which rely on locality in space.
+# > simulator than nearest-neighbour ones — in contrast to matrix-product-state methods, which rely on locality in space.
 #
 # ## 5. The general `apply_gate`: building the string by program
 #
 # Writing strings by hand does not scale. Following the recipe of §4.2 we now *generate* them for any number of spins $n$ and any
-# tuple of targets (notebook 02 showed how einsum strings can be assembled with ordinary Python string operations). Four lines:
+# tuple of targets, assembling the einsum strings with ordinary Python string operations. Four lines:
 #
 # 1. `inp`: label the axes of $\psi$ with the first $n$ letters of the alphabet;
 # 2. `new`: take the next $k$ **unused** letters — one fresh (output) label per target;
@@ -723,14 +718,14 @@ assert err < TOL
 
 # %% [markdown]
 # > **JAX practice.** `jax.jit` traces a function once with abstract arrays and compiles the recorded operations with XLA
-# > ([notebook 01](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)). Anything that decides *which* operations are recorded — here the einsum string, hence
+# > ([notebook 01, JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)). Anything that decides *which* operations are recorded — here the einsum string, hence
 # > `qubits` — must be a concrete Python value at trace time. Either close over it (`lambda psi, U: apply_gate(psi, U, (4, 0))`) or
 # > declare it static (`static_argnums`). A different tuple of qubits triggers a new compilation; a different state or matrix does not.
 # > `jax.vmap` adds a batch axis to every einsum automatically: we will use it in §7 to build a dense matrix from its action, and
 # > later in the course for trajectories and parameter sweeps.
 #
 # > **Numerical practice.** The string needs one letter per axis plus one fresh letter per target, i.e. $n+k\le52$. With 52 letters the routine therefore handles states of up to $N=52-k$ spins, far beyond what fits in memory
-# > ($N\approx30$ on a large workstation). For density *tensors*, which have $2N$ axes (notebook 07), the same counting gives $2N+k\le52$, i.e. $N\le26-k/2$ — also far beyond reach.
+# > ($N\approx30$ on a large workstation). For density *tensors*, which have $2N$ axes, the same counting gives $2N+k\le52$, i.e. $N\le26-k/2$ — also far beyond reach.
 #
 # ## 6. Alternative implementations and a benchmark
 #
@@ -801,7 +796,7 @@ print("CHECKPOINT passed: four implementations, one result.")
 # %% [markdown]
 # ### 6.1 Benchmark protocol
 #
-# Timing JAX code requires some care (notebook 01):
+# Timing JAX code requires some care:
 #
 # * JAX dispatches work **asynchronously** — we must call `jax.block_until_ready` before stopping the clock;
 # * the **first call** of a jitted function includes tracing and XLA compilation; we report it separately ("first call") from the
@@ -963,7 +958,7 @@ print(f"N={n_big}: one-site einsum {bench['einsum (apply_gate), 1 site'][n_big][
 #
 # ### 7.1 The idea
 #
-# The Hamiltonians of notebook 03 are sums of one- and two-site operators. In Pauli convention the family we use is
+# Spin-chain Hamiltonians are sums of one- and two-site operators. In Pauli convention the family we use is
 #
 # $$ H=\sum_{\langle i,j\rangle}\big(J_{xx}X_iX_j+J_{yy}Y_iY_j+J_{zz}Z_iZ_j\big)+\sum_i\big(h_xX_i+h_yY_i+h_zZ_i\big), $$
 #
@@ -985,7 +980,7 @@ print(f"N={n_big}: one-site einsum {bench['einsum (apply_gate), 1 site'][n_big][
 #@engine-show: heisenberg_terms, apply_hamiltonian, energy, dense_hamiltonian
 
 # %% [markdown]
-# ### 7.2 Validation against the dense Hamiltonian of notebook 03
+# ### 7.2 Validation against the dense Hamiltonian
 #
 # The reference is built the textbook way, from `site_operator` Kronecker chains. We test a generic member of the family (all
 # couplings and fields different, so that no term can hide behind a symmetry) and the TFIM.
@@ -1052,7 +1047,7 @@ assert herm < TOL
 # 2. `jax.vmap` maps `apply_hamiltonian` over the batch axis — one batched einsum per term, no Python loop over $j$;
 # 3. row $j$ of the result is $(H e_j)$ flattened, i.e. *column* $j$ of $H$; hence the final transpose.
 #
-# This inverts the logic of notebook 03: there the matrix was primary and its action derived; now the **action is primary** and the matrix
+# This inverts the logic of the textbook way: there the matrix was primary and its action derived; now the **action is primary** and the matrix
 # is an optional by-product which we only build for small $N$, to diagonalise it or to validate something.
 
 # %%
@@ -1125,7 +1120,7 @@ for n in [6, 8, 10, 12, 14, 16, 18, 20]:
 #
 # ### 8.1 From the dense Trotter step to local gates
 #
-# Recall the scheme of [notebook 04](../ch02_spin_systems_textbook_way/04_time_evolution_the_textbook_way.ipynb) (§7.5–7.6 there):
+# The Trotter scheme derived in [notebook 04, time evolution the textbook way](../ch02_spin_systems_textbook_way/04_time_evolution_the_textbook_way.ipynb), Sections 7.5–7.6, is:
 #
 # 1. **Bond Hamiltonians.** $H=\sum_{j=0}^{N-2}h_{j,j+1}$ with $4\times4$ matrices that contain the coupling of the bond and a share of the fields of its two spins,
 #    $h_{j,j+1}=J_{xx}\,X\otimes X+J_{yy}\,Y\otimes Y+J_{zz}\,Z\otimes Z+w^L_j(h_1\otimes\mathbb 1)+w^R_j(\mathbb 1\otimes h_1)$, $h_1=h_xX+h_yY+h_zZ$; bulk spins give half of their field to each of their two bonds
@@ -1138,8 +1133,8 @@ for n in [6, 8, 10, 12, 14, 16, 18, 20]:
 #
 #    which gives a global error $O(dt^2)$ at a fixed final time. Systematic higher-order product formulas of this kind go back to [[8]](#ref-8).
 #
-# In notebook 04 every layer was assembled as a $2^N\times2^N$ Kronecker product of $4\times4$ exponentials and identities, and the step matrix was their product. But we already
-# proved there that $e^{-i(\mathbb 1\otimes h\otimes\mathbb 1)\tau}=\mathbb 1\otimes e^{-ih\tau}\otimes\mathbb 1$ — every term of the exponential series has this form. In the language of this notebook:
+# With dense matrices every layer is assembled as a $2^N\times2^N$ Kronecker product of $4\times4$ exponentials and identities, and the step matrix is their product. But
+# $e^{-i(\mathbb 1\otimes h\otimes\mathbb 1)\tau}=\mathbb 1\otimes e^{-ih\tau}\otimes\mathbb 1$ — every term of the exponential series has this form. In the language of this notebook:
 #
 # > **the exponential of a local term is a local gate** — a $4\times4$ unitary that `apply_gate` applies to axes $(j,j+1)$ in $O(4\cdot2^N)$ operations.
 #
@@ -1152,7 +1147,7 @@ for n in [6, 8, 10, 12, 14, 16, 18, 20]:
 # even, dt/2   [=====]     [=====]     [=====]     [=====]
 # ```
 #
-# Applying Eq. (4) in this way is known as **TEBD** (time-evolving block decimation) on a state vector; the name comes from its matrix-product-state version, introduced in [[11]](#ref-11), [[12]](#ref-12) (review: [[13]](#ref-13)), which we will meet in notebook 18 (Chapter 7).
+# Applying Eq. (4) in this way is known as **TEBD** (time-evolving block decimation) on a state vector; the name comes from its matrix-product-state version, introduced in [[11]](#ref-11), [[12]](#ref-12) (review: [[13]](#ref-13)).
 # The Hamiltonian enters as a *list of terms* `[((j, j+1), h_j), ...]`, exactly as in §7 — only now with the fields absorbed into the bonds.
 #
 # The small exponentials are computed exactly by diagonalising the Hermitian matrix, $h=V\,\mathrm{diag}(w)\,V^\dagger\Rightarrow
@@ -1220,7 +1215,7 @@ print(f"one Strang step for N=8: {len(gates_demo)} two-site gates on bonds", [q 
 # %% [markdown]
 # ### 8.2 The physical problem: a quench in the transverse-field Ising chain
 #
-# We repeat the experiment of notebook 04. The chain is prepared in the fully polarised state
+# We take the quench of the transverse-field Ising chain. The chain is prepared in the fully polarised state
 # $|\psi_0\rangle=|{\uparrow\uparrow\cdots\uparrow}\rangle=|00\cdots0\rangle$ — a ground state of the classical Ising chain ($h=0$) — and at
 # $t=0$ the transverse field is switched on suddenly (a *quantum quench*): the state evolves with
 # $H=-J\sum_iZ_iZ_{i+1}-h\sum_iX_i$. We choose $h=J$, the critical point of the model, and measure time in units of $1/J$ ($\hbar=1$).
@@ -1293,12 +1288,12 @@ assert abs(L0 - abs(v_test[0]) ** 2) < TOL
 # ### 8.3 The time loop: `jit` + `lax.scan`
 #
 # One time step = apply the gate list, then measure. The time loop is written with `jax.lax.scan`, JAX's compiled `for` loop [[16]](#ref-16)
-# ([notebook 01](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)): `lax.scan(step, carry0, xs, length)` repeatedly calls `carry, y = step(carry, x)` and stacks the `y`'s.
+# ([notebook 01, JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)): `lax.scan(step, carry0, xs, length)` repeatedly calls `carry, y = step(carry, x)` and stacks the `y`'s.
 # The carry is the state, the outputs are the observables. The step function is traced and compiled **once**, however many steps we take; a Python
 # `for` loop under `jit` would instead be unrolled into `n_steps` copies of the circuit (long compilation), and a Python loop without `jit`
 # would pay dispatch overhead for every one of the thousands of einsums.
 #
-# In the same cell we re-implement, for the checkpoint below, the **dense** scheme of notebook 04: `layer_unitary_dense` builds $e^{-iH_{\rm even/odd}\tau}$ as a Kronecker chain of the *same*
+# In the same cell we re-implement, for the checkpoint below, the **dense** Trotter scheme: `layer_unitary_dense` builds $e^{-iH_{\rm even/odd}\tau}$ as a Kronecker chain of the *same*
 # $4\times4$ exponentials (with $2\times2$ identities on uncovered spins), and `evolve_dense_trotter` multiplies the three layers into one $2^N\times2^N$ step matrix and iterates it.
 
 # %%
@@ -1421,12 +1416,11 @@ ax2.set_xlabel("time $tJ$"); ax2.set_ylabel(r"error in $\langle Z_c\rangle$"); a
 plt.tight_layout(); plt.show()
 
 # %% [markdown]
-# **Interpretation.** The matrix-free evolution reproduces the dense Trotter evolution of notebook 04 to $\sim10^{-14}$ in the
+# **Interpretation.** The matrix-free evolution reproduces the dense Trotter evolution to $\sim10^{-14}$ in the
 # final state and in the observable (blue curve in the right panel: pure round-off). The two codes perform *the same mathematics* —
 # the same small unitaries in the same order — once with $256\times256$ matrices and once with $4\times4$ matrices and index
 # contractions. The Trotter approximation itself deviates from the exact solution at the level printed above (red curve), which is far below
-# the line width of the left panel and can be reduced at will by decreasing $dt$ (error $\propto dt^2$; notebook 12 of Chapter 5 studies this in
-# depth). The norm is conserved to $\sim10^{-13}$: every gate is unitary up to round-off, and the round-off of the $80\times11$ gate applications accumulates.
+# the line width of the left panel and can be reduced at will by decreasing $dt$ (error $\propto dt^2$). The norm is conserved to $\sim10^{-13}$: every gate is unitary up to round-off, and the round-off of the $80\times11$ gate applications accumulates.
 #
 # For completeness, here are the engine's production versions — `tebd_gates`, `apply_gates` (our `apply_gate_list`) and `tebd_evolve` (our scan loop). `tebd_gates` implements the
 # symmetric splitting for an **arbitrary ordered list of terms**, $\prod_{k}e^{-ih_kdt/2}\prod_{k\,\rm reversed}e^{-ih_kdt/2}$ (plus orders 1 and 4). *The order of the list defines the scheme*:
@@ -1458,12 +1452,12 @@ for name, p in [("even/odd Strang (ours, notebook 04)", psi_T), ("engine, sweep 
 # %% [markdown]
 # With the even-then-odd list the engine reproduces our evolution to round-off; the other orderings are *different approximations* of the same exact state. All three errors are $O(dt^2)$, but the
 # prefactors differ (printed above): here the even/odd scheme with the fields absorbed into the bonds is the most accurate, and the unfused bonds-then-fields list — which also needs the most gates — the
-# least. How the error depends on the ordering, on $dt$ and on the order of the formula is studied in [notebook 12](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb) (Chapter 5).
+# least.
 #
 # ### 8.5 Twenty spins: beyond the reach of any dense method
 #
 # Now the same function, unchanged, for $N=20$: a Hilbert space of dimension $2^{20}=1\,048\,576$. The state occupies 16.8 MB. A single dense
-# operator would occupy $16\cdot4^{20}$ bytes $=17.6$ TB, and the dense Trotter step matrix of notebook 04 could neither be stored nor computed. One Trotter
+# operator would occupy $16\cdot4^{20}$ bytes $=17.6$ TB, and the dense Trotter step matrix could neither be stored nor computed. One Trotter
 # step consists of $10+9+10=29$ two-site gates.
 
 # %%
@@ -1656,7 +1650,7 @@ plt.tight_layout(); plt.show()
 #
 # ## 10. Summary — key takeaways
 #
-# * **A state of $N$ spins is a rank-$N$ tensor** $\psi[s_0,\dots,s_{N-1}]$; `reshape((2,)*N)` converts from the vector of notebook 03 at zero cost. Axis $q$ = spin $q$;
+# * **A state of $N$ spins is a rank-$N$ tensor** $\psi[s_0,\dots,s_{N-1}]$; `reshape((2,)*N)` converts from the state vector at zero cost. Axis $q$ = spin $q$;
 #   the flat index is $i=\sum_qs_q2^{N-1-q}$ (spin 0 = most significant bit = leftmost Kronecker factor).
 # * **An operator on spin $q$ is a contraction with axis $q$**: $\psi'[..a..]=\sum_bU[a,b]\psi[..b..]$, e.g. `"Bb,abc->aBc"`. The identities of
 #   $\mathbb1\otimes\dots\otimes U\otimes\dots\otimes\mathbb1$ are never written, stored or multiplied.
@@ -1680,7 +1674,7 @@ plt.tight_layout(); plt.show()
 #    `psi.transpose(range(N-1,-1,-1)).reshape(-1)`, and verify with `site_operator` that an operator on our spin $q$ is an operator on her spin $N-1-q$.
 # 3. ★★ **Operators from the left and from the right.** Implement $\langle\phi|M_q$ (a bra acted upon from the right), i.e. $\phi'^*[..b..]=\sum_a\phi^*[..a..]M[a,b]$, with
 #    one hand-written einsum for $N=3$, and check $\big(\langle\phi|M_q\big)|\psi\rangle=\langle\phi|\big(M_q|\psi\rangle\big)$. Which matrix do you have to pass to
-#    `apply_gate` to get the same result? (Answer: $M^T$ acting on the conjugated tensor — this is how density matrices are evolved in notebook 07.)
+#    `apply_gate` to get the same result? (Answer: $M^T$ acting on the conjugated tensor — this is how density matrices are evolved.)
 # 4. ★★ **Extend the code: a three-site reference.** Generalise `two_site_operator_any` to $k$ sites by expanding the $2^k\times2^k$ matrix in products of $k$ Pauli matrices,
 #    and use it to validate `apply_gate` for a random three-site operator on the non-contiguous, unordered sites $(4,0,2)$ of $N=5$ spins. Apply the Toffoli gate (doubly-controlled X) with controls 4 and 0 and target 2 to a basis state.
 # 5. ★★ **Extend the code: merging half steps.** In $n$ consecutive Strang steps the final $E(dt/2)$ of one step and the initial $E(dt/2)$ of the next combine into a single $E(dt)$:

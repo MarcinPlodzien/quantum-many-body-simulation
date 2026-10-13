@@ -6,9 +6,9 @@
 # ## 1. Introduction
 #
 # A metrological probe stores information about a parameter $\theta$ in correlations between its particles.
-# Notebook 34 built the best possible one: $N$ atoms twisted into a Schrodinger-cat state whose quantum Fisher
-# information reaches the Heisenberg value $F_Q=N^2$. Notebook 37 asked what survives when particles are *lost*.
-# This notebook asks a different question, and one that a laboratory faces whether or not it loses anything:
+# The best possible one is a Schrodinger-cat state of $N$ atoms, prepared by one-axis twisting, whose quantum Fisher
+# information reaches the Heisenberg value $F_Q=N^2$. Losing particles is one way to degrade it. A laboratory faces
+# another whether or not it loses anything:
 #
 # > The probe keeps evolving after it has been prepared. Atoms interact with each other, a trap is imperfect, a
 # > circuit runs for longer than it should. Then the phase is imprinted by the usual collective rotation
@@ -16,8 +16,8 @@
 # > $k$ qubits still give access to, and does the answer depend on *how* the probe was stirred?
 #
 # Two different things happen. First, the total quantum Fisher information of the stirred probe for the **fixed**
-# generator $J_z$ collapses: notebook 35 showed that a Haar-random state has, on average, $F_Q=Nd/(d+1)\approx N$
-# ($d=2^N$), so a cat with $F_Q=N^2$ is reduced to the standard quantum limit. The unitary-invariance identity
+# generator $J_z$ collapses: a Haar-random state has, on average, $F_Q=Nd/(d+1)\approx N$ ($d=2^N$), as derived in
+# [notebook 35, scrambling a metrological probe](35_oat_plus_haar_scrambling.ipynb), so a cat with $F_Q=N^2$ is reduced to the standard quantum limit. The unitary-invariance identity
 # $F_Q[U\psi,UGU^\dagger]=F_Q[\psi,G]$ protects only the *rotated* generator $UGU^\dagger$, which no experiment with
 # a collective rotation implements. Second, what is left is redistributed: it moves into correlations so global that
 # blocks smaller than half the register retain an exponentially small share of it. This redistribution is called
@@ -27,11 +27,11 @@
 # The fraction has a threshold at $k=N/2$, but it is not a step from $0$ to $1$. Section 4 derives the Haar
 # curve: below the threshold $r_k\approx k\,4^k/(2N\,2^N)$, at it $r_{N/2}\approx0.20$, above it $r_k\approx k/N$,
 # because a large block of a random state keeps the standard-quantum-limit value $F_k\approx k$ of its own qubits.
-# The sharp "all or nothing" threshold of the Hayden-Preskill type belongs to the other protocol, in which the
+# The sharp "all or nothing" threshold of the Hayden-Preskill type [[1]](#ref-1) belongs to the other protocol, in which the
 # phase is imprinted *before* the scrambler; Section 4.3 computes that curve as well, for contrast.
 #
-# Notebook 35 established the endpoint of scrambling under a global Haar unitary. This notebook is about **how the
-# endpoint is reached**: the dynamics of locking, two physically distinct routes to it, and the property of the
+# That is the endpoint of scrambling under a global Haar unitary. This notebook is about **how the endpoint is
+# reached**: the dynamics of locking, two physically distinct routes to it, and the property of the
 # state that controls it.
 #
 # ### The three questions
@@ -86,25 +86,11 @@
 # * `vmap` over disorder realisations, and the discipline of splitting keys explicitly so that a figure redrawn
 #   tomorrow is the same figure.
 #
-# ### Prerequisites
-# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, `lax.scan`, PRNG keys;
-# * [06 — states, observables and entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb):
-#   reduced density matrices, Schmidt values, entanglement entropy, the Page value;
-# * [10 — random unitaries and random circuits](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb):
-#   the Haar measure, Mezzadri's recipe, the single-qubit Clifford group, brick-wall circuits;
-# * [12 — TEBD](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb) and
-#   [15 — quench dynamics](../ch05_ground_states_and_unitary_dynamics/15_quench_dynamics_spin_chains.ipynb):
-#   Trotter-Suzuki evolution, entanglement growth, integrable versus chaotic chains;
-# * [29 — quantum Fisher information](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb) and
-#   [30 — QFI from the SLD](../ch10_quantum_metrology_protocols/30_qfi_from_the_sld_prepare_encode_estimate.ipynb):
-#   $F_Q=4\,\mathrm{Var}(G)$ for pure states, the symmetric logarithmic derivative for mixed ones;
-# * [35 — scrambling a metrological probe](../ch10_quantum_metrology_protocols/35_oat_plus_haar_scrambling.ipynb):
-#   the unitary-invariance identity and the endpoint of scrambling under a global Haar unitary. Section 3 recalls
-#   everything this notebook needs from it.
-#
-# **What comes next.** [39 — QFI spreading in spin chains](../ch10_quantum_metrology_protocols/39_qfi_spreading_in_spin_chains.ipynb)
-# follows the metrological resource through quenched transverse-field Ising and XXZ chains and measures the light
-# cone of the block-resolved quantum Fisher information after a local encoding.
+# The notebook assumes `jit`, `vmap`, `lax.scan` and PRNG keys ([notebook 01, JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)), reduced density matrices and
+# entanglement entropy ([notebook 06, states, observables and entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb)), the Haar measure, the single-qubit Clifford group and brick-wall circuits
+# ([notebook 10, random unitaries and random circuits](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb)), Trotter-Suzuki evolution and quench dynamics ([notebook 12, TEBD and Trotter-Suzuki](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb) and [notebook 15, quench dynamics in spin chains](../ch05_ground_states_and_unitary_dynamics/15_quench_dynamics_spin_chains.ipynb)), the
+# quantum Fisher information of pure and mixed states ([notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb) and [notebook 30, QFI from the SLD](30_qfi_from_the_sld_prepare_encode_estimate.ipynb)), and the
+# unitary-invariance identity with the Haar endpoint of scrambling ([notebook 35, scrambling a metrological probe](35_oat_plus_haar_scrambling.ipynb)).
 #
 # **Conventions.** Qubit $q$ = tensor axis $q$, $0$-indexed; $\vert0\rangle$ is the $+1$ eigenstate of $Z$.
 # Collective spin operators are $J_a=\tfrac12\sum_q\sigma^a_q$, so the standard quantum limit is $F_Q=N$ and the
@@ -178,7 +164,7 @@ def page_entropy_bits(n_a, n_b):
 #
 # ### 3.1 The quantity
 #
-# The protocol is the one of notebook 30, stopped one step early. A probe $\vert\psi\rangle$ of $N$ qubits is
+# The protocol is the usual prepare–encode–measure sequence, stopped one step early. A probe $\vert\psi\rangle$ of $N$ qubits is
 # prepared; the parameter is imprinted on **all** of them,
 #
 # $$\vert\psi_\theta\rangle=e^{-i\theta J_z}\vert\psi\rangle,\qquad J_z=\tfrac12\sum_{q=0}^{N-1}Z_q;$$
@@ -189,7 +175,7 @@ def page_entropy_bits(n_a, n_b):
 # $$\rho_k(\theta)=\mathrm{Tr}_{\text{first } N-k}\left[\vert\psi_\theta\rangle\langle\psi_\theta\vert\right],$$
 #
 # which is mixed, so the quantum Fisher information it carries is given by the symmetric-logarithmic-derivative
-# formula of notebook 30,
+# formula [[2]](#ref-2), [[3]](#ref-3), derived in [notebook 30, QFI from the SLD](30_qfi_from_the_sld_prepare_encode_estimate.ipynb),
 #
 # $$F_k=2\sum_{m,n\,:\,\lambda_m+\lambda_n>0}\frac{\left\vert\langle m\vert\partial_\theta\rho_k\vert n\rangle\right\vert^2}{\lambda_m+\lambda_n},
 # \qquad \rho_k=\sum_m\lambda_m\vert m\rangle\langle m\vert. \tag{1}$$
@@ -326,7 +312,7 @@ def locking_curve(psi, P=None):
 # %% [markdown]
 # Before using Eq. (1) on anything interesting we check it against the two cases whose answer is known in closed
 # form. At $k=N$ nothing is traced out, the state is pure, and the symmetric-logarithmic-derivative formula must
-# collapse to the variance formula $F_N=4\,\mathrm{Var}(J_z)$ of notebook 29. Two states pin the scale: the
+# collapse to the pure-state variance formula $F_N=4\,\mathrm{Var}(J_z)$. Two states pin the scale: the
 # coherent spin state $\vert+\rangle^{\otimes N}$, for which $F_N=N$ (the standard quantum limit), and the GHZ
 # state, for which $F_N=N^2$ (the Heisenberg limit). For $k<N$ two further checks follow: the QR compression must
 # change nothing, and Eq. (3a) must agree with a completely independent dense computation (the engine's `rdm`, a
@@ -394,7 +380,7 @@ assert gap_wrong > 0.1
 # Every scrambler in this notebook is trying, in its own way, to turn the probe into a generic state. So the first
 # thing to measure is the target: the locking curve of a Haar-random state.
 #
-# The expected shape follows from one fact established in notebook 10 and used again in notebook 35. For a
+# The expected shape follows from one fact, established in [notebook 10, random unitaries and random circuits](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb). For a
 # Haar-random $\vert\psi\rangle$ and $k<N/2$, the reduced state of $k$ qubits is exponentially close to maximally
 # mixed,
 #
@@ -428,11 +414,11 @@ assert gap_wrong > 0.1
 # $$\mathbb{E}\,F_k\approx2d_A\,\frac{d_Ad_B\,\mathrm{Tr}J_A^2}{d(d+1)}\approx\frac{k}{2}\,\frac{d_A}{d_B},
 # \qquad r_k\approx\frac{k\,4^k}{2N\,2^N}\qquad(k<N/2), \tag{5}$$
 #
-# where the last step divides by the Haar average $F_N=Nd/(d+1)\approx N$ of notebook 35. The ratio of
+# where the last step divides by the Haar average $F_N=Nd/(d+1)\approx N$. The ratio of
 # consecutive points is $r_{k+1}/r_k=4(k+1)/k$: $8$, $6$, $5.3$, $5$, … rather than a constant factor of four.
 #
 # *Large blocks, $k>N/2$.* Now $B$ is small and $\rho_k$ has rank $d_B<d_A$. Convexity of the quantum Fisher
-# information (notebook 30) applied to the eigen-decomposition of $\rho_k$, together with the fact that the average
+# information (derived in [notebook 30, QFI from the SLD](30_qfi_from_the_sld_prepare_encode_estimate.ipynb)) applied to the eigen-decomposition of $\rho_k$, together with the fact that the average
 # of the variances of the components is at most the variance of the mixture, gives
 # $F_k\le4\,\mathrm{Var}_{\rho_k}(J_A)=4\,\mathrm{Var}_{\psi}(J_A)$, whose Haar average is
 # $kd/(d+1)\approx k$ by the same calculation as $F_N$. The numbers below show that the bound is nearly saturated
@@ -444,7 +430,8 @@ assert gap_wrong > 0.1
 # of a random state is itself only the standard quantum limit.
 #
 # *The threshold, $k=N/2$.* Now $d_A=d_B$ and the eigenvalues $x=d_A\lambda$ are spread over $[0,4]$ by the
-# Marchenko-Pastur law with density $p(x)=\sqrt{(4-x)/x}/(2\pi)$ (notebook 37, Section 12; quoted there without proof). Treating the matrix elements of $J_A$
+# Marchenko-Pastur law [[4]](#ref-4) with density $p(x)=\sqrt{(4-x)/x}/(2\pi)$ (quoted without proof in Section 12 of
+# [notebook 37, particle loss and magic](37_qfi_particle_loss_and_magic.ipynb)). Treating the matrix elements of $J_A$
 # in the eigenbasis of $\rho_k$ as random, $\vert\langle m\vert J_A\vert n\rangle\vert^2\approx\mathrm{Tr}J_A^2/d_A^2$, Eq. (1) becomes
 #
 # $$r_{N/2}\approx\frac14\,\mathbb{E}_{x,y\sim p}\left[\frac{(x-y)^2}{x+y}\right]\approx0.198, \tag{7}$$
@@ -596,7 +583,7 @@ plt.show()
 # > **Common pitfall.** The ratio $r_k$ was formed *inside* each realisation and only then averaged. Averaging
 # > $F_k$ and $F_N$ separately and dividing afterwards is a different estimator, and with an unknown distribution of
 # > $F_N$ the two need not agree. For Haar states they do: the standard deviation of $F_N$ is
-# > $\sqrt{2N(N-1)/(d+1)}\approx0.25$ at $N=12$ (notebook 35), two per cent of its mean, and the measured difference
+# > $\sqrt{2N(N-1)/(d+1)}\approx0.25$ at $N=12$ (derived in [notebook 35, scrambling a metrological probe](35_oat_plus_haar_scrambling.ipynb)), two per cent of its mean, and the measured difference
 # > printed above is a small fraction of one standard error. For the disordered chain of Section 5, where $F_N$
 # > varies between realisations, the per-realisation ratio is the quantity that answers the question "what fraction
 # > of *this* probe's information does the block hold", so it is used throughout.
@@ -683,7 +670,7 @@ assert rot_mean[n // 2 + 2] > 0.9 and haar_mean[n][n // 2 + 2] < 0.75   # the st
 # ### 5.2 Integrating it
 #
 # $H_{\text{scr}}$ is a sum of two-site bond terms and one-site field terms, which is exactly the input format of
-# the engine's `tebd_gates`: one second-order Trotter-Suzuki step is a list of small unitaries applied by einsum,
+# the engine's `tebd_gates`: one second-order Trotter-Suzuki step [[5]](#ref-5) is a list of small unitaries applied by einsum,
 # and `lax.scan` runs the step $n$ times inside XLA after compiling it once.
 #
 # The step size must be chosen, not assumed. The second-order splitting has a global error $O(dt^2)$, but the
@@ -912,7 +899,7 @@ print(f"  Page entropy for this cut: {S_PAGE:.3f} bits")
 # %% [markdown]
 # The first two columns are the total. For the fixed generator $J_z$ the quantum Fisher information of the whole
 # register falls from $N^2=144$ to about $13$ by $Jt=16$, close to the Haar value $Nd/(d+1)\approx12$, and the best of
-# the three collective axes is no better: this is the collapse of notebook 35, now in real time. The locking
+# the three collective axes is no better: this is the Haar collapse, now in real time. The locking
 # columns describe how the remaining information is distributed, each realisation normalised by its own $F_N$.
 #
 # Read the table down each locking column. The small-$k$ columns show a two-stage history: a rise, as the phase
@@ -949,7 +936,7 @@ for k in range(1, N):                               # k = N is identically 1 and
 # The maxima fall at $Jt=2$ for the blocks of one to four qubits and at $Jt=3$ for five qubits. The recording grid
 # (spacing $J\Delta t=0.5$ up to $Jt=2$, coarser later) is too coarse to tell whether the maximum moves gradually with
 # the block size, as a front crossing the chain at finite speed would make it. Exercise 8 does the measurement on a finer grid and compares it with the light cone of
-# connected correlations of the same chain, measured by the method of notebook 15.
+# connected correlations of the same chain, measured by the method of [notebook 15, quench dynamics in spin chains](../ch05_ground_states_and_unitary_dynamics/15_quench_dynamics_spin_chains.ipynb).
 
 # %%
 # ==============================================================================
@@ -1051,7 +1038,7 @@ assert float(jnp.linalg.norm(h_ghz.reshape(-1))) < 1e6 * TOL
 # %% [markdown]
 # The sweep shows the three regimes. At $h=0$ the state does not move: the entropy stays at the one bit of the GHZ
 # state and every proper block retains exactly nothing, because the probe is still the GHZ state. At $h=0.25$ the
-# chain scrambles slowly: by $Jt=16$ the half-chain entropy has reached less than half of the Page value, the
+# chain scrambles slowly: by $Jt=16$ the half-chain entropy has reached less than half of the Page value [[6]](#ref-6), the
 # blocks of two and three qubits still hold several times the Haar share, and the blocks of five or more hold far
 # less than it. At $h=1$ and $h=2$ the entropy is within two per cent of Page and the curve is within a factor of
 # two of the Haar one at every $k\ge3$. Exercise 4 turns the sweep into a rate and asks what
@@ -1060,8 +1047,8 @@ assert float(jnp.linalg.norm(h_ghz.reshape(-1))) < 1e6 * TOL
 # %% [markdown]
 # ## 6. Digital scramblers: three gate sets on the same geometry
 #
-# The digital route replaces continuous evolution by discrete layers. The geometry is the brick wall of
-# notebook 10: layer $L$ acts with two-qubit gates on the bonds $(q,q+1)$ with $q\equiv L\ (\mathrm{mod}\ 2)$, so
+# The digital route replaces continuous evolution by discrete layers. The geometry is the brick wall, the standard
+# setting for entanglement growth in random circuits [[7]](#ref-7): layer $L$ acts with two-qubit gates on the bonds $(q,q+1)$ with $q\equiv L\ (\mathrm{mod}\ 2)$, so
 # that every qubit is touched every two layers and correlations spread at one site per layer. Depth $L$ plays the
 # role that time $t$ played in Section 5.
 #
@@ -1073,7 +1060,7 @@ assert float(jnp.linalg.norm(h_ghz.reshape(-1))) < 1e6 * TOL
 # | Clifford | a random single-qubit Clifford on every site, then CNOT on each brick-wall bond | **stabilizer states only** |
 # | Clifford $+$ $n_T$ T | the Clifford layer plus $T$ gates on $n_T$ randomly chosen sites | stabilizer states doped with magic |
 #
-# The middle row is the interesting one. By the Gottesman-Knill theorem (notebook 27) a Clifford circuit acting on
+# The middle row is the interesting one. By the Gottesman-Knill theorem [[8]](#ref-8) (stated in Section 4.3 of [notebook 27, stabilizer Rényi entropy](../ch09_entanglement_and_complexity/27_stabilizer_renyi_entropy.ipynb)) a Clifford circuit acting on
 # a stabilizer state — and $\vert\mathrm{GHZ}\rangle$ is one — produces a stabilizer state, which can be simulated
 # classically in polynomial time and which has **zero magic**. Such states are nonetheless highly entangled: a
 # random stabilizer state has close to the Page entropy. The Clifford scrambler therefore tests whether volume-law
@@ -1190,7 +1177,7 @@ assert dev_f_doped > 0.1                      # the test can fail: one T gate al
 # The $F_N^z$ column is the total for the fixed generator. One layer of any of the three gate sets already
 # removes the Heisenberg value: $F_N^z$ drops from $144$ to about $10$–$12$ after the first layer and stays
 # near $N=12$ from then on. Section 6.1
-# checks this against the exact first-layer law of notebook 35.
+# checks this against the exact first-layer law.
 #
 # The Clifford block is the one to read carefully. Its entanglement entropy climbs to within a few per cent of the
 # Page value, and the checkpoint confirms what the physics insight above predicts for every single realisation:
@@ -1245,12 +1232,12 @@ plt.show()
 # The left panel starts at depth $L=1$ (at $L=0$ every $r_k$ with $k<N$ is zero). On its logarithmic axis a
 # realisation average that is exactly zero has no point; this is why the Clifford curve breaks off at large depth.
 #
-# ### 6.1 The first layer, against notebook 35
+# ### 6.1 The first layer, against the exact law
 #
-# Notebook 35 derived what disjoint Haar-random two-qubit gates do to a cat state: after $g$ gates the average
-# quantum Fisher information along the cat axis is $(N-2g)^2+28g/15$ (its Eq. (11)). The derivation uses only the
-# Haar invariance of each gate, so it applies to the GHZ state along $z$ as well as to the cat along $x$ of that
-# notebook. The first brick-wall layer of this notebook acts on the $N/2$ disjoint bonds $(0,1),(2,3),\dots$, so
+# What disjoint Haar-random two-qubit gates do to a cat state is derived in Eq. (11) of [notebook 35, scrambling a metrological probe](35_oat_plus_haar_scrambling.ipynb): after $g$
+# gates the average quantum Fisher information along the cat axis is $(N-2g)^2+28g/15$. The derivation uses only the
+# Haar invariance of each gate, so it applies to the GHZ state along $z$ as well as to the cat along $x$ treated
+# there. The first brick-wall layer of this notebook acts on the $N/2$ disjoint bonds $(0,1),(2,3),\dots$, so
 # $g=N/2$ and the prediction is $\mathbb{E}F_N^z=14N/15=11.2$ at $N=12$, slightly *below* the Haar value
 # $Nd/(d+1)\approx12$.
 
@@ -1274,7 +1261,7 @@ assert abs(m1 - pred1) < 4 * s1
 assert abs(m1 - haar1) > 4 * s1
 
 # %% [markdown]
-# The measured mean agrees with notebook 35 and is separated from the Haar value by several standard errors: one
+# The measured mean agrees with the prediction $14N/15$ and is separated from the Haar value by several standard errors: one
 # layer of local gates already destroys the Heisenberg scaling of the total, and the remaining layers move the
 # total only by about one unit, up to the Haar value. Everything that happens after the first layer is
 # redistribution, and that is what the locking curve resolves.
@@ -1284,8 +1271,8 @@ assert abs(m1 - haar1) > 4 * s1
 # Eqs. (5) and (6) used only the second moment $\mathbb{E}[\vert\psi\rangle\langle\psi\vert^{\otimes2}]$. Any ensemble of states that
 # reproduces this moment, a *state 2-design*, therefore has the same leading-order mean locking curve as Haar
 # states. Uniformly random stabilizer states form such a design, because the Clifford group is a unitary 2-design
-# (Dankert *et al.* 2009; it is even a 3-design, Webb 2016 and Zhu 2017, as checked numerically in
-# [notebook 10](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb)), and a deep random
+# [[9]](#ref-9) (it is even a 3-design [[10]](#ref-10), [[11]](#ref-11), as checked numerically in
+# [notebook 10, random unitaries and random circuits](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb)), and a deep random
 # Clifford circuit approaches that uniform distribution. The prediction is that the Clifford **mean** is the
 # Haar curve, while each realisation is integer-valued, so that for small blocks most realisations give exactly
 # zero and a few give a large value. Six realisations are not enough to see the rare non-zero ones, so we draw many
@@ -1418,7 +1405,7 @@ plt.show()
 
 # %% [markdown]
 # Every scrambler produces a volume law: the profile rises at close to one bit per qubit up to the half-way point
-# and bends over as Page's curve does. The Clifford profile is a staircase of integers; Page's value is an average
+# and bends over as the Page curve does. The Clifford profile is a staircase of integers; the Page value is an average
 # over non-integer entropies, so a single stabilizer state lies up to about one bit above or below it (this
 # realisation is maximally mixed up to $k=6$). The analog state lies about a tenth of a bit below Page near the
 # middle.
@@ -1438,7 +1425,7 @@ plt.show()
 #
 # $$F_k\approx k\ln2\,\left(k-S_k\right)\qquad(k<N/2). \tag{9}$$
 #
-# Two remarks. First, Eq. (9) applied to Page's deficit $k-S_k\approx d_A/(2d_B\ln2)$ reproduces Eq. (5), so the Haar
+# Two remarks. First, Eq. (9) applied to the Page deficit $k-S_k\approx d_A/(2d_B\ln2)$ reproduces Eq. (5), so the Haar
 # curve *is* the Page curve read through the quantum Fisher information. Second, both sides of Eq. (9) are quadratic
 # in $\delta$: neither quantity is more sensitive than the other near the maximally mixed state. A block of $k$
 # qubits locks exactly when its own entropy saturates. This is the precise sense in which the volume law is the
@@ -1651,7 +1638,7 @@ print(f"rough crossover (ignoring the factor N of the evolution and all prefacto
 #   an exact **dark state** and never locks. The random transverse field is what couples the probe to the rest of
 #   the Hilbert space.
 # * **One layer of local gates destroys the Heisenberg scaling of the total**: $\mathbb{E}F_N^z=14N/15$ after one Haar
-#   layer, as derived in notebook 35. Later layers redistribute.
+#   layer, as derived in [notebook 35, scrambling a metrological probe](35_oat_plus_haar_scrambling.ipynb). Later layers redistribute.
 # * **Clifford circuits reach the Haar locking curve on average**, as a 2-design must; every realisation is
 #   integer-valued and, for small blocks, usually zero. Magic shows up in the fluctuations, not in the mean.
 # * **The volume law is the mechanism, block by block**: $F_k\approx k\ln2\,(k-S_k)$, Eq. (9), with both sides
@@ -1680,7 +1667,7 @@ print(f"rough crossover (ignoring the factor N of the evolution and all prefacto
 #    the bonds; explain why that limit is also a bad scrambler (consider the single-site eigenstates of $h_qX_q$).
 # 5. (&#9733;&#9733;) **Extend the code: fluctuations and magic.** For brick-wall circuits of depth $32$ with
 #    $n_T=0,1,2,4$ $T$ gates per layer, draw $48$ realisations each and compute (a) the stabilizer Rényi entropy
-#    $M_2$ (notebook 27) of each final state and (b) the relative standard deviation of $r_5$ between realisations.
+#    $M_2$ [[12]](#ref-12) ([notebook 27, stabilizer Rényi entropy](../ch09_entanglement_and_complexity/27_stabilizer_renyi_entropy.ipynb)) of each final state and (b) the relative standard deviation of $r_5$ between realisations.
 #    Plot (b) against the mean of (a). Does the spread fall monotonically with the magic, and does the *mean* $r_5$
 #    change at all?
 # 6. (&#9733;&#9733;) **Where the staircase comes from.** For a Clifford final state, print the eigenvalues of
@@ -1696,45 +1683,60 @@ print(f"rough crossover (ignoring the factor N of the evolution and all prefacto
 #    $r_k(t)$ moves to later times as $k$ grows. Record the curve every $J\Delta t=0.1$ up to $Jt=4$, extract the peak
 #    time $t^\ast(k)$ and test whether it is linear in $k$. Compare the slope with the front velocity of the
 #    connected correlations $\langle Z_0Z_r\rangle-\langle Z_0\rangle\langle Z_r\rangle$ of the same chain, started from $\vert0\cdots0\rangle$ with one
-#    spin flipped and measured by the threshold method of notebook 15, and with the maximal group velocity $4J$ of
+#    spin flipped and measured by the threshold method of [notebook 15, quench dynamics in spin chains](../ch05_ground_states_and_unitary_dynamics/15_quench_dynamics_spin_chains.ipynb), and with the maximal group velocity $4J$ of
 #    the bare chain ($h=0$, free fermions with hopping $2J$). Should the two velocities agree?
 #
 # ## 11. References
 #
-# * D. N. Page, *Average entropy of a subsystem*, Phys. Rev. Lett. **71**, 1291 (1993) — the Page curve used as
-#   the entanglement reference throughout.
-# * P. Hayden and J. Preskill, *Black holes as mirrors: quantum information in random subsystems*,
+# <span id="ref-1">[1]</span> P. Hayden and J. Preskill, *Black holes as mirrors: quantum information in random subsystems*,
 #   J. High Energy Phys. **2007**(09), 120 (2007) — the half-system threshold for recovering information from a
 #   scrambled system (Section 4.3).
-# * C. Dankert, R. Cleve, J. Emerson and E. Livine, *Exact and approximate unitary 2-designs and their application to
-#   fidelity estimation*, Phys. Rev. A **80**, 012304 (2009) — the Clifford group as a unitary 2-design (Section 6.2).
-# * Z. Webb, *The Clifford group forms a unitary 3-design*, Quantum Inf. Comput. **16**, 1379 (2016);
-#   H. Zhu, *Multiqubit Clifford groups are unitary 3-designs*, Phys. Rev. A **96**, 062336 (2017) (Section 6.2).
-# * D. A. Roberts and B. Yoshida, *Chaos and complexity by design*, J. High Energy Phys. **2017**(04), 121 (2017)
-#   — chaos and unitary designs, Clifford against Haar averages, and the role of the gate set (Section 6.2).
-# * A. Nahum, J. Ruhman, S. Vijay and J. Haah, *Quantum entanglement growth under random unitary dynamics*,
-#   Phys. Rev. X **7**, 031016 (2017) — entanglement growth and saturation in brick-wall circuits.
-# * S. L. Braunstein and C. M. Caves, *Statistical distance and the geometry of quantum states*,
+#
+# <span id="ref-2">[2]</span> S. L. Braunstein and C. M. Caves, *Statistical distance and the geometry of quantum states*,
 #   Phys. Rev. Lett. **72**, 3439 (1994) — the quantum Fisher information and the symmetric logarithmic
 #   derivative.
-# * L. Pezzè, A. Smerzi, M. K. Oberthaler, R. Schmied and P. Treutlein, *Quantum metrology with nonclassical
-#   states of atomic ensembles*, Rev. Mod. Phys. **90**, 035005 (2018) — the metrological context.
-# * G. Tóth and I. Apellaniz, *Quantum metrology from a quantum information science perspective*,
+#
+# <span id="ref-3">[3]</span> G. Tóth and I. Apellaniz, *Quantum metrology from a quantum information science perspective*,
 #   J. Phys. A: Math. Theor. **47**, 424006 (2014) — quantum Fisher information of mixed and reduced states.
-# * D. Gottesman, *The Heisenberg representation of quantum computers*, in *Group22: Proceedings of the XXII
+#
+# <span id="ref-4">[4]</span> V. A. Marchenko and L. A. Pastur, *Distribution of eigenvalues for some sets of random matrices*,
+#   Mat. Sb. **72(114)**, 507–536 (1967); English translation Math. USSR-Sb. **1**, 457 (1967) — the eigenvalue law
+#   behind Eq. (7).
+#
+# <span id="ref-5">[5]</span> M. Suzuki, *Fractal decomposition of exponential operators with applications to many-body theories and Monte
+#   Carlo simulations*, Phys. Lett. A **146**, 319 (1990) — the recursive construction of higher-order product formulas
+#   from the symmetric second-order splitting, which is the one used by the Trotter step.
+#
+# <span id="ref-6">[6]</span> D. N. Page, *Average entropy of a subsystem*, Phys. Rev. Lett. **71**, 1291 (1993) — the Page curve used as
+#   the entanglement reference throughout.
+#
+# <span id="ref-7">[7]</span> A. Nahum, J. Ruhman, S. Vijay and J. Haah, *Quantum entanglement growth under random unitary dynamics*,
+#   Phys. Rev. X **7**, 031016 (2017) — entanglement growth and saturation in brick-wall circuits.
+#
+# <span id="ref-8">[8]</span> D. Gottesman, *The Heisenberg representation of quantum computers*, in *Group22: Proceedings of the XXII
 #   International Colloquium on Group Theoretical Methods in Physics*, eds. S. P. Corney, R. Delbourgo and P. D.
 #   Jarvis (International Press, Cambridge MA, 1999), pp. 32–43; arXiv:quant-ph/9807006 — the Gottesman-Knill
 #   theorem behind the Clifford scrambler.
-# * L. Leone, S. F. E. Oliviero and A. Hamma, *Stabilizer Rényi entropy*, Phys. Rev. Lett. **128**, 050402 (2022)
+#
+# <span id="ref-9">[9]</span> C. Dankert, R. Cleve, J. Emerson and E. Livine, *Exact and approximate unitary 2-designs and their application to
+#   fidelity estimation*, Phys. Rev. A **80**, 012304 (2009) — the Clifford group as a unitary 2-design (Section 6.2).
+#
+# <span id="ref-10">[10]</span> Z. Webb, *The Clifford group forms a unitary 3-design*, Quantum Inf. Comput. **16**, 1379 (2016) (Section 6.2).
+#
+# <span id="ref-11">[11]</span> H. Zhu, *Multiqubit Clifford groups are unitary 3-designs*, Phys. Rev. A **96**, 062336 (2017) (Section 6.2).
+#
+# <span id="ref-12">[12]</span> L. Leone, S. F. E. Oliviero and A. Hamma, *Stabilizer Rényi entropy*, Phys. Rev. Lett. **128**, 050402 (2022)
 #   — the magic measure of Exercise 5.
-# * F. Mezzadri, *How to generate random matrices from the classical compact groups*, Notices Am. Math. Soc.
+#
+# <span id="ref-13">[13]</span> D. A. Roberts and B. Yoshida, *Chaos and complexity by design*, J. High Energy Phys. **2017**(04), 121 (2017)
+#   — chaos and unitary designs, Clifford against Haar averages, and the role of the gate set (Section 6.2).
+#
+# <span id="ref-14">[14]</span> L. Pezzè, A. Smerzi, M. K. Oberthaler, R. Schmied and P. Treutlein, *Quantum metrology with nonclassical
+#   states of atomic ensembles*, Rev. Mod. Phys. **90**, 035005 (2018) — the metrological context.
+#
+# <span id="ref-15">[15]</span> F. Mezzadri, *How to generate random matrices from the classical compact groups*, Notices Am. Math. Soc.
 #   **54**(5), 592–604 (2007) — the QR recipe behind `haar_unitary`.
-# * V. A. Marchenko and L. A. Pastur, *Distribution of eigenvalues for some sets of random matrices*,
-#   Mat. Sb. **72(114)**, 507–536 (1967); English translation Math. USSR-Sb. **1**, 457 (1967) — the eigenvalue law
-#   behind Eq. (7).
-# * M. Suzuki, *Fractal decomposition of exponential operators with applications to many-body theories and Monte
-#   Carlo simulations*, Phys. Lett. A **146**, 319 (1990) — the recursive construction of higher-order product formulas
-#   from the symmetric second-order splitting, which is the one used by the Trotter step.
-# * W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes: The Art of Scientific
+#
+# <span id="ref-16">[16]</span> W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes: The Art of Scientific
 #   Computing*, 3rd ed., Cambridge University Press (2007) — Chapter 11 for the symmetric eigenproblem and
 #   Chapter 2 for the QR factorisation used to compress the active subspace.

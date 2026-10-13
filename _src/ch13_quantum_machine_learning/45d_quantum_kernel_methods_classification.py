@@ -114,6 +114,11 @@
 # * **Section 8** measures the concentration of kernel values with $N$ and its consequence for the number of shots,
 #   and **Section 9** classifies with kernels estimated from a finite number of shots.
 #
+# The notebook assumes Haar-random states
+# ([notebook 10, random unitaries and random circuits](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb)),
+# used as a reference in Section 8, and no machine learning beyond the idea of a training set; Section 3 derives
+# everything else that is used.
+#
 # ### What you will learn
 #
 # *Physics*
@@ -135,21 +140,6 @@
 # * many small quadratic programmes solved at once with `jax.vmap` over a `lax.scan` loop;
 # * controls: matrices that are not positive semidefinite, detected by their eigenvalues; a linear kernel on the rings
 #   and labels shuffled at random, which must fall to the guessing level.
-#
-# ### Prerequisites
-#
-# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, `lax.scan` and
-#   explicit random keys;
-# * [05 — matrix-free operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb) and
-#   [09 — quantum gates and circuits](../ch04_digital_quantum_circuits/09_quantum_gates_and_circuits.ipynb): states as
-#   rank-$N$ tensors, `apply_gate`, the rotations $R_z$ and $R_{ZZ}$;
-# * [08 — measurements](../ch03_matrix_free_engine/08_measurements.ipynb): sampling bit strings and binomial
-#   statistics of measured frequencies;
-# * [10 — random unitaries and random circuits](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb):
-#   Haar-random states, used as a reference in Section 8.
-#
-# No prior knowledge of machine learning beyond the idea of a training set is assumed; Section 3 derives everything
-# that is used.
 
 # %% [markdown]
 # ## 2. Engine recap and notebook helpers

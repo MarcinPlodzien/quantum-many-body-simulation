@@ -15,17 +15,16 @@
 #   perturbations cannot excite the system (an insulator, a protected qubit); a gap that *closes* as a parameter is tuned
 #   signals a **quantum phase transition**.
 # * How strongly are distant parts of the system **entangled**? This decides, for instance, whether the state can be compressed
-#   into a matrix product state (notebook 18, Chapter 7).
+#   into a matrix product state.
 #
 # Ground states are also the *starting point of dynamics*: the typical experiment in the rest of Chapter 5 prepares
 # the ground state of one Hamiltonian and then suddenly changes the Hamiltonian (a "quench"). So before we can evolve anything in time
 # we need a reliable way to **write down Hamiltonians** and to **find their lowest eigenstates**.
 #
-# **The numerical problem.** For $N$ spins-1/2 the Hamiltonian is a $2^N\times 2^N$ matrix. In
-# [notebook 03 (Chapter 2)](../ch02_spin_systems_textbook_way/03_quantum_many_body_spin_systems.ipynb) we built that matrix and called `eigh`; this
-# "exact diagonalisation" costs $O(4^N)$ memory and $O(8^N)$ time and died at $N\approx 12$–$14$. But we do not *want* all $2^N$ eigenvalues — we want
-# one or two of them. In [notebook 05 (Chapter 3)](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb) we learned to compute the product
-# $H|\psi\rangle$ **without ever forming $H$** at a cost $O(N\,2^N)$. The question of this notebook is therefore:
+# **The numerical problem.** For $N$ spins-1/2 the Hamiltonian is a $2^N\times 2^N$ matrix. Building that matrix and calling `eigh`
+# ("exact diagonalisation") costs $O(4^N)$ memory and $O(8^N)$ time and stops at $N\approx 12$–$14$. But we do not *want* all $2^N$ eigenvalues — we want
+# one or two of them. The product $H|\psi\rangle$, on the other hand, can be computed **without ever forming $H$** at a cost $O(N\,2^N)$
+# ([notebook 05, matrix-free operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb)). The question of this notebook is therefore:
 #
 # > *Given only a black box that returns $H|\psi\rangle$, how do we find the ground state?*
 #
@@ -47,8 +46,13 @@
 # 6. *Physics*: the quantum phase transition of the transverse-field Ising chain (gap closing, order parameter, entanglement,
 #    checked against the exact free-fermion solution up to $N=18$), the XXZ chain (checked against the Bethe-ansatz energy), a
 #    $4\times4$ square lattice and a long-range chain (Sections 11–13).
-#    The XXZ chain in a transverse field of notebook 06 is then taken from $N\le12$ to $N=18$ in its parity sectors (Section 12.3).
+#    The XXZ chain in a transverse field is then taken from $N\le12$ to $N=18$ in its parity sectors (Section 12.3).
 # 7. *Performance*: what limits us, and how far a laptop can go (Section 14).
+#
+# The notebook assumes `jit`, `vmap` and `lax.scan` ([notebook 01, JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)), the spin models and dense exact
+# diagonalisation ([notebook 03, quantum many-body spin systems](../ch02_spin_systems_textbook_way/03_quantum_many_body_spin_systems.ipynb)), `apply_gate` and `apply_hamiltonian`
+# ([notebook 05, matrix-free operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb)), and reduced density matrices and the entanglement entropy
+# ([notebook 06, states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb)).
 #
 # ### What you will learn
 #
@@ -69,12 +73,6 @@
 # * Validating a matrix-free operator against an independent dense construction on small $N$.
 # * Writing an iterative algorithm as `jax.lax.scan`, compiling it once with `jax.jit`, and sweeping a Hamiltonian parameter with `jax.vmap`.
 # * Timing: compile time vs run time, memory accounting for the Krylov basis.
-#
-# ### Prerequisites
-# * [Notebook 01 (Chapter 1) — JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb) (`jit`, `vmap`, `lax.scan`).
-# * [Notebook 03 (Chapter 2) — Quantum many-body spin systems](../ch02_spin_systems_textbook_way/03_quantum_many_body_spin_systems.ipynb) (the models, dense exact diagonalisation).
-# * [Notebook 05 (Chapter 3) — Matrix-free operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb) (`apply_gate`, `apply_hamiltonian`).
-# * [Notebook 06 (Chapter 3) — States, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb) (reduced density matrices, entanglement entropy).
 
 # %% [markdown]
 # ## 2. The engine functions used in this notebook
@@ -190,7 +188,7 @@ print("long-range N=4       :", [(bond, round(wt, 3)) for bond, wt in zip(b, w)]
 # terms. The engine's `heisenberg_terms` does this for chains with uniform couplings; here we write a slightly more general builder that
 # accepts any bond list, optional bond weights, and — important later — couplings that may be **traced JAX values** (so that we can `jit` and `vmap` over them).
 # That last requirement is the reason why the function contains no `if h != 0:` shortcuts: a Python `if` on a traced value is not allowed under `jit`
-# (see [JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)).
+# (see [notebook 01, JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)).
 
 # %%
 # ==============================================================================
@@ -253,8 +251,8 @@ for sites, mat in terms:
 # ### 3.5 Checkpoint: the term list against a dense $H$
 #
 # We compare the matrix-free Hamiltonian with an **independent** construction: the textbook
-# Kronecker-product formula $X_i = 1\otimes\cdots\otimes X\otimes\cdots\otimes1$ from
-# [notebook 03 (Chapter 2)](../ch02_spin_systems_textbook_way/03_quantum_many_body_spin_systems.ipynb), written in plain NumPy. The engine's `dense_hamiltonian(terms, N)` turns
+# Kronecker-product formula $X_i = 1\otimes\cdots\otimes X\otimes\cdots\otimes1$
+# ([notebook 03, quantum many-body spin systems](../ch02_spin_systems_textbook_way/03_quantum_many_body_spin_systems.ipynb)), written in plain NumPy. The engine's `dense_hamiltonian(terms, N)` turns
 # the matrix-free action into a matrix (column $j$ = $H|e_j\rangle$); if our bond bookkeeping, the einsum strings or the qubit ordering were wrong, the two
 # matrices would differ. We test the three geometries, including the non-neighbour bonds of the ladder and the weighted long-range bonds.
 
@@ -394,7 +392,7 @@ assert float(jnp.linalg.norm(comm_P)) < TOL * 100 and float(jnp.linalg.norm(comm
 # ### 4.3 Implementation
 #
 # The iteration is a loop with a *carry* (the current vector) — the textbook use case of `jax.lax.scan`, which compiles the loop body once instead of unrolling it
-# ([JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)). Each iteration costs one product $H|v\rangle$, which we re-use to record the current energy $\langle v|H|v\rangle$.
+# ([notebook 01, JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)). Each iteration costs one product $H|v\rangle$, which we re-use to record the current energy $\langle v|H|v\rangle$.
 
 # %%
 # ==============================================================================
@@ -822,7 +820,7 @@ for k in (50, 60, 70, 80, 100):
 #
 # What did *not* go wrong: the lowest Ritz value is still correct (last printed line). Ghosts are copies of genuine eigenvalues, so plain Lanczos remains usable if one wants only $E_0$. But
 # multiplicities are wrong (a disaster if you want to count degenerate states or compute the gap as $\theta_1-\theta_0$: a ghost would give $\Delta=0$), convergence of the *other* eigenvalues is delayed, and the Krylov-space
-# formulas for time evolution used later in this chapter ([Krylov propagation](14_krylov_and_integrator_comparison.ipynb)) assume $V^\dagger V=\mathbb 1$.
+# formulas for time evolution assume $V^\dagger V=\mathbb 1$.
 #
 # ### 7.2 Full reorthogonalisation
 #
@@ -1054,7 +1052,7 @@ assert np.max(np.abs(np.asarray(E_batch[::7]) - E_dense)) < 1e4 * TOL
 #
 # For a symmetry with $Q^2=1$ (like the parity $P$), the projector on the sector $q=\pm1$ is $\Pi_\pm=(1\pm P)/2$: apply it to a random vector and normalise. For the magnetisation $M=\sum_iZ_i$, which is diagonal in the
 # computational basis, the projector on $M=M_0$ is a **mask**: keep the amplitudes $\psi[s_0..s_{N-1}]$ whose bit string has the right number of up-spins, zero the others. We build the array $M(s)=\sum_q(1-2s_q)$ with the
-# same broadcasting construction that the engine uses for one-axis twisting ([notebook 08b (Chapter 3)](../ch03_matrix_free_engine/08b_building_quantum_simulator_engine.ipynb), §15.2): site $q$ contributes an array of shape $(1,..,2,..,1)$ with entries $(+1,-1)$ along axis $q$, and NumPy broadcasting adds them up to a full $(2,)^N$ tensor.
+# same broadcasting construction that the engine uses for one-axis twisting ([notebook 08b, Section 15.2, the simulator engine](../ch03_matrix_free_engine/08b_building_quantum_simulator_engine.ipynb)): site $q$ contributes an array of shape $(1,..,2,..,1)$ with entries $(+1,-1)$ along axis $q$, and NumPy broadcasting adds them up to a full $(2,)^N$ tensor.
 #
 # In floating-point arithmetic round-off continuously re-injects tiny ($10^{-16}$) components of the other sectors, and Lanczos amplifies whichever of them belongs to a *lower* eigenvalue — for the odd sector, the true
 # ground state. Full reorthogonalisation does not help here: those components are orthogonal to nothing in particular, they simply ride along inside every $v_j$.
@@ -1273,7 +1271,7 @@ for N in sizes:
 #   $N^{-2\beta/\nu}=N^{-1/4}$ (two-dimensional Ising exponents $\beta=1/8$, $\nu=1$, from the exact solutions of [[24]](#ref-24) and [[25]](#ref-25)), and the printed products $N^{1/4}m_z^2(h{=}J)$ are indeed nearly constant. A quantity whose curves *cross* at the critical point — a
 #   dimensionless ratio such as $N^{1/4}m_z^2$ itself, or the cumulant introduced in [[26]](#ref-26) — is what finite-size scaling uses to locate $h_c$.
 # * **Entanglement (bottom right).** For $h\to0$ the entropy tends to **exactly 1 bit**: the symmetric ground state is the cat (GHZ) state, and cutting a GHZ state anywhere yields one bit
-#   ([notebook 06 (Chapter 3)](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb)). For $h\gg J$ the state is a product state and $S\to0$. In between, the curves for different $N$ coincide for $h>J$ (the entropy obeys an *area law*, proved for gapped one-dimensional chains in [[27]](#ref-27):
+#   ([notebook 06, states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb)). For $h\gg J$ the state is a product state and $S\to0$. In between, the curves for different $N$ coincide for $h>J$ (the entropy obeys an *area law*, proved for gapped one-dimensional chains in [[27]](#ref-27):
 #   it does not grow with the size of the block), for $h<J$ they approach the 1 bit of the cat state from below as $N$ grows, and around the critical point $S$ **grows with $N$**.
 #
 # > **Physics insight.** An experiment (or a simulation with a tiny symmetry-breaking field $h_zZ_i$) would find one of the two ferromagnets, a product state with $S=0$. The cat state is the correct ground
@@ -1328,7 +1326,7 @@ plt.tight_layout(); plt.show()
 # The critical gap follows a power law with an exponent close to $-1$ (the small deviation is a finite-size correction: for the open chain the exact gap is $4J\sin\frac{\pi}{2(2N+1)}\approx \pi J/(N+\tfrac12)$, which is $1/N$ only
 # asymptotically), and the entropy grows linearly in $\log N$ with a slope near $c/6=0.083$; the measured slope is slightly larger because subleading corrections are still visible at $N\le18$. Two lessons: (i) the numbers a
 # laptop can reach are large enough to *see* critical scaling; (ii) they are not large enough to extract exponents to three digits — a quantitative finite-size analysis needs either bigger systems
-# ([matrix product states](../ch07_tensor_networks/18_mps_tebd.ipynb)) or knowledge of the corrections.
+# or knowledge of the corrections.
 
 # %% [markdown]
 # ## 12. Physics II: the XXZ chain
@@ -1451,20 +1449,21 @@ print(f"N=16, r=8: staggered correlation = {xxz[16][0.0]['czz'][-1]:.4f} (Delta=
 # %% [markdown]
 # ### 12.3 The XXZ chain in a transverse field at larger $N$
 #
-# [Notebook 06, Section 10](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb) mapped the ground-state phase diagram of the open chain
+# The ground-state phase diagram of the open chain
 #
 # $$ H(\Delta,h_x)=\sum_{i=0}^{N-2}\big(X_iX_{i+1}+Y_iY_{i+1}+\Delta\,Z_iZ_{i+1}\big)+h_x\sum_{i=0}^{N-1}X_i $$
 #
-# by dense diagonalisation in the two sectors of the spin flip $P=\prod_iX_i$, and it ended with open questions: with $N\le12$ it could not decide whether the gap
-# inside the ground-state sector stays finite on the Néel side $(\Delta,h_x)=(2,0)$ and in the field $(0,1)$, and the field-induced antiferromagnetic order along $y$ was only suggested
-# by one chain length. Lanczos in a parity sector reaches $N=18$ (sector dimension 131 072). Three tools of this notebook combine:
+# was mapped by dense diagonalisation in the two sectors of the spin flip $P=\prod_iX_i$ in [notebook 06, Section 10, states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb).
+# With $N\le12$ it stays open whether the gap
+# inside the ground-state sector stays finite on the Néel side $(\Delta,h_x)=(2,0)$ and in the field $(0,1)$, and the field-induced antiferromagnetic order along $y$ is suggested
+# by one chain length only. Lanczos in a parity sector reaches $N=18$ (sector dimension 131 072). Three tools of this notebook combine:
 #
 # * the **start vector is projected** onto the sector $P=\pm1$, and the projector is applied again after every $H|v\rangle$ (Section 10.2), so that round-off cannot leak into the other sector;
 # * the **gap within the sector** is the difference of the two lowest Ritz values $\theta_1-\theta_0$ of *one* run. This is legitimate only with full reorthogonalisation (no ghosts, Section 7)
 #   and only once *both* Ritz pairs have converged, which we check with their residuals (Section 8.2);
 # * the couplings enter `spin_hamiltonian_terms` as traced values, so one compiled solver per $N$ serves all parameter points and both sectors.
 #
-# We record, at the four points of notebook 06 and at $(0,2)$, where the $y$ correlations were largest: the gap in the ground-state sector, the splitting between the lowest levels of the two
+# We record, at the four parameter points of that scan and at $(0,2)$, where the $y$ correlations were largest: the gap in the ground-state sector, the splitting between the lowest levels of the two
 # sectors, and the staggered correlation $C^{yy}_{\rm st}=(-1)^r\langle Y_iY_j\rangle$ between the sites $i=\lfloor N/4\rfloor$ and $j=N-1-i$, the largest distance that keeps both spins a quarter
 # of the chain away from the ends.
 
@@ -1567,7 +1566,7 @@ plt.tight_layout(); plt.show()
 #
 # * **Checkpoints.** At the XX point the gap in the sector equals $4\sin\frac{\pi}{2(N+1)}$ for every $N$ up to $18$, and at $N=10$ all five gaps agree with dense diagonalisation inside the sectors.
 #   The residuals of both Ritz pairs stay at the level of $10^{-8}$ or below except for the second pair (row $\rho_1$) at the ferromagnetic point and at $(0,2)$ for $N=16$ and $18$. At the ferromagnetic point the second Ritz value belongs to a pair of magnons
-#   bound to the two ends of the chain (notebook 06, Eq. (16)): the two levels are split only by $\sim3\times10^{-5}$ at $N=18$, the relative gap $\gamma$ of Eq. (6) is tiny, and the residual of
+#   bound to the two ends of the chain (derived in [notebook 06, Section 10.7, states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb), Eq. (16)): the two levels are split only by $\sim3\times10^{-5}$ at $N=18$, the relative gap $\gamma$ of Eq. (6) is tiny, and the residual of
 #   $\theta_1$ stops at $\sim6\times10^{-5}$. The gap value $\approx2.99998$ is still accurate to about that level — the rule "energies to $\rho^2/\Delta$" of Section 8.2 with a $\Delta$ that is itself $3\times10^{-5}$.
 #   At $(0,2)$ the residual of $\theta_1$ is $1.3\times10^{-4}$, so that gap is known to about four digits — enough for the conclusions below.
 # * **The field at $\Delta=0$, $h_x=1$.** The gap in the sector decreases from $1.53$ ($N=6$) to $0.68$ ($N=18$), but *more slowly than $1/N$*: $N\Delta_N$ keeps growing, and the ratio to the
@@ -1579,7 +1578,7 @@ plt.tight_layout(); plt.show()
 #   is small at every $N$ (it jumps up and down because levels of the two sectors cross as $N$ changes). This is the clearest case of long-range $y$ order in the scan.
 # * **The Néel side, $(2,0)$.** The gap still decreases at $N=18$ ($3.19\to1.50$), and the parity splitting shrinks only slowly ($1.50\to0.30$). The Néel gap of the XXZ chain opens
 #   exponentially slowly above $\Delta=1$ (Section 12.2), so the correlation length at $\Delta=2$ is still comparable to our chains: $N\le18$ cannot decide this point either, and it is the natural
-#   test case for the matrix-product states of Chapter 7.
+#   test case for matrix product states.
 #
 # > **Numerical practice.** One Lanczos run with full reorthogonalisation gave two levels at once, and the residual of the *second* Ritz pair told us when that second level could be trusted.
 # > Always print the residuals of every eigenvalue you use, not only of the ground state.
@@ -1731,7 +1730,7 @@ if RUN_LARGE:
 # (and, on a busy laptop, load dependent), so read it as an order of magnitude: it is $2m=100$ matrix–vector products on a vector of 17 MB, plus the reorthogonalisation against a Krylov basis of 0.84 GB, and the cost is set by memory
 # traffic rather than by floating-point work. Going further is a matter of
 # memory ($N=24$: 270 MB per vector) and patience; with a GPU, single precision for the basis, restarts with small $m$ and symmetry-reduced bases, state-of-the-art exact-diagonalisation codes reach $N\approx40$–$50$ spins on supercomputers (Ref. [[39]](#ref-39) reports spin-1/2 models of up to 50 sites). Beyond that, one
-# needs a compressed representation of the state itself — the subject of [the MPS notebook](../ch07_tensor_networks/18_mps_tebd.ipynb).
+# needs a compressed representation of the state itself.
 
 # %% [markdown]
 # ## 15. Key takeaways
@@ -1748,7 +1747,7 @@ if RUN_LARGE:
 # * Writing the solver as a `lax.scan` with static shapes makes it one compiled function of the couplings, which can be `vmap`-ed over parameters.
 # * Physics: the Ising chain shows a gap closing as $1/N$, a sharpening order parameter and $\log N$ entanglement at $h=J$; symmetric ground states of ordered phases are cat states with one bit of entanglement; all numbers were checked
 #   against exact free-fermion or Bethe-ansatz results.
-# * Lanczos in a parity sector extends the XXZ chain in a transverse field of notebook 06 to $N=18$: in the field the gap in the sector shrinks more slowly than $1/N$, the two parity
+# * Lanczos in a parity sector extends the XXZ chain in a transverse field from $N\le12$ to $N=18$: in the field the gap in the sector shrinks more slowly than $1/N$, the two parity
 #   sectors form a near-degenerate doublet and the staggered $y$ correlations persist to the largest distance, while the Néel side remains undecided at these sizes.
 
 # %% [markdown]

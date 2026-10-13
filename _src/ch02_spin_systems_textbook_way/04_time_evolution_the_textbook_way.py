@@ -5,8 +5,8 @@
 # %% [markdown]
 # ## 1. Introduction
 #
-# In the previous notebook we learned how to write down a chain of $N$ interacting spins-1/2, how to build its Hamiltonian as a
-# $2^N\times2^N$ matrix, and how to find its ground state. That is *statics*. This notebook is about **dynamics**: we prepare the chain in
+# Writing down a chain of $N$ interacting spins-1/2, building its Hamiltonian as a $2^N\times2^N$ matrix and finding its
+# ground state is *statics*. This notebook is about **dynamics**: we prepare the chain in
 # some simple state $|\psi_0\rangle$, let it evolve under its Hamiltonian $H$ according to the time-dependent Schrödinger
 # equation [[1]](#ref-1), and ask what happens,
 #
@@ -21,10 +21,10 @@
 # task a future quantum computer is expected to do better than we can; to appreciate that claim one should first understand how hard the
 # task is classically, and why.
 #
-# **What we will do.** We stay with the *textbook* representation of notebook 03: states are vectors of length $2^N$ and operators
+# **What we will do.** We stay with the *textbook* representation: states are vectors of length $2^N$ and operators
 # are dense $2^N\times2^N$ matrices. Within that setting we go through everything that a practitioner takes for granted about time evolution:
 #
-# 1. **Section 2** — we rebuild the small dense toolbox of notebook 03 (`site_operator`, `build_hamiltonian_dense`), so that this notebook runs on its own.
+# 1. **Section 2** — we rebuild the small dense toolbox of [notebook 03, many-body spin systems](03_quantum_many_body_spin_systems.ipynb) (`site_operator`, `build_hamiltonian_dense`), so that this notebook runs on its own.
 # 2. **Sections 3–4** — the formal solution $|\psi(t)\rangle=e^{-iHt}|\psi_0\rangle$; the propagator from an **eigendecomposition**; what must be
 #    conserved (norm, energy) and how to test it.
 # 3. **Section 5** — the **matrix exponential** `expm`: why summing the Taylor series is a bad idea and what libraries do instead.
@@ -37,7 +37,11 @@
 # 6. **Section 8** — physics: a quench in the transverse-field Ising chain. Magnetisation dynamics, the light cone of correlations,
 #    the Loschmidt echo.
 # 7. **Section 9** — the cost of each method in memory and time, why *every* method of this notebook dies around $N\approx 12$–$14$ spins, and
-#    which single observation will let us escape in the next notebook.
+#    which single observation offers a way out.
+#
+# The notebook assumes `jit`, `vmap`, `lax.scan` and timing from [notebook 01, JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb) and the dense
+# Hamiltonians, the transverse-field Ising and XXZ chains and exact diagonalisation of [notebook 03, many-body spin systems](03_quantum_many_body_spin_systems.ipynb).
+# We set $\hbar=1$ throughout, so energies are frequencies and time is measured in units of the inverse coupling $1/J$.
 #
 # ### What you will learn
 #
@@ -55,22 +59,13 @@
 # * Validating every solver against an independent one, and against conservation laws, with `assert`s.
 # * `jax.jit` for whole time steps, `jax.lax.scan` for time loops, `jax.vmap` over a time grid, `jax.scipy.linalg.expm`.
 # * Timing JAX code (`block_until_ready`, compile time versus run time).
-#
-# ### Prerequisites
-#
-# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, `lax.scan`, timing.
-# * [03 — Quantum many-body spin systems](03_quantum_many_body_spin_systems.ipynb): tensor products, `site_operator`, dense Hamiltonians, the
-#   transverse-field Ising and XXZ chains, exact diagonalisation with `eigh`.
-#
-# One semester of quantum mechanics (Schrödinger equation, spin-1/2, Pauli matrices) is assumed; nothing else. We set $\hbar=1$ throughout,
-# so energies are frequencies and time is measured in units of the inverse coupling $1/J$.
 
 # %% [markdown]
-# ## 2. The dense toolbox of notebook 03
+# ## 2. The dense toolbox
 #
 # ### 2.1 Conventions
 #
-# We use exactly the conventions of notebook 03, which are the conventions of the whole course:
+# We use the conventions of the whole course:
 #
 # | symbol | meaning |
 # |---|---|
@@ -93,8 +88,8 @@
 # * `site_operator(op, j, N)` is the Kronecker chain $\mathbb 1\otimes\dots\otimes O\otimes\dots\otimes\mathbb 1$: start from the $1\times1$ matrix $(1)$ and
 #   multiply from the right with `jnp.kron`, inserting `op` at position `j` and the $2\times2$ identity elsewhere. Because spin 0 is the leftmost factor,
 #   it is the most significant bit of the flat index — consistent with the table above.
-# * `two_site_operator(h2, j, N)` embeds a $4\times4$ matrix acting on the neighbouring spins $(j,j+1)$ (notebook 03 used the same name for a
-#   function of two single-spin operators on arbitrary sites; this version takes a general bond matrix):
+# * `two_site_operator(h2, j, N)` embeds a $4\times4$ matrix acting on the neighbouring spins $(j,j+1)$ (this version takes a general
+#   bond matrix):
 #   $\mathbb 1_{2^j}\otimes h_2\otimes\mathbb 1_{2^{N-j-2}}$. For a product $h_2=A\otimes B$ it equals `site_operator(A,j,N) @ site_operator(B,j+1,N)`
 #   (we check this), but it needs no large matrix product. We will need it again for Trotterization, where $h_2$ is *not* a simple product.
 # * `build_hamiltonian_dense` adds up all terms of Eq. (1).
@@ -258,10 +253,10 @@ print("<Z_j> from the z-table    :", np.round(np.asarray(mz_table), 6))
 assert max_abs(mz_matrix - mz_table) < TOL
 
 # %% [markdown]
-# The two routes agree. The second one never touched a $2^N\times2^N$ matrix — a first hint of the theme that will take over in notebook 05.
+# The two routes agree. The second one never touched a $2^N\times2^N$ matrix.
 #
 # > **JAX practice.** Randomness in JAX is explicit: a key (`PRNGKey(0)`) is split into independent sub-keys, and the same key always gives the same
-# > numbers. The notebook is therefore reproducible bit by bit. See [notebook 01](../ch01_computational_toolbox/01_jax_from_scratch.ipynb).
+# > numbers. The notebook is therefore reproducible bit by bit. See [notebook 01, JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb).
 
 # %% [markdown]
 # ## 3. The Schrödinger equation and the propagator
@@ -512,7 +507,7 @@ for k_short in (1, 2):
 # and record the error of every partial sum. The recurrence is a loop with a carry — exactly what `lax.scan` is for.
 #
 # > **JAX practice.** `lax.scan(body, carry, xs)` runs `carry, y = body(carry, x)` for every `x` in `xs`, inside one compiled program, and stacks the `y`s.
-# > Here the carry is `(term, partial_sum)`. A Python `for` loop under `jit` would instead be *unrolled* into `K` copies of the body. See [notebook 01](../ch01_computational_toolbox/01_jax_from_scratch.ipynb).
+# > Here the carry is `(term, partial_sum)`. A Python `for` loop under `jit` would instead be *unrolled* into `K` copies of the body. See [notebook 01, JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb).
 
 # %%
 # ==============================================================================
@@ -793,9 +788,8 @@ assert abs(slopes_ode["Euler"] - 1) < 0.25 and abs(slopes_ode["RK4"] - 4) < 0.25
 # steps needed to reach the same physical time, whatever accuracy you are content with. And unlike a discretisation parameter, $\|H\|$ cannot be reduced by
 # being more careful — it is a property of the physical system.
 #
-# > **Numerical practice.** Every explicit integrator has such a rule, with the same $2\sqrt2$ but a different $\|H\|$. In
-# > [notebook 00b](../ch01_computational_toolbox/00b_first_quantum_simulation_harmonic_oscillator.ipynb) the same Eq. (7a) was applied to a particle on a
-# > grid, where the largest eigenvalue of the discretised kinetic operator is $E_{\max}\simeq2/\Delta x^2$, and it turned into $\Delta t\lesssim\sqrt2\,\Delta x^2$:
+# > **Numerical practice.** Every explicit integrator has such a rule, with the same $2\sqrt2$ but a different $\|H\|$. For a
+# > particle on a grid, where the largest eigenvalue of the discretised kinetic operator is $E_{\max}\simeq2/\Delta x^2$, the same Eq. (7a) turns into $\Delta t\lesssim\sqrt2\,\Delta x^2$:
 # > halving the grid spacing forces four times as many time steps. Here the same rule reads $dt\lesssim2\sqrt2/\|H\|$ with $\|H\|\propto N$. Compute $\|H\|$
 # > (or a bound on it) *before* choosing $dt$ — never after seeing the norm blow up.
 
@@ -816,7 +810,7 @@ for n_norm in (4, 6, 8, 10, 12):
 #
 # ### 6.5 Why unitary methods are preferred
 #
-# RK4 is a perfectly respectable general-purpose choice and we will meet it again for open quantum systems, where the evolution is not unitary anyway. For closed quantum systems it has three drawbacks:
+# RK4 is a perfectly respectable general-purpose choice, also for open quantum systems, where the evolution is not unitary anyway. For closed quantum systems it has three drawbacks:
 #
 # 1. **No structure preservation.** Norm and energy drift systematically; the errors accumulate over long times instead of averaging out.
 # 2. **Conditional stability.** Eq. (7a): $dt\le2\sqrt2/\|H\|$ with $\|H\|\propto N$.
@@ -994,12 +988,11 @@ for name in res:
 # (The coefficients are quoted, and verified numerically in the next cell.) The local error is $O(dt^3)$; by Eq. (12) the **global error is $O(t\,dt^2)$: second order**. The price is almost nothing: in a sequence of steps
 # the last half-step of one step and the first half-step of the next merge, $e^{-iH_Adt/2}e^{-iH_Adt/2}=e^{-iH_Adt}$, so $U_2^{\,n}$ needs only one more exponential than $U_1^{\,n}$.
 # This splitting is known as *Strang splitting* in numerical analysis ([[17]](#ref-17); [[16]](#ref-16), Chapter II), as the *second-order Suzuki–Trotter decomposition* in physics [[18]](#ref-18), and — for $H=p^2/2m+V(x)$ — it is the *split-operator* method [[19]](#ref-19) or, in classical mechanics, the
-# *leapfrog/Verlet* method [[20]](#ref-20). Higher orders exist (the fourth-order formula of [[21]](#ref-21) is covered in
-# [notebook 12, Chapter 5](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb)).
+# *leapfrog/Verlet* method [[20]](#ref-20). Higher orders exist, for example the fourth-order formula of [[21]](#ref-21).
 #
 # The merging happens between consecutive steps: our `trotter_step_unitary` below builds the three-factor matrix $U_2(dt)$
-# of Eq. (14) once and then reuses it, so in this dense implementation the merging saves nothing. It matters in the matrix-free
-# implementation of notebook 05, where the layers are applied to the state one after the other at every step.
+# of Eq. (14) once and then reuses it, so in this dense implementation the merging saves nothing. It matters in a matrix-free
+# implementation, where the layers are applied to the state one after the other at every step.
 
 # %%
 # ==============================================================================
@@ -1329,7 +1322,7 @@ plt.tight_layout(); plt.show()
 # ### 7.9 A conservation law as a free diagnostic
 #
 # If an operator $Q$ commutes with *every bond term* $h_{j,j+1}$, it commutes with every factor of the Trotter step, so it is conserved **exactly** by the Trotterised dynamics, for any $dt$. Example: the XXZ chain conserves the total magnetisation
-# $M_z=\sum_jZ_j=2S^z_{\rm tot}$ (notebook 03), and each bond $J(XX+YY)+J_{zz}ZZ$ conserves it separately. Starting from the Néel state $|{\uparrow\downarrow\uparrow\downarrow}\cdots\rangle$ with $\langle S^z_{\rm tot}\rangle=0$, the Trotter evolution must keep
+# $M_z=\sum_jZ_j=2S^z_{\rm tot}$, and each bond $J(XX+YY)+J_{zz}ZZ$ conserves it separately. Starting from the Néel state $|{\uparrow\downarrow\uparrow\downarrow}\cdots\rangle$ with $\langle S^z_{\rm tot}\rangle=0$, the Trotter evolution must keep
 # it at zero to round-off even when $dt$ is far too large for the state to be accurate. If it does not, the bug is in the code, whatever the step size.
 
 # %%
@@ -1376,8 +1369,8 @@ assert float(jnp.max(jnp.abs(sz_tot))) < 100 * TOL
 # ### 8.1 The protocol
 #
 # We now use the machinery for a physics question, with $N=10$ spins ($D=1024$). The chain is prepared in $|\psi_0\rangle=|{\uparrow\uparrow\cdots\uparrow}\rangle$, a ground state of the classical Ising chain ($h=0$), and at $t=0$ the transverse field is switched on:
-# the state evolves with $H=-J\sum_jZ_jZ_{j+1}-h\sum_jX_j$. This is a **quantum quench**. The infinite chain has a quantum phase transition at $h=J$ between a ferromagnet ($h<J$) and a paramagnet ($h>J$) — you saw its
-# finite-size signature in the gap in notebook 03 — so we compare three quenches: within the ferromagnetic phase ($h=0.5J$), to the critical point ($h=J$), and across it ($h=2J$). Experiments of exactly this type are performed with
+# the state evolves with $H=-J\sum_jZ_jZ_{j+1}-h\sum_jX_j$. This is a **quantum quench**. The infinite chain has a quantum phase transition at $h=J$ between a ferromagnet ($h<J$) and a paramagnet ($h>J$),
+# so we compare three quenches: within the ferromagnetic phase ($h=0.5J$), to the critical point ($h=J$), and across it ($h=2J$). Experiments of exactly this type are performed with
 # trapped-ion chains and Rydberg-atom arrays. We record
 #
 # * the magnetisation $m_z(t)=\frac1N\sum_j\langle Z_j\rangle$: does the order survive?
@@ -1556,13 +1549,11 @@ print(f"   the column j = 0 is not a correlation but the on-site variance C_00 =
 # triggers already on the tail and **over**estimates it. The printed numbers do exactly that: $3.4$, $3.7$, $4.0$, $4.3$ for the four criteria, bracketing the
 # parameter-free prediction $2v_{\max}=4J$. The correct statement is therefore that *the front velocity of the
 # $xx$-correlations is $4J$ to within the systematic uncertainty of the front definition, which at $N=10$ is some ten per cent.* Extracting a velocity better than that
-# needs a longer chain, or a fit to the whole space–time profile rather than to one contour of it — see
-# [notebook 15, Chapter 5](../ch05_ground_states_and_unitary_dynamics/15_quench_dynamics_spin_chains.ipynb), where the same bias is studied at several fields.
+# needs a longer chain, or a fit to the whole space–time profile rather than to one contour of it.
 #
 # > **Common pitfall.** Quoting a light-cone velocity without quoting the threshold that defined the front is meaningless. Always vary the threshold and report the spread.
 #
-# > **Physics insight.** The light cone is also the reason why time evolution is *hard* for cleverer classical methods: correlations — and with them entanglement — grow linearly in time after a quench. We will quantify this in
-# > [notebook 15, Chapter 5](../ch05_ground_states_and_unitary_dynamics/15_quench_dynamics_spin_chains.ipynb) and meet its consequences for matrix product states in [notebook 18, Chapter 7](../ch07_tensor_networks/18_mps_tebd.ipynb).
+# > **Physics insight.** The light cone is also the reason why time evolution is *hard* for cleverer classical methods: correlations — and with them entanglement — grow linearly in time after a quench.
 #
 # ### 8.4 The Loschmidt echo
 #
@@ -1717,7 +1708,7 @@ for n_ex in (12, 14, 16):
 # 4 for a dense matrix–vector product. Do not expect the measured ratio between two consecutive sizes to *be* 8. Matrices of a few thousand rows are still small for a multi-core CPU, which uses its cores
 # better the larger the problem gets, so the ratio comes out *below* 8 while fixed overheads still dominate and can overshoot 8 once they stop dominating; a machine shared with other jobs adds scatter on top. Only the trend over several sizes is meaningful.
 # The extrapolation is unambiguous all the same: whatever your machine, full diagonalisation passes from about half a second at $N=10$ to half an hour at $N\approx14$ and more than a day at $N\approx16$, and well before that the memory table above has the last word. *Every* method of this notebook — eigendecomposition, `expm`, Euler, RK4, our dense Trotter — hits the same wall at $N\approx12$–$14$, because every one
-# of them stores at least one $2^N\times2^N$ matrix. (Sparse matrices, the traditional remedy mentioned in notebook 03, reduce the $4^N$ to about $N2^N$ for $H$ itself, but the propagator and the eigenvector matrix are dense regardless.)
+# of them stores at least one $2^N\times2^N$ matrix. (Sparse matrices, the traditional remedy, reduce the $4^N$ to about $N2^N$ for $H$ itself, but the propagator and the eigenvector matrix are dense regardless.)
 #
 # ### What must change
 #
@@ -1742,8 +1733,7 @@ for n in (8, 10):
 #
 # > **Never build the big matrix. Only ever apply small matrices directly to the state.**
 #
-# To do so we need a representation of the state in which "spins $j$ and $j+1$" can be addressed directly: the state as a tensor with one index per spin, and `einsum` to contract small operators into it. That is the subject of
-# [notebook 05 — Matrix-free operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb), where the very quench of Section 8 is repeated for $N=16$–$20$ spins — impossible with the dense tools of this notebook — using the *same* Trotter formulas derived here.
+# To do so we need a representation of the state in which "spins $j$ and $j+1$" can be addressed directly: the state as a tensor with one index per spin, and `einsum` to contract small operators into it.
 
 # %% [markdown]
 # ## 10. Summary — key takeaways

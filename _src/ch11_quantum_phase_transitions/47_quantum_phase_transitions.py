@@ -20,7 +20,7 @@
 # The practical problem of this notebook is therefore to **extract a sharp statement about the infinite system from
 # smooth data on small ones**. That is a numerical-methods question, and the answer - finite-size scaling - is the
 # same one used for classical Monte Carlo, for cold-atom experiments with a few hundred atoms, and for tensor-network
-# calculations such as those of notebook 18 (Chapter 7).
+# calculations.
 #
 # We use the **transverse-field Ising model** (TFIM) as the benchmark,
 #
@@ -46,6 +46,9 @@
 #    against its free-fermion solution, with $c=1$, and the Kosterlitz-Thouless point of the XXZ chain (Sec. 10).
 # 7. Cost, limits, takeaways, exercises (Secs. 11-13).
 #
+# The notebook assumes the restarted Lanczos solver and its symmetry sectors ([notebook 11, Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb)), entanglement entropy from
+# Schmidt values ([notebook 06, states, observables and entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb)) and DMRG ([notebook 18, matrix product states](../ch07_tensor_networks/18_mps_tebd.ipynb)).
+#
 # ### What you will learn
 #
 # * Why $\langle Z_j\rangle=0$ on every finite chain, and what to measure instead.
@@ -53,19 +56,6 @@
 # * Four ways to see one transition, and what each costs.
 # * How to turn $N=8,\dots,16$ into a critical point and two exponents, and how far to trust the result.
 # * Why a Kosterlitz-Thouless transition defeats the same procedure, and how to recognise that from the data.
-#
-# ### Prerequisites
-#
-# * Lanczos, restarts and symmetry sectors: [notebook 11 (Chapter 5)](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb),
-#   Secs. 5-11; its Sec. 10.3 derives the tunnelling splitting of the ordered phase used below, and its Sec. 11 takes
-#   a first look at this transition at $N=8,12,16$ together with the free-fermion solution quoted there.
-# * Entanglement entropy from Schmidt values: [notebook 06 (Chapter 3)](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb).
-# * Matrix product states, MPOs and DMRG: [notebook 18 (Chapter 7)](../ch07_tensor_networks/18_mps_tebd.ipynb), Sec. 6.
-# * `jax.jit` and traced arguments: [notebook 01 (Chapter 1)](../ch01_computational_toolbox/01_jax_from_scratch.ipynb).
-# * The Jordan-Wigner mapping to free fermions, quoted without proof:
-#   [notebook 15 (Chapter 5)](../ch05_ground_states_and_unitary_dynamics/15_quench_dynamics_spin_chains.ipynb), Sec. 7.2.
-# * Optional, for one remark in Sec. 7: the quantum Fisher information of a pure state,
-#   [notebook 29 (Chapter 10)](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb), Sec. 6.2.
 
 # %%
 #@engine: I2, X, Y, Z, XX, YY, ZZ, product_state, haar_state, apply_gate, heisenberg_terms, apply_hamiltonian, energy, dense_hamiltonian, lanczos, lanczos_ground_state, expect_local, schmidt_values, entanglement_entropy, fidelity_pure, xxz_mpo, mpo_to_dense, product_mps, dmrg, mps_entropies, mps_expect_sites, mps_correlator, mps_to_state
@@ -103,12 +93,11 @@
 #
 # $$ m^2 = \Big\langle\Big(\frac1N\sum_iZ_i\Big)^2\Big\rangle = \frac1{N^2}\sum_{i,j}\langle Z_iZ_j\rangle , \qquad (4) $$
 #
-# which is insensitive to the sign and is the quantity to scale. (The same problem, and the same cure, appeared in
-# notebook 18 (Chapter 7), Sec. 6.9, where DMRG at $N=100$ reads the Néel order from correlation functions.)
+# which is insensitive to the sign and is the quantity to scale.
 #
 # ### 2.3 The exact results we will use as a grader
 #
-# The TFIM maps to free fermions by the Jordan-Wigner transformation ([[2]](#ref-2); notebook 15, Sec. 7.2; notebook 11, Sec. 11.2). We quote three results ([[3]](#ref-3),
+# The TFIM maps to free fermions by the Jordan-Wigner transformation ([[2]](#ref-2)). We quote three results ([[3]](#ref-3),
 # [[4]](#ref-4)) and use them only to *check* the numerics:
 #
 # $$ h_c = J, \qquad \Delta_\infty(h)=2|J-h|, \qquad m_\infty(h)=\big(1-(h/J)^2\big)^{1/8}\ \ (h<J) . \qquad (5) $$
@@ -187,8 +176,8 @@ for N_ in (8, 16, 64):
 #
 # ## 3. The tool: Lanczos inside a symmetry sector
 #
-# The gap needs the first excited state, and the restarted Lanczos solver [[6]](#ref-6) of notebook 11 (Chapter 5) returns only the
-# lowest one. The symmetry solves the problem, as in Sec. 10 of that notebook. If $[H,P]=0$ and the start vector satisfies $P|v\rangle=p|v\rangle$, then $PH^k|v\rangle=pH^k|v\rangle$:
+# The gap needs the first excited state, and the restarted Lanczos solver [[6]](#ref-6) built in
+# [notebook 11, Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb) returns only the lowest one. The symmetry solves the problem. If $[H,P]=0$ and the start vector satisfies $P|v\rangle=p|v\rangle$, then $PH^k|v\rangle=pH^k|v\rangle$:
 # **every Krylov vector keeps the parity of the start vector**, so Lanczos started in a sector converges to the
 # lowest state *of that sector* and never sees the other one. For the TFIM the ground state has $p=+1$ and the first
 # excited state has $p=-1$, so
@@ -394,8 +383,8 @@ for N in NS:
 # two sides, and the difference is the physics of Sec. 2.2. Above $h_c$ the ground state is unique, the first
 # excited state is a single quasi-particle in the other sector, and $\Delta$ converges to $2(h-J)$. Below $h_c$ the
 # two lowest states are the *doublet* of the two ferromagnets, which differ by a tunnelling process through $N$ spin
-# flips, so $\Delta$ is the exponentially small **tunnelling splitting** derived in notebook 11 (Chapter 5),
-# Sec. 10.3, $\Delta\approx2J(1-\lambda^2)\lambda^N$ with $\lambda=h/J$; it is not an excitation energy at all.
+# flips, so $\Delta$ is the exponentially small **tunnelling splitting** derived in
+# [notebook 11, Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb), Sec. 10.3, $\Delta\approx2J(1-\lambda^2)\lambda^N$ with $\lambda=h/J$; it is not an excitation energy at all.
 # Exactly at $h_c$ neither picture applies: the only scale is the system size, and Eq. (5b) gives
 # $\Delta=4J\sin[\pi/(4N+2)]\simeq\pi v/(2N)$ with $v=2J$.
 #
@@ -455,8 +444,7 @@ print(f"exact: m^2(0.5) = {tfim_exact_magnetisation(0.5) ** 2:.4f}, m^2(1.5) = 0
 # - *Centre* (logarithmic scale): the splitting of the two parity sectors behaves completely differently on the two
 #   sides. Above $h_c$ it converges to the bulk gap $2(h-J)$ and is finite. Below $h_c$ it collapses **exponentially
 #   with $N$** - at $h=0.5$ it falls from $6\times10^{-3}$ at $N=8$ to $2\times10^{-5}$ at $N=16$ - because there it
-#   measures the **tunnelling splitting** between the two ferromagnets, the quantity derived in notebook 11
-#   (Chapter 5); for $h=0.5$ its formula $1.5J\cdot2^{-N}$ gives $5.9\times10^{-3}$ and
+#   measures the **tunnelling splitting** between the two ferromagnets; for $h=0.5$ its formula $1.5J\cdot2^{-N}$ gives $5.9\times10^{-3}$ and
 #   $2.3\times10^{-5}$. The *physical* excitation gap $2(J-h)$ of the ordered phase lies above that doublet.
 # - *Right*: multiply the splitting by $N$. Below $h_c$ the exponential wins and $N\Delta\to0$; above $h_c$ the gap is
 #   finite and $N\Delta\to\infty$; exactly at $h_c$ the gap is $\propto1/N$ and $N\Delta$ is **almost independent of
@@ -473,7 +461,7 @@ print(f"exact: m^2(0.5) = {tfim_exact_magnetisation(0.5) ** 2:.4f}, m^2(1.5) = 0
 #
 # Away from the critical point the ground state of a gapped local Hamiltonian obeys an **area law**: in one dimension
 # the entropy of a block saturates at a constant of order $\ln\xi$, with $\xi$ the correlation length, independent of
-# the block size; Ref. [[7]](#ref-7) proved this area law for gapped one-dimensional Hamiltonians. That is the statement that made the matrix product states of the previous chapters work at all.
+# the block size; Ref. [[7]](#ref-7) proved this area law for gapped one-dimensional Hamiltonians. This area law is the reason why matrix product states describe gapped chains efficiently.
 #
 # There is a trap on the ordered side. The parity-even ground state of a finite chain is not a ferromagnet; by
 # Eq. (3) it is the **cat state** $(\vert\!\uparrow\cdots\uparrow\rangle+\vert\!\downarrow\cdots\downarrow\rangle)/\sqrt2$, up to
@@ -609,8 +597,8 @@ plt.tight_layout(); plt.show()
 # The step to $\chi_F$ is the normalisation. With $c_n$ the coefficient of $|n\rangle$ in the first-order correction,
 # the normalised state has the overlap $F=\big(1+\delta^2\sum_{n\neq0}|c_n|^2\big)^{-1/2}\approx1-\frac{\delta^2}2\sum_{n\neq0}|c_n|^2$
 # with $|\psi_0\rangle$, and Eq. (9) gives $\chi_F=\sum_{n\neq0}|c_n|^2$. The sum in Eq. (10) is the squared length of the part of
-# $\partial_h|\psi_0\rangle$ orthogonal to $|\psi_0\rangle$, so by Eq. (71) of
-# [notebook 29](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb) $\chi_F=F_Q/4$, a quarter of
+# $\partial_h|\psi_0\rangle$ orthogonal to $|\psi_0\rangle$, so by Eq. (71), derived in
+# [notebook 29, quantum Fisher information](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb), Sec. 6.2, $\chi_F=F_Q/4$, a quarter of
 # the quantum Fisher information of the ground state for the parameter $h$.
 #
 # The energy denominators explain the peak: $\chi_F$ blows up where the gap closes, provided the perturbation
@@ -815,8 +803,8 @@ plt.tight_layout(); plt.show()
 # ## 9. Beyond exact diagonalisation: the same analysis with DMRG
 #
 # Sixteen spins were enough to see every signature and to get $h_c$ to a per cent, but the scaling analysis rested
-# on five points, the smallest of which is arguably too small to be in the scaling regime at all. Notebook 18
-# (Chapter 7) built a method that removes that restriction: **DMRG** [[15]](#ref-15) finds the ground state of a chain of a hundred
+# on five points, the smallest of which is arguably too small to be in the scaling regime at all. The
+# **density-matrix renormalisation group** (DMRG) [[15]](#ref-15) removes that restriction: it finds the ground state of a chain of a hundred
 # spins directly in the matrix product format. The critical ground state is the *worst* case for an MPS, which makes
 # this a stringent test of the method: by Eq. (8) the entropy of the central cut grows by $\frac c6\log_22=1/12$
 # bit per doubling of $N$ instead of saturating, so the number of Schmidt values that matter, and with it the bond
@@ -825,7 +813,7 @@ plt.tight_layout(); plt.show()
 # > **Common pitfall.** A number that looks plausible is not yet a ground-state energy. The Néel product state has the
 # > *positive* energy $+(N-1)J$ for this ferromagnetic model, so every local problem of the first steps has a positive
 # > spectrum - and a solver with a spurious zero eigenvalue then returns $E=0$ exactly. This happens when the bond
-# > bases contain zero-norm directions (notebook 18, Sec. 6.6): the state collapses to the zero vector, and $E=0$ is
+# > bases contain zero-norm directions ([notebook 18, matrix product states](../ch07_tensor_networks/18_mps_tebd.ipynb), Sec. 6.6): the state collapses to the zero vector, and $E=0$ is
 # > printed for every sweep without an error. The engine's `dmrg` therefore builds its bond bases from genuine
 # > block states only and raises an error if a local step or the final state loses its norm; from the Néel start, the
 # > all-up state and $|+\cdots+\rangle$ alike it reaches the exact energy at $N=24$ within two sweeps (to $2\times10^{-13}$,
@@ -833,10 +821,10 @@ plt.tight_layout(); plt.show()
 # > $h\to\infty$ and the closest of the three after one sweep. Whatever the start, check the converged energy against
 # > something independent - below, the exact free-fermion value.
 #
-# The Hamiltonian enters as the matrix product operator of notebook 18, Sec. 6.2, which already covers the TFIM:
+# The Hamiltonian enters as the matrix product operator derived in [notebook 18, matrix product states](../ch07_tensor_networks/18_mps_tebd.ipynb), Sec. 6.2, which already covers the TFIM:
 # `xxz_mpo(N, 0, 0, -J, hx=-h)` builds $-J\sum Z_iZ_{i+1}-h\sum X_i$ as a $D=5$ machine, two of whose states (the
-# $X$ and $Y$ channels) are never used here - a $D=3$ machine suffices, Exercise 6. The measurements are the MPS
-# routines of the same notebook: `mps_entropies` for every cut at once, and `mps_correlator` for
+# $X$ and $Y$ channels) are never used here - a $D=3$ machine suffices, Exercise 6. The measurements use the engine's MPS
+# routines: `mps_entropies` for every cut at once, and `mps_correlator` for
 # $\langle Z_iZ_j\rangle$.
 #
 # ### 9.1 The order parameter at large $N$
@@ -896,7 +884,7 @@ assert abs(E64 - E_exact_64) / abs(E_exact_64) < 1e-8
 # DMRG reproduces the Lanczos energies and entropies at $N=16$, and at $N=64$ - where the state vector would need
 # $10^{19}$ complex numbers - it reproduces the exact free-fermion energy, which for the open chain is
 # $E_0=-\sum_n s_n$ with $s_n$ the singular values of the bidiagonal matrix of Sec. 2. The error falls with $\chi$
-# and tracks the discarded weight, as in notebook 18 (Chapter 7). *At the critical point* the Schmidt spectrum
+# and tracks the discarded weight. *At the critical point* the Schmidt spectrum
 # decays more slowly than in a gapped phase - at $N=16$ and $\chi=32$ the discarded weight is $3\times10^{-22}$ at
 # $h_c$ against $2\times10^{-31}$ and $3\times10^{-31}$ at $h=0.6$ and $1.4$ - which is the price of the
 # logarithmic entropy.

@@ -5,11 +5,11 @@
 # %% [markdown]
 # ## 1. Introduction
 #
-# The protocols of notebooks 19–22 all *started* from a known state: we prepared $|\psi\rangle$ or $\rho$ with a circuit and then
-# computed what the parties would observe. An experiment faces the reverse problem. A laboratory builds a device that is *supposed*
+# A simulated protocol *starts* from a known state: we prepare $|\psi\rangle$ or $\rho$ with a circuit and then
+# compute what the parties would observe. An experiment faces the reverse problem. A laboratory builds a device that is *supposed*
 # to prepare a Bell pair, a GHZ state or the output of a parametrised circuit, and then has to determine **which state it actually
 # prepared**. One run cannot answer this, because a measurement returns a single bit string and disturbs the state; the device must
-# be run many times. The only access is the one described in [08 — measurements](../ch03_matrix_free_engine/08_measurements.ipynb):
+# be run many times. The only access is this:
 # choose a measurement axis for every qubit, run the device, read out a string of $N$ bits, repeat. From those click statistics the
 # full density matrix must be *reconstructed*. That reconstruction problem is **quantum state tomography** (QST). It was proposed
 # in [[1]](#ref-1) for a mode of light and first carried out in [[2]](#ref-2), under the name optical homodyne tomography; the qubit version
@@ -44,8 +44,11 @@
 #    single data set; linear inversion versus projected linear inversion versus maximum likelihood on pure (Bell, GHZ, W), mixed
 #    (Werner, noisy GHZ) and random states; the bias of maximum likelihood at the boundary of the state space; and finally the cost
 #    wall ($3^N$ settings, and a total shot budget that grows like $5^N$ at fixed accuracy) that makes full tomography hopeless
-#    beyond a handful of qubits — which is why the next notebook replaces it by
-#    [24 — classical shadows](../ch08_quantum_information_protocols/24_classical_shadows.ipynb) (Sections 15–18).
+#    beyond a handful of qubits (Sections 15–18).
+#
+# The notebook assumes density tensors, the fidelity and the trace distance
+# ([notebook 07, density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb))
+# and the sampling of bit strings in rotated measurement bases ([notebook 08, measurements](../ch03_matrix_free_engine/08_measurements.ipynb)).
 #
 # ### What you will learn
 #
@@ -71,15 +74,6 @@
 # * turning a "sum over POVM elements" into a single einsum;
 # * validating a stochastic estimator: infinite-shot limit, equivalence of two derivations, monotone likelihood,
 #   agreement of two independent optimisers.
-#
-# ### Prerequisites
-# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, `lax.scan`, `grad`, PRNG keys;
-# * [02 — einsum from scratch](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb): index notation as executable code;
-# * [07 — density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb):
-#   density tensors, partial trace, Kraus channels, fidelity, trace distance;
-# * [08 — measurements](../ch03_matrix_free_engine/08_measurements.ipynb): Born rule, basis rotations, sampling bit strings, shot noise;
-# * helpful: [19 — Bell states and CHSH](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb) and
-#   [22 — GHZ states and decoherence](../ch08_quantum_information_protocols/22_ghz_states_and_decoherence.ipynb) for the states we reconstruct.
 #
 # **Conventions.** Qubit $q$ = tensor axis $q$; $|0\rangle$ is the $+1$ eigenstate of $Z$; a measurement outcome $s_q\in\{0,1\}$ means
 # eigenvalue $(-1)^{s_q}$; bit strings and Pauli strings are written with qubit $0$ leftmost (most significant digit of the flat index).
@@ -321,7 +315,7 @@ for N in (1, 2, 3):
 # engine's `collect_pauli_shadows`, so the whole function is `vmap`-able over settings.
 #
 # Then we sample. `jax.random.categorical(key, log p, shape=(shots,))` draws `shots` flat outcome indices at once
-# (Gumbel-max, notebook 08), and the bits follow from shifting and masking. Because the *counts* $n_{b,s}$ are a sufficient statistic
+# (the Gumbel-max trick), and the bits follow from shifting and masking. Because the *counts* $n_{b,s}$ are a sufficient statistic
 # for the multinomial — the order of the shots carries no information — we immediately histogram them with a scatter-add,
 # `jnp.zeros(d).at[idx].add(1.0)`, which is `vmap`-compatible (unlike `np.bincount`).
 #
@@ -385,8 +379,7 @@ def simulate_experiment(key, rho, settings, shots):
 # %% [markdown]
 # ### 5.2 A first data set, and what the raw records look like
 #
-# We take the Bell state $|\Phi^+\rangle=(|00\rangle+|11\rangle)/\sqrt2$, the workhorse of
-# [notebook 19](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb), and run all $9$ settings with $M=200$ shots each.
+# We take the Bell state $|\Phi^+\rangle=(|00\rangle+|11\rangle)/\sqrt2$ and run all $9$ settings with $M=200$ shots each.
 # Before histogramming we print the actual bit strings of the first few shots in three settings, because that — a list of bit
 # strings, one per run — is all the data an experiment ever produces.
 #
@@ -988,8 +981,7 @@ def physical_from_counts(counts, N, SIGN, COMPAT):
 # We compare OLS and WLS on two states with very different outcome statistics: the Bell state (many probabilities equal to $0$ or
 # $1/2$ — the regime where weighting should help) and a generic mixed state (all probabilities near $1/4$ — where it should not).
 # In between sits the Werner state of visibility $v$, written here with the singlet, $v\,\vert\Psi^-\rangle\langle\Psi^-\vert+(1-v)\,\mathbb 1/4$;
-# it differs from the $\vert\Phi^+\rangle$ form $\rho_W(v)$ of
-# [notebook 19](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb), Section 11, by the local unitary
+# it differs from the $\vert\Phi^+\rangle$ form $\rho_W(v)=v\,\vert\Phi^+\rangle\langle\Phi^+\vert+(1-v)\,\mathbb 1/4$ by the local unitary
 # $\mathbb 1\otimes(-iY)$ and has the same spectrum and purity. The figure of merit is the root-mean-square Frobenius error over
 # $N_{\rm rep}$ independent data sets.
 
@@ -2482,9 +2474,7 @@ fig.tight_layout(); plt.show()
 # $4^N$ parameters' worth of data — and it does not. **Randomised measurements / classical shadows** replace the deterministic sweep
 # over $3^N$ settings by *random* single-qubit bases, and replace the reconstruction of $\rho$ by an unbiased estimator of any chosen
 # observable built directly from the snapshots. The number of snapshots needed grows with $\log K$ and with $3^{k}$ for $k$-local
-# observables — independently of $N$. That is the subject of the next notebook,
-# [24 — classical shadows](../ch08_quantum_information_protocols/24_classical_shadows.ipynb), which also compares the two approaches
-# at an *equal shot budget* on the very states we reconstructed here.
+# observables — independently of $N$ [[19]](#ref-19).
 #
 # Two other standard escapes are worth naming: **compressed sensing** tomography, which exploits the fact that interesting states are
 # nearly low-rank and reconstructs them from $O(rd\log^2d)$ random Pauli expectations [[15]](#ref-15); and **tensor-network

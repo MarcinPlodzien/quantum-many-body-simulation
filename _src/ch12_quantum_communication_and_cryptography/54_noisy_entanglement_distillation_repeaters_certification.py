@@ -6,9 +6,8 @@
 # ## 1. Introduction
 #
 # Teleportation, entanglement swapping and entanglement-based key distribution all consume shared Bell pairs
-# $\vert\Phi^+\rangle=(\vert00\rangle+\vert11\rangle)/\sqrt2$, and every derivation in chapter 8 and in
-# [notebook 53](../ch12_quantum_communication_and_cryptography/53_quantum_key_distribution.ipynb) began with a perfect
-# one. Real pairs are never perfect. Photons that carry the two halves are absorbed in the fibre, the qubits decohere
+# $\vert\Phi^+\rangle=(\vert00\rangle+\vert11\rangle)/\sqrt2$, and the textbook derivations of these protocols begin
+# with a perfect one. Real pairs are never perfect. Photons that carry the two halves are absorbed in the fibre, the qubits decohere
 # while they wait in memories, the source is imperfect, and Eve may tamper with the pairs on their way. The pairs that
 # Alice and Bob actually hold are mixed states with a fidelity $F=\langle\Phi^+\vert\rho\vert\Phi^+\rangle$ below one.
 # Noise of this kind is fatal for two tasks. Over long distances the pairs must be joined by swapping, and each swap
@@ -32,9 +31,13 @@
 # long pair, and a test of a random sample with the correlations $XX$, $YY$ and $ZZ$ bounds the fidelity of the pairs
 # that are kept (Section 9).
 #
+# The notebook assumes Bell states and Werner pairs ([notebook 19, Bell states and CHSH](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb)), teleportation ([notebook 20, quantum teleportation](../ch08_quantum_information_protocols/20_quantum_teleportation.ipynb)), the Bell measurement and entanglement
+# swapping ([notebook 21, entanglement swapping and superdense coding](../ch08_quantum_information_protocols/21_entanglement_swapping_and_superdense_coding.ipynb)), monogamy and the Holevo quantity ([notebook 52, quantum rules, channels and capacities](52_quantum_rules_channels_and_capacities.ipynb)), and the key rate of entanglement-based key distribution
+# ([notebook 53, quantum key distribution](53_quantum_key_distribution.ipynb)).
+#
 # ### 1.1 Road map
 #
-# * **Section 3** recalls Werner pairs and derives what happens when both halves of a pair are depolarised.
+# * **Section 3** introduces Werner pairs and derives what happens when both halves of a pair are depolarised.
 # * **Section 4** shows that teleportation through a Werner pair is a depolarising channel, by linearity and with the
 #   engine's teleportation circuit.
 # * **Section 5** derives twirling: the invariance of $\vert\Phi^+\rangle$ under $U\otimes U^*$ and the twirl with the
@@ -72,34 +75,15 @@
 # * every formula checked against an engine computation, with `assert`;
 # * wrong controls that must fail: a dephased resource in teleportation, the $U\otimes U$ twirl, the Pauli-only
 #   twirl, distillation without postselection, a source with only $Z$ correlations, and fixed test positions.
-#
-# ### Prerequisites
-#
-# * [Notebook 19](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb): Bell states and their
-#   correlations (Sections 3–4), Werner states with visibility $v$ and their entanglement and CHSH thresholds
-#   (Section 11).
-# * [Notebook 20](../ch08_quantum_information_protocols/20_quantum_teleportation.ipynb): the teleportation circuit
-#   (Section 4), the classical benchmark $2/3$ (Section 8) and teleportation through a noisy pair (Section 10).
-# * [Notebook 21](../ch08_quantum_information_protocols/21_entanglement_swapping_and_superdense_coding.ipynb): the Bell
-#   measurement (Section 3), Werner states as random Pauli errors and the swapping rule (Section 10), and the decay of a
-#   chain without distillation (Section 11).
-# * [Notebook 52](../ch12_quantum_communication_and_cryptography/52_quantum_rules_channels_and_capacities.ipynb):
-#   monogamy and purification (Section 6.2), the Holevo quantity (Section 9.1), and the depolarising channel
-#   (Section 8.2).
-# * [Notebook 53](../ch12_quantum_communication_and_cryptography/53_quantum_key_distribution.ipynb): bit and phase
-#   errors, the conditional entropy with quantum side information and the key thresholds of Werner pairs
-#   (Sections 7.1–7.5).
-# * [Notebook 07](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb): density tensors, partial
-#   traces and Kraus channels.
 
 # %% [markdown]
 # ## 2. Engine recap and helpers
 #
-# A pair of qubits is a density tensor of shape $(2,2,2,2)$, with two ket axes followed by two bra axes (notebook 07,
-# Section 5). Channels act with `apply_kraus_dm`, gates and projectors with `apply_gate_dm`, and partial traces with
+# A pair of qubits is a density tensor of shape $(2,2,2,2)$, with two ket axes followed by two bra axes.
+# Channels act with `apply_kraus_dm`, gates and projectors with `apply_gate_dm`, and partial traces with
 # `rdm_dm`. Four-qubit states, two pairs side by side, are tensors of rank eight. The helper cell defines the Bell
 # basis in the order $\Phi^+,\Phi^-,\Psi^+,\Psi^-$, the Werner pair, the fidelity with $\vert\Phi^+\rangle$ and the
-# weights of a state in the Bell basis. As in the earlier notebooks of the chapter, experiment $i$ draws its random
+# weights of a state in the Bell basis. Experiment $i$ draws its random
 # numbers from its own key `jax.random.fold_in(MASTER, i)`.
 
 # %%
@@ -196,7 +180,7 @@ def random_pair_state(key):
 # ### 3.1 Recap: one noisy half
 #
 # The standard noise model of a shared pair comes from sending one half of $\vert\Phi^+\rangle$ through the
-# depolarising channel. In notebook 52, Section 8.2, the channel was written as
+# depolarising channel,
 # $\mathcal E(\rho)=(1-p)\rho+\frac p3(X\rho X+Y\rho Y+Z\rho Z)$. Each conjugation by a Pauli matrix flips the sign of
 # two of the three Bloch components, so $\tfrac14(\rho+X\rho X+Y\rho Y+Z\rho Z)=\tfrac12\mathbb 1$ for every qubit
 # state. Substituting $X\rho X+Y\rho Y+Z\rho Z=2\,\mathbb 1-\rho$ gives
@@ -205,8 +189,7 @@ def random_pair_state(key):
 # $$\mathcal D_v(\rho)=v\,\rho+(1-v)\,\frac{\mathbb 1}{2},\qquad v=1-\frac{4p}{3}: \tag{1}$$
 #
 # with probability $v$ the qubit passes untouched, otherwise it is replaced by the maximally mixed state. Applied to
-# Bob's half of $\vert\Phi^+\rangle$, whose other half is maximally mixed, it gives the **Werner pair** [[1]](#ref-1) of
-# [notebook 19](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb), Section 11,
+# Bob's half of $\vert\Phi^+\rangle$, whose other half is maximally mixed, it gives the **Werner pair** [[1]](#ref-1),
 #
 # $$\rho_W(v)=v\,\vert\Phi^+\rangle\langle\Phi^+\vert+(1-v)\,\frac{\mathbb 1}{4},\qquad
 # F=\langle\Phi^+\vert\rho_W\vert\Phi^+\rangle=\frac{1+3v}{4}. \tag{2}$$
@@ -219,12 +202,12 @@ def random_pair_state(key):
 #
 # the perfect pair with weight $F$, and the three other Bell states, the **error states**, with equal weights. The
 # maximally mixed part has no correlations, so $\langle XX\rangle=\langle ZZ\rangle=v$ and
-# $\langle YY\rangle=-v$, and Alice's and Bob's $Z$ outcomes differ with probability $Q=(1-v)/2$, the error rate of
-# notebook 53. Notebook 21, Section 10.1, reads Eq. (3) as a perfect pair hit by a random Pauli error on one side. The
+# $\langle YY\rangle=-v$, and Alice's and Bob's $Z$ outcomes differ with probability $Q=(1-v)/2$, the quantum bit
+# error rate. Equation (3) also describes a perfect pair hit by a random Pauli error on one side ([notebook 21, entanglement swapping and superdense coding](../ch08_quantum_information_protocols/21_entanglement_swapping_and_superdense_coding.ipynb), Section 10.1). The
 # Werner pair is entangled exactly for $v>1/3$, or $F>1/2$: the partial transpose has the eigenvalue $(1-3v)/4$, a
 # negative one signals entanglement [[2]](#ref-2), and for two qubits a positive partial transpose implies separability
-# [[3]](#ref-3), as derived in notebook 19, Section 11, and in
-# [notebook 25](../ch09_entanglement_and_complexity/25_entanglement_negativity.ipynb), Section 6.3.
+# [[3]](#ref-3), as derived in
+# [notebook 25, entanglement negativity](../ch09_entanglement_and_complexity/25_entanglement_negativity.ipynb), Section 6.3.
 #
 # ### 3.2 Both halves noisy
 #
@@ -289,8 +272,8 @@ assert max_abs(rho_dp - werner(v_of_F(lam_dp[0]))) > 0.01
 #
 # ## 4. Teleportation through a Werner pair
 #
-# Teleportation, introduced in [[4]](#ref-4) and derived in notebook 20,
-# Section 4, sends an unknown qubit $\rho$ from Alice to Bob with one shared pair and two
+# Teleportation, introduced in [[4]](#ref-4) and derived in
+# [notebook 20, quantum teleportation](../ch08_quantum_information_protocols/20_quantum_teleportation.ipynb), Section 4, sends an unknown qubit $\rho$ from Alice to Bob with one shared pair and two
 # classical bits: Alice measures her input and her half of the pair in the Bell basis, and Bob corrects his half with
 # $X^{m_2}$ and $Z^{m_1}$. With a Werner pair as the resource, Bob receives
 #
@@ -306,13 +289,13 @@ assert max_abs(rho_dp - werner(v_of_F(lam_dp[0]))) > 0.01
 # $\square$
 #
 # Teleportation through a Werner pair is therefore the depolarising channel of Eq. (1): the Bloch vector of the input
-# is shortened by the factor $v$, and its direction, which carries the state, is intact. Notebook 20, Section 10,
-# derives the more general statement that a Bell-diagonal resource gives a Pauli channel, and the fidelity
-# averaged over pure inputs, $\bar f=(1+v)/2=(2F+1)/3$. It exceeds the best classical value $2/3$, reached by
-# measuring the input and preparing a guess ([[5]](#ref-5); notebook 20, Section 8), exactly when $v>1/3$,
+# is shortened by the factor $v$, and its direction, which carries the state, is intact. More generally, a
+# Bell-diagonal resource gives a Pauli channel, and the fidelity averaged over pure inputs is
+# $\bar f=(1+v)/2=(2F+1)/3$, both derived in [notebook 20, quantum teleportation](../ch08_quantum_information_protocols/20_quantum_teleportation.ipynb), Section 10. It exceeds the best classical value $2/3$, reached by
+# measuring the input and preparing a guess ([[5]](#ref-5)), exactly when $v>1/3$,
 # which is when the Werner pair is entangled.
 #
-# The next cell runs the teleportation circuit of notebook 20 on a three-qubit density tensor: the input on qubit 0,
+# The next cell runs the teleportation circuit on a three-qubit density tensor: the input on qubit 0,
 # the resource on qubits 1 and 2, the Bell measurement as $\mathrm{CNOT}_{01}$ followed by $H_0$ and the projectors
 # $P_{m_1}\otimes P_{m_2}$, Bob's correction $Z^{m_1}X^{m_2}$, and the sum over the four outcomes. It compares Bob's
 # state with Eq. (5) for $20$ random mixed inputs at several visibilities. The wrong control uses the dephased pair of
@@ -391,7 +374,7 @@ assert abs(shrink[2] - 1) < TOL and abs(shrink[0] - shrink[2]) > 0.1
 # *Proof.* For any $2\times2$ matrix $M$,
 # $(\mathbb 1\otimes M)\vert\Phi^+\rangle=\tfrac1{\sqrt2}\sum_{i,j}M_{ji}\vert i\rangle\vert j\rangle=
 # (M^{\mathsf T}\otimes\mathbb 1)\vert\Phi^+\rangle$: an operator on Bob's half can be moved to Alice's half as its
-# transpose (notebook 21, Section 3.2). With $M=U^*$, $(U^*)^{\mathsf T}=U^\dagger$, hence
+# transpose ([notebook 21, entanglement swapping and superdense coding](../ch08_quantum_information_protocols/21_entanglement_swapping_and_superdense_coding.ipynb), Section 3.2). With $M=U^*$, $(U^*)^{\mathsf T}=U^\dagger$, hence
 # $(U\otimes U^*)\vert\Phi^+\rangle=(UU^\dagger\otimes\mathbb 1)\vert\Phi^+\rangle=\vert\Phi^+\rangle$. $\square$
 #
 # Equation (6) has a direct consequence for any state $\rho$ of the pair: the fidelity is unchanged by the local
@@ -435,7 +418,7 @@ assert abs(shrink[2] - 1) < TOL and abs(shrink[0] - shrink[2]) > 0.1
 # $\vert\Phi^+\rangle$: $\vert\Phi^-\rangle=(Z\otimes\mathbb 1)\vert\Phi^+\rangle$,
 # $\vert\Psi^+\rangle=(X\otimes\mathbb 1)\vert\Phi^+\rangle$, and $\vert\Psi^-\rangle\propto(Y\otimes\mathbb
 # 1)\vert\Phi^+\rangle$
-# (notebook 21, Section 3.1). By Eq. (6),
+# ([notebook 21, entanglement swapping and superdense coding](../ch08_quantum_information_protocols/21_entanglement_swapping_and_superdense_coding.ipynb), Section 3.1). By Eq. (6),
 # $(K\otimes K^*)(\sigma\otimes\mathbb 1)\vert\Phi^+\rangle=(K\sigma K^\dagger\otimes\mathbb 1)(K\otimes K^*)
 # \vert\Phi^+\rangle=(K\sigma K^\dagger\otimes\mathbb 1)\vert\Phi^+\rangle$, so $K\otimes K^*$ leaves
 # $\vert\Phi^+\rangle$ alone and permutes the three error states cyclically, $\Psi^+\to\Psi^-\to\Phi^-\to\Psi^+$, up to
@@ -574,8 +557,8 @@ plt.tight_layout(); plt.show()
 #
 # ### 6.1 Every mixed pair is part of a pure state
 #
-# A mixed state of Alice and Bob is the reduced state of a pure state of a larger system (notebook 07, Section 4;
-# notebook 52, Section 6.2). If $\rho_{AB}=\sum_k\lambda_k\vert k\rangle\langle k\vert$ is its spectral decomposition,
+# A mixed state of Alice and Bob is the reduced state of a pure state of a larger system ([notebook 52, quantum rules, channels and capacities](52_quantum_rules_channels_and_capacities.ipynb),
+# Section 6.2). If $\rho_{AB}=\sum_k\lambda_k\vert k\rangle\langle k\vert$ is its spectral decomposition,
 # then
 #
 # $$\vert\Omega\rangle_{ABE}=\sum_k\sqrt{\lambda_k}\,\vert k\rangle_{AB}\,\vert e_k\rangle_E, \tag{10}$$
@@ -592,14 +575,14 @@ plt.tight_layout(); plt.show()
 # because every other system correlated with the pair can be obtained from $E$ by an operation on $E$ alone, so
 # whatever Eve could learn from any physical extension of the pair she can also learn from $E$. (Any extension can
 # itself be purified, and two purifications of the same $\rho_{AB}$ differ only by an isometry on the purifying
-# system; Eve applies that isometry to $E$ and discards the part she does not need.) Monogamy (notebook 52,
-# Section 6.2) gives the two limits: for $F=1$ the pair is pure and Eve is uncorrelated with it, and for $F<1$ the
-# bound of notebook 52, Eq. (11), leaves her a mutual information with the pair of at most
+# system; Eve applies that isometry to $E$ and discards the part she does not need.) Monogamy ([notebook 52, quantum rules, channels and capacities](52_quantum_rules_channels_and_capacities.ipynb),
+# Section 6.2) gives the two limits: for $F=1$ the pair is pure and Eve is uncorrelated with it, and for $F<1$ its
+# quantitative form, Eq. (11) there, leaves her a mutual information with the pair of at most
 # $2\big[h(F)+(1-F)\log_23\big]$ bits. Noise in a shared pair is information that may have leaked.
 #
 # ### 6.3 Eve's information about the key bits
 #
-# How much does Eve learn about Alice's $Z$ outcome, the key bit of notebook 53, if she holds the purification of a
+# How much does Eve learn about Alice's $Z$ outcome, the key bit, if she holds the purification of a
 # Bell-diagonal pair with weights $\lambda_{\Phi^+},\lambda_{\Phi^-},\lambda_{\Psi^+},\lambda_{\Psi^-}$? Write
 # Eq. (10) in the computational basis of Alice's qubit, with Eve's states $\vert e_{\Phi^\pm}\rangle$,
 # $\vert e_{\Psi^\pm}\rangle$:
@@ -615,17 +598,17 @@ plt.tight_layout(); plt.show()
 # $\lambda_{\Phi^+}+\lambda_{\Phi^-}=1-Q_Z$ and $\lambda_{\Psi^+}+\lambda_{\Psi^-}=Q_Z$, so its entropy is $h(Q_Z)$;
 # the same holds for $a=1$. Eve's average state is $\rho_E=\tfrac12(\rho_E^0+\rho_E^1)$, which has the eigenvalues
 # $\lambda_k$ because the $\vert e_k\rangle$ are orthonormal, so $S(\rho_E)=H(\lambda)$, the Shannon entropy of the four
-# weights. Eve's information about the key bit is the Holevo quantity of her two states (notebook 52, Section 9.1),
+# weights. Eve's information about the key bit is the Holevo quantity of her two states,
 #
 # $$I(Z_A{:}E)=S(\rho_E)-\tfrac12\big[S(\rho_E^0)+S(\rho_E^1)\big]=H(\lambda)-h(Q_Z). \tag{11}$$
 #
 # This is the quantity that enters the key rate. After Alice's measurement, Alice's bit and Eve's system are in the
 # state $\rho_{Z_AE}=\tfrac12\sum_a\vert a\rangle\langle a\vert\otimes\rho_E^a$, whose blocks are orthogonal, so
-# $S(\rho_{Z_AE})=1+\tfrac12\sum_aS(\rho_E^a)$. Notebook 53, Eq. (16), then gives
+# $S(\rho_{Z_AE})=1+\tfrac12\sum_aS(\rho_E^a)$. Equation (16) of [notebook 53, quantum key distribution](53_quantum_key_distribution.ipynb) then gives
 # $H(Z_A\vert E)=S(\rho_{Z_AE})-S(\rho_E)=1-I(Z_A{:}E)$.
 #
-# Bob knows $I(Z_A{:}Z_B)=1-h(Q_Z)$ about the same bit (notebook 50, Section 5). The Devetak–Winter rate of notebook 53,
-# Eq. (15), is the difference, and $h(Q_Z)$ cancels:
+# Bob knows $I(Z_A{:}Z_B)=1-h(Q_Z)$ about the same bit. The Devetak–Winter rate, Eq. (15) of
+# [notebook 53, quantum key distribution](53_quantum_key_distribution.ipynb), is the difference, and $h(Q_Z)$ cancels:
 #
 # $$r=I(Z_A{:}Z_B)-I(Z_A{:}E)=1-H(\lambda). \tag{12}$$
 #
@@ -633,13 +616,13 @@ plt.tight_layout(); plt.show()
 # pair. Every bit of mixedness of the pair is a bit of entanglement that Eve may hold, and it costs one key bit.
 # For a Werner pair $H(\lambda)=h(F)+(1-F)\log_23$, by the grouping rule of the Shannon entropy. Equation (12) assumes
 # that Alice and Bob know all four weights. For a Bell-diagonal pair they can measure them: the error rates in the
-# three bases are $Q_Z=\lambda_{\Psi^+}+\lambda_{\Psi^-}$, $Q_X=\lambda_{\Phi^-}+\lambda_{\Psi^-}$ (notebook 53,
-# Eq. (14)) and $Q_Y=\lambda_{\Phi^-}+\lambda_{\Psi^+}$, the probability that the $Y$ outcomes agree, since
+# three bases are $Q_Z=\lambda_{\Psi^+}+\lambda_{\Psi^-}$, $Q_X=\lambda_{\Phi^-}+\lambda_{\Psi^-}$ (Eq. (14) of
+# [notebook 53, quantum key distribution](53_quantum_key_distribution.ipynb)) and $Q_Y=\lambda_{\Phi^-}+\lambda_{\Psi^+}$, the probability that the $Y$ outcomes agree, since
 # $\vert\Phi^+\rangle$ gives opposite ones; three equations fix three weights, and the fourth follows from the
 # normalisation. A protocol that tests all three bases is the six-state protocol of [[7]](#ref-7). BB84 tests only $Z$
 # and $X$ and must assume the worst weights compatible with them. For $Q_Z=Q_X=Q$ these are independent bit and
 # phase errors, $\lambda=\big((1-Q)^2,\,Q(1-Q),\,Q(1-Q),\,Q^2\big)$, with $H(\lambda)=2h(Q)$, the largest value the two
-# constraints allow; Eq. (12) then gives the rate $1-2h(Q)$ of notebook 53.
+# constraints allow; Eq. (12) then gives the BB84 rate $1-2h(Q)$.
 #
 # The next cell builds the purification Eq. (10) on four qubits, $A$, $B$ and a two-qubit Eve, checks that it reduces
 # to the pair, computes $I(Z_A{:}E)=1-H(Z_A\vert E)$ from the engine's reduced density matrices for random
@@ -735,7 +718,7 @@ plt.tight_layout(); plt.show()
 # information falls from one bit at $F=1/4$ to zero at $F=1$, while Bob's rises. The key rate $1-H(\lambda)$ is
 # positive above $F=0.811$, an error rate $Q_Z=12.6\,\%$; the BB84 bound, which assumes the worst weights compatible
 # with
-# $Q_Z$ and $Q_X$, needs $F>0.835$. The wrong control is the classically correlated pair of notebook 53, Section 6.1,
+# $Q_Z$ and $Q_X$, needs $F>0.835$. The wrong control is the classically correlated pair,
 # seen
 # from Eve's side: no bit errors, and a complete copy of the key with Eve. A low error rate in one basis says nothing
 # about Eve; the weight of $\vert\Phi^+\rangle$, which needs tests in more than one basis, does.
@@ -844,7 +827,7 @@ assert n_ok == 16
 # select agreeing outcomes, the trace of what remains is $P_{\rm succ}$, and `rdm_dm` keeps the source pair. It works
 # for any input pair, not only Werner pairs. The second version runs the protocol as an experiment would: in each run
 # two pairs are prepared as $\vert\Phi^+\rangle$ hit by a random Pauli error on Alice's side with the Werner
-# probabilities $(F,e,e,e)$ (notebook 21, Section 10.1); the bilateral CNOT acts on the four-qubit state vector,
+# probabilities $(F,e,e,e)$ ([notebook 21, entanglement swapping and superdense coding](../ch08_quantum_information_protocols/21_entanglement_swapping_and_superdense_coding.ipynb), Section 10.1); the bilateral CNOT acts on the four-qubit state vector,
 # `measure_qubit` draws the two target outcomes, and the run succeeds if they agree. The function is compiled with
 # `jax.jit` and mapped over $4\times10^4$ independent keys with `jax.vmap`. The wrong control keeps the source pair
 # whatever the outcomes are: averaged over the target, the source then receives the target's phase errors without
@@ -1047,7 +1030,7 @@ plt.tight_layout(); plt.show()
 # A typical value for standard telecom fibre at a wavelength near $1550$ nm is $\alpha=0.2$ dB/km [[10]](#ref-10),
 # which gives
 # $\eta=10^{-2}$ over $100$ km and $\eta=10^{-10}$ over $500$ km. A classical signal is amplified every few tens of
-# kilometres, but an amplifier would copy an unknown quantum state, which no-cloning forbids (notebook 52, Section 4).
+# kilometres, but an amplifier would copy an unknown quantum state, which no-cloning forbids.
 # Ref. [[11]](#ref-11) proved that the number of secret-key bits, or of ebits, that any
 # protocol can distribute through a lossy channel of transmission $\eta$ without intermediate stations is at most
 #
@@ -1058,15 +1041,15 @@ plt.tight_layout(); plt.show()
 #
 # ### 8.2 Swapping with noisy links
 #
-# Entanglement swapping ([[12]](#ref-12); notebook 21, Sections 4–10) joins a pair $(A,R_1)$
+# Entanglement swapping ([[12]](#ref-12)) joins a pair $(A,R_1)$
 # and a pair $(R_2,B)$ into a pair $(A,B)$
 # by a Bell measurement at the middle node and a Pauli correction. With Werner links the visibilities multiply,
 #
 # $$\rho_W(v_1),\ \rho_W(v_2)\ \xrightarrow{\ \text{swap}\ }\ \rho_W(v_1v_2),\qquad
 # F_{\rm out}=F_1F_2+\frac{(1-F_1)(1-F_2)}{3}, \tag{20}$$
 #
-# as derived in notebook 21, Section 10.3, from the composition of two random Pauli errors. A chain of $n$ links swapped
-# without distillation ends with $v^n$, and notebook 21, Section 11, shows its exponential decay to a separable pair.
+# as derived in [notebook 21, entanglement swapping and superdense coding](../ch08_quantum_information_protocols/21_entanglement_swapping_and_superdense_coding.ipynb), Section 10.3, from the composition of two random Pauli errors. A chain of $n$ links swapped
+# without distillation ends with $v^n$, which decays exponentially towards a separable pair.
 # The next cell implements the swap on a four-qubit density tensor, summed over the four outcomes of the Bell
 # measurement with the correction applied, and checks Eq. (20); the function is reused in the repeater chain below.
 
@@ -1597,20 +1580,6 @@ plt.tight_layout(); plt.show()
 # error types from step to step, so that errors of every type are eventually tested. 8: $F_0\approx0.956$; this
 # fixed point is unstable: above it the fidelity grows with every level, below it the fidelity decays,
 # because the factor $2(2/3)^2=8/9$ of Eq. (21) holds only near $F=1$ and the map of a level is weaker at lower $F$.
-#
-# ## 12. Chapter 12 in one paragraph
-#
-# The chapter began with Shannon's question of how much information a noisy channel carries (notebook 50) and with
-# the classical answer to secrecy, the one-time pad, which needs a secret key as long as the message (notebook 51).
-# Quantum mechanics changes the situation through three rules derived in notebook 52: unknown states cannot be copied,
-# gaining information disturbs them, and entanglement is monogamous. Notebook 53 turned these rules into quantum key
-# distribution, in which the error rate that Alice and Bob observe bounds what Eve can know, and the secret key rate
-# $1-2h(Q)$ follows from an uncertainty relation. This notebook supplied the resource that the entanglement-based
-# protocols consume, real entangled pairs: Werner pairs as their model, twirling to bring any pair into that form,
-# distillation to make few good pairs out of many noisy ones, repeaters to carry them across distances that loss
-# would otherwise forbid, and statistical certification to trust them when the source is not trusted. Every step was
-# a protocol of local operations and classical communication acting on shared quantum states, and every step was
-# simulated with the same engine.
 #
 # ## References
 #

@@ -5,7 +5,7 @@
 # %% [markdown]
 # ## 1. Introduction
 #
-# The first two notebooks of this chapter treated communication with classical signals. Bits sent through a noisy
+# With classical signals, bits sent through a noisy
 # channel can be protected by error correction, and a message can be made perfectly secret with a one-time pad, but only
 # if Alice and Bob already share a secret random key as long as the message. On a classical line Eve can copy every
 # signal without leaving a trace, so Alice and Bob have no way of bounding what she knows. This notebook asks what
@@ -28,7 +28,7 @@
 # the error rate, and infer an upper bound on what Eve can know. Entanglement adds a fourth rule with the same effect:
 # a pair that is maximally entangled cannot be correlated with anything else. The second half of the notebook turns from
 # eavesdroppers to noise. A quantum channel is described by its Kraus operators, and its usefulness is measured by
-# capacities, the quantum counterparts of Shannon's capacity of notebook 50: how many classical bits, and how many
+# capacities, the quantum counterparts of Shannon's capacity: how many classical bits, and how many
 # qubits, it carries reliably per use.
 #
 # ### 1.1 Road map
@@ -36,7 +36,7 @@
 # * **Section 3** proves that nonorthogonal states cannot be distinguished with certainty and derives the Helstrom
 #   bound on the best probability of success, checked by optimising over measurements for $\vert0\rangle$ against
 #   $\vert+\rangle$.
-# * **Section 4** recalls the no-cloning theorem of notebook 20 and adds its consequences for communication, with a
+# * **Section 4** states the no-cloning theorem and adds its consequences for communication, with a
 #   measure-and-prepare copier applied to the four BB84 states.
 # * **Section 5** proves that information gain implies disturbance and simulates a probe attack of tunable strength on
 #   BB84 states: Eve's information against the error rate seen by Bob.
@@ -47,6 +47,10 @@
 # * **Section 9** defines the classical capacity with the Holevo bound, the quantum capacity with the coherent
 #   information, and the entanglement-assisted capacity, and computes them for these channels.
 # * **Section 10** collects what quantum key distribution takes from these results.
+#
+# The notebook assumes the entropies and classical capacities of [notebook 50, entropy and noisy channels](50_information_entropy_and_noisy_channels.ipynb), density matrices and Kraus channels
+# ([notebook 07, density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb)), the trace distance and the Schmidt decomposition ([notebook 06, states, observables and entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb)), and the Bell states, teleportation and superdense
+# coding ([notebook 19, Bell states and CHSH](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb), [notebook 20, quantum teleportation](../ch08_quantum_information_protocols/20_quantum_teleportation.ipynb), [notebook 21, entanglement swapping and superdense coding](../ch08_quantum_information_protocols/21_entanglement_swapping_and_superdense_coding.ipynb)).
 #
 # ### What you will learn
 #
@@ -71,28 +75,11 @@
 # * states as tensors, gates with `apply_gate`, channels with `apply_kraus_dm`, partial traces with `rdm` and `rdm_dm`;
 # * wrong controls that must fail: a measurement in the wrong basis, orthogonal signals that Eve can copy without
 #   disturbance, a classically correlated pair that Eve shares completely, and inputs that do not reach a capacity.
-#
-# ### Prerequisites
-#
-# * [Notebook 50](../ch12_quantum_communication_and_cryptography/50_information_entropy_and_noisy_channels.ipynb):
-#   entropy, the binary entropy $h(q)$, the mutual information, and the capacity of a classical channel (Section 5,
-#   in particular $C_{\rm BSC}=1-h(q)$ and $C_{\rm BEC}=1-e$, Eq. (16) there).
-# * [Notebook 51](../ch12_quantum_communication_and_cryptography/51_secrecy_one_time_pad_and_authentication.ipynb):
-#   the threat model and why Alice and Bob need a bound on Eve's knowledge (Sections 3 and 10 there).
-# * [Notebook 07](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb): density matrices, the
-#   Bloch ball, density tensors and the Kraus form of a channel.
-# * [Notebook 06](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb), Sections 5–6 (trace distance,
-#   Schmidt decomposition), and [notebook 08](../ch03_matrix_free_engine/08_measurements.ipynb), Section 3.1 (general
-#   measurements).
-# * [Notebook 19](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb),
-#   [notebook 20](../ch08_quantum_information_protocols/20_quantum_teleportation.ipynb) and
-#   [notebook 21](../ch08_quantum_information_protocols/21_entanglement_swapping_and_superdense_coding.ipynb): the Bell
-#   states, teleportation with the no-cloning theorem, and superdense coding with the Holevo bound.
 
 # %% [markdown]
 # ## 2. Engine recap and helpers
 #
-# States are tensors of shape $(2,)^N$ and density matrices are tensors of shape $(2,)^{2N}$, as in notebook 07. Gates
+# States are tensors of shape $(2,)^N$ and density matrices are tensors of shape $(2,)^{2N}$. Gates
 # act with `apply_gate`, channels with `apply_kraus_dm`, and partial traces are taken with `rdm` (from a pure state) or
 # `rdm_dm` (from a density tensor). The channel and the entropy are called thousands of times in the scans below, so
 # they are compiled once with `jax.jit` (`kraus_apply` is `apply_kraus_dm` compiled). Entropies are in bits throughout.
@@ -194,8 +181,7 @@ BB84 = {"0": (KET0, "Z"), "1": (KET1, "Z"), "+": (KETP, "X"), "-": (KETM, "X")} 
 #
 # A measurement that never errs on $\vert\psi\rangle$ must err on $\vert\varphi\rangle$ with probability at least
 # $\vert\langle\psi\vert\varphi\rangle\vert^2$. One copy of a quantum state therefore does not reveal which of several
-# nonorthogonal states it is. The BB84 protocol, introduced in [[1]](#ref-1) and the subject of the next
-# notebook of this chapter, sends exactly such states:
+# nonorthogonal states it is. The BB84 protocol, introduced in [[1]](#ref-1), sends exactly such states:
 # $\vert0\rangle$, $\vert1\rangle$, $\vert+\rangle$ and $\vert-\rangle$, where every state of one basis has overlap
 # $\vert\langle0\vert+\rangle\vert^2=1/2$ with both states of the other.
 #
@@ -204,8 +190,8 @@ BB84 = {"0": (KET0, "Z"), "1": (KET1, "Z"), "+": (KETP, "X"), "-": (KETM, "X")} 
 # Equation (1) says that perfect discrimination is impossible; the next question is how well Bob can do. Let the two
 # possibilities be density matrices $\rho$ and $\sigma$, each sent with probability $1/2$, and let Bob's measurement
 # answer "$\rho$" with the operator $\Pi$ and "$\sigma$" with $\mathbb 1-\Pi$, where $0\leq\Pi\leq\mathbb 1$ means
-# that $\Pi$ is Hermitian with all eigenvalues between $0$ and $1$. This includes general measurements: in the notation
-# of notebook 08, Section 3.1, $\Pi=M_0^\dagger M_0$, and the answer "$\rho$" has probability ${\rm Tr}[\rho\,\Pi]$.
+# that $\Pi$ is Hermitian with all eigenvalues between $0$ and $1$. This includes general measurements: for measurement
+# operators $M_k$ as in [notebook 08, measurements](../ch03_matrix_free_engine/08_measurements.ipynb), Section 3.1, $\Pi=M_0^\dagger M_0$, and the answer "$\rho$" has probability ${\rm Tr}[\rho\,\Pi]$.
 # His probability of success is
 #
 # $$P_{\rm succ}=\tfrac12{\rm Tr}[\rho\,\Pi]+\tfrac12{\rm Tr}[\sigma(\mathbb 1-\Pi)]
@@ -215,7 +201,7 @@ BB84 = {"0": (KET0, "Z"), "1": (KET1, "Z"), "+": (KETP, "X"), "-": (KETM, "X")} 
 # ${\rm Tr}[\Pi(\rho-\sigma)]=\sum_i\lambda_i\langle i\vert\Pi\vert i\rangle$, and since $0\leq\langle i\vert\Pi\vert
 # i\rangle\leq1$ the sum is largest when $\Pi$ projects onto the eigenvectors with positive $\lambda_i$. The maximum is
 # the sum of the positive eigenvalues, which equals $\tfrac12\sum_i\vert\lambda_i\vert$ because ${\rm
-# Tr}(\rho-\sigma)=0$. That number is the **trace distance** $D(\rho,\sigma)$ of notebook 06, Section 5, so the best
+# Tr}(\rho-\sigma)=0$. That number is the **trace distance** $D(\rho,\sigma)$ defined in [notebook 06, states, observables and entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb), Section 5, so the best
 # probability of success is the **Helstrom bound** [[2]](#ref-2)
 #
 # $$P_{\rm succ}^{\max}=\frac{1+D(\rho,\sigma)}2,\qquad D(\rho,\sigma)=\tfrac12\sum_i\vert\lambda_i\vert. \tag{3}$$
@@ -304,9 +290,7 @@ assert abs(P_Z - 0.75) < TOL and P_Z < P_helstrom - 0.1
 # \vert\psi\rangle\vert\psi\rangle$ for every $\vert\psi\rangle$ [[3]](#ref-3), [[4]](#ref-4). Unitaries
 # preserve inner products, so cloning two states would require $\langle\psi\vert\varphi\rangle=\langle\psi\vert
 # \varphi\rangle^2$, which allows only orthogonal or identical states.
-# [Notebook 20](../ch08_quantum_information_protocols/20_quantum_teleportation.ipynb), Section 3, proves the theorem by
-# linearity and by inner products, shows that the CNOT "copier" entangles instead of copying, and quotes the optimal
-# approximate cloner.
+# The theorem is proved by linearity and by inner products in [notebook 20, quantum teleportation](../ch08_quantum_information_protocols/20_quantum_teleportation.ipynb), Section 3.
 #
 # For communication the theorem has three direct consequences.
 #
@@ -339,7 +323,7 @@ assert abs(P_Z - 0.75) < TOL and P_Z < P_helstrom - 0.1
 # \mathbf n$). Measuring in the $Z$ basis copies $\vert0\rangle$ and $\vert1\rangle$ perfectly and $\vert\pm\rangle$
 # with fidelity $1/2$; measuring in the basis halfway between $Z$ and $X$ spreads the same average evenly. Averaged over
 # the whole Bloch sphere instead of the four BB84 states, the best measure-and-prepare fidelity is $2/3$, the classical
-# benchmark of notebook 20, Section 8. The next cell runs the copier with the engine: the measurement is a projector,
+# benchmark derived in [notebook 20, quantum teleportation](../ch08_quantum_information_protocols/20_quantum_teleportation.ipynb), Section 8. The next cell runs the copier with the engine: the measurement is a projector,
 # the preparation is a fresh qubit, and the fidelity is computed for two output copies.
 
 # %%
@@ -429,8 +413,8 @@ assert abs(F_y - 0.5) < TOL
 # \vert e_1\rangle,\qquad\vert e_0\rangle=\vert0\rangle,\quad\vert e_1\rangle=\cos\tfrac\theta2\vert0\rangle+
 # \sin\tfrac\theta2\vert1\rangle . \tag{7}$$
 #
-# The overlap of the two probe states is $c=\langle e_0\vert e_1\rangle=\cos(\theta/2)$. In the BB84 protocol of the
-# next notebook, Alice sends one of the four states $\vert0\rangle,\vert1\rangle,\vert\pm\rangle$ at random, Bob
+# The overlap of the two probe states is $c=\langle e_0\vert e_1\rangle=\cos(\theta/2)$. In the BB84 protocol,
+# Alice sends one of the four states $\vert0\rangle,\vert1\rangle,\vert\pm\rangle$ at random, Bob
 # measures in the $Z$ or the $X$ basis at random, and afterwards they announce their bases and keep only the rounds in
 # which the bases agree. This step is called **sifting**, and only the sifted rounds count below.
 #
@@ -451,22 +435,22 @@ assert abs(F_y - 0.5) < TOL
 # \chi_E=\tfrac12\,h\Big(\tfrac{1+c}2\Big). \tag{8}$$
 #
 # $I_{AE}$ is the mutual information between Alice's bit and the result of Eve's best single measurement, a binary
-# symmetric channel in the language of notebook 50. For two equiprobable pure probe states no single-probe measurement
-# does better. $\chi_E$ is the Holevo quantity of her probe states (notebook 21, Section 13; Eq. (15) below), the upper
+# symmetric channel. For two equiprobable pure probe states no single-probe measurement
+# does better. $\chi_E$ is the Holevo quantity of her probe states (Eq. (15) below), the upper
 # bound on what a measurement can reveal. In $Z$ rounds the probe states are pure and their average
 # $\tfrac12(\vert e_0\rangle\langle e_0\vert+\vert e_1\rangle\langle e_1\vert)$ has eigenvalues $(1\pm c)/2$, so
 # $\chi=h\big((1+c)/2\big)$ there and $0$ in $X$ rounds. Eve approaches $\chi_E$ only if she stores many probes and
 # measures them jointly, after Alice and Bob have published the messages of error correction and privacy
 # amplification. Both quantities vanish at $c=1$, where $Q=0$, as the theorem demands. At $\theta=\pi$ Eve's probe
 # is a perfect copy of the $Z$ bit and $Q=1/4$: the CNOT attack has the same numbers as the intercept-resend
-# attack of the next notebook.
+# attack.
 #
 # The next cell implements Eq. (7) with `apply_gate` on a two-qubit tensor, computes Bob's error and Eve's reduced
 # states with `rdm`, and evaluates Eq. (8) from them, and it tries $2000$ random four-outcome measurements on one probe
 # against the Helstrom measurement. It then simulates $40\,000$ rounds of the protocol for six coupling
 # strengths: Alice chooses a random basis and bit, the joint distribution of Bob's result and of Eve's Helstrom
 # measurement is computed exactly from the state, and the rounds are sampled from it. The printed "plug-in" $I_{AE}$ is
-# the mutual information of notebook 50 evaluated on the observed frequencies of Alice's bit and Eve's guess. The
+# the classical mutual information evaluated on the observed frequencies of Alice's bit and Eve's guess. The
 # wrong control sends only
 # $Z$-basis states, which are orthogonal: the CNOT then gives Eve the full bit without a single error.
 
@@ -617,10 +601,8 @@ plt.tight_layout(); plt.show()
 # $\vert\Psi^\pm\rangle=(\vert01\rangle\pm\vert10\rangle)/\sqrt2$ form an orthonormal basis of two qubits, and each half
 # of a Bell pair alone is maximally mixed, $\mathbb 1/2$. A shared copy of $\vert\Phi^+\rangle$ is called one **ebit**.
 # Its outcomes agree in the $Z$ basis and in the $X$ basis at once, which no pair of classically correlated bits can do.
-# [Notebook 19](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb), Sections 3–4, derives these
-# correlations, and [notebook
-# 21](../ch08_quantum_information_protocols/21_entanglement_swapping_and_superdense_coding.ipynb), Section 3, the Bell
-# measurement circuit.
+# These correlations are derived in [notebook 19, Bell states and CHSH](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb), Sections 3–4, and the Bell measurement circuit in
+# [notebook 21, entanglement swapping and superdense coding](../ch08_quantum_information_protocols/21_entanglement_swapping_and_superdense_coding.ipynb), Section 3.
 #
 # Two separated laboratories that may each do anything to their own qubits and talk over a telephone line, but cannot
 # exchange qubits, are restricted to **local operations and classical communication**, LOCC. LOCC cannot create
@@ -635,9 +617,7 @@ plt.tight_layout(); plt.show()
 # ={\rm Tr}_A\big[(\sum_kK_k^\dagger K_k\otimes\mathbb 1)\rho_{AB}\big]={\rm Tr}_A\rho_{AB}=\rho_B, \tag{9}$$
 #
 # by the cyclic property of the trace on $A$ and $\sum_kK_k^\dagger K_k=\mathbb 1$. Entanglement creates correlations
-# without any signal. [Notebook 20](../ch08_quantum_information_protocols/20_quantum_teleportation.ipynb), Section 7,
-# shows the same statement inside teleportation, where Bob's qubit stays maximally mixed until the classical bits
-# arrive.
+# without any signal.
 #
 # ### 6.2 Monogamy of entanglement
 #
@@ -645,10 +625,10 @@ plt.tight_layout(); plt.show()
 # $\rho_{ABE}$ of a larger system that reduces to it is a product, $\rho_{ABE}=\rho_{AB}\otimes\rho_E$.
 #
 # **Proof idea.** Every mixed state is the reduced state of a pure state of a larger system, its **purification**
-# (notebook 07, Section 4). Purify $\rho_{ABE}$ with a further system $R$ into a pure state
+# ([notebook 07, density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb), Section 4). Purify $\rho_{ABE}$ with a further system $R$ into a pure state
 # $\vert\Omega\rangle_{ABER}$. Its
 # reduced state on $AB$ is the pure state $\vert\phi\rangle_{AB}$, so the Schmidt decomposition of $\vert\Omega\rangle$
-# across the cut $AB\,\vert\,ER$ has a single term (notebook 06, Section 6):
+# across the cut $AB\,\vert\,ER$ has a single term ([notebook 06, states, observables and entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb), Section 6):
 #
 # $$\vert\Omega\rangle=\vert\phi\rangle_{AB}\otimes\vert\eta\rangle_{ER}. \tag{10}$$
 #
@@ -659,7 +639,7 @@ plt.tight_layout(); plt.show()
 # $\vert\Phi^+\rangle$, with a **fidelity** $F=\langle\Phi^+\vert\rho_{AB}\vert\Phi^+\rangle$ slightly below one, and
 # the statement must become quantitative. Assume the worst case, in which Eve holds the purification of $\rho_{AB}$, so
 # that $\rho_{ABE}$ is pure. Then $S(E)=S(AB)$, because the two halves of a pure state have the same Schmidt
-# coefficients. The **quantum mutual information** $I(X{:}Y)=S(X)+S(Y)-S(XY)$ is the formula of notebook 50, Eq. (10),
+# coefficients. The **quantum mutual information** $I(X{:}Y)=S(X)+S(Y)-S(XY)$ is Eq. (10) of [notebook 50, entropy and noisy channels](50_information_entropy_and_noisy_channels.ipynb)
 # with von Neumann entropies, and Eve's mutual information with the pair is $I(AB{:}E)=S(AB)+S(E)-S(ABE)=2S(AB)$. The
 # largest eigenvalue of $\rho_{AB}$ is at least $F=\langle\Phi^+\vert\rho_{AB}\vert\Phi^+\rangle$, and among four
 # probabilities whose largest is at least $F\geq1/4$ the entropy is maximal when the largest equals $F$ and the other
@@ -756,16 +736,15 @@ plt.tight_layout(); plt.show()
 #
 # The ebit is used up in both. Neither classical bits alone (no-cloning, Section 4) nor entanglement alone
 # (no-signalling, Eq. (9)) can replace a qubit. Teleportation is derived in
-# [notebook 20](../ch08_quantum_information_protocols/20_quantum_teleportation.ipynb), Sections 4–7, and superdense
-# coding with its resource ledger in
-# [notebook 21](../ch08_quantum_information_protocols/21_entanglement_swapping_and_superdense_coding.ipynb), Section 12.
+# [notebook 20, quantum teleportation](../ch08_quantum_information_protocols/20_quantum_teleportation.ipynb), Sections 4–7, and superdense coding with its resource ledger in
+# [notebook 21, entanglement swapping and superdense coding](../ch08_quantum_information_protocols/21_entanglement_swapping_and_superdense_coding.ipynb), Section 12.
 # The second inequality returns in Section 9.3 as the entanglement-assisted capacity of a noiseless qubit.
 #
 # ## 8. Quantum channels
 #
 # ### 8.1 Definition and Kraus form
 #
-# A classical channel (notebook 50, Section 5.1) is a matrix of transition probabilities that maps input distributions
+# A classical channel ([notebook 50, entropy and noisy channels](50_information_entropy_and_noisy_channels.ipynb), Section 5.1) is a matrix of transition probabilities that maps input distributions
 # to output distributions. A **quantum channel** maps density matrices to density matrices: a linear map
 # $\rho\mapsto\mathcal E(\rho)$ that keeps every state a state, including when it acts on one half of an entangled
 # pair. Every such map can be written with **Kraus operators** $K_k$ [[11]](#ref-11),
@@ -773,16 +752,14 @@ plt.tight_layout(); plt.show()
 # $$\mathcal E(\rho)=\sum_kK_k\,\rho\,K_k^\dagger,\qquad\sum_kK_k^\dagger K_k=\mathbb 1 . \tag{13}$$
 #
 # The Kraus form follows from Figure 1b: the signal interacts unitarily with an environment that starts in a fixed
-# state, and the environment is then traced out. [Notebook
-# 07](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb), Section 7, derives Eq. (13) this way,
-# Section 8 implements it as one einsum (`apply_kraus_dm`), and Section 9 shows the standard channels on the Bloch
-# sphere. For communication the environment has a second role: whatever information leaks out of the signal goes into
+# state, and the environment is then traced out. Eq. (13) is
+# derived this way in [notebook 07, density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb), Section 7. For communication the environment has a second role: whatever information leaks out of the signal goes into
 # it, and the cautious assumption is that Eve holds the environment.
 #
 # ### 8.2 Four channels and their Bloch pictures
 #
 # A qubit state is $\rho=\tfrac12(\mathbb 1+\mathbf r\cdot\boldsymbol\sigma)$ with Bloch vector $\mathbf r$, and a
-# one-qubit channel acts on $\mathbf r$ as an affine map (notebook 07, Section 9.3). Four channels matter in this
+# one-qubit channel acts on $\mathbf r$ as an affine map ([notebook 07, density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb), Section 9.3). Four channels matter in this
 # chapter.
 #
 # * **Depolarising**, $\mathcal E(\rho)=(1-p)\rho+\frac p3(X\rho X+Y\rho Y+Z\rho Z)$: each Pauli error with probability
@@ -792,8 +769,7 @@ plt.tight_layout(); plt.show()
 # * **Amplitude damping**: the excited state $\vert1\rangle$ decays to $\vert0\rangle$ with probability $\gamma$, as in
 #   spontaneous emission of a photon. The Kraus operators are the no-decay operator $K_0=\vert0\rangle\langle0\vert+
 #   \sqrt{1-\gamma}\,\vert1\rangle\langle1\vert$ and the jump $K_1=\sqrt\gamma\,\vert0\rangle\langle1\vert$, which takes
-#   $\vert1\rangle$ to $\vert0\rangle$; these are the same operators as the engine's `kraus_amplitude_damping` of
-#   [notebook 07](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb). The ball shrinks and moves towards the north pole,
+#   $\vert1\rangle$ to $\vert0\rangle$; these are the same operators as the engine's `kraus_amplitude_damping`. The ball shrinks and moves towards the north pole,
 #   $(r_x,r_y,r_z)\to(\sqrt{1-\gamma}\,r_x,\sqrt{1-\gamma}\,r_y,\gamma+(1-\gamma)r_z)$.
 # * **Erasure**, the channel studied in [[12]](#ref-12): with probability $e$ the qubit is lost, and
 #   the receiver is told so. The output lives in a larger
@@ -802,7 +778,7 @@ plt.tight_layout(); plt.show()
 # $$\mathcal E_e(\rho)=(1-e)\,\rho\otimes\vert0\rangle\langle0\vert_{\rm flag}+e\,\vert0\rangle\langle0\vert\otimes
 # \vert1\rangle\langle1\vert_{\rm flag}. \tag{14}$$
 #
-# The erasure channel is the quantum version of the binary erasure channel of notebook 50: a photon that is absorbed in
+# The erasure channel is the quantum version of the binary erasure channel: a photon that is absorbed in
 # the fibre never reaches the detector, and the missing click tells Bob that it was lost. On the qubits that arrive, the
 # Bloch vector is intact. Equation (14) is a channel from one qubit to two (data and flag) with three Kraus operators
 # acting on the data qubit and a flag qubit prepared in $\vert0\rangle$:
@@ -909,7 +885,7 @@ plt.tight_layout(); plt.show()
 #
 # The **capacity** of a classical channel is the largest rate, in bits per use, at which information can be sent with
 # an error probability that goes to zero over many uses, and Shannon's theorem equates it to the maximal mutual
-# information (notebook 50, Section 5.3). A quantum channel has several capacities, because it can be asked to carry
+# information ([notebook 50, entropy and noisy channels](50_information_entropy_and_noisy_channels.ipynb), Section 5.3). A quantum channel has several capacities, because it can be asked to carry
 # different things: classical bits, qubits, or classical bits with the help of entanglement shared in advance. Each is
 # defined operationally in the same way, as the best rate with vanishing error over many uses of the channel, and each
 # has its own formula.
@@ -924,9 +900,7 @@ plt.tight_layout(); plt.show()
 # $$I(A{:}B)\;\leq\;\chi=S\Big(\sum_ip_i\,\mathcal E(\rho_i)\Big)-\sum_ip_i\,S\big(\mathcal E(\rho_i)\big)\;\leq\;
 # \log_2d , \tag{15}$$
 #
-# where $S$ is the von Neumann entropy and $d$ the dimension of the output. [Notebook
-# 21](../ch08_quantum_information_protocols/21_entanglement_swapping_and_superdense_coding.ipynb), Section 13,
-# introduces this bound for superdense coding. For a qubit $d=2$, so **one qubit carries at most one classical bit**.
+# where $S$ is the von Neumann entropy and $d$ the dimension of the output. For a qubit $d=2$, so **one qubit carries at most one classical bit**.
 # The Holevo quantity is also achievable: if Alice uses product states over many channel uses and Bob measures the whole
 # block collectively, the maximum of $\chi$ over ensembles is an achievable rate, the Holevo–Schumacher–Westmoreland
 # theorem [[14]](#ref-14), [[15]](#ref-15). In general the classical capacity requires a further
@@ -1051,7 +1025,7 @@ for p in (0.1, 0.3, 0.5):
 #
 # For the **depolarising channel** the quantum capacity is not known. The Bell-pair input gives a lower bound, the
 # **hashing bound** [[18]](#ref-18). A Pauli error on one half of $\vert\Phi^+\rangle$
-# turns it into another Bell state (notebook 21, Section 3.1), so $\rho_{RB}$ is a mixture of the four Bell states with
+# turns it into another Bell state ([notebook 21, entanglement swapping and superdense coding](../ch08_quantum_information_protocols/21_entanglement_swapping_and_superdense_coding.ipynb), Section 3.1), so $\rho_{RB}$ is a mixture of the four Bell states with
 # weights $(1-p,p/3,p/3,p/3)$, and
 #
 # $$Q_{\rm cap}({\rm depolarising})\;\geq\;1-H\big(1-p,\tfrac p3,\tfrac p3,\tfrac p3\big), \tag{19}$$
@@ -1131,11 +1105,11 @@ assert abs(lo - 0.18929) < 1e-4
 #
 # For the depolarising channel the maximum is at the Bell-pair input, which is how Eq. (20) follows from the same
 # Bell-diagonal state as Eq. (19), with $S(R)=S(B)=1$. The same number, $2-H$, is the dense-coding capacity of a
-# depolarised shared pair in notebook 21, Section 14.2; here the pair is perfect and the noise sits in the channel. For
+# depolarised shared pair derived in [notebook 21, entanglement swapping and superdense coding](../ch08_quantum_information_protocols/21_entanglement_swapping_and_superdense_coding.ipynb), Section 14.2; here the pair is perfect and the noise sits in the channel. For
 # the erasure channel the same input gives $C_E=2(1-e)$, twice the unassisted value.
 #
 # The last cell of this section evaluates all capacities on one grid and draws them against the noise parameter, with
-# Shannon's capacity $1-h(q)$ of the binary symmetric channel from notebook 50 for comparison.
+# Shannon's capacity $1-h(q)$ of the binary symmetric channel for comparison.
 
 # %%
 # ==============================================================================
@@ -1204,7 +1178,7 @@ plt.tight_layout(); plt.show()
 # their data and bound her information by it. Section 6 showed the same from the side of entanglement: a pair close to a
 # Bell state, checked in two complementary bases, leaves no room for a third party. The coherent information of
 # Section 9.2, "what Bob receives minus what leaks to the environment", has the same structure as the secret-key rate
-# that the next notebook of this chapter derives, $1-2h(Q)$ for BB84: one bit per sifted round, minus the bits spent on
+# of BB84, $1-2h(Q)$: one bit per sifted round, minus the bits spent on
 # error correction, minus the bits that Eve may know.
 #
 # ## 11. Key takeaways
@@ -1242,7 +1216,7 @@ plt.tight_layout(); plt.show()
 #    amplitude-damping channel. Show with Eq. (9) and with the engine that Bob's state stays $\mathbb 1/2$ for every
 #    $\gamma$, and compute Alice's Bloch vector.
 # 5. ★★ **Classical bits through dephasing.** Explain why the dephasing channel at $p=1/2$ carries one classical bit per
-#    use and no qubits. Which channel from notebook 50 does it reduce to on the inputs $\vert0\rangle$, $\vert1\rangle$?
+#    use and no qubits. Which classical channel does it reduce to on the inputs $\vert0\rangle$, $\vert1\rangle$?
 # 6. ★★ **Amplitude damping.** Add `kraus_amp_damp` of Section 8.2 to the dictionary of channels in `coherent_info`
 #    and find the maximum over $a$ of the single-use coherent information for $\gamma=0.2$ and $\gamma=0.3$. Show,
 #    using $S(RB)=S(E)$ and the environment state with entries ${\rm Tr}[K_i\rho_AK_j^\dagger]$, that it is

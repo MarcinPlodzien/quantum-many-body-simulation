@@ -5,7 +5,7 @@
 # %% [markdown]
 # ## 1. Introduction
 #
-# The Bell pair of [notebook 19](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb) has two qubits. Its natural
+# A Bell pair has two qubits. Its natural
 # extension to $N$ qubits, the Greenberger–Horne–Zeilinger (GHZ) state introduced in [[1]](#ref-1), is
 #
 # $$\vert\mathrm{GHZ}_N\rangle=\frac{\vert00\cdots0\rangle+\vert11\cdots1\rangle}{\sqrt2}.$$
@@ -29,8 +29,7 @@
 # operators that leave the state unchanged; it takes three lines once the algebra is set up.
 #
 # And it is the workhorse of quantum metrology: the phase accumulated by $\vert\mathrm{GHZ}_N\rangle$ is $N$ times faster than that
-# of a single qubit, which is the origin of the Heisenberg limit, the best precision scaling quantum mechanics allows
-# ([32 — GHZ interferometry](../ch10_quantum_metrology_protocols/32_ghz_interferometry_heisenberg_limit.ipynb), Chapter 10).
+# of a single qubit, which is the origin of the Heisenberg limit, the best precision scaling quantum mechanics allows.
 # The very same $N$-fold enhancement makes it decay $N$ times faster under dephasing, the random phase noise of each qubit. The
 # tension between those two statements — *the best sensor is the most fragile state* — is the subject of the second half of this
 # notebook.
@@ -48,11 +47,17 @@
 #    into the **fidelity witness**: $F>1/2$ certifies genuine $N$-partite entanglement (Sections 8–9).
 # 5. Decoherence. Derive closed formulas for the coherence, for $\langle Z_1Z_2\rangle$ and for the fidelity under local dephasing,
 #    depolarising and amplitude damping; verify them on the exact density tensor for $N\le6$; then unravel the same channels into
-#    **quantum trajectories** (notebook 17), check the $1/\sqrt M$ convergence with error bars, and use them to reach $N=12$, where
+#    **quantum trajectories**, check the $1/\sqrt M$ convergence with error bars, and use them to reach $N=12$, where
 #    a density tensor would need $2^{24}$ complex numbers (Sections 10–14).
 # 6. Quantify the **fragility**: the noise level at which the witness stops working shrinks roughly like $1/N$ (Section 15).
 # 7. Compare with the **W state**, a single excitation shared by all qubits, which is entangled in a completely different way: part
 #    of its entanglement survives the loss of a qubit, while that of GHZ is destroyed completely (Section 16).
+#
+# The notebook assumes density tensors, Kraus channels and their unravelling into trajectories
+# ([notebook 07, density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb);
+# [notebook 17, Monte Carlo wave function](../ch06_open_quantum_systems/17_monte_carlo_wave_function.ipynb)) and the $H$ and
+# $\mathrm{CNOT}$ gates with the notion of circuit depth
+# ([notebook 09, quantum gates and circuits](../ch04_digital_quantum_circuits/09_quantum_gates_and_circuits.ipynb)).
 #
 # ### What you will learn
 #
@@ -77,20 +82,6 @@
 # * building a channel from Kraus operators and applying it to a density tensor with a single einsum over the Kraus index;
 # * the discipline of deriving a formula first and only then measuring it — every analytic result below is checked against the
 #   simulator, and every simulated number against the formula.
-#
-# ### Prerequisites
-# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, PRNG keys;
-# * [02 — einsum from scratch](../ch01_computational_toolbox/02_einsum_from_scratch.ipynb);
-# * [06 — states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb): reduced density
-#   matrices, entanglement entropy;
-# * [07 — density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb):
-#   density tensors, Kraus operators, fidelity;
-# * [09 — quantum gates and circuits](../ch04_digital_quantum_circuits/09_quantum_gates_and_circuits.ipynb): $H$, $\mathrm{CNOT}$,
-#   circuit depth;
-# * [17 — Monte-Carlo wave function](../ch06_open_quantum_systems/17_monte_carlo_wave_function.ipynb): the trajectory unravelling
-#   we use from Section 13 on;
-# * helpful: [19 — Bell states and CHSH](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb) for the two-qubit
-#   version of everything here.
 #
 # **Conventions.** Qubit $q$ = tensor axis $q$, counted from $0$; $\vert0\rangle$ is the $+1$ eigenstate of $Z$; Pauli strings are
 # written with qubit $0$ leftmost. We abbreviate $\vert\bar0\rangle=\vert0\cdots0\rangle$ and $\vert\bar1\rangle=\vert1\cdots1\rangle$.
@@ -218,8 +209,8 @@ assert errS < 1e-9
 # Each $\mathrm{CNOT}$ extends the correlated block by one qubit, because $\mathrm{CNOT}$ acting on $\vert x\rangle\vert0\rangle$
 # gives $\vert x\rangle\vert x\rangle$ and the map is linear, so the two branches of the superposition are copied independently.
 # (The no-cloning theorem is respected: the $\mathrm{CNOT}$ copies the basis states $\vert0\rangle$ and $\vert1\rangle$, and no
-# unknown superposition is duplicated; see the no-cloning discussion in
-# [20 — quantum teleportation](../ch08_quantum_information_protocols/20_quantum_teleportation.ipynb).)
+# unknown superposition is duplicated; the theorem is proved in
+# [notebook 20, quantum teleportation](20_quantum_teleportation.ipynb), Section 3.)
 #
 # Cost: $1$ Hadamard and $N-1$ $\mathrm{CNOT}$s. But every $\mathrm{CNOT}$ waits for the previous one, so the **circuit depth** is
 # $N-1$ two-qubit layers. On hardware with a fixed gate time and a fixed coherence time, the depth sets how long the register is
@@ -332,8 +323,7 @@ for N in (2, 3, 4, 5, 6, 8, 10, 12, 14):
 # **two** sites, and $(-1)^2=+1$), they are independent, and $N$ independent commuting $\pm1$ observables cut the $2^N$-dimensional
 # space down to $2^N/2^N=1$ dimension. **The list of $N$ operators therefore determines the state uniquely.** That is the
 # stabiliser formalism introduced in [[6]](#ref-6) in miniature, and it is why GHZ states are so convenient for both theory (the
-# Gottesman–Knill theorem, published in [[7]](#ref-7), notebook
-# [27 — stabilizer Renyi entropy](../ch09_entanglement_and_complexity/27_stabilizer_renyi_entropy.ipynb)) and experiment: checking
+# Gottesman–Knill theorem, published in [[7]](#ref-7)) and experiment: checking
 # $N$ expectation values is much cheaper than full tomography's $4^N-1$ parameters.
 #
 # ### 5.2 The Greenberger–Horne–Zeilinger sign
@@ -359,11 +349,9 @@ for N in (2, 3, 4, 5, 6, 8, 10, 12, 14):
 # $y_q^2=1$ gives $x_0x_1x_2=(-1)^3=-1$. The fourth demands $x_0x_1x_2=+1$. **No assignment of values exists**, for any state
 # of the hidden variables: the contradiction is between the definite values $+1$ and $-1$. In contrast to CHSH, no statistics are
 # needed for an ideal state, and one run of each of the four settings already exhibits it. We verify the four
-# signs numerically below; the statistical cousin of this argument is developed in
-# [19 — Bell states and CHSH](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb), and its many-body version, the
+# signs numerically below. The statistical cousin of this argument is the CHSH inequality, and its many-body version is the
 # $N$-spin Bell inequality of [[8]](#ref-8) that the GHZ state violates by a factor growing exponentially
-# with $N$, in
-# [26 — many-body Bell correlators](../ch09_entanglement_and_complexity/26_many_body_bell_correlators.ipynb).
+# with $N$.
 
 # %%
 # ==============================================================================
@@ -545,7 +533,7 @@ assert worst < 1e-9
 # Two things to take away from Eq. (3):
 #
 # * the **frequency** is $N$ times the single-qubit frequency — an $N$-fold phase amplification, which is the whole point of
-#   GHZ metrology (Chapter 10) and which also means the fringe pattern has period $2\pi/N$, so $\varphi$ must be resolved $N$ times
+#   GHZ metrology and which also means the fringe pattern has period $2\pi/N$, so $\varphi$ must be resolved $N$ times
 #   more finely;
 # * the **amplitude** is $2\vert c\vert$ — the parity oscillation *is* a direct measurement of the $N$-body coherence, and it is
 #   the only thing in the experiment that can tell a GHZ state from a classical mixture. The *phase* of the fringe measures
@@ -639,7 +627,7 @@ fig.tight_layout(); plt.show()
 # Left: $N$ full fringes in $[0,2\pi)$, exactly as Eq. (3) predicts, together with the flat line produced by the classical mixture —
 # that flat line is what a failed GHZ preparation looks like. Right: the same curves near the origin, where the $N$-fold steepening
 # of the slope $\partial_\varphi\langle X^{\otimes N}\rangle$ at the zero crossing is visible. That slope is the *signal gain* of
-# GHZ interferometry; Chapter 10 turns it into the Heisenberg limit.
+# GHZ interferometry and the origin of the Heisenberg limit.
 
 # %% [markdown]
 # ## 9. The fidelity witness $F>1/2$
@@ -1012,7 +1000,7 @@ fig.tight_layout(); plt.show()
 # where the branch $m$ is drawn with probability $p_m=\lVert K_m\vert\psi\rangle\rVert^2$. In words: *pick one Kraus operator at
 # random with the Born probability, apply it, renormalise*. Averaging the resulting pure states over many runs reproduces the
 # density matrix exactly — this is what `apply_kraus_mcwf` implements, and it is derived in
-# [17 — Monte-Carlo wave function](../ch06_open_quantum_systems/17_monte_carlo_wave_function.ipynb).
+# [notebook 07, density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb), Section 11.
 #
 # Memory drops from $4^N$ to $2^N$ per trajectory, and the trajectories are completely independent — the textbook case for
 # `jax.vmap`. The price is statistical: with $M$ trajectories, the estimate of any observable carries an error $\propto1/\sqrt M$.
@@ -1351,9 +1339,9 @@ fig.tight_layout(); plt.show()
 # > the fluctuating field is the same for all qubits — a common-mode magnetic field across a small ion crystal — the random
 # > phases add coherently, $\sum_q\varphi_q=N\varphi$, the variance of the accumulated phase grows as $N^2\sigma^2$ instead of
 # > $N\sigma^2$, and the decoherence *rate* grows as $N^2$. That "superdecoherence" was observed in [[4]](#ref-4) on up
-# > to eight ions in the experiment that produced the $14$-qubit GHZ state; notebook
-# > [07 — density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb)
-# > derives the two cases side by side. Everything in this notebook is the independent-environment case.
+# > to eight ions in the experiment that produced the $14$-qubit GHZ state; the two cases are derived side by side in
+# > [notebook 07, density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb),
+# > Section 10.1. Everything in this notebook is the independent-environment case.
 #
 # **Witness threshold.** For depolarising noise, the $p$ at which $F$ of Eq. (7) crosses $1/2$ marks the point where the standard
 # certificate stops working. There is no closed form at finite $N$, so we bisect — but the large-$N$ limit *is* closed. Put

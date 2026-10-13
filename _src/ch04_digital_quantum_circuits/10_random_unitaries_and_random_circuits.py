@@ -22,7 +22,7 @@
 #   cross-entropy benchmark* (XEB; cross-entropy benchmarking was introduced in [[6]](#ref-6)). The statistical theory behind it is the Porter-Thomas distribution of the output
 #   probabilities of a random state.
 # * **Randomised measurement protocols.** Randomised benchmarking [[7]](#ref-7), [[8]](#ref-8), classical shadows
-#   ([[9]](#ref-9); [notebook 24](../ch08_quantum_information_protocols/24_classical_shadows.ipynb)) and many
+#   [[9]](#ref-9) and many
 #   tomography schemes average over random unitaries - in practice over the finite **Clifford group**, which imitates the
 #   uniform distribution well enough.
 # * **Numerical practice.** Random states and unitaries are the best *test inputs* for a simulator: they have no
@@ -35,6 +35,11 @@
 # circuits with `vmap`/`scan` and measures how entanglement grows and saturates. Section 7 constructs the 24-element
 # single-qubit Clifford group and tests in which sense it is "as good as Haar". Sections 8 and 9 are about random
 # circuit sampling from a discrete gate set, its simulation cost, and cross-entropy benchmarking with and without noise.
+#
+# The notebook assumes PRNG keys, `vmap`, `scan` and `jit` from [notebook 01, JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb), `apply_gate` from
+# [notebook 05, matrix-free operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb), the Schmidt decomposition and Page value of [notebook 06, states, observables and entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb), the
+# depolarising channel and trajectories of [notebook 07, density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb), bit-string sampling from
+# [notebook 08, measurements](../ch03_matrix_free_engine/08_measurements.ipynb) and the gate set, circuit lists and Clifford gates of [notebook 09, quantum gates and circuits](09_quantum_gates_and_circuits.ipynb).
 #
 # ### What you will learn
 #
@@ -57,16 +62,6 @@
 # * "randomness is data, structure is static": circuits stored as arrays of gate matrices (or gate indices) so that one
 #   compiled program runs *every* random circuit; `lax.scan` over layers;
 # * timing of compile versus run; scaling $O(2^N)$ per gate up to $N=20$.
-#
-# ### Prerequisites
-#
-# * [01 JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb) (PRNG keys, `vmap`, `scan`, `jit`);
-# * [05 Matrix-free operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb) (`apply_gate`);
-# * [06 States, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb) (Schmidt decomposition,
-#   entanglement entropy, Page value);
-# * [07 Density matrices and channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb) (depolarising channel,
-#   trajectories), [08 Measurements](../ch03_matrix_free_engine/08_measurements.ipynb) (sampling bit strings);
-# * [09 Quantum gates and circuits](09_quantum_gates_and_circuits.ipynb) (gate set, circuits as lists, Clifford gates).
 
 # %% [markdown]
 # ## 2. The Haar measure
@@ -91,7 +86,7 @@
 #
 # ### 2.2 A tempting mistake: uniform Euler angles
 #
-# In notebook 09 we saw that every single-qubit gate is $e^{i\alpha}R_z(\beta)R_y(\gamma)R_z(\delta)$. So why not draw
+# Every single-qubit gate can be written as $e^{i\alpha}R_z(\beta)R_y(\gamma)R_z(\delta)$. So why not draw
 # the angles uniformly? Let us look at the state $U\lvert0\rangle$. Its polar angle on the Bloch sphere is exactly $\gamma$,
 # so $\langle Z\rangle=\cos\gamma$. If $\gamma$ is uniform in $[0,\pi]$, the density of $z=\cos\gamma$ is
 # $\frac{1}{\pi\sqrt{1-z^2}}$, which diverges at $z=\pm1$: the states crowd around the poles. For the uniform distribution
@@ -100,7 +95,7 @@
 # of a parametrisation are in general *not* uniformly distributed - one needs the Jacobian.
 #
 # The experiment below draws 20000 "naive" unitaries and compares the histogram of $\langle Z\rangle$ with the correct
-# sampler of Section 3. First the folded engine recap with the primitives from earlier notebooks.
+# sampler of Section 3. First the folded engine recap with the primitives used here.
 
 # %%
 #@engine: apply_gate, apply_gates, apply_kraus_mcwf, kraus_depolarizing, zero_state, product_state, rdm, entanglement_entropy, schmidt_values, fidelity_pure, sample_bitstrings, I2, X, Y, Z, H, S, T, CNOT, CZ, rx, ry, rz
@@ -159,7 +154,7 @@ print(f"variance of z:  naive = {float(jnp.var(z_naive)):.4f} (arcsine law: 1/2)
 # > **JAX practice.** JAX has no global random state. Every random function takes an explicit **key**;
 # > `jax.random.split(key, M)` produces $M$ statistically independent keys, and `vmap` over these keys draws $M$
 # > samples in parallel. The same key always gives the same numbers: the notebook is reproducible bit by bit, and each
-# > sample can be regenerated in isolation for debugging (notebook 01).
+# > sample can be regenerated in isolation for debugging.
 
 # %% [markdown]
 # ## 3. Haar-random states from Gaussian vectors
@@ -453,7 +448,7 @@ print(f"largest probability                  : {x_haar.max():.2f}/D   "
 # many elementary gates. Physical dynamics is **local**. The minimal local model is the *brick-wall circuit*: in even
 # layers Haar-random two-qubit gates act on the bonds $(0,1),(2,3),\dots$, in odd layers on $(1,2),(3,4),\dots$; every
 # gate is drawn independently. One layer is exactly the structure of one half Trotter step of a nearest-neighbour
-# Hamiltonian (notebook 09, Section 9) - with the interaction replaced by "anything".
+# Hamiltonian - with the interaction replaced by "anything".
 
 # %%
 # ==============================================================================
@@ -504,7 +499,7 @@ plt.show()
 # * `vmap` over circuit keys then runs a whole ensemble of circuits in parallel.
 #
 # The observable recorded after each of the $2L$ layers is a small vector: the half-chain entanglement entropy (from the
-# singular values of the state reshaped into a $2^{N/2}\times2^{N/2}$ matrix, notebook 06) and the speckle contrast
+# singular values of the state reshaped into a $2^{N/2}\times2^{N/2}$ matrix) and the speckle contrast
 # $D\sum_sp_s^2$ of Section 5.
 
 # %%
@@ -666,7 +661,7 @@ for N in N_LIST:
 # $N=8$, whose entropies have already started to bend over inside that window (the second-to-last column shows that
 # $N=6$ reaches 90 % of its Page value after only 7 layers). Entanglement
 # is produced locally at the cut and information spreads with a finite speed, exactly as in the quench dynamics of spin
-# chains ([notebook 15](../ch05_ground_states_and_unitary_dynamics/15_quench_dynamics_spin_chains.ipynb)).
+# chains.
 # The growth stops at the Page value (dashed), $0.72$ bit below $N/2$, after a depth that increases with $N$:
 # bigger systems take longer to scramble. After 32 layers the entropies of $N=8$ and $N=10$ match Page's formula to the
 # printed three decimals, $N=6$ sits about 1.5 standard errors below it (an ordinary fluctuation of an average over 32
@@ -683,7 +678,7 @@ for N in N_LIST:
 # a statistically enormous deviation from Haar.
 #
 # > **Physics insight.** Linear growth of entanglement is the reason why classical simulation of generic quantum
-# > dynamics is hard. A matrix-product state ([notebook 18](../ch07_tensor_networks/18_mps_tebd.ipynb)) with bond dimension $\chi$ can hold at most
+# > dynamics is hard. A matrix-product state with bond dimension $\chi$ can hold at most
 # > $\log_2\chi$ bits of entanglement across a cut, so $\chi$ must grow *exponentially* with time. For the state-vector
 # > method of this notebook entanglement is free - we pay $2^N$ regardless.
 #
@@ -741,8 +736,8 @@ assert dev_haar < 0.05
 #
 # $$ C\,P\,C^\dagger = \pm P' ,\qquad P,P'\in\{X,Y,Z\}. $$
 #
-# It is generated by $H$ and $S$ (plus CNOT for several qubits) - precisely the gates that notebook 09 singled out as
-# "not universal". How many single-qubit Cliffords are there? $C$ is fixed (up to a global phase) by the images of $X$
+# It is generated by $H$ and $S$ (plus CNOT for several qubits) - a gate set that is
+# not universal. How many single-qubit Cliffords are there? $C$ is fixed (up to a global phase) by the images of $X$
 # and $Z$: $X$ can go to any of the 6 signed Paulis $\pm X,\pm Y,\pm Z$; $Z$ must go to a signed Pauli that anticommutes
 # with the image of $X$: 4 choices. Hence $6\times4=$ **24 elements** - geometrically, the 24 rotations that map a cube
 # (or the octahedron formed by the six Pauli eigenstates on the Bloch sphere) onto itself.
@@ -841,7 +836,7 @@ for t, exact in zip((1, 2, 3, 4), (1, 2, 5, 14)):
 
 # %% [markdown]
 # The four Paulis match Haar only for $t=1$ (they form a 1-design: averaging over random Paulis completely depolarises a
-# qubit - the content of the depolarising channel in notebook 07). The Clifford group matches for $t=1,2,3$ and
+# qubit - the content of the depolarising channel). The Clifford group matches for $t=1,2,3$ and
 # deviates at $t=4$ ($15$ instead of $14$): **the Clifford group is a unitary 3-design, but not a 4-design** [[31]](#ref-31), [[32]](#ref-32).
 # Protocols whose analysis involves only second or third moments - randomised benchmarking, classical shadows - can
 # therefore replace Haar-random unitaries by random Clifford gates, which are easy to implement and to track classically
@@ -860,8 +855,7 @@ for t, exact in zip((1, 2, 3, 4), (1, 2, 5, 14)):
 # resources.
 #
 # Real devices do not apply Haar-random gates but gates from a small native set. We use the one-qubit gates
-# $\{H,X,Y,Z,S,T,R_x(\theta),R_y(\theta),R_z(\theta)\}$ with random angles and the two-qubit gates $\{\mathrm{CNOT},\mathrm{CZ}\}$ of
-# notebook 09.
+# $\{H,X,Y,Z,S,T,R_x(\theta),R_y(\theta),R_z(\theta)\}$ with random angles and the two-qubit gates $\{\mathrm{CNOT},\mathrm{CZ}\}$.
 #
 # > **JAX practice: make randomness data.** If the *positions* of the gates were random, every circuit would have a
 # > different einsum structure and would need its own compilation - for a one-off circuit the compile time would exceed
@@ -950,12 +944,11 @@ plt.show()
 # **stabilizer state**, a superposition with equal weights (and phases $\pm1,\pm i$) over an affine subspace of bit
 # strings (the solutions of a set of linear equations modulo 2) containing $2^k$ elements; in this instance the subspace is the whole space ($k=N$), so the measured bit strings are
 # *perfectly uniform* coin flips that reveal nothing about the entanglement inside. Entanglement alone does not make a state "generic"; the missing resource is the non-Clifford
-# *magic* supplied by $T$ gates or generic rotations ([notebook 27](../ch09_entanglement_and_complexity/27_stabilizer_renyi_entropy.ipynb)).
+# *magic* supplied by $T$ gates or generic rotations.
 #
 # ### 8.2 Sampling and the cost of classical simulation
 #
-# Given the final state, sampling $M$ bit strings is a draw from the categorical distribution $p_s$ (`sample_bitstrings`,
-# [notebook 08](../ch03_matrix_free_engine/08_measurements.ipynb)). A quantum device must rerun the circuit for every
+# Given the final state, sampling $M$ bit strings is a draw from the categorical distribution $p_s$ (`sample_bitstrings`). A quantum device must rerun the circuit for every
 # shot, because the measurement destroys the state, whereas the state-vector simulator computes the state once and then
 # draws as many samples as we like.
 #
@@ -1131,7 +1124,7 @@ for M in (100, 1000, 10000, 100000):
 #
 # ### 9.3 A noisy device: XEB tracks the fidelity
 #
-# We now simulate a noisy processor with the quantum-trajectory method of notebooks 07 and 09: after every two-qubit
+# We now simulate a noisy processor with the quantum-trajectory method: after every two-qubit
 # gate each of its two qubits suffers a depolarising channel with error probability $p$ (`apply_kraus_mcwf` samples one Kraus
 # operator per noise location). Every trajectory is one "run of the device": it ends in some pure state
 # $\lvert\psi_{\rm traj}\rangle$ from which we draw **one** bit string - exactly what an experiment delivers. From the same
@@ -1288,7 +1281,7 @@ print(f"D sum p^2 = {float(2 ** N_big * jnp.sum(jnp.abs(psi_big) ** 4)):.4f}")
 #    $e^{-s}$) and with the Wigner surmise of the unitary ensemble, $\frac{32}{\pi^2}s^2e^{-4s^2/\pi}$.
 # 4. ★★ **Entanglement velocity (physics).** From the data of Section 6.3 extract the growth rate of the half-chain entropy in
 #    bits per layer in the linear regime, with an error bar. Repeat with the second Rényi entropy (`renyi2_entropy` in
-#    notebook 06). Which grows more slowly? Then replace the Haar gates by a fixed gate, e.g. `CNOT @ kron(ry(a), ry(b))`
+#    [notebook 06, states, observables and entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb)). Which grows more slowly? Then replace the Haar gates by a fixed gate, e.g. `CNOT @ kron(ry(a), ry(b))`
 #    with random angles, and compare.
 # 5. ★★ **Periodic boundary conditions (extend the code).** Add the bond $(N-1,0)$ to the odd layers in
 #    `apply_bond_layer`/`random_brickwall_circuit` (for even $N$). The region $A=\{0..N/2-1\}$ now has two boundaries. How

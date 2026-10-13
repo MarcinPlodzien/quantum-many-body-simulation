@@ -5,8 +5,8 @@
 # %% [markdown]
 # ## 1. Introduction
 #
-# A quantum sensor is useful because its state carries *correlations*. Chapter 10 has so far treated those correlations
-# as something one prepares on purpose: twist a coherent spin state, build a GHZ state, encode a phase. But a many-body
+# A quantum sensor is useful because its state carries *correlations*. Usually those correlations are something one
+# prepares on purpose: twist a coherent spin state, build a GHZ state, encode a phase. But a many-body
 # system *generates* correlations by itself, simply by evolving. Prepare a product state, switch on a Hamiltonian, and
 # entanglement grows; some of that entanglement is **metrologically useful**, and it grows and spreads according to
 # laws of its own.
@@ -24,8 +24,8 @@
 #    signal arrive, and how much of it is there? The answer is a light cone, and in the simplest case we can derive
 #    the *exact* profile in closed form and check the simulator against it.
 #
-# The tools are the ones of Chapter 5 — Trotter–Suzuki time evolution with `jax.jit` and `lax.scan` — combined with
-# the reduced-state quantum Fisher information of notebooks 29 and 30. One idea makes the combination cheap: instead of
+# The tools are Trotter–Suzuki time evolution with `jax.jit` and `lax.scan`, combined with the reduced-state quantum
+# Fisher information. One idea makes the combination cheap: instead of
 # recomputing $\rho_\theta(t)$ for several values of $\theta$, we evolve the state **and one tangent vector**
 # side by side and read every subsystem's $F_Q$ off the pair.
 #
@@ -37,7 +37,7 @@
 #   three independent routes.
 # * **Sections 5–6** — global quenches of the transverse-field Ising and XXZ chains: the QFI density versus time,
 #   uniform against staggered generators, the certified entanglement depth, the late-time value compared with the
-#   Haar-random reference $Nd/(d+1)$ of notebook 35, and the correlation matrix $C_{ij}$ that produces it, including
+#   Haar-random reference $Nd/(d+1)$, and the correlation matrix $C_{ij}$ that produces it, including
 #   its finite correlation length and the open-boundary correction.
 # * **Sections 7–9** — local encoding: the light cone of the block-resolved QFI, its exact one-magnon solution, the
 #   measured front velocity with its derived threshold dependence, the two-site "where is the resource" map, a magnon
@@ -69,22 +69,10 @@
 # * `jax.vmap` over Hamiltonian parameters;
 # * space-time heat maps and an embedded GIF built without writing a single file to disk.
 #
-# ### Prerequisites
-# * [12 — TEBD (Trotter–Suzuki)](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb): the time
-#   evolution used throughout, and its error control;
-# * [15 — quench dynamics in spin chains](../ch05_ground_states_and_unitary_dynamics/15_quench_dynamics_spin_chains.ipynb):
-#   quenches, Lieb–Robinson light cones, the quasiparticle picture, and the threshold dependence of a measured front
-#   velocity, which we revisit here for a different observable;
-# * [06 — states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb):
-#   reduced density matrices and the Schmidt decomposition;
-# * [29 — quantum Fisher information](../ch10_quantum_metrology_protocols/29_quantum_fisher_information.ipynb) and
-#   [30 — QFI from the SLD](../ch10_quantum_metrology_protocols/30_qfi_from_the_sld_prepare_encode_estimate.ipynb):
-#   $F_Q=4\mathrm{Var}(G)$, the mixed-state formula, the subsystem QFI;
-# * helpful: [35 — one-axis twisting plus Haar scrambling](../ch10_quantum_metrology_protocols/35_oat_plus_haar_scrambling.ipynb)
-#   for the value a fully scrambled state settles at.
-#
-# **What comes next.** [44b — variational quantum metrology](../ch13_quantum_machine_learning/44b_variational_quantum_metrology.ipynb)
-# (Chapter 13) optimises probe states and measurements under noise with automatic differentiation.
+# The notebook assumes Trotter–Suzuki time evolution and its error control ([notebook 12, TEBD and Trotter–Suzuki](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb)),
+# quenches, light cones and the quasiparticle picture ([notebook 15, quench dynamics in spin chains](../ch05_ground_states_and_unitary_dynamics/15_quench_dynamics_spin_chains.ipynb)), reduced density matrices and the
+# Schmidt decomposition ([notebook 06, states, observables and entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb)),
+# and the quantum Fisher information of pure, mixed and reduced states ([notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb); [notebook 30, QFI from the SLD](30_qfi_from_the_sld_prepare_encode_estimate.ipynb)).
 #
 # **Conventions.** Qubit $q$ = tensor axis $q$ = chain site $q$; $\vert0\rangle$ is the $+1$ eigenstate of $Z$.
 # Hamiltonians are written in the Pauli convention, $H=\sum J_{aa}\sigma^a_i\sigma^a_{i+1}+\sum h_a\sigma^a_i$, while
@@ -141,8 +129,8 @@ def timed(f, *args, budget=0.3, min_reps=3, max_reps=200):
 #
 # ### 3.1 The quantum Fisher information *is* the sum of the connected correlations
 #
-# Take a pure state $\vert\psi\rangle$ and the collective generator $G=J_a=\tfrac12\sum_i\sigma^a_i$. Notebook 29
-# established $F_Q=4\,\mathrm{Var}(G)$ [[2]](#ref-2). Expand the variance:
+# Take a pure state $\vert\psi\rangle$ and the collective generator $G=J_a=\tfrac12\sum_i\sigma^a_i$. Then
+# $F_Q=4\,\mathrm{Var}(G)$ [[2]](#ref-2), as derived in [notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb), Section 6.3. Expand the variance:
 #
 # $$\begin{aligned}
 # F_Q\left[\psi,J_a\right]&=4\left[\langle J_a^2\rangle-\langle J_a\rangle^2\right]
@@ -157,7 +145,7 @@ def timed(f, *args, budget=0.3, min_reps=3, max_reps=200):
 # $$F_Q\left[\psi,J_a\right]=\underbrace{\sum_i\left(1-\langle\sigma^a_i\rangle^2\right)}_{\le\,N}
 #   \;+\;\sum_{i\neq j}C^{aa}_{ij}. \tag{2}$$
 #
-# The first sum is at most $N$ and is the whole story for a product state (the standard quantum limit of notebook 29,
+# The first sum is at most $N$ and is the whole story for a product state (the standard quantum limit,
 # rederived in one line). **Everything above the standard quantum limit comes from the connected correlations between
 # different sites.** After a quench from a product state those correlations build up inside a light cone, so the
 # growth of $F_Q$ measures the correlations accumulated so far, summed over the chain. Sections 5 and 6 follow this
@@ -172,7 +160,7 @@ def timed(f, *args, budget=0.3, min_reps=3, max_reps=200):
 #
 # ### 3.2 The QFI density as a witness of entanglement depth
 #
-# Notebook 29 quoted the criterion we shall read the curves with. Call a state **$k$-producible** if it is a mixture of
+# We read the curves with the criterion quoted in [notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb), Section 13. Call a state **$k$-producible** if it is a mixture of
 # products of blocks of at most $k$ qubits. Writing $N=sk+r$ with $s=\lfloor N/k\rfloor$ and $0\le r<k$, every
 # $k$-producible state obeys [[3]](#ref-3), [[4]](#ref-4)
 #
@@ -207,7 +195,7 @@ def timed(f, *args, budget=0.3, min_reps=3, max_reps=200):
 # * **Numerically:** define the **tangent vector** $\vert\phi(t)\rangle=U(t)G\vert\psi_0\rangle$. It obeys the *same*
 #   Schrödinger equation as $\vert\psi(t)\rangle$, so one time evolution with a two-component state carries both. No
 #   finite differences in $\theta$, no three copies of the state, and the quantum Fisher information of any block
-#   follows from the pair $(\psi,\phi)$ by the formula of notebook 29,
+#   follows from the pair $(\psi,\phi)$ by the formula of [notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb), Section 15,
 #
 # $$\rho_A=\Psi\Psi^\dagger,\qquad \partial_\theta\rho_A=-i\left(T-T^\dagger\right),\quad T=\Phi\Psi^\dagger, \tag{7}$$
 #
@@ -327,11 +315,11 @@ assert err_id < 1e4 * TOL
 #   H_{\rm TFIM}=\sum_i\sigma^z_i\sigma^z_{i+1}+h\sum_i\sigma^x_i . \tag{8}$$
 #
 # At $\Delta=0$ the XXZ chain is the **XX chain**, which the Jordan–Wigner transformation ([[7]](#ref-7);
-# notebook 15, Section 7.2) maps to free fermions, as shown in [[8]](#ref-8); it is our exactly
+# [notebook 15, quench dynamics in spin chains](../ch05_ground_states_and_unitary_dynamics/15_quench_dynamics_spin_chains.ipynb), Section 7.2) maps to free fermions, as shown in [[8]](#ref-8); it is our exactly
 # solvable reference. The transverse-field Ising chain is free as well [[9]](#ref-9), and critical at $h=1$.
 #
 # The evolution is second- or fourth-order Trotter–Suzuki ([[10]](#ref-10), [[11]](#ref-11); the fourth-order scheme of
-# [[12]](#ref-12); notebook 12): one step is a fixed list of two-site gates,
+# [[12]](#ref-12); [notebook 12, TEBD and Trotter–Suzuki](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb)): one step is a fixed list of two-site gates,
 # applied by `apply_gates`. The loop over steps is a `lax.scan`, so it compiles once instead of unrolling; the carry is
 # the **pair** $(\psi,\phi)$ of Eq. (6), which is what makes the whole notebook cheap.
 
@@ -415,7 +403,7 @@ print(f"\nworst deviation: {err_b:.2e}")
 assert err_b < 1e4 * TOL
 
 # %% [markdown]
-# The first table is the ordinary Trotter convergence of notebook 12, with one addition: the tangent vector converges
+# The first table is the ordinary Trotter convergence, with one addition: the tangent vector converges
 # at the same rate as the state, as it must, since it obeys the same equation. Second order improves by a factor of
 # about four when $dt$ is halved ($1.24\times10^{-3}\to3.11\times10^{-4}$); fourth order improves by $39$ when $dt$
 # shrinks by a factor $2.5$, as $2.5^4=39$ predicts. We use order $4$ with $dt$ small enough that the Trotter error is
@@ -424,7 +412,7 @@ assert err_b < 1e4 * TOL
 # The second table validates `block_qfi` on an evolved, genuinely entangled state: the full system reproduces
 # $4\,\mathrm{Var}(J_x)$, and every contiguous block reproduces the completely independent route
 # "build the reduced density matrix, build the restricted generator, call the engine's mixed-state formula". That
-# second route only works because the generator is a sum of single-site terms — the commutator lemma of notebook 37.
+# second route only works because the generator is a sum of single-site terms — the commutator lemma of [notebook 37, particle loss and magic](37_qfi_particle_loss_and_magic.ipynb), Section 3.2.
 # The tangent-vector route of Eq. (7) does not need that assumption, which is why Sections 7–9 can use a *local*
 # generator whose Heisenberg evolution is an arbitrary many-body operator.
 
@@ -452,8 +440,8 @@ assert err_b < 1e4 * TOL
 #   a $J_z$ eigenstate, so Section 3.3 predicts $F_Q\left[J_z\right]=0$ at all times. The *staggered* $J_z$ generator of
 #   Eq. (3) is the one that sees the physics.
 #
-# For reference, notebook 35 established that a Haar-random state — the fully scrambled end point — has
-# $\mathbb E\left[F_Q\right]=Nd/(d+1)$ with $d=2^N$, i.e. $f_Q\to1$: **a fully scrambled state carries no useful
+# For reference, a Haar-random state — the fully scrambled end point — has
+# $\mathbb E\left[F_Q\right]=Nd/(d+1)$ with $d=2^N$ ([notebook 35, scrambling a metrological probe](35_oat_plus_haar_scrambling.ipynb), Section 6.1), i.e. $f_Q\to1$: **a fully scrambled state carries no useful
 # entanglement at all**. A quench that drove the chain towards a random state would bring $f_Q$ back down to $1$;
 # the curves below show whether that happens in the time window we can simulate.
 
@@ -564,8 +552,8 @@ fig.tight_layout(); plt.show()
 # paragraph). They are correct statements about the state of this chain of twelve spins, but not about a quench in a
 # long chain.
 #
-# **No curve returns to the Haar value inside the window.** A fully scrambled state would sit at $f_Q=0.9998$
-# (notebook 35). For $2\le t\le4$ the critical Ising curve stays between $2.31$ and $2.41$, the $h=2$ curve between
+# **No curve returns to the Haar value inside the window.** A fully scrambled state would sit at $f_Q=0.9998$.
+# For $2\le t\le4$ the critical Ising curve stays between $2.31$ and $2.41$, the $h=2$ curve between
 # $2.50$ and $2.73$, XXZ at $\Delta=2$ above $2.8$ and XXZ at $\Delta=0.5$ above $1.5$; the weak quench $h=0.5$ is
 # still growing slowly and crosses $1$ only at $t\approx2.4$. After $t\approx4$ the Ising curve at $h=1$ rises to
 # $f_Q=4.82$ at $t=6$. That late rise is a finite-size effect: the half-chain entropy in the right panel peaks near
@@ -749,7 +737,7 @@ plt.show()
 # *larger* of the two, and it is what pushes $f_Q$ above $1$. The colour maps say where it comes from: at $t=0$ the
 # matrix is empty; at $t=0.5$ a thin band of nearest-neighbour correlations has appeared along the diagonal; at $t=1.5$
 # the band has widened to three or four sites on either side. Between $t=1.5$ and $t=3$ the band hardly widens any
-# further, although the quasiparticle cone of this quench (correlation front $2v_{\max}t=4t$ sites, notebook 15) has
+# further, although the quasiparticle cone of this quench (correlation front $2v_{\max}t=4t$ sites, [notebook 15, quench dynamics in spin chains](../ch05_ground_states_and_unitary_dynamics/15_quench_dynamics_spin_chains.ipynb), Section 6.2) has
 # by then crossed the whole chain. The correlations do not fill the cone: they decay with distance, and the plateau seen in
 # Section 5 is reached when the cone becomes wider than that decay length, not when it reaches the ends of the chain.
 # Section 6.1 makes this quantitative.
@@ -882,7 +870,7 @@ assert abs(ratios.mean() - 0.5) < 0.05
 # 3. Feeding the pair into Eq. (7) gives a simple result. With $\vert\phi(t)\rangle=\tfrac12\sum_jc_j(t)\vert1_j\rangle$
 #    and $A$ the kept block, $\rho_A=\vert0\rangle_A\langle0\vert$ is pure with $\lambda_0=1$, and the only non-zero
 #    matrix elements of $\partial_\theta\rho_A$ connect $\vert0\rangle_A$ to the states $\vert1_j\rangle_A$ with
-#    $\lambda=0$. Equation (2) of notebook 37 then collapses to
+#    $\lambda=0$. Equation (2) of [notebook 37, particle loss and magic](37_qfi_particle_loss_and_magic.ipynb) then collapses to
 #
 # $$F_Q^{(A)}(t)=2\cdot2\sum_{j\in A}\left\vert\tfrac12 c_j(t)\right\vert^2=\sum_{j\in A}\left\vert c_j(t)\right\vert^2
 #   =P_A(t), \tag{9}$$
@@ -970,7 +958,7 @@ An exact anchor of this kind is the best possible test before a production run. 
 #
 # There is no sharp front. Equation (10) says the signal at distance $j$ rises out of a Bessel tail that is
 # *exponentially* small for $j>4t$ but never exactly zero, so "arrival" is whatever the threshold declares it to be.
-# Notebook 15 met the same problem with correlation functions and drew the lesson we repeat here: a high threshold
+# The same problem arises for correlation functions ([notebook 15, quench dynamics in spin chains](../ch05_ground_states_and_unitary_dynamics/15_quench_dynamics_spin_chains.ipynb), Section 6), with the same lesson: a high threshold
 # declares arrival too late and underestimates the velocity, a low threshold triggers on the tail and overestimates
 # it. Section 7.4 derives where this spread comes from. We scan five thresholds over four decades and interpolate each crossing in
 # $\log F_Q$ so that the answer is not quantised by the snapshot spacing.
@@ -1149,8 +1137,8 @@ assert abs(u_far[1e-2][0] - 4) < 0.03 and abs(u_far[0.5][0] - 4) > 0.2
 # > of zeros is not a physical statement; it means the experiment was set up wrong.
 #
 # The quasiparticles of this chain have the maximal group velocity $v_{\max}=2\min(J,h)$, which is $2$ here
-# (notebook 15). Notebook 15 measured the light cone of the equal-time *correlations* after a global quench and found
-# it at $2v_{\max}$: two sites become correlated when the two partners of a pair emitted half-way between them arrive.
+# ([notebook 15, quench dynamics in spin chains](../ch05_ground_states_and_unitary_dynamics/15_quench_dynamics_spin_chains.ipynb), Section 6.2). The light cone of the equal-time *correlations* after a global quench
+# lies at $2v_{\max}$: two sites become correlated when the two partners of a pair emitted half-way between them arrive.
 # A local encoding is a single-particle disturbance. With the Jordan–Wigner fermions of this convention,
 # $\sigma^z_0$ is a single Majorana operator at the end of the chain (no string attached), its Heisenberg evolution is a
 # linear combination of Majorana operators that spreads with the group velocities of the fermions, and the prediction
@@ -1206,7 +1194,7 @@ fig.tight_layout(); plt.show()
 # threshold scan gives $1.96,\ 2.09,\ 2.19,\ 2.29$ for thresholds $10^{-1}\ldots10^{-4}$: again monotone, again a
 # spread of about $\pm8\%$ around the middle that is much larger than the fit errors, and again bracketing the
 # single-particle velocity $v_{\max}=2$. (At the threshold $10^{-1}$ only five cuts are reached by $t=4$.) The
-# correlation front of notebook 15, $2v_{\max}=4$, lies far outside the measured range.
+# correlation front, $2v_{\max}=4$, lies far outside the measured range.
 #
 # The two light cones of this chain therefore move at different speeds, and Eq. (6) says why. The metrological signal is
 # carried by the Heisenberg operator $G(t)=U(t)GU^\dagger(t)$ of a *local* generator: one quasiparticle leaving site
@@ -1680,7 +1668,7 @@ for l in (1, 2, 4, 7, 10, 13):
 #   at $\sqrt2/\Delta$ and moves at most at $2/\Delta$ (Eq. 12b, measured to about $1\%$); in the XX chain the same pair
 #   falls apart within one unit of time. A background magnon packet barely changes the two-site QFI map: the map
 #   follows the encoded operator $G(t)$.
-# * **A quench does not make a Haar-random state.** A fully scrambled state has $f_Q\to1$ (notebook 35), yet the
+# * **A quench does not make a Haar-random state.** A fully scrambled state has $f_Q\to1$, yet the
 #   quenched integrable chains studied here keep $f_Q$ well above $1$ over the window $2\le t\le4$ (except the weak
 #   quench $h=0.5$, which is still growing). Useful entanglement is not the same as entanglement entropy, and an
 #   extensive entropy does not force the QFI density down.
@@ -1719,7 +1707,7 @@ for l in (1, 2, 4, 7, 10, 13):
 #    ($S(q)=3/(5-4\cos q)$ for that profile on an infinite chain), and compare.
 # 8. ★★★ **Where is the optimum? (extend the code).** For the critical Ising quench, optimise the generator over all
 #    site-dependent single-qubit directions, $G=\tfrac12\sum_i\mathbf n_i\cdot\vec\sigma_i$, with `jax.grad` and Adam
-#    (as in notebook 35, Section 7). How much more $F_Q$ is available than with the best uniform or staggered choice,
+#    (as in [notebook 35, scrambling a metrological probe](35_oat_plus_haar_scrambling.ipynb), Section 7). How much more $F_Q$ is available than with the best uniform or staggered choice,
 #    and does the optimal pattern look like anything recognisable?
 #
 # ## 14. References

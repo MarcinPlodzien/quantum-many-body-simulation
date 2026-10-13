@@ -18,3 +18,9 @@ later in the course and can be left for a second reading.
 The chapter closes with the two tools used everywhere afterwards. JAX turns NumPy-style code into compiled
 (`jit`), batched (`vmap`), looped (`lax.scan`) and differentiable (`grad`) programs, and `einsum` expresses every
 contraction of the course in index notation, from matrix products to partial traces.
+
+Notebooks 00a, 00b, 01 and 02 assume one semester of quantum mechanics and basic Python with NumPy and matplotlib,
+and no background in numerical methods or JAX; notebooks 01 and 02 do not need the single-particle notebooks, and
+only Section 15 of notebook 02 uses JAX. Notebook 00c builds on the periodic grid and spectral derivatives of
+00a and on the potentials, eigenstates and explicit integrators of 00b, and notebook 00d takes the soliton, its
+conserved quantities and the split-step propagator from 00c without re-deriving them.

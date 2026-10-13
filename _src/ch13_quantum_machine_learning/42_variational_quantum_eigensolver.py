@@ -75,19 +75,9 @@
 # * validating every reference: Lanczos against dense diagonalisation, matrix-free energies against explicit matrix
 #   elements, and a symmetry against a matrix-free commutator.
 #
-# ### Prerequisites
-#
-# * [40 — parametrized gates and gradients](../ch13_quantum_machine_learning/40_parametrized_gates_and_gradients.ipynb):
-#   ansätze, cost functions, the parameter-shift rule, SPSA, `jax.grad` through a circuit, barren plateaus;
-# * [41 — optimisers](../ch13_quantum_machine_learning/41_optimizers.ipynb): Adam, SPSA with Spall gains, the
-#   `lax.scan` training loop, `vmap` over random initialisations, and the overparametrisation threshold;
-# * [11 — Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb):
-#   Hamiltonians as lists of local terms, and the Lanczos ground state that is our reference throughout;
-# * [06 — states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb):
-#   reduced density matrices, entanglement entropy, fidelity;
-# * [42a — VQE: Hamiltonians, ansätze and training](../ch13_quantum_machine_learning/42a_variational_quantum_eigensolver_hamiltonians_ansatze_training.ipynb):
-#   the first VQE notebook, read before this one. Its antiferromagnetic XXZ chain without a field and its Ising field
-#   $-h\sum_iX_i$ differ from the models of Section 4.1, which have ferromagnetic couplings and a field $+h_x\sum_iX_i$.
+# The notebook assumes ansätze, the parameter-shift rule and barren plateaus ([notebook 40, parametrised gates and gradients](40_parametrized_gates_and_gradients.ipynb)), Adam, SPSA and the
+# `lax.scan` training loop ([notebook 41, optimisers](41_optimizers.ipynb)), Hamiltonians as lists of local terms with their Lanczos ground states
+# ([notebook 11, Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb)), and the VQE set-up of [notebook 42a, VQE: Hamiltonians, ansätze and training](42a_variational_quantum_eigensolver_hamiltonians_ansatze_training.ipynb).
 #
 # **Conventions and sizes.** Qubit $q$ is tensor axis $q$; $\vert0\rangle$ is the $+1$ eigenstate of $Z$. Hamiltonians
 # are written in the Pauli convention (Section 4.1), never with spin-$1/2$ operators. The main studies use $N=6$ spins so
@@ -100,9 +90,8 @@
 # From the engine we take the gate application and rotations, the hardware-efficient ansatz with its parameter count,
 # the Hamiltonian machinery (`heisenberg_terms`, `energy`, `dense_hamiltonian`, `lanczos_ground_state`), the state
 # characteristics (`entanglement_entropy`, `fidelity_pure`, `all_local_expectations`, `expect_pauli_string`) and
-# `sample_bitstrings` for the shot-noise section. The optimiser and training-loop helpers are the ones built in
-# [41 — optimisers](../ch13_quantum_machine_learning/41_optimizers.ipynb) and are repeated here so that this notebook
-# runs on its own.
+# `sample_bitstrings` for the shot-noise section. The optimiser and training-loop helpers are the ones derived in
+# [notebook 41, optimisers](41_optimizers.ipynb) and are repeated here so that this notebook runs on its own.
 
 # %%
 #@engine: apply_gate, rx, ry, rz, rxx, rzz, X, Y, Z, XX, YY, ZZ, CZ, PAULI, zero_state, haar_state, fidelity_pure, expect_local, expect_pauli_string, apply_pauli_string, all_local_expectations, entanglement_entropy, sample_bitstrings, heisenberg_terms, apply_hamiltonian, energy, dense_hamiltonian, lanczos_ground_state, hea_num_params, hardware_efficient_ansatz, parameter_shift_grad, spsa_grad, adam_init, adam_update
@@ -650,8 +639,7 @@ for name in MODEL_NAMES:
 #
 # ### 5.3 The ansatz does not know about any of this
 #
-# The hardware-efficient ansatz of
-# [40 — parametrized gates](../ch13_quantum_machine_learning/40_parametrized_gates_and_gradients.ipynb) starts from
+# The hardware-efficient ansatz starts from
 # $\vert0\rangle^{\otimes N}$ and applies $R_y,R_z$ rotations and $CZ$ gates. The starting state is not an eigenstate of
 # $P$ ($P\vert0\cdots0\rangle=\vert1\cdots1\rangle$), and $R_y(\theta)$ does not commute with $X$, so
 # $\vert\psi(\boldsymbol\theta)\rangle$ has no definite parity for generic angles.
@@ -744,7 +732,8 @@ print(f"  median symmetry leakage 1 - |<P>| = {np.median(1 - np.abs(par_rand)):.
 # 1. choose an ansatz $\vert\psi(\boldsymbol\theta)\rangle=U(\boldsymbol\theta)\vert0\rangle^{\otimes N}$ and a random
 #    starting point $\boldsymbol\theta^{(0)}$;
 # 2. evaluate $E(\boldsymbol\theta)=\langle\psi(\boldsymbol\theta)\vert H\vert\psi(\boldsymbol\theta)\rangle$ and its
-#    gradient (here by reverse-mode automatic differentiation; on hardware by the parameter-shift rule of notebook 40);
+#    gradient (here by reverse-mode automatic differentiation; on hardware by the parameter-shift rule derived in
+#    [notebook 40, parametrised gates and gradients](40_parametrized_gates_and_gradients.ipynb));
 # 3. update $\boldsymbol\theta$ with Adam;
 # 4. repeat, and *restart from many random initialisations*, because the landscape has many minima.
 #
@@ -797,8 +786,8 @@ def vqe_run(c, psi_ref, E_ref, thetas, keys, lr, n_steps, N=N_SITES, layers=L_MA
 # %% [markdown]
 # ## 7. Choosing the step size by measurement
 #
-# Notebook 41 measured that Adam's best learning rate on an *energy* landscape is not the one that works on an
-# infidelity landscape, and that every optimiser's result varies over orders of magnitude across the grid. We therefore
+# The learning-rate sweeps of [notebook 41, optimisers](41_optimizers.ipynb) showed that Adam's best learning rate on an *energy* landscape is not the one
+# that works on an infidelity landscape, and that every optimiser's result varies over orders of magnitude across the grid. We therefore
 # tune here too, on the hardest of the three models (the critical Ising chain), with a short run. The learning rate is
 # passed as a **traced** scalar so that the whole sweep is one compilation.
 
@@ -830,9 +819,9 @@ print(f"\nbest learning rate on this landscape: {LR_BEST:g}")
 # The median final energy error varies by a factor of eight across the grid — $0.155$ at $\eta=0.05$, $0.019$ at
 # $\eta=0.4$, back up to $0.038$ at $\eta=0.8$ — with the smallest median at $\eta=0.4$. With six restarts per rate the
 # neighbours $0.2$ and $0.8$ are not cleanly separated from it (their medians are within a factor of two), so the grid
-# fixes the order of magnitude of the step rather than its exact value. That is close to the $0.45$ that notebook 41
-# measured for Adam on the energy landscape of an antiferromagnetic Ising chain ($N=6$, $h=0.8$, $L=3$), and far from the
-# $0.13$ that the same notebook found best on an *infidelity* landscape. Adam's update
+# fixes the order of magnitude of the step rather than its exact value. That is close to the $0.45$ measured in [notebook 41, optimisers](41_optimizers.ipynb)
+# for Adam on the energy landscape of an antiferromagnetic Ising chain ($N=6$, $h=0.8$, $L=3$), and far from the
+# $0.13$ found best there on an *infidelity* landscape. Adam's update
 # $\eta\,\hat m/(\sqrt{\hat v}+\epsilon)$ is unchanged when the cost is multiplied by a constant, so $\eta$ is a step
 # length in angle space, and its best value is set by the angular width of the valleys of the particular landscape;
 # those widths differ between cost functions, so step sizes do not transfer. All the hardware-efficient runs below use
@@ -844,8 +833,8 @@ print(f"\nbest learning rate on this landscape: {LR_BEST:g}")
 # The main experiment. For each of the three Hamiltonians we train twelve independent random restarts for 300 Adam
 # iterations with exact gradients, and record all nine observables at every iteration. The figure shows the **median**
 # over restarts as a line and the **interquartile range** as a band; the dashed horizontal line in each panel is the
-# exact value computed in Section 4.3. A single training curve would say nothing — notebook 41 measured final results
-# spanning ten orders of magnitude across restarts of one configuration.
+# exact value computed in Section 4.3. A single training curve would say nothing: final results of one configuration can
+# span ten orders of magnitude across restarts ([notebook 41, optimisers](41_optimizers.ipynb)).
 
 # %%
 # ==============================================================================
@@ -1042,8 +1031,7 @@ assert all(np.median(cont[0.1][i][:, -1, 0]) < 0.5 * np.median(cont[LR_BEST][i][
 #
 # ### 9.2 A problem-inspired ansatz that respects the symmetry by construction
 #
-# The **Hamiltonian-variational ansatz** [[4]](#ref-4) of
-# [40 — parametrized gates](../ch13_quantum_machine_learning/40_parametrized_gates_and_gradients.ipynb) is built
+# The **Hamiltonian-variational ansatz** [[4]](#ref-4) is built
 # from the Hamiltonian's own terms. For the transverse-field Ising model,
 #
 # $$\vert\psi(\boldsymbol\gamma,\boldsymbol\beta)\rangle=\prod_{l=L}^{1}
@@ -1054,7 +1042,7 @@ assert all(np.median(cont[0.1][i][:, -1, 0]) < 0.5 * np.median(cont[LR_BEST][i][
 # numerically that on a periodic chain at the critical point $N/2$ such layers reach the ground state exactly. The
 # path must start in the ground state of the field term alone, and for $h_x=+1$ that is $\vert-\rangle^{\otimes N}$,
 # $X\vert-\rangle=-\vert-\rangle$.
-# (Notebook 40 writes the ansatz with $\vert+\rangle^{\otimes N}$, which is the ground state for $h<0$; for our sign it is
+# (The ansatz is often written with $\vert+\rangle^{\otimes N}$, which is the ground state for $h<0$; for our sign it is
 # the *highest* state of the field term, and an ansatz started there needs many more layers before it competes.) It has $2L$ angles — independent of $N$ — against
 # $2N(L+1)$ for the hardware-efficient family.
 #
@@ -1211,15 +1199,16 @@ fig.tight_layout(); plt.show()
 # This is a hard constraint on the family, independent of any optimiser. If the target ground state has
 # $S_{\mathrm{half}}>\min(L,N/2)$, no choice of angles can reach it. Equation (9) is the elementary version of the
 # entanglement-area-law argument that also underlies matrix-product states
-# ([18 — MPS and TEBD](../ch07_tensor_networks/18_mps_tebd.ipynb)), where the bond dimension $\chi$ plays the role of
+# ([notebook 18, matrix product states](../ch07_tensor_networks/18_mps_tebd.ipynb)), where the bond dimension $\chi$ plays the role of
 # $2^L$.
 #
 # ### 10.2 Counting parameters
 #
 # The second constraint is dimensional. A general $N$-qubit pure state has $2\cdot2^N-2$ real parameters (complex
 # amplitudes minus normalisation and global phase); for $N=6$ that is $126$, while the ansatz has $n=2N(L+1)=12(L+1)$,
-# so $n\ge126$ requires $L\ge10$. Notebook 41 measured, for a Haar-random target state at $N=4$, that the success rate rises
-# sharply where $n$ crosses $2\cdot2^N-2=30$, the overparametrisation threshold [[6]](#ref-6). A ground
+# so $n\ge126$ requires $L\ge10$. For a Haar-random target state at $N=4$ the success rate rises
+# sharply where $n$ crosses $2\cdot2^N-2=30$, the overparametrisation threshold [[6]](#ref-6)
+# ([notebook 41, optimisers](41_optimizers.ipynb), Section 14). A ground
 # state is not a random state: it is weakly entangled, symmetric and structured, so the relevant count may be far
 # smaller. The depth scan below measures which of the two constraints binds.
 
@@ -1304,8 +1293,8 @@ fig.tight_layout(); plt.show()
 # entanglement capacity is not the binding constraint.
 #
 # **The parameter count tells the same story.** All the depths here have $n=24$ to $84$ angles, and a general
-# six-qubit state needs $2\cdot2^N-2=126$: the counting threshold that notebook 41 located for a **Haar-random** target
-# (there at $N=4$, where it is $30$) is never crossed, and yet the median fidelity reaches $0.997$. A ground state is
+# six-qubit state needs $2\cdot2^N-2=126$: the counting threshold of Section 10.2 for a **Haar-random** target
+# (at $N=4$ it is $30$) is never crossed, and yet the median fidelity reaches $0.997$. A ground state is
 # not a random state. It is weakly entangled, symmetric and structured, and a circuit with far fewer than
 # $2\cdot2^N-2$ parameters can approximate it well. The counting threshold is the right criterion for the worst case
 # and a pessimistic one for these ground states.
@@ -1319,7 +1308,7 @@ fig.tight_layout(); plt.show()
 # optimiser, a small fraction of the parameters.
 #
 # The two families live on landscapes with different curvature scales, so re-using the step size tuned in Section 7
-# would be exactly the mistake that notebook 41 warned against. Each depth therefore gets its own sweep over four step
+# would be a mistake: step sizes do not transfer between landscapes (Section 7). Each depth therefore gets its own sweep over four step
 # sizes — a nested `vmap`, one compilation per depth — and we report the step with the smallest median. We also report
 # the **best** run next to the median, as a measure of how much the restarts disagree.
 
@@ -1649,8 +1638,8 @@ fig.tight_layout(); plt.show()
 # The penalty is an overlap with a state prepared by a known circuit $U(\boldsymbol\theta_\star)$, so on hardware it is
 # measured as $\lvert\langle0^{\otimes N}\vert U^\dagger(\boldsymbol\theta_\star)U(\boldsymbol\theta)\vert0^{\otimes N}\rangle\rvert^2$
 # — the probability of the all-zeros outcome after running one circuit followed by the inverse of the other. It costs
-# one extra circuit of twice the depth per evaluation, and it is a *global* cost, with the barren-plateau exposure that
-# notebook 40 measured for global costs.
+# one extra circuit of twice the depth per evaluation, and it is a *global* cost, with the barren-plateau exposure of
+# global costs ([notebook 40, parametrised gates and gradients](40_parametrized_gates_and_gradients.ipynb), Section 13.2).
 #
 # We deflate the critical Ising chain, using as $\vert\psi_\star\rangle$ the best variational ground state of Section 8
 # — not the exact one, because on hardware the exact one is unavailable — and validate against the exact $E_1$.
@@ -1761,13 +1750,12 @@ fig.tight_layout(); plt.show()
 #
 # On hardware the energy is not evaluated, it is **estimated** from a finite number of projective measurements. For the
 # transverse-field Ising Hamiltonian two measurement settings suffice, because the $Z$-type terms all commute with one
-# another and so do the $X$-type terms (notebook 40, Section 12): measure every qubit in $Z$ to get all
+# another and so do the $X$-type terms: measure every qubit in $Z$ to get all
 # $\langle Z_qZ_{q+1}\rangle$ at once, and every qubit in $X$ to get all $\langle X_q\rangle$ at once. With $M$ shots
 # split evenly, the estimator is unbiased with variance $\propto1/M$.
 #
-# The comparison that matters on hardware is at **equal total number of shots**. Notebook 41 compared the two gradient
-# rules at equal iteration count and found parameter shift ahead, and noted that this does not answer the budget
-# question. Here we compare at equal budget, each rule at its own step size from a five-point scan. With $n$ angles,
+# The comparison that matters on hardware is at **equal total number of shots**. At equal iteration count parameter
+# shift is ahead of SPSA ([notebook 41, optimisers](41_optimizers.ipynb)), which does not answer the budget question. Here we compare at equal budget, each rule at its own step size from a five-point scan. With $n$ angles,
 #
 # * a parameter-shift iteration costs $2n$ circuits, hence $2nM$ shots;
 # * an SPSA iteration costs $2$ circuits, hence $2M$ shots.
@@ -1935,7 +1923,8 @@ ax.legend(fontsize=8)
 fig.tight_layout(); plt.show()
 
 # %% [markdown]
-# **The estimator behaves as derived.** The exact single-shot constant of notebook 40, Eq. (27), computed from the
+# **The estimator behaves as derived.** The exact single-shot constant of Eq. (27) of
+# [notebook 40, parametrised gates and gradients](40_parametrized_gates_and_gradients.ipynb), computed from the
 # two outcome distributions without sampling, is $\sqrt{2[\mathrm{Var}A+\mathrm{Var}B]}=3.268$, and the measured
 # std $\times\sqrt M$ agrees with it within $0.9$ standard errors at all four budgets, a factor of $64$ in $M$. The
 # means agree with the exact energy within $1.9$ standard errors. The wrong control, a protocol that forgets that each
@@ -1956,9 +1945,8 @@ fig.tight_layout(); plt.show()
 # **Both are far from the ansatz floor.** With an exact gradient and $2000$ iterations the same circuit reaches
 # $1.5\cdot10^{-3}$, two orders of magnitude below what either method achieved with $1.8\cdot10^{5}$ shots. Most of
 # that gap is already present without shot noise: it is the price of being allowed only $60$ parameter-shift (or the
-# equivalent $1440$ SPSA) iterations. The budget limits the number of steps first and their accuracy second, which is
-# why [43 — VQE with classical shadows](../ch13_quantum_machine_learning/43_vqe_with_classical_shadows.ipynb)
-# attacks the cost per energy estimate.
+# equivalent $1440$ SPSA) iterations. The budget limits the number of steps first and their accuracy second, so the
+# cost per energy estimate is what has to fall.
 #
 # > **Numerical practice.** Every curve here is the **exact** energy error of the current angles, a quantity the
 # > optimiser never sees. On hardware only noisy estimates exist, and reporting the lowest estimate seen during
@@ -1971,10 +1959,10 @@ fig.tight_layout(); plt.show()
 # Everything above was run on a simulator with $N\le6$ spins, where the exact answer is one Lanczos call away. Four
 # limits decide whether any of it scales.
 #
-# **Barren plateaus.** Notebook 40 measured that the variance of one gradient component of a hardware-efficient circuit
-# over random angles falls by a factor of about $2^{1.6}$ to $2^{1.8}$ per added qubit for a global cost (notebook 40, Section 13.2), and only as $1/N^2$ for a
-# local cost at fixed depth. An energy is a sum of $O(N)$ local terms, so it is on the favourable side: notebook 42a,
-# Section 9, finds no decay at fixed depth, but a circuit whose depth grows with $N$ approaches the exponential
+# **Barren plateaus.** The variance of one gradient component of a hardware-efficient circuit over random angles
+# falls by a factor of about $2^{1.6}$ to $2^{1.8}$ per added qubit for a global cost, and only as $1/N^2$ for a local
+# cost at fixed depth ([notebook 40, parametrised gates and gradients](40_parametrized_gates_and_gradients.ipynb), Section 13.2). An energy is a sum of $O(N)$ local terms, so it is on the favourable
+# side: its gradient variance shows no decay at fixed depth ([notebook 42a, VQE: Hamiltonians, ansätze and training](42a_variational_quantum_eigensolver_hamiltonians_ansatze_training.ipynb), Section 9), but a circuit whose depth grows with $N$ approaches the exponential
 # 2-design value, and a gradient that is exponentially small must be resolved above shot noise that falls only as
 # $M^{-1/2}$. The remedy has to change the ansatz or the cost; a better optimiser does not help [[11]](#ref-11),
 # [[12]](#ref-12). The random-angle initialisation used throughout this notebook is precisely the distribution the
@@ -1983,8 +1971,7 @@ fig.tight_layout(); plt.show()
 # **Measurement cost.** Every energy evaluation here was exact and free. On hardware, an accuracy $\varepsilon$ on
 # $\langle H\rangle$ costs $O(\lVert\mathbf c\rVert_1^2/\varepsilon^2)$ shots, and chemistry-scale Hamiltonians have
 # $O(N^4)$ terms. A single Adam iteration with a parameter-shift gradient costs $2n$ circuit families, each needing that
-# many shots. This is the dominant practical obstacle, and it is the subject of
-# [43 — VQE with classical shadows](../ch13_quantum_machine_learning/43_vqe_with_classical_shadows.ipynb).
+# many shots. This is the dominant practical obstacle.
 #
 # **Noise.** Real gates are imperfect, which biases the energy upwards and deforms the landscape. The variational
 # principle and Eqs. (4)–(5) still hold for the mixed state the device actually prepares (Section 3.3), so a measured
@@ -1995,7 +1982,7 @@ fig.tight_layout(); plt.show()
 # **What classical methods do better for these problems.** For a one-dimensional gapped chain the ground state obeys an
 # area law, and a matrix-product state with modest bond dimension represents it to machine precision; DMRG finds it in
 # seconds for hundreds of sites, far beyond anything demonstrated variationally on hardware
-# ([18 — MPS and TEBD](../ch07_tensor_networks/18_mps_tebd.ipynb)). VQE on a one-dimensional spin chain is therefore a
+# ([notebook 18, matrix product states](../ch07_tensor_networks/18_mps_tebd.ipynb)). VQE on a one-dimensional spin chain is therefore a
 # *benchmark* rather than an application: it is the setting in which the algorithm can be validated against an exact answer,
 # which is exactly what this notebook did. The regimes where no good classical method exists — frustrated
 # two-dimensional magnets, real-time dynamics, strongly correlated chemistry — are also the regimes where the ansatz
@@ -2077,7 +2064,8 @@ fig.tight_layout(); plt.show()
 #    explain why it is the right diagnostic there.
 # 8. ★★★ **The shot budget of the whole calculation (physics).** From Section 13, extrapolate the number of shots needed
 #    to reach a chemical-accuracy energy error ($1.6\cdot10^{-3}$ Hartree, here read as $10^{-3}$ in units of $J$) for
-#    $N=6$ with $L=4$. Combine with the gradient-variance measurements of notebook 40 and of notebook 42a, Section 9, to estimate how that budget grows with
+#    $N=6$ with $L=4$. Combine with the gradient-variance measurements of
+#    [notebook 40, parametrised gates and gradients](40_parametrized_gates_and_gradients.ipynb) (Section 13.2) and of [notebook 42a, VQE: Hamiltonians, ansätze and training](42a_variational_quantum_eigensolver_hamiltonians_ansatze_training.ipynb) (Section 9), to estimate how that budget grows with
 #    $N$, and say at which $N$ it exceeds a day of machine time.
 #
 # ## References

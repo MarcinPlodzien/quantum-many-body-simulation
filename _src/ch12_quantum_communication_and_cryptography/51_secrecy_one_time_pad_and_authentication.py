@@ -11,9 +11,9 @@
 # from something that Bob knows and Eve does not. That something is a **secret key**. Three questions follow: how
 # much key secrecy requires, what goes wrong when the key is misused, and how the key reaches Bob in the first place.
 #
-# [Notebook 50](../ch12_quantum_communication_and_cryptography/50_information_entropy_and_noisy_channels.ipynb) gave
-# the language: entropy measures uncertainty, and the mutual information $I(X{:}Y)$ measures how much one variable
-# reveals about another. In 1949 exactly this language was used to define what it means for a cipher to be
+# The notebook assumes the language of [notebook 50, entropy and noisy channels](50_information_entropy_and_noisy_channels.ipynb): entropy measures
+# uncertainty, the mutual information $I(X{:}Y)$ measures how much one variable reveals about another, and public
+# parity checks correct a shared key. In 1949 exactly this language was used to define what it means for a cipher to be
 # unbreakable, together with a proof that a simple cipher, the **one-time pad**, achieves it [[1]](#ref-1).
 #
 # ![The one-time pad: Alice adds the key to the message, the ciphertext crosses a public channel read by Eve, Bob adds the same key, and the key itself has to reach both in advance](figures/one_time_pad.svg)
@@ -70,24 +70,13 @@
 # * wrong controls that must fail: a reused key that reveals both messages, a biased key that Eve exploits, a key
 #   shorter than the message, a tampered ciphertext, a reused authentication key, and a fixed hash that keeps the bits
 #   Eve knows.
-#
-# ### Prerequisites
-#
-# * [Notebook 50](../ch12_quantum_communication_and_cryptography/50_information_entropy_and_noisy_channels.ipynb),
-#   Sections 3 and 4: entropy, the binary entropy $h(q)$, conditional entropy, the chain rule and the mutual
-#   information; Section 5.1, the binary symmetric channel; Section 6.3, the public parity checks that correct a shared
-#   key.
-# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): arrays and pseudo-random keys.
-# * Basic probability: conditional probability and Bayes' rule.
-#
-# No quantum mechanics is needed here either; it enters in the quantum part of this chapter.
 
 # %% [markdown]
 # ## 2. Notebook helpers
 #
-# As in notebook 50, every experiment draws its random numbers from its own key, `jax.random.fold_in(MASTER, i)`, so
-# that the experiments are independent and reproducible one by one. The entropy functions are the ones of notebook 50,
-# Eqs. (2), (4) and (8)–(10) there. Two small helpers turn text into bits and back: each character is one byte of
+# Every experiment draws its random numbers from its own key, `jax.random.fold_in(MASTER, i)`, so
+# that the experiments are independent and reproducible one by one. The entropy functions implement Eqs. (2), (4) and (8)–(10)
+# of [notebook 50, entropy and noisy channels](50_information_entropy_and_noisy_channels.ipynb). Two small helpers turn text into bits and back: each character is one byte of
 # ASCII code, eight bits, most significant bit first. Characters that are not printable are shown as `·`, so that a
 # ciphertext can be printed as a line of text.
 
@@ -217,8 +206,7 @@ def bits_to_text(bits):
 # $$P(M=m\vert C=c)=P(M=m)\qquad\text{for all }m\text{ and all }c\text{ with }P(C=c)>0. \tag{1}$$
 #
 # Equation (1) says that $M$ and $C$ are statistically independent, so their mutual information
-# ([notebook 50](../ch12_quantum_communication_and_cryptography/50_information_entropy_and_noisy_channels.ipynb),
-# Eq. (10)) vanishes:
+# (Eq. (10) of [notebook 50, entropy and noisy channels](50_information_entropy_and_noisy_channels.ipynb)) vanishes:
 #
 # $$I(M{:}C)=H(M)-H(M\vert C)=0. \tag{2}$$
 #
@@ -497,9 +485,9 @@ assert len(hits) <= 3 * len(true_offsets)                                # and f
 #
 # $$P_{\rm guess}=\max(\kappa,1-\kappa), \tag{7}$$
 #
-# larger than the $1/2$ of a blind guess for every $\kappa\neq1/2$. In the language of notebook 50, Eve receives the
-# message through a binary symmetric channel with flip probability $\kappa$ (Section 5.1 there), and the mutual
-# information per bit is that of Eq. (12) there at a uniform input,
+# larger than the $1/2$ of a blind guess for every $\kappa\neq1/2$. Eve receives the message through a binary symmetric
+# channel with flip probability $\kappa$, and the mutual information per bit is that of Eq. (12) of
+# [notebook 50, entropy and noisy channels](50_information_entropy_and_noisy_channels.ipynb), Section 5.1, at a uniform input,
 #
 # $$I(M{:}C)=1-h(\kappa)\quad\text{per bit},\qquad n\,\big(1-h(\kappa)\big)\ \text{bits for }n\text{ bits}. \tag{8}$$
 #
@@ -567,7 +555,7 @@ plt.tight_layout(); plt.show()
 #
 # $$\#\{\text{keys}\}\;\geq\;\#\{\text{messages}\}. \tag{9}$$
 #
-# **Entropy form.** The same statement in bits uses only the rules of notebook 50, Section 4. The steps are, from left
+# **Entropy form.** The same statement in bits uses only the rules of [notebook 50, entropy and noisy channels](50_information_entropy_and_noisy_channels.ipynb), Section 4. The steps are, from left
 # to right: perfect secrecy, Eq. (2); a pair of variables is at least as uncertain as one of them; the chain rule;
 # decryption, which makes $M$ a function of $K$ and $C$ so that $H(M\vert K,C)=0$; and the fact that conditioning
 # cannot increase entropy, which is $I(K{:}C)\geq0$:
@@ -581,7 +569,7 @@ plt.tight_layout(); plt.show()
 #
 # Every bit by which the key falls short of the message entropy is a bit that Eve learns. For an $n$-bit message the
 # one-time pad uses $n$ key bits; if the message is redundant, as text is, it can first be compressed to about $H(M)$
-# bits (notebook 50, Section 3.4) and then needs only that many key bits, as [[1]](#ref-1) also points out. The next cell
+# bits ([notebook 50, entropy and noisy channels](50_information_entropy_and_noisy_channels.ipynb), Section 3.4) and then needs only that many key bits, as [[1]](#ref-1) also points out. The next cell
 # checks Eqs. (9)–(11) by exact enumeration. The cipher adds an $\ell$-bit key, repeated as often as needed, to an
 # $8$-bit message, for $\ell=1,2,4,8$. For a uniform message Eq. (11) predicts a leak of at least $8-\ell$ bits; the
 # cell also tests random non-uniform priors.
@@ -856,8 +844,7 @@ assert (a1_rec, a2_rec) == a_true
 # ### 9.1 Two bits into one
 #
 # The last classical ingredient handles a key that is shared but not perfectly secret. After the public parity checks of
-# [notebook 50, Section
-# 6.3](../ch12_quantum_communication_and_cryptography/50_information_entropy_and_noisy_channels.ipynb) Alice and Bob
+# [notebook 50, entropy and noisy channels](50_information_entropy_and_noisy_channels.ipynb), Section 6.3, Alice and Bob
 # hold the same string $x$ of $n$ bits, but Eve has heard every announced parity, and in a quantum protocol she may also
 # have learned something by eavesdropping. **Privacy amplification** compresses $x$ into a shorter string $k=f(x)$ about
 # which Eve knows essentially nothing [[9]](#ref-9).
@@ -909,7 +896,7 @@ for name, (view, I_expected) in views.items():
 # measured (rows with a single $1$). For a uniform string $x$, any set of parities $Ax$ is uniformly distributed over
 # $2^{\operatorname{rank}A}$ values, where the rank is taken with arithmetic modulo $2$: the linear map $x\mapsto Ax$
 # has $2^{\operatorname{rank}A}$ possible values, and each of them is reached by the same number of strings $x$. So
-# $H(Ax)=\operatorname{rank}A$. The chain rule of notebook 50 then gives Eve's remaining uncertainty about the key
+# $H(Ax)=\operatorname{rank}A$. The chain rule then gives Eve's remaining uncertainty about the key
 # exactly,
 #
 # $$H(K\vert E)=H(Gx,Px)-H(Px)=\operatorname{rank}\begin{pmatrix}P\\G\end{pmatrix}-\operatorname{rank}P. \tag{16}$$
@@ -1051,7 +1038,7 @@ ax.legend(fontsize=8, loc="upper left"); plt.tight_layout(); plt.show()
 #
 # Secrecy against an eavesdropper with unlimited computing power is possible, but only with a uniformly random secret
 # key at least as long as the message, used once. Turning a noisy, partly known shared string into such a key takes two
-# public steps: error correction by parity checks, which costs about $h(Q)$ bits per key bit (notebook 50), and privacy
+# public steps: error correction by parity checks, which costs about $h(Q)$ bits per key bit, and privacy
 # amplification, which removes Eve's knowledge at the cost of as many bits as she might know. The public discussion must
 # be authenticated, which requires a short key shared in advance, so the whole procedure grows an existing key.
 #
@@ -1096,7 +1083,7 @@ ax.legend(fontsize=8, loc="upper left"); plt.tight_layout(); plt.show()
 #    question of the threat model was answered too optimistically.
 # 4. ★★ **Compress, then encrypt.** A source emits bits that are $1$ with probability $0.1$. How many key bits per
 #    source bit does perfect secrecy require at least, according to Eq. (10)? Encrypt a Huffman-compressed string from
-#    notebook 50, Section 3.4, with a one-time pad, and verify that the key used per source bit approaches this value.
+#    [notebook 50, entropy and noisy channels](50_information_entropy_and_noisy_channels.ipynb), Section 3.4, with a one-time pad, and verify that the key used per source bit approaches this value.
 # 5. ★★ **Key bookkeeping in a network.** A company of $N=1000$ employees wants one-time-pad links between all pairs,
 #    each pair exchanging $1$ megabyte of messages per day. How many keys are needed, and how much key material must the
 #    courier deliver per day? Compare with a design in which a trusted central server shares one key with each

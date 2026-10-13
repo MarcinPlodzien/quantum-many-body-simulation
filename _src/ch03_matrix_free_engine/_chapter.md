@@ -13,5 +13,5 @@ simulator engine", is the reference for every engine function: its Sections 2–
 Sections 13–18 summarise later chapters, and the function table of its Section 19.2 serves as an index.
 
 Prerequisites are notebooks 01 (JAX) and 02 (einsum) of [Chapter 1](ch01_computational_toolbox.qmd) and the dense
-Kronecker-product construction of [Chapter 2](ch02_spin_systems_textbook_way.qmd). The engine built here runs the
+Kronecker-product construction and Trotterization (notebooks 03 and 04) of [Chapter 2](ch02_spin_systems_textbook_way.qmd). The engine built here runs the
 circuits of [Chapter 4](ch04_digital_quantum_circuits.qmd) and all later chapters.

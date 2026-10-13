@@ -47,7 +47,7 @@
 #
 # **Road map.**
 #
-# 1. A one-page recap of the estimation theory we import from notebooks 29 and 30 (Section 3).
+# 1. A one-page recap of the estimation theory used here (Section 3).
 # 2. The physics: two-level atom, detuning, rotating frame, the collective spin, the Bloch-sphere picture (Section 4).
 # 3. The protocol, with the full algebra for one atom and for $N$ atoms: the signal $\langle J_z\rangle(\varphi)$ (Section 5).
 # 4. Projection noise and error propagation: $\Delta\varphi=1/\sqrt N$, and why the naive formula breaks at the fringe extrema
@@ -88,19 +88,12 @@
 #   product structure that has been *verified* numerically);
 # * writing the interpretation of a figure only after looking at the numbers it contains.
 #
-# ### Prerequisites
-# * [01 — JAX](../ch01_computational_toolbox/01_jax_from_scratch.ipynb): `jit`, `vmap`, PRNG keys;
-# * [06 — states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb);
-# * [07 — density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb):
-#   density tensors, Kraus operators;
-# * [08 — measurements](../ch03_matrix_free_engine/08_measurements.ipynb): the Born rule and sampling bit strings;
-# * [29 — quantum Fisher information](./29_quantum_fisher_information.ipynb): estimators, classical Fisher information, the
-#   Cramér–Rao bound, $F_Q=4\,\mathrm{Var}(G)$ for pure states;
-# * [30 — QFI from the SLD: prepare, encode, estimate](./30_qfi_from_the_sld_prepare_encode_estimate.ipynb): the
-#   symmetric-logarithmic-derivative formula for mixed states, which we use in Section 15.
-#
-# **What comes next.** [32 — GHZ interferometry and the Heisenberg limit](./32_ghz_interferometry_heisenberg_limit.ipynb)
-# replaces the coherent spin state by a GHZ state and reaches $\Delta\varphi=1/(N\sqrt M)$.
+# The notebook assumes the estimators, Fisher information, Cramér–Rao bound and $F_Q=4\,\mathrm{Var}(G)$ of
+# [notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb) and the mixed-state formula of [notebook 30, QFI from the SLD](30_qfi_from_the_sld_prepare_encode_estimate.ipynb),
+# density tensors and Kraus operators
+# ([notebook 07, density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb)),
+# the Born rule and sampling of bit strings ([notebook 08, measurements](../ch03_matrix_free_engine/08_measurements.ipynb)),
+# and `jit`, `vmap` and PRNG keys ([notebook 01, JAX from scratch](../ch01_computational_toolbox/01_jax_from_scratch.ipynb)).
 #
 # **Conventions.** Atom $q$ = tensor axis $q$, counted from $0$. The ground state is $\vert0\rangle$, the $+1$ eigenstate of $Z$;
 # the excited state is $\vert1\rangle$. Collective spin operators are $J_a=\tfrac12\sum_q\sigma^a_q$ with $a=x,y,z$, so that
@@ -160,9 +153,8 @@ def std_of_std(sigma, n):
 # %% [markdown]
 # ## 3. Results imported from estimation theory
 #
-# Notebooks [29](./29_quantum_fisher_information.ipynb) and
-# [30](./30_qfi_from_the_sld_prepare_encode_estimate.ipynb) built the machinery; this section only restates the four facts we
-# use, so that the present notebook can be read on its own. Nothing here is re-derived.
+# This section restates, without derivation, the four facts we use. They are derived in
+# [notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb) and [notebook 30, QFI from the SLD](30_qfi_from_the_sld_prepare_encode_estimate.ipynb).
 #
 # **(i) Estimator, bias, uncertainty.** An experiment produces data $x$ distributed according to $p(x\vert\varphi)$. An
 # *estimator* is any function $\hat\varphi(x)$. It is **unbiased** if $\mathbb E[\hat\varphi]=\varphi$, and its uncertainty is
@@ -178,7 +170,7 @@ def std_of_std(sigma, n):
 #
 # $$\Delta\varphi\ \ge\ \frac{1}{\sqrt{M\,F_C(\varphi)}}. \tag{2}$$
 #
-# The bound holds under two conditions (notebook 29, Section 4.7): the estimator is (locally) unbiased,
+# The bound holds under two conditions ([notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb), Section 4.7): the estimator is (locally) unbiased,
 # $\partial_\varphi\mathbb E[\hat\varphi]=1$ at the working point, and the model is *regular* there, meaning that the set of
 # outcomes with non-zero probability does not change with $\varphi$. It is *attainable* asymptotically: under the same
 # regularity conditions the maximum-likelihood estimator has a bias that falls like $1/M$ and a variance that approaches
@@ -201,7 +193,7 @@ def std_of_std(sigma, n):
 # *jointly* does not beat it, because the quantum Fisher information is additive over independent copies,
 # $F_Q[\rho_\varphi^{\otimes M}]=MF_Q[\rho_\varphi]$.
 #
-# **What is counted.** As in notebook 29 (Section 7.5), the resource is the number of single-atom phase imprints,
+# **What is counted.** As in [notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb), Section 7.5, the resource is the number of single-atom phase imprints,
 # $\nu=NM$: each of the $N$ atoms acquires the phase once per repetition, and the protocol is repeated $M$ times. The
 # standard quantum limit is $\Delta\varphi=1/\sqrt\nu$ and the Heisenberg limit $\Delta\varphi=\sqrt M/\nu$. The
 # interrogation time does not enter this count; it enters only in Section 16, where the quantity to be estimated is a
@@ -258,8 +250,8 @@ def std_of_std(sigma, n):
 #
 # > **Physics insight.** Everything in this chapter is a statement about *how much area that fuzzy patch occupies and in which
 # > direction it is elongated*. Ramsey interferometry uses a round patch of area set by $N$ (this notebook); GHZ interferometry
-# > ([notebook 32](./32_ghz_interferometry_heisenberg_limit.ipynb)) abandons the picture of a spin with a small patch altogether;
-# > spin squeezing ([notebook 33](./33_spin_squeezing_one_axis_twisting.ipynb)) keeps the arrow but squashes the patch in the
+# > abandons the picture of a spin with a small patch altogether;
+# > spin squeezing keeps the arrow but squashes the patch in the
 # > useful direction.
 
 # %% [markdown]
@@ -316,9 +308,8 @@ def std_of_std(sigma, n):
 #
 # $$S(\varphi)\equiv\langle J_z\rangle=\frac N2-\langle n_1\rangle=\frac N2-Np(\varphi)=\frac N2\cos\varphi. \tag{7}$$
 #
-# The signal has one fringe per $2\pi$ of phase, regardless of how many atoms take part. In
-# [notebook 32](./32_ghz_interferometry_heisenberg_limit.ipynb) an entangled probe produces $N$ fringes per $2\pi$ instead,
-# and that difference is the origin of the Heisenberg scaling there.
+# The signal has one fringe per $2\pi$ of phase, regardless of how many atoms take part. An entangled GHZ probe produces
+# $N$ fringes per $2\pi$ instead, and that difference is the origin of its Heisenberg scaling.
 
 # %% [markdown]
 # Now the code. Every step is one `apply_gate` per atom: the pulses and the free evolution are single-qubit gates applied to
@@ -499,9 +490,8 @@ fig.tight_layout(); plt.show()
 # **Right.** Looking down the $z$ axis at the interrogation stage. The phase $\varphi$ is the angle of the arrow, and the
 # shaded wedges are its uncertainty $1/\sqrt N$: the angular resolution of the interferometer is set by how narrow that wedge
 # is. Quadrupling the atom number halves it, which is the standard quantum limit read off the geometry. Beating it requires making the
-# patch at the tip of the arrow *non-circular*, squeezed in the azimuthal direction
-# ([notebook 33](./33_spin_squeezing_one_axis_twisting.ipynb)), or abandoning the picture of a long arrow altogether
-# ([notebook 32](./32_ghz_interferometry_heisenberg_limit.ipynb)).
+# patch at the tip of the arrow *non-circular*, squeezed in the azimuthal direction (spin squeezing), or abandoning the
+# picture of a long arrow altogether (GHZ states).
 
 # %% [markdown]
 # ## 6. Projection noise and error propagation
@@ -630,7 +620,7 @@ assert err_var < 1e3 * TOL
 # change the *probe* — entangle the atoms — which is the subject of the rest of this chapter.
 #
 # The value $F_Q=N$ is also exactly the boundary between classical and quantum: $F_Q>N$ for a state of $N$ qubits is a
-# sufficient criterion for entanglement (see notebook [29](./29_quantum_fisher_information.ipynb)). Ramsey interferometry sits
+# sufficient criterion for entanglement ([notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb), Section 13). Ramsey interferometry sits
 # precisely on that boundary.
 
 # %%
@@ -839,8 +829,7 @@ print(f"\nworst |z| of the MEAN test against the wrong sampler: {z_wrong_worst:.
 # $\vert z\vert\simeq30$–$50$. Had the checkpoint compared means only, it would have certified a sampler that gets the physics
 # of projection noise completely wrong, and the property the coin sampler relies on is precisely the *independence* of the
 # atoms. (For an entangled probe the coin sampler would be wrong in just this
-# way — see [notebook 32](./32_ghz_interferometry_heisenberg_limit.ipynb), where the $N$ bits of a GHZ record are maximally
-# correlated, exactly like the control sampler above.)
+# way: the $N$ bits of a GHZ record are maximally correlated, exactly like the control sampler above.)
 
 # %% [markdown]
 # ## 10. Two estimators
@@ -871,8 +860,8 @@ print(f"\nworst |z| of the MEAN test against the wrong sampler: {z_wrong_worst:.
 # **The maximum-likelihood estimator coincides exactly with the method of moments here**, because $k$ is a *sufficient
 # statistic* for $\varphi$: the record contains no information beyond the total count. Computing the MLE numerically
 # therefore adds no precision. What it adds is machinery that generalises: the likelihood curve shows us the *shape* of our knowledge, including the two-fold
-# ambiguity $\varphi\leftrightarrow-\varphi$, and the same code will work in situations (unknown contrast, several parameters,
-# [notebook 32](./32_ghz_interferometry_heisenberg_limit.ipynb)) where no closed form exists.
+# ambiguity $\varphi\leftrightarrow-\varphi$, and the same code will work in situations (unknown contrast, several
+# parameters, entangled probes) where no closed form exists.
 #
 # We implement the MLE as a grid search over $\varphi\in[0,\pi]$ — trivially `vmap`-able, robust, and immune to the local
 # maxima that trip up gradient methods on periodic likelihoods.
@@ -1012,7 +1001,7 @@ fig.tight_layout(); plt.show()
 # ### 11.1 The bias away from mid-fringe
 #
 # Away from $\varphi=\pi/2$ the symmetry is gone, and the curvature of $\arccos$ produces a bias at finite $NM$. Its size
-# follows from a second-order Taylor expansion (the delta method of notebook 29, Section 4.8) of
+# follows from a second-order Taylor expansion (the delta method of [notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb), Section 4.8) of
 # $g(\hat p)=\arccos\big[(1-2\hat p)/C\big]$ around $p$, with $\mathbb E[\hat p-p]=0$ and $\mathrm{Var}(\hat p)=p(1-p)/(NM)$.
 # Writing $x=(1-2p)/C=\cos\varphi$, we have $dx/dp=-2/C$ and $d^2\arccos x/dx^2=-x/(1-x^2)^{3/2}$, so
 # $g''(p)=-4\cos\varphi/(C^2\sin^3\varphi)$; with $p(1-p)=\tfrac14(1-C^2\cos^2\varphi)$,
@@ -1021,7 +1010,7 @@ fig.tight_layout(); plt.show()
 # =-\frac{\cos\varphi\,\big(1-C^2\cos^2\varphi\big)}{2NM\,C^2\sin^3\varphi}
 # \ \xrightarrow{\ C=1\ }\ -\frac{\cot\varphi}{2NM}. \tag{14a}$$
 #
-# This is Eq. (36) of notebook 29 with the $M$ single-atom repetitions there replaced by the $NM$ atom detections here. It
+# This is Eq. (36) of [notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb) with the $M$ single-atom repetitions there replaced by the $NM$ atom detections here. It
 # vanishes at $\varphi=\pi/2$, as the symmetry argument requires; at $C=1$ it is negative for $\varphi<\pi/2$ and positive
 # for $\varphi>\pi/2$, so it pushes the estimate away from mid-fringe towards the nearer fringe extremum; and it falls like $1/(NM)$, faster than the spread $1/\sqrt{NM}$, so that the ratio bias/spread decays like $1/\sqrt{NM}$.
 # The same expansion to first order reproduces the variance of Eq. (11).
@@ -1204,8 +1193,8 @@ fig.tight_layout(); plt.show()
 #
 # > **Physics insight.** The two panels look identical but mean very different things. Halving $\Delta\varphi$ by quadrupling
 # > $M$ costs four times the measurement *time*. Halving it by quadrupling $N$ costs four times the *atoms* but no extra time —
-# > which is why clock experiments work hard to trap more atoms. The aim of [notebook
-# > 32](./32_ghz_interferometry_heisenberg_limit.ipynb) is to make the left panel steeper: slope $-1$ instead of $-1/2$.
+# > which is why clock experiments work hard to trap more atoms. Entangled probes aim to make the left panel steeper:
+# > slope $-1$ instead of $-1/2$.
 
 # %% [markdown]
 # ## 13. Failure of the protocol at the fringe extrema
@@ -1447,7 +1436,7 @@ fig.tight_layout(); plt.show()
 # $\delta$, $p=\tfrac12(1+C\sin\delta T)$, which resolves the sign inside the window $\vert\delta T\vert<\pi/2$, again of
 # width $\pi$. Clocks handle the remaining ambiguity with a servo loop that keeps $\delta$ near zero, or with a sequence of
 # interrogations of increasing $T$, each one refining the previous estimate. The same
-# problem returns $N$ times worse in [notebook 32](./32_ghz_interferometry_heisenberg_limit.ipynb).
+# problem returns $N$ times worse for a GHZ probe.
 #
 # The cell below demonstrates the aliasing by plotting the likelihood produced by one data set over an extended range.
 
@@ -1706,9 +1695,8 @@ assert abs(meas[0] / pred_l[0] - 1) < 0.1 and abs(meas[3] / pred_l[3] - 1) < 0.1
 #
 # $$M=\frac{T_{\mathrm{tot}}}{T}.$$
 #
-# The calculation that follows was published in [[13]](#ref-13), and
-# [notebook 32](./32_ghz_interferometry_heisenberg_limit.ipynb) carries it through for an entangled probe, which is where its
-# punchline lies. It rests on four assumptions, all of which the simulation below implements literally:
+# The calculation that follows was published in [[13]](#ref-13), where it is also carried through for an entangled probe.
+# It rests on four assumptions, all of which the simulation below implements literally:
 #
 # * the $N$ atoms are **uncorrelated** and identically prepared, so $\Delta\varphi=1/(C\sqrt{NM})$, Eq. (22);
 # * the noise is **Markovian dephasing** at a constant rate $\gamma$, so the contrast is $C(T)=e^{-\gamma T}$ with no memory
@@ -1740,9 +1728,8 @@ assert abs(meas[0] / pred_l[0] - 1) < 0.1 and abs(meas[3] / pred_l[3] - 1) < 0.1
 # * the best achievable frequency uncertainty scales as $\sqrt{\gamma}$ — **halving the decoherence rate improves a clock by
 #   $\sqrt2$**, whatever else you do;
 # * it scales as $1/\sqrt N$ — the standard quantum limit survives decoherence intact;
-# * the optimum does not depend on $N$: interrogate for half a coherence time, whatever the atom number. (In
-#   [notebook 32](./32_ghz_interferometry_heisenberg_limit.ipynb) a GHZ probe moves the optimum to $1/(2N\gamma)$ and ends
-#   up with the same $\Delta\delta_{\min}$.)
+# * the optimum does not depend on $N$: interrogate for half a coherence time, whatever the atom number. (A GHZ probe
+#   moves the optimum to $1/(2N\gamma)$ and ends up with the same $\Delta\delta_{\min}$.)
 #
 # ### 16.3 Verification
 #
@@ -1888,9 +1875,8 @@ fig.tight_layout(); plt.show()
 # > **Physics insight.** Within the four assumptions of Section 16.1, Equation (25) sets the frequency resolution of the
 # > clock. It depends on $\gamma$, $N$ and $T_{\mathrm{tot}}$ only: the readout is already optimal at mid-fringe, so a
 # > better estimator cannot improve it. What remains is to reduce $\gamma$ (better isolation, dynamical decoupling,
-# > longer-lived transitions) or to change the probe state. [Notebook 32](./32_ghz_interferometry_heisenberg_limit.ipynb)
-# > tries the second option with a GHZ probe and finds, under the same independent dephasing, the same
-# > $\Delta\delta_{\min}$ [[13]](#ref-13).
+# > longer-lived transitions) or to change the probe state. A GHZ probe, under the same independent
+# > dephasing, gives the same $\Delta\delta_{\min}$ [[13]](#ref-13).
 
 # %% [markdown]
 # ## 17. Performance notes
@@ -1982,8 +1968,7 @@ for N, M, K in ((4, 50, 400), (7, 50, 400), (10, 50, 200)):
 # * **Implementation discipline.** Born sampling is the default; the $O(NM)$ coin sampler is used only because a two-sample
 #   test on the mean **and on the variance** confirmed it is statistically identical for this (product) state. The variance
 #   half of that test is the one that detects correlations: a deliberately wrong sampler with correlated atoms has exactly the right mean
-#   and is rejected at $\vert z\vert\simeq30$--$50$. It would be wrong in precisely that way for the entangled probe of the
-#   next notebook.
+#   and is rejected at $\vert z\vert\simeq30$--$50$. It would be wrong in precisely that way for an entangled probe.
 #
 # ## 19. Exercises
 #
@@ -2031,8 +2016,8 @@ for N, M, K in ((4, 50, 400), (7, 50, 400), (10, 50, 200)):
 #    optimisation, does **not** carry over to common-mode noise, and say which of its four assumptions has failed. (Noise
 #    common to all atoms, such as the frequency noise of the interrogating laser, has this structure, and adding atoms does
 #    not average it away.)
-# 8. ★★★ **Beat the SQL with a squeezed probe.** Anticipating [notebook 33](./33_spin_squeezing_one_axis_twisting.ipynb),
-#    replace the coherent spin state by a one-axis-twisted state, $e^{-i\chi t J_z^2}\vert+\rangle^{\otimes N}$ (the engine's
+# 8. ★★★ **Beat the SQL with a squeezed probe.**
+#    Replace the coherent spin state by a one-axis-twisted state, $e^{-i\chi t J_z^2}\vert+\rangle^{\otimes N}$ (the engine's
 #    `oat_evolve`), rotate it so that the squeezed quadrature points along the measurement direction, and measure
 #    $\Delta\varphi$ from sampled data. For $N=12$, find the twisting time that minimises $\Delta\varphi$ and compare with
 #    $1/\sqrt N$.

@@ -5,10 +5,7 @@
 # %% [markdown]
 # ## 1. Introduction
 #
-# **The main computational tool of the course is the JAX library** [[1]](#ref-1). The two starter notebooks
-# [00a — a free Gaussian wave packet](00a_free_particle_gaussian_wave_packet.ipynb) and
-# [00b — the 1D harmonic oscillator](00b_first_quantum_simulation_harmonic_oscillator.ipynb) used `jnp`, `jit` and
-# `lax.scan` without explaining them; this notebook explains them. Later notebooks simulate chains of
+# **The main computational tool of the course is the JAX library** [[1]](#ref-1). Later notebooks simulate chains of
 # interacting quantum spins, noisy quantum circuits, quantum sensors and variational algorithms. The state of $N$
 # spins is a list of $2^N$ complex numbers, so every such simulation is *a very large amount of simple arithmetic on
 # arrays*, and whether it takes a second or an hour is decided by **how** that arithmetic is organised.
@@ -63,15 +60,6 @@
 # * asynchronous dispatch and how to time compiled code (compile time vs run time);
 # * `jit`, `vmap`, `lax.scan`, `lax.cond`, `grad`/`value_and_grad`, explicit PRNG keys, pytrees, and their composition;
 # * reading the typical JAX error messages.
-#
-# ### Prerequisites
-# One semester of quantum mechanics (spin-1/2, Pauli matrices, the Schrödinger equation) and basic NumPy/matplotlib.
-# **No previous contact with JAX is assumed**, and in particular the two starter notebooks
-# [00a](00a_free_particle_gaussian_wave_packet.ipynb) and
-# [00b](00b_first_quantum_simulation_harmonic_oscillator.ipynb) are *not* a prerequisite: they are physics warm-ups
-# that used JAX without explaining it, and every idiom they borrowed (`jnp`, `.at[].set()`, `jit`, `lax.scan`,
-# `vmap`) is derived below. The natural continuation is
-# [02 — index notation and einsum](02_einsum_from_scratch.ipynb).
 
 # %% [markdown]
 # ## 2. The Configuration cell
@@ -107,7 +95,7 @@
 # **`TOL`** — the tolerance used in the sanity checks (`assert error < TOL`): $10^{-10}$ in double and $10^{-4}$ in
 # single precision. A check that demands $10^{-10}$ can never pass with 7-digit arithmetic.
 #
-# **`_LETTERS`** — the alphabet `a…zA…Z`, used from notebook 02 on to build `einsum` index strings. Not needed today.
+# **`_LETTERS`** — the alphabet `a…zA…Z`, used in later notebooks to build `einsum` index strings. Not needed today.
 #
 # **The imports.** `numpy as np` (we keep using NumPy for small set-up work and as a reference), `jax`,
 # `jax.numpy as jnp` (the convention used by everybody), `lax` (the low-level module containing `scan`, `cond`, …),
@@ -680,8 +668,8 @@ print(f"jit(vmap)                                          : {1e3 * t_jv:9.3f} m
 # %% [markdown]
 # `vmap` reproduces the loop and the hand-written `einsum` to round-off, and is faster than the Python loop by
 # several orders of magnitude: the loop pays the Python and dispatch overhead ten thousand times, the batched version
-# once. (`einsum`, used here as the hand-vectorised reference, is the subject of the
-# [next notebook](02_einsum_from_scratch.ipynb).)
+# once. (`einsum`, used here as the hand-vectorised reference, is explained in
+# [notebook 02, einsum](02_einsum_from_scratch.ipynb).)
 #
 # The argument `in_axes=(0, None)` reads: "the first argument carries the batch along its axis 0; the second argument
 # is the same for all samples". The result carries the batch along axis 0 (changeable with `out_axes`).
@@ -894,9 +882,7 @@ for n_steps in (200, 400, 800):
 # *exactly*. After $n=T/\Delta t$ steps the amplitude is multiplied by $(1+\Delta t^2)^{n/2}\approx e^{T\Delta t/2}$,
 # so the error at the final time is about $(1+\Delta t^2)^{n/2}-1=1.705$, $0.648$ and $0.284$ for the three rows of
 # the table. The printed errors are larger by at most $0.003$, the contribution of Euler's phase error. Only once
-# $T\Delta t\ll1$ does $e^{T\Delta t/2}-1\approx T\Delta t/2$ behave like the $O(\Delta t)$ the theory promises. We come back to such structural failures of generic
-# integrators — and to the unitary methods that avoid them — in
-# [04 — time evolution the textbook way](../ch02_spin_systems_textbook_way/04_time_evolution_the_textbook_way.ipynb).
+# $T\Delta t\ll1$ does $e^{T\Delta t/2}-1\approx T\Delta t/2$ behave like the $O(\Delta t)$ the theory promises.
 #
 # ### 7.3 Compile time of an unrolled Python loop and of `scan`
 # Both versions below compute the same number. The Python loop is unrolled into `n` copies of the body; `scan`
@@ -996,8 +982,8 @@ print("static `if` on the shape is allowed:", normalise(jnp.array([3.0, 4.0], dt
 # different samples of the batch may need different branches.
 #
 # > **JAX practice.** Conditions on *shapes, dtypes, static arguments and Python constants* are ordinary Python and
-# > are resolved at trace time. Only conditions on *array values* need `where`/`cond`. In the measurement notebook
-# > ([08](../ch03_matrix_free_engine/08_measurements.ipynb)) a random measurement outcome decides which projector is applied — with
+# > are resolved at trace time. Only conditions on *array values* need `where`/`cond`. In a simulation of
+# > measurements a random outcome decides which projector is applied — with
 # > `jnp.where`, so that thousands of measurement shots can be `vmap`-ed.
 
 # %% [markdown]
@@ -1130,7 +1116,7 @@ print("gradient at x=0, double where:", jax.grad(safe)(zero))
 
 # %% [markdown]
 # ### 9.4 Minimising a function: the ground state of one spin by gradient descent
-# This is a *variational* calculation in its simplest form (the subject of the variational quantum circuits of Chapter 13).
+# This is a *variational* calculation in its simplest form.
 # Take one spin with the Hamiltonian
 #
 # $$H = \tfrac{\Delta}{2}\sigma_z + \tfrac{\Omega}{2}\sigma_x .$$
@@ -1214,8 +1200,8 @@ plt.show()
 #
 # > **Physics insight.** This is a *variational quantum eigensolver* (introduced in [[13]](#ref-13)) in miniature:
 # > a parametrised state, an energy
-# > expectation value as cost function, a gradient-based optimiser. In Chapter 13 the state will be an $N$-qubit circuit
-# > with hundreds of angles — and the code pattern `scan(value_and_grad(energy))` will be the same.
+# > expectation value as cost function, a gradient-based optimiser. In a full variational quantum eigensolver the state is an $N$-qubit circuit
+# > with hundreds of angles — and the code pattern `scan(value_and_grad(energy))` is the same.
 
 # %% [markdown]
 # ## 10. Random numbers: explicit keys
@@ -1828,8 +1814,8 @@ plt.show()
 # $(1-\eta\lambda)$. The iteration is stable only if $|1-\eta\lambda_{\max}|<1$, i.e. $\eta<2/\lambda_{\max}$, while the
 # *slowest* direction converges at the rate $(1-\eta\lambda_{\min})$ per step. The ratio
 # $\lambda_{\max}/\lambda_{\min}$ (the condition number, here $\approx 14$) therefore dictates how many iterations plain
-# gradient descent needs, and it is the reason for the better optimisers of
-# [41 — optimisers](../ch13_quantum_machine_learning/41_optimizers.ipynb).
+# gradient descent needs, and it is the reason for optimisers better than plain
+# gradient descent.
 #
 # > **Numerical practice.** A robust fitting workflow is *global, then local*: a coarse scan of the landscape (cheap
 # > with `vmap`) to find the right basin, then gradient-based refinement. Always compare the final loss with the noise
