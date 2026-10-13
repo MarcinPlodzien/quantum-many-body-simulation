@@ -59,6 +59,7 @@ SITE_SECTION = {
     "55": "Data re-uploading classifier",   # placed here as soon as _src/ch13_quantum_machine_learning/55_*.py is committed
     "56": "Physics-inspired machine-learning models",
     "57": "Physics-inspired machine-learning models",
+    "58": "Physics-inspired machine-learning models",
 }
 SITE_SECTION_DEFAULT = {"ch13_quantum_machine_learning": "Foundations: parametrised circuits, gradients, optimisers and noise"}
 # reading order inside a subsection where it differs from the file order (the introductory VQE notebook first)
@@ -301,7 +302,8 @@ def main():
            ("46", "quantum reservoir computing, many-body dynamics as a machine for time-series prediction"),
            ("55", "the data re-uploading classifier, which encodes the input repeatedly into a trainable circuit"),
            ("56", "tensor networks as machine-learning models: a matrix product state classifier trained by sweeps and by automatic differentiation"),
-           ("57", "the matrix product state Born machine, a generative model that samples images exactly by the Born rule")]
+           ("57", "the matrix product state Born machine, a generative model that samples images exactly by the Born rule"),
+           ("58", "tensor networks on quantum data: ground-state reconstruction and phase classification from measurement snapshots")]
     all_items = {pathlib.Path(path).name.split("_")[0]: (path, title) for c in chapters for path, title, _ in c[5]}
     for nn, what in QML:
         if nn in all_items:
