@@ -45,9 +45,9 @@
 # satisfy its sign and purity parts exactly (Section 3.1). Neural-network quantum state tomography, introduced in [[2]](#ref-2), used
 # the same prior for ground states of the transverse-field Ising and XXZ models, which it reconstructed from $\sigma^z$
 # snapshots alone with a restricted Boltzmann machine. The prior buys a single measurement basis instead of $3^N$
-# settings and a model of $O(N\chi^2)$ numbers. It costs the ability to see signs, phases or mixedness (Section 4.8);
+# settings and a model of $O(N\chi^2)$ numbers. It costs the ability to see signs, phases or mixedness (Section 4.9);
 # the MPS tomography of [[3]](#ref-3), which removes the sign prior by measuring neighbouring blocks of qubits in all Pauli
-# bases, is outlined in Section 4.9.
+# bases, is outlined in Section 4.10.
 #
 # **Part B (Section 5) is property learning.** An MPS classifier, introduced in [[4]](#ref-4), is trained on snapshots
 # labelled by the phase of the state they come from and then asked, at every field, which phase the snapshots look like.
@@ -59,18 +59,21 @@
 #
 # ### 1.3 Road map
 #
-# * **Section 3** defines the transverse-field Ising chain, proves that its ground state has non-negative amplitudes in
-#   the $Z$ basis and in the $X$ basis, computes ground states for $N=16$, $32$ and $64$ by DMRG, removes the symmetry
+# * **Section 3** defines the transverse-field Ising chain, shows that its ground state can be taken with non-negative
+#   amplitudes in the $Z$ basis and in the $X$ basis, with the non-degeneracy this needs checked by printed gaps, computes ground states for $N=16$, $32$ and $64$ by DMRG, removes the symmetry
 #   breaking of DMRG by a parity projection, and samples snapshots in both bases. Everything is checked against exact
-#   diagonalisation at $N=12$ and against the exact free-fermion energies.
+#   diagonalisation at $N=12$, against the exact free-fermion energies, and at $N=16$ one to one against exact state
+#   vectors.
 # * **Section 4** reconstructs the ground state of $N=32$ spins from $Z$ snapshots: the estimator, the Kullback–Leibler
 #   divergence and the fidelity with their statistical errors, observables of the reconstruction from local estimators,
 #   the dependence on the number of snapshots and on the bond dimension, the field dependence across the critical point,
-#   the failure for a state with signs and for a mixed state, and the step to general MPS tomography.
+#   an exact state-vector check at $N=16$, the failure for a state with signs and for a mixed state, and the step to
+#   general MPS tomography.
 # * **Section 5** classifies snapshots by phase in the $Z$ and the $X$ basis for $N=16$, $32$ and $64$, identifies which
 #   statistic of the snapshots each classifier tracks, computes the exact limits of these crossings from the free-fermion
-#   solution, and locates the critical point with crossings of two system sizes.
-# * **Sections 6–7** give the cost and the limits of the methods.
+#   solution, locates the critical point with crossings of two system sizes, and repeats the $N=16$ analysis with exact
+#   state vectors.
+# * **Sections 6–7** give the cost, the point where exact state vectors stop, and the limits of the methods.
 #
 # ### What you will learn
 #
@@ -94,7 +97,9 @@
 # * DMRG ground states as data generators, with warm starts along a field scan; a parity projection as an exact MPS
 #   operation; exact sampling in a rotated basis by a gate on the physical legs;
 # * reuse of compiled training functions across data sets of one shape; validation of every estimator on a chain small
-#   enough to enumerate or against an exact solution.
+#   enough to enumerate or against an exact solution;
+# * one-to-one checks of every MPS result against exact state vectors at $N=16$, with Lanczos in the parity sectors and
+#   snapshots drawn directly from the state vector.
 
 # %% [markdown]
 # ## 2. Engine recap and notebook helpers
@@ -109,7 +114,7 @@
 # training, Section 6).
 
 # %%
-#@engine: X, Z, product_mps, xxz_mpo, dmrg, mps_recanonicalise, mps_overlap, mps_expect_sites, mps_correlator, mpo_expectation, mps_to_state
+#@engine: X, Z, product_mps, xxz_mpo, dmrg, mps_recanonicalise, mps_overlap, mps_expect_sites, mps_correlator, mpo_expectation, mps_to_state, lanczos
 
 # %%
 #| code-fold: true
@@ -561,15 +566,18 @@ section_timer("3 data")
 # because the diagonal sums agree and every off-diagonal term of $\langle\psi\vert H\vert\psi\rangle$,
 # $H_{\mathbf s'\mathbf s}\psi(\mathbf s')^*\psi(\mathbf s)$, summed with its partner $(\mathbf s\leftrightarrow\mathbf s')$, has a real
 # part of at least $-2\vert H_{\mathbf s'\mathbf s}\vert\,\vert\psi(\mathbf s')\psi(\mathbf s)\vert$. So $\vert\psi_0\vert$ is a ground
-# state whenever $\psi_0$ is. Uniqueness and strict positivity follow from the Perron theorem [[8]](#ref-8): a matrix
-# whose entries are all positive, or one of whose powers has only positive entries, has a simple positive eigenvalue
-# larger in modulus than all its other eigenvalues. Take $c$ larger than the largest absolute row sum of $H$. Then
-# $B=c\mathbb 1-H$ has non-negative entries, a positive diagonal and only positive eigenvalues $c-E_k$, so the largest
-# eigenvalue of $B^N$ is $(c-E_0)^N$. For $h>0$ any two strings are connected by at most $N$ single bit flips, so every
-# entry of $B^N$ is positive, and Perron's theorem makes $(c-E_0)^N$ simple: the ground state is unique, and by Eq. (4)
-# it is $\vert\psi_0\vert$ up to a global phase. Finally,
-# $\vert\psi_0\vert=(c-E_0)^{-N}B^N\vert\psi_0\vert$ is a positive matrix applied to a non-negative, non-zero vector,
-# so every amplitude is strictly positive. Hence
+# state whenever $\psi_0$ is: a ground state with non-negative amplitudes always exists. The state sampled below is the
+# parity-even ground state (Section 3.2). Flipping every bit maps $\mathbf s$ to $\bar{\mathbf s}$, and $\Pi\psi_0=\psi_0$
+# means $\psi_0(\bar{\mathbf s})=\psi_0(\mathbf s)$, a property that $\vert\psi_0\vert$ shares; Eq. (4) applied inside the even
+# sector therefore makes $\vert\psi_0\vert$ an even ground state as well. If the lowest level of the even sector is not
+# degenerate, $\psi_0$ and $\vert\psi_0\vert$ are the same state up to a global phase, which is all that Eq. (5) below
+# needs. The gap inside the even sector is known at every $N$ from the free-fermion solution: the lowest even excitation
+# carries two quasi-particles, of energies $2s_1$ and $2s_2$, so the gap is $2(s_1+s_2)$, with $s_1\leq s_2$ the two
+# smallest singular values of the bidiagonal matrix of the exact energy (the quasi-particle energies $2s_n$ are derived
+# in [notebook 47, quantum phase transitions](../ch11_quantum_phase_transitions/47_quantum_phase_transitions.ipynb),
+# Section 2.3). Its smallest value over the field scan is printed for $N=16$, $32$ and $64$ in Section 3.4, and at
+# $N=16$ it is reproduced by exact state vectors in Section 3.5, together with the smallest amplitude, which is moreover
+# positive at every field (as at $N=12$ in the next cell). Hence
 #
 # $$\psi_0(\mathbf s)=\sqrt{p(\mathbf s)}\qquad\text{for every }\mathbf s, \tag{5}$$
 #
@@ -578,13 +586,14 @@ section_timer("3 data")
 # The same holds in the $X$ basis. There the Hamiltonian reads
 # $U_{\rm H}^{\otimes N}HU_{\rm H}^{\otimes N}=-J\sum_iX_iX_{i+1}-h\sum_iZ_i$, whose off-diagonal elements, $-J$ between
 # strings that differ in two neighbouring bits, are again $\leq0$. Flipping a neighbouring pair keeps the parity of the
-# number of ones, which in this basis is the eigenvalue of $\Pi$; within the even sector the pair flips connect every
-# string to every other. The rotated ground state is therefore positive on the strings with an even number of ones and
-# zero on the others, and every $X$ snapshot of the ground state contains an even number of ones.
+# number of ones, which in this basis is the eigenvalue of $\Pi$. The rotated even ground state is zero on the strings
+# with an odd number of ones, Eq. (4) makes it non-negative on the others, and its smallest amplitude on the even
+# strings, printed at $N=12$ and $N=16$, is positive. Every $X$ snapshot of the ground state therefore contains an even
+# number of ones.
 #
 # ### 3.2 Ground states by DMRG and a parity projection
 #
-# The ground states are computed by DMRG, introduced in [[9]](#ref-9), in its two-site form, with the MPO
+# The ground states are computed by DMRG, introduced in [[8]](#ref-8), in its two-site form, with the MPO
 # `xxz_mpo(N, 0, 0, -J, hx=-h)` of Eq. (2). In the ordered phase the two lowest levels are split by an amount
 # exponentially small in $N$, and DMRG returns a symmetry-broken combination of them, as found in
 # [notebook 47, quantum phase transitions](../ch11_quantum_phase_transitions/47_quantum_phase_transitions.ipynb)
@@ -822,16 +831,21 @@ for basis, amp in (("z", GS_ED[1.0]["psi"]), ("x", GS_ED[1.0]["psi_x"])):
 # ==============================================================================
 FIELDS = np.array([0.2, 0.3, 0.4, 0.5, 0.7, 0.8, 0.85, 0.9, 0.95, 1.0, 1.05, 1.1, 1.2, 1.3, 1.5, 1.6, 1.7, 1.8])
 SIZES = (16, 32, 64)
-GS = {}
+GS, T_DMRG = {}, {}
 for N in SIZES:
     t0 = time.perf_counter()
     GS[N] = field_scan(N, [float(h) for h in FIELDS])
+    T_DMRG[N] = time.perf_counter() - t0
     dE = [abs(GS[N][float(h)]["E"] - tfim_exact_energy(N, float(h))) / abs(tfim_exact_energy(N, float(h))) for h in FIELDS]
     nrm = np.array([GS[N][float(h)]["norm_1P"] for h in FIELDS])
     broken = FIELDS[nrm < 1.9]
     print(f"N = {N:2d}: {len(FIELDS)} fields in {time.perf_counter() - t0:5.1f} s;  largest relative energy error "
           f"{max(dE):.1e};  DMRG state broken (||(1+Pi)psi|| < 1.9) at h = {broken.tolist()};  recomputed from |+...+>: "
           f"h = {[float(h) for h in FIELDS if GS[N][float(h)]['restarted']]}")
+    sv = [np.sort(np.linalg.svd(float(h) * np.eye(N) + np.eye(N, k=1), compute_uv=False)) for h in FIELDS]
+    gap_even = np.array([2 * (x[0] + x[1]) for x in sv])
+    print(f"        gap inside the even sector, 2 (s_1 + s_2): smallest over the scan {gap_even.min():.4f} at "
+          f"h = {FIELDS[np.argmin(gap_even)]}")
     assert max(dE) < 1e-8
 
 # %% [markdown]
@@ -840,7 +854,153 @@ for N in SIZES:
 # projected states, which therefore are the parity-even ground states to that accuracy. At the larger fields the warm
 # start from a parity-even state keeps DMRG in the even sector. For $N=32$ and $N=64$ the warm-started run at $h=0.5$,
 # the first field of the ordered phase in the downward scan, ended mostly in the odd sector of the nearly degenerate pair
-# and was recomputed from $\vert+\cdots+\rangle$.
+# and was recomputed from $\vert+\cdots+\rangle$. The gap inside the even sector, $2(s_1+s_2)$, is smallest near the critical
+# point and shrinks with $N$, to $0.5926$, $0.3208$ and $0.1648$ for $N=16$, $32$ and $64$ (at $h=0.85$, $0.9$ and $0.95$),
+# but stays finite: the even ground state is non-degenerate at every field and size, as Eq. (5) requires.
+
+# %% [markdown]
+# ### 3.5 Exact state vectors at $N=16$
+#
+# At $N=16$ the full state vector has $2^{16}=65536$ amplitudes, few enough to compute every ground state of the scan
+# exactly and compare it with DMRG one to one. The exact ground states come from restarted Lanczos iterations on the
+# state vector, run separately in the two parity sectors with the projector $\frac12(1\pm\Pi)$ applied after every
+# matrix-vector product, as derived in
+# [notebook 47, quantum phase transitions](../ch11_quantum_phase_transitions/47_quantum_phase_transitions.ipynb)
+# (Section 3). The product $H\vec v$ is matrix-free: the diagonal of Eq. (3) is one stored vector, and each field term
+# $-hX_j$ reads the amplitude of the string with bit $j$ flipped, an index computed once as an exclusive OR with $2^{N-1-j}$.
+# Three runs per field give the even ground state $E_0^+$, the odd ground state $E_0^-$, and the second even level
+# $E_1^+$ (Lanczos in the even sector with the ground state projected out). The gap of the chain is $E_0^--E_0^+$ (the
+# lowest excitation is a single quasi-particle and changes the parity), and $E_1^+-E_0^+$ is the gap inside the even
+# sector, which Section 3.1 needs to be non-zero. Both are compared with the free-fermion values, $2s_{\min}$ and
+# $2(s_1+s_2)$ with $s_1\leq s_2$ the two smallest singular values of the bidiagonal matrix of the exact energy. For every
+# field the cell then contracts the projected DMRG state into a vector of $2^{16}$ amplitudes and prints, side by side:
+# the energy difference, the infidelity $1-\vert\langle\psi_{\rm MPS}\vert\psi_{\rm ED}\rangle\vert^2$, the largest
+# deviations of all $\langle Z_iZ_j\rangle$ and $\langle X_j\rangle$ and of the string
+# $\langle\prod_{k=4}^{11}X_k\rangle$, the total variation distance between the exact snapshot distributions of the two
+# vectors in both bases, and, from the exact vector, the smallest amplitude in the $Z$ basis, the smallest amplitude on
+# the even strings in the $X$ basis, and $\langle\Pi\rangle$.
+
+# %%
+# ==============================================================================
+# STEP 2b: exact state vectors at N = 16 (Lanczos in the parity sectors) against the DMRG states
+# ==============================================================================
+N_X = 16
+D_X = 2 ** N_X
+IDX = np.arange(D_X)
+BITS = (IDX[:, None] >> np.arange(N_X - 1, -1, -1)) & 1          # bit 0 most significant, as in the MPS
+SPIN = 1 - 2 * BITS                                               # (-1)^(s_j)
+ZZ_DIAG = np.sum(SPIN[:, :-1] * SPIN[:, 1:], axis=1).astype(float)
+FLIP = [IDX ^ (1 << (N_X - 1 - j)) for j in range(N_X)]           # index of the string s^(j) (bit j flipped)
+FLIP_ALL = IDX ^ (D_X - 1)                                        # index of the string with every bit flipped
+STRING_MASK = sum(1 << (N_X - 1 - k) for k in range(N_X // 4, 3 * N_X // 4))
+EVEN = BITS.sum(axis=1) % 2 == 0
+
+
+def tfim_matvec(v, h, J=1.0):
+    """H v for a flat real vector v of 2^N amplitudes, Eq. (3), matrix-free.
+
+    MATH            (H v)(s) = -J sum_i (-1)^(s_i + s_i+1) v(s) - h sum_j v(s^(j))
+    COST            N + 1 passes over the 2^N amplitudes
+    """
+    return -J * ZZ_DIAG * v - h * sum(v[f] for f in FLIP)
+
+
+def sector_lanczos(h, sign, deflate=None, m=60, restarts=3, seed=0):
+    """Lowest eigenpair of H inside the parity sector `sign` (+1 even, -1 odd) by restarted Lanczos.
+
+    MATH            matvec v -> Q (1 + sign Pi)/2 H v, Pi v (s) = v(s with every bit flipped), Q = 1 - |d><d| with
+                    d = deflate (a converged lower state of the same sector) or Q = 1
+    IMPLEMENTATION  the engine's `lanczos` builds the Krylov basis; the lowest eigenvector of the small tridiagonal
+                    matrix, mapped back, starts the next run
+    RETURNS         E, normalised real vector, residual |H v - E v|
+    """
+    def mv(v):
+        w = tfim_matvec(np.asarray(v), h)
+        w = 0.5 * (w + sign * w[FLIP_ALL])
+        if deflate is not None:
+            w = w - deflate * (deflate @ w)
+        return jnp.asarray(w)
+    v = np.random.default_rng(seed).standard_normal(D_X)
+    v = 0.5 * (v + sign * v[FLIP_ALL])
+    if deflate is not None:
+        v = v - deflate * (deflate @ v)
+    for _ in range(restarts):
+        a, b, V = lanczos(mv, jnp.asarray(v / np.linalg.norm(v)), m)
+        w, S = np.linalg.eigh(np.diag(a) + np.diag(b, 1) + np.diag(b, -1))
+        v = np.array(jnp.tensordot(jnp.asarray(S[:, 0]), V, axes=1)).real
+        v = v / np.linalg.norm(v)
+    return float(w[0]), v, float(np.linalg.norm(np.asarray(mv(v)) - w[0] * v))
+
+
+def hadamard_all(v):
+    """Amplitudes in the X basis: the Hadamard gate applied to every qubit of the flat state vector v."""
+    t = v.reshape((2,) * N_X)
+    for q in range(N_X):
+        t = np.moveaxis(np.tensordot(HAD, np.moveaxis(t, q, 0), axes=1), 0, q)
+    return t.reshape(-1)
+
+
+def dense_observables(v):
+    """<Z_i Z_j> (N, N), <X_j> (N,), the string <prod_{N/4 <= k < 3N/4} X_k> and <Pi> of a real normalised vector."""
+    prob = v ** 2
+    return (SPIN.T @ (prob[:, None] * SPIN), np.array([v @ v[f] for f in FLIP]), float(v @ v[IDX ^ STRING_MASK]),
+            float(v @ v[FLIP_ALL]))
+
+
+ED, T_ED = {}, {"even": 0.0, "all": 0.0}
+print(" h     E_MPS-E_ED  1-F      max|dZZ|  max|dX|   d(string)  gap E0- - E0+ (2 s_min)        "
+      "even gap E1+ - E0+ (2(s1+s2))   TV(Z)    TV(X)    min|psi|  min_even|psi_X|  <Pi>")
+for h in FIELDS:
+    h = float(h)
+    t0 = time.perf_counter()
+    Ep, vp, res_p = sector_lanczos(h, +1)
+    T_ED["even"] += time.perf_counter() - t0
+    Em, vm, res_m = sector_lanczos(h, -1)
+    E1p, _, res_1 = sector_lanczos(h, +1, deflate=vp)
+    T_ED["all"] += time.perf_counter() - t0
+    vp = vp * np.sign(vp[np.argmax(np.abs(vp))])                   # global sign: largest amplitude positive
+    v_mps = phase_fixed(np.asarray(mps_to_state(GS[N_X][h]["B"])).reshape(-1)).real
+    vx_ed, vx_mps = hadamard_all(vp), hadamard_all(v_mps)
+    zz_e, x_e, st_e, par_e = dense_observables(vp)
+    zz_m, x_m, st_m, _ = dense_observables(v_mps)
+    sv = np.sort(np.linalg.svd(h * np.eye(N_X) + np.eye(N_X, k=1), compute_uv=False))
+    ED[h] = dict(v=vp, vx=vx_ed, v_mps=v_mps, E=Ep, gap=Em - Ep, gap_even=E1p - Ep, zz=zz_e, x=x_e, string=st_e,
+                 res=max(res_p, res_m, res_1), dE=GS[N_X][h]["E"] - Ep, inf=1 - (v_mps @ vp) ** 2,
+                 dzz=np.abs(zz_m - zz_e).max(), dx=np.abs(x_m - x_e).max(), dst=abs(st_m - st_e),
+                 tvz=0.5 * np.abs(v_mps ** 2 - vp ** 2).sum(), tvx=0.5 * np.abs(vx_mps ** 2 - vx_ed ** 2).sum(),
+                 minz=np.abs(vp).min(), minx=np.abs(vx_ed[EVEN]).min(), parity=par_e, fgap=2 * sv[0], fgap2=2 * (sv[0] + sv[1]))
+    r = ED[h]
+    print(f"{h:4.2f}  {r['dE']:+.1e}  {r['inf']:+.1e}  {r['dzz']:.1e}  {r['dx']:.1e}  {r['dst']:.1e}    "
+          f"{r['gap']:.4e} ({r['fgap']:.4e})   {r['gap_even']:.6f} ({r['fgap2']:.6f})   {r['tvz']:.1e}  {r['tvx']:.1e}  "
+          f"{r['minz']:.1e}   {r['minx']:.1e}          {r['parity']:+.10f}")
+print(f"largest Lanczos residual |H v - E v| {max(r['res'] for r in ED.values()):.1e};  largest |E_ED - E_exact| "
+      f"{max(abs(ED[float(h)]['E'] - tfim_exact_energy(N_X, float(h))) for h in FIELDS):.1e}")
+print(f"wall-clock time at N = 16: DMRG scan {T_DMRG[N_X]:.1f} s for 18 fields;  exact even ground states {T_ED['even']:.1f} s, "
+      f"all three sector runs {T_ED['all']:.1f} s")
+assert max(r["inf"] for r in ED.values()) < 1e-8 and max(abs(r["dE"]) for r in ED.values()) < 1e-8
+assert min(r["minz"] for r in ED.values()) > 0 and min(r["gap_even"] for r in ED.values()) > 0.1
+
+# %% [markdown]
+# **Interpretation.** At $N=16$ the projected DMRG states are the exact ground states to the accuracy of the comparison:
+# over the 18 fields the energies agree to at most $1.0\times10^{-9}$, the infidelity is at most $5.4\times10^{-10}$, all
+# correlators $\langle Z_iZ_j\rangle$ agree to $1.1\times10^{-6}$ and all $\langle X_j\rangle$ to $3.6\times10^{-6}$, the
+# largest deviations all at $h=0.4$. The exact snapshot distributions of the two vectors differ by a total variation
+# distance of at most $1.9\times10^{-5}$ ($X$ basis, $h=0.4$), far below the resolution of any data set used here (for
+# comparison, $2\times10^5$ exact draws at $N=12$ have a distance of $0.035$ ($Z$ basis) and $0.014$ ($X$ basis) from
+# their own distribution). The Lanczos
+# vectors are converged: the largest residual is $3.7\times10^{-7}$, and the energies agree with the free-fermion values
+# to $1.1\times10^{-14}$. Both gaps agree with their free-fermion values to all printed digits, except at $h=0.2$, where
+# the full-chain gap of $1.2580\times10^{-11}$ is a difference of two energies of magnitude about 16 and agrees with
+# $1.2583\times10^{-11}$ to round-off.
+#
+# The two conditions of Section 3.1 hold at every field: the gap inside the even sector is at least $0.592600$
+# ($h=0.85$), so the even ground state is non-degenerate, and its smallest amplitude is positive, from
+# $1.1\times10^{-10}$ at $h=0.2$ (the strings with the most domain walls) to $4.5\times10^{-4}$ at $h=1.8$. On the even
+# strings of the $X$ basis the smallest amplitude runs from $2.2\times10^{-3}$ at $h=0.2$ to $4.2\times10^{-8}$ at $h=1.8$,
+# and every exact ground state has $\langle\Pi\rangle=+1$. In the ordered phase the full-chain gap is tiny,
+# $1.2580\times10^{-11}$ at $h=0.2$: there the even ground state and its odd partner are degenerate to round-off, and the
+# parity projection of Section 3.2 is what selects the even one. The exact even ground states take about twice as long
+# as the whole DMRG scan at this size, and the three sector runs together about seven times as long (times printed).
 
 # %%
 section_timer("4 reconstruction")
@@ -856,7 +1016,7 @@ section_timer("4 reconstruction")
 # $O(N\chi^2)$ numbers. The reconstruction then has three sources of error: the finite number $M$ of snapshots
 # (statistical error), the bond dimension (a truncation error, present even for $M\to\infty$), and the training (a model
 # that has not found the best MPS). If the prior is wrong, a fourth error appears that no amount of data removes
-# (Section 4.8).
+# (Section 4.9).
 #
 # ### 4.2 The estimator
 #
@@ -899,12 +1059,15 @@ section_timer("4 reconstruction")
 #
 # Both are estimated from $20000$ exact test snapshots of the true state, with $\ln p(\mathbf s)$ of every test snapshot
 # from the DMRG MPS and $\ln P(\mathbf s)$ from the model. Their statistical errors are standard errors of the mean; for
-# $F=b^2$, with $b$ the mean inside the bracket, the error is $2b$ times the standard error of $b$. The sum in $F$ is the
-# Bhattacharyya coefficient of the two distributions. Jensen's inequality for the concave logarithm connects the two
-# quantities:
+# $F=b^2$, with $b$ the mean inside the bracket, the error is $2b$ times the standard error of $b$.
 #
-# $$\ln\sqrt F=\ln\mathbb E_p\sqrt{P/p}\geq\mathbb E_p\ln\sqrt{P/p}=-\tfrac12D_{\rm KL}(p\Vert P)
-# \quad\Longrightarrow\quad F\geq e^{-D_{\rm KL}(p\Vert P)}. \tag{9}$$
+# The two quantities are connected by one fact: the geometric mean of a positive random quantity $Y$ never exceeds its
+# ordinary mean, $e^{\mathbb E[\ln Y]}\leq\mathbb E[Y]$, with equality only when $Y$ does not vary. For example, $Y=1$ or
+# $Y=100$ with equal probability has the geometric mean $\sqrt{1\cdot100}=10$ and the ordinary mean $(1+100)/2=50.5$. With
+# $Y=\sqrt{P/p}$ and $\mathbf s\sim p$, Eq. (8) gives $\mathbb E_p[Y]=\sqrt F$, and
+# $\mathbb E_p[\ln Y]=-\frac12D_{\rm KL}(p\Vert P)$, so
+#
+# $$\sqrt F\geq e^{-D_{\rm KL}(p\Vert P)/2}\quad\Longrightarrow\quad F\geq e^{-D_{\rm KL}(p\Vert P)}. \tag{9}$$
 #
 # A small divergence therefore guarantees a high fidelity. For the MPS $\phi$ itself, the overlap
 # $\vert\langle\psi\vert\phi\rangle\vert^2=\big(\sum_{\mathbf s}\sqrt{p(\mathbf s)}\,\phi(\mathbf s)\big)^2$ is computed
@@ -928,7 +1091,7 @@ section_timer("4 reconstruction")
 # $$E_{\rm loc}(\mathbf s)=\frac{\langle\mathbf s\vert H\vert\psi_{\rm rec}\rangle}{\psi_{\rm rec}(\mathbf s)}
 # =-J\sum_{i=0}^{N-2}(-1)^{s_i+s_{i+1}}-h\sum_{j=0}^{N-1}\sqrt{\frac{P(\mathbf s^{(j)})}{P(\mathbf s)}}, \tag{11}$$
 #
-# the estimator of variational Monte Carlo. If $\psi_{\rm rec}$ is an exact eigenstate,
+# If $\psi_{\rm rec}$ is an exact eigenstate,
 # $H\psi_{\rm rec}=E\psi_{\rm rec}$, then $E_{\rm loc}(\mathbf s)=E$ for every string: the estimate has zero variance,
 # which makes the spread of $E_{\rm loc}$ a sensitive test of a ground state. Each sample needs $N$ further amplitudes,
 # one per flipped bit, at $O(N\chi^2)$ each.
@@ -1360,7 +1523,88 @@ plt.show()
 # the more accurate one. The prior turns a single basis into precise estimates of the observables it gives, with a bias that
 # must be checked; the direct estimate is unbiased, noisier, and limited to what was measured.
 #
-# ### 4.8 Where one basis is not enough: signs and mixed states
+# ### 4.8 Exact state-vector check of the reconstruction at $N=16$
+#
+# At $N=16$ the reconstruction itself can be written out as a vector, $\psi_{\rm rec}=\vert\phi\vert/\Vert\phi\Vert$ from
+# the contracted Born machine, and graded without sampling against the exact ground state from Section 3.5. At $h=1$ the
+# cell trains three Born machines ($\chi_{\max}=4$, $M=10000$ plus $M/4$ validation snapshots, as in Section 4.7) on
+# snapshots from the DMRG state and one on the same number of snapshots drawn directly from the exact vector, by
+# inverse-transform sampling of $\vert\psi_{\rm ED}(\mathbf s)\vert^2$. For every model it prints the exact fidelity with
+# the exact state and with the DMRG state, and the exact energy per site, $\langle X_8\rangle$ and $\langle Z_4Z_{12}\rangle$
+# of $\psi_{\rm rec}$ against the exact values. For the first model it also prints the sampled estimates of Sections
+# 4.3–4.4 (Eq. (8) from $20000$ test snapshots, the local energy from $4000$ model samples) next to the exact values of
+# the same reconstruction.
+
+# %%
+# ==============================================================================
+# STEP 5b: the reconstruction at N = 16 against the exact state vector
+# ==============================================================================
+def ed_snapshots(seed, v, M):
+    """M exact samples of |v(s)|^2 for a flat state vector v (inverse-transform sampling).  RETURNS bits (M, N)."""
+    cdf = np.cumsum(v ** 2)
+    k = np.searchsorted(cdf / cdf[-1], np.random.default_rng(seed).random(M))
+    return BITS[np.minimum(k, D_X - 1)]
+
+
+def rec_vector(As):
+    """psi_rec = |phi| / ||phi||, Eq. (7), as a flat vector of 2^N amplitudes (contracted Born machine, small N)."""
+    phi = dense_state(As)
+    return np.abs(phi) / np.linalg.norm(phi)
+
+
+def vector_observables(v, h):
+    """Exact energy per site, <X_8> and <Z_4 Z_12> of a real normalised flat vector at field h."""
+    return v @ tfim_matvec(v, h) / N_X, v @ v[FLIP[8]], (v ** 2) @ (SPIN[:, 4] * SPIN[:, 12])
+
+
+v_ed, v_dm = ED[1.0]["v"], ED[1.0]["v_mps"]
+ref16 = vector_observables(v_ed, 1.0)
+print(f"exact ground state, N = 16, h = 1:  E/N = {ref16[0]:.6f},  <X_8> = {ref16[1]:.5f},  <Z_4 Z_12> = {ref16[2]:.5f}")
+REC16 = []
+for k, source in enumerate(("DMRG", "DMRG", "DMRG", "exact vector")):
+    if source == "DMRG":
+        v, v_val = snapshots(140 + k, GS[N_X][1.0]["B"], M_A), snapshots(150 + k, GS[N_X][1.0]["B"], M_A // 4)
+    else:
+        v, v_val = ed_snapshots(160, v_ed, M_A), ed_snapshots(161, v_ed, M_A // 4)
+    As16, _, _ = train_born(v, v_val, 4)
+    r16 = rec_vector(As16)
+    obs16 = vector_observables(r16, 1.0)
+    REC16.append(dict(source=source, F_ed=(r16 @ v_ed) ** 2, F_dm=(r16 @ v_dm) ** 2, obs=obs16))
+    print(f"snapshots from the {source:12s}: F with the exact state {(r16 @ v_ed) ** 2:.5f}, with DMRG {(r16 @ v_dm) ** 2:.5f};"
+          f"  E/N = {obs16[0]:.6f} (offset {obs16[0] - ref16[0]:+.5f}),  <X_8> = {obs16[1]:.5f},  <Z_4 Z_12> = {obs16[2]:.5f}")
+    if k == 0:
+        v_t = snapshots(170, GS[N_X][1.0]["B"], 20000)
+        met16 = fidelity_kl(As16, v_t, 2 * np.asarray(log_amplitude(GS[N_X][1.0]["B"], jnp.asarray(v_t))))
+        v_t2 = snapshots(300, GS[N_X][1.0]["B"], 200000)
+        met16b = fidelity_kl(As16, v_t2, 2 * np.asarray(log_amplitude(GS[N_X][1.0]["B"], jnp.asarray(v_t2))))
+        lo16 = local_observables(lambda s_: log_psi(As16, jnp.asarray(s_)), model_samples(171, As16, 4000), 1.0)
+        print(f"      sampled estimates of the same model: F = {met16['F']:.4f} +- {met16['F_se']:.4f} (Eq. (8), 20000 test "
+              f"snapshots; {(met16['F'] - (r16 @ v_ed) ** 2) / met16['F_se']:+.1f} standard errors from the exact value), "
+              f"{met16b['F']:.4f} +- {met16b['F_se']:.4f} (200000 test snapshots; "
+              f"{(met16b['F'] - (r16 @ v_ed) ** 2) / met16b['F_se']:+.1f} standard errors),  "
+              f"E/N = {lo16['E'][0] / N_X:.5f} +- {lo16['E'][1] / N_X:.5f},  <X_8> = {lo16['X'][0][8]:.4f} +- {lo16['X'][1][8]:.4f}")
+F_dmrg_runs = np.array([r["F_ed"] for r in REC16[:3]])
+print(f"three models from DMRG snapshots: F = {F_dmrg_runs.mean():.5f}, spread {F_dmrg_runs.std(ddof=1):.5f};  model from "
+      f"exact-vector snapshots: F = {REC16[3]['F_ed']:.5f}, {abs(REC16[3]['F_ed'] - F_dmrg_runs.mean()) / F_dmrg_runs.std(ddof=1):.1f} "
+      f"spreads from their mean")
+
+# %% [markdown]
+# **Interpretation.** The exact ground state at $N=16$, $h=1$ has $E/N=-1.251024$, $\langle X_8\rangle=0.66730$ and
+# $\langle Z_4Z_{12}\rangle=0.23646$. The three reconstructions from DMRG snapshots reach $F=0.99181$, $0.99263$ and
+# $0.99049$, the same to all printed digits whether graded against the exact vector or against the DMRG state, since the
+# two states differ by an infidelity of order $10^{-14}$ (Section 3.5). The model trained on snapshots drawn from the
+# exact vector reaches $0.99257$, 0.9 spreads from the mean $0.99164$ of the other three: the source of the snapshots
+# makes no difference within the spread of the training. Without sampling noise, the reconstructions show the pattern
+# of Section 4.7: the energy per site lies above the exact value at every model, by $0.00293$ to $0.00421$, and
+# $\langle X_8\rangle$ and $\langle Z_4Z_{12}\rangle$ lie below the exact values in all four models.
+#
+# The sampled estimates of the first model are checked against its exact values. With $20000$ test snapshots,
+# Eq. (8) gives $F=0.9952\pm0.0013$, $2.7$ standard errors above the exact $0.99181$; with $200000$ test snapshots it
+# gives $0.9923\pm0.0004$, $1.3$ standard errors from it, so the first value is a statistical fluctuation. The local energy,
+# $-1.24870\pm0.00066$, and $\langle X_8\rangle=0.6744\pm0.0121$ agree with the exact values of the same reconstruction,
+# $-1.247516$ and $0.66407$, within two standard errors.
+#
+# ### 4.9 Where one basis is not enough: signs and mixed states
 #
 # Two states produce exactly the same $Z$ snapshots as the ground state $\vert\psi\rangle$ at $h=1$:
 #
@@ -1462,7 +1706,7 @@ print(f"corrected reconstruction prod_j g_j^(s_j) sqrt(P): F with psi_sigma = {F
 # value the uncorrected one has with $\psi$. One extra basis was enough here because the unknown sign pattern had only
 # $N$ free bits; no second basis can repair a dephased state, which is not pure.
 #
-# ### 4.9 Towards general MPS tomography
+# ### 4.10 Towards general MPS tomography
 #
 # A general state of $N$ qubits has $2^N$ signs or phases, and no fixed pair of bases determines them all. MPS
 # tomography, introduced in [[3]](#ref-3), keeps the cost polynomial in $N$ by measuring every block of $k$ neighbouring
@@ -1473,9 +1717,9 @@ print(f"corrected reconstruction prod_j g_j^(s_j) sqrt(P): F with psi_sigma = {F
 # $\mathrm{tr}(\hat T_i\rho_i)$ and the gap of that Hamiltonian, without any assumption on the laboratory state. Giving
 # every $k$-th qubit the same Pauli basis measures all blocks at once, so $3^k$ settings suffice whatever $N$ is: $3^2=9$ or $3^3=27$
 # for $k=2$ or $3$, against $3^{32}\approx1.9\times10^{15}$ for full tomography of 32 qubits. The scheme was carried out
-# on up to 14 trapped ions in [[10]](#ref-10), with $k=3$. Generative models extend the same way: states with phases were
+# on up to 14 trapped ions in [[9]](#ref-9), with $k=3$. Generative models extend the same way: states with phases were
 # reconstructed in [[2]](#ref-2) by adding snapshots in rotated bases, and the MPS Born machine was trained on snapshots in
-# random local bases, which determine a pure state, in [[11]](#ref-11). The likelihood then becomes a sum over bases with
+# random local bases, which determine a pure state, in [[10]](#ref-10). The likelihood then becomes a sum over bases with
 # a complex MPS; the sign prior of Eq. (5) is dropped, and the data pay for it. A matrix product operator does the same
 # for mixed states, with two physical indices per site.
 
@@ -1492,7 +1736,7 @@ section_timer("5 classification")
 # on both sides of the transition and reads the transition off the crossing of the outputs, there for a lattice the
 # network was not trained on. An MPS classifier trained on $Z$ and $X$ snapshots of six central sites of 32-site
 # antiferromagnetic transverse-field Ising ground states, taken far from the transition, was studied in
-# [[12]](#ref-12); evaluated on entangled input states, translation-invariant matrix product states of the infinite chain
+# [[11]](#ref-11); evaluated on entangled input states, translation-invariant matrix product states of the infinite chain
 # loaded on a trapped-ion quantum computer, it placed the transition at $h=0.962$ and $0.994$ (for classifier bond
 # dimensions 2 and 4), the point where the output crosses $\frac12$, located by a linear fit near the crossing; the test
 # states there describe the infinite chain.
@@ -1559,7 +1803,7 @@ CLS = {}
 for N in SIZES:
     for basis in ("z", "x"):
         t0 = time.perf_counter()
-        curves, costs, p_correct = [], [], []
+        curves, costs, p_correct, models = [], [], [], []
         for rep_k in range(REPEATS):
             seed0 = 1000 * N + 100 * rep_k + (0 if basis == "z" else 50)
             v = np.concatenate([snapshots(seed0 + i, GS[N][h]["B"], N_PER, basis)
@@ -1571,11 +1815,12 @@ for N in SIZES:
             q_tr = np.mean([(curve[list(FIELDS).index(h)] if h in TRAIN_ORD else 1 - curve[list(FIELDS).index(h)])
                               for h in TRAIN_ORD + TRAIN_DIS])
             curves.append(curve)
+            models.append((As_c, C_c))
             costs.append(cost)
             p_correct.append(q_tr)
         curves = np.array(curves)
         hx = np.array([crossing(FIELDS, c) for c in curves])
-        CLS[N, basis] = dict(curves=curves, h_star=hx)
+        CLS[N, basis] = dict(curves=curves, h_star=hx, models=models)
         print(f"N = {N:2d}, {basis} basis: training cross-entropy {np.mean(costs):.3f} (chance level ln 2 = "
               f"{np.log(2):.3f});  mean q(correct phase) on fresh snapshots of the training fields {np.mean(p_correct):.3f};"
               f"  crossing h* = {hx.mean():.3f} +- {hx.std(ddof=1) / np.sqrt(REPEATS):.3f}  (repeats: "
@@ -1611,7 +1856,7 @@ for N in SIZES:
 # on different bonds), and Eq. (2) becomes $-J\sum\mu^x-h\sum\mu^z\mu^z$: the same chain with $J$ and $h$ exchanged. The
 # string is therefore a two-point function of dual spins; in the bulk it behaves at field $h$ as the order correlator
 # does at $J^2/h$, tending to a non-zero constant for $h>J$ and decaying with the distance for $h<J$. On the open chain
-# the boundaries of the two descriptions differ, so the mirror symmetry $h\leftrightarrow J^2/h$ of the two curves (a
+# the boundaries of the two descriptions differ, so the correspondence $h\leftrightarrow J^2/h$ between the two curves (a
 # reflection about $h_c$ on a logarithmic field axis) is only approximate. Each basis also contains *local* quantities,
 # the nearest-neighbour correlator $\langle Z_jZ_{j+1}\rangle$ and the transverse magnetisation $\langle X_j\rangle$, which
 # change smoothly through $h_c$.
@@ -1717,7 +1962,7 @@ plt.show()
 # at that bound, inside the 4-standard-error tolerance of the assert. At $h=1$ the order
 # correlator falls with $N$ ($0.218$, $0.186$, $0.159$), as it must at a critical point, where correlations decay as a
 # power of the distance, and the disorder string falls too ($0.518$, $0.493$, $0.428$). In the right panel the two curves
-# are approximate mirror images, the duality of Eq. (13) seen in snapshots, and both steepen with $N$.
+# are related approximately by $h\leftrightarrow J^2/h$, the duality of Eq. (13) seen in snapshots, and both steepen with $N$.
 #
 # The comparison of crossings shows which statistic each classifier tracks. The $Z$-basis classifier crosses where the order
 # parameter does: $0.878$, $0.921$, $0.948$ against $0.889$, $0.921$, $0.943$ for $\langle Z_{j_1}Z_{j_2}\rangle$ and
@@ -1739,7 +1984,7 @@ plt.show()
 # the infinite chain $\langle Z_0Z_r\rangle\to m^2$ for $r\to\infty$, with $m^2=(1-h^2)^{1/4}$ below $h_c$ [[6]](#ref-6);
 # the level set by the windows is crossed where $m^2(h)$ equals it, a field below $h_c$. By the duality of Eq. (13) the
 # string tends to $(1-h^{-2})^{1/4}$ above $h_c$, and its fixed-level crossing lies above $h_c$. Near the critical point
-# the order correlator has the finite-size scaling form [[13]](#ref-13)
+# the order correlator has the finite-size scaling form [[12]](#ref-12)
 #
 # $$\langle Z_{j_1}Z_{j_2}\rangle\approx N^{-2\beta/\nu}f\big((h-h_c)N^{1/\nu}\big),\qquad\frac{2\beta}\nu=\frac14,\quad\nu=1, \tag{14}$$
 #
@@ -1755,8 +2000,8 @@ plt.show()
 # form like Eq. (14), with its own prefactor.
 #
 # The free-fermion solution of the chain [[6]](#ref-6), written here for the open chain with Majorana operators, gives
-# all four statistics without sampling. The Jordan–Wigner
-# transformation writes each spin through two Majorana operators, $\gamma_{2j}=\big(\prod_{k<j}X_k\big)Z_j$ and
+# all four statistics without sampling. The Jordan–Wigner mapping of the spins to fermions writes each spin through two Majorana
+# operators, $\gamma_{2j}=\big(\prod_{k<j}X_k\big)Z_j$ and
 # $\gamma_{2j+1}=\big(\prod_{k<j}X_k\big)Y_j$, with $\gamma_m^2=1$ and $\gamma_m\gamma_n=-\gamma_n\gamma_m$ for $m\neq n$.
 # Then $X_j=i\gamma_{2j}\gamma_{2j+1}$ and $Z_jZ_{j+1}=i\gamma_{2j+1}\gamma_{2j+2}$, and the Hamiltonian is quadratic,
 #
@@ -1772,8 +2017,8 @@ plt.show()
 # negative mode. Hence $G=i\,\mathrm{sgn}(iA)$ and $E_0=-\frac14\sum_k\vert\varepsilon_k\vert$, with $\varepsilon_k$ the
 # eigenvalues of $iA$.
 # The local statistics are single entries, $\langle X_j\rangle=G_{2j,2j+1}$ and $\langle Z_jZ_{j+1}\rangle=G_{2j+1,2j+2}$. The
-# two long operators are products of $L=N/2$ such pairs, and Wick's theorem reduces their expectation values to
-# Pfaffians; because $A$ couples only even to odd Majoranas, the even–even and odd–odd correlations vanish and the
+# two long operators are products of $L=N/2$ such pairs. By Wick's theorem, in a fermionic Gaussian state the expectation value of a product
+# of Majorana operators is the Pfaffian of the matrix of their two-point correlations; because $A$ couples only even to odd Majoranas, the even–even and odd–odd correlations vanish and the
 # Pfaffians become determinants,
 #
 # $$\langle Z_{j_1}Z_{j_2}\rangle=\big\vert\det\big[G_{2k+1,\,2l+2}\big]_{k,l=j_1}^{j_2-1}\big\vert,\qquad
@@ -1781,8 +2026,9 @@ plt.show()
 #
 # at a cost of $O(N^3)$ for any $N$ (the absolute value fixes the sign convention; both are positive in the ground
 # state). For the infinite chain, the derivatives of the exact energy per site
-# $e=-\frac1\pi\int_0^\pi\sqrt{J^2+h^2+2hJ\cos q}\,{\rm d}q$ with respect to $h$ and $J$ give, by the Hellmann–Feynman
-# theorem,
+# $e=-\frac1\pi\int_0^\pi\sqrt{J^2+h^2+2hJ\cos q}\,{\rm d}q$ with respect to $h$ and $J$ give the two local expectation
+# values by the Hellmann–Feynman theorem: the derivative of the ground-state energy with respect to a parameter of $H$ equals the expectation value
+# of the derivative of $H$ ($\partial e/\partial h=-\langle X_j\rangle$, $\partial e/\partial J=-\langle Z_jZ_{j+1}\rangle$):
 #
 # $$\langle X_j\rangle_\infty=\frac1\pi\int_0^\pi\frac{h+J\cos q}{\sqrt{J^2+h^2+2hJ\cos q}}\,{\rm d}q,\qquad
 # \langle Z_jZ_{j+1}\rangle_\infty=\frac1\pi\int_0^\pi\frac{J+h\cos q}{\sqrt{J^2+h^2+2hJ\cos q}}\,{\rm d}q. \tag{17}$$
@@ -1862,7 +2108,7 @@ for N in (16, 32, 64, 128, 256):
         GRID_SHIFT = max(GRID_SHIFT, max(abs(cr_g[k] - EXACT_CR[N][k]) for k in range(4)))
         SNAP_DIFF = max(SNAP_DIFF, max(abs(SNAP_CR[N][i] - cr_g[k]) for k, i in enumerate((0, 1, 3, 4))))
 m2_inf = lambda h: (1 - h ** 2) ** 0.25 if h < 1 else 0.0            # <Z_0 Z_r>, r -> infinity: m^2 of ref. [6]
-mu2_inf = lambda h: (1 - h ** -2) ** 0.25 if h > 1 else 0.0          # string, its Kramers-Wannier image
+mu2_inf = lambda h: (1 - h ** -2) ** 0.25 if h > 1 else 0.0          # string: image of m^2 under the Kramers-Wannier duality, Eq. (13)
 x_inf = lambda h: quad(lambda q: (h + np.cos(q)) / np.sqrt(1 + h * h + 2 * h * np.cos(q)), 0, np.pi)[0] / np.pi
 zz_inf = lambda h: quad(lambda q: (1 + h * np.cos(q)) / np.sqrt(1 + h * h + 2 * h * np.cos(q)), 0, np.pi)[0] / np.pi
 lim = []
@@ -1970,6 +2216,127 @@ plt.show()
 # distinguish a direct approach to $h_c$, like that of the Binder cumulants, from the $1/N$ approach of the unscaled
 # correlator.
 
+# %% [markdown]
+# ### 5.4 Exact state-vector check of Part B at $N=16$
+#
+# The exact vectors of Section 3.5 repeat Part B at $N=16$ without DMRG. The cell compares, at all 18 fields: the four
+# statistics of Eqs. (15)–(16) from the exact vectors, from the contracted DMRG states and from the free-fermion
+# solution; their fixed-level crossings on the grid of Section 5.1; the five snapshot statistics of Section 5.2 from
+# $2000$ snapshots per field and basis drawn from the exact vectors, against those from the DMRG snapshots (difference
+# in units of the combined standard error); and the crossings of the three trained $N=16$ classifiers of each basis on
+# $500$ snapshots per field from the exact vectors, against their crossings on DMRG snapshots. A two-size crossing needs
+# $N=32$, beyond the exact vector, so the cell forms the pair $(8,16)$ instead: $N^{1/4}\langle Z_{j_1}Z_{j_2}\rangle$ and
+# the Binder cumulant computed exactly from the full distributions (an $N=8$ ground state by dense diagonalisation),
+# against the free-fermion crossing of the same pair.
+
+# %%
+# ==============================================================================
+# STEP 9b: Part B at N = 16 from exact state vectors
+# ==============================================================================
+def ed_statistics(v):
+    """<Z_j1 Z_j2>, string, <Z_j Z_j+1> (bond average), <X_j> (site average) of a flat vector at N = 16, as in Eq. (16)."""
+    zz, x, st, _ = dense_observables(v)
+    return np.array([zz[N_X // 4, 3 * N_X // 4], st, np.mean(np.diag(zz, 1)), x.mean()])
+
+
+S_ED = np.array([ed_statistics(ED[float(h)]["v"]) for h in FIELDS])
+S_MP = np.array([ed_statistics(ED[float(h)]["v_mps"]) for h in FIELDS])
+S_FF = np.array([exact_statistics(N_X, float(h)) for h in FIELDS])
+print(f"N = 16, four statistics at 18 fields: largest |exact vector - free fermions| {np.abs(S_ED - S_FF).max():.1e},  "
+      f"largest |DMRG - exact vector| {np.abs(S_MP - S_ED).max():.1e}")
+cr_ed = [normalised_crossing(FIELDS, S_ED[:, k], S_ED[i_ord, k].mean(), S_ED[i_dis, k].mean()) for k in range(4)]
+cr_ff = [normalised_crossing(FIELDS, S_FF[:, k], S_FF[i_ord, k].mean(), S_FF[i_dis, k].mean()) for k in range(4)]
+cr_mp = [normalised_crossing(FIELDS, S_MP[:, k], S_MP[i_ord, k].mean(), S_MP[i_dis, k].mean()) for k in range(4)]
+print("fixed-level crossings on the grid (exact vector | DMRG states | free fermions): "
+      + ",  ".join(f"{n} {a:.4f} | {c:.4f} | {b:.4f}" for n, a, b, c in zip(("<Z_j1 Z_j2>", "<prod X>", "<Z_j Z_j+1>", "<X_j>"),
+                                                                          cr_ed, cr_ff, cr_mp)))
+
+
+def stats_from(sz, sx):
+    """The five snapshot statistics of Section 5.2 (mean, standard error) from spins sz, sx = (-1)^s of Z and X snapshots."""
+    j1, j2 = sz.shape[1] // 4, 3 * sz.shape[1] // 4
+    st = [sz[:, j1] * sz[:, j2], np.prod(sx[:, j1:j2], axis=1), sz.mean(axis=1) ** 2,
+          (sz[:, :-1] * sz[:, 1:]).mean(axis=1), sx.mean(axis=1)]
+    return np.array([mean_se(x) for x in st])
+
+
+OD_ED = np.array([stats_from(1 - 2 * ed_snapshots(5000 + 2 * i, ED[float(h)]["v"], 2000),
+                             1 - 2 * ed_snapshots(5001 + 2 * i, ED[float(h)]["vx"], 2000)).reshape(-1)
+                  for i, h in enumerate(FIELDS)])
+z_snap = np.array([(OD_ED[:, 2 * k] - OD[N_X][:, 2 * k]) / np.hypot(OD_ED[:, 2 * k + 1], OD[N_X][:, 2 * k + 1])
+                   for k in range(5)])
+z_snap = z_snap[np.isfinite(z_snap)]
+cr_snap_ed = [normalised_crossing(FIELDS, OD_ED[:, 2 * k], OD_ED[i_ord, 2 * k].mean(), OD_ED[i_dis, 2 * k].mean())
+              for k in range(5)]
+print(f"snapshot statistics, exact-vector snapshots against DMRG snapshots: {z_snap.size} comparisons, largest |z| "
+      f"{np.abs(z_snap).max():.2f}, fraction with |z| > 2: {np.mean(np.abs(z_snap) > 2):.3f}")
+print("crossings of the snapshot statistics (exact-vector snapshots | DMRG snapshots): "
+      + ",  ".join(f"{n} {a:.3f} | {b:.3f}" for n, a, b in zip(STAT_NAMES, cr_snap_ed, SNAP_CR[N_X])))
+
+# the classifiers trained on DMRG snapshots at N = 16, applied to snapshots of the exact vectors
+for basis, key in (("z", "v"), ("x", "vx")):
+    hx_ed = np.array([crossing(FIELDS, np.array([q_ordered(As_c, C_c, ed_snapshots(6000 + 100 * k + i, ED[float(h)][key],
+                                                                                      N_TEST)).mean()
+                                                 for i, h in enumerate(FIELDS)]))
+                      for k, (As_c, C_c) in enumerate(CLS[N_X, basis]["models"])])
+    hx_mp = CLS[N_X, basis]["h_star"]
+    hx_mp2 = np.array([crossing(FIELDS, np.array([q_ordered(As_c, C_c, snapshots(7000 + 100 * k + i, GS[N_X][float(h)]["B"],
+                                                                                   N_TEST, basis)).mean()
+                                                  for i, h in enumerate(FIELDS)]))
+                       for k, (As_c, C_c) in enumerate(CLS[N_X, basis]["models"])])
+    print(f"classifiers, {basis} basis, N = 16, crossings per classifier (exact-vector snapshots | DMRG snapshots | second "
+          f"set of DMRG snapshots): " + ", ".join(f"{a:.3f} | {b:.3f} | {c:.3f}" for a, b, c in zip(hx_ed, hx_mp, hx_mp2))
+          + f";  means {hx_ed.mean():.3f} | {hx_mp.mean():.3f} | {hx_mp2.mean():.3f};  rms difference between the two DMRG "
+          f"test sets {np.sqrt(np.mean((hx_mp - hx_mp2) ** 2)):.3f}, between exact-vector and DMRG test sets "
+          f"{np.sqrt(np.mean((hx_ed - hx_mp) ** 2)):.3f}")
+
+# the pair (8, 16): exact vectors (N = 8 by dense diagonalisation) against free fermions
+bits8 = (np.arange(2 ** 8)[:, None] >> np.arange(7, -1, -1)) & 1
+spin8 = 1 - 2 * bits8
+
+
+def binder_exact(prob, spin):
+    """U = 1 - <m^4> / (3 <m^2>^2), m = (1/N) sum_j (-1)^(s_j), from the full distribution prob of the Z basis."""
+    m = spin.mean(axis=1)
+    return 1 - (prob @ m ** 4) / (3 * (prob @ m ** 2) ** 2)
+
+
+sc8, sc16, U8, U16 = [], [], [], []
+for h in FIELDS:
+    w8, V8 = np.linalg.eigh(tfim_sparse(8, float(h)).toarray())
+    p8 = V8[:, 0] ** 2
+    sc8.append(8 ** 0.25 * (p8 @ (spin8[:, 2] * spin8[:, 6])))
+    U8.append(binder_exact(p8, spin8))
+    p16 = ED[float(h)]["v"] ** 2
+    sc16.append(16 ** 0.25 * (p16 @ (SPIN[:, 4] * SPIN[:, 12])))
+    U16.append(binder_exact(p16, SPIN))
+scff = lambda N, h: N ** 0.25 * exact_statistics(N, h)[0]
+print(f"pair (8, 16): N^(1/4) <Z_j1 Z_j2> crosses at {pair_crossing(FIELDS, np.array(sc8), np.array(sc16)):.4f} "
+      f"(exact vectors, grid), {pair_crossing(FIELDS, np.array([scff(8, float(h)) for h in FIELDS]), np.array([scff(16, float(h)) for h in FIELDS])):.4f} "
+      f"(free fermions, grid), {brentq(lambda h: scff(8, h) - scff(16, h), 0.85, 1.15):.4f} (free fermions, root);  "
+      f"exact Binder cumulants cross at {pair_crossing(FIELDS, np.array(U8), np.array(U16)):.4f} (grid)")
+
+# %% [markdown]
+# **Interpretation.** At $N=16$ the exact vectors reproduce the free-fermion statistics to $4.2\times10^{-15}$, and the
+# DMRG states the exact vectors to $4.1\times10^{-7}$, so the fixed-level crossings of the four statistics on the grid,
+# $0.8884$, $0.9385$, $0.9359$ and $0.8380$, are the same to all printed digits in the three calculations. Snapshots
+# drawn from the exact vectors and from the DMRG states are statistically indistinguishable: of the 90 comparisons of
+# snapshot means, the largest differs by $2.70$ combined standard errors and a fraction of $0.033$ by more than two,
+# close to what independent normal deviations give. Their crossings differ by at most $0.009$, the sampling noise of
+# $2000$ snapshots per field.
+#
+# The three $N=16$ classifiers of each basis, trained on DMRG snapshots, cross on snapshots of the exact vectors at
+# fields that differ from their crossings on DMRG snapshots by an rms of $0.017$ ($Z$ basis) and $0.015$ ($X$ basis),
+# the same size as the differences between two independent sets of DMRG test snapshots, $0.016$ and $0.020$: the
+# scatter is the noise of $500$ test snapshots per field. The mean crossings of the three test sets, $0.864$, $0.878$
+# and $0.869$ in the $Z$ basis and $0.885$, $0.873$ and $0.891$ in the $X$ basis, scatter by the same amount.
+#
+# The pair $(8,16)$ of $N^{1/4}\langle Z_{j_1}Z_{j_2}\rangle$ crosses at $0.9976$ from the exact vectors and from the free
+# fermions on the same grid, and at $0.9972$ at the exact root. The exact Binder cumulants of the same pair cross at
+# $0.9691$, further from $h_c$ than the snapshot Binder crossing of the pair $(16,32)$ in Section 5.3: at $N=8$ the
+# corrections to scaling of the Binder cumulant are still large. The pair $(16,32)$ itself needs a state vector of
+# $N=32$, which Section 6 shows to be out of reach.
+
 # %%
 section_timer("6 cost")
 
@@ -1986,11 +2353,28 @@ section_timer("6 cost")
 # | one Born-machine loop | $O(N(M\chi^2+\chi^3))$ | `training_loop` |
 # | one classifier sweep, two labels | $O(N(n_{\rm steps}+n_{\rm power})M\chi^2+N\chi^3)$, $n_{\rm steps}=10$ gradient and $n_{\rm power}=20$ power-iteration steps per bond | `half_sweep_right/left` |
 # | exact statistics, Eqs. (15)–(16) | $O(N^3)$ per field | `exact_statistics` |
+# | exact ground state, Lanczos on the state vector | $O(n_{\rm restarts}\,m\,(N+m)\,2^N)$ time, $O(m\,2^N)$ memory with full reorthogonalisation | $N=16$, $m=60$, 3 restarts |
 # | full tomography, for comparison | $3^N$ settings, $4^N-1$ parameters | not run |
 #
 # The scalings are the standard operation counts of the algorithms, not measurements; the measured wall-clock time of
 # every section is printed below. The training functions are compiled once per array shape, so
-# runs with the same number of snapshots share one compilation.
+# runs with the same number of snapshots share one compilation. The cell also prints the memory of one state vector and
+# the time per field of DMRG and of the exact state vector at $N=16$.
+#
+# The exact state-vector checks of Sections 3.5, 4.8 and 5.4, all at $N=16$, in one table:
+#
+# | quantity at $N=16$ | MPS side | exact state vector | agreement |
+# |---|---|---|---|
+# | ground-state energy, 18 fields | DMRG | Lanczos, even sector | at most $1.0\times10^{-9}$ |
+# | infidelity of the ground state | DMRG, contracted | Lanczos | at most $5.4\times10^{-10}$ |
+# | all $\langle Z_iZ_j\rangle$, all $\langle X_j\rangle$ | DMRG | Lanczos | $1.1\times10^{-6}$, $3.6\times10^{-6}$ |
+# | snapshot distributions, both bases | DMRG | Lanczos | total variation at most $1.9\times10^{-5}$ |
+# | gap, gap inside the even sector | free fermions | Lanczos | all printed digits, except the full-chain gap at $h=0.2$, equal to round-off |
+# | reconstruction fidelity, $h=1$ | $0.99164$, mean of 3 models (DMRG snapshots) | $0.99257$ (exact-vector snapshots) | 0.9 spreads |
+# | four statistics, fixed-level crossings | DMRG, free fermions | Lanczos | statistics to $4.1\times10^{-7}$, crossings identical |
+# | snapshot statistics, 90 means | DMRG snapshots | exact-vector snapshots | largest difference $2.70$ standard errors |
+# | classifier crossings | DMRG snapshots | exact-vector snapshots | rms difference $0.017$ and $0.015$, as between two DMRG test sets ($0.016$, $0.020$) |
+# | two-size crossing $(8,16)$ of $N^{1/4}\langle Z_{j_1}Z_{j_2}\rangle$ | free fermions $0.9976$ | $0.9976$ | identical on the grid |
 
 # %%
 # ==============================================================================
@@ -2003,10 +2387,30 @@ for k, v in SECTION_TIMES.items():
         print(f"   {k:24s} {v:6.1f} s")
 print(f"   {'total (Sections 3-6)':24s} {sum(v for k, v in SECTION_TIMES.items() if k != 'end'):6.1f} s")
 
+# memory of one state vector of double-precision complex amplitudes (16 bytes each), decimal units
+for N, unit, scale in ((16, "MB", 1e6), (32, "GB", 1e9), (64, "EB", 1e18)):
+    print(f"state vector of N = {N} spins: 2^{N} x 16 bytes = {2 ** N * 16:.3e} bytes = {2 ** N * 16 / scale:.3g} {unit}")
+assert abs(2 ** 32 * 16 / 1e9 - 68.719476736) < 1e-9
+B64 = np.asarray(GS[64][1.0]["B"])
+print(f"stored MPS of N = 64 spins (array {B64.shape}, {B64.dtype}): {B64.nbytes / 1e6:.2f} MB")
+print(f"N = 16, time per field: DMRG {T_DMRG[16] / len(FIELDS):.2f} s,  exact even ground state {T_ED['even'] / len(FIELDS):.2f} s;"
+      f"  DMRG for N = 32 and 64: {T_DMRG[32] / len(FIELDS):.2f} s and {T_DMRG[64] / len(FIELDS):.2f} s per field")
+
 # %% [markdown]
-# The whole computation takes about two minutes; the printed times vary by a few per cent between runs. The DMRG field
-# scans of Section 3 take the largest share, about one minute, with a time per scan that roughly doubles with each
-# doubling of $N$ (printed in Section 3.4). Sections 4 and 5 take about half a minute each. A single Born-machine
+# One state vector of $N$ spins in double-precision complex numbers takes $2^N\times16$ bytes: $1.05$ MB at $N=16$,
+# $68.7$ GB at $N=32$ and $295$ EB at $N=64$. Lanczos keeps all its Krylov vectors for the reorthogonalisation, 60 here,
+# so at $N=32$ it would need $60\times68.7\ {\rm GB}\approx4.1\ {\rm TB}$, half that for the real vectors used here, and its time per step grows as $2^N$ as well. At
+# $N=16$ the exact even ground state already costs more time per field than DMRG, and every further spin doubles it. The
+# DMRG time per field only doubles from $N=16$ to $32$ and again to $64$, in proportion to $N$ at fixed bond dimension.
+# The MPS side continues to $N=64$, $128$ and beyond because the ground states of the chain carry little entanglement: a
+# bond dimension of 16 stores them to a relative energy error of at most $5.1\times10^{-10}$ (Section 3.4), with
+# $O(N\chi^2)$ numbers, and DMRG, exact sampling, the Born machine and the classifier all work on the tensors without
+# ever forming the $2^N$ amplitudes. The state-vector side stops between $N=16$ and $N=32$.
+#
+# The whole computation takes between three and four minutes (the printed total); the times vary between runs. Section 3
+# takes the largest share, close to two minutes, roughly half of it DMRG and half the exact state vectors at $N=16$; the
+# time of a DMRG scan roughly doubles with each doubling of $N$ (printed in Section 3.4). Sections 4 and 5 take about
+# forty seconds each. A single Born-machine
 # training in Section 4.6 takes from a fraction of a second to about three seconds, and a single classifier in
 # Section 5.1 from about half a second to about two seconds (both printed there); the first call of each array shape
 # includes its compilation.
@@ -2014,7 +2418,7 @@ print(f"   {'total (Sections 3-6)':24s} {sum(v for k, v in SECTION_TIMES.items()
 # ## 7. Limits of the methods
 #
 # * **The prior decides everything in Part A.** One basis determines the state only if the amplitudes are non-negative
-#   and the state is pure. Section 4.8 showed that a sign pattern or complete dephasing leaves the $Z$ snapshots unchanged
+#   and the state is pure. Section 4.9 showed that a sign pattern or complete dephasing leaves the $Z$ snapshots unchanged
 #   and destroys the fidelity, and that only measurements in another basis reveal the failure. For a laboratory state
 #   that is neither exactly pure nor exactly sign-free, the reconstruction is the closest positive pure state in the
 #   likelihood sense, and Eq. (8) cannot be evaluated without knowing the true state.
@@ -2053,8 +2457,12 @@ print(f"   {'total (Sections 3-6)':24s} {sum(v for k, v in SECTION_TIMES.items()
 #   basis. In the $Z$ basis its fixed-level crossings ($0.878$, $0.921$, $0.948$ for $N=16$, $32$, $64$) track the exact
 #   crossings of the order parameter at the same $N$, whose limit is $0.973$, while the crossings of its outputs for two
 #   sizes, like the Binder cumulants, give $h_c=1$ within their errors.
+# * **Exact state vectors as the reference.** At $N=16$ the DMRG states match exact Lanczos ground states to an
+#   infidelity of at most $5.4\times10^{-10}$, and snapshots, reconstructions and classifier crossings from the exact
+#   vectors agree with their MPS counterparts within statistics. One state vector needs $2^N\times16$ bytes, $68.7$ GB at
+#   $N=32$, while the stored MPS of $N=64$ spins takes $2.10$ MB.
 # * **Duality in data.** The order parameter in $Z$ snapshots and the disorder string in $X$ snapshots are dual under
-#   Kramers–Wannier (Eq. (13)), and their curves are approximate mirror images about $h_c$.
+#   the Kramers–Wannier duality (Eq. (13)), and their curves are related approximately by $h\leftrightarrow J^2/h$.
 #
 # ## 9. Exercises
 #
@@ -2072,8 +2480,8 @@ print(f"   {'total (Sections 3-6)':24s} {sum(v for k, v in SECTION_TIMES.items()
 # 5. ★★ **Signs that one basis does not fix (physics).** Apply a controlled-$Z$ gate to every bond of the ground state.
 #    Show that the $Z$ snapshots do not change, that $\langle X_j\rangle$ of the new state equals
 #    $\langle Z_{j-1}X_jZ_{j+1}\rangle$ of the old one, and compute it with the MPS. Which three-site measurement settings
-#    detect the signs, and how does this relate to the blocks of $k=3$ qubits of Section 4.9?
-# 6. ★★ **Learning by confusion.** The confusion scheme was introduced in [[14]](#ref-14): label the snapshots of all fields
+#    detect the signs, and how does this relate to the blocks of $k=3$ qubits of Section 4.10?
+# 6. ★★ **Learning by confusion.** The confusion scheme was introduced in [[13]](#ref-13): label the snapshots of all fields
 #    below a trial field $h'$ as one phase and the rest as the other, train the classifier and record its accuracy on
 #    fresh snapshots, for $h'$ on the grid. Plot the accuracy against $h'$ for $N=32$ in the $Z$ basis; where is the peak
 #    of the W-shaped curve?
@@ -2083,7 +2491,7 @@ print(f"   {'total (Sections 3-6)':24s} {sum(v for k, v in SECTION_TIMES.items()
 # 8. ★★★ **Two bases, one complex model (extend the code).** Write the negative log-likelihood of a complex MPS for $Z$ and
 #    $X$ snapshots together, with the $X$ term computed from the Hadamard-rotated tensors, and train it on snapshots of
 #    the signed state $\psi_\sigma$ by automatic differentiation. Compare the fidelity with that of the sign-corrected
-#    reconstruction of Section 4.8.
+#    reconstruction of Section 4.9.
 #
 # ## References
 #
@@ -2129,35 +2537,31 @@ print(f"   {'total (Sections 3-6)':24s} {sum(v for k, v in SECTION_TIMES.items()
 # stoquastic local Hamiltonian problems*, Quantum Inf. Comput. **8**, 361 (2008), arXiv:quant-ph/0606140 — the term
 # *stoquastic* for Hamiltonians with non-positive off-diagonal elements in the standard basis (Sec. 1).
 #
-# <span id="ref-8">[8]</span> O. Perron, *Zur Theorie der Matrices*, Math. Ann. **64**, 248 (1907) — a matrix with real
-# positive entries has a simple positive eigenvalue larger in modulus than all other eigenvalues (theorem on p. 261);
-# the theorem holds also when only some power of the matrix has no zero entry (p. 262).
-#
-# <span id="ref-9">[9]</span> S. R. White, *Density matrix formulation for quantum renormalization groups*, Phys. Rev.
+# <span id="ref-8">[8]</span> S. R. White, *Density matrix formulation for quantum renormalization groups*, Phys. Rev.
 # Lett. **69**, 2863 (1992) — the density-matrix renormalization group, presented as a generalisation of the numerical
 # renormalization group, with results for Heisenberg chains (abstract).
 #
-# <span id="ref-10">[10]</span> B. P. Lanyon, C. Maier, M. Holzäpfel, T. Baumgratz, C. Hempel, P. Jurcevic, I. Dhand,
+# <span id="ref-9">[9]</span> B. P. Lanyon, C. Maier, M. Holzäpfel, T. Baumgratz, C. Hempel, P. Jurcevic, I. Dhand,
 # A. S. Buyskikh, A. J. Daley, M. Cramer, M. B. Plenio, R. Blatt and C. F. Roos, *Efficient tomography of a quantum
 # many-body system*, Nat. Phys. **13**, 1158 (2017), arXiv:1612.08000 — MPS tomography of up to 14 trapped ions from
 # all three-site reduced density matrices (27 bases), with certified fidelities.
 #
-# <span id="ref-11">[11]</span> J. Wang, Z.-Y. Han, S.-B. Wang, Z. Li, L.-Z. Mu, H. Fan and L. Wang, *Scalable quantum
+# <span id="ref-10">[10]</span> J. Wang, Z.-Y. Han, S.-B. Wang, Z. Li, L.-Z. Mu, H. Fan and L. Wang, *Scalable quantum
 # tomography with fidelity estimation*, Phys. Rev. A **101**, 032321 (2020), arXiv:1712.03213 — the MPS Born machine
 # trained on single-shot measurements in random local bases (Sec. II A; informational completeness, Appendix A),
 # applied to W, cluster, dimer and random MPS states.
 #
-# <span id="ref-12">[12]</span> M. L. Wall, P. Titum, G. Quiroz, M. Foss-Feig and K. R. A. Hazzard, *Tensor-network
+# <span id="ref-11">[11]</span> M. L. Wall, P. Titum, G. Quiroz, M. Foss-Feig and K. R. A. Hazzard, *Tensor-network
 # discriminator architecture for classification of quantum data on quantum computers*, Phys. Rev. A **105**, 062439
 # (2022), arXiv:2202.10911 — an MPS classifier trained on $x$- and $z$-basis snapshots of six central sites of 32-site
 # antiferromagnetic transverse-field Ising ground states at $h=0.1$ and $h=10$ (Sec. IV A); evaluated on entangled
 # infinite-MPS input states on the H1-2 trapped-ion computer, the point where its output crosses $\frac12$, located by a
 # linear fit, is $h=0.962$ ($\chi=2$) and $0.994$ ($\chi=4$) (Figs. 8–9).
 #
-# <span id="ref-13">[13]</span> M. E. Fisher and M. N. Barber, *Scaling theory for finite-size effects in the critical
+# <span id="ref-12">[12]</span> M. E. Fisher and M. N. Barber, *Scaling theory for finite-size effects in the critical
 # region*, Phys. Rev. Lett. **28**, 1516 (1972) — a scaling theory of finite-size effects near a critical point, with
 # separate exponents for the shift and the rounding of the transition (abstract).
 #
-# <span id="ref-14">[14]</span> E. P. L. van Nieuwenburg, Y.-H. Liu and S. D. Huber, *Learning phase transitions by
+# <span id="ref-13">[13]</span> E. P. L. van Nieuwenburg, Y.-H. Liu and S. D. Huber, *Learning phase transitions by
 # confusion*, Nat. Phys. **13**, 435 (2017), arXiv:1610.02048 — the confusion scheme and its W-shaped performance
 # curve (Sec. II C).
