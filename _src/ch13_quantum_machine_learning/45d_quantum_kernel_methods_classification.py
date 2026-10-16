@@ -307,7 +307,10 @@ plt.show()
 
 # %% [markdown]
 # The two expressions agree to round-off, and in the plane $(\phi_1,\phi_3)$ the rings become two groups separated by a
-# straight line: the rule $r<0.55$, chosen here by looking at all the data, classifies every point correctly. A learning
+# straight line: the rule $r<0.55$, chosen here by looking at all the data, classifies every point correctly. This
+# sample is favourable: for two rings with $\sigma=0.13$ the rule $r<0.55$ is the best possible one, yet its expected
+# accuracy is only $97.3\,\%$, and on fresh samples of 200 points a Gaussian-kernel SVM reaches typically $94$ to
+# $99\,\%$ test accuracy, below the $99.5$ to $100\,\%$ found for this sample in Sections 3.4, 5 and 6. A learning
 # algorithm has to find such a rule from the training data alone, which is the job of the SVM.
 #
 # ### 3.3 The support vector machine and its dual problem
@@ -454,7 +457,7 @@ def svm_dual_solve(K, y, C, n_iter=N_ITER, a0=None):
 
     a0 = jnp.zeros_like(y) if a0 is None else a0                  # default start: alpha = 0 (feasible)
     (alpha, _, _), _ = lax.scan(step, (a0, a0, jnp.asarray(1.0, dtype=y.dtype)), None, length=n_iter)
-    g = y - K @ (alpha * y)                                         # y_i - sum_j a_j y_j K_ji, Eq. (10)
+    g = y - K @ (alpha * y)                                         # y_i - sum_j a_j y_j K_ji: offset b from margin point i
     on_margin = (alpha > 1e-6 * C) & (alpha < (1.0 - 1e-6) * C)
     support = alpha > 1e-6 * C
     b = jnp.where(jnp.any(on_margin),

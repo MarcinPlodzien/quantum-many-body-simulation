@@ -1298,7 +1298,7 @@ plt.show()
 #   the way to $p=1/2$ (at $p=0.30$ the re-optimised value is still $2.025$ while the fixed-angle value has fallen to $1.641$), where
 #   the coherence vanishes entirely and $S_{\max}$ touches exactly 2 (inset of the left panel). An experiment that keeps the
 #   textbook settings sees no violation from a source that does violate CHSH at other settings.
-# * **Amplitude damping** is the most benign of the three at small $p$ — at $p=0.02$ it still gives $S=2.745$ against $2.717$ for
+# * **Amplitude damping** is the most benign of the three at small $p$ — at $p=0.02$ it still gives $S=2.745$ against $2.718$ for
 #   dephasing and $2.680$ for depolarising — and it survives to $p=0.2308$ at fixed angles, $p=0.2929$ with the angles re-optimised,
 #   both matching the closed forms $\tfrac14(3-\sqrt{8\sqrt2-7})$ and $1-1/\sqrt2$. It is also the only
 #   channel here that produces non-zero local Bloch vectors, since it pushes both qubits towards $\vert0\rangle$.

@@ -47,7 +47,7 @@
 #   of period $2\pi/N$ whose classical Fisher information is exactly $N^2$ at every phase but the two fringe extrema;
 #   we then sample it and estimate $\theta$ by
 #   maximum likelihood, reaching $\Delta\theta=1/(N\sqrt M)$.
-# * **Sections 9–11.** Noise. The density tensor, Trotterised as (twist step, channel step); the quantum Fisher
+# * **Sections 9–11.** Noise. The density tensor, Trotterised (product formula introduced in [[4]](#ref-4)) as (twist step, channel step); the quantum Fisher
 #   information from the symmetric logarithmic derivative; an exact derivation of the cat's exponential fragility,
 #   $F_Q=N^2(1-2p)^{2N}$ under dephasing in the cat basis; why the axis of the noise relative to the cat matters; and the
 #   optimal stopping time, which under the noise strengths studied here lies in the squeezing regime, well before the cat.
@@ -139,7 +139,7 @@ def collective_rotation(psi, angle, n):
 
 
 def qfi_matrix(psi):
-    """3x3 QFI matrix of a PURE state over the collective generators (J_x, J_y, J_z)  [notebook 29].
+    """3x3 QFI matrix of a PURE state over the collective generators (J_x, J_y, J_z).
 
     MATH   Fcal[a,b] = 4 * ( (1/2)<J_a J_b + J_b J_a> - <J_a><J_b> );   F_Q(n) = n^T Fcal n .
     COST   three matrix-free applications of J_a: O(N 2^N).
@@ -178,7 +178,7 @@ print("helpers ready")
 #
 # Three facts are carried over, each stated here in the form we need and derived in the notebook linked.
 #
-# **(a) Quantum Cramér–Rao bound** ([[4]](#ref-4), [[5]](#ref-5); [notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb)). For $M$ repetitions of a protocol whose prepared state has quantum
+# **(a) Quantum Cramér–Rao bound** ([[5]](#ref-5), [[6]](#ref-6); [notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb)). For $M$ repetitions of a protocol whose prepared state has quantum
 # Fisher information $F_Q$ with respect to the encoding generator,
 #
 # $$\Delta\theta\;\ge\;\frac{1}{\sqrt{M\,F_Q}},$$
@@ -187,19 +187,19 @@ print("helpers ready")
 # collective generator $G=\mathbf n\cdot\mathbf J$ this is the quadratic form $F_Q(\mathbf n)=\mathbf n^{\mathsf T}\mathcal F\mathbf n$
 # with $\mathcal F_{ab}=4C_{ab}$; the best direction is the top eigenvector of $\mathcal F$.
 #
-# **(b) Ramsey and GHZ** ([notebook 31, Ramsey interferometry](31_ramsey_interferometry.ipynb); [notebook 32, GHZ interferometry](32_ghz_interferometry_heisenberg_limit.ipynb); [[6]](#ref-6) for the GHZ protocol). A coherent spin state reaches $\Delta\theta=1/\sqrt{NM}$ — the standard
+# **(b) Ramsey and GHZ** ([notebook 31, Ramsey interferometry](31_ramsey_interferometry.ipynb); [notebook 32, GHZ interferometry](32_ghz_interferometry_heisenberg_limit.ipynb); [[7]](#ref-7) for the GHZ protocol). A coherent spin state reaches $\Delta\theta=1/\sqrt{NM}$ — the standard
 # quantum limit; a GHZ state encoded with $J_z$ and read out with the parity $\prod_qX_q$ reaches $\Delta\theta=1/(N\sqrt M)$
 # — the Heisenberg limit. The GHZ fringe has period $2\pi/N$, so the phase is only determined modulo $2\pi/N$ unless one
 # already knows it that well.
 #
-# **(c) One-axis twisting** ([notebook 33, spin squeezing](33_spin_squeezing_one_axis_twisting.ipynb); [[7]](#ref-7)). $H=\chi J_z^2$ is diagonal in the computational
+# **(c) One-axis twisting** ([notebook 33, spin squeezing](33_spin_squeezing_one_axis_twisting.ipynb); [[8]](#ref-8)). $H=\chi J_z^2$ is diagonal in the computational
 # basis: with $m(s)=\sum_q(\tfrac12-s_q)$,
 #
 # $$e^{-i\mu J_z^2}\,\psi[s]=e^{-i\mu\,m(s)^2}\,\psi[s],$$
 #
 # which is the engine's `oat_evolve` — exact, $O(2^N)$, no Trotter error. Equivalently it is a circuit of $N(N-1)/2$
 # commuting $R_{ZZ}(\mu)$ gates times a global phase, since $\sum_{i<j}Z_iZ_j=2J_z^2-N/2$. Starting from
-# $\vert+x\rangle^{\otimes N}$ the state squeezes, with the best Wineland parameter [[8]](#ref-8)
+# $\vert+x\rangle^{\otimes N}$ the state squeezes, with the best Wineland parameter [[9]](#ref-9)
 # $\xi_R^2$ at $\mu_{\rm opt}\sim N^{-2/3}$, and then oversqueezes.
 #
 # ### 3.2 Why something special must happen at $\mu=\pi/2$
@@ -424,7 +424,7 @@ for N in (5, 8, 9):
 #    will measure its height relative to $N^2$.
 # 4. $\mu=\pi/2$: $F_Q^{\max}=N^2$ exactly, by Section 4.
 #
-# **Feature 2 in detail.** [notebook 33, spin squeezing](33_spin_squeezing_one_axis_twisting.ipynb) derives the bound $F_Q^{\max}\ge N/\xi_R^2$ [[9]](#ref-9) and the asymptotic
+# **Feature 2 in detail.** [notebook 33, spin squeezing](33_spin_squeezing_one_axis_twisting.ipynb) derives the bound $F_Q^{\max}\ge N/\xi_R^2$ [[10]](#ref-10) and the asymptotic
 # optimum $\xi_R^2\simeq\tfrac12(3/N)^{2/3}$ at $\mu_{\rm opt}\simeq3^{1/6}N^{-2/3}$, so
 # $N/\xi_R^2\simeq2\cdot3^{-2/3}N^{5/3}\approx0.96\,N^{5/3}$. A lower bound alone does not fix the exponent of $F_Q$;
 # the anti-squeezed variance does. For a pure state $F_Q^{\max}=4V_+$, with $V_+$ the larger eigenvalue of the
@@ -483,7 +483,7 @@ for N in N_TRACK:
 # STEP 4: the squeezing-regime growth of F_Q with N  (feature 2)
 # ==============================================================================
 def refine_argmin(x, y):
-    """Parabolic refinement of a discrete minimum on an EQUALLY SPACED abscissa (notebook 33).
+    """Parabolic refinement of a discrete minimum on an EQUALLY SPACED abscissa.
 
     MATH   x* = x_i - (h/2)(y_{i+1}-y_{i-1}) / (y_{i+1} - 2 y_i + y_{i-1}),  i = argmin(y).
     A grid of 21 points locates a minimum only to half a spacing, which is not enough for a
@@ -505,16 +505,16 @@ for N in N_GROW:
     vals = np.array([[float(x) for x in track_step(N, float(m))[::2]] for m in grid])   # (F_Q, xi_R^2)
     mu_star = refine_argmin(grid, vals[:, 1])            # best Wineland squeezing, refined
     F_star, xi_star = (float(x) for x in track_step(N, mu_star)[::2])
-    # notebook 33, Eq. (26a): F_Q / (N/xi_R^2) = V_min V_max / (|<J>|^2/4), from the transverse (y,z) covariance block
+    # F_Q / (N/xi_R^2) = V_min V_max / (|<J>|^2/4), from the transverse (y,z) covariance block
     mean_s, cov_s = spin_moments(oat_evolve(product_state("+" * N), mu_star))
     v_min, v_max = (float(x) for x in jnp.linalg.eigvalsh(cov_s[1:, 1:]))
     excess = v_min * v_max / (float(jnp.linalg.norm(mean_s)) ** 2 / 4)
     rows_grow.append((N, mu_star, xi_star, F_star, N / xi_star, excess))
 print(f"{'N':>4s} | {'mu_opt':>8s} {'xi_R^2':>9s} {'F_Q at mu_opt':>14s} {'N/xi_R^2':>10s} "
-      f"{'F/N':>8s} {'F/N^2':>8s} | {'F_Q xi_R^2/N':>13s} {'Eq.(26a) of nb 33':>18s}")
+      f"{'F/N':>8s} {'F/N^2':>8s} | {'F_Q xi_R^2/N':>13s} {'VminVmax/(<J>^2/4)':>18s}")
 for N, m, x, F, b, ex in rows_grow:
     print(f"{N:4d} | {m:8.5f} {x:9.5f} {F:14.4f} {b:10.4f} {F / N:8.4f} {F / N ** 2:8.4f} | {F / b:13.6f} {ex:18.6f}")
-    assert F >= b * (1 - 1e-8)                      # F_Q >= N/xi_R^2 (quantum Cramér–Rao bound, notebook 33)
+    assert F >= b * (1 - 1e-8)                      # F_Q >= N/xi_R^2 (quantum Cramér–Rao bound)
     assert abs(F / b - ex) < 1e-8 * ex              # the gap is exactly the uncertainty-product excess
 Ng = np.array([r[0] for r in rows_grow], dtype=float)
 sl_F = np.polyfit(np.log(Ng), np.log([r[3] for r in rows_grow]), 1)[0]
@@ -529,6 +529,60 @@ loc_b = np.diff(np.log([r[4] for r in rows_grow])) / np.diff(lnN)
 print("local slopes d ln(.)/d ln N between consecutive sizes:")
 print("   F_Q      : " + "  ".join(f"{s:.3f}" for s in loc_F))
 print("   N/xi_R^2 : " + "  ".join(f"{s:.3f}" for s in loc_b))
+
+# %%
+# ==============================================================================
+# STEP 4b: the local slope of F_Q far beyond N = 16, from the closed-form moments
+# ==============================================================================
+def oat_optimum_analytic(N, n_iter=200):
+    """F_Q and xi_R^2 of the twisted coherent state |+x>^N at its Wineland optimum, from the closed-form moments.
+
+    MATH   <J_x> = (N/2) cos^{N-1} mu,   A = 1 - cos^{N-2}(2 mu),   B = 4 sin(mu) cos^{N-2}(mu),
+           V_pm = (N/4) [1 + (N-1)/4 (A pm sqrt(A^2 + B^2))]        (transverse variances),
+           Var J_x = N/4 + N(N-1)/8 (1 + cos^{N-2}(2 mu)) - <J_x>^2,
+           xi_R^2 = N V_- / <J_x>^2 minimised over mu,   F_Q = 4 max(V_+, Var J_x)   (pure state).
+    IMPL   powers as exp(n log cos), log cos x via log1p(-2 sin^2(x/2)), and A - sqrt(A^2+B^2) = -B^2/(A + sqrt(A^2+B^2)) to avoid cancellation at
+           large N; golden-section search for the minimum in [0.3, 3] x 3^(1/6) N^(-2/3).
+    """
+    def log_cos(x):                                                 # log cos x = log(1 - 2 sin^2(x/2)), accurate at small x
+        return np.log1p(-2 * np.sin(x / 2) ** 2)
+
+    def moments(mu):
+        c1 = np.exp((N - 1) * log_cos(mu))
+        c2 = np.exp((N - 2) * log_cos(2 * mu))
+        A = -np.expm1((N - 2) * log_cos(2 * mu))
+        B = 4 * np.sin(mu) * np.exp((N - 2) * log_cos(mu))
+        root = np.sqrt(A ** 2 + B ** 2)
+        jx = N / 2 * c1
+        v_plus = N / 4 * (1 + (N - 1) / 4 * (A + root))
+        v_minus = N / 4 * (1 + (N - 1) / 4 * (-B ** 2 / (A + root)))
+        var_x = N / 4 + N * (N - 1) / 8 * (1 + c2) - jx ** 2
+        return N * v_minus / jx ** 2, 4 * max(v_plus, var_x)
+
+    lo, hi = 0.3 * 3 ** (1 / 6) * N ** (-2 / 3), 3.0 * 3 ** (1 / 6) * N ** (-2 / 3)
+    g = (np.sqrt(5) - 1) / 2
+    for _ in range(n_iter):
+        a, b = hi - g * (hi - lo), lo + g * (hi - lo)
+        lo, hi = (lo, b) if moments(a)[0] < moments(b)[0] else (a, hi)
+    xi2, F = moments(0.5 * (lo + hi))
+    return F, xi2
+
+
+# the closed form reproduces the exact state-vector values of the table above (same xi_R^2 minimum)
+for N, m, x, F, b, ex in rows_grow:
+    assert abs(oat_optimum_analytic(N)[1] - x) < 1e-4 * x
+
+N_AN = np.unique(np.round(np.logspace(np.log10(6), 6, 121)).astype(int))
+F_AN = np.array([oat_optimum_analytic(int(n))[0] for n in N_AN])
+slope_an = np.diff(np.log(F_AN)) / np.diff(np.log(N_AN))
+N_mid = np.sqrt(N_AN[1:] * N_AN[:-1])
+i_pk = int(np.argmax(slope_an))
+print(f"local slope d ln F_Q / d ln N at the Wineland optimum, closed-form moments, N = {N_AN[0]} ... {N_AN[-1]}:")
+print(f"   maximum {slope_an[i_pk]:.3f} near N = {N_mid[i_pk]:.0f}")
+for N_show in (10, 16, 100, 1e3, 1e4, 1e5, 1e6):
+    j = int(np.argmin(np.abs(np.log(N_mid / N_show))))
+    print(f"   N ~ {N_mid[j]:9.0f}:  {slope_an[j]:.3f}")
+print(f"   asymptotic exponent 5/3 = {5 / 3:.3f}")
 
 # %%
 # ==============================================================================
@@ -591,9 +645,9 @@ fig.tight_layout(); plt.show()
 # * In the squeezing regime the single power-law fit over $6\le N\le16$ gives $F_Q\sim N^{1.668}$, numerically within
 #   $0.1\%$ of the asymptotic $N^{5/3}=N^{1.667}$. This agreement is a coincidence of the fitting range, and the local
 #   slopes printed below the fit show it: $d\ln F_Q/d\ln N$ rises from $1.63$ ($N=6\to8$) to $1.70$ ($N=14\to16$), and
-#   the straight-line fit simply averages them. The analytic moments of [notebook 33, spin squeezing](33_spin_squeezing_one_axis_twisting.ipynb) (Section 9) continue the trend: the
-#   local slope keeps rising to about $1.75$ near $N\sim100$ and comes back down to $5/3$ only for $N\gtrsim10^5$, the
-#   slow $N^{-1/3}$ corrections of Section 6.2. The quantity $N/\xi_R^2$ at the same twisting angle has the smaller
+#   the straight-line fit simply averages them. The analytic moments of [notebook 33, spin squeezing](33_spin_squeezing_one_axis_twisting.ipynb) (Section 9) continue the trend
+#   (Step 4b): the local slope keeps rising to a maximum of $1.756$ near $N\approx85$ and then returns to $5/3$ only very
+#   slowly, still $1.70$ at $N\sim10^4$ and $1.68$ at $N\sim10^5$, the slow $N^{-1/3}$ corrections of Section 6.2. The quantity $N/\xi_R^2$ at the same twisting angle has the smaller
 #   fitted exponent $1.607$, with local slopes rising from $1.56$ to $1.65$. The bound $F_Q\ge N/\xi_R^2$ is respected
 #   at every size (the cell asserts it) and is not tight even at the Wineland optimum: the two columns differ by $19\%$
 #   at $N=6$ and by $26\%$ at $N=16$, on their way to the asymptotic ratio $3/2$ derived in Section 6.2. The last two
@@ -615,7 +669,7 @@ fig.tight_layout(); plt.show()
 # around the equator. The number of components is $q$ (for $q$ even) or $q$ with a different arrangement (for $q$ odd);
 # the coefficients are quadratic Gauss sums. We do not need the coefficients — we can look.
 #
-# The Husimi-$Q$ function [[10]](#ref-10), $Q(\theta,\varphi)=\vert\langle\theta,\varphi\vert\psi\rangle\vert^2$, is the overlap of the
+# The Husimi-$Q$ function [[11]](#ref-11), $Q(\theta,\varphi)=\vert\langle\theta,\varphi\vert\psi\rangle\vert^2$, is the overlap of the
 # state with the coherent spin state pointing in each direction; it is non-negative and it is what "the distribution of
 # the spin direction" means. Since $\vert\theta,\varphi\rangle$ is a product state, $Q$ is a contraction of $\psi$ with
 # the same $2$-vector on every axis, and the whole grid of directions is one `vmap`.
@@ -982,7 +1036,7 @@ fig.tight_layout(); plt.show()
 # ### 9.3 The QFI of a mixed state
 #
 # For a mixed state the pure-state formula $4\mathrm{Var}(G)$ is wrong, and the correct object is the symmetric
-# logarithmic derivative $L$ introduced in [[4]](#ref-4), defined by $\partial_\theta\rho=\tfrac12(L\rho+\rho L)$ and derived in
+# logarithmic derivative $L$ introduced in [[5]](#ref-5), defined by $\partial_\theta\rho=\tfrac12(L\rho+\rho L)$ and derived in
 # [notebook 30, QFI from the SLD](30_qfi_from_the_sld_prepare_encode_estimate.ipynb). In the eigenbasis
 # $\rho=\sum_m\lambda_m\vert m\rangle\langle m\vert$ and for unitary encoding $\partial_\theta\rho=-i[G,\rho]$, it gives
 #
@@ -1034,7 +1088,7 @@ def local_channel(rho, kraus):
 
 
 def sld(rho_mat, drho_mat, tol=1e-12):
-    """Symmetric logarithmic derivative L, from notebook 30.
+    """Symmetric logarithmic derivative L, derived in 'QFI from the symmetric logarithmic derivative'.
 
     MATH   rho = sum_m lam_m |m><m| ;  L_mn = 2 <m|drho|n>/(lam_m + lam_n) where lam_m + lam_n > tol,
            and L_mn = 0 inside the kernel (a free choice that does not affect F_Q).
@@ -1049,7 +1103,7 @@ def sld(rho_mat, drho_mat, tol=1e-12):
 
 
 def qfi_from_sld(rho_mat, drho_mat, tol=1e-12):
-    """F_Q = Tr(rho L^2), from notebook 30 -- valid for ANY smooth family rho_theta."""
+    """F_Q = Tr(rho L^2) -- valid for ANY smooth family rho_theta."""
     L, _, _ = sld(rho_mat, drho_mat, tol)
     return jnp.real(jnp.trace(rho_mat @ L @ L))
 
@@ -1136,7 +1190,7 @@ for name, kraus in (("dephasing p=0.08", kraus_dephasing(0.08)), ("depolarising 
 # The decay rate is proportional to $N$. This is the precise statement of "cat states are exponentially fragile": the
 # Heisenberg *gain* is a factor $N$, and the extra decoherence *costs* a factor $e^{-4N\gamma\mu}$, so the advantage
 # survives only while $N\gamma\mu\lesssim\tfrac14\ln N$. The same $N$-fold faster decoherence of the maximally entangled
-# state is what removes its advantage in frequency estimation under Markovian dephasing ([[11]](#ref-11); [notebook 32, GHZ interferometry](32_ghz_interferometry_heisenberg_limit.ipynb),
+# state is what removes its advantage in frequency estimation under Markovian dephasing ([[12]](#ref-12); [notebook 32, GHZ interferometry](32_ghz_interferometry_heisenberg_limit.ipynb),
 # Section 13).
 #
 # ### 10.2 The OAT cat lies along $\hat x$, which changes the answer
@@ -1370,7 +1424,7 @@ fig.tight_layout(); plt.show()
 # for the two channels whose noise reaches the cat's own basis it sits in the squeezing regime as soon as
 # $\gamma\ge0.2$. The last column of the table makes "squeezing regime" quantitative: the noiseless state at every such
 # stopping angle has a Wineland parameter $\xi_R^2<1$ ($0.455$ to $0.760$), and is therefore entangled
-# [[12]](#ref-12).
+# [[13]](#ref-13).
 #
 # > **Numerical practice.** Report the splitting error. Splitting Eq. (8) into a unitary and a dissipative half
 # > is first order in $\delta\mu$, and the printed convergence shows it (the ratio of successive differences is
@@ -1546,7 +1600,7 @@ for N in N_CMP_NOISY:
 
 # %%
 # ==============================================================================
-# FIGURE: sensitivity of every protocol of Chapter 10 versus N
+# FIGURE: sensitivity of every metrology protocol versus N
 # ==============================================================================
 fig, axes = plt.subplots(1, 2, figsize=(12.0, 4.4))
 Nc = np.array(N_CMP, dtype=float)
@@ -1589,7 +1643,7 @@ fig.tight_layout(); plt.show()
 # > **Physics insight.** The gap between the two panels is the central difficulty of quantum metrology. In the ideal
 # > world the answer is "make a cat". With noise the answer is "make the largest $F_Q$ that survives your noise", and
 # > for every channel that reaches the cat's own basis at the strengths studied here that is a moderately twisted state
-# > with $\xi_R^2<1$. This is consistent with the experimental record summarised in Fig. 2 of [[13]](#ref-13): the
+# > with $\xi_R^2<1$. This is consistent with the experimental record summarised in Fig. 2 of [[14]](#ref-14): the
 # > Heisenberg limit has been reached only with up to about ten trapped ions, while large atomic ensembles, with their
 # > entanglement witnessed by spin squeezing or by the Fisher information, show gains of up to about $100$.
 
@@ -1605,7 +1659,7 @@ fig.tight_layout(); plt.show()
 #
 # A projective measurement $\{P_x\}$ of the encoded state $\rho_\theta=e^{-i\theta G}\rho\,e^{i\theta G}$ produces the
 # outcome $x$ with probability $p_x(\theta)=\mathrm{Tr}(P_x\rho_\theta)$. The information that one outcome carries about
-# $\theta$ is the score $\partial_\theta\ln p_x$, and the classical Fisher information [[14]](#ref-14) is its mean square
+# $\theta$ is the score $\partial_\theta\ln p_x$, and the classical Fisher information [[15]](#ref-15) is its mean square
 # ([notebook 29, quantum Fisher information](29_quantum_fisher_information.ipynb), Eq. (13)):
 #
 # $$F_C(\theta)=\sum_xp_x\left(\frac{\partial_\theta p_x}{p_x}\right)^2=\sum_{x:\,p_x>0}\frac{(\partial_\theta p_x)^2}{p_x}. \tag{15}$$
@@ -1908,10 +1962,10 @@ fig.tight_layout(); plt.show()
 #   =e^{-i\theta\tilde G}\vert+x\rangle^{\otimes N},\qquad \tilde G=U_\mu^\dagger GU_\mu ,$$
 #
 # with $U_\mu=e^{-i\mu J_z^2}$ and a measurement of $J_x$, i.e. of the number $k$ of spins found in $\vert-x\rangle$.
-# Echo protocols of this kind were proposed in [[15]](#ref-15), whose abstract states that the
+# Echo protocols of this kind were proposed in [[16]](#ref-16), whose abstract states that the
 # one-axis-twisting interaction "can also amplify the output signal of an entanglement-enhanced interferometer to
-# facilitate readout", and in [[16]](#ref-16), which shows that a Loschmidt echo extracts the quantum Fisher
-# information of arbitrary pure states and is stable against detection errors. Ref. [[17]](#ref-17) realised the
+# facilitate readout", and in [[17]](#ref-17), which shows that a Loschmidt echo extracts the quantum Fisher
+# information of arbitrary pure states and is stable against detection errors. Ref. [[18]](#ref-18) realised the
 # reversal experimentally by changing the sign of an optically engineered interaction in an ensemble of $350$
 # ${}^{171}$Yb atoms.
 #
@@ -2300,47 +2354,50 @@ fig.tight_layout(); plt.show()
 # <span id="ref-3">[3]</span> B. Yurke and D. Stoler, *Generating quantum mechanical superpositions of macroscopically distinguishable states via
 # amplitude dispersion*, Physical Review Letters **57**, 13 (1986).
 #
-# <span id="ref-4">[4]</span> C. W. Helstrom, *Minimum mean-squared error of estimates in quantum statistics*, Physics Letters A **25**, 101 (1967).
+# <span id="ref-4">[4]</span> H. F. Trotter, *On the product of semi-groups of operators*, Proc. Amer. Math. Soc. **10**, 545 (1959) — the product
+# formula behind Trotterised time evolution.
 #
-# <span id="ref-5">[5]</span> S. L. Braunstein and C. M. Caves, *Statistical distance and the geometry of quantum states*, Physical Review Letters
+# <span id="ref-5">[5]</span> C. W. Helstrom, *Minimum mean-squared error of estimates in quantum statistics*, Physics Letters A **25**, 101 (1967).
+#
+# <span id="ref-6">[6]</span> S. L. Braunstein and C. M. Caves, *Statistical distance and the geometry of quantum states*, Physical Review Letters
 # **72**, 3439 (1994).
 #
-# <span id="ref-6">[6]</span> J. J. Bollinger, W. M. Itano, D. J. Wineland and D. J. Heinzen, *Optimal frequency measurements with maximally
+# <span id="ref-7">[7]</span> J. J. Bollinger, W. M. Itano, D. J. Wineland and D. J. Heinzen, *Optimal frequency measurements with maximally
 # correlated states*, Physical Review A **54**, R4649 (1996).
 #
-# <span id="ref-7">[7]</span> M. Kitagawa and M. Ueda, *Squeezed spin states*, Physical Review A **47**, 5138 (1993).
+# <span id="ref-8">[8]</span> M. Kitagawa and M. Ueda, *Squeezed spin states*, Physical Review A **47**, 5138 (1993).
 #
-# <span id="ref-8">[8]</span> D. J. Wineland, J. J. Bollinger, W. M. Itano and D. J. Heinzen, *Squeezed atomic states and projection noise in
+# <span id="ref-9">[9]</span> D. J. Wineland, J. J. Bollinger, W. M. Itano and D. J. Heinzen, *Squeezed atomic states and projection noise in
 # spectroscopy*, Physical Review A **50**, 67 (1994).
 #
-# <span id="ref-9">[9]</span> L. Pezzè and A. Smerzi, *Entanglement, nonlinear dynamics, and the Heisenberg limit*, Physical Review Letters **102**,
+# <span id="ref-10">[10]</span> L. Pezzè and A. Smerzi, *Entanglement, nonlinear dynamics, and the Heisenberg limit*, Physical Review Letters **102**,
 # 100401 (2009).
 #
-# <span id="ref-10">[10]</span> K. Husimi, *Some formal properties of the density matrix*, Proceedings of the Physico-Mathematical Society of Japan
+# <span id="ref-11">[11]</span> K. Husimi, *Some formal properties of the density matrix*, Proceedings of the Physico-Mathematical Society of Japan
 # **22**, 264 (1940).
 #
-# <span id="ref-11">[11]</span> S. F. Huelga, C. Macchiavello, T. Pellizzari, A. K. Ekert, M. B. Plenio and J. I. Cirac, *Improvement of frequency
+# <span id="ref-12">[12]</span> S. F. Huelga, C. Macchiavello, T. Pellizzari, A. K. Ekert, M. B. Plenio and J. I. Cirac, *Improvement of frequency
 # standards with quantum entanglement*, Physical Review Letters **79**, 3865 (1997).
 #
-# <span id="ref-12">[12]</span> A. Sørensen, L.-M. Duan, J. I. Cirac and P. Zoller, *Many-particle entanglement with Bose–Einstein condensates*,
+# <span id="ref-13">[13]</span> A. Sørensen, L.-M. Duan, J. I. Cirac and P. Zoller, *Many-particle entanglement with Bose–Einstein condensates*,
 # Nature **409**, 63 (2001).
 #
-# <span id="ref-13">[13]</span> L. Pezzè, A. Smerzi, M. K. Oberthaler, R. Schmied and P. Treutlein, *Quantum metrology with nonclassical states of
+# <span id="ref-14">[14]</span> L. Pezzè, A. Smerzi, M. K. Oberthaler, R. Schmied and P. Treutlein, *Quantum metrology with nonclassical states of
 # atomic ensembles*, Reviews of Modern Physics **90**, 035005 (2018).
 #
-# <span id="ref-14">[14]</span> R. A. Fisher, *Theory of statistical estimation*, Proceedings of the Cambridge Philosophical Society **22**, 700 (1925).
+# <span id="ref-15">[15]</span> R. A. Fisher, *Theory of statistical estimation*, Proceedings of the Cambridge Philosophical Society **22**, 700 (1925).
 #
-# <span id="ref-15">[15]</span> E. Davis, G. Bentsen and M. Schleier-Smith, *Approaching the Heisenberg limit without single-particle detection*,
+# <span id="ref-16">[16]</span> E. Davis, G. Bentsen and M. Schleier-Smith, *Approaching the Heisenberg limit without single-particle detection*,
 # Physical Review Letters **116**, 053601 (2016).
 #
-# <span id="ref-16">[16]</span> T. Macrì, A. Smerzi and L. Pezzè, *Loschmidt echo for quantum metrology*, Physical Review A **94**, 010102(R) (2016).
+# <span id="ref-17">[17]</span> T. Macrì, A. Smerzi and L. Pezzè, *Loschmidt echo for quantum metrology*, Physical Review A **94**, 010102(R) (2016).
 #
-# <span id="ref-17">[17]</span> S. Colombo, E. Pedrozo-Peñafiel, A. F. Adiyatullin, Z. Li, E. Mendez, C. Shu and V. Vuletić, *Time-reversal-based
+# <span id="ref-18">[18]</span> S. Colombo, E. Pedrozo-Peñafiel, A. F. Adiyatullin, Z. Li, E. Mendez, C. Shu and V. Vuletić, *Time-reversal-based
 # quantum metrology with many-body entangled states*, Nature Physics **18**, 925 (2022).
 #
-# <span id="ref-18">[18]</span> J. Ma, X. Wang, C. P. Sun and F. Nori, *Quantum spin squeezing*, Physics Reports **509**, 89 (2011).
+# <span id="ref-19">[19]</span> J. Ma, X. Wang, C. P. Sun and F. Nori, *Quantum spin squeezing*, Physics Reports **509**, 89 (2011).
 #
-# <span id="ref-19">[19]</span> W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes: The Art of Scientific
+# <span id="ref-20">[20]</span> W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes: The Art of Scientific
 # Computing*, 3rd ed., Cambridge University Press (2007) — Section 10.3 for the parabolic refinement of a
 # discrete minimum used in Step 4, and Section 17.3 for Richardson's deferred approach to the limit used in the
 # Trotter convergence check of Step 10.

@@ -248,7 +248,7 @@ def var_with_error(g):
 #   (a Tomonaga-Luttinger liquid) with no gap and power-law correlations; $\Delta>1$ is a gapped Néel antiferromagnet.
 #   The transition at $\Delta=-1$ is first order: the fully polarised states are exact eigenstates with energy
 #   $(N-1)J\Delta$ for every $\Delta$, and they cross the bottom of the $S^z_{\mathrm{tot}}=0$ spectrum. The transition at
-#   $\Delta=1$ is of the Berezinskii-Kosterlitz-Thouless type, with a gap that opens exponentially slowly, so it leaves
+#   $\Delta=1$ is of the Berezinskii-Kosterlitz-Thouless type, introduced in [[11]](#ref-11), [[12]](#ref-12) and [[13]](#ref-13), with a gap that opens exponentially slowly, so it leaves
 #   almost no trace in small-chain energies.
 #
 # The main XXZ target is the Heisenberg point $\Delta=1$; Section 10 scans $\Delta$.
@@ -481,7 +481,7 @@ for name, c in TARGETS.items():
 
 # --- CHECKPOINT 3: free-fermion limits ---------------------------------------------------------------------------
 def tfim_free_fermion(N, J, h):
-    """E_0 and the lowest gap of the open TFIM of Eq. (4) from free fermions (notebook 11)."""
+    """E_0 and the lowest gap of the open TFIM of Eq. (4) from free fermions."""
     s = np.linalg.svd(np.diag(np.full(N, float(h))) + np.diag(np.full(N - 1, float(J)), 1), compute_uv=False)
     return -s.sum(), 2 * s.min()
 
@@ -552,8 +552,8 @@ assert abs(-dE - sum_x) < 1e-6
 # it prepares is a matrix product state of bond dimension two, with at most one bit of entanglement across any cut.
 # A brick wall of $L$ two-fold layers crosses each cut $L$ times but has a **light cone**: a qubit influences only
 # qubits within $2L$ sites of itself, so a shallow brick wall cannot correlate the two ends of the chain. Circuits
-# shaped like matrix product states are compared with other circuit architectures in [[11]](#ref-11), and
-# tree-shaped (hierarchical) circuits were used as classifiers in [[12]](#ref-12).
+# shaped like matrix product states are compared with other circuit architectures in [[14]](#ref-14), and
+# tree-shaped (hierarchical) circuits were used as classifiers in [[15]](#ref-15).
 #
 # ### 5.2 Block decompositions
 #
@@ -571,7 +571,7 @@ assert abs(-dE - sum_x) < 1e-6
 # the canonical (Cartan or "KAK") decomposition of $SU(4)$. The count is $4\times3+3=15$ angles, which equals the
 # dimension of $SU(4)$, $4^2-1=15$. Because $XX$, $YY$ and $ZZ$ commute with each other, the middle factor is the product
 # $R_{XX}(\phi_7)R_{YY}(\phi_8)R_{ZZ}(\phi_9)$ of the engine's gates. A practical consequence is that any two-qubit
-# gate needs at most three $CNOT$ gates plus single-qubit rotations [[13]](#ref-13). We do not prove Eq. (10)
+# gate needs at most three $CNOT$ gates plus single-qubit rotations [[16]](#ref-16). We do not prove Eq. (10)
 # here; the checkpoint below tests it by fitting Eq. (10) to Haar-random two-qubit unitaries.
 #
 # **The recursion of Figure 4(c) does not give a general three-qubit unitary.** Counting parameters settles it: three
@@ -665,7 +665,7 @@ assert max(ov3[:2]) < 0.99 and ov3[2] > 1 - 1e-6
 # The hardware-efficient ansatz of
 # [notebook 40, parametrised gates and gradients](40_parametrized_gates_and_gradients.ipynb), Section 4.1, is the
 # alternating-layer structure built from the cheap block of Figure 4(b): $R_y$ and $R_z$ on every qubit, then a ladder
-# of $CZ$ gates, repeated $L$ times, with a final rotation block (the approach was introduced in [[14]](#ref-14), with
+# of $CZ$ gates, repeated $L$ times, with a final rotation block (the approach was introduced in [[17]](#ref-17), with
 # trial states tailored to the native interactions of the processor used there). It has
 #
 # $$n_{\mathrm{HEA}}=2N(L+1) \tag{11}$$
@@ -682,8 +682,8 @@ assert max(ov3[:2]) < 0.99 and ov3[2] > 1 - 1e-6
 #
 # The opposite design builds the circuit from the Hamiltonian. Split $H=H_A+H_B$ into parts whose terms commute among
 # themselves, start in the ground state of one part, and alternate evolutions under the two parts with free durations.
-# This is a Trotterised adiabatic path with the step lengths left to the optimiser, the **Hamiltonian-variational
-# ansatz** (HVA) of [[15]](#ref-15).
+# This is a Trotterised adiabatic path (product formula introduced in [[18]](#ref-18)) with the step lengths left to the optimiser, the **Hamiltonian-variational
+# ansatz** (HVA) of [[19]](#ref-19).
 #
 # **TFIM.** With $H_X=-h\sum_qX_q$ and $H_{ZZ}=-J\sum_qZ_qZ_{q+1}$, the start is $\vert+\rangle^{\otimes N}$, the ground
 # state of $H_X$, and
@@ -700,7 +700,7 @@ assert max(ov3[:2]) < 0.99 and ov3[2] > 1 - 1e-6
 # **Figure 6.** The TFIM Hamiltonian-variational ansatz, drawn for $N=4$. Here the reference is
 # $\vert+\rangle^{\otimes N}$ ($R_y(+\pi/2)$, the case $h<0$ of the code), and we use $L=8$ layers, $16$ angles.
 #
-# **XXZ.** For the XXZ chain we follow the construction studied in [[16]](#ref-16): the start is a product of
+# **XXZ.** For the XXZ chain we follow the construction studied in [[20]](#ref-20): the start is a product of
 # singlets $(\vert01\rangle-\vert10\rangle)/\sqrt2$ on the bonds $(0,1),(2,3),\dots$, the ground state of the even-bond
 # part of the Heisenberg chain, and every layer applies, first on the odd bonds and then on the even bonds, a $Z_iZ_{i+1}$
 # rotation and an exchange rotation, each with its own angle per layer:
@@ -730,7 +730,7 @@ assert max(ov3[:2]) < 0.99 and ov3[2] > 1 - 1e-6
 # STEP 4: the four ansätze as pure functions theta -> state, and their symmetry properties
 # ==============================================================================
 def hva_tfim(theta, N, layers, J=1.0, h=1.0, periodic=False):
-    """Hamiltonian-variational ansatz for the TFIM (notebook 40, Eq. (6)); here J = -1, h = -1 gives Eq. (12).
+    """Hamiltonian-variational ansatz for the TFIM; here J = -1, h = -1 gives Eq. (12).
 
     MATH   |psi> = prod_l [ prod_q Rx(2 h beta_l) ] [ prod_bonds Rzz(2 J gamma_l) ] |ref>,
            |ref> = |->^N for h > 0 and |+>^N for h < 0 (ground state of h sum_q X_q).
@@ -863,7 +863,7 @@ ANSATZE = {                                   # name -> (circuit for TFIM target
 assert 2 * L_HVA_TFIM == 4 * L_HVA_XXZ
 ANSATZ_NAMES = list(ANSATZE)
 
-# --- CHECKPOINT 7a: the scan versions are the same circuits as the engine's and notebook 40's -----------------------
+# --- CHECKPOINT 7a: the scan versions are the same circuits as the engine's and those of 'Parametrized gates and gradients' ---
 th_chk = jax.random.uniform(jax.random.PRNGKey(3), (hea_num_params(N_SITES, L_HEA),), minval=-jnp.pi, maxval=jnp.pi)
 d_hea = float(jnp.max(jnp.abs(hea_scan(th_chk, N_SITES, L_HEA) - hardware_efficient_ansatz(th_chk, N_SITES, L_HEA))))
 d_hva = float(jnp.max(jnp.abs(hva_tfim_scan(th_chk[:16], N_SITES, 8) - hva_tfim(th_chk[:16], N_SITES, 8, J=-1.0, h=-1.0))))
@@ -1393,9 +1393,9 @@ for t, col in (("TFIM, h=1", 0), ("XXZ, Delta=1", 1)):
 # [notebook 40, parametrised gates and gradients](40_parametrized_gates_and_gradients.ipynb), Section 13: the
 # mean of every gradient component over uniform angles is zero by periodicity, so its size is measured by the variance
 # $\mathrm{Var}_{\boldsymbol\theta}[\partial_kE]$; for circuits deep enough to act as unitary 2-designs the variance
-# decays exponentially [[17]](#ref-17); and for shallow circuits the locality of the cost decides, with
+# decays exponentially [[21]](#ref-21); and for shallow circuits the locality of the cost decides, with
 # global costs decaying exponentially and local ones at worst polynomially for depths logarithmic in $N$
-# [[18]](#ref-18).
+# [[22]](#ref-22).
 # Noise produces plateaus of its own.
 # Here we measure the variance for the cost of this notebook, the TFIM energy at $h=J=1$, a sum of $2N-1$ local terms.
 #
@@ -1560,7 +1560,7 @@ fig.tight_layout(); plt.show()
 #   consistent with the local-cost, $L=N$ measurement of
 #   [notebook 40, parametrised gates and gradients](40_parametrized_gates_and_gradients.ipynb), Section 13.2.
 # * **The Hamiltonian-variational variance grows with $N$** (from $7.5$ to $54$), because each of its angles is shared
-#   by all $N-1$ bond rotations of a layer, so one angle moves the whole energy. Ref. [[16]](#ref-16) reports mild or
+#   by all $N-1$ bond rotations of a layer, so one angle moves the whole energy. Ref. [[20]](#ref-20) reports mild or
 #   entirely absent barren plateaus for this ansatz family, with VQE experiments on the TFIM and XXZ chains.
 #
 # **What a plateau costs.** On hardware a gradient component is estimated with the parameter-shift rule,
@@ -1868,29 +1868,41 @@ print(f"total wall time of the notebook so far: {time.perf_counter() - T_START:.
 # <span id="ref-10">[10]</span> P. Jordan and E. Wigner, *Über das Paulische Äquivalenzverbot*, Z. Phys. **47**, 631 (1928) — the transformation from
 # spins to fermions.
 #
-# <span id="ref-11">[11]</span> R. Haghshenas, J. Gray, A. C. Potter and G. K.-L. Chan, *Variational power of quantum circuit tensor networks*,
+# <span id="ref-11">[11]</span> V. L. Berezinskii, *Destruction of long-range order in one-dimensional and two-dimensional systems having a continuous
+# symmetry group. I. Classical systems*, Sov. Phys. JETP **32**, 493 (1971).
+#
+# <span id="ref-12">[12]</span> V. L. Berezinskii, *Destruction of long-range order in one-dimensional and two-dimensional systems possessing a
+# continuous symmetry group. II. Quantum systems*, Sov. Phys. JETP **34**, 610 (1972).
+#
+# <span id="ref-13">[13]</span> J. M. Kosterlitz and D. J. Thouless, *Ordering, metastability and phase transitions in two-dimensional systems*,
+# J. Phys. C **6**, 1181 (1973) — the Kosterlitz–Thouless transition.
+#
+# <span id="ref-14">[14]</span> R. Haghshenas, J. Gray, A. C. Potter and G. K.-L. Chan, *Variational power of quantum circuit tensor networks*,
 # Phys. Rev. X **12**, 011047 (2022) — circuits shaped like matrix product states and MERA, compared with other
 # architectures.
 #
-# <span id="ref-12">[12]</span> E. Grant, M. Benedetti, S. Cao, A. Hallam, J. Lockhart, V. Stojevic, A. G. Green and S. Severini, *Hierarchical
+# <span id="ref-15">[15]</span> E. Grant, M. Benedetti, S. Cao, A. Hallam, J. Lockhart, V. Stojevic, A. G. Green and S. Severini, *Hierarchical
 # quantum classifiers*, npj Quantum Inf. **4**, 65 (2018) — tree-shaped circuits.
 #
-# <span id="ref-13">[13]</span> F. Vatan and C. Williams, *Optimal quantum circuits for general two-qubit gates*, Phys. Rev. A **69**, 032315
+# <span id="ref-16">[16]</span> F. Vatan and C. Williams, *Optimal quantum circuits for general two-qubit gates*, Phys. Rev. A **69**, 032315
 # (2004) — any two-qubit gate with at most three CNOTs and single-qubit gates.
 #
-# <span id="ref-14">[14]</span> A. Kandala, A. Mezzacapo, K. Temme, M. Takita, M. Brink, J. M. Chow and J. M. Gambetta, *Hardware-efficient
+# <span id="ref-17">[17]</span> A. Kandala, A. Mezzacapo, K. Temme, M. Takita, M. Brink, J. M. Chow and J. M. Gambetta, *Hardware-efficient
 # variational quantum eigensolver for small molecules and quantum magnets*, Nature **549**, 242 (2017) — the
 # hardware-efficient ansatz, on up to six superconducting qubits.
 #
-# <span id="ref-15">[15]</span> D. Wecker, M. B. Hastings and M. Troyer, *Progress towards practical quantum variational algorithms*, Phys. Rev. A
+# <span id="ref-18">[18]</span> H. F. Trotter, *On the product of semi-groups of operators*, Proc. Amer. Math. Soc. **10**, 545 (1959) — the product
+# formula behind Trotterised time evolution.
+#
+# <span id="ref-19">[19]</span> D. Wecker, M. B. Hastings and M. Troyer, *Progress towards practical quantum variational algorithms*, Phys. Rev. A
 # **92**, 042303 (2015) — the ansatz motivated by adiabatic state preparation (Hamiltonian-variational ansatz).
 #
-# <span id="ref-16">[16]</span> R. Wiersema, C. Zhou, Y. de Sereville, J. F. Carrasquilla, Y. B. Kim and H. Yuen, *Exploring entanglement and
+# <span id="ref-20">[20]</span> R. Wiersema, C. Zhou, Y. de Sereville, J. F. Carrasquilla, Y. B. Kim and H. Yuen, *Exploring entanglement and
 # optimization within the Hamiltonian variational ansatz*, PRX Quantum **1**, 020319 (2020) — the ansatz for the TFIM
 # and XXZ chains, its gradient statistics and trainability.
 #
-# <span id="ref-17">[17]</span> J. R. McClean, S. Boixo, V. N. Smelyanskiy, R. Babbush and H. Neven, *Barren plateaus in quantum neural network
+# <span id="ref-21">[21]</span> J. R. McClean, S. Boixo, V. N. Smelyanskiy, R. Babbush and H. Neven, *Barren plateaus in quantum neural network
 # training landscapes*, Nat. Commun. **9**, 4812 (2018) — exponentially vanishing gradients of random circuits.
 #
-# <span id="ref-18">[18]</span> M. Cerezo, A. Sone, T. Volkoff, L. Cincio and P. J. Coles, *Cost function dependent barren plateaus in shallow
+# <span id="ref-22">[22]</span> M. Cerezo, A. Sone, T. Volkoff, L. Cincio and P. J. Coles, *Cost function dependent barren plateaus in shallow
 # parametrized quantum circuits*, Nat. Commun. **12**, 1791 (2021) — global against local costs.

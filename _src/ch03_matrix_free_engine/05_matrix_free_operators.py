@@ -104,7 +104,7 @@
 
 # %%
 # ==============================================================================
-# STEP 0: the dense "textbook" toolbox from notebooks 03-04 (our reference)
+# STEP 0: the dense "textbook" toolbox (our reference)
 # ==============================================================================
 from functools import reduce
 
@@ -116,7 +116,7 @@ Z = jnp.array([[1, 0], [0, -1]], dtype=CDTYPE)
 
 
 def site_operator(op, j, N):
-    """Dense 2^N x 2^N matrix of a single-site operator (the textbook construction of notebook 03).
+    """Dense 2^N x 2^N matrix of a single-site operator (the textbook construction).
 
     MATH   op_j = 1 (x) ... (x) 1 (x) op (x) 1 (x) ... (x) 1      (op at position j, N factors)
     COST   O(4^N) memory and time -- this is the wall we are about to remove.  VALIDATION ONLY.
@@ -126,7 +126,7 @@ def site_operator(op, j, N):
 
 
 def two_site_operator(h2, j, N):
-    """Dense matrix of a 4x4 operator on the NEIGHBOURING spins (j, j+1) (notebooks 03-04).
+    """Dense matrix of a 4x4 operator on the NEIGHBOURING spins (j, j+1).
 
     MATH   h_{j,j+1} = 1_{2^j} (x) h2 (x) 1_{2^(N-j-2)};  spin j is the LEFT Kronecker factor of h2.   VALIDATION ONLY.
     """
@@ -138,7 +138,7 @@ def random_state(key, N):
     """Normalised random complex state VECTOR of length 2^N (complex Gaussian amplitudes).
 
     JAX    randomness is explicit: the same `key` always gives the same state (reproducible notebooks);
-           `jax.random.split` makes independent keys (see notebook 01).
+           `jax.random.split` makes independent keys.
     """
     k_re, k_im = jax.random.split(key)
     v = jax.random.normal(k_re, (2 ** N,), dtype=RDTYPE) + 1j * jax.random.normal(k_im, (2 ** N,), dtype=RDTYPE)
@@ -268,7 +268,7 @@ plt.tight_layout(); plt.show()
 k_u, k_v, k_w, key = jax.random.split(key, 4)
 u, v, w = (random_state(k, 1) for k in (k_u, k_v, k_w))          # three random single-spin states (length 2)
 
-psi_kron = jnp.kron(jnp.kron(u, v), w)                           # notebook 03: vector of length 8
+psi_kron = jnp.kron(jnp.kron(u, v), w)                           # Kronecker product: vector of length 8
 psi_outer = jnp.einsum("a,b,c->abc", u, v, w)                    # tensor of shape (2,2,2)
 
 err = max_abs_diff(psi_outer.reshape(-1), psi_kron)
@@ -437,7 +437,7 @@ U = U4.reshape(2, 2, 2, 2)                 # U[a1, a2, b1, b2]
 for a1, a2, b1, b2 in np.ndindex(2, 2, 2, 2):
     assert abs(U[a1, a2, b1, b2] - M[a1, b1] * K[a2, b2]) < TOL
     assert abs(U[a1, a2, b1, b2] - U4[2 * a1 + a2, 2 * b1 + b2]) < TOL
-# (ii) the same statement as ONE einsum (the Kronecker product of notebook 02: "ab,cd->acbd" + reshape)
+# (ii) the same statement as ONE einsum (the Kronecker product as an einsum: "ab,cd->acbd" + reshape)
 err = max_abs_diff(jnp.einsum("ac,bd->abcd", M, K), U)
 print(f"kron(M,K).reshape(2,2,2,2) == einsum('ac,bd->abcd', M, K):  max|diff| = {err:.2e}")
 assert err < TOL
@@ -515,7 +515,7 @@ def two_site_operator_any(U4, q1, q2, N):
 # sanity check of the reference itself: on neighbours (q, q+1) it must equal 1 x ... x U4 x ... x 1
 k_U, key = jax.random.split(key)
 U4 = random_matrix(k_U, 4)                       # generic (non-product, non-symmetric) two-site operator
-ref = two_site_operator(U4, 1, 4)                # kron(1, U4, 1): the neighbour construction of notebook 03
+ref = two_site_operator(U4, 1, 4)                # kron(1, U4, 1): the dense neighbour construction
 err = max_abs_diff(two_site_operator_any(U4, 1, 2, 4), ref)
 print(f"Pauli-decomposition reference vs kron(1, U4, 1) on sites (1,2):  max|diff| = {err:.2e}")
 assert err < TOL
@@ -987,10 +987,10 @@ print(f"N={n_big}: one-site einsum {bench['einsum (apply_gate), 1 site'][n_big][
 
 # %%
 # ==============================================================================
-# STEP 11: H|psi> matrix-free  vs  dense Hamiltonian (kron construction of notebook 03)
+# STEP 11: H|psi> matrix-free  vs  dense Hamiltonian (dense kron construction)
 # ==============================================================================
 def build_hamiltonian_dense(N, Jxx=1.0, Jyy=1.0, Jzz=1.0, hx=0.0, hy=0.0, hz=0.0):
-    """Dense 2^N x 2^N Hamiltonian of the open chain, built from Kronecker products (notebook 03).  VALIDATION ONLY.
+    """Dense 2^N x 2^N Hamiltonian of the open chain, built from Kronecker products.  VALIDATION ONLY.
 
     MATH   H = sum_i (Jxx X_i X_{i+1} + Jyy Y_i Y_{i+1} + Jzz Z_i Z_{i+1}) + sum_i (hx X_i + hy Y_i + hz Z_i)
     COST   O(N 8^N) time (products of dense matrices), O(4^N) memory.
@@ -1158,7 +1158,7 @@ for n in [6, 8, 10, 12, 14, 16, 18, 20]:
 # STEP 14: bond terms, local Trotter gates, and the identity exp(1 x h x 1) = 1 x exp(h) x 1
 # ==============================================================================
 def bond_terms(N, Jxx=0.0, Jyy=0.0, Jzz=0.0, hx=0.0, hy=0.0, hz=0.0):
-    """The open chain as a list of N-1 two-site terms [((j, j+1), h_j)], fields absorbed into the bonds (notebook 04).
+    """The open chain as a list of N-1 two-site terms [((j, j+1), h_j)], fields absorbed into the bonds.
 
     MATH   h_{j,j+1} = Jxx XX + Jyy YY + Jzz ZZ + wL (h1 (x) 1) + wR (1 (x) h1),    h1 = hx X + hy Y + hz Z
            wL = 1 if j == 0 else 1/2;   wR = 1 if j+1 == N-1 else 1/2       =>   sum_j h_{j,j+1} = H
@@ -1195,7 +1195,7 @@ def strang_even_odd_gates(terms, dt):
     return half_even + full_odd + half_even
 
 
-# --- (i) the bond terms add up to the Hamiltonian of notebook 03  (matrix-free list vs dense kron construction) --------
+# --- (i) the bond terms add up to the dense Hamiltonian  (matrix-free list vs dense kron construction) --------
 pars_check = dict(Jxx=0.7, Jyy=-0.4, Jzz=1.1, hx=0.3, hy=-0.2, hz=0.5)
 err = max_abs_diff(dense_hamiltonian(bond_terms(7, **pars_check), 7), build_hamiltonian_dense(7, **pars_check))
 print(f"sum of bond terms vs dense Hamiltonian (generic couplings, N=7): max|diff| = {err:.2e}")
@@ -1298,7 +1298,7 @@ assert abs(L0 - abs(v_test[0]) ** 2) < TOL
 
 # %%
 # ==============================================================================
-# STEP 16: matrix-free Trotter evolution with jit + lax.scan;  the dense reference of notebook 04
+# STEP 16: matrix-free Trotter evolution with jit + lax.scan;  the dense Trotter reference
 # ==============================================================================
 def apply_gate_list(psi, gates):
     """Apply a list [(qubits, U), ...] in order.  Under jit this Python loop is unrolled ONCE into a fixed circuit."""
@@ -1325,7 +1325,7 @@ def evolve_matrix_free(psi0, terms, dt, n_steps, c):
 
 
 def layer_unitary_dense(terms, parity, N, tau):
-    """exp(-i tau H_layer) as a dense 2^N x 2^N matrix: Kronecker chain of 4x4 exponentials and 2x2 identities (notebook 04)."""
+    """exp(-i tau H_layer) as a dense 2^N x 2^N matrix: Kronecker chain of 4x4 exponentials and 2x2 identities."""
     U, j = jnp.eye(1, dtype=CDTYPE), 0
     while j < N:
         if j % 2 == parity and j + 1 < N:
@@ -1336,7 +1336,7 @@ def layer_unitary_dense(terms, parity, N, tau):
 
 
 def evolve_dense_trotter(psi0_vec, terms, dt, n_steps, N):
-    """The SAME Trotter scheme the textbook way (notebook 04): U_step = E(dt/2) O(dt) E(dt/2) as a 2^N x 2^N matrix.
+    """The SAME Trotter scheme the textbook way: U_step = E(dt/2) O(dt) E(dt/2) as a 2^N x 2^N matrix.
 
     Records the full state after every step (small N only!).   VALIDATION ONLY:  O(4^N) memory, O(8^N) set-up.
     """
@@ -1382,7 +1382,7 @@ times = dt * np.arange(1, n_steps + 1)
 run_small = jax.jit(lambda p: evolve_matrix_free(p, terms_small, dt, n_steps, c_small))
 psi_T, (mz_free, zz_free, echo_free) = run_small(psi0)
 
-# (2) dense Trotter of notebook 04: the same scheme with 256 x 256 layer matrices
+# (2) dense Trotter: the same scheme with 256 x 256 layer matrices
 traj_dense = evolve_dense_trotter(psi0.reshape(-1), terms_small, dt, n_steps, N_small)          # (n_steps, 2^N)
 
 # (3) exact evolution by full diagonalisation of the dense Hamiltonian
@@ -1407,7 +1407,7 @@ assert err_state < TOL and err_obs < TOL and norm_drift < TOL
 
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4.2))
 ax1.plot(times, mz_exact, "-", color="0.6", lw=4, label="exact (dense diagonalisation)")
-ax1.plot(times, mz_dense, "-", color="#EE6677", lw=1.5, label="dense Trotter (notebook 04)")
+ax1.plot(times, mz_dense, "-", color="#EE6677", lw=1.5, label="dense-matrix Trotter")
 ax1.plot(times[::4], mz_free[::4, c_small], "o", color="#4477AA", ms=4, label="matrix-free Trotter (einsum)")
 ax1.set_xlabel("time $tJ$"); ax1.set_ylabel(r"$\langle Z_c\rangle$"); ax1.set_title(f"TFIM quench, $N={N_small}$, $h=J$, central spin"); ax1.legend(); ax1.grid(alpha=0.3)
 ax2.semilogy(times, np.abs(np.asarray(mz_free[:, c_small] - mz_dense)) + 1e-18, "-", color="#4477AA", label="|matrix-free $-$ dense Trotter|  (implementation)")
@@ -1445,7 +1445,7 @@ psi_T_exact = traj_exact[-1].reshape((2,) * N_small)
 err_eo = max_abs_diff(psi_T_eo, psi_T)
 print(f"engine tebd_evolve, even-then-odd list vs our even/odd Strang code : max|diff| = {err_eo:.2e}   (same scheme -> round-off)")
 assert err_eo < TOL
-for name, p in [("even/odd Strang (ours, notebook 04)", psi_T), ("engine, sweep over bonds j=0,1,2,...", psi_T_sweep),
+for name, p in [("even/odd Strang (ours)", psi_T), ("engine, sweep over bonds j=0,1,2,...", psi_T_sweep),
                 ("engine, heisenberg_terms (bonds, then fields)", psi_T_hterms)]:
     print(f"   distance to the EXACT state at T={dt * n_steps:g}:  {name:46s} ||diff|| = {float(jnp.linalg.norm(p - psi_T_exact)):.2e}")
 

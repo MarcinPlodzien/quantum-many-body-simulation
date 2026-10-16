@@ -782,14 +782,14 @@ assert abs(r_wc[2] / r_wc[3]) > 8
 # ==============================================================================
 @partial(jax.jit, static_argnames=("N", "shots", "n_exp"))
 def ramsey_counts(key, phi, N, shots, n_exp, contrast=1.0):
-    """Notebook 31: N independent atoms, each excited with probability (1 - C cos phi)/2;
+    """Ramsey interferometry: N independent atoms, each excited with probability (1 - C cos phi)/2;
     returns the total number of excited detections in each of `n_exp` experiments."""
     p = (1 - contrast * jnp.cos(phi)) / 2
     return jnp.sum(jax.random.bernoulli(key, p, (n_exp, shots, N)), axis=(1, 2))
 
 
 def phi_hat_ramsey(k, N, shots, contrast=1.0):
-    """Notebook 31, Eq. (14): phi_hat = arccos[(1 - 2 k/(N M))/C]."""
+    """Ramsey estimator: phi_hat = arccos[(1 - 2 k/(N M))/C]."""
     return jnp.arccos(jnp.clip((1 - 2 * k / (N * shots)) / contrast, -1.0, 1.0))
 
 

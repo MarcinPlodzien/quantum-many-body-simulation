@@ -5,3 +5,4 @@ matplotlib
 jupyter
 nbformat
 nbclient
+physics-tenpy      # TeNPy, only for the cross-check notebook 18b (ch07); the engine itself does not need it

@@ -11,6 +11,7 @@ Then:   quarto preview          # local preview
         quarto render           # static site in _site/   (notebooks are NOT re-executed: stored outputs are used)
         quarto publish gh-pages # publish to GitHub Pages
 """
+import posixpath
 import pathlib
 import re
 import subprocess
@@ -36,6 +37,17 @@ REPO = "https://github.com/MarcinPlodzien"
 HOMEPAGE = "https://chaos.if.uj.edu.pl/marcinplodzien/"
 SITE_URL = "https://marcinplodzien.github.io/quantum-many-body-simulation/"
 COURSE_REPO = "https://github.com/MarcinPlodzien/quantum-many-body-simulation"
+# "Open in Colab" badge under the header line of every notebook: Colab opens the notebook from the public repository
+COLAB_BLOB = "https://colab.research.google.com/github/MarcinPlodzien/quantum-many-body-simulation/blob/main/"
+# inline HTML, not ![..](..): Pandoc would turn an image alone in its paragraph into a centred figure with a caption
+COLAB_BADGE = ('<a href="{}"><img src="https://colab.research.google.com/assets/colab-badge.svg" '
+               'alt="Open In Colab"></a>')
+# figures in markdown cells (![..](figures/x.svg), <img src="figures/x.svg">) are linked from the public repository:
+# Colab opens a notebook without its folder, so relative links break there; raw.githubusercontent serves svg as
+# image/svg+xml.  Not the website's own URL: Quarto copies figures/ into _site only for relative links, so with
+# absolute links the github.io copies would vanish at the next publish
+FIG_RAW = "https://raw.githubusercontent.com/MarcinPlodzien/quantum-many-body-simulation/main/"
+FIG_LINK = re.compile(r"""(\]\(|<img\s[^>]*?\bsrc=["'])(?:\./)?(figures/[^)"'\s]+)""")
 FOOTER_LINKS = ("[Homepage](" + HOMEPAGE + ") · "
                 "[Email](mailto:mplodzien@gmail.com) · [ORCID](https://orcid.org/0000-0002-0835-1644) · "
                 "[Scholar](https://scholar.google.com/citations?user=eC9nCmgAAAAJ&hl=en) · [GitHub](https://github.com/MarcinPlodzien) · "
@@ -99,12 +111,35 @@ def read_chapter_page(folder):
     return (goal.group(1).strip() if goal else ""), body.strip()
 
 
-def ensure_front_matter(nb_path, meta):
-    """Notebooks built before the builder learned about YAML front matter get it patched in (no re-execution)."""
+HEADER_LINE = re.compile(r"^\*" + re.escape(SITE_TITLE) + r" — [^*\n]*\*$", flags=re.M)   # course header line
+
+
+def with_colab_badge(md, rel):
+    """The header cell with exactly one Colab badge, a paragraph of its own right under the course header line;
+    an existing badge is removed first, so re-running only updates its URL. Cells without the header line unchanged."""
+    if not HEADER_LINE.search(md):
+        return md
+    md = re.sub(r"\n*^<a href=\"https://colab\.research\.google\.com/[^\n]*colab-badge\.svg[^\n]*$", "", md, flags=re.M)
+    m = HEADER_LINE.search(md)
+    return md[:m.end()] + "\n\n" + COLAB_BADGE.format(COLAB_BLOB + rel) + md[m.end():]
+
+
+def with_absolute_figures(md, rel):
+    """Relative figure links (figures/..., ./figures/...) rewritten to the notebook folder in the public repository;
+    absolute links are left alone, so re-running changes nothing."""
+    base = FIG_RAW + posixpath.dirname(rel) + "/"
+    return FIG_LINK.sub(lambda m: m.group(1) + base + m.group(2), md)
+
+
+def ensure_front_matter(nb_path, meta, rel=None):
+    """Notebooks built before the builder learned about YAML front matter get it patched in (no re-execution).
+    rel: the notebook's path in the public repository (default: its path relative to the repository root)."""
     import nbformat
     from nbformat.v4 import new_raw_cell
     from build_nb import pandoc_safe_lists
     nb = nbformat.read(nb_path, 4)
+    rel = rel or pathlib.Path(nb_path).resolve().relative_to(ROOT).as_posix()
+    badged = False
     changed = False
     for c in nb.cells:                      # lists directly after a paragraph line: see build_nb.pandoc_safe_lists
         if c.cell_type == "markdown":
@@ -120,6 +155,9 @@ def ensure_front_matter(nb_path, meta):
                 fixed = fixed.replace("[github.com/MarcinPlodzien](https://github.com/MarcinPlodzien)\n",
                                       "[github.com/MarcinPlodzien](https://github.com/MarcinPlodzien) · "
                                       "[www](https://chaos.if.uj.edu.pl/marcinplodzien/)\n", 1)
+            fixed = with_absolute_figures(fixed, rel)
+            if not badged and HEADER_LINE.search(fixed):                    # the first header line only
+                fixed, badged = with_colab_badge(fixed, rel), True
             changed |= fixed != c.source
             c.source = fixed
     # front matter: YAML single-quoted strings, so LaTeX backslashes in titles and descriptions stay literal
@@ -275,7 +313,8 @@ def main():
          "capacities, quantum key distribution simulated end to end, and noisy entanglement made useful by "
          "distillation, repeaters and certification.", ["ch12"]),
         ("Beyond the state vector", "Matrix product states with DMRG and TEBD for chains far longer than a state vector "
-         "can hold, and diagnostics of entanglement, magic and metrological usefulness.", ["ch07", "ch09", "ch10"]),
+         "can hold, cross-checked against an established tensor-network library, and diagnostics of entanglement, magic "
+         "and metrological usefulness.", ["ch07", "ch09", "ch10"]),
     ]
     by_prefix = {c[0][:4]: c for c in chapters}
     for title, text, chs in FEATURES:

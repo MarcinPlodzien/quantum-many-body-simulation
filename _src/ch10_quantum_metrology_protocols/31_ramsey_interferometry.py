@@ -935,6 +935,13 @@ print(f"  bias                 = {bias:+.2e}   +- {sigma / np.sqrt(K_HIST):.2e} 
 print(f"  measured Delta phi   = {sigma:.6f}  +- {std_of_std(sigma, K_HIST):.6f}")
 print(f"  Cramér–Rao 1/sqrt(NM)= {crb:.6f}")
 print(f"  ratio measured / CRB = {sigma / crb:.4f}")
+# the same ratio without sampling noise: a finite sum over the Binomial(NM, 1/2) distribution of k
+n_tot = N_HIST * M_HIST
+k_all = np.arange(n_tot + 1)
+w_k = np.asarray(jnp.exp(gammaln(n_tot + 1.0) - gammaln(k_all + 1.0) - gammaln(n_tot - k_all + 1.0) - n_tot * jnp.log(2.0)))
+phi_all = np.asarray(phi_hat_mom(jnp.asarray(k_all, dtype=RDTYPE), N_HIST, M_HIST))
+sd_exact = np.sqrt(w_k @ (phi_all - w_k @ phi_all) ** 2)
+print(f"  exact binomial sum   = {sd_exact / crb:.6f} x CRB   (expansion 1 + 1/(2NM) = {1 + 0.5 / n_tot:.6f})")
 assert abs(bias) < 5 * sigma / np.sqrt(K_HIST) + 1e-3
 assert 0.9 < sigma / crb < 1.15
 
@@ -994,7 +1001,7 @@ fig.tight_layout(); plt.show()
 # The estimator is unbiased at mid-fringe, but it does not saturate the bound exactly at finite $NM$. Expanding
 # $\mathrm{Var}(\hat\varphi)=\mathrm{Var}(u+u^3/6+\dots)=\sigma_u^2(1+\sigma_u^2+\dots)$ with $\sigma_u^2=1/(NM)$ gives a
 # standard deviation $\sqrt{1+1/(NM)}\approx1+1/(2NM)=1.000625$ times the bound at $N=8$, $M=100$ (the exact binomial sum
-# gives $1.000626$). That is one tenth of the statistical error $0.0065$ on the printed ratio, so the simulation cannot
+# printed above gives $1.000626$). That is one tenth of the statistical error $0.0065$ on the printed ratio, so the simulation cannot
 # resolve it.
 
 # %% [markdown]
@@ -1812,6 +1819,23 @@ print(f"measured AT T = T_opt: {meas_dd[i_opt]:.6f}  ->  ratio to Eq. (25) = {me
 assert abs(T_GRID[i_meas] - T_opt_analytic) < 0.2
 assert abs(meas_dd[i_opt] / dd_min_theory - 1) < 0.05
 
+# how stable is the POSITION of the lowest point?  repeat the whole scan with other seeds; the total count k of
+# one clock run is Binomial(N M, p), drawn directly with NumPy (same estimator as delta_hat, written in NumPy)
+N_RESCAN = 200
+rng_rescan = np.random.default_rng(31)
+lowest = []
+for _ in range(N_RESCAN):
+    sds = []
+    for T in T_GRID:
+        M = max(int(T_TOT // T), 1)
+        C = float(np.exp(-GAMMA * T))
+        k = rng_rescan.binomial(N_CLOCK * M, (1 + C * np.sin(DELTA_TRUE * T)) / 2, size=K_CLOCK)
+        sds.append(np.std(np.arcsin(np.clip((2 * k / (N_CLOCK * M) - 1) / C, -1.0, 1.0)) / T, ddof=1))
+    lowest.append(float(T_GRID[int(np.argmin(sds))]))
+T_low, n_low = np.unique(lowest, return_counts=True)
+print(f"\n{N_RESCAN} rescans with other seeds, position of the lowest point: "
+      + ",  ".join(f"T = {t:g} in {n} runs" for t, n in zip(T_low, n_low)))
+
 # %%
 # ==============================================================================
 # FIGURE 5: the optimal interrogation time
@@ -1854,8 +1878,8 @@ fig.tight_layout(); plt.show()
 # $1/\sqrt{2(K-1)}=1.3\%$, whereas the analytic curve rises by only $1.2\%$ between $T=0.5$ and $T=0.4$ and by $1.9\%$ between
 # $T=0.5$ and $T=0.65$ — the minimum of $e^{\gamma T}/\sqrt T$ is quadratically flat, so the argument of the minimum over this
 # grid is decided by noise among its three central points. Repeating the whole scan with $200$ other seeds (binomial counts
-# drawn with NumPy, same estimator) confirms this: the lowest point lands on $T=0.5$ in $128$ runs, on $T=0.4$ in $51$ and
-# on $T=0.65$ in $21$, never further away (the
+# drawn with NumPy, same estimator; last line of the Step 13 output) confirms this: the lowest point lands on $T=0.5$ in $135$ runs, on $T=0.4$ in $50$ and
+# on $T=0.65$ in $15$, never further away (the
 # next grid points out, $T=0.3$ and $T=0.8$, lie $5.7\%$ and $6.7\%$ above the minimum, more than four standard errors). The
 # assert below is written accordingly: it tolerates a shift by one grid point in the position, and is tight on the value.
 #
@@ -1912,13 +1936,13 @@ for N, M, K in ((4, 50, 400), (7, 50, 400), (10, 50, 200)):
           f"{tr1 / tr2:9.1f} {K * M * 2 ** N:21.3e}")
 
 # %% [markdown]
-# The run times are the relevant comparison. The engine sampler is a few times slower at $N=4$ and about two orders of
-# magnitude slower at $N=10$ (speed-ups between $130$ and $160$ in successive builds of this notebook; the exact factor
+# The run times are the relevant comparison. The engine sampler is a few to about ten times slower at $N=4$ and about two orders of
+# magnitude slower at $N=10$ (speed-ups between $120$ and $160$ in successive builds of this notebook; the exact factor
 # depends on the load of the machine), and the last column shows why: its transient memory grows by a factor of two with every added
 # atom, while the coin sampler grows linearly in $N$. At the batch sizes of this table the memory is not yet a problem —
 # the largest entry, $10^7$ doubles, is $82$ MB — but the growth rate is: the $N$ sweep of Section 12 ($K=8000$, $M=100$,
 # up to $N=16$) would need $8000\cdot100\cdot2^{16}\approx5\cdot10^{10}$ doubles, about $420$ GB, with the engine sampler.
-# Compilation is a one-off cost, of a fraction of a second to about two seconds here, and it is not even monotonic in $N$,
+# Compilation is a one-off cost, of a fraction of a second to a few seconds here, and it is not even monotonic in $N$,
 # because XLA reuses work across calls. The general rule: **exact Born sampling is the default; special structure is an
 # optimisation to be used only after it has been verified**, which is what the checkpoint in Section 9 did.
 #

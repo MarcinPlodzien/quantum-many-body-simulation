@@ -157,7 +157,7 @@ def maximally_mixed(N):
 #
 # Equation (4) is what makes the encoding cheap: $N$ single-qubit gates, no matrix exponential of anything large. (For a
 # generator that is *not* a sum of commuting local terms — an interaction, say — one would have to exponentiate properly,
-# by Trotterisation or a Krylov method; see
+# by Trotterisation (product formula introduced in [[5]](#ref-5)) or a Krylov method; see
 # [notebook 12, TEBD and Trotter–Suzuki](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb) and
 # [notebook 14, Krylov methods](../ch05_ground_states_and_unitary_dynamics/14_krylov_and_integrator_comparison.ipynb).)
 #
@@ -450,8 +450,8 @@ assert tr_abs < 1e3 * TOL and max_abs(dm - dm.conj().T) < 1e3 * TOL
 # example is $\rho_\theta=\mathrm{diag}(1-\theta^2,\theta^2)$, for which Eq. (11) gives
 # $F_Q=4+4\theta^2/(1-\theta^2)\to4$ as $\theta\to0$ but $F_Q=0$ at $\theta=0$, where $\partial_\theta\rho$ vanishes.
 # At such a point the classical and quantum Cramér–Rao theorems do not hold and the bound built from $F_Q$ can be
-# violated [[5]](#ref-5), while the Bures metric gives the continuous extension, i.e. the
-# limiting value [[6]](#ref-6). The noise sweeps of Section 10 do **not** hit this: there the
+# violated [[6]](#ref-6), while the Bures metric gives the continuous extension, i.e. the
+# limiting value [[7]](#ref-7). The noise sweeps of Section 10 do **not** hit this: there the
 # rank changes as a function of the *noise strength*, not of $\theta$, and $F_Q$ is continuous there — as $p\to0$ the
 # dephased and depolarised GHZ states return smoothly to the pure-state value $N^2=16$.
 #
@@ -508,7 +508,7 @@ assert tr_abs < 1e3 * TOL and max_abs(dm - dm.conj().T) < 1e3 * TOL
 # likewise for $\partial_\theta p_x$. The function $f(a,b)=a^2/b$ is jointly convex for $b>0$ (its Hessian is
 # $\tfrac{2}{b^3}\begin{pmatrix}b^2&-ab\\-ab&a^2\end{pmatrix}\succeq0$), so
 # $I[\text{mixture}]=\sum_xf(\partial_\theta p_x,p_x)\le\sum_ip_i\,I[\rho_i]\le\sum_ip_iF_Q[\rho_i,G]$. Maximising the
-# left-hand side over the POVM gives the claim (see also [[7]](#ref-7)). We *verify it numerically* in
+# left-hand side over the POVM gives the claim (see also [[8]](#ref-8)). We *verify it numerically* in
 # Section 7. Physically: **classical uncertainty about which state was prepared can only reduce the information
 # you can extract.** It is also the step that extends the standard quantum limit
 # $F_Q\le N$ from pure product states to all separable mixed states.
@@ -718,7 +718,7 @@ assert abs(f_x - var4_x) < 1e4 * TOL
 #   \qquad\Longleftrightarrow\qquad
 #   F_Q=\lim_{d\theta\to0}\frac{8\left(1-\sqrt{F(\rho_\theta,\rho_{\theta+d\theta})}\right)}{d\theta^2}, \tag{13}$$
 #
-# where $F(\rho,\sigma)=\left(\mathrm{Tr}\sqrt{\sqrt\rho\,\sigma\sqrt\rho}\right)^2$ is the fidelity of [[8]](#ref-8), [[9]](#ref-9), **squared**,
+# where $F(\rho,\sigma)=\left(\mathrm{Tr}\sqrt{\sqrt\rho\,\sigma\sqrt\rho}\right)^2$ is the fidelity of [[9]](#ref-9), [[10]](#ref-10), **squared**,
 # which is what the engine's `fidelity_dm` returns; squaring Eq. (13) gives the equivalent statement
 # $F=1-\tfrac{F_Q}{4}d\theta^2+O(d\theta^4)$ for the squared quantity. Conventions differ from book to book, and the
 # factor $8$ versus $4$ is exactly the difference between them — always check which one your fidelity routine computes.
@@ -973,6 +973,14 @@ for name, U in (("SLD eigenbasis (fixed at $\\theta_0$)", U_SLD), ("computationa
         vals.append(float(fisher_of_basis(dm_matrix(r), dm_matrix(drho_commutator(r, gen_meas)), U)))
     scan[name] = np.array(vals)
 
+# the fixed SLD basis at the revivals theta_0 + k pi/N
+for k in (-1, 0, 1):
+    th = THETA_0 + k * np.pi / N_MEAS
+    r = encode_dm(rho_prep, gen_meas, th)
+    I_k = float(fisher_of_basis(dm_matrix(r), dm_matrix(drho_commutator(r, gen_meas)), U_SLD))
+    print(f"SLD basis of theta_0 at theta = theta_0 {k:+d} pi/N = {th:+.3f}:  I = {I_k:.8f},  I - F_Q = {I_k - F_Q:+.1e}")
+    assert abs(I_k - F_Q) < 1e4 * TOL
+
 fig, ax = plt.subplots(figsize=(7.4, 4.4))
 for k, (name, vals) in enumerate(scan.items()):
     ax.plot(THETA_SCAN, vals, "-", color=PALETTE[k], lw=1.8, label=name)
@@ -992,8 +1000,8 @@ fig.tight_layout(); plt.show()
 # basis is optimal" holds at the design point and at its revivals.
 #
 # The curve is *periodic*, with period $\pi/N$: the measurement built at $\theta_0$ is equally optimal at
-# $\theta_0+k\pi/N$, and a direct evaluation gives $I=9.28798186=F_Q$ at $\theta=-0.485,\,0.300,\,1.085$ to thirteen
-# digits. "Locally optimal" therefore means *locally in $\theta$ modulo $\pi/N$* — which is also why the maximum-likelihood
+# $\theta_0+k\pi/N$, and the cell above evaluates $I=9.28798186=F_Q$ at $\theta=-0.485,\,0.300,\,1.085$, equal to $F_Q$ to
+# rounding error. "Locally optimal" therefore means *locally in $\theta$ modulo $\pi/N$* — which is also why the maximum-likelihood
 # search of Section 9 must be confined to a window of that width, otherwise the likelihood has several equally good peaks.
 # In a real experiment one works in two stages — a coarse estimate first, then a measurement optimised around it — or
 # accepts a convenient fixed basis such as $X$ and pays the difference. The $Z$ curve is flat at zero, as it must be.
@@ -1010,7 +1018,7 @@ fig.tight_layout(); plt.show()
 #
 # $$\log\mathcal{L}(\theta)=\sum_x n_x\log p(x\vert\theta), \tag{14}$$
 #
-# and the maximum-likelihood estimate [[10]](#ref-10) is $\hat\theta=\arg\max_\theta\log\mathcal{L}(\theta)$. We maximise on a fine grid,
+# and the maximum-likelihood estimate [[11]](#ref-11) is $\hat\theta=\arg\max_\theta\log\mathcal{L}(\theta)$. We maximise on a fine grid,
 # which is robust, trivially `vmap`-able, and makes the **phase ambiguity** explicit: $p(x\vert\theta)$ for a GHZ-like state
 # oscillates with period $2\pi/N$ in $\theta$, so a search over the whole circle would let the estimator lock onto a
 # neighbouring fringe. We take the window $\theta_0\pm\pi/(2N)$ — a quarter of a period on each side, i.e. the width
@@ -1153,7 +1161,7 @@ def var_and_err(est):
     return v, v * np.sqrt(2.0 / (est.shape[0] - 1))
 
 
-# --- CHECKPOINT 1: Eq. (14a) reproduces the delta-method bias -cot(theta)/2 of notebook 29 --------
+# --- CHECKPOINT 1: Eq. (14a) reproduces the delta-method bias -cot(theta)/2 of 'Quantum Fisher information' --------
 th_c = np.pi / 3
 b1_binary = float(ml_bias_first_order(lambda t: jnp.stack([(1 + jnp.cos(t)) / 2, (1 - jnp.cos(t)) / 2]), th_c))
 print(f"Eq. (14a) for p = (1 +- cos theta)/2 at theta = pi/3: b_1 = {b1_binary:.6f},  -cot(theta)/2 = "
@@ -1416,6 +1424,18 @@ for gname, P in (("J_z", Z), ("J_x", X)):
               f"{'YES' if d_states < 1e3 * TOL else 'no':>9s}")
     print()
 
+# --- GHZ_N dephased with strength p BEFORE the encoding: F_Q for G = J_x and G = J_z -----------------------------
+P_SWEEP = (0.0, 0.05, 0.1, 0.25, 0.5)
+print("local dephasing before the encoding, p = " + ", ".join(f"{p:g}" for p in P_SWEEP))
+for n_d in (2, 3, 4, 5, 6):
+    rhos = [local_channel(to_dm(ghz_state(n_d)), kraus_dephasing(p)) for p in P_SWEEP]
+    f_x = np.array([float(qfi_unitary(r, gen_collective(n_d, X))) for r in rhos])
+    f_z = np.array([float(qfi_unitary(r, gen_collective(n_d, Z))) for r in rhos])
+    print(f"N={n_d}:  F_Q(J_x) = " + "  ".join(f"{v:7.4f}" for v in f_x) + f"   (max |F_Q(J_x) - N| = {np.max(np.abs(f_x - n_d)):.1e})"
+          + "   F_Q(J_z) = " + "  ".join(f"{v:7.4f}" for v in f_z))
+    if n_d >= 3:
+        assert np.max(np.abs(f_x - n_d)) < 1e4 * TOL                 # N >= 3: no degradation at any p
+
 # %% [markdown]
 # The measured table matches all three predictions. For $G=J_z$ all three channels commute with the encoding, so the two
 # orderings give literally the same density matrix (the difference is at machine precision, $10^{-14}$) and therefore the
@@ -1433,8 +1453,8 @@ for gname, P in (("J_z", Z), ("J_x", X)):
 # support–kernel ones, which give $F_Q=4\sum_\pm\lambda_\pm\langle\mathrm{GHZ}_\pm\vert J_x^2\vert\mathrm{GHZ}_\pm\rangle
 # =4\cdot\tfrac N4=N$ independently of $p$. The value $\langle\mathrm{GHZ}_\pm\vert J_x^2\vert\mathrm{GHZ}_\pm\rangle=N/4$ uses
 # $N\ge3$: for $N=2$ the two-flip term $X_1X_2$ connects $\vert00\rangle$ and $\vert11\rangle$, and $F_Q(J_x)$ does decay with
-# $p$ ($4,\,3.62,\,3.28,\,2.50$ at $p=0,\,0.05,\,0.1,\,0.25$). (Checked: $F_Q(J_x)=N$ to ten digits for $N=3,4,5,6$
-# and $p=0,0.05,0.1,0.25,0.5$, while $F_Q(J_z)$ collapses from $16$ to $0$ over the same range.) The lesson is that "noise"
+# $p$ ($4,\,3.62,\,3.28,\,2.50$ at $p=0,\,0.05,\,0.1,\,0.25$). (The second table of the cell above checks this: $F_Q(J_x)=N$ for $N=3,4,5,6$
+# and $p=0,0.05,0.1,0.25,0.5$, while $F_Q(J_z)$ collapses from $16$ to $0$ at $N=4$ over the same range.) The lesson is that "noise"
 # is never bad in the abstract — it is bad for the particular coherence the particular generator relies on.
 #
 # > **Physics insight.** This is why the noise model in a metrology paper always specifies *when* the noise acts. In a real
@@ -1641,13 +1661,13 @@ fig.tight_layout(); plt.show()
 # The SLD step (eigendecomposition plus four matrix products) is the most expensive of the three at every size, as
 # predicted. Its growth with $N$ shows two regimes. Up to $N=4$ the call takes a few tens of microseconds and grows by
 # small, erratic factors (between $1$ and $2.5$ in our builds): it is dominated by the fixed cost of dispatching a compiled program, a few tens of microseconds, and the arithmetic is
-# invisible. From $N=5$ on the arithmetic dominates and the time grows by about two orders of magnitude between $N=5$
-# and $N=8$, an average factor of roughly $5$ per added qubit — between the $4^N$ of the matrix size and the $8^N$ of the
-# asymptotic cost. The individual ratios scatter between about $2$ and $7$: at these sizes LAPACK's blocked eigensolver
+# invisible. From $N=5$ on the arithmetic dominates and the time grows by two to three orders of magnitude between $N=5$
+# and $N=8$, an average factor of roughly $5$ to $8$ per added qubit — between the $4^N$ of the matrix size and the $8^N$ of the
+# asymptotic cost. The individual ratios scatter between about $2$ and $9$ from build to build: at these sizes LAPACK's blocked eigensolver
 # is not yet in its asymptotic regime, and sub-millisecond timings move with machine load from one build to the next.
 # The dashed $8^N$ reference is therefore anchored at $N=5$ and is meant as an upper guide for the slope, not a fit; an
 # anchor at $N=2$ would compare a dispatch-bound call with an arithmetic-bound eigensolver. Compilation (the extra
-# column, in seconds) costs $0.06$–$0.4$ s per size, thousands of calls' worth at small $N$, and is excluded from the
+# column, in seconds) costs from a few hundredths of a second to about a second per size, depending on the load of the machine, thousands of calls' worth at small $N$, and is excluded from the
 # timings. The pure-state shortcut $4\,\mathrm{Var}(G)$ stays essentially flat over this range: it never leaves the
 # state-vector representation.
 #
@@ -1760,48 +1780,51 @@ fig.tight_layout(); plt.show()
 # Phys. Rev. Lett. **72**, 3439 (1994) — the theorem of Section 8: the classical Fisher information of any POVM is bounded
 # by $\mathrm{Tr}(\rho L^2)$, with equality in the eigenbasis of $L$; also the Bures-metric interpretation, Eq. (13).
 #
-# <span id="ref-5">[5]</span> L. Seveso, F. Albarelli, M. G. Genoni and M. G. A. Paris, *On the discontinuity of the quantum
+# <span id="ref-5">[5]</span> H. F. Trotter, *On the product of semi-groups of operators*, Proc. Amer. Math. Soc. **10**, 545 (1959) — the product
+# formula behind Trotterised time evolution.
+#
+# <span id="ref-6">[6]</span> L. Seveso, F. Albarelli, M. G. Genoni and M. G. A. Paris, *On the discontinuity of the quantum
 # Fisher information for quantum statistical models with parameter dependent rank*, J. Phys. A **53**, 02LT01 (2020) — what
 # goes wrong at a rank change, and why the caveat of Section 5.3 matters outside the unitary-encoding case.
 #
-# <span id="ref-6">[6]</span> D. Šafránek, *Discontinuities of the quantum Fisher information and the Bures metric*, Phys.
+# <span id="ref-7">[7]</span> D. Šafránek, *Discontinuities of the quantum Fisher information and the Bures metric*, Phys.
 # Rev. A **95**, 052320 (2017) — the Bures metric as the continuous extension at a rank change.
 #
-# <span id="ref-7">[7]</span> G. Tóth and I. Apellaniz, *Quantum metrology from a quantum information science perspective*,
+# <span id="ref-8">[8]</span> G. Tóth and I. Apellaniz, *Quantum metrology from a quantum information science perspective*,
 # J. Phys. A **47**, 424006 (2014) — convexity of the QFI, the bound $F_Q\le4\mathrm{Var}(G)$, and the entanglement criteria
 # used in notebook 29.
 #
-# <span id="ref-8">[8]</span> A. Uhlmann, *The "transition probability" in the state space of a $*$-algebra*, Rep. Math.
+# <span id="ref-9">[9]</span> A. Uhlmann, *The "transition probability" in the state space of a $*$-algebra*, Rep. Math.
 # Phys. **9**, 273 (1976) — the fidelity of Eq. (13).
 #
-# <span id="ref-9">[9]</span> R. Jozsa, *Fidelity for mixed quantum states*, J. Mod. Opt. **41**, 2315 (1994) — the fidelity
+# <span id="ref-10">[10]</span> R. Jozsa, *Fidelity for mixed quantum states*, J. Mod. Opt. **41**, 2315 (1994) — the fidelity
 # of Eq. (13).
 #
-# <span id="ref-10">[10]</span> R. A. Fisher, *On the mathematical foundations of theoretical statistics*, Phil. Trans. R.
+# <span id="ref-11">[11]</span> R. A. Fisher, *On the mathematical foundations of theoretical statistics*, Phil. Trans. R.
 # Soc. Lond. A **222**, 309 (1922) — maximum likelihood, Section 9.1.
 #
-# <span id="ref-11">[11]</span> C. W. Helstrom, *Quantum Detection and Estimation Theory*, Mathematics in Science and
+# <span id="ref-12">[12]</span> C. W. Helstrom, *Quantum Detection and Estimation Theory*, Mathematics in Science and
 # Engineering vol. 123 (Academic Press, New York, 1976) — the symmetric logarithmic derivative, Eq. (6), and the quantum
 # Cramér–Rao bound.
 #
-# <span id="ref-12">[12]</span> A. S. Holevo, *Probabilistic and Statistical Aspects of Quantum Theory* (North-Holland,
+# <span id="ref-13">[13]</span> A. S. Holevo, *Probabilistic and Statistical Aspects of Quantum Theory* (North-Holland,
 # Amsterdam, 1982; 2nd ed., Edizioni della Normale, Pisa, 2011) — the other classic monograph of quantum estimation theory,
 # formulated throughout with general measurements (resolutions of the identity, the POVMs of Section 8).
 #
-# <span id="ref-13">[13]</span> M. G. A. Paris, *Quantum estimation for quantum technology*, Int. J. Quantum Inf. **7**,
+# <span id="ref-14">[14]</span> M. G. A. Paris, *Quantum estimation for quantum technology*, Int. J. Quantum Inf. **7**,
 # 125–137 (2009) — a very readable derivation of the SLD formalism, the eigenbasis solution of Eq. (8) and the treatment of
 # the kernel.
 #
-# <span id="ref-14">[14]</span> J. Liu, H. Yuan, X.-M. Lu and X. Wang, *Quantum Fisher information matrix and multiparameter
+# <span id="ref-15">[15]</span> J. Liu, H. Yuan, X.-M. Lu and X. Wang, *Quantum Fisher information matrix and multiparameter
 # estimation*, J. Phys. A **53**, 023001 (2020) — a comprehensive review of the SLD, its computation and its multiparameter
 # generalisation, including the Bures and fidelity-susceptibility forms of Eq. (13).
 #
-# <span id="ref-15">[15]</span> L. Pezzè, A. Smerzi, M. K. Oberthaler, R. Schmied and P. Treutlein, *Quantum metrology with
+# <span id="ref-16">[16]</span> L. Pezzè, A. Smerzi, M. K. Oberthaler, R. Schmied and P. Treutlein, *Quantum metrology with
 # nonclassical states of atomic ensembles*, Rev. Mod. Phys. **90**, 035005 (2018) — the standard modern review, including
 # noisy states and the role of the optimal measurement.
 #
-# <span id="ref-16">[16]</span> V. Giovannetti, S. Lloyd and L. Maccone, *Quantum metrology*, Phys. Rev. Lett. **96**,
+# <span id="ref-17">[17]</span> V. Giovannetti, S. Lloyd and L. Maccone, *Quantum metrology*, Phys. Rev. Lett. **96**,
 # 010401 (2006) — the SQL and Heisenberg scalings the pipeline is built to compare.
 #
-# <span id="ref-17">[17]</span> M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information* (Cambridge
+# <span id="ref-18">[18]</span> M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information* (Cambridge
 # University Press, 2000), Chapter 9 — fidelity, trace distance and the Uhlmann theorem behind Eq. (13).

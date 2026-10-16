@@ -5,10 +5,11 @@
 # %% [markdown]
 # ## 1. Introduction
 #
-# The many-body notebooks of this course computed entanglement entropies and put them to work. The bond dimension a
-# matrix product state needs is set by an entropy; the entanglement barrier that stops a time evolution is an entropy
-# growing in time; the half-chain entropy of the XXZ chain changes character between its phases. None of that asked
-# what a *measure* of entanglement is, what else can be measured, or what the entropy fails to see.
+# Entanglement entropies are the working quantities of many-body numerics. The bond dimension needed by a matrix product
+# state, a representation introduced in [[1]](#ref-1), is set by an entropy; the entanglement barrier that stops a time
+# evolution is an entropy growing in time; the half-chain entropy of the XXZ chain changes character between its
+# phases. None of these uses asks what a *measure* of entanglement is, what else can be measured, or what the entropy
+# fails to see.
 #
 # This notebook organises those questions around one concrete question:
 #
@@ -39,7 +40,7 @@
 # * why the subsystem entropy fails for mixed states, the entanglement of formation, the PPT criterion and the
 #   negativity, and the Werner and noisy-Bell-pair thresholds;
 # * that pairwise entanglement in a spin-chain ground state is confined to neighbours while correlations are not, and
-#   what the monogamy inequality of Coffman, Kundu and Wootters says about it.
+#   what the monogamy inequality of the concurrence says about it.
 #
 # *Numerical methods*
 # * the partial transpose as an axis permutation of the density tensor;
@@ -51,17 +52,14 @@
 # * wrong controls: every check is paired with a case that must fail;
 # * the matrix and tensor forms of a density operator, and the one confusion between them that no code can detect.
 #
-# ### Prerequisites
-# * [06 — states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb):
-#   reduced density matrices, the Schmidt decomposition, the state zoo;
-# * [07 — density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb):
-#   density tensors, partial trace, Kraus channels;
-# * [11 — Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb):
-#   Lanczos and the XXZ chain;
-# * [18 — matrix product states, DMRG and TEBD](../ch07_tensor_networks/18_mps_tebd.ipynb): canonical forms and DMRG,
-#   for Sections 11 to 14;
-# * [25 — entanglement negativity](../ch09_entanglement_and_complexity/25_entanglement_negativity.ipynb) treats the
-#   negativity in more depth (bound entanglement, block negativity, dynamics); it is a companion, not a prerequisite.
+# The notebook assumes reduced density matrices and the Schmidt decomposition
+# ([notebook 06, states, observables and entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb)),
+# density tensors, the partial trace and Kraus channels
+# ([notebook 07, density matrices and quantum channels](../ch03_matrix_free_engine/07_density_matrices_and_quantum_channels.ipynb)),
+# Lanczos ground states of the XXZ chain
+# ([notebook 11, Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb))
+# and, for Sections 11 to 14, canonical forms and DMRG
+# ([notebook 18, matrix product states, DMRG and TEBD](../ch07_tensor_networks/18_mps_tebd.ipynb)).
 #
 # **Conventions.** Qubit $q$ = tensor axis $q$, counted from $0$; $\vert0\rangle$ is the $+1$ eigenstate of $Z$. A
 # density tensor of $N$ qubits has $N$ ket axes followed by $N$ bra axes. Hamiltonians are in Pauli convention. All
@@ -74,7 +72,7 @@
 # Three helpers. `S_bits` is the von Neumann entropy in bits of a density operator in either form. `neg` clips the
 # negativity at zero, since the sum of negative eigenvalues of a positive matrix can come out as $-10^{-17}$. `pt_min`
 # returns the smallest eigenvalue of the partial transpose of a two-qubit state, which tells *how far* from the PPT
-# boundary a state is, not only on which side. `concurrence` is Wootters' formula for two qubits, defined in Section 3.
+# boundary a state is, not only on which side. `concurrence` is the two-qubit concurrence defined in Section 3.
 
 # %%
 import numpy as np
@@ -198,14 +196,14 @@ print(f"  M M^dag =\n{np.round(M@M.conj().T,6)}\n  |phi><phi| =\n{np.round(np.ou
 # entanglement, and a *measure* of entanglement is required to vanish on separable states and not to increase, on
 # average, under LOCC.
 #
-# For pure bipartite states the theory is complete. Nielsen (1999) showed that $\vert\psi\rangle$ can be converted into
-# $\vert\phi\rangle$ by LOCC exactly when the Schmidt probabilities of $\vert\phi\rangle$ majorise those of
+# For pure bipartite states the theory is complete. It was shown in [[2]](#ref-2) that $\vert\psi\rangle$ can be converted
+# into $\vert\phi\rangle$ by LOCC exactly when the Schmidt probabilities of $\vert\phi\rangle$ majorise those of
 # $\vert\psi\rangle$, so every pure-state measure is a function of the $p_k$, and on pure states the LOCC monotones are
 # exactly the concave, unitarily invariant functions of $\rho_A$, i.e. the concave symmetric functions of the $p_k$
-# (Vidal 2000). There are therefore many pure-state measures; the entropy $S_A$ is singled out by the
+# [[3]](#ref-3). There are therefore many pure-state measures; the entropy $S_A$ is singled out by the
 # asymptotic limit. From $n$ copies of $\vert\psi\rangle$, LOCC can produce $m \approx nS_A$ Bell pairs with an error
 # that vanishes as $n\to\infty$, and $m$ Bell pairs can be converted back into $n \approx m/S_A$ copies; both rates are
-# optimal (Bennett, Bernstein, Popescu, Schumacher 1996). The distillable entanglement and the entanglement cost of a
+# optimal [[4]](#ref-4). The distillable entanglement and the entanglement cost of a
 # pure state are therefore both equal to $S_A$. The number of copies made per Bell pair, $n/m = 1/S_A$, exceeds one
 # whenever $S_A < 1$ bit.
 #
@@ -238,9 +236,9 @@ print("[ok] local unitaries leave S unchanged; a unitary across the cut does not
 # %% [markdown]
 # ### The meaning of the entropy
 #
-# The formula $S_A=-\sum_k p_k\log_2 p_k$ with $p_k=\lambda_k^2$ is the Shannon (1948) entropy of an ordinary probability
-# distribution: $p_k$ is the probability of finding the pair in the $k$-th Schmidt branch when both sides are measured in
-# the Schmidt basis.
+# The formula $S_A=-\sum_k p_k\log_2 p_k$ with $p_k=\lambda_k^2$ is the Shannon entropy, introduced in [[5]](#ref-5),
+# of an ordinary probability distribution: $p_k$ is the probability of finding the pair in the $k$-th Schmidt branch
+# when both sides are measured in the Schmidt basis.
 #
 # **Why zero means product.** If the state factorises there is exactly one non-zero Schmidt value, and normalisation
 # forces $p_1=1$. Then $S_A = -1\cdot\log_2 1 = 0$. The remaining terms are $0\log_2 0$, defined as zero (the limit of
@@ -274,8 +272,8 @@ print(f"  S of one Bell pair = {float(entanglement_entropy(jnp.asarray(bell2).re
 #
 # ## 3. The zoo classified
 #
-# Take the standard states (GHZ, introduced by Greenberger, Horne and Zeilinger 1989; W, by Dür, Vidal and Cirac
-# 2000; the Dicke state, by Dicke 1954) and look at them through **three different cuts**: one spin, two spins, and half the chain.
+# Take the standard states (the GHZ state, introduced in [[6]](#ref-6); the W state, introduced in [[7]](#ref-7); the Dicke state,
+# introduced in [[8]](#ref-8)) and look at them through **three different cuts**: one spin, two spins, and half the chain.
 # A single number at a single cut is not a classification.
 
 # %%
@@ -322,8 +320,8 @@ print(f"and indeed the negativity is {neg(rdm(ghz_state(6),(0,1))):.1e} and the 
 #
 # $$ \mathcal N_W = \frac{\sqrt{(N-2)^2+4}-(N-2)}{2N} \;>\; 0 \quad\text{for every } N . $$
 #
-# A second two-qubit measure, the **concurrence**, introduced by Hill and Wootters (1997) and extended to all two-qubit states by
-# Wootters (1998), will be needed for monogamy. With
+# A second two-qubit measure, the **concurrence**, introduced in [[9]](#ref-9) and extended to all two-qubit states in
+# [[10]](#ref-10), will be needed for monogamy. With
 # $\tilde\rho = (Y\otimes Y)\rho^*(Y\otimes Y)$ and $l_1\ge l_2\ge l_3\ge l_4$ the square roots of the eigenvalues of
 # $\rho\tilde\rho$,
 #
@@ -335,12 +333,12 @@ print(f"and indeed the negativity is {neg(rdm(ghz_state(6),(0,1))):.1e} and the 
 # $C = 2\max\big(0,\ \vert\rho_{01,10}\vert-\sqrt{\rho_{00,00}\rho_{11,11}},\ \vert\rho_{00,11}\vert-\sqrt{\rho_{01,01}\rho_{10,10}}\big)$.
 # For the W pair this gives $C = 2/N$.
 #
-# **Monogamy.** For a pure state of $N$ qubits, Coffman, Kundu and Wootters (2000; three qubits) and Osborne and
-# Verstraete (2006; any $N$) proved
+# **Monogamy.** For a pure state of $N$ qubits,
 #
 # $$ \sum_{j\ne i} C_{ij}^2 \;\le\; \tau_i \equiv 4\det\rho_i , $$
 #
-# where $\tau_i$, the *tangle* of spin $i$ with the rest, equals $C^2$ of the bipartition $i\vert\text{rest}$. A spin
+# where $\tau_i$, the *tangle* of spin $i$ with the rest, equals $C^2$ of the bipartition $i\vert\text{rest}$. This
+# inequality was proved in [[11]](#ref-11) for three qubits and in [[12]](#ref-12) for any $N$. A spin
 # that is strongly entangled with one partner cannot be strongly entangled with another. For the W state
 # $\det\rho_i = (N-1)/N^2$, so $\tau_i = 4(N-1)/N^2$, and the $N-1$ partners contribute $(N-1)(2/N)^2$: the W state
 # **saturates** the inequality. The single excitation is shared among more pairs as $N$ grows, and each pair gets less.
@@ -366,7 +364,7 @@ print(f"  GHZ_8 for contrast: C(pair) = {concurrence(rdm(ghz_state(8),(0,1))):.1
 # GHZ and W therefore differ in *where* their entanglement lives. GHZ holds one bit shared globally, invisible in every
 # pair; tracing out one spin leaves $\tfrac12(\vert0\ldots0\rangle\langle0\ldots0\vert+\vert1\ldots1\rangle\langle1\ldots1\vert)$,
 # which is separable. W holds a little in every pair and keeps pairwise entanglement after the loss of a spin. No single
-# number orders them: for three qubits Dür, Vidal and Cirac (2000) proved that GHZ and W cannot be converted into each
+# number orders them: for three qubits it was proved in [[7]](#ref-7) that GHZ and W cannot be converted into each
 # other even probabilistically by LOCC; they are two different classes, not two points on one scale.
 #
 # ## 4. The negativity of a pure-state cut
@@ -426,14 +424,13 @@ for name, r in (("Bell (|00>+|11>)/sqrt2", rho_bell), ("coin toss: |00> or |11>"
 #
 # $$ E_F(\rho) = \min_{\{p_i,\psi_i\}} \sum_i p_i\, S\big(\rho_A^{(i)}\big), \qquad \rho = \sum_i p_i\vert\psi_i\rangle\langle\psi_i\vert, $$
 #
-# the **entanglement of formation**, introduced with the distillable entanglement by Bennett, DiVincenzo, Smolin and
-# Wootters (1996): a minimisation over all pure-state decompositions of $\rho$. It vanishes exactly on
-# separable states and is an LOCC monotone. It has a closed form for two qubits (Wootters 1998, through the concurrence)
-# and none in general. Deciding whether a given mixed state is entangled at all, even to within a small tolerance, is
-# NP-hard as the dimension grows (Gurvits 2003). Other measures do not remove the difficulty: the distillable
-# entanglement $E_D$ (Bell pairs per copy obtainable by LOCC) is zero for the entangled PPT states found by P. Horodecki
-# (1997), which are "bound entangled" because no Bell pairs can be distilled from them (Horodecki, Horodecki, Horodecki
-# 1998), so $E_D$ is **not faithful**, and the computable quantity of the next sections, the negativity, misses the same
+# the **entanglement of formation**, introduced together with the distillable entanglement in [[13]](#ref-13): a
+# minimisation over all pure-state decompositions of $\rho$. It vanishes exactly on separable states and is an LOCC
+# monotone. It has a closed form for two qubits, through the concurrence [[10]](#ref-10), and none in general. Deciding whether a
+# given mixed state is entangled at all, even to within a small tolerance, is NP-hard as the dimension grows [[14]](#ref-14).
+# Other measures do not remove the difficulty: the distillable entanglement $E_D$ (Bell pairs per copy obtainable by
+# LOCC) is zero for the entangled PPT states found in [[15]](#ref-15), which are "bound entangled" because no Bell pairs can be
+# distilled from them [[16]](#ref-16), so $E_D$ is **not faithful**, and the computable quantity of the next sections, the negativity, misses the same
 # states. No efficiently computable measure that is faithful for all mixed states is known. The rest of the notebook
 # uses one computable *criterion*, the positive partial transpose, which is complete for the two-qubit states we need.
 
@@ -462,7 +459,7 @@ print("  max|engine - einsum| =", np.abs(np.asarray(pt) - by_hand).max())
 # %% [markdown]
 # ### The matrix and tensor forms of a density operator
 #
-# There are two ways to hold a density matrix in this course, and they are not interchangeable. `rdm` returns a
+# There are two ways to hold a density matrix in this code, and they are not interchangeable. `rdm` returns a
 # $2^{|A|}\times 2^{|A|}$ **matrix**; the channels and the partial transpose work on the rank-$2N$ **tensor** with every
 # axis of length two. A routine that expects the tensor and receives the matrix reads $N$ from the number of axes, finds
 # $N=1$, and transposes the *whole* matrix, which leaves every eigenvalue unchanged and reports a negativity of exactly
@@ -512,9 +509,9 @@ assert abs(n_wrong - n_right) > 0.1
 #
 # $$ \rho \text{ separable} \implies \rho^{T_A} \ge 0, $$
 #
-# and by contraposition **a negative eigenvalue of the partial transpose proves entanglement** (Peres 1996). The
-# implication is one-directional in general; for two qubits and for a qubit and a qutrit it is also sufficient
-# (Horodecki, Horodecki, Horodecki 1996), so for the spin pairs in this notebook it decides the question completely.
+# and by contraposition **a negative eigenvalue of the partial transpose proves entanglement**. This criterion was
+# introduced in [[17]](#ref-17). The implication is one-directional in general; for two qubits and for a qubit and a qutrit it
+# is also sufficient [[18]](#ref-18), so for the spin pairs in this notebook it decides the question completely.
 #
 # The criterion becomes a number by measuring how negative the partial transpose is. Since $\mathrm{Tr}\rho^{T_A} = 1$,
 # the eigenvalues $\mu_i$ satisfy $\sum_i\vert\mu_i\vert = 1 + 2\sum_{\mu_i<0}\vert\mu_i\vert$, so
@@ -522,8 +519,8 @@ assert abs(n_wrong - n_right) > 0.1
 # $$ \mathcal N(\rho) = \frac{\Vert\rho^{T_A}\Vert_1 - 1}{2} = \sum_{\mu_i<0}\vert\mu_i\vert, \qquad
 #    E_{\mathcal N}(\rho) = \log_2\Vert\rho^{T_A}\Vert_1 = \log_2(1+2\mathcal N). $$
 #
-# Vidal and Werner (2002) proved that $\mathcal N$ does not increase under LOCC, and Plenio (2005) that
-# $E_{\mathcal N}$ is a monotone as well although it is not convex. The negativity is zero on every PPT state, including
+# That $\mathcal N$ does not increase under LOCC was proved in [[19]](#ref-19), and that $E_{\mathcal N}$ is a monotone as
+# well, although it is not convex, in [[20]](#ref-20). The negativity is zero on every PPT state, including
 # the bound entangled ones of Section 5, so it is **not faithful** beyond $2\times2$ and $2\times3$.
 #
 # ### The meaning of the negativity
@@ -571,13 +568,12 @@ print(f"  Bell pair: N = {n_b:.6f},  E_N = {en_b:.6f} bit")
 #
 # ### Calibration on Werner states
 #
-# A new quantity has to be run where the answer is known. The **Werner state**, a two-qubit member of the family introduced by Werner (1989), is a Bell
+# A new quantity has to be run where the answer is known. The **Werner state**, a two-qubit member of the family introduced in [[21]](#ref-21), is a Bell
 # pair mixed with white noise,
 #
 # $$ \rho_W(v) = v\,\vert\Phi^+\rangle\langle\Phi^+\vert + (1-v)\,\frac{\mathbb 1}{4}, \qquad 0\le v\le1 . $$
 #
-# The weight $v$ of the Bell pair is the visibility, as in
-# [notebook 19](../ch08_quantum_information_protocols/19_bell_states_and_chsh.ipynb), Section 11.
+# The weight $v$ of the Bell pair is called the visibility.
 # The partial transpose of $\vert\Phi^+\rangle\langle\Phi^+\vert$ is $\tfrac12\,\mathrm{SWAP}$ (check it on the four
 # basis products), whose eigenvalues are $+\tfrac12$ three times (symmetric states) and $-\tfrac12$ once (the singlet).
 # Hence $\rho_W^{T_A}$ has eigenvalues $(1+v)/4$ three times and
@@ -691,8 +687,10 @@ plt.tight_layout(); plt.show()
 # * the **entropy** $S(\rho_{ij})$ of the pair itself.
 #
 # The four parameter points are a gapless point $\Delta=0.5$, the Heisenberg point $\Delta=1$, the point $\Delta=1.5$
-# (on the Néel side, but close to the Kosterlitz–Thouless point $\Delta=1$, named after Kosterlitz and Thouless (1973), where the gap opens exponentially slowly),
-# and the XX chain in a transverse field $h_x=1.5$.
+# (on the Néel side, but close to the Berezinskii–Kosterlitz–Thouless point $\Delta=1$, a transition of the type
+# introduced in [[22]](#ref-22), [[23]](#ref-23) and [[24]](#ref-24), where the gap opens exponentially slowly), and the
+# XX chain in a transverse field $h_x=1.5$. Pairwise entanglement in the ground states of spin chains is reviewed in
+# [[25]](#ref-25).
 
 # %%
 N = 14
@@ -882,16 +880,16 @@ plt.show()
 #
 # ## 11. The same measures from a matrix product state
 #
-# An exact state vector limits us to about twenty spins. Both quantities can be had from a matrix product state
-# (introduced as finitely correlated states by Fannes, Nachtergaele and Werner 1992), found here by DMRG (White 1992),
-# at very different cost.
+# An exact state vector limits us to about twenty spins. Both quantities can be had, at very different cost, from a
+# matrix product state found by DMRG, which was introduced in [[26]](#ref-26).
 #
 # **The entropy is free.** An MPS in canonical form *stores* the Schmidt values of every cut, so the entanglement
 # entropy is a sum over numbers already in the data structure; that is what `mps_entropies` returns. This presupposes
 # that the stored values belong to the stored tensors. The values DMRG records during its sweeps do not, in general:
 # later local steps change the left block of a cut whose values were already recorded. `dmrg` therefore ends with an
-# exact canonicalisation pass, `mps_recanonicalise`, that recomputes `lam` from the returned tensors (notebook
-# [18](../ch07_tensor_networks/18_mps_tebd.ipynb), Section 6.7), and with that pass the entropies of its output are those
+# exact canonicalisation pass, `mps_recanonicalise`, that recomputes `lam` from the returned tensors (described in
+# [notebook 18, matrix product states, DMRG and TEBD](../ch07_tensor_networks/18_mps_tebd.ipynb), Section 6.7), and with
+# that pass the entropies of its output are those
 # of the state the tensors encode.
 #
 # **The negativity is not free**, because it needs the two-site reduced density matrix, and that is a contraction. For a
@@ -1038,8 +1036,8 @@ plt.tight_layout(); plt.show()
 # $N$, with the field point of Section 12 throughout. Run it on an otherwise idle machine; the timings below come from
 # the build machine and vary by tens of per cent between runs. Two caveats: the DMRG column is six sweeps at $\chi=64$
 # throughout, so it scales linearly in a number that is a choice rather than a property of the method; and the first
-# Lanczos call at a new $N$ pays a compilation overhead (measured separately on the build machine: $2.0$ s for the first
-# call at $N=12$ against $0.4$ s for the next, $4.8$ s against $3.3$ s at $N=16$). The cell therefore warms each $N$
+# Lanczos call at a new $N$ pays a one-off compilation overhead, of the order of seconds, which would swamp the
+# small-$N$ timings. The cell therefore warms each $N$
 # with a three-step Lanczos call, which costs little, before timing. What survives the caveats is the shape: one cost
 # grows exponentially in $N$ and the other does not.
 
@@ -1148,11 +1146,11 @@ plt.show()
 # **Starting state.** At the control point the Néel start and the generic start reach the same energy (difference
 # printed above), so here the result does not depend on the start. That is a property of the local solver, which
 # restarts from a random vector when its Krylov space closes, and it is cheap to verify; a DMRG map is only as good as
-# its worst point. Separately measured convergence runs ($\chi=64$, ten sweeps, same generic start) change the entropy
-# by at most $1.3\times10^{-4}$ bit and the negativity by at most $2\times10^{-6}$ at every point of the grid except
-# two. At the SU(2) ferromagnet $(-1,0)$ the ground state is a degenerate multiplet and the changes are $7\times10^{-4}$
-# bit and $3\times10^{-4}$. At $(\Delta,h_x)=(-2,2)$ four sweeps at $\chi=32$ are not converged: the entropy is $0.63$
-# bit there and $1.04$ bit at $\chi=64$ after ten sweeps, whose last sweep still lowers the energy by $10^{-6}$.
+# its worst point. Separate convergence runs ($\chi=64$, ten sweeps, same generic start) change the entropy and the
+# negativity by less than the last digit printed in the table at every point of the grid except two. At the SU(2)
+# ferromagnet $(-1,0)$ the ground state is a degenerate multiplet, and the small values found there change from run to
+# run. At $(\Delta,h_x)=(-2,2)$ four sweeps at $\chi=32$ are not converged: the entropy there rises to about one bit at
+# $\chi=64$ after ten sweeps, whose last sweep still lowers the energy.
 #
 # **Degenerate points.** In the $\Delta=-2$ column the two methods disagree completely about the entropy: about one bit
 # at $N=12$, nearly zero at $N=32$ for $h_x\le1.5$. Both are right about the state they found. At $h_x=0$ the doublet
@@ -1222,49 +1220,80 @@ plt.show()
 #
 # ## 17. References
 #
-# * A. Peres, *Separability criterion for density matrices*, Phys. Rev. Lett. **77**, 1413 (1996) — the PPT criterion.
-# * M. Horodecki, P. Horodecki, R. Horodecki, *Separability of mixed states: necessary and sufficient conditions*,
-#   Phys. Lett. A **223**, 1 (1996) — PPT is sufficient for $2\times2$ and $2\times3$.
-# * P. Horodecki, *Separability criterion and inseparable mixed states with positive partial transposition*,
-#   Phys. Lett. A **232**, 333 (1997) — entangled PPT states ($3\times3$ and $2\times4$).
-# * M. Horodecki, P. Horodecki, R. Horodecki, *Mixed-state entanglement and distillation: is there a "bound" entanglement
-#   in nature?*, Phys. Rev. Lett. **80**, 5239 (1998) — distillable states violate the PPT criterion, so entangled PPT
-#   states are bound entangled.
-# * M. A. Nielsen, *Conditions for a class of entanglement transformations*, Phys. Rev. Lett. **83**, 436 (1999) —
-#   pure-state LOCC conversion and majorisation.
-# * G. Vidal, *Entanglement monotones*, J. Mod. Opt. **47**, 355 (2000) — characterisation of LOCC monotones; on pure
-#   states, the concave unitarily invariant functions of the reduced density matrix.
-# * C. H. Bennett, H. J. Bernstein, S. Popescu, B. Schumacher, *Concentrating partial entanglement by local operations*,
-#   Phys. Rev. A **53**, 2046 (1996) — the entropy as the asymptotic conversion rate.
-# * W. Dür, G. Vidal, J. I. Cirac, *Three qubits can be entangled in two inequivalent ways*, Phys. Rev. A **62**, 062314
-#   (2000) — the GHZ and W classes.
-# * G. Vidal, R. F. Werner, *Computable measure of entanglement*, Phys. Rev. A **65**, 032314 (2002).
-# * M. B. Plenio, *Logarithmic negativity: a full entanglement monotone that is not convex*, Phys. Rev. Lett. **95**,
-#   090503 (2005).
-# * W. K. Wootters, *Entanglement of formation of an arbitrary state of two qubits*, Phys. Rev. Lett. **80**, 2245 (1998).
-# * V. Coffman, J. Kundu, W. K. Wootters, *Distributed entanglement*, Phys. Rev. A **61**, 052306 (2000).
-# * T. J. Osborne, F. Verstraete, *General monogamy inequality for bipartite qubit entanglement*, Phys. Rev. Lett.
-#   **96**, 220503 (2006).
-# * C. H. Bennett, D. P. DiVincenzo, J. A. Smolin, W. K. Wootters, *Mixed-state entanglement and quantum error
-#   correction*, Phys. Rev. A **54**, 3824 (1996) — the entanglement of formation and the distillable entanglement of
-#   mixed states.
-# * S. Hill, W. K. Wootters, *Entanglement of a pair of quantum bits*, Phys. Rev. Lett. **78**, 5022 (1997) — the
-#   concurrence.
-# * C. E. Shannon, *A mathematical theory of communication*, Bell Syst. Tech. J. **27**, 379 (1948) — the Shannon
-#   entropy.
-# * D. M. Greenberger, M. A. Horne, A. Zeilinger, *Going beyond Bell's theorem*, in *Bell's Theorem, Quantum Theory,
-#   and Conceptions of the Universe*, ed. M. Kafatos (Kluwer, Dordrecht, 1989), p. 69; arXiv:0712.0921 — the GHZ state.
-# * R. H. Dicke, *Coherence in spontaneous radiation processes*, Phys. Rev. **93**, 99 (1954) — the Dicke states.
-# * J. M. Kosterlitz, D. J. Thouless, *Ordering, metastability and phase transitions in two-dimensional systems*,
-#   J. Phys. C **6**, 1181 (1973) — the Kosterlitz–Thouless transition.
-# * M. Fannes, B. Nachtergaele, R. F. Werner, *Finitely correlated states on quantum spin chains*, Commun. Math. Phys.
-#   **144**, 443 (1992) — matrix product states.
-# * S. R. White, *Density matrix formulation for quantum renormalization groups*, Phys. Rev. Lett. **69**, 2863
-#   (1992) — DMRG.
-# * L. Gurvits, *Classical deterministic complexity of Edmonds' problem and quantum entanglement*, in Proceedings of the
-#   35th Annual ACM Symposium on Theory of Computing (STOC '03), 10–19 (2003) — NP-hardness of the weak membership
-#   problem for separable bipartite states.
-# * R. F. Werner, *Quantum states with Einstein-Podolsky-Rosen correlations admitting a hidden-variable model*,
-#   Phys. Rev. A **40**, 4277 (1989) — Werner states.
-# * L. Amico, R. Fazio, A. Osterloh, V. Vedral, *Entanglement in many-body systems*, Rev. Mod. Phys. **80**, 517 (2008)
-#   — review of bipartite and multipartite entanglement in interacting spin, fermion and boson models.
+# <span id="ref-1">[1]</span> M. Fannes, B. Nachtergaele and R. F. Werner, *Finitely correlated states on quantum spin chains*, Commun. Math. Phys.
+# **144**, 443 (1992) — finitely correlated states, the matrix product states of this notebook.
+#
+# <span id="ref-2">[2]</span> M. A. Nielsen, *Conditions for a class of entanglement transformations*, Phys. Rev. Lett. **83**, 436 (1999) —
+# pure-state LOCC conversion and majorisation.
+#
+# <span id="ref-3">[3]</span> G. Vidal, *Entanglement monotones*, J. Mod. Opt. **47**, 355 (2000) — characterisation of LOCC monotones; on pure
+# states, the concave unitarily invariant functions of the reduced density matrix.
+#
+# <span id="ref-4">[4]</span> C. H. Bennett, H. J. Bernstein, S. Popescu and B. Schumacher, *Concentrating partial entanglement by local
+# operations*, Phys. Rev. A **53**, 2046 (1996) — the entropy as the asymptotic conversion rate.
+#
+# <span id="ref-5">[5]</span> C. E. Shannon, *A mathematical theory of communication*, Bell Syst. Tech. J. **27**, 379 (1948) — the Shannon entropy.
+#
+# <span id="ref-6">[6]</span> D. M. Greenberger, M. A. Horne and A. Zeilinger, *Going beyond Bell's theorem*, in *Bell's Theorem, Quantum Theory
+# and Conceptions of the Universe*, ed. M. Kafatos (Kluwer, Dordrecht, 1989), pp. 69–72; arXiv:0712.0921 — the GHZ state.
+#
+# <span id="ref-7">[7]</span> W. Dür, G. Vidal and J. I. Cirac, *Three qubits can be entangled in two inequivalent ways*, Phys. Rev. A **62**,
+# 062314 (2000) — the W state and the GHZ and W classes.
+#
+# <span id="ref-8">[8]</span> R. H. Dicke, *Coherence in spontaneous radiation processes*, Phys. Rev. **93**, 99 (1954) — the Dicke states.
+#
+# <span id="ref-9">[9]</span> S. Hill and W. K. Wootters, *Entanglement of a pair of quantum bits*, Phys. Rev. Lett. **78**, 5022 (1997) — the
+# concurrence.
+#
+# <span id="ref-10">[10]</span> W. K. Wootters, *Entanglement of formation of an arbitrary state of two qubits*, Phys. Rev. Lett. **80**, 2245
+# (1998) — the concurrence and the entanglement of formation of every two-qubit state.
+#
+# <span id="ref-11">[11]</span> V. Coffman, J. Kundu and W. K. Wootters, *Distributed entanglement*, Phys. Rev. A **61**, 052306 (2000) — the
+# monogamy inequality for three qubits.
+#
+# <span id="ref-12">[12]</span> T. J. Osborne and F. Verstraete, *General monogamy inequality for bipartite qubit entanglement*, Phys. Rev. Lett.
+# **96**, 220503 (2006) — the monogamy inequality for any number of qubits.
+#
+# <span id="ref-13">[13]</span> C. H. Bennett, D. P. DiVincenzo, J. A. Smolin and W. K. Wootters, *Mixed-state entanglement and quantum error
+# correction*, Phys. Rev. A **54**, 3824 (1996) — the entanglement of formation and the distillable entanglement of
+# mixed states.
+#
+# <span id="ref-14">[14]</span> L. Gurvits, *Classical deterministic complexity of Edmonds' problem and quantum entanglement*, in Proceedings of the
+# 35th Annual ACM Symposium on Theory of Computing (STOC '03), 10–19 (2003) — NP-hardness of the weak membership
+# problem for separable bipartite states.
+#
+# <span id="ref-15">[15]</span> P. Horodecki, *Separability criterion and inseparable mixed states with positive partial transposition*,
+# Phys. Lett. A **232**, 333 (1997) — entangled PPT states ($3\times3$ and $2\times4$).
+#
+# <span id="ref-16">[16]</span> M. Horodecki, P. Horodecki and R. Horodecki, *Mixed-state entanglement and distillation: is there a "bound"
+# entanglement in nature?*, Phys. Rev. Lett. **80**, 5239 (1998) — distillable states violate the PPT criterion, so
+# entangled PPT states are bound entangled.
+#
+# <span id="ref-17">[17]</span> A. Peres, *Separability criterion for density matrices*, Phys. Rev. Lett. **77**, 1413 (1996) — the PPT criterion.
+#
+# <span id="ref-18">[18]</span> M. Horodecki, P. Horodecki and R. Horodecki, *Separability of mixed states: necessary and sufficient conditions*,
+# Phys. Lett. A **223**, 1 (1996) — PPT is sufficient for $2\times2$ and $2\times3$.
+#
+# <span id="ref-19">[19]</span> G. Vidal and R. F. Werner, *Computable measure of entanglement*, Phys. Rev. A **65**, 032314 (2002) — the
+# negativity and its monotonicity under LOCC.
+#
+# <span id="ref-20">[20]</span> M. B. Plenio, *Logarithmic negativity: a full entanglement monotone that is not convex*, Phys. Rev. Lett. **95**,
+# 090503 (2005).
+#
+# <span id="ref-21">[21]</span> R. F. Werner, *Quantum states with Einstein-Podolsky-Rosen correlations admitting a hidden-variable model*,
+# Phys. Rev. A **40**, 4277 (1989) — Werner states.
+#
+# <span id="ref-22">[22]</span> V. L. Berezinskii, *Destruction of long-range order in one-dimensional and two-dimensional systems having a continuous
+# symmetry group. I. Classical systems*, Sov. Phys. JETP **32**, 493 (1971).
+#
+# <span id="ref-23">[23]</span> V. L. Berezinskii, *Destruction of long-range order in one-dimensional and two-dimensional systems possessing a
+# continuous symmetry group. II. Quantum systems*, Sov. Phys. JETP **34**, 610 (1972).
+#
+# <span id="ref-24">[24]</span> J. M. Kosterlitz and D. J. Thouless, *Ordering, metastability and phase transitions in two-dimensional systems*,
+# J. Phys. C **6**, 1181 (1973) — the Kosterlitz–Thouless transition.
+#
+# <span id="ref-25">[25]</span> L. Amico, R. Fazio, A. Osterloh and V. Vedral, *Entanglement in many-body systems*, Rev. Mod. Phys. **80**, 517
+# (2008) — review of bipartite and multipartite entanglement in interacting spin, fermion and boson models.
+#
+# <span id="ref-26">[26]</span> S. R. White, *Density matrix formulation for quantum renormalization groups*, Phys. Rev. Lett. **69**, 2863
+# (1992) — DMRG.

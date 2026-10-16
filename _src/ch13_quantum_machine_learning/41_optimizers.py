@@ -321,7 +321,7 @@ target_ghz = ghz_state(N_GHZ)
 
 
 def infidelity(theta):
-    """C(theta) = 1 - |<GHZ|psi(theta)>|^2 -- the state-preparation cost of notebook 40, Eq. (8)."""
+    """C(theta) = 1 - |<GHZ|psi(theta)>|^2 -- the state-preparation cost."""
     return 1.0 - fidelity_pure(target_ghz, hardware_efficient_ansatz(theta, N_GHZ, L_GHZ))
 
 
@@ -1221,8 +1221,8 @@ best_lr = tune(configs_for(cost_ghz, state_ghz), cost_ghz, th_s, ks_s, lr_grid, 
 def circuits_per_iteration(name, n):
     """How many circuit executions one iteration of `name` would need on hardware, COUNTED from the algorithm.
 
-    parameter-shift gradient : 2n         (notebook 40, Eq. (18))
-    SPSA                     : 2          (notebook 40, Eq. (20))
+    parameter-shift gradient : 2n
+    SPSA                     : 2
     natural gradient         : 2n + n(n+1)/2   -- the gradient plus one overlap circuit per metric entry
     """
     if name.startswith("SPSA"):

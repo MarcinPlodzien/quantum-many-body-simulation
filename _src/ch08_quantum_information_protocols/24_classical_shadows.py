@@ -123,7 +123,7 @@ def max_abs(a):
 
 
 def pauli_labels(N):
-    """All 4^N Pauli-string labels, qubit 0 = leftmost letter (as in notebook 23)."""
+    """All 4^N Pauli-string labels, qubit 0 = leftmost letter."""
     return ["".join(p) for p in itertools.product(PAULI_LETTERS, repeat=N)]
 
 
@@ -139,7 +139,7 @@ def pauli_stack(N):
 
 
 def rho_from_pauli_vector(r, N):
-    """rho = 2^{-N} sum_P r_P P  (notebook 23, Eq. (1)):  einsum("p,pab->ab", r, P_all) / 2^N."""
+    """rho = 2^{-N} sum_P r_P P:  einsum("p,pab->ab", r, P_all) / 2^N."""
     return jnp.einsum("p,pab->ab", jnp.asarray(r, dtype=CDTYPE), pauli_stack(N)) / 2 ** N
 
 
@@ -1588,7 +1588,7 @@ def shadow_pauli_vector(bases, bits, N):
 
 def project_physical(rho_mat):
     """Closest positive semi-definite unit-trace matrix in Frobenius norm (Ref. [13]).
-    Identical to the routine derived in notebook 23; repeated here so this notebook stands alone."""
+    Identical to the routine derived in 'Quantum state tomography'."""
     lam, V = jnp.linalg.eigh(jnp.asarray(rho_mat, dtype=CDTYPE))
     d = lam.shape[0]
     u = lam[::-1]
@@ -1600,7 +1600,7 @@ def project_physical(rho_mat):
 
 
 def sign_compat_tables(N):
-    """Tables of notebook 23: SIGN[P, s] = prod_{q in supp} (-1)^{s_q};  COMPAT[P, b] = 1 if setting b sees P."""
+    """Tables of the tomography routines: SIGN[P, s] = prod_{q in supp} (-1)^{s_q};  COMPAT[P, b] = 1 if setting b sees P."""
     labs = pauli_labels(N)
     s_bits = np.array(list(itertools.product((0, 1), repeat=N)))
     supp = np.array([[ch != "I" for ch in lab] for lab in labs], dtype=float)
@@ -1615,7 +1615,7 @@ def sign_compat_tables(N):
 
 
 def linear_inversion(counts, SIGN, COMPAT):
-    """Notebook 23, Eq. (8): matrix-free ordinary least squares = direct Pauli inversion."""
+    """Matrix-free ordinary least squares = direct Pauli inversion."""
     freq = counts / jnp.sum(counts, axis=1, keepdims=True)
     E = jnp.einsum("ps,bs->pb", SIGN, freq)
     return jnp.sum(COMPAT * E, axis=1) / jnp.sum(COMPAT, axis=1)

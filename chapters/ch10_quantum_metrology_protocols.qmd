@@ -17,9 +17,8 @@ symmetric logarithmic derivative and runs the protocol prepare–encode–measur
 spin squeezing by one-axis twisting (33), and the same twisting continued to a GHZ-like cat, with its readouts and its
 fragility under noise (34).
 
-**Practical limits.** What a scrambling unitary does to a probe (35), how much quantum Fisher information survives
-particle loss and how encoded probes protect it (37), and how fast scramblers hide the phase information from subsystems
-(38).
+**Practical limits.** Notebook 37 asks how much quantum Fisher information survives particle loss and how encoded
+probes protect it.
 
 **Measuring the quantum Fisher information.** Notebook 36 estimates it for a prepared state from randomised
 measurements (classical shadows) and counts the measurements an entanglement certificate needs.
@@ -31,17 +30,16 @@ chains.
 states and measurements under noise with automatic differentiation.
 
 Read notebooks 29 to 34 in order; they form the main thread, and every later notebook uses notebooks 29 and 30.
-Notebooks 35 to 39 are closer to current research and can be read selectively: notebook 35 builds on the probes of
-notebooks 33 and 34, and notebook 38 builds on notebook 35; notebooks 36, 37 and 39 rest on notebooks 29 and 30 and
-take the states of notebooks 33 to 35 only as examples. Prerequisites are notebooks 01 and 02 of
+Notebooks 36, 37 and 39 are closer to current research and can be read selectively: they rest on notebooks 29 and 30
+and take the states of notebooks 33 and 34 only as examples. Prerequisites are notebooks 01 and 02 of
 [Chapter 1](ch01_computational_toolbox.qmd); the state tensors, reduced density matrices, channels and measurements of
 notebooks 05 to 08 in [Chapter 3](ch03_matrix_free_engine.qmd); the gates and Haar-random unitaries of notebooks 09
 and 10 in [Chapter 4](ch04_digital_quantum_circuits.qmd); in [Chapter 5](ch05_ground_states_and_unitary_dynamics.qmd),
 the Lanczos ground-state solver of notebook 11 for the Ising ground states of notebook 29, and TEBD and quench dynamics,
-notebooks 12 and 15, for notebooks 38 and 39; in [Chapter 8](ch08_quantum_information_protocols.qmd), the GHZ states of
+notebooks 12 and 15, for notebook 39; in [Chapter 8](ch08_quantum_information_protocols.qmd), the GHZ states of
 notebook 22 for notebooks 29 and 32, and the classical shadows of notebook 24 for notebooks 32 and 36; and the
-stabilizer Rényi entropy and the Gottesman–Knill theorem of notebook 27 in [Chapter 9](ch09_entanglement_and_complexity.qmd), for notebooks 37
-and 38.
+stabilizer Rényi entropy and the Gottesman–Knill theorem of notebook 27 in [Chapter 9](ch09_entanglement_and_complexity.qmd), for notebook
+37.
 
 ## Notebooks in this chapter
 
@@ -82,12 +80,6 @@ The complete pipeline prepare-twist-encode-read out: the exact derivation that o
 :::
 
 ::: {.nb-item}
-[Scrambling a metrological probe — entanglement is necessary but not sufficient](../ch10_quantum_metrology_protocols/35_oat_plus_haar_scrambling.ipynb)
-
-What a scrambler does to metrologically useful entanglement: one-axis-twisting probes pushed through global Haar unitaries and random brick-wall circuits, the Page curve derived and measured, the Haar average of the collective quantum Fisher information N d/(d+1) derived and verified, the gate-by-gate collapse of the cat's quantum Fisher information in a brick-wall circuit derived, quantum Fisher information optimised over site-dependent local generators with jax.grad and Adam, the unitary-invariance identity that shows where the information went, the Pauli weight of the scrambled generator, and the quantum Fisher information of a subsystem as the metrological analogue of the Page curve.
-:::
-
-::: {.nb-item}
 [Measuring the quantum Fisher information with classical shadows](../ch10_quantum_metrology_protocols/36_qfi_with_classical_shadows.ipynb)
 
 How the quantum Fisher information of a collective generator is estimated from one randomised-measurement data set: the expansion of $4\,\mathrm{Var}(G)$ in one- and two-body Pauli expectation values, the $O(N^2)$ observable count, a collapse of the estimator to six numbers per snapshot, the exact bias of the plug-in estimator and its U-statistic correction, bootstrap error bars and their scaling with the number of snapshots and the system size, the $3\times3$ matrix and the optimal direction from data, the snapshot budget needed to certify entanglement and entanglement depth, and what happens for mixed states — the gap between $4\,\mathrm{Var}(G)$ and the true quantum Fisher information, and a converging series of polynomial lower bounds that randomised measurements can reach.
@@ -97,12 +89,6 @@ How the quantum Fisher information of a collective generator is estimated from o
 [Particle loss, magic and encoded probes — the quantum Fisher information of the survivors](../ch10_quantum_metrology_protocols/37_qfi_particle_loss_and_magic.ipynb)
 
 How much metrological usefulness survives the loss of k particles: the quantum Fisher information of a reduced state derived and computed three ways, exact loss laws for product, GHZ, W and Dicke probes, the loss budget of squeezed and random probes, the stabilizer Rényi entropy of every probe family, and phase-imprinted GHZ states protected by a Clifford erasure code — an all-or-nothing loss threshold explained by logical operators, its dependence on which qubits are lost, its trade-off against sensitivity to a local generator, and what magic changes about it.
-:::
-
-::: {.nb-item}
-[Scramblers and the locking of metrological information — analog, digital, and the Haar limit](../ch10_quantum_metrology_protocols/38_scramblers_and_qfi.ipynb)
-
-How a scrambler redistributes the phase information of a metrological probe: the locking curve of the quantum Fisher information of a subsystem, derived for Haar-random states (exponential suppression below half the register, the Marchenko-Pastur value 0.198 at the threshold, the standard-quantum-limit share above it) and contrasted with the Hayden-Preskill step of the rotated generator; a chaotic spin chain as an analog scrambler and brick-wall circuits of Haar, Clifford and T-doped Clifford layers as digital ones; the Clifford average equal to Haar with integer-valued realisations; and the volume law as the mechanism, F_k = k ln2 (k - S_k), block by block.
 :::
 
 ::: {.nb-item}

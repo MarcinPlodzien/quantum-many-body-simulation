@@ -2850,7 +2850,7 @@ fig.tight_layout(); plt.show()
 # > components with $E\Delta t\gtrsim1$ are garbled. The norm cannot detect this, because it is conserved exactly; only a comparison at two step sizes (or Eq. (30)) can.
 #
 # > **Why this matters later.** For a many-body state the matrix $1+\tfrac{i\Delta t}{2}H$ is $2^N\times2^N$ and no longer tridiagonal, so the linear solve at every step becomes the
-# > bottleneck, and implicit schemes lose their appeal. The unconditionally stable many-body propagators (Trotter gates, Chebyshev, Krylov) keep the unitarity of
+# > bottleneck, and implicit schemes lose their appeal. The unconditionally stable many-body propagators (Trotter gates, built on the product formula introduced in [[23]](#ref-23); Chebyshev; Krylov) keep the unitarity of
 # > Crank–Nicolson without the linear solve.
 
 # %% [markdown]
@@ -2873,7 +2873,7 @@ fig.tight_layout(); plt.show()
 #   understands, so the animation appears exactly once everywhere;
 # * finally we `plt.close(fig)` so the figure is not *also* shown as a static image below the animation.
 #
-# Keep GIFs small: about $60$ frames at a modest dpi gives roughly $250\,\mathrm{kB}$, which is fine; a few hundred
+# Keep GIFs small: about $60$ frames at a modest dpi give roughly $300\,\mathrm{kB}$ (the two GIFs below print their sizes), which is fine; a few hundred
 # frames at $150$ dpi would make the notebook unusable. (The base64 representation adds another third on top of
 # that, so the budget is real.)
 
@@ -3134,7 +3134,7 @@ fig.tight_layout(); plt.show()
 # $0.05$ and $0.5$. Plot $\phi_0$ and $\phi_1$: they are the symmetric and antisymmetric combinations of states
 # localised in the two wells. Measure the **tunnelling splitting** $\Delta = E_1-E_0$ as a function of the barrier
 # height $V(0)=\lambda a^4$ and verify that $\ln\Delta$ falls roughly linearly with $\sqrt{V(0)}$ (the
-# Wentzel–Kramers–Brillouin (WKB) approximation [[23]](#ref-23), [[24]](#ref-24), [[25]](#ref-25) gives the
+# Wentzel–Kramers–Brillouin (WKB) approximation [[24]](#ref-24), [[25]](#ref-25), [[26]](#ref-26) gives the
 # prediction $\Delta \propto e^{-S}$). Then start from a state localised in the left well,
 # $(\phi_0+\phi_1)/\sqrt2$, and watch it tunnel back and forth with period $2\pi/\Delta$ — an animation is worth it.
 #
@@ -3149,7 +3149,7 @@ fig.tight_layout(); plt.show()
 # compared with the $53\,000$ estimated in Section 8.2?
 #
 # **4. (★★) Crank–Nicolson to fourth order.** The error of Crank–Nicolson is a smooth function of $\Delta t^2$ (Eq. (29)). Combine two runs,
-# $\psi^{(4)}=\big(4\psi_{\Delta t/2}-\psi_{\Delta t}\big)/3$ (Richardson extrapolation, introduced in [[26]](#ref-26)), and show that the infidelity of $\psi^{(4)}$ falls as $\Delta t^8$. Is $\psi^{(4)}$ still exactly normalised?
+# $\psi^{(4)}=\big(4\psi_{\Delta t/2}-\psi_{\Delta t}\big)/3$ (Richardson extrapolation, introduced in [[27]](#ref-27)), and show that the infidelity of $\psi^{(4)}$ falls as $\Delta t^8$. Is $\psi^{(4)}$ still exactly normalised?
 # Then repeat the comparison of Section 12.11 on a grid with $\Delta x=0.0125$: by how much does the RK4 limit shrink, and how does the Crank–Nicolson error change?
 #
 # **5. (★) Quench in the other direction.** Repeat Section 12 with $r = 1/2$ (a *softer* trap). Predict from
@@ -3272,15 +3272,18 @@ fig.tight_layout(); plt.show()
 # partial differential equations of the heat-conduction type*, Mathematical Proceedings of the Cambridge Philosophical
 # Society **43**, 50-67 (1947), DOI 10.1017/S0305004100023197 — the implicit scheme of Section 12.11.
 #
-# <span id="ref-23">[23]</span> G. Wentzel, *Eine Verallgemeinerung der Quantenbedingungen für die Zwecke der
+# <span id="ref-23">[23]</span> H. F. Trotter, *On the product of semi-groups of operators*, Proc. Amer. Math. Soc. **10**, 545 (1959) — the product
+# formula behind Trotterised time evolution.
+#
+# <span id="ref-24">[24]</span> G. Wentzel, *Eine Verallgemeinerung der Quantenbedingungen für die Zwecke der
 # Wellenmechanik*, Z. Phys. **38**, 518 (1926) — the WKB approximation (Exercise 2).
 #
-# <span id="ref-24">[24]</span> H. A. Kramers, *Wellenmechanik und halbzahlige Quantisierung*, Z. Phys. **39**, 828 (1926) —
+# <span id="ref-25">[25]</span> H. A. Kramers, *Wellenmechanik und halbzahlige Quantisierung*, Z. Phys. **39**, 828 (1926) —
 # the WKB approximation (Exercise 2).
 #
-# <span id="ref-25">[25]</span> L. Brillouin, *La mécanique ondulatoire de Schrödinger; une méthode générale de résolution
+# <span id="ref-26">[26]</span> L. Brillouin, *La mécanique ondulatoire de Schrödinger; une méthode générale de résolution
 # par approximations successives*, C. R. Acad. Sci. **183**, 24 (1926) — the WKB approximation (Exercise 2).
 #
-# <span id="ref-26">[26]</span> L. F. Richardson, *The approximate arithmetical solution by finite differences of physical
+# <span id="ref-27">[27]</span> L. F. Richardson, *The approximate arithmetical solution by finite differences of physical
 # problems involving differential equations, with an application to the stresses in a masonry dam*, Phil. Trans. R.
 # Soc. A **210**, 307 (1911) — Richardson extrapolation (Exercise 4).

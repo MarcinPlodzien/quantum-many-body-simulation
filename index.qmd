@@ -75,7 +75,7 @@ Chapters: [12 · Quantum communication and cryptography](chapters/ch12_quantum_c
 ::: {.feature}
 **Beyond the state vector**
 
-Matrix product states with DMRG and TEBD for chains far longer than a state vector can hold, and diagnostics of entanglement, magic and metrological usefulness.
+Matrix product states with DMRG and TEBD for chains far longer than a state vector can hold, cross-checked against an established tensor-network library, and diagnostics of entanglement, magic and metrological usefulness.
 
 Chapters: [7 · Tensor networks](chapters/ch07_tensor_networks.qmd) · [9 · Entanglement and complexity diagnostics](chapters/ch09_entanglement_and_complexity.qmd) · [10 · Quantum metrology protocols](chapters/ch10_quantum_metrology_protocols.qmd)
 :::
@@ -167,7 +167,7 @@ print(f"energy = {cost(theta):.4f}, gradient has {g.size} components")
 
 ## Chapters {#chapters}
 
-13 chapters, each a short overview page followed by runnable notebooks (68 in total). The notebooks are numbered globally; each one carries the engine functions it uses in a folded *Engine recap* cell and ends with exercises, so any notebook also runs and can be studied on its own.
+13 chapters, each a short overview page followed by runnable notebooks (67 in total). The notebooks are numbered globally; each one carries the engine functions it uses in a folded *Engine recap* cell and ends with exercises, so any notebook also runs and can be studied on its own.
 
 ::: {.chapter-grid}
 ::: {.chapter-card}
@@ -231,7 +231,7 @@ Simulate open quantum systems with the Lindblad equation and with quantum trajec
 
 Represent one-dimensional states as matrix product states and run DMRG and TEBD on them.
 
-<span class="nbcount">1 notebook</span>
+<span class="nbcount">2 notebooks</span>
 :::
 ::: {.chapter-card}
 [![](assets/thumbs/ch08.png){fig-alt="Quantum information protocols"}](chapters/ch08_quantum_information_protocols.qmd)
@@ -258,7 +258,7 @@ Quantify mixed-state entanglement, multipartite correlations, magic and circuit 
 
 Compute quantum Fisher information and simulate metrology protocols from preparation to estimation.
 
-<span class="nbcount">11 notebooks</span>
+<span class="nbcount">9 notebooks</span>
 :::
 ::: {.chapter-card}
 [![](assets/thumbs/ch11.png){fig-alt="Quantum phase transitions"}](chapters/ch11_quantum_phase_transitions.qmd)

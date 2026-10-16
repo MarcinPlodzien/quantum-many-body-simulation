@@ -287,7 +287,7 @@ for h_ in (0.5, 1.0, 1.5):
 # ==============================================================================
 def make_tfim_matvec(N, J=1.0):
     """Compiled psi, h -> H(h) psi for H(h) = -J sum ZZ - h sum X.  The field is TRACED: one compilation serves
-    every point of a scan (JAX practice of Chapter 1)."""
+    every point of a scan."""
     zz = heisenberg_terms(N, 0.0, 0.0, -J)                      # -J sum_i Z_i Z_{i+1}
     xx = heisenberg_terms(N, 0.0, 0.0, 0.0, hx=-1.0)            # -sum_i X_i
     return jax.jit(lambda psi, h: apply_hamiltonian(zz, psi) + h * apply_hamiltonian(xx, psi))
@@ -815,10 +815,8 @@ plt.tight_layout(); plt.show()
 # > spectrum - and a solver with a spurious zero eigenvalue then returns $E=0$ exactly. This happens when the bond
 # > bases contain zero-norm directions ([notebook 18, matrix product states](../ch07_tensor_networks/18_mps_tebd.ipynb), Sec. 6.6): the state collapses to the zero vector, and $E=0$ is
 # > printed for every sweep without an error. The engine's `dmrg` therefore builds its bond bases from genuine
-# > block states only and raises an error if a local step or the final state loses its norm; from the Néel start, the
-# > all-up state and $|+\cdots+\rangle$ alike it reaches the exact energy at $N=24$ within two sweeps (to $2\times10^{-13}$,
-# > $1\times10^{-11}$ and $9\times10^{-14}$). The code below starts from $|+\cdots+\rangle$, the exact ground state for
-# > $h\to\infty$ and the closest of the three after one sweep. Whatever the start, check the converged energy against
+# > block states only and raises an error if a local step or the final state loses its norm. The code below starts from
+# > $|+\cdots+\rangle$, the exact ground state for $h\to\infty$. Whatever the start, check the converged energy against
 # > something independent - below, the exact free-fermion value.
 #
 # The Hamiltonian enters as the matrix product operator derived in [notebook 18, matrix product states](../ch07_tensor_networks/18_mps_tebd.ipynb), Sec. 6.2, which already covers the TFIM:
@@ -843,15 +841,14 @@ plt.tight_layout(); plt.show()
 # STEP 7: the TFIM as a matrix product operator, and its ground state by DMRG
 # ==============================================================================
 def tfim_mpo(N, J=1.0, h=1.0):
-    """MPO of H = -J sum Z_i Z_{i+1} - h sum X_i, from the XXZ machine of notebook 18 (Chapter 7) with Jxx = Jyy = 0."""
+    """MPO of H = -J sum Z_i Z_{i+1} - h sum X_i, from the engine's xxz_mpo with Jxx = Jyy = 0."""
     return xxz_mpo(N, 0.0, 0.0, -J, hx=-h)
 
 
 def dmrg_ground_state(N, h, chi=32, n_sweeps=5, J=1.0):
     """DMRG ground state of the TFIM, started from |+...+>, the ground state of the field term alone.
 
-    WHY THAT START  |+...+> is the sensible physical guess, being exact as h -> infinity; at N = 24 it is the closest
-    of |+...+>, all-up and Neel after one sweep (all three converge to the exact energy within two sweeps).
+    WHY THAT START  |+...+> is the sensible physical guess, being exact as h -> infinity.
     RETURNS  (energy, B, lam, largest discarded weight of the last sweep, energy at the end of every sweep)."""
     M0, _ = product_mps("+" * N, chi)
     B, lam, hist = dmrg(tfim_mpo(N, J, h), M0, chi, n_sweeps)
@@ -1041,7 +1038,7 @@ def xx_ground_entropy_profile(N, J=1.0):
 
     MATH  hopping matrix h1[i,i+1] = h1[i+1,i] = 2J;  occupy the N/2 lowest single-particle levels;
           C = sum_occ phi phi^T;  S(l) = -sum_m [nu log2 nu + (1-nu) log2(1-nu)], nu = eig(C[:l,:l])  (Ref. [18]).
-    This is the ground-state twin of the time-dependent reference of notebook 18 (Chapter 7), Sec. 10.1."""
+    This is the ground-state twin of the time-dependent reference of 'Beyond the state vector'."""
     h1 = 2.0 * J * (np.eye(N, k=1) + np.eye(N, k=-1))
     _, V = np.linalg.eigh(h1)
     C = V[:, : N // 2] @ V[:, : N // 2].T
@@ -1111,7 +1108,7 @@ plt.tight_layout(); plt.show()
 # magnitude below the finite-size spacing of a 32-site chain - so a chain of 32, or 320, or 3200 spins is still
 # *inside* the correlation length and looks critical. The finite-size scaling of Sec. 8 assumed $\xi\sim|h-h_c|^{-\nu}$, a power law; an essential singularity
 # breaks that assumption, and the correct conclusion from these runs is "the transition is somewhere near
-# $\Delta\approx1$, and this method cannot do better". Locating a KT point needs either the dedicated logarithmic
+# $\Delta\approx1$, and this method cannot do better". Locating a KT point (the transition introduced in [[19]](#ref-19), [[20]](#ref-20) and [[16]](#ref-16)) needs either the dedicated logarithmic
 # corrections known for this class, or a completely different observable (the spin stiffness, or level spectroscopy
 # of excited states).
 #
@@ -1255,6 +1252,12 @@ plt.tight_layout(); plt.show()
 # <span id="ref-18">[18]</span> I. Peschel, *Calculation of reduced density matrices from correlation functions*, J.
 # Phys. A **36**, L205 (2003). — the free-fermion entropy used as a check.
 #
-# <span id="ref-19">[19]</span> A. W. Sandvik, *Computational studies of quantum spin systems*, AIP Conf. Proc.
+# <span id="ref-19">[19]</span> V. L. Berezinskii, *Destruction of long-range order in one-dimensional and two-dimensional systems having a continuous
+# symmetry group. I. Classical systems*, Sov. Phys. JETP **32**, 493 (1971).
+#
+# <span id="ref-20">[20]</span> V. L. Berezinskii, *Destruction of long-range order in one-dimensional and two-dimensional systems possessing a
+# continuous symmetry group. II. Quantum systems*, Sov. Phys. JETP **34**, 610 (1972).
+#
+# <span id="ref-21">[21]</span> A. W. Sandvik, *Computational studies of quantum spin systems*, AIP Conf. Proc.
 # **1297**, 135 (2010). — Sandvik's Sec. 3.5.2 shows, for the 2D XY model, how the exponentially divergent correlation
 # length slows the finite-size shift of a KT point to $1/\ln^2L$.

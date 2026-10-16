@@ -84,7 +84,7 @@
 
 # %%
 # ==============================================================================
-# PLOT STYLE + the helpers imported from notebooks 24, 41 and 42
+# PLOT STYLE + helpers for shadows, optimisation and the VQE
 # ==============================================================================
 import itertools
 
@@ -109,7 +109,7 @@ def bands(hist):
 
 
 def opt_adam(lr, b1=0.9, b2=0.999, eps=1e-8):
-    """Adam as an (init, update) pair -- the optimiser interface of notebook 41."""
+    """Adam as an (init, update) pair -- the optimiser interface of 'Optimisers for variational circuits'."""
     def init(theta):
         return (jnp.zeros_like(theta), jnp.zeros_like(theta))
 
@@ -123,7 +123,7 @@ def opt_adam(lr, b1=0.9, b2=0.999, eps=1e-8):
 
 
 def train(theta0, key, grad_rule, opt, monitor, n_steps):
-    """One training run compiled as a single `lax.scan` (notebook 41, Section 10)."""
+    """One training run compiled as a single `lax.scan`."""
     init_fn, update_fn = opt
 
     def body(carry, k):
@@ -154,7 +154,7 @@ _collect_jit = jax.jit(collect_pauli_shadows, static_argnums=(2,))       # cache
 
 
 def collect_shadows(key, psi, n_shadows, chunk=4096):
-    """M randomised-measurement snapshots of `psi`, collected in blocks (notebook 24, Step 2).
+    """M randomised-measurement snapshots of `psi`, collected in blocks.
 
     IMPL   `collect_pauli_shadows` vmaps over keys; calling it on blocks of `chunk` keeps the batched
            intermediate (chunk x 2^N complex numbers) small. Block j uses `fold_in(key, j)`.
@@ -175,7 +175,7 @@ def pauli_digits(labels):
 
 @jax.jit
 def snapshot_values(bases, bits, digits):
-    """Single-snapshot Pauli estimates for every snapshot and every string (notebook 24, Eq. (6)).
+    """Single-snapshot Pauli estimates for every snapshot and every string.
 
     MATH   o_m(P) = prod_{q in supp(P)} 3 (-1)^{b_mq} [c_mq = P_q]
     IMPL   per qubit build the 4-entry lookup (1, 3s[.=X], 3s[.=Y], 3s[.=Z]) and gather each string's digit.
@@ -192,7 +192,7 @@ def snapshot_values(bases, bits, digits):
 
 
 def median_of_means(values, n_groups):
-    """Median-of-means estimator, per column of an (M, K) array (notebook 24, Step 4)."""
+    """Median-of-means estimator, per column of an (M, K) array."""
     Mn, K = values.shape
     g = Mn // n_groups
     v = values[: g * n_groups].reshape(n_groups, g, K)
@@ -200,7 +200,7 @@ def median_of_means(values, n_groups):
 
 
 def bootstrap_std(key, values, n_boot=200):
-    """Bootstrap standard deviation of the sample mean, per column of an (M, K) array (notebook 24, Step 4).
+    """Bootstrap standard deviation of the sample mean, per column of an (M, K) array.
 
     IMPL   a resample is a multiplicity vector counts = zeros(M).at[idx].add(1); the resampled mean is
            counts @ values / M.  vmap over B resamples: ONE (B, M) x (M, K) matrix product.
@@ -826,7 +826,7 @@ assert min(abs(zc_g), abs(zc_s)) > 5                  # the covariance-free form
 
 # %%
 # ==============================================================================
-# STEP 5: the whole observable panel of notebook 42, from one shadow data set
+# STEP 5: the whole VQE observable panel, from one shadow data set
 # ==============================================================================
 M_PANEL, N_BOOT = 20000, 200
 panel_labels, panel_kind = [], []
@@ -1072,7 +1072,7 @@ assert abs(z_mean) < 4 and abs(z_var) < 4 and abs(z_var_ctrl) > 5
 # STEP 7: the SPSA step size, measured on the exact cost
 # ==============================================================================
 def grad_spsa_exact(cost, c=0.2, gamma=0.101):
-    """SPSA gradient rule with Spall's probe radius c_k = c/k^gamma and an exact cost (notebook 41)."""
+    """SPSA gradient rule with Spall's probe radius c_k = c/k^gamma and an exact cost."""
     def rule(theta, key, k):
         c_k = c / k ** gamma
         delta = jax.random.rademacher(key, theta.shape).astype(theta.dtype)
@@ -1143,7 +1143,7 @@ t_shadow = time.perf_counter() - t0
 th_grad, h_grad = jax.block_until_ready(jax.jit(jax.vmap(lambda t, k: train(
     t, k, grad_exact(cost_loop), opt_adam(0.1), err_loop, T_LOOP)))(th_l, ks_l))
 h_grad = np.asarray(h_grad)
-# the exact-gradient runs at a constant Adam step sit on a step-size floor (notebook 42, Section 8.1);
+# the exact-gradient runs at a constant Adam step sit on a step-size floor;
 # continuing them with a ten times smaller step gives an upper bound on the true ansatz floor
 _, h_floor = jax.block_until_ready(jax.jit(jax.vmap(lambda t, k: train(
     t, k, grad_exact(cost_loop), opt_adam(0.01), err_loop, 3000)))(th_grad, ks_l))
@@ -1483,7 +1483,7 @@ SNAP1 = jnp.stack([jnp.stack([3.0 * jnp.outer(ROTS[b].conj().T[:, s], ROTS[b].co
 
 
 def shadow_fidelity_local(bases, bits, psi_t, chunk=20000):
-    """Single-snapshot estimates of <psi_t| rho |psi_t> from Pauli shadows (notebook 24, Step 6).
+    """Single-snapshot estimates of <psi_t| rho |psi_t> from Pauli shadows.
 
     MATH   o_m = <psi_t| (x)_q A_q^{(m)} |psi_t>,  A_q = 3 U^dag|b><b|U - 1 = SNAP1[basis, bit]
     IMPL   N apply_gate einsums and one inner product per snapshot; vmap over snapshots, in chunks.

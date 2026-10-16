@@ -93,7 +93,7 @@
 
 # %%
 # ==============================================================================
-# PLOT STYLE + the training machinery of notebook 41
+# PLOT STYLE + the training machinery of 'Optimisers for variational circuits'
 # ==============================================================================
 PALETTE = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#4a3aa7"]   # colour-blind-friendly, fixed order
 MARKERS = ["o", "s", "^", "D", "v", "P"]
@@ -145,7 +145,7 @@ def bands(hist):
 
 
 def opt_adam(lr, b1=0.9, b2=0.999, eps=1e-8):
-    """Adam as a pair (init, update) of pure functions -- the optimiser interface of notebook 41."""
+    """Adam as a pair (init, update) of pure functions -- the optimiser interface of 'Optimisers for variational circuits'."""
     def init(theta):
         return (jnp.zeros_like(theta), jnp.zeros_like(theta))
 
@@ -159,7 +159,7 @@ def opt_adam(lr, b1=0.9, b2=0.999, eps=1e-8):
 
 
 def train(theta0, key, grad_rule, opt, monitor, n_steps):
-    """One training run compiled as a single `lax.scan` (notebook 41, Step 8)."""
+    """One training run compiled as a single `lax.scan`."""
     init_fn, update_fn = opt
 
     def body(carry, k):
@@ -1311,7 +1311,7 @@ def cost_trajectory(key, theta, M=M_SHOT):
 
 
 def grad_spsa(cost_fn, stochastic, c=C_SPSA, gamma=GAMMA_SPSA):
-    """SPSA gradient rule (notebook 41, Eq. 12); `stochastic` says whether the cost consumes a PRNG key."""
+    """SPSA gradient rule; `stochastic` says whether the cost consumes a PRNG key."""
     def rule(theta, key, k):
         c_k = c / k ** gamma
         kd, kp, km = jax.random.split(key, 3)
@@ -1596,7 +1596,7 @@ TRASH_MASK_N = jnp.asarray(np.array([[1.0 if (j % 2 ** k == 0) else 0.0 for j in
 
 
 def noisy_encode_dm(theta, rho, N, layers, p1, p2):
-    """Encoder on a density tensor with a depolarising channel after every gate (notebook 44, Step 2)."""
+    """Encoder on a density tensor with a depolarising channel after every gate."""
     K1, K2 = kraus_depolarizing(p1), kraus_depolarizing(p2)
     th = theta.reshape(layers + 1, N, 2)
 

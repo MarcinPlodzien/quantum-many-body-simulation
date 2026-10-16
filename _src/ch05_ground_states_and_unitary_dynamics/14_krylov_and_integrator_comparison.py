@@ -9,16 +9,16 @@
 # its action $|\phi\rangle\mapsto H|\phi\rangle$ ([notebook 05, matrix-free operators](../ch03_matrix_free_engine/05_matrix_free_operators.ipynb)). Three ways to do it are derived elsewhere in the course:
 #
 # * **exact diagonalisation** ([notebook 04, time evolution with dense matrices](../ch02_spin_systems_textbook_way/04_time_evolution_the_textbook_way.ipynb)): perfect, but $\mathcal O(4^N)$ memory and $\mathcal O(8^N)$ time — dead at $N\approx14$;
-# * **TEBD / Trotter–Suzuki** ([notebook 12, Trotter–Suzuki evolution](12_tebd_trotter_suzuki.ipynb)): split $e^{-iH\,dt}$ into local gates; exactly unitary, error $\mathcal O(dt^p)$ with $p=1,2,4$ (fourth order: [[1]](#ref-1));
-# * **Chebyshev expansion** ([notebook 13, Chebyshev propagation](13_chebyshev_propagation.ipynb)): a fixed, near-optimal polynomial in $H$ with Bessel-function coefficients [[2]](#ref-2); machine precision for $\approx a t$ applications of $H$
+# * **TEBD / Trotter–Suzuki** ([notebook 12, Trotter–Suzuki evolution](12_tebd_trotter_suzuki.ipynb)): split $e^{-iH\,dt}$ into local gates with the product formula introduced in [[1]](#ref-1); exactly unitary, error $\mathcal O(dt^p)$ with $p=1,2,4$ (fourth order: [[2]](#ref-2));
+# * **Chebyshev expansion** ([notebook 13, Chebyshev propagation](13_chebyshev_propagation.ipynb)): a fixed, near-optimal polynomial in $H$ with Bessel-function coefficients [[3]](#ref-3); machine precision for $\approx a t$ applications of $H$
 #   ($a$ = half the spectral width), but it needs bounds on the spectrum.
 #
 # **This notebook has two parts.**
 #
 # *Part A — the Krylov (Lanczos) propagator.* Chebyshev uses the same polynomial for every initial state. The Krylov method asks a sharper question: *given this particular state $|\psi\rangle$ and a budget of $m$ applications of $H$, what is the best
 # approximation to $e^{-iHt}|\psi\rangle$ that can be built from the vectors $|\psi\rangle, H|\psi\rangle,\dots,H^{m-1}|\psi\rangle$?* The answer — project the Schrödinger equation onto the space spanned by these vectors and solve the tiny $m\times m$ problem exactly — is not literally the optimal
-# element of that space (§2.5 says in which sense it is nearly optimal, and measures how nearly). It needs no knowledge of the spectrum, conserves norm and energy exactly, and comes with a computable error bound that lets the algorithm choose its own time step. It was introduced for quantum dynamics in [[3]](#ref-3) and is the engine behind
-# general-purpose "matrix exponential times vector" software ([[4]](#ref-4); "Method 20" in the survey [[5]](#ref-5)); it is also the standard time-evolution method of large-scale exact-diagonalisation studies of quantum chaos and many-body localisation.
+# element of that space (§2.5 says in which sense it is nearly optimal, and measures how nearly). It needs no knowledge of the spectrum, conserves norm and energy exactly, and comes with a computable error bound that lets the algorithm choose its own time step. It was introduced for quantum dynamics in [[4]](#ref-4) and is the engine behind
+# general-purpose "matrix exponential times vector" software ([[5]](#ref-5); "Method 20" in the survey [[6]](#ref-6)); it is also the standard time-evolution method of large-scale exact-diagonalisation studies of quantum chaos and many-body localisation.
 #
 # *Part B — the shoot-out.* With four integrator families in hand, we do what a practitioner must do before a production run: **measure** accuracy versus cost — against a dense exact reference, with compilation time separated from run time,
 # as a function of the accuracy target and of the system size $N$ — and condense the outcome into a guidance table, *which integrator when*.
@@ -69,7 +69,7 @@
 # ### 2.2 An orthonormal basis: the Lanczos iteration
 #
 # The raw vectors $H^k|\psi\rangle$ are a terrible basis (they all turn towards the eigenvector with the largest $|E|$ and become numerically parallel). The **Lanczos iteration**, derived in
-# [notebook 11, Hamiltonians and ground states](11_hamiltonians_and_ground_states.ipynb) [[6]](#ref-6), orthonormalises them on the fly. For Hermitian $H$ each new vector needs to be orthogonalised only against the previous two:
+# [notebook 11, Hamiltonians and ground states](11_hamiltonians_and_ground_states.ipynb) [[7]](#ref-7), orthonormalises them on the fly. For Hermitian $H$ each new vector needs to be orthogonalised only against the previous two:
 #
 # $$ \beta_j|v_{j+1}\rangle = H|v_j\rangle-\alpha_j|v_j\rangle-\beta_{j-1}|v_{j-1}\rangle,\qquad \alpha_j=\langle v_j|H|v_j\rangle,\qquad \beta_j=\big\|\,H v_j-\alpha_jv_j-\beta_{j-1}v_{j-1}\big\| . $$
 #
@@ -100,7 +100,7 @@
 #
 # **(b) Norm is conserved exactly**, for any $m$ and $t$: $\|\psi_m(t)\|=\|c(t)\|=\|\psi\|$, because $V_m$ has orthonormal columns and $e^{-iT_mt}$ is unitary.
 # In floating point the statement is worth exactly as much as the orthonormality of $V_m$. The implementation of §3 re-orthogonalises fully and keeps $\max|V_m^\dagger V_m-1|\sim10^{-15}$ (measured below), so the norm is conserved to rounding.
-# A plain three-term recurrence loses orthogonality as soon as a Ritz pair converges ([notebook 11, Hamiltonians and ground states](11_hamiltonians_and_ground_states.ipynb)) and loses this guarantee with it: at $N=10$, $m=80$, $dt=8$ the norm then drifts by $5\times10^{-5}$ while the re-orthogonalised version stays at $2\times10^{-16}$ (Exercise 3).
+# A plain three-term recurrence loses orthogonality as soon as a Ritz pair converges ([notebook 11, Hamiltonians and ground states](11_hamiltonians_and_ground_states.ipynb)) and loses this guarantee with it: at $N=10$, $m=80$, $dt=8$ the norm then drifts far above the rounding level (by how much depends on the rounding pattern), while the re-orthogonalised version stays at the $10^{-16}$ level (Exercise 3).
 #
 # **(c) Energy is conserved exactly:** $\langle\psi_m(t)|H|\psi_m(t)\rangle=c^\dagger V_m^\dagger HV_mc=c^\dagger T_mc$, which is constant under $i\dot c=T_mc$.
 #
@@ -118,7 +118,7 @@
 #
 # $$ \boxed{\;\big\|\psi_m(t)-\psi(t)\big\|\;\le\;2\,\|\psi\|\!\!\min_{\deg p\le m-1}\ \max_{E_{\min}\le E\le E_{\max}}\big|e^{-iEt}-p(E)\big|\;} \qquad (2a) $$
 #
-# The Krylov approximation is thus within a factor $2$ of the *best possible* polynomial of degree $m-1$ — it is **quasi-optimal**. (The cancellation of the polynomial pieces rests on property (a), which is Lemma 3.1 of [[7]](#ref-7); a priori bounds of this type are the subject of [[7]](#ref-7) and [[8]](#ref-8).) Three consequences, all of them practical.
+# The Krylov approximation is thus within a factor $2$ of the *best possible* polynomial of degree $m-1$ — it is **quasi-optimal**. (The cancellation of the polynomial pieces rests on property (a), which is Lemma 3.1 of [[8]](#ref-8); a priori bounds of this type are the subject of [[8]](#ref-8) and [[9]](#ref-9).) Three consequences, all of them practical.
 #
 # **Only the spectral width matters, not $\|H\|$.** Replacing $H$ by $H+c\,\mathbb 1$ leaves every $v_j$ and every $\beta_j$ unchanged and shifts every $\alpha_j$ by $c$, so $T_m\to T_m+c\,\mathbb 1$ and $|\psi_m\rangle\to e^{-ict}|\psi_m\rangle$: the approximation error is untouched. The right-hand side of (2a) is shift invariant for the same reason.
 # The scale that controls everything is therefore the **spectral half-width** $a=(E_{\max}-E_{\min})/2$; $\|H\|$ can be made arbitrarily large by adding a constant to $H$ without changing the physics or the difficulty of the problem.
@@ -128,7 +128,7 @@
 # $$ \big\|\psi_m(t)-\psi(t)\big\|\;\le\;8\,\|\psi\|\left(\frac{e\,a\,t}{2m}\right)^{m},\qquad m\ge a\,t . \qquad (2b) $$
 #
 # The right-hand side starts to fall once $m>e\,a\,t/2\approx1.36\,a\,t$ and then drops by a further factor $e\,a\,t/2m$ with every extra Lanczos vector — super-exponential convergence, with the same threshold $m\sim a\,t$ as Chebyshev.
-# The sharp version of the same statement is Theorem 4 of [[8]](#ref-8): for a skew-Hermitian generator $-iH$ whose spectrum fills an interval of length $4\rho=E_{\max}-E_{\min}$ (so that $\rho=a/2$),
+# The sharp version of the same statement is Theorem 4 of [[9]](#ref-9): for a skew-Hermitian generator $-iH$ whose spectrum fills an interval of length $4\rho=E_{\max}-E_{\min}$ (so that $\rho=a/2$),
 #
 # $$ \big\|\psi_m(t)-\psi(t)\big\|\;\le\;12\,\|\psi\|\;e^{-(\rho t)^2/m}\left(\frac{e\,\rho\,t}{m}\right)^{m}=12\,\|\psi\|\;e^{-(a t)^2/4m}\left(\frac{e\,a\,t}{2m}\right)^{m},\qquad m\ge2\rho t=a\,t . \qquad (2b') $$
 #
@@ -152,7 +152,7 @@
 # * the basis is a **pre-allocated array** `V` of shape $(m,2^N)$, filled row by row with the functional update `V.at[j+1].set(v)` (JAX arrays are immutable; under `jit` XLA performs the update in place);
 # * **full re-orthogonalisation** in matrix form. In exact arithmetic the three-term recurrence suffices; in floating point orthogonality is gradually lost ([notebook 11, Hamiltonians and ground states](11_hamiltonians_and_ground_states.ipynb)).
 #   We therefore subtract from $w=Hv_j$ its projection onto *all* rows stored so far, $w\leftarrow w-V^{T}(V^{*}w)$ — two matrix–vector products. Rows not yet filled are zero and contribute nothing, so no masking is needed.
-#   This also removes the $\alpha_jv_j$ and $\beta_{j-1}v_{j-1}$ terms automatically. We do it twice ("twice is enough": two passes of classical Gram–Schmidt give orthogonality at the level of the unit round-off [[9]](#ref-9); for re-orthogonalised Lanczos in general see [[10]](#ref-10), §10.3);
+#   This also removes the $\alpha_jv_j$ and $\beta_{j-1}v_{j-1}$ terms automatically. We do it twice ("twice is enough": two passes of classical Gram–Schmidt give orthogonality at the level of the unit round-off [[10]](#ref-10); for re-orthogonalised Lanczos in general see [[11]](#ref-11), §10.3);
 # * **no early exit**: if $\beta_j\approx0$ (the Krylov space is *invariant* — the state lives in fewer than $m$ eigenvectors, and the projection is already exact) we must not divide by it. `jnp.where` replaces the next vector by zero; all later $\alpha,\beta$ are then zero, $T_m$ becomes block-diagonal and the result (2) is unaffected.
 #
 # **From formula to code.** With `V` of shape `(m, dim)` holding the basis vectors as *rows*: `V.conj() @ w` is the vector of overlaps $\langle v_i|w\rangle$, shape `(m,)`; `V.T @ overlaps` is $\sum_i\langle v_i|w\rangle\,v_i$, shape `(dim,)`.
@@ -257,7 +257,7 @@ assert abs(float(jnp.linalg.norm(R[:, -1])) - float(betas[-1])) < 100 * TOL
 #
 # ### 4.1 From formula to code
 #
-# Eq. (2) in four lines: build $(\alpha,\beta,V)$; diagonalise $T_m=S\,\mathrm{diag}(\theta)S^T$ with `jnp.linalg.eigh` (an $m\times m$ tridiagonal problem — negligible cost; [[11]](#ref-11), §11.4); form the coefficient vector $c=S\,(e^{-i\theta\,dt}\odot S_{0,:})$, where `S[0, :]` $=S^Te_1$ is the first *row* of $S$;
+# Eq. (2) in four lines: build $(\alpha,\beta,V)$; diagonalise $T_m=S\,\mathrm{diag}(\theta)S^T$ with `jnp.linalg.eigh` (an $m\times m$ tridiagonal problem — negligible cost; [[12]](#ref-12), §11.4); form the coefficient vector $c=S\,(e^{-i\theta\,dt}\odot S_{0,:})$, where `S[0, :]` $=S^Te_1$ is the first *row* of $S$;
 # return $\|\psi\|\sum_jc_jv_j$ = `c @ V`. Everything is traced, so `dt` can be changed without recompiling.
 
 # %%
@@ -448,7 +448,7 @@ plt.show()
 #
 # Everything on the right-hand side is known from the *small* matrix: the bound costs $\mathcal O(m^2)$ per evaluation point and no additional application of $H$. For short times $c_m(s)\approx(-is)^{m-1}\beta_1\cdots\beta_{m-1}/(m-1)!$, so the bound behaves as
 # $t^{m}\,\beta_1\cdots\beta_m/m!$ — the $\mathcal O(t^m)$ law of §4.3 — and the integral is $\approx t\,|c_m(t)|/m$, giving the cheaper *estimate* $\;\varepsilon_{\rm est}=\beta_m|c_m(t)|\,t/m$.
-# Keep the two apart: (3) is a **bound**, valid for every $t$; $\varepsilon_{\rm est}$ is an **estimate**, valid while the leading term dominates. Up to the factor $1/m$, $\varepsilon_{\rm est}$ is the classical stopping criterion of [[7]](#ref-7) and the local error estimate on which the step-size controller of Expokit [[4]](#ref-4) is built.
+# Keep the two apart: (3) is a **bound**, valid for every $t$; $\varepsilon_{\rm est}$ is an **estimate**, valid while the leading term dominates. Up to the factor $1/m$, $\varepsilon_{\rm est}$ is the classical stopping criterion of [[8]](#ref-8) and the local error estimate on which the step-size controller of Expokit [[5]](#ref-5) is built.
 # The same quantity $\beta_m$ that measured the convergence of a Ritz pair for free in [notebook 11, Hamiltonians and ground states](11_hamiltonians_and_ground_states.ipynb) measures the accuracy of the propagator for free here: in both cases it is the single number in the Lanczos relation (1) that quantifies how far $H$ pushes the state out of the subspace.
 #
 # **From formula to code.** In the eigenbasis of $T_m$, $c_m(s)=\sum_jS_{m-1,j}\,e^{-i\theta_js}\,S_{0,j}$: for a whole grid of $s$ values this is one einsum `"j,sj,j->s"`. The integral is a cumulative trapezoidal sum, which yields the bound for *every* $t$ on the grid at once.
@@ -624,7 +624,7 @@ print(f"Extrapolation from N=11 with a factor 8 per spin (an ESTIMATE, not a mea
 #
 # $$ \mathcal L(t)=\big|\langle\psi_0|e^{-iHt}|\psi_0\rangle\big|^2 . $$
 #
-# This **Loschmidt echo** (return probability; the fidelity decay introduced in [[12]](#ref-12) and named in [[13]](#ref-13)) is the central quantity of *dynamical quantum phase transitions* [[14]](#ref-14) — its rate function $-\tfrac1N\ln\mathcal L(t)$ stays finite as $N\to\infty$ and can become non-analytic in time — and it is measured in trapped-ion [[15]](#ref-15) and cold-atom [[16]](#ref-16) quantum simulators.
+# This **Loschmidt echo** (return probability; the fidelity decay introduced in [[13]](#ref-13) and named in [[14]](#ref-14)) is the central quantity of *dynamical quantum phase transitions* [[15]](#ref-15) — its rate function $-\tfrac1N\ln\mathcal L(t)$ stays finite as $N\to\infty$ and can become non-analytic in time — and it is measured in trapped-ion [[16]](#ref-16) and cold-atom [[17]](#ref-17) quantum simulators.
 # Numerically it is demanding for a simple reason: for a many-body system $\mathcal L$ becomes *exponentially small* in $N$. Write the numerical state as $|\psi\rangle+|\delta\rangle$ with $\|\delta\|=\varepsilon$ and the exact amplitude as $A=\langle\psi_0|\psi\rangle$, $|A|=\sqrt{\mathcal L}$. Then
 #
 # $$ \mathcal L_{\rm num}-\mathcal L=2\,\mathrm{Re}\big[\bar A\,\langle\psi_0|\delta\rangle\big]+\big|\langle\psi_0|\delta\rangle\big|^2,\qquad\text{so}\qquad \frac{\big|\mathcal L_{\rm num}-\mathcal L\big|}{\mathcal L}\;\le\;\frac{2\varepsilon}{\sqrt{\mathcal L}}+\frac{\varepsilon^2}{\mathcal L} . $$
@@ -765,7 +765,7 @@ plt.tight_layout(); plt.show()
 #   Krylov with $m=8$ holds $\langle H\rangle$ to $6\times10^{-14}$ while its state is wrong by $10^{-7}$, and Chebyshev holds it to $1.6\times10^{-13}$ while being right to $5\times10^{-13}$ — the same diagnostic, opposite information. TEBD, which conserves the norm but not the energy,
 #   drifts by $1.5\times10^{-2}$ (order 2) and $2.9\times10^{-6}$ (order 4), that is by about its own state error: for a Trotter scheme the energy drift *is* a useful diagnostic, for a Krylov scheme it is not.
 #
-# > **Physics insight.** Whether an integrator is "accurate enough" depends on the observable. Local observables of a generic (non-integrable) chain are forgiving: a slightly wrong state has nearly the same local expectation values. Overlaps (echoes, fidelities, fidelity susceptibilities [[17]](#ref-17), [[18]](#ref-18), out-of-time-order correlators [[19]](#ref-19) built from
+# > **Physics insight.** Whether an integrator is "accurate enough" depends on the observable. Local observables of a generic (non-integrable) chain are forgiving: a slightly wrong state has nearly the same local expectation values. Overlaps (echoes, fidelities, fidelity susceptibilities [[18]](#ref-18), [[19]](#ref-19), out-of-time-order correlators [[20]](#ref-20) built from
 # > forward and backward evolution) are unforgiving, because they are sensitive to the global phase relationships of all $2^N$ amplitudes.
 
 # %% [markdown]
@@ -1019,7 +1019,7 @@ print(f"{'exact: H, V, work (3 x 4^N)':28s} | {'--':>13s} | " + " | ".join(f"{3 
 # | beyond state vectors | no | **yes**: matrix-product states (truncation after each gate), noisy circuits, hardware | awkward (many MPS additions) | possible but costly (MPS Krylov) |
 # | sweet spot | $N\le10$–$12$; *every* validation | rough-to-moderate accuracy ($10^{-2}$–$10^{-6}$), dense output in time, time-dependent protocols, circuits, MPS | high accuracy, long times, largest $N$ that fits in memory, time-independent $H$ | high accuracy with guaranteed error, unknown spectrum, moderate $N$, time-dependent $H$ with short steps, non-unitary generalisations (Arnoldi) |
 #
-# The row *beyond state vectors* draws on the review [[20]](#ref-20), which compares TEBD, global and local Krylov methods and the time-dependent variational principle for matrix-product states ([[21]](#ref-21); Chebyshev methods for MPS are only referenced there); every other entry is measured in this notebook or in the two preceding ones. A comparison of the same kind for wave-packet dynamics on a grid is Ref. [[22]](#ref-22).
+# The row *beyond state vectors* draws on the review [[21]](#ref-21), which compares TEBD, global and local Krylov methods and the time-dependent variational principle for matrix-product states ([[22]](#ref-22); Chebyshev methods for MPS are only referenced there); every other entry is measured in this notebook or in the two preceding ones. A comparison of the same kind for wave-packet dynamics on a grid is Ref. [[23]](#ref-23).
 #
 # **Rules of thumb.**
 #
@@ -1027,9 +1027,9 @@ print(f"{'exact: H, V, work (3 x 4^N)':28s} | {'--':>13s} | " + " | ".join(f"{3 
 # 2. Need only local observables of a generic chain at percent accuracy? Second-order TEBD with $dt\approx0.05$–$0.1$ (in units of the inverse coupling) is simple, robust and hard to beat; use fourth order if you need $10^{-4}$–$10^{-6}$ in the *state*.
 #    The distinction matters: at $dt=0.05$ the TEBD-2 state error at $T=5$ is $10^{-2}$ (§8), while the error of a local expectation value is about an order of magnitude smaller and does not grow with $N$ ([notebook 12, Trotter–Suzuki evolution](12_tebd_trotter_suzuki.ipynb), Section 7.3).
 # 3. Need echoes, overlaps, long times, or a reference solution? Chebyshev (largest $N$, time-independent $H$) or adaptive Krylov (automatic error control, no spectral bounds).
-# 4. The Hamiltonian depends on time? TEBD, or Krylov with short steps; Chebyshev only if $H$ is piecewise constant. Freezing $H$ at the step midpoint is the lowest-order Magnus [[23]](#ref-23) or midpoint rule with a local error $\mathcal O(dt^3)$ and a global error $\mathcal O(dt^2)$, so $dt$ is again set by accuracy and the long steps of §5 are wasted (Exercise 7).
+# 4. The Hamiltonian depends on time? TEBD, or Krylov with short steps; Chebyshev only if $H$ is piecewise constant. Freezing $H$ at the step midpoint is the lowest-order Magnus [[24]](#ref-24) or midpoint rule with a local error $\mathcal O(dt^3)$ and a global error $\mathcal O(dt^2)$, so $dt$ is again set by accuracy and the long steps of §5 are wasted (Exercise 7).
 # 5. $N>30$? None of the above in state-vector form — go to matrix-product states with TEBD, which works as long as the entanglement stays moderate.
-# 6. Open systems with a non-Hermitian generator? The Chebyshev expansion as presented requires a real spectrum; the Krylov idea survives with the Arnoldi iteration [[24]](#ref-24) (full orthogonalisation, upper-Hessenberg instead of tridiagonal matrix); Trotterised Kraus steps and Runge–Kutta are the simple alternatives used in this course.
+# 6. Open systems with a non-Hermitian generator? The Chebyshev expansion as presented requires a real spectrum; the Krylov idea survives with the Arnoldi iteration [[25]](#ref-25) (full orthogonalisation, upper-Hessenberg instead of tridiagonal matrix); Trotterised Kraus steps and Runge–Kutta are the simple alternatives used in this course.
 
 # %% [markdown]
 # ## 11. Summary — key takeaways
@@ -1053,58 +1053,61 @@ print(f"{'exact: H, V, work (3 x 4^N)':28s} | {'--':>13s} | " + " | ".join(f"{3 
 # 4. ★★ **Energy conservation versus accuracy (physics/numerics).** Run chained Krylov steps with $m=4$, $dt=0.2$ up to $T=5$ at $N=10$ and record energy, norm and the state error against `exact_state`. Do the same with TEBD-2. Which diagnostics reveal the error of which method?
 # 5. ★★ **Observables on a time grid (extend the code).** Combine `krylov_adaptive_evolve` with output at prescribed times $t_n=n\,\Delta t$: an outer `lax.scan` over $n$ whose body calls the adaptive evolution for the interval $\Delta t$ and then measures $\langle Z_j\rangle$. Compare the number of $H$ applications with a fixed-step Krylov trajectory of the same accuracy.
 # 6. ★★ **Dynamical quantum phase transition (physics).** For the transverse-field Ising chain (`heisenberg_terms(N, Jxx=0, Jyy=0, Jzz=-1, hx=h)`) quench from $|0\dots0\rangle$ (the $h=0$ ground state) to $h=0.5$ and to $h=2$. Compute the rate function $\lambda(t)=-\tfrac1N\ln\mathcal L(t)$ for $N=8,12,16$ up to $t=5$ with Chebyshev or Krylov.
-#    For which quench do sharp features (cusps in the limit $N\to\infty$) develop, and at what times? (Compare with [[14]](#ref-14), which predicts cusps only for quenches across the critical point $h=1$.) Repeat with TEBD-2 at $dt=0.1$: can you trust its cusps?
+#    For which quench do sharp features (cusps in the limit $N\to\infty$) develop, and at what times? (Compare with [[15]](#ref-15), which predicts cusps only for quenches across the critical point $h=1$.) Repeat with TEBD-2 at $dt=0.1$: can you trust its cusps?
 # 7. ★★★ **Time-dependent Hamiltonian (extend the code).** Let $h_x(t)=1+0.5\sin(\omega t)$. Implement a Krylov integrator that uses the *midpoint* Hamiltonian $H(t+dt/2)$ in every step (pass $h_x$ as a traced argument of the `matvec`), and the analogous TEBD-2. Both are second order in $dt$ because of the time dependence — verify the slope, and explain why the large Krylov step is of no use here unless $\omega\,dt\ll1$.
 # 8. ★★★ **GPU shoot-out.** If you have a GPU, set `DEVICE = "gpu"` and repeat §9 up to the largest $N$ that fits. How do the ratios between methods change? (Hint: the re-orthogonalisation of Krylov is a dense matrix–vector product, which GPUs love; the many small einsums of TEBD at small $N$ are dominated by kernel-launch overhead.)
 
 # %% [markdown]
 # ## 13. References
 #
-# <span id="ref-1">[1]</span> M. Suzuki, *Fractal decomposition of exponential operators with applications to many-body theories and Monte Carlo simulations*, Phys. Lett. A **146**, 319 (1990) — higher-order Trotter–Suzuki formulas.
+# <span id="ref-1">[1]</span> H. F. Trotter, *On the product of semi-groups of operators*, Proc. Amer. Math. Soc. **10**, 545 (1959) — the product
+# formula behind Trotterised time evolution.
 #
-# <span id="ref-2">[2]</span> H. Tal-Ezer and R. Kosloff, *An accurate and efficient scheme for propagating the time dependent Schrödinger equation*, J. Chem. Phys. **81**, 3967 (1984) — Chebyshev propagator.
+# <span id="ref-2">[2]</span> M. Suzuki, *Fractal decomposition of exponential operators with applications to many-body theories and Monte Carlo simulations*, Phys. Lett. A **146**, 319 (1990) — higher-order Trotter–Suzuki formulas.
 #
-# <span id="ref-3">[3]</span> T. J. Park and J. C. Light, *Unitary quantum time evolution by iterative Lanczos reduction*, J. Chem. Phys. **85**, 5870 (1986) — the Krylov/Lanczos propagator.
+# <span id="ref-3">[3]</span> H. Tal-Ezer and R. Kosloff, *An accurate and efficient scheme for propagating the time dependent Schrödinger equation*, J. Chem. Phys. **81**, 3967 (1984) — Chebyshev propagator.
 #
-# <span id="ref-4">[4]</span> R. B. Sidje, *Expokit: a software package for computing matrix exponentials*, ACM Trans. Math. Softw. **24**, 130 (1998) — adaptive Krylov time stepping in practice: the local error estimate of §5.1 and a step-size controller $\tau_{k}=0.9\,(\texttt{tol}/\varepsilon_k)^{1/(m-1)}\tau_{k-1}$.
+# <span id="ref-4">[4]</span> T. J. Park and J. C. Light, *Unitary quantum time evolution by iterative Lanczos reduction*, J. Chem. Phys. **85**, 5870 (1986) — the Krylov/Lanczos propagator.
 #
-# <span id="ref-5">[5]</span> C. Moler and C. Van Loan, *Nineteen dubious ways to compute the exponential of a matrix, twenty-five years later*, SIAM Review **45**, 3 (2003) — the survey of all the alternatives; its “Method 20” is the Krylov approach of this notebook.
+# <span id="ref-5">[5]</span> R. B. Sidje, *Expokit: a software package for computing matrix exponentials*, ACM Trans. Math. Softw. **24**, 130 (1998) — adaptive Krylov time stepping in practice: the local error estimate of §5.1 and a step-size controller $\tau_{k}=0.9\,(\texttt{tol}/\varepsilon_k)^{1/(m-1)}\tau_{k-1}$.
 #
-# <span id="ref-6">[6]</span> C. Lanczos, *An iteration method for the solution of the eigenvalue problem of linear differential and integral operators*, J. Res. Natl. Bur. Stand. **45**, 255 (1950).
+# <span id="ref-6">[6]</span> C. Moler and C. Van Loan, *Nineteen dubious ways to compute the exponential of a matrix, twenty-five years later*, SIAM Review **45**, 3 (2003) — the survey of all the alternatives; its “Method 20” is the Krylov approach of this notebook.
 #
-# <span id="ref-7">[7]</span> Y. Saad, *Analysis of some Krylov subspace approximations to the matrix exponential operator*, SIAM J. Numer. Anal. **29**, 209 (1992) — a priori and a posteriori error estimates for Krylov approximations of $e^{A}v$, and the error expansion series on which Expokit's estimates are built.
+# <span id="ref-7">[7]</span> C. Lanczos, *An iteration method for the solution of the eigenvalue problem of linear differential and integral operators*, J. Res. Natl. Bur. Stand. **45**, 255 (1950).
 #
-# <span id="ref-8">[8]</span> M. Hochbruck and C. Lubich, *On Krylov subspace approximations to the matrix exponential operator*, SIAM J. Numer. Anal. **34**, 1911 (1997) — sharp convergence bounds; their Theorem 4 (skew-Hermitian generator, spectral interval of length $4\rho$) is Eq. (2b') above, and they note that for such generators super-linear decay cannot be shown below $m\approx\rho t$.
+# <span id="ref-8">[8]</span> Y. Saad, *Analysis of some Krylov subspace approximations to the matrix exponential operator*, SIAM J. Numer. Anal. **29**, 209 (1992) — a priori and a posteriori error estimates for Krylov approximations of $e^{A}v$, and the error expansion series on which Expokit's estimates are built.
 #
-# <span id="ref-9">[9]</span> L. Giraud, J. Langou, M. Rozložník and J. van den Eshof, *Rounding error analysis of the classical Gram–Schmidt orthogonalization process*, Numer. Math. **101**, 87 (2005) — two passes of classical Gram–Schmidt are enough.
+# <span id="ref-9">[9]</span> M. Hochbruck and C. Lubich, *On Krylov subspace approximations to the matrix exponential operator*, SIAM J. Numer. Anal. **34**, 1911 (1997) — sharp convergence bounds; their Theorem 4 (skew-Hermitian generator, spectral interval of length $4\rho$) is Eq. (2b') above, and they note that for such generators super-linear decay cannot be shown below $m\approx\rho t$.
 #
-# <span id="ref-10">[10]</span> G. H. Golub and C. F. Van Loan, *Matrix Computations*, 4th ed., Johns Hopkins University Press (2013) — Lanczos, Arnoldi, Gram–Schmidt and re-orthogonalisation (Ch. 10).
+# <span id="ref-10">[10]</span> L. Giraud, J. Langou, M. Rozložník and J. van den Eshof, *Rounding error analysis of the classical Gram–Schmidt orthogonalization process*, Numer. Math. **101**, 87 (2005) — two passes of classical Gram–Schmidt are enough.
 #
-# <span id="ref-11">[11]</span> W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes: The Art of Scientific Computing*, 3rd ed., Cambridge University Press (2007) — §11.3–11.4 for the tridiagonal eigenproblem solved at every Krylov step, §2.7 for sparse matrix–vector products; the same algorithms in *Numerical Recipes in Fortran 90*, 2nd ed., CUP (1996).
+# <span id="ref-11">[11]</span> G. H. Golub and C. F. Van Loan, *Matrix Computations*, 4th ed., Johns Hopkins University Press (2013) — Lanczos, Arnoldi, Gram–Schmidt and re-orthogonalisation (Ch. 10).
 #
-# <span id="ref-12">[12]</span> A. Peres, *Stability of quantum motion in chaotic and regular systems*, Phys. Rev. A **30**, 1610 (1984).
+# <span id="ref-12">[12]</span> W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes: The Art of Scientific Computing*, 3rd ed., Cambridge University Press (2007) — §11.3–11.4 for the tridiagonal eigenproblem solved at every Krylov step, §2.7 for sparse matrix–vector products; the same algorithms in *Numerical Recipes in Fortran 90*, 2nd ed., CUP (1996).
 #
-# <span id="ref-13">[13]</span> R. A. Jalabert and H. M. Pastawski, *Environment-independent decoherence rate in classically chaotic systems*, Phys. Rev. Lett. **86**, 2490 (2001).
+# <span id="ref-13">[13]</span> A. Peres, *Stability of quantum motion in chaotic and regular systems*, Phys. Rev. A **30**, 1610 (1984).
 #
-# <span id="ref-14">[14]</span> M. Heyl, A. Polkovnikov and S. Kehrein, *Dynamical quantum phase transitions in the transverse-field Ising model*, Phys. Rev. Lett. **110**, 135704 (2013) — Loschmidt echo and its non-analyticities.
+# <span id="ref-14">[14]</span> R. A. Jalabert and H. M. Pastawski, *Environment-independent decoherence rate in classically chaotic systems*, Phys. Rev. Lett. **86**, 2490 (2001).
 #
-# <span id="ref-15">[15]</span> P. Jurcevic *et al.*, *Direct observation of dynamical quantum phase transitions in an interacting many-body system*, Phys. Rev. Lett. **119**, 080501 (2017).
+# <span id="ref-15">[15]</span> M. Heyl, A. Polkovnikov and S. Kehrein, *Dynamical quantum phase transitions in the transverse-field Ising model*, Phys. Rev. Lett. **110**, 135704 (2013) — Loschmidt echo and its non-analyticities.
 #
-# <span id="ref-16">[16]</span> N. Fläschner *et al.*, *Observation of dynamical vortices after quenches in a system with topology*, Nat. Phys. **14**, 265 (2018).
+# <span id="ref-16">[16]</span> P. Jurcevic *et al.*, *Direct observation of dynamical quantum phase transitions in an interacting many-body system*, Phys. Rev. Lett. **119**, 080501 (2017).
 #
-# <span id="ref-17">[17]</span> P. Zanardi and N. Paunković, *Ground state overlap and quantum phase transitions*, Phys. Rev. E **74**, 031123 (2006).
+# <span id="ref-17">[17]</span> N. Fläschner *et al.*, *Observation of dynamical vortices after quenches in a system with topology*, Nat. Phys. **14**, 265 (2018).
 #
-# <span id="ref-18">[18]</span> W.-L. You, Y.-W. Li and S.-J. Gu, *Fidelity, dynamic structure factor, and susceptibility in critical phenomena*, Phys. Rev. E **76**, 022101 (2007).
+# <span id="ref-18">[18]</span> P. Zanardi and N. Paunković, *Ground state overlap and quantum phase transitions*, Phys. Rev. E **74**, 031123 (2006).
 #
-# <span id="ref-19">[19]</span> A. I. Larkin and Yu. N. Ovchinnikov, *Quasiclassical method in the theory of superconductivity*, Sov. Phys. JETP **28**, 1200 (1969) — out-of-time-order correlators.
+# <span id="ref-19">[19]</span> W.-L. You, Y.-W. Li and S.-J. Gu, *Fidelity, dynamic structure factor, and susceptibility in critical phenomena*, Phys. Rev. E **76**, 022101 (2007).
 #
-# <span id="ref-20">[20]</span> S. Paeckel, T. Köhler, A. Swoboda, S. R. Manmana, U. Schollwöck and C. Hubig, *Time-evolution methods for matrix-product states*, Ann. Phys. **411**, 167998 (2019) — the same family of integrators in the MPS world.
+# <span id="ref-20">[20]</span> A. I. Larkin and Yu. N. Ovchinnikov, *Quasiclassical method in the theory of superconductivity*, Sov. Phys. JETP **28**, 1200 (1969) — out-of-time-order correlators.
 #
-# <span id="ref-21">[21]</span> J. Haegeman, J. I. Cirac, T. J. Osborne, I. Pižorn, H. Verschelde and F. Verstraete, *Time-dependent variational principle for quantum lattices*, Phys. Rev. Lett. **107**, 070601 (2011).
+# <span id="ref-21">[21]</span> S. Paeckel, T. Köhler, A. Swoboda, S. R. Manmana, U. Schollwöck and C. Hubig, *Time-evolution methods for matrix-product states*, Ann. Phys. **411**, 167998 (2019) — the same family of integrators in the MPS world.
 #
-# <span id="ref-22">[22]</span> C. Leforestier *et al.*, *A comparison of different propagation schemes for the time dependent Schrödinger equation*, J. Comput. Phys. **94**, 59 (1991) — the classic integrator shoot-out.
+# <span id="ref-22">[22]</span> J. Haegeman, J. I. Cirac, T. J. Osborne, I. Pižorn, H. Verschelde and F. Verstraete, *Time-dependent variational principle for quantum lattices*, Phys. Rev. Lett. **107**, 070601 (2011).
 #
-# <span id="ref-23">[23]</span> W. Magnus, *On the exponential solution of differential equations for a linear operator*, Commun. Pure Appl. Math. **7**, 649–673 (1954).
+# <span id="ref-23">[23]</span> C. Leforestier *et al.*, *A comparison of different propagation schemes for the time dependent Schrödinger equation*, J. Comput. Phys. **94**, 59 (1991) — the classic integrator shoot-out.
 #
-# <span id="ref-24">[24]</span> W. E. Arnoldi, *The principle of minimized iterations in the solution of the matrix eigenvalue problem*, Q. Appl. Math. **9**, 17–29 (1951).
+# <span id="ref-24">[24]</span> W. Magnus, *On the exponential solution of differential equations for a linear operator*, Commun. Pure Appl. Math. **7**, 649–673 (1954).
+#
+# <span id="ref-25">[25]</span> W. E. Arnoldi, *The principle of minimized iterations in the solution of the matrix eigenvalue problem*, Q. Appl. Math. **9**, 17–29 (1951).
 

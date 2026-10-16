@@ -35,7 +35,7 @@
 # **Road map.**
 #
 # * Section 2 derives the method carefully: the effective Hamiltonian, the jump probabilities, the proof that the average over
-#   trajectories obeys Eq. (1), and the relation to Kraus channels and to the Trotter–Kraus step; it closes with the rule for choosing $dt$ and with the waiting-time formulation of the algorithm.
+#   trajectories obeys Eq. (1), and the relation to Kraus channels and to the Trotter–Kraus step (a splitting built on the product formula introduced in [[8]](#ref-8)); it closes with the rule for choosing $dt$ and with the waiting-time formulation of the algorithm.
 # * Section 3 implements one MCWF step and tests it on a single qubit, where everything is known analytically — including
 #   the surprising role of *not* detecting a photon.
 # * Section 4 builds the many-body machinery, `lax.scan` over time and `jax.vmap` over trajectories, for two different steppers.
@@ -188,7 +188,7 @@
 #   legitimate measurement of the environment. Mixing the no-jump operator $K_0$ into the jump operators with a large amplitude
 #   (physically: interfering the emitted light with a strong local oscillator before the detector — *homodyne detection*) turns the
 #   rare large jumps into a continuous small-noise diffusion — a **diffusive** unravelling, of which the quantum-state-diffusion
-#   equation of [[8]](#ref-8) is the best-known example.
+#   equation of [[9]](#ref-9) is the best-known example.
 #   Anything *linear* in $|\psi\rangle\langle\psi|$ (expectation values, and fidelities with a fixed pure state) is
 #   unravelling-independent, because it is a property of $\rho$ alone; nonlinear functionals of the state averaged over trajectories
 #   (the entanglement entropy of $|\psi\rangle$, the purity of a subsystem) are **not** properties of $\rho$ and change when the detection
@@ -982,17 +982,17 @@ plt.tight_layout(); plt.show()
 #
 # 1. The number plotted is $\overline{S(|\psi_i\rangle)}$, the average over the *photon-counting* unravelling. A different measurement of the
 #    environment (homodyne, Section 2.5) produces different trajectories with the same $\rho(t)$ and, in general, a different curve. The
-#    curve is a property of the measurement scheme, not of the open system alone; Ref. [[9]](#ref-9) introduced a
+#    curve is a property of the measurement scheme, not of the open system alone; Ref. [[10]](#ref-10) introduced a
 #    measure of entanglement built on exactly this dependence on the unravelling.
 # 2. It is an **upper bound**, not an estimate of the entanglement of $\rho$. Any unravelling realises $\rho(t)$ as an ensemble of pure states
 #    $\{p_i,|\psi_i\rangle\}$, and the entanglement of formation of $\rho$ is by definition the *minimum* of $\sum_ip_iS(|\psi_i\rangle)$ over all
-#    such decompositions [[10]](#ref-10). Hence
+#    such decompositions [[11]](#ref-11). Hence
 #    $E_F(\rho)\le\overline{S(|\psi_i\rangle)}$ for every unravelling. Here $\rho$ is a product state, $E_F=0$, and the bound $2.0$ bits is
 #    as far from tight as it can be — which is precisely the lesson.
 # 3. What the curve *does* measure is the entanglement of the monitored system, conditioned on a detection record. That is a physical
 #    quantity for an experiment that records the clicks, and the competition between the entangling Hamiltonian and the disentangling
 #    measurements is the subject of the **measurement-induced entanglement transitions** found in random circuits with projective
-#    measurements in [[11]](#ref-11) and [[12]](#ref-12).
+#    measurements in [[12]](#ref-12) and [[13]](#ref-13).
 
 # %% [markdown]
 # ## 8. Memory and time: the break-even point
@@ -1159,7 +1159,7 @@ plt.tight_layout(); plt.show()
 # %% [markdown]
 # **Interpretation.** *Left/middle:* the sharp domain wall between excited (blue, $\langle Z\rangle=-1$) and unexcited (red) spins melts: excitations
 # spread into the empty half — for the closed XXZ chain at $\Delta<1$ this melting is known to be *ballistic*, the magnetisation profile becoming a
-# function of $q/t$ [[13]](#ref-13); here dissipation drains the excitations everywhere at the same time, so the blue
+# function of $q/t$ [[14]](#ref-14); here dissipation drains the excitations everywhere at the same time, so the blue
 # region fades as a whole and the observed window is far too short to extract a front velocity.
 # With only a few dozen trajectories the profile is already smooth enough to read off the physics, thanks to the modest trajectory-to-trajectory fluctuations
 # of local magnetisations. *Right:* the total excitation number agrees with the exact law (6) within its error band. (There is also a small *systematic* bias: the Trotter–Kraus
@@ -1185,7 +1185,7 @@ plt.tight_layout(); plt.show()
 # exchanges no energy with the chain and it conserves $\sum_i Z_i$ exactly, so the amount of magnetisation is
 # untouched; what it destroys is the phase coherence between neighbouring sites that ballistic propagation relies on.
 # The quasi-particles scatter, the light cone dissolves, and the wall spreads as $\sqrt t$ instead of $t$: the
-# transport becomes **diffusive** [[14]](#ref-14).
+# transport becomes **diffusive** [[15]](#ref-15).
 #
 # Two numbers say why this section needs trajectories. To tell $\sqrt t$ from $t$ the chain must be
 # long enough that the front does not reach the ends: $N=16$ at least. A density tensor for 16 spins holds
@@ -1394,31 +1394,34 @@ plt.tight_layout(); plt.show()
 #
 # <span id="ref-7">[7]</span> H. J. Carmichael, *An Open Systems Approach to Quantum Optics*, Lecture Notes in Physics m18, Springer (1993) — "quantum trajectories".
 #
-# <span id="ref-8">[8]</span> N. Gisin, I. C. Percival, *The quantum-state diffusion model applied to open systems*, J. Phys. A **25**, 5677 (1992) — the diffusive
+# <span id="ref-8">[8]</span> H. F. Trotter, *On the product of semi-groups of operators*, Proc. Amer. Math. Soc. **10**, 545 (1959) — the product
+# formula behind Trotterised time evolution.
+#
+# <span id="ref-9">[9]</span> N. Gisin, I. C. Percival, *The quantum-state diffusion model applied to open systems*, J. Phys. A **25**, 5677 (1992) — the diffusive
 #   unravelling (continuous noise instead of jumps), a different stochastic process with the same $\rho(t)$.
 #
-# <span id="ref-9">[9]</span> H. Nha, H. J. Carmichael, *Entanglement within the quantum trajectory description of open quantum systems*, Phys. Rev. Lett. **93**, 120408 (2004)
+# <span id="ref-10">[10]</span> H. Nha, H. J. Carmichael, *Entanglement within the quantum trajectory description of open quantum systems*, Phys. Rev. Lett. **93**, 120408 (2004)
 #   — trajectory entanglement depends on the unravelling.
 #
-# <span id="ref-10">[10]</span> C. H. Bennett, D. P. DiVincenzo, J. A. Smolin, W. K. Wootters, *Mixed-state entanglement and quantum error correction*,
+# <span id="ref-11">[11]</span> C. H. Bennett, D. P. DiVincenzo, J. A. Smolin, W. K. Wootters, *Mixed-state entanglement and quantum error correction*,
 #   Phys. Rev. A **54**, 3824 (1996) — entanglement of formation as the minimum over pure-state decompositions, hence the bound of Section 7.
 #
-# <span id="ref-11">[11]</span> Y. Li, X. Chen, M. P. A. Fisher, *Quantum Zeno effect and the many-body entanglement transition*, Phys. Rev. B **98**, 205136 (2018).
+# <span id="ref-12">[12]</span> Y. Li, X. Chen, M. P. A. Fisher, *Quantum Zeno effect and the many-body entanglement transition*, Phys. Rev. B **98**, 205136 (2018).
 #
-# <span id="ref-12">[12]</span> B. Skinner, J. Ruhman, A. Nahum, *Measurement-induced phase transitions in the dynamics of entanglement*, Phys. Rev. X **9**, 031009 (2019).
+# <span id="ref-13">[13]</span> B. Skinner, J. Ruhman, A. Nahum, *Measurement-induced phase transitions in the dynamics of entanglement*, Phys. Rev. X **9**, 031009 (2019).
 #
-# <span id="ref-13">[13]</span> D. Gobert, C. Kollath, U. Schollwöck, G. Schütz, *Real-time dynamics in spin-1/2 chains with adaptive time-dependent density matrix
+# <span id="ref-14">[14]</span> D. Gobert, C. Kollath, U. Schollwöck, G. Schütz, *Real-time dynamics in spin-1/2 chains with adaptive time-dependent density matrix
 #   renormalization group*, Phys. Rev. E **71**, 036102 (2005) — ballistic melting of a domain wall in the XXZ chain for $\Delta<1$.
 #
-# <span id="ref-14">[14]</span> M. Žnidarič, *Dephasing-induced diffusive transport in the anisotropic Heisenberg model*, New J. Phys. **12**, 043001 (2010)
+# <span id="ref-15">[15]</span> M. Žnidarič, *Dephasing-induced diffusive transport in the anisotropic Heisenberg model*, New J. Phys. **12**, 043001 (2010)
 #   — dephasing turns ballistic spin transport into diffusion (Section 9).
 #
-# <span id="ref-15">[15]</span> K. Mølmer, Y. Castin, J. Dalibard, *Monte Carlo wave-function method in quantum optics*, J. Opt. Soc. Am. B **10**, 524 (1993) — the detailed account of the algorithm used here.
+# <span id="ref-16">[16]</span> K. Mølmer, Y. Castin, J. Dalibard, *Monte Carlo wave-function method in quantum optics*, J. Opt. Soc. Am. B **10**, 524 (1993) — the detailed account of the algorithm used here.
 #
-# <span id="ref-16">[16]</span> M. B. Plenio, P. L. Knight, *The quantum-jump approach to dissipative dynamics in quantum optics*, Rev. Mod. Phys. **70**, 101 (1998).
+# <span id="ref-17">[17]</span> M. B. Plenio, P. L. Knight, *The quantum-jump approach to dissipative dynamics in quantum optics*, Rev. Mod. Phys. **70**, 101 (1998).
 #
-# <span id="ref-17">[17]</span> A. J. Daley, *Quantum trajectories and open many-body quantum systems*, Adv. Phys. **63**, 77 (2014) — many-body applications, higher-order schemes.
+# <span id="ref-18">[18]</span> A. J. Daley, *Quantum trajectories and open many-body quantum systems*, Adv. Phys. **63**, 77 (2014) — many-body applications, higher-order schemes.
 #
-# <span id="ref-18">[18]</span> W. H. Press, S. A. Teukolsky, W. T. Vetterling, B. P. Flannery, *Numerical Recipes: The Art of Scientific Computing*, 3rd ed.,
+# <span id="ref-19">[19]</span> W. H. Press, S. A. Teukolsky, W. T. Vetterling, B. P. Flannery, *Numerical Recipes: The Art of Scientific Computing*, 3rd ed.,
 #   Cambridge University Press (2007) — Chapter 7: random-number generation and the $1/\sqrt M$ error of Monte-Carlo estimators.
 

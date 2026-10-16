@@ -1155,7 +1155,7 @@ assert err_heff < 1e3 * TOL
 def lanczos_lowest(matvec, v0, m, mask=None, key=None):
     """Lowest eigenpair (E, x) of a Hermitian operator given only matvec, from m Lanczos steps started at v0.
 
-    MATH    beta_j v_{j+1} = H v_j - alpha_j v_j - beta_{j-1} v_{j-1}  (notebook 11), full reorthogonalisation (twice);
+    MATH    beta_j v_{j+1} = H v_j - alpha_j v_j - beta_{j-1} v_{j-1}  (Lanczos recurrence), full reorthogonalisation (twice);
             Ritz vector x = sum_j s_j v_j of the lowest eigenvector s of the tridiagonal T.
     BREAKDOWN  beta_j <= 1e-12 ||H||, with ||H|| estimated by the largest ||H v_j|| seen (a RELATIVE test: the rounding
             residual of an exhausted Krylov space grows with ||H||).  The Krylov space K is then invariant, but it need
@@ -1350,6 +1350,8 @@ assert float(eps16) < TOL and float(jnp.max(jnp.abs(rebuilt - theta_t))) < 1e3 *
 # **Why it converges.** Each local step minimises the energy over a subspace that *contains* the current state (the current $\theta$ is one of its vectors), so the energy can only go down, up
 # to the small increase caused by truncation. The two-site tensor has room for a bond dimension of up to $2\chi$ between the two sites, which lets the bond dimension grow from $1$ (a product
 # state) to $\chi$ during the first sweep. Convergence is judged from the energy change between sweeps and from the discarded weights, which must be small for the MPS to be trusted.
+# After the last sweep `dmrg` compares the two: the truncation changes the energy by about $\varepsilon_{\max}|E|$, and if the last sweep changed it by more than ten times that,
+# `dmrg` prints that the run is not converged.
 #
 # **JAX practice.** One local step (contraction, Lanczos, SVD) is compiled once, since all padded tensors have the same shape; the two directions differ only in the static flag of the split,
 # so there are two compiled functions. The sweep itself is a plain Python loop over the bonds — $2(N-1)$ calls per sweep — and it stays readable.
@@ -1384,7 +1386,7 @@ def make_local_step(chi, m, move_right):
     return step
 
 
-def dmrg(W, M, chi, n_sweeps, m=20, trace=False):
+def dmrg(W, M, chi, n_sweeps, m=20, trace=False, check_convergence=True):
     """Two-site DMRG for the MPO W (N, D, D, 2, 2), starting from the padded MPS M (N, chi, 2, chi).
 
     RETURNS  B (N, chi, 2, chi) right-canonical, lam (N+1, chi) Schmidt values of all bonds, history list of
@@ -1403,6 +1405,11 @@ def dmrg(W, M, chi, n_sweeps, m=20, trace=False):
     SYMMETRY Lanczos keeps the symmetry sector of its start vector (e.g. S^z_tot for an XXZ chain).  On a breakdown it
              restarts from a random vector (`lanczos_lowest`), which happens on the short bonds near the chain ends and
              for an eigenstate start; this lets the state leave the sector of the start, but nothing guarantees it.
+    CONVERGENCE  The sweeps stop after n_sweeps.  With check_convergence, the energy change dE of the last sweep is
+             compared with the truncation error of the energy, which is about eps_max |E| (eps_max = largest discarded
+             weight of the last sweep): the run counts as converged if |dE| <= max(10 eps_max |E|, 100 eps_mach |E|),
+             the second term being the rounding of E.  Otherwise one line is printed (not raised).  A single sweep
+             has no energy change to compare and is reported as not checked.
     """
     N, D = W.shape[0], W.shape[1]
     M, _ = mps_recanonicalise(jnp.asarray(M, dtype=CDTYPE))        # right-canonical, padding exactly zero
@@ -1445,6 +1452,16 @@ def dmrg(W, M, chi, n_sweeps, m=20, trace=False):
     nrm = float(jnp.linalg.norm(B[0]))
     if not abs(nrm - 1.0) < tol:
         raise RuntimeError(f"dmrg: the final MPS has norm {nrm:.3e} instead of 1")
+    if check_convergence:                                          # energy change of the last sweep vs its truncation
+        if n_sweeps < 2:
+            print(f"dmrg: convergence not checked after {n_sweeps} sweep(s) (it needs the energy change between two); "
+                  "run more sweeps")
+        else:
+            E, dE = history[-1][3], history[-1][3] - [h[3] for h in history if h[0] == n_sweeps - 2][-1]
+            eps = max(h[4] for h in history if h[0] == n_sweeps - 1)
+            if abs(dE) > max(10 * eps * abs(E), 100 * float(jnp.finfo(RDTYPE).eps) * abs(E)):
+                print(f"dmrg: not converged after {n_sweeps} sweeps (last-sweep energy change {dE:.1e} vs largest "
+                      f"discarded weight {eps:.1e}); run more sweeps")
     return B, lam, history
 
 
@@ -1567,7 +1584,7 @@ assert abs(val[64][1][-1][3] - E_tfim_exact) < 1e-8 and abs(val[64][0][-1][3] - 
 # Exact diagonalisation of the chain $H=\sum_i(X_iX_{i+1}+Y_iY_{i+1}+\Delta Z_iZ_{i+1})+h_x\sum_iX_i$ up to $N=18$ ([notebook 06, Section 10, states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb); [notebook 11, Section 12.3, Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb)) leaves open whether the chain has a finite gap on the Néel
 # side $(\Delta,h_x)=(2,0)$ and in the field at $(0,1)$, and whether the transverse field induces antiferromagnetic order along $y$, as predicted in [[17]](#ref-17).
 # DMRG as built here computes ground states, and a gap needs the first excited state as well, so we answer the questions about order: is there long-range Néel order at $(2,0)$, and long-range
-# $y$ order in the field? Every run below uses $\chi=64$ and six sweeps. Order means that the connected
+# $y$ order in the field? Every run below uses $\chi=64$ and six sweeps, except the one at $(0,2)$ with $N=60$ (see below). Order means that the connected
 # correlation between distant spins does not decay. We compute the staggered correlations
 #
 # $$ C^{zz}_{\rm st}(r)=(-1)^r\langle Z_iZ_{i+r}\rangle,\qquad C^{yy}_{\rm st}(r)=(-1)^r\langle Y_iY_{i+r}\rangle , \tag{16}$$
@@ -1585,6 +1602,7 @@ assert abs(val[64][1][-1][3] - E_tfim_exact) < 1e-8 and abs(val[64][0][-1][3] - 
 # ==============================================================================
 POINTS_DMRG = {"Neel side (2, 0)": (2.0, 0.0, "01"), "field (0, 1)": (0.0, 1.0, "-"), "field (0, 2)": (0.0, 2.0, "-")}
 CHI_PH = 64
+SWEEPS_PH = {("field (0, 2)", 60): 60}     # a nearly degenerate pair of levels: six sweeps stop short of the lower one
 lam_bax = np.arccosh(2.0); q_bax = np.exp(-lam_bax)
 m_st_exact = np.prod([((1 - q_bax ** (2 * n)) / (1 + q_bax ** (2 * n))) ** 2 for n in range(1, 60)])
 phys = {}
@@ -1592,20 +1610,21 @@ for N_ph in (60, 100):
     for label, (Delta_ph, hx_ph, pattern) in POINTS_DMRG.items():
         t0 = time.time()
         W_ph = xxz_mpo(N_ph, 1.0, 1.0, Delta_ph, hx=hx_ph)
-        B_ph, lam_ph, h_ph = dmrg(W_ph, product_mps((pattern * N_ph)[:N_ph], CHI_PH)[0], CHI_PH, 6)
+        n_sw = SWEEPS_PH.get((label, N_ph), 6)
+        B_ph, lam_ph, h_ph = dmrg(W_ph, product_mps((pattern * N_ph)[:N_ph], CHI_PH)[0], CHI_PH, n_sw)
         i0, rs = N_ph // 4, np.arange(1, N_ph // 2 + 1)
         czz = np.array([(-1) ** r * float(mps_correlator(B_ph, lam_ph, Z, i0, Z, i0 + r)) for r in rs])
         cyy = np.array([(-1) ** r * float(mps_correlator(B_ph, lam_ph, Y, i0, Y, i0 + r)) for r in rs])
         if (label, N_ph) == ("Neel side (2, 0)", 100):
             lam_ph_neel100 = lam_ph
-        phys[(label, N_ph)] = dict(E=h_ph[-1][3], czz=czz, cyy=cyy, rs=rs, eps=max(h[4] for h in h_ph if h[0] == 5),
-                                   dE=h_ph[-1][3] - [h[3] for h in h_ph if h[0] == 4][-1])
+        phys[(label, N_ph)] = dict(E=h_ph[-1][3], czz=czz, cyy=cyy, rs=rs, eps=max(h[4] for h in h_ph if h[0] == n_sw - 1),
+                                   dE=h_ph[-1][3] - [h[3] for h in h_ph if h[0] == n_sw - 2][-1])
         z_loc = float(jnp.max(jnp.abs(mps_expect_sites(B_ph, lam_ph, Z))))
         y_loc = float(jnp.max(jnp.abs(mps_expect_sites(B_ph, lam_ph, Y))))
-        print(f"N={N_ph:3d} {label:17s}: E = {h_ph[-1][3]:.8f} (change in the last sweep {phys[(label, N_ph)]['dE']:.0e}), largest discarded weight "
+        print(f"N={N_ph:3d} {label:17s} {n_sw:2d} sweeps: E = {h_ph[-1][3]:.8f} (change in the last sweep {phys[(label, N_ph)]['dE']:.0e}), largest discarded weight "
               f"{phys[(label, N_ph)]['eps']:.0e}, C_zz_st(r=1) = {czz[0]:+.4f}, C_zz_st(N/2) = {czz[-1]:+.4f}, C_yy_st(N/2) = {cyy[-1]:+.4f}   [{time.time() - t0:.0f} s]")
         tag = "symmetric" if z_loc < 1e-3 else "not yet symmetric: incomplete convergence (see below)"
-        print(f"     {'':17s}  max_j |<Z_j>| = {z_loc:.1e}, max_j |<Y_j>| = {y_loc:.1e}   ({tag})")
+        print(f"     {'':27s}  max_j |<Z_j>| = {z_loc:.1e}, max_j |<Y_j>| = {y_loc:.1e}   ({tag})")
 print(f"\nBaxter: m_st = {m_st_exact:.4f},  m_st^2 = {m_st_exact ** 2:.4f};   DMRG at N=100: C_zz_st(r=50) = "
       f"{phys[('Neel side (2, 0)', 100)]['czz'][-1]:.4f}, relative deviation "
       f"{abs(phys[('Neel side (2, 0)', 100)]['czz'][-1] - m_st_exact ** 2) / m_st_exact ** 2:.1%}")
@@ -1634,20 +1653,23 @@ plt.tight_layout(); plt.show()
 # **The answers.**
 #
 # * **Néel order at $\Delta=2$.** $C^{zz}_{\rm st}(r)$ drops from $0.80$ at $r=1$ to a plateau that stays flat out to $r=50$, at $0.537$ for $N=100$ — within $0.3\,\%$ of the exact $m_{\rm st}^2=0.538$ of [[18]](#ref-18). The chain has
-#   long-range Néel order, and DMRG reproduces the exact order parameter. The $y$ correlations fall to $3\times10^{-3}$ at $r=10$ and below $10^{-3}$ at $r=20$.
-# * **Field-induced order along $y$.** At $(0,1)$ the $zz$ correlations vanish within a few sites, while $C^{yy}_{\rm st}(r)$ settles at about $0.43$ at $N=100$, decreasing only from $0.440$ at $r=10$ to
-#   $0.429$ at $r=50$. At $N=60$ it is lower, $0.420$ at $r=10$ and $0.393$ at $r=30$, so at this point the height of the plateau still depends on the length of the chain. At $(0,2)$ the plateau is
+#   long-range Néel order, and DMRG reproduces the exact order parameter. The $y$ correlations are invisible on the scale of the figure, and $C^{yy}_{\rm st}(N/2)\le10^{-4}$ at both lengths.
+# * **Field-induced order along $y$.** At $(0,1)$ the $zz$ correlations vanish within a few sites, while $C^{yy}_{\rm st}(r)$ settles at about $0.43$ at $N=100$, decreasing only slightly with $r$ (middle panel) to
+#   $0.429$ at $r=50$. At $N=60$ it is lower, $0.393$ at $r=30$, so at this point the height of the plateau still depends on the length of the chain. At $(0,2)$ the plateau is
 #   $0.62$ at both lengths. The transverse field has produced long-range antiferromagnetic order along $y$, the direction perpendicular to the anisotropy axis and to the field — the prediction of
 #   [[17]](#ref-17). The hints from the parity splitting at $N=18$ ([notebook 11, Section 12.3, Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb)) were real.
 # * **Why DMRG could do this.** Both ordered phases are gapped according to the exact [[19]](#ref-19) and scaling/mean-field [[17]](#ref-17) results, so they obey an area law (Section 2), and
-#   $\chi=64$ is ample: the largest discarded weight of the last sweep lies between $2\times10^{-13}$ and about $10^{-9}$ at the six points. The same calculation for the critical XX chain needs more
-#   Schmidt values, as the validation showed.
+#   $\chi=64$ is ample: the largest discarded weight of the last sweep lies between $2\times10^{-13}$ and $2\times10^{-10}$ at the six points. The same calculation for the critical XX chain needs more
+#   Schmidt values, as the validation showed. At $(0,2)$ with $N=60$ the lowest two levels are nearly degenerate, and the sweeps approach the lower one
+#   slowly: after six sweeps the energy still falls by far more than the discarded weight. That run therefore uses sixty sweeps, which reach the lower level; the last of them
+#   changes the energy by $2\times10^{-11}$.
 #
 # > **Physics insight.** A finite chain has no spontaneous symmetry breaking ([notebook 11, Section 10.3, Hamiltonians and ground states](../ch05_ground_states_and_unitary_dynamics/11_hamiltonians_and_ground_states.ipynb)), so one expects $\langle Z_j\rangle=\langle Y_j\rangle=0$, and the order to show up only in the correlations — which is why
-# > the order parameter is measured as the long-distance limit of $C_{\rm st}(r)$ and not as a single expectation value. The printed values follow this at $N=60$ ($\max_j|\langle Z_j\rangle|$ between $4\times10^{-11}$ and $2\times10^{-7}$) and in the
-# > field, but the six-sweep run at $N=100$ on the Néel side ends with $\max_j|\langle Z_j\rangle|=0.13$. The sweeps start from the Néel product state, one side of the doublet, and at a
-# > hundred spins six sweeps do not complete the way to the symmetric ground state: the last sweep still lowers the energy by far more than the discarded weight. The eight-sweep rerun printed above
-# > settles it: the energy drops further, the change of the last sweep falls to $5\times10^{-8}$, $\max_j|\langle Z_j\rangle|$ drops to $9\times10^{-3}$, and the central entropy rises to $1.41$ bits.
+# > the order parameter is measured as the long-distance limit of $C_{\rm st}(r)$ and not as a single expectation value. The printed values follow this at $N=60$ ($\max_j|\langle Z_j\rangle|$ between $8\times10^{-11}$ and $2\times10^{-7}$) and in the
+# > field, but the six-sweep run at $N=100$ on the Néel side ends with $\max_j|\langle Z_j\rangle|=0.50$. The sweeps start from the Néel product state, one side of the doublet, and at a
+# > hundred spins six sweeps do not complete the way to the symmetric ground state: the last sweep still lowers the energy by far more than the discarded weight, and `dmrg` prints that the run is not converged. In the
+# > eight-sweep rerun printed above the energy drops further and the change of the last sweep falls to $9\times10^{-7}$, still more than the discarded weight, so this run is not converged either;
+# > $\max_j|\langle Z_j\rangle|$ drops to $0.038$, and the central entropy rises from $1.03$ to $1.40$ bits.
 # > The residual magnetisation is incomplete convergence: its value records how far the sweeps have come, not a property of the state they approach. The staggered correlations agree to four digits
 # > in both runs, which is exactly why they, and not $\langle Z_j\rangle$, are used to detect the order, and why a converged energy, not a fixed number of sweeps, is the stopping criterion to use in
 # > production.
@@ -2435,8 +2457,8 @@ plt.tight_layout(); plt.show()
 #
 # $$ S(t)=t\int_{-\pi/2}^{\pi/2}\frac{dk}{2\pi}\;2\cdot4J\vert\sin k\vert\;\times\;1\ \text{bit}\;=\;\frac{8J}{\pi}\,t\ \text{bits}\;=\;2.546\,t\ \text{bits}, $$
 #
-# against the measured $2.562$ (the small excess comes from the finite fitting window; a free-fermion chain of
-# $N=400$ fitted over $1\le t\le8$ gives $2.553$). The same number can be written as "one bit per mode travelling at
+# against the measured $2.562$ (the small excess comes from the finite fitting window; a free-fermion calculation outside this
+# notebook, for $N=400$ fitted over $1\le t\le8$, gives $2.553$). The same number can be written as "one bit per mode travelling at
 # $\vert4J\sin k\vert$, averaged over the *full* Brillouin zone" - the two factors of two cancel - but that shorthand
 # hides the pair structure and must not be transplanted to other initial states.
 #

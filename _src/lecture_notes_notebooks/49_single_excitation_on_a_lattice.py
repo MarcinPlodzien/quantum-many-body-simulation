@@ -3,17 +3,15 @@
 #@description: One excitation hopping on N sites, the smallest quantum problem in the course whose lattice is not an approximation to a continuum. Both solvable cases worked out in full — the ring by plane waves, giving the Bessel propagator $G_n(t) = (-i)^n J_n(2wt)$; the open chain by hard-wall standing waves, giving the sine sum. The light cone, its velocity 2w, and the Airy edge. This same N×N matrix returns later as the one-magnon sector of the XX chain and as the single-particle Hamiltonian of free fermions, whose propagator supplies the exact reference for the matrix-product-state time evolution.
 
 # %% [markdown]
-# ## 1. The model and its place in the course
+# ## 1. Introduction
 #
-# This notebook builds on
-# [notebook 00a](../ch01_computational_toolbox/00a_free_particle_gaussian_wave_packet.ipynb), and specifically on the part of
-# it that built the three-point Laplacian on a ring and measured its dispersion relation
-# $\omega_{\rm FD}(k) = (1-\cos k\Delta x)/\Delta x^2$.
+# The notebook assumes the three-point Laplacian on a ring and its dispersion relation
+# $\omega_{\rm FD}(k) = (1-\cos k\Delta x)/\Delta x^2$, from
+# [notebook 00a, a free Gaussian wave packet on a ring](../ch01_computational_toolbox/00a_free_particle_gaussian_wave_packet.ipynb).
 #
-# In 00a the grid was an approximation: the particle really lived on the continuous line, the $N_x$ samples stood in
-# for it, and the gap between the two was the discretisation error we spent most of the notebook measuring. Here we
-# invert that. The lattice is the physical system, with no continuum behind it. One excitation can sit on any of $N$
-# sites, so the state is a vector of $N$ amplitudes,
+# There the grid was an approximation: the particle lived on the continuous line, the $N_x$ samples stood in for it,
+# and the gap between the two was a discretisation error. Here we invert that. The lattice is the physical system,
+# with no continuum behind it. One excitation can sit on any of $N$ sites, so the state is a vector of $N$ amplitudes,
 #
 # $$ \vert\psi\rangle = \sum_{j} c_j \vert j\rangle, $$
 #
@@ -22,37 +20,41 @@
 # $$ \hat H = w \sum_j \big( \vert j\rangle\langle j+1\vert + \vert j+1\rangle\langle j\vert \big). $$
 #
 # The Hamiltonian is an $N\times N$ matrix, and every computation below takes well under a second. It nevertheless
-# contains the ingredients the many-body chapters need: a band structure, a group velocity, a light cone, and two
+# contains the ingredients of many-body dynamics: a band structure, a group velocity, a light cone, and two
 # boundary conditions with different closed forms.
 #
 # The model is exactly solvable twice over, by plane waves on a ring (Section 2) and by standing waves on an open chain
-# (Section 3), and both solutions are short enough to derive completely. Few of the many-body problems of this course
-# have an exact solution.
+# (Section 3), and both solutions are short enough to derive completely. Few many-body problems have an exact
+# solution.
 #
-# The same matrix reappears in the spin chains.
-# [Notebook 03](../ch02_spin_systems_textbook_way/03_quantum_many_body_spin_systems.ipynb) (Sections 4.3 and 6.2) shows
-# that the total magnetisation $\sum_j \hat Z_j$ commutes with the XX Hamiltonian, so the number of reversed spins is
-# conserved and the $2^N$-dimensional spectrum splits into magnetisation sectors. In the sector with exactly one reversed
-# spin, that Hamiltonian is the matrix of this notebook with $w = 2J$, and the same Bessel function then describes a
-# magnon. The Jordan-Wigner transformation (Jordan and Wigner 1928), quoted in
-# [notebook 06](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb), extends the statement from one
-# excitation to any number, making the XX chain a gas of free fermions on the same lattice.
+# The model is realised directly in experiments: by light in a lattice of about 100 coupled waveguides
+# [[1]](#ref-1), and by a single spin excitation moving through a one-dimensional lattice of ultracold atoms
+# [[2]](#ref-2).
 #
-# It also supplies an exact reference for tensor-network codes.
-# [Notebook 18](../ch07_tensor_networks/18_mps_tebd.ipynb) (MPS, DMRG and TEBD) checks its time evolution of 60-spin XX
-# chains against a free-fermion solution whose single-particle propagator is $e^{-i\hat Ht}$ for exactly this matrix
-# with $w=2J$. Section 6 shows that a state with one excitation is represented exactly at bond dimension two, so for
-# such a state a comparison with the closed forms tests the code and not the truncation.
+# The same matrix reappears in spin chains. The total magnetisation $\sum_j \hat Z_j$ commutes with the XX
+# Hamiltonian, so the number of reversed spins is conserved and the $2^N$-dimensional spectrum splits into
+# magnetisation sectors. In the sector with exactly one reversed spin, that Hamiltonian is the matrix of this notebook
+# with $w = 2J$ (Section 6), and the same Bessel function then describes a magnon, the quantum of the spin waves
+# introduced in [[3]](#ref-3). The Jordan–Wigner transformation, introduced in [[4]](#ref-4), extends the
+# statement from one excitation to any number: the XX chain becomes a gas of free fermions on the same lattice, a
+# solution introduced in [[5]](#ref-5).
 #
-# The connection to notebook 00a is closer than an analogy. The three-point Laplacian there had $1/\Delta x^2$ on the
-# diagonal and $-1/(2\Delta x^2)$ beside it, so it is exactly the hopping matrix with $w = -1/(2\Delta x^2)$ plus a
-# constant, and a constant added to a Hamiltonian only multiplies the state by a global phase. The dispersion relation
-# we measured there as an *artefact* of the discretisation is the true band structure here.
+# It also supplies an exact reference for tensor-network codes. The free-fermion solution of the XX chain needs only
+# the single-particle propagator $e^{-i\hat Ht}$ of exactly this matrix with $w=2J$, so it can judge a
+# matrix-product-state time evolution of a long chain. Section 6 shows that a state with one excitation is represented
+# exactly at bond dimension two, so for such a state a comparison with the closed forms tests the code and not the
+# truncation.
+#
+# The connection to the continuum problem is closer than an analogy. The three-point Laplacian on a grid of spacing
+# $\Delta x$ has $1/\Delta x^2$ on the diagonal and $-1/(2\Delta x^2)$ beside it, so it is exactly the hopping matrix
+# with $w = -1/(2\Delta x^2)$ plus a constant, and a constant added to a Hamiltonian only multiplies the state by a
+# global phase. The dispersion relation that was an *artefact* of the discretisation on the grid is the true band
+# structure here.
 #
 # ### Road map
 #
 # * **Section 2** — the ring: plane waves, the band $E_k=2w\cos k$, and the propagator $(-i)^nJ_n(2wt)$ from the
-#   Jacobi-Anger expansion.
+#   Jacobi–Anger expansion.
 # * **Section 3** — the open chain: standing waves, the exact finite-$N$ propagator, and the method of images for an
 #   excitation released at the wall.
 # * **Section 4** — the light cone: the maximal group velocity $2w$, the stationary-phase derivation of the light cone
@@ -83,17 +85,6 @@
 # * checkpoints that are asserted, each paired with a wrong control that must fail;
 # * reading a disagreement as information: the free form fails at a wall for a reason, and the size of the failure shows
 #   it.
-#
-# ### Prerequisites
-#
-# * [00a — the free particle and the Gaussian wave packet](../ch01_computational_toolbox/00a_free_particle_gaussian_wave_packet.ipynb):
-#   the three-point Laplacian, its dispersion relation, the Gaussian integral and the spreading law of a free packet.
-# * Helpful but optional:
-#   [00b — the harmonic oscillator](../ch01_computational_toolbox/00b_first_quantum_simulation_harmonic_oscillator.ipynb)
-#   uses `scipy.linalg.expm` and diagonalises a tridiagonal Hamiltonian, as this notebook does.
-# * Section 6 only:
-#   [03 — quantum many-body spin systems](../ch02_spin_systems_textbook_way/03_quantum_many_body_spin_systems.ipynb)
-#   for Pauli operators on $N$ spins, the XX chain and the magnetisation sectors.
 #
 # No JAX is used here; the matrices are small enough for NumPy and SciPy.
 #
@@ -127,7 +118,8 @@ print("\nand as a ring:\n", hop(5, periodic=True))
 # %% [markdown]
 # ## 2. The ring: plane waves and the band
 #
-# On a ring of $N$ sites the model is invariant under $j \to j+1$, so the eigenvectors are plane waves (Bloch's theorem, Bloch 1929). Put
+# On a ring of $N$ sites the model is invariant under $j \to j+1$, so the eigenvectors are plane waves (Bloch's theorem,
+# introduced in [[6]](#ref-6)). Put
 #
 # $$ \vert k\rangle = \frac{1}{\sqrt N}\sum_j e^{ikj}\vert j\rangle, \qquad k = \frac{2\pi m}{N},\quad m=0,\dots,N-1, $$
 #
@@ -167,7 +159,7 @@ assert err_band < TOL and err_wrong > 1e3 * TOL
 # $$ G_n(t) = \langle n\vert e^{-i\hat Ht}\vert 0\rangle = \frac1N\sum_k e^{ikn}e^{-i2wt\cos k}
 #          \;\xrightarrow[N\to\infty]{}\; \int_{-\pi}^{\pi}\frac{dk}{2\pi}\, e^{ikn}\,e^{-i2wt\cos k}. $$
 #
-# The integral is a standard one. The *Jacobi-Anger expansion* says
+# The integral is a standard one. The *Jacobi–Anger expansion* ([[7]](#ref-7), §10.12) says
 #
 # $$ e^{-iz\cos k} = \sum_{m=-\infty}^{\infty} (-i)^m J_m(z)\, e^{imk}, $$
 #
@@ -360,14 +352,17 @@ print(f"  the image form degrades only as the front approaches the FAR end, reac
 # so no wave packet moves faster than $2w$ and the excitation is confined to a *light cone* $\vert j\vert \lesssim 2wt$.
 # The Bessel function says the same thing more sharply: $J_n(z)$ is exponentially small for $z<n$, so site $n$ is
 # not reached before $t\approx n/(2w)$, apart from an exponentially small tail. For any lattice Hamiltonian with
-# local terms a velocity of this kind exists; the general statement is the bound proved by Lieb and Robinson (1972).
+# local terms a velocity of this kind exists; the general statement is the Lieb–Robinson bound, introduced in
+# [[8]](#ref-8).
 #
 # The density at site $n$ peaks later than the arrival time $n/(2w)$, at the *Airy edge*
 #
 # $$ z_{\rm peak} \approx n + 0.81\,n^{1/3}, $$
 #
 # which is the first maximum of $J_n$ (the first zero $j'_{n,1}$ of $J_n'$). The front is a sharp edge with an Airy-function profile: the density at a fixed
-# site rises abruptly as the edge passes, peaks just after, then oscillates while decaying.
+# site rises abruptly as the edge passes, peaks just after, then oscillates while decaying. With many excitations, in
+# the XX chain released from a step-like magnetisation profile, fronts with a staircase structure whose steps widen
+# as $t^{1/3}$ were found in [[9]](#ref-9); they are the many-particle counterpart of this edge.
 #
 # ### 4.1 Where the light cone and the constant 0.81 come from: stationary phase
 #
@@ -384,7 +379,7 @@ print(f"  the image form degrades only as the front approaches the FAR end, reac
 # Condition (B) reads $v_g(k_s) = -2w\sin k_s = n/t$: the only plane waves that contribute at site $n$ at time $t$ are
 # those whose group velocity carries them there. For $z>n$ there are two such points, $k_s$ and $-\pi-k_s$, with
 # $\varphi''(k_s) = z\cos k_s = \pm\sqrt{z^2-n^2}$. Near each, $\varphi \simeq \varphi(k_s) + \tfrac12\varphi''(k_s)(k-k_s)^2$,
-# and the Gaussian integral $\int e^{-au^2}du = \sqrt{\pi/a}$ of notebook 00a, taken at $a = \mp i\varphi''/2$ (the limit
+# and the Gaussian integral $\int e^{-au^2}du = \sqrt{\pi/a}$, taken at $a = \mp i\varphi''/2$ (the limit
 # $\mathrm{Re}\,a\to0^+$), gives each a contribution of modulus $(2\pi\vert\varphi''\vert)^{-1/2}$, so that
 # $\vert J_n(z)\vert \lesssim 2\,(2\pi)^{-1/2}(z^2-n^2)^{-1/4}$ behind the front; at $n=0$ this is the familiar
 # $\sqrt{2/\pi z}$. For $z<n$ equation (B) has no real solution, the cancellation is complete up to exponentially small
@@ -413,7 +408,7 @@ print(f"  the image form degrades only as the front approaches the FAR end, reac
 #
 # the Airy edge quoted above. Both (E) and (F) are the leading terms of standard expansions: (E) of the
 # transition-region expansion of $J_\nu(\nu+a\nu^{1/3})$ in Airy functions, and (F) of
-# $j'_{\nu,1}\sim\nu+0.8086165\,\nu^{1/3}+0.072490\,\nu^{-1/3}+\dots$ (NIST DLMF §10.19(iii) and Eq. 10.21.40). The
+# $j'_{\nu,1}\sim\nu+0.8086165\,\nu^{1/3}+0.072490\,\nu^{-1/3}+\dots$ ([[7]](#ref-7), §10.19(iii) and Eq. 10.21.40). The
 # first cell below measures the peak times; the second checks (E) and (F) against the Bessel function.
 
 # %%
@@ -495,7 +490,7 @@ plt.show()
 #
 # **The continuum limit and the effective mass.** For $w>0$ the band has its minimum at $k=\pi$, where
 # $\cos(\pi+q) \simeq -1 + q^2/2$ and so $E_{\pi+q} \simeq -2w + w q^2$. Comparing the $q^2$ term with the free-particle
-# $E = q^2/2m$ of notebook 00a (in its units, $\hbar=1$, and here the lattice spacing is the unit of length) gives
+# $E = q^2/2m$ (with $\hbar=1$, and the lattice spacing as the unit of length) gives
 # $1/(2m_{\rm eff}) = w$, i.e.
 #
 # $$ m_{\rm eff} = \frac{1}{2w}, $$
@@ -508,7 +503,7 @@ plt.show()
 # unitary equivalence between $+w$ and $-w$ *when $N$ is even*, because the allowed set $\{2\pi m/N\}$ is then mapped
 # onto itself. For odd $N$ it is not: the closing bond picks up $(-1)^{N-1}=+1$ and keeps its old sign, so the two
 # spectra genuinely differ: on an odd ring $H(+w)$ is equivalent to $H(-w)$ with one bond reversed, i.e. with a flux $\pi$
-# through the ring, a sign effect of the odd ring. The sign of $w$ matters here because the three-point Laplacian of notebook 00a corresponds to $w = -1/(2\Delta x^2) < 0$, whose band bottom sits at $k=0$ rather
+# through the ring, a sign effect of the odd ring. The sign of $w$ matters here because the three-point Laplacian of Section 1 corresponds to $w = -1/(2\Delta x^2) < 0$, whose band bottom sits at $k=0$ rather
 # than $k=\pi$. Near that minimum $E\simeq{\rm const}+\vert w\vert k^2$ with $k$ the lattice momentum; restoring the grid
 # spacing, $k = k_{\rm phys}\Delta x$, gives $\vert w\vert\Delta x^2k_{\rm phys}^2 = k_{\rm phys}^2/2$, so the grid reproduces the
 # mass $m=1$ it was built for.
@@ -516,12 +511,13 @@ plt.show()
 # **The level spacing.** Differentiating $E_m = 2w\cos q_m$ with respect to $m$ gives $\vert dE/dm\vert = 2w\sin(q_m)\pi/(N+1)$,
 # which near the band centre $q_m \simeq \pi/2$ is $2\pi w/(N+1)=\pi v/(N+1)$, with $v=2w$ the group velocity there. The
 # levels of a finite chain therefore crowd together as $1/N$. A many-body gap built from such levels inherits the $1/N$,
-# but its prefactor depends on where the lowest excitation sits. In the XX chain of
-# [notebook 06](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb) (Eqs. (13)-(14) there, this band with
-# $w=2J$) the ground state fills the negative levels, zero energy lies halfway between two levels, and the gap is half a
-# spacing, $\Delta_N=4J\sin[\pi/(2(N+1))]\simeq\pi v/(2(N+1))$ with $v=4J$. At the critical point of the transverse-field
-# Ising chain in [notebook 47](../ch11_quantum_phase_transitions/47_quantum_phase_transitions.ipynb), where the dispersion is
-# linear rather than a cosine, the open-chain gap is likewise $\Delta\simeq\pi v/(2N)$. The scaling $v/N$ follows from
+# but its prefactor depends on where the lowest excitation sits. In the XX chain (this band with $w=2J$) the ground
+# state fills the negative levels, zero energy lies halfway between two levels, and the gap is half a spacing,
+# $\Delta_N=4J\sin[\pi/(2(N+1))]\simeq\pi v/(2(N+1))$ with $v=4J$ (derived in
+# [notebook 06, states, observables and entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb),
+# Eqs. (13)–(14)). At the critical point of the transverse-field Ising chain, where the dispersion is linear rather than
+# a cosine, the open-chain gap is likewise $\Delta\simeq\pi v/(2N)$ (derived in
+# [notebook 47, quantum phase transitions](../ch11_quantum_phase_transitions/47_quantum_phase_transitions.ipynb)). The scaling $v/N$ follows from
 # dimensional analysis alone (a velocity and a length are the only scales); the factor $\pi/2$ needs the boundary
 # condition.
 #
@@ -578,8 +574,9 @@ for N in (12, 40):
 # ## 6. Where the hopping matrix returns: magnons, free fermions and tensor networks
 #
 # The XX spin chain, $\hat H = J\sum_j(\hat X_j\hat X_{j+1} + \hat Y_j\hat Y_{j+1})$, commutes with $\sum_j\hat Z_j$, so
-# the number of reversed spins is conserved (notebook 03, Section 6.2; the magnetisation sectors are defined in its
-# Section 4.3). With $\sigma^\pm=(\hat X\pm i\hat Y)/2$, so that $\sigma^-=\vert1\rangle\langle0\vert$ lowers spin up $\vert0\rangle$ to spin
+# the number of reversed spins is conserved (derived in
+# [notebook 03, quantum many-body spin systems](../ch02_spin_systems_textbook_way/03_quantum_many_body_spin_systems.ipynb),
+# Section 6.2; the magnetisation sectors are defined in its Section 4.3). With $\sigma^\pm=(\hat X\pm i\hat Y)/2$, so that $\sigma^-=\vert1\rangle\langle0\vert$ lowers spin up $\vert0\rangle$ to spin
 # down $\vert1\rangle$ and $\sigma^+=\vert0\rangle\langle1\vert$ raises it, one has
 #
 # $$ \hat X_j\hat X_{j+1}+\hat Y_j\hat Y_{j+1} = 2\big(\sigma^+_j\sigma^-_{j+1}+\sigma^-_j\sigma^+_{j+1}\big), $$
@@ -589,16 +586,17 @@ for N in (12, 40):
 # the state stays in the one-reversed-spin sector for ever. Label the $N$ states of that sector by the position $j$ of
 # the reversed spin: the $2^N$-dimensional Hamiltonian restricted to them is the matrix of this notebook with $w = 2J$,
 # the band becomes $E_k = 4J\cos k$ and the propagator $(-i)^nJ_n(4Jt)$. A many-body problem whose state vector has
-# $2^N$ amplitudes has collapsed onto an $N\times N$ one by symmetry. The excitation is then called a *magnon*, the quantum of the spin waves
-# introduced by Bloch (1930).
+# $2^N$ amplitudes has collapsed onto an $N\times N$ one by symmetry. The excitation is then called a *magnon*, the quantum of a
+# spin wave.
 #
-# The Jordan-Wigner transformation, quoted in notebook 06, extends this from one excitation to any number, making the XX
-# chain a gas of non-interacting fermions hopping on the same lattice (Lieb, Schultz and Mattis 1961). The one-magnon result is the special case in which
-# a single level is occupied.
+# The Jordan–Wigner transformation extends this from one excitation to any number, making the XX chain a gas of
+# non-interacting fermions hopping on the same lattice. The one-magnon result is the special case in which a single
+# level is occupied.
 #
-# The practical use is different. Notebook 18 (Section 10.1) evolves matrix product states of 60-spin XX chains and
-# measures their error against the free-fermion solution, whose only input is the single-particle propagator
-# $e^{-i\hat Ht}$ of this matrix with $w=2J$, a $60\times60$ problem. A state with one excitation is the simplest such
+# The practical use is different. The free-fermion solution of a 60-spin XX chain, an exact reference for
+# matrix-product-state time evolution (stated in
+# [notebook 18, matrix product states, DMRG and TEBD](../ch07_tensor_networks/18_mps_tebd.ipynb), Section 10.1), has as
+# its only input the single-particle propagator $e^{-i\hat Ht}$ of this matrix with $w=2J$, a $60\times60$ problem. A state with one excitation is the simplest such
 # test, for a further reason. Cutting the chain after its first $l$ sites ($j=0,\dots,l-1$ in the zero-based labels of the
 # code) splits the state into two terms only,
 #
@@ -610,13 +608,14 @@ for N in (12, 40):
 # in it and $\vert\phi_R\rangle$ likewise on the right. On each side the two states that appear (one excitation, or none)
 # are orthogonal. This is a Schmidt decomposition, so the Schmidt rank is at
 # most two, the Schmidt values are $\sqrt{P_L}$ and $\sqrt{P_R}$, the entanglement entropy is at most one bit, and a matrix
-# product state of bond dimension two is exact at every time. The Trotterised (Trotter 1959) time evolution of TEBD (Vidal 2004) conserves
-# $\sum_j\hat Z_j$ as well, so the state never leaves the sector. A disagreement between TEBD at bond dimension two and the
+# product state of bond dimension two is exact at every time. TEBD, introduced in [[10]](#ref-10), evolves the state
+# with the Trotter product formula, introduced in [[11]](#ref-11), and conserves $\sum_j\hat Z_j$ as well, so the
+# state never leaves the sector. A disagreement between TEBD at bond dimension two and the
 # Bessel function, beyond the Trotter error, therefore locates a mistake in the implementation, with truncation ruled out
 # in advance.
 #
 # The cell below checks both statements on $N=8$ spins. It builds the XX Hamiltonian as a dense $256\times256$ matrix from
-# Kronecker products (the textbook construction of notebook 03; qubit 0 is the most significant bit, $\vert0\rangle$ is spin
+# Kronecker products (qubit 0 is the most significant bit, $\vert0\rangle$ is spin
 # up), takes the rows and columns of the eight states with one reversed spin, and compares the block with `hop(8, w=2J)`.
 # It then evolves one such state with the full spin Hamiltonian and computes the Schmidt values across every cut from a
 # singular-value decomposition. The wrong controls are $w=J$, which forgets the factor 2 of $\sigma^\pm$, and a state with
@@ -682,10 +681,10 @@ for l in range(1, N):
 # ### Key takeaways
 #
 # * **One excitation on $N$ sites is an $N\times N$ problem.** The hopping Hamiltonian $w\sum_j(\vert j\rangle\langle j+1\vert+{\rm h.c.})$
-#   is the three-point Laplacian of notebook 00a read as physics rather than as an approximation; its "numerical
+#   is the three-point Laplacian of a continuum grid read as physics rather than as an approximation; its "numerical
 #   dispersion" is the band $E_k=2w\cos k$, of width $4w$.
 # * **Ring: plane waves.** $k=2\pi m/N$, and the propagator from one site is $G_n(t)=(-i)^nJ_n(2wt)$ on an infinite chain,
-#   obtained from the Jacobi-Anger expansion; the matrix exponential reproduces it to $10^{-15}$ while the ring is
+#   obtained from the Jacobi–Anger expansion; the matrix exponential reproduces it to $10^{-15}$ while the ring is
 #   effectively infinite, and the wrong phase $(+i)^n$ fails at order one.
 # * **Open chain: standing waves.** $q_m=m\pi/(N+1)$, the same cosine band, and a propagator that is an exact $N$-term
 #   sum at every $N$ and $t$, reflections included.
@@ -721,53 +720,63 @@ for l in range(1, N):
 #    edge site $j=1$, predict and measure the time at which its front first returns to site 1, and explain why this time
 #    is about twice the first one. (Use the method of images of Section 3.1 for the prediction, and the Airy delay of
 #    Section 4 for the difference between prediction and measurement.)
-# 5. (★★) **A dimerised chain.** Replace the uniform hopping by $w_j = w(1+(-1)^j\delta)$ and compute the spectrum. Show
+# 5. (★★) **A dimerised chain.** Replace the uniform hopping by $w_j = w(1+(-1)^j\delta)$, the dimerised chain
+#    introduced in [[12]](#ref-12), and compute the spectrum. Show
 #    that a gap opens at $k=\pi/2$, find its size as a function of $\delta$, and measure the group velocity at the gap
 #    edge. What happens to the light cone, i.e. to the maximal group velocity? (Hint: the chain now repeats itself every two sites, so try
 #    $c_{2l}=a\,e^{2ikl}$, $c_{2l+1}=b\,e^{2ikl}$; the eigenvalue equation becomes a $2\times2$ matrix for $(a,b)$.)
 # 6. (★★) **The continuum limit.** Section 5 found the effective mass $m_{\rm eff}=1/(2w)$ at the band bottom $k=\pi$. On an
 #    open chain of 800 sites prepare the packet $c_j\propto e^{-(j-j_0)^2/4\sigma_0^2}\,e^{i\pi j}$ centred at $j_0=400$,
 #    which is built from momenta near $k=\pi$, and measure its width $\sigma(t)$ up to $t=40$ for $\sigma_0=1,2,5$.
-#    Compare with the spreading law of a free Gaussian packet of notebook 00a with the mass $m_{\rm eff}$,
+#    Compare with the spreading law of a free Gaussian packet with the mass $m_{\rm eff}$,
 #    $\sigma(t)=\sigma_0\sqrt{1+(wt/\sigma_0^2)^2}$. Explain why the agreement improves as $\sigma_0$ grows, and why an
 #    excitation started on a single site, which contains every $k$ with equal weight, never follows this law.
 # 7. (★★★) **Bloch oscillations.** Add a linear potential, $\epsilon_j = Fj$. The excitation no longer escapes but
 #    oscillates. Predict the period from the band and measure it for $F=0.1,0.2,0.5$. (Hint: the potential multiplies a
 #    plane wave $e^{ikj}$ by the phase $e^{-iFjt}$, which is a plane wave with $k\to k-Ft$, and $k$ is defined only
-#    modulo $2\pi$.)
+#    modulo $2\pi$.) Bloch oscillations in the tight-binding model are analysed in [[13]](#ref-13).
 #
 # ### References
 #
-# * N. W. Ashcroft and N. D. Mermin, *Solid State Physics*, Holt, Rinehart and Winston (1976) — Chapter 8 (Bloch's
-#   theorem), Chapter 10 (the tight-binding method and its cosine bands) and Chapter 12 (the semiclassical model, in
-#   which a wave packet moves with the group velocity of its band).
-# * F. W. J. Olver et al. (eds.), *NIST Digital Library of Mathematical Functions*, https://dlmf.nist.gov/ —
-#   §10.12 (the generating function and Jacobi-Anger expansions), §10.19(iii) (Bessel functions in the transition region,
-#   in terms of Airy functions), Eq. 10.21.40 (the first maximum $j'_{\nu,1}$ for large order), and Chapter 9 (Airy
-#   functions).
-# * F. Bloch, *Über die Quantenmechanik der Elektronen in Kristallgittern*, Z. Phys. **52**, 555–600 (1929) —
-#   Bloch's theorem: eigenstates of a periodic lattice Hamiltonian are plane waves modulated by the lattice period.
-# * F. Bloch, *Zur Theorie des Ferromagnetismus*, Z. Phys. **61**, 206–219 (1930) — spin waves, whose quanta are the
-#   magnons of Section 6.
-# * P. Jordan and E. Wigner, *Über das Paulische Äquivalenzverbot*, Z. Phys. **47**, 631–651 (1928) — the
-#   Jordan-Wigner transformation.
-# * H. F. Trotter, *On the product of semi-groups of operators*, Proc. Amer. Math. Soc. **10**, 545–551 (1959) — the
-#   product formula behind Trotterised time evolution.
-# * G. Vidal, *Efficient simulation of one-dimensional quantum many-body systems*, Phys. Rev. Lett. **93**, 040502
-#   (2004) — time-evolving block decimation (TEBD).
-# * E. H. Lieb and D. W. Robinson, *The finite group velocity of quantum spin systems*, Commun. Math. Phys. **28**,
-#   251–257 (1972) — the general light cone of lattice Hamiltonians with local terms.
-# * V. Hunyadi, Z. Rácz and L. Sasvári, *Dynamic scaling of fronts in the quantum XX chain*, Phys. Rev. E **69**, 066103
-#   (2004) — fronts in the XX chain after a step-like initial magnetisation: the front region widens as $t^{1/3}$, the
-#   many-particle counterpart of the Airy edge of Section 4.
-# * E. Lieb, T. Schultz and D. Mattis, *Two soluble models of an antiferromagnetic chain*, Ann. Phys. **16**, 407–466
-#   (1961) — the XX chain as free fermions.
-# * H. B. Perets, Y. Lahini, F. Pozzi, M. Sorel, R. Morandotti and Y. Silberberg, *Realization of quantum walks with
-#   negligible decoherence in waveguide lattices*, Phys. Rev. Lett. **100**, 170506 (2008) — light in a lattice of about
-#   100 coupled waveguides obeys this model; ballistic spreading and boundary effects observed.
-# * T. Fukuhara et al., *Quantum dynamics of a mobile spin impurity*, Nat. Phys. **9**, 235–241 (2013) — a single spin
-#   excitation propagating coherently in a one-dimensional lattice of ultracold atoms, imaged with single-site resolution.
-# * W. P. Su, J. R. Schrieffer and A. J. Heeger, *Solitons in polyacetylene*, Phys. Rev. Lett. **42**, 1698–1701 (1979)
-#   — the dimerised chain of Exercise 5.
-# * T. Hartmann, F. Keck, H. J. Korsch and S. Mossmann, *Dynamics of Bloch oscillations*, New J. Phys. **6**, 2 (2004) —
-#   Exercise 7.
+# <span id="ref-1">[1]</span> H. B. Perets, Y. Lahini, F. Pozzi, M. Sorel, R. Morandotti and Y. Silberberg, *Realization of quantum walks with
+# negligible decoherence in waveguide lattices*, Phys. Rev. Lett. **100**, 170506 (2008) — light in a lattice of about
+# 100 coupled waveguides; ballistic spreading and boundary effects observed.
+#
+# <span id="ref-2">[2]</span> T. Fukuhara, A. Kantian, M. Endres, M. Cheneau, P. Schauß, S. Hild, D. Bellem, U. Schollwöck, T. Giamarchi, C. Gross,
+# I. Bloch and S. Kuhr, *Quantum dynamics of a mobile spin impurity*, Nat. Phys. **9**, 235 (2013) — a single spin
+# excitation propagating coherently in a one-dimensional lattice of ultracold atoms, imaged with single-site resolution.
+#
+# <span id="ref-3">[3]</span> F. Bloch, *Zur Theorie des Ferromagnetismus*, Z. Phys. **61**, 206 (1930) — spin waves, whose quanta are the magnons of
+# Section 6.
+#
+# <span id="ref-4">[4]</span> P. Jordan and E. Wigner, *Über das Paulische Äquivalenzverbot*, Z. Phys. **47**, 631 (1928) — the Jordan–Wigner
+# transformation.
+#
+# <span id="ref-5">[5]</span> E. Lieb, T. Schultz and D. Mattis, *Two soluble models of an antiferromagnetic chain*, Ann. Phys. **16**, 407 (1961) —
+# the XX chain as free fermions.
+#
+# <span id="ref-6">[6]</span> F. Bloch, *Über die Quantenmechanik der Elektronen in Kristallgittern*, Z. Phys. **52**, 555 (1929) — Bloch's
+# theorem.
+#
+# <span id="ref-7">[7]</span> F. W. J. Olver, D. W. Lozier, R. F. Boisvert and C. W. Clark (eds.), *NIST Digital Library of Mathematical
+# Functions*, https://dlmf.nist.gov/ — §10.12 (the Jacobi–Anger expansion), §10.19(iii) (Bessel functions in the transition region, in
+# terms of Airy functions), Eq. 10.21.40 (the first maximum $j'_{\nu,1}$ for large order), and Chapter 9 (Airy
+# functions).
+#
+# <span id="ref-8">[8]</span> E. H. Lieb and D. W. Robinson, *The finite group velocity of quantum spin systems*, Commun. Math. Phys. **28**, 251
+# (1972) — the light cone of lattice Hamiltonians with finite-range interactions.
+#
+# <span id="ref-9">[9]</span> V. Hunyadi, Z. Rácz and L. Sasvári, *Dynamic scaling of fronts in the quantum XX chain*, Phys. Rev. E **69**, 066103
+# (2004) — fronts in the XX chain after a step-like initial magnetisation; the steps of the front widen as $t^{1/3}$.
+#
+# <span id="ref-10">[10]</span> G. Vidal, *Efficient simulation of one-dimensional quantum many-body systems*, Phys. Rev. Lett. **93**, 040502
+# (2004) — time-evolving block decimation (TEBD).
+#
+# <span id="ref-11">[11]</span> H. F. Trotter, *On the product of semi-groups of operators*, Proc. Amer. Math. Soc. **10**, 545 (1959) — the product
+# formula behind Trotterised time evolution.
+#
+# <span id="ref-12">[12]</span> W. P. Su, J. R. Schrieffer and A. J. Heeger, *Solitons in polyacetylene*, Phys. Rev. Lett. **42**, 1698 (1979) — the
+# dimerised chain of Exercise 5.
+#
+# <span id="ref-13">[13]</span> T. Hartmann, F. Keck, H. J. Korsch and S. Mossmann, *Dynamics of Bloch oscillations*, New J. Phys. **6**, 2 (2004)
+# — Exercise 7.

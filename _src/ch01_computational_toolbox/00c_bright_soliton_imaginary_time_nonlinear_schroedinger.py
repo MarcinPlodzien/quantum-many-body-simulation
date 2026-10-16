@@ -774,7 +774,7 @@ print("STEP 1 functions defined:", ", ".join(
 
 # %%
 # ==============================================================================
-# STEP 2: observables on a ring  (identical in spirit to notebook 00a)
+# STEP 2: observables on a ring  (as in 'A free Gaussian wave packet on a ring')
 # ==============================================================================
 def mean_position(psi, x, dx, L):
     """Circular mean of |psi|^2, returned in (-L/2, L/2].
@@ -930,7 +930,7 @@ print("CHECKPOINT 1 passed: Eqs. (22)-(24) verified on the grid.")
 #   check is independent of any propagator we might later write.  At h = 1e-6 the floor of
 #   that difference is round-off, eps |psi| / h ~ 1e-10; its truncation error ~ h^2 is far below.
 # ==============================================================================
-K0_CHECK = 2.0 * np.pi * 10 / L                 # commensurate with the ring (rule 1 of notebook 00a)
+K0_CHECK = 2.0 * np.pi * 10 / L                 # commensurate with the ring: k L / (2 pi) is an integer
 t_check, h_t = 1.3, 1e-6
 
 psi_m = soliton_exact(x, t_check - h_t, G, x_c=0.0, k_0=K0_CHECK)
@@ -1030,7 +1030,7 @@ print("CHECKPOINT 2 passed: Eqs. (26)-(28) verified.")
 #   numerically integrating Eq. (10) over the actual trial profile on the grid.
 # ==============================================================================
 def gaussian_packet(x, sigma, x_c=0.0, k_0=0.0):
-    """Normalised Gaussian packet with an imprinted momentum -- notebook 00a, Eq. (3).
+    """Normalised Gaussian packet with an imprinted momentum, as in 'A free Gaussian wave packet on a ring'.
 
     MATH
         psi(x) = (2 pi sigma^2)^(-1/4) exp(-(x-x_c)^2 / (4 sigma^2)) exp(i k_0 x)
@@ -1550,7 +1550,7 @@ print("STEP 3: imaginary_time_ground_state and imaginary_time_frames compiled on
 # ==============================================================================
 L_HO, N_HO = 24.0, 256
 x_ho, k_ho, dx_ho = make_grid(L_HO, N_HO)
-V_HO = jnp.asarray(0.5 * x_ho ** 2)                    # the trap of notebook 00b, in its own units
+V_HO = jnp.asarray(0.5 * x_ho ** 2)                    # the harmonic trap V = x^2/2, in oscillator units
 k_ho_j = jnp.asarray(k_ho)
 V_HO_np = np.asarray(V_HO)
 
@@ -2880,7 +2880,7 @@ print(f"   width      : max |Var(t) - Var(0)| = {np.max(np.abs(var_sol - var_sol
 # %%
 # ==============================================================================
 # STEP 4: a reusable "stack of curves -> embedded animated GIF" function
-#         (copied from notebook 00a, Section 10)
+#         (the same routine as in 'A free Gaussian wave packet on a ring')
 # ==============================================================================
 def make_density_gif(x, densities, times, overlay=None, mean_x=None, envelope=None, band=None,
                      title="", xlabel=r"$x$  [$x_0$]", ylabel=r"$|\psi(x,t)|^2$", time_label=r"t",

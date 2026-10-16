@@ -198,7 +198,7 @@ assert err < TOL
 #
 # * **Purity** $\gamma=\mathrm{Tr}\rho^2=\sum_i\lambda_i^2$. It equals 1 exactly for pure states ($\lambda=(1,0,\dots)$) and
 #   takes its minimum $1/d$ for the *maximally mixed state* $\rho=\mathbb 1/d$ in dimension $d=2^N$.
-# * **Von Neumann entropy** [[8]](#ref-8) $S(\rho)=-\mathrm{Tr}\,\rho\log_2\rho=-\sum_i\lambda_i\log_2\lambda_i$, the Shannon entropy of the
+# * **Von Neumann entropy** [[8]](#ref-8) $S(\rho)=-\mathrm{Tr}\,\rho\log_2\rho=-\sum_i\lambda_i\log_2\lambda_i$, the Shannon entropy (introduced in [[9]](#ref-9)) of the
 #   eigenvalues, in bits. $S=0$ for pure states and $S=N$ bits for the maximally mixed state of $N$ qubits.
 #
 # The engine functions `purity` and `von_neumann_entropy` take any density matrix, reduced or global.
@@ -210,7 +210,7 @@ assert err < TOL
 # $$ \rho=\tfrac12\big(\mathbb 1+r_xX+r_yY+r_zZ\big)=\frac12\begin{pmatrix}1+r_z & r_x-i r_y\\ r_x+i r_y & 1-r_z\end{pmatrix}. $$
 #
 # Because $\mathrm{Tr}(\sigma_a\sigma_b)=2\delta_{ab}$ and $\mathrm{Tr}\,\sigma_a=0$, the coefficients are the expectation
-# values: $r_a=\mathrm{Tr}(\rho\,\sigma_a)=\langle\sigma_a\rangle$. This **Bloch vector** $\mathbf r$ [[9]](#ref-9) is the one you know
+# values: $r_a=\mathrm{Tr}(\rho\,\sigma_a)=\langle\sigma_a\rangle$. This **Bloch vector** $\mathbf r$ [[10]](#ref-10) is the one you know
 # from a single spin-1/2, but now its length is free. The eigenvalues of the matrix above are
 # $\lambda_\pm=\tfrac12(1\pm|\mathbf r|)$ (trace 1, determinant $\tfrac14(1-|\mathbf r|^2)$), hence
 #
@@ -384,7 +384,7 @@ tr = jnp.einsum("abab->", rho_t)
 rho_q0 = jnp.einsum("abAb->aA", rho_t)                         # trace out qubit 1
 rho_q1 = jnp.einsum("abaB->bB", rho_t)                         # trace out qubit 0
 print(f"Tr rho = {float(jnp.real(tr)):.12f}")
-print(f"partial traces versus rdm(psi, .) of notebook 06: {float(jnp.max(jnp.abs(rho_q0 - rdm(psi, [0])))):.1e}, "
+print(f"partial traces versus the engine's rdm(psi, .): {float(jnp.max(jnp.abs(rho_q0 - rdm(psi, [0])))):.1e}, "
       f"{float(jnp.max(jnp.abs(rho_q1 - rdm(psi, [1])))):.1e}")
 
 # --- local expectation value: Tr(rho X_1) three ways -----------------------------------------------------
@@ -660,10 +660,10 @@ assert dp < TOL and dS < 1e3 * TOL
 # $\sum_m(K_m\otimes\mathbb 1_R)\,\Omega\,(K_m\otimes\mathbb 1_R)^\dagger$ is a sum of positive operators for every joint
 # state $\Omega$. Maps that are completely positive and trace preserving are called **quantum channels** (CPTP maps).
 #
-# We quote without proof the converse (Kraus' theorem: [[10]](#ref-10), [[11]](#ref-11); for matrices [[12]](#ref-12); see [[3]](#ref-3), §8.2): *every* CPTP map on a $d$-dimensional
+# We quote without proof the converse (Kraus' theorem: [[11]](#ref-11), [[12]](#ref-12); for matrices [[13]](#ref-13); see [[3]](#ref-3), §8.2): *every* CPTP map on a $d$-dimensional
 # system can be written in the form (3) with operators obeying (4), and at most $d^2$ Kraus operators are ever needed —
 # equivalently, an environment of dimension $d^2$ always suffices in the construction above. That construction
-# ("unitary on system + environment, then discard the environment") is the **Stinespring dilation** of the channel [[13]](#ref-13);
+# ("unitary on system + environment, then discard the environment") is the **Stinespring dilation** of the channel [[14]](#ref-14);
 # Eq. (3) is that dilation read in the other direction, from the joint unitary to the Kraus operators.
 #
 # The index $m$ has a physical meaning: it labels **what the environment could have recorded** (photon emitted / not
@@ -1214,7 +1214,7 @@ for name, rec in curves.items():
 #   one `jnp.transpose`. The engine's `partial_transpose` (shown below) first passes its argument through `as_dm_tensor`,
 #   which reshapes a $(2^N,2^N)$ matrix such as the output of `rdm` or `dm_matrix` into the rank-$2N$ tensor. Without that
 #   step a matrix would have only two axes, the "swap" would transpose the whole matrix, the eigenvalues would not change,
-#   and the negativity would come out as exactly zero for every state. The details and proofs are in [notebook 25, entanglement negativity](../ch09_entanglement_and_complexity/25_entanglement_negativity.ipynb) ([[14]](#ref-14), [[15]](#ref-15)); here we use it as a ready-made thermometer. For the dephased GHZ state the partial transpose moves the coherence
+#   and the negativity would come out as exactly zero for every state. The details and proofs are in [notebook 25, entanglement negativity](../ch09_entanglement_and_complexity/25_entanglement_negativity.ipynb) ([[15]](#ref-15), [[16]](#ref-16)); here we use it as a ready-made thermometer. For the dephased GHZ state the partial transpose moves the coherence
 #   $\tfrac c2$, $c=(1-2p)^N$, to a $2\times2$ block between the *unpopulated* basis states $|10..0\rangle,|01..1\rangle$; its
 #   eigenvalues are $\pm\tfrac c2$, so $\mathcal N=\tfrac12(1-2p)^N$.
 
@@ -1364,7 +1364,7 @@ for name, rec in sweeps.items():
 # * *Right:* the negativity starts at ½ (the value of a maximally entangled pair of qubits) and decays with the noise
 #   strength. For dephasing it follows $\tfrac12(1-2p)^N$ exactly (checked above): it is tiny beyond $p\approx0.25$ but
 #   vanishes only at $p=0.5$. Under depolarising noise it reaches zero already at a *finite* noise strength (see the last
-#   lines of the printout), a phenomenon known as "sudden death" of entanglement [[16]](#ref-16).
+#   lines of the printout), a phenomenon known as "sudden death" of entanglement [[17]](#ref-17).
 # * Compare the bit-flip curves in the two panels: its *fidelity* falls fastest of all four channels, yet up to
 #   $p\approx0.25$ its *negativity* is the **largest** of the four (beyond that amplitude damping, which is not a Pauli
 #   channel and pulls the state towards the pure $|0\dots0\rangle$, overtakes it and is the only channel with a non-zero
@@ -1410,7 +1410,7 @@ for name, rec in sweeps.items():
 #
 # where $\sigma_O^2$ is the variance of $\langle\psi|O|\psi\rangle$ over trajectories (at most 1 for a Pauli observable). This
 # is a Monte-Carlo method: the error decreases as $1/\sqrt M$ **independently of $N$**. It is known as the *Monte-Carlo
-# wave-function* (MCWF) or *quantum-jump* method ([[17]](#ref-17), [[18]](#ref-18), [[19]](#ref-19); review: [[20]](#ref-20)).
+# wave-function* (MCWF) or *quantum-jump* method ([[18]](#ref-18), [[19]](#ref-19), [[20]](#ref-20); review: [[21]](#ref-21)).
 #
 # ### 11.2 From formula to code
 #
@@ -1593,8 +1593,8 @@ for label, Kc, key in [("Z-flip unravelling", kraus_dephasing(p_equiv), jax.rand
 # > **Physics insight.** The channel fixes the *average*; the Kraus representation (what the imagined observer measures on
 # > the environment) fixes the *individual trajectories* and the Monte-Carlo variance. Single trajectories also have a
 # > direct experimental meaning: experiments that do monitor the environment (photon counting on a single ion or superconducting
-# > qubit) observe exactly such quantum jumps, first seen with single trapped ions [[21]](#ref-21), [[22]](#ref-22),
-# > [[23]](#ref-23).
+# > qubit) observe exactly such quantum jumps, first seen with single trapped ions [[22]](#ref-22), [[23]](#ref-23),
+# > [[24]](#ref-24).
 #
 # ### 11.4 GHZ with one noisy qubit: density tensor against trajectories
 #
@@ -1827,7 +1827,7 @@ print(f"after {n_layers} layers: exact F = {float(obs_exact[-1, 0]):.4f}, MCWF F
 #
 # * the error of **one** estimate from the first $M$ trajectories, with its error bar (what you have in practice);
 # * the **root-mean-square error over independent blocks** of size $M$ (we have $2^{13}/M$ of them), which averages out
-#   the luck of a single estimate and should follow $\sigma/\sqrt M$ closely (the error law of simple Monte-Carlo integration, [[24]](#ref-24), §7.7).
+#   the luck of a single estimate and should follow $\sigma/\sqrt M$ closely (the error law of simple Monte-Carlo integration, [[25]](#ref-25), §7.7).
 
 # %%
 # ==============================================================================
@@ -2158,35 +2158,37 @@ assert err < TOL
 #
 # <span id="ref-8">[8]</span> J. von Neumann, "Thermodynamik quantenmechanischer Gesamtheiten", Nachr. Ges. Wiss. Göttingen, Math.-Phys. Kl. (1927).
 #
-# <span id="ref-9">[9]</span> F. Bloch, "Nuclear induction", Phys. Rev. **70**, 460 (1946).
+# <span id="ref-9">[9]</span> C. E. Shannon, *A mathematical theory of communication*, Bell Syst. Tech. J. **27**, 379 (1948) — the Shannon entropy.
 #
-# <span id="ref-10">[10]</span> K. Kraus, "General state changes in quantum theory", Ann. Phys. **64**, 311 (1971).
+# <span id="ref-10">[10]</span> F. Bloch, "Nuclear induction", Phys. Rev. **70**, 460 (1946).
 #
-# <span id="ref-11">[11]</span> K. Kraus, *States, Effects, and Operations: Fundamental Notions of Quantum Theory*, ed. A. Böhm, J. D. Dollard and W. H. Wootters, Lecture Notes in Physics **190** (Springer, 1983).
+# <span id="ref-11">[11]</span> K. Kraus, "General state changes in quantum theory", Ann. Phys. **64**, 311 (1971).
 #
-# <span id="ref-12">[12]</span> M.-D. Choi, "Completely positive linear maps on complex matrices", Linear Algebra Appl. **10**, 285 (1975).
+# <span id="ref-12">[12]</span> K. Kraus, *States, Effects, and Operations: Fundamental Notions of Quantum Theory*, ed. A. Böhm, J. D. Dollard and W. H. Wootters, Lecture Notes in Physics **190** (Springer, 1983).
 #
-# <span id="ref-13">[13]</span> W. F. Stinespring, "Positive functions on C\*-algebras", Proc. Amer. Math. Soc. **6**, 211–216 (1955) (the dilation theorem behind §7.2).
+# <span id="ref-13">[13]</span> M.-D. Choi, "Completely positive linear maps on complex matrices", Linear Algebra Appl. **10**, 285 (1975).
 #
-# <span id="ref-14">[14]</span> A. Peres, "Separability criterion for density matrices", Phys. Rev. Lett. **77**, 1413 (1996).
+# <span id="ref-14">[14]</span> W. F. Stinespring, "Positive functions on C\*-algebras", Proc. Amer. Math. Soc. **6**, 211–216 (1955) (the dilation theorem behind §7.2).
 #
-# <span id="ref-15">[15]</span> G. Vidal and R. F. Werner, "Computable measure of entanglement", Phys. Rev. A **65**, 032314 (2002) (negativity).
+# <span id="ref-15">[15]</span> A. Peres, "Separability criterion for density matrices", Phys. Rev. Lett. **77**, 1413 (1996).
 #
-# <span id="ref-16">[16]</span> T. Yu and J. H. Eberly, "Finite-time disentanglement via spontaneous emission", Phys. Rev. Lett. **93**, 140404 (2004).
+# <span id="ref-16">[16]</span> G. Vidal and R. F. Werner, "Computable measure of entanglement", Phys. Rev. A **65**, 032314 (2002) (negativity).
 #
-# <span id="ref-17">[17]</span> J. Dalibard, Y. Castin and K. Mølmer, "Wave-function approach to dissipative processes in quantum optics", Phys. Rev. Lett. **68**, 580 (1992).
+# <span id="ref-17">[17]</span> T. Yu and J. H. Eberly, "Finite-time disentanglement via spontaneous emission", Phys. Rev. Lett. **93**, 140404 (2004).
 #
-# <span id="ref-18">[18]</span> R. Dum, P. Zoller and H. Ritsch, "Monte Carlo simulation of the atomic master equation for spontaneous emission", Phys. Rev. A **45**, 4879 (1992).
+# <span id="ref-18">[18]</span> J. Dalibard, Y. Castin and K. Mølmer, "Wave-function approach to dissipative processes in quantum optics", Phys. Rev. Lett. **68**, 580 (1992).
 #
-# <span id="ref-19">[19]</span> H. J. Carmichael, *An Open Systems Approach to Quantum Optics* (Lecture Notes in Physics m18, Springer, 1993).
+# <span id="ref-19">[19]</span> R. Dum, P. Zoller and H. Ritsch, "Monte Carlo simulation of the atomic master equation for spontaneous emission", Phys. Rev. A **45**, 4879 (1992).
 #
-# <span id="ref-20">[20]</span> M. B. Plenio and P. L. Knight, "The quantum-jump approach to dissipative dynamics in quantum optics", Rev. Mod. Phys. **70**, 101 (1998).
+# <span id="ref-20">[20]</span> H. J. Carmichael, *An Open Systems Approach to Quantum Optics* (Lecture Notes in Physics m18, Springer, 1993).
 #
-# <span id="ref-21">[21]</span> W. Nagourney, J. Sandberg and H. Dehmelt, "Shelved optical electron amplifier: Observation of quantum jumps", Phys. Rev. Lett. **56**, 2797 (1986).
+# <span id="ref-21">[21]</span> M. B. Plenio and P. L. Knight, "The quantum-jump approach to dissipative dynamics in quantum optics", Rev. Mod. Phys. **70**, 101 (1998).
 #
-# <span id="ref-22">[22]</span> Th. Sauter, W. Neuhauser, R. Blatt and P. E. Toschek, "Observation of quantum jumps", Phys. Rev. Lett. **57**, 1696 (1986).
+# <span id="ref-22">[22]</span> W. Nagourney, J. Sandberg and H. Dehmelt, "Shelved optical electron amplifier: Observation of quantum jumps", Phys. Rev. Lett. **56**, 2797 (1986).
 #
-# <span id="ref-23">[23]</span> J. C. Bergquist, R. G. Hulet, W. M. Itano and D. J. Wineland, "Observation of quantum jumps in a single atom", Phys. Rev. Lett. **57**, 1699 (1986).
+# <span id="ref-23">[23]</span> Th. Sauter, W. Neuhauser, R. Blatt and P. E. Toschek, "Observation of quantum jumps", Phys. Rev. Lett. **57**, 1696 (1986).
 #
-# <span id="ref-24">[24]</span> W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes: The Art of Scientific Computing*, 3rd ed. (Cambridge University Press, 2007), chapter 7 (random numbers; §7.7 simple Monte-Carlo integration, where the $1/\sqrt M$ error law measured in §11.6 is derived).
+# <span id="ref-24">[24]</span> J. C. Bergquist, R. G. Hulet, W. M. Itano and D. J. Wineland, "Observation of quantum jumps in a single atom", Phys. Rev. Lett. **57**, 1699 (1986).
+#
+# <span id="ref-25">[25]</span> W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes: The Art of Scientific Computing*, 3rd ed. (Cambridge University Press, 2007), chapter 7 (random numbers; §7.7 simple Monte-Carlo integration, where the $1/\sqrt M$ error law measured in §11.6 is derived).
 

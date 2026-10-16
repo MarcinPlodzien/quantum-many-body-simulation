@@ -98,7 +98,7 @@
 
 # %%
 # ==============================================================================
-# PLOT STYLE + the optimiser / training helpers of notebook 41
+# PLOT STYLE + the optimiser / training helpers of 'Optimisers for variational circuits'
 # ==============================================================================
 PALETTE = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#4a3aa7"]   # colour-blind-friendly, fixed order
 MARKERS = ["o", "s", "^", "D", "v", "P"]
@@ -164,7 +164,7 @@ def perm_pvalue(a, b, n_perm=20000, seed=0):
 
 
 def opt_adam(lr, b1=0.9, b2=0.999, eps=1e-8):
-    """Adam as an (init, update) pair -- the optimiser interface of notebook 41.  State: (m, v)."""
+    """Adam as an (init, update) pair -- the optimiser interface of 'Optimisers for variational circuits'.  State: (m, v)."""
     def init(theta):
         return (jnp.zeros_like(theta), jnp.zeros_like(theta))
 
@@ -178,7 +178,7 @@ def opt_adam(lr, b1=0.9, b2=0.999, eps=1e-8):
 
 
 def train(theta0, key, grad_rule, opt, monitor, n_steps):
-    """One training run compiled as a single `lax.scan` (notebook 41, Section 10).
+    """One training run compiled as a single `lax.scan`.
 
     ARGUMENTS
     ---------
@@ -220,7 +220,7 @@ def grad_exact(cost):
 
 
 def grad_spsa(cost, c=0.2, gamma=0.101):
-    """SPSA gradient rule with Spall's probe radius c_k = c / k^gamma (notebook 41, Section 7)."""
+    """SPSA gradient rule with Spall's probe radius c_k = c / k^gamma."""
     def rule(theta, key, k):
         c_k = c / k ** gamma
         delta = jax.random.rademacher(key, theta.shape).astype(theta.dtype)
@@ -966,8 +966,8 @@ for i, name in enumerate(MODEL_NAMES):
 # quadratic one. **An energy that looks converged does not certify the observables one actually wants.**
 #
 # **The symmetry shows up as a residue.** $\langle Y\rangle$ and $\langle Z\rangle$ are exactly zero in the true
-# ground states (Section 4.3), but the variational states return medians up to $1.7\cdot10^{-3}$ and individual
-# restarts up to $2.6\cdot10^{-2}$ (Ising, $\langle Z\rangle$). These are exact expectation values of definite states,
+# ground states (Section 4.3), but the variational states return medians up to $1.7\cdot10^{-3}$ and interquartile
+# ranges reaching $8.3\cdot10^{-3}$ (Ising, $\langle Z\rangle$). These are exact expectation values of definite states,
 # not sampling noise: the residue is the broken parity of the ansatz, quantified in the next section.
 
 # %% [markdown]
@@ -1007,7 +1007,7 @@ assert all(np.median(cont[0.1][i][:, -1, 0]) < 0.5 * np.median(cont[LR_BEST][i][
 # $0.003$ (XXZ), $0.0014$ (XY) and $0.004$ (TFIM), a factor of four to eight, with median fidelities of $0.9996$,
 # $0.9999$ and $0.9990$. The step size that was best for getting *down* the landscape in Section 7 is too large for the
 # bottom of it, which is why practical schedules decrease $\eta$ during training. The final half-chain entropies stay
-# below the exact values ($0.455$ against $0.473$ for the Ising chain), so the entanglement deficit of Section 8 shrinks
+# below the exact values ($0.456$ against $0.473$ for the Ising chain), so the entanglement deficit of Section 8 shrinks
 # with the energy error but does not close. Every study below keeps the constant $\eta$ of Section 7 and is therefore
 # read against this optimiser floor of roughly $10^{-2}$: differences below it are not resolved.
 
@@ -1038,7 +1038,7 @@ assert all(np.median(cont[0.1][i][:, -1, 0]) < 0.5 * np.median(cont[LR_BEST][i][
 #   \Bigl[\prod_qR_x(2h\beta_l)\Bigr]\Bigl[\prod_{\langle qq'\rangle}R_{ZZ}(2J\gamma_l)\Bigr]\,
 #   \vert-\rangle^{\otimes N},\qquad n_{\text{params}}=2L , \tag{13}$$
 #
-# with $J=J_{zz}=-1$ and $h=h_x=+1$: a Trotterised adiabatic path with the angles left free. Ref. [[5]](#ref-5) found
+# with $J=J_{zz}=-1$ and $h=h_x=+1$: a Trotterised adiabatic path (product formula introduced in [[5]](#ref-5)) with the angles left free. Ref. [[6]](#ref-6) found
 # numerically that on a periodic chain at the critical point $N/2$ such layers reach the ground state exactly. The
 # path must start in the ground state of the field term alone, and for $h_x=+1$ that is $\vert-\rangle^{\otimes N}$,
 # $X\vert-\rangle=-\vert-\rangle$.
@@ -1207,7 +1207,7 @@ fig.tight_layout(); plt.show()
 # The second constraint is dimensional. A general $N$-qubit pure state has $2\cdot2^N-2$ real parameters (complex
 # amplitudes minus normalisation and global phase); for $N=6$ that is $126$, while the ansatz has $n=2N(L+1)=12(L+1)$,
 # so $n\ge126$ requires $L\ge10$. For a Haar-random target state at $N=4$ the success rate rises
-# sharply where $n$ crosses $2\cdot2^N-2=30$, the overparametrisation threshold [[6]](#ref-6)
+# sharply where $n$ crosses $2\cdot2^N-2=30$, the overparametrisation threshold [[7]](#ref-7)
 # ([notebook 41, optimisers](41_optimizers.ipynb), Section 14). A ground
 # state is not a random state: it is weakly entangled, symmetric and structured, so the relevant count may be far
 # smaller. The depth scan below measures which of the two constraints binds.
@@ -1421,8 +1421,8 @@ fig.tight_layout(); plt.show()
 # * $h\to\infty$: the field wins, and the unique ground state is the product state
 #   $\vert-\rangle^{\otimes N}$ with $\langle X_q\rangle=-1$ — the **paramagnetic** phase.
 #
-# In the thermodynamic limit these are separated by a quantum critical point at $\lvert h\rvert=1$ [[7]](#ref-7), where
-# the gap closes as $1/N$ and the half-chain entanglement grows logarithmically with $N$ [[8]](#ref-8). On a finite open chain there is no
+# In the thermodynamic limit these are separated by a quantum critical point at $\lvert h\rvert=1$ [[8]](#ref-8), where
+# the gap closes as $1/N$ and the half-chain entanglement grows logarithmically with $N$ [[9]](#ref-9). On a finite open chain there is no
 # true degeneracy: tunnelling between the two ordered configurations splits the doublet by an amount that vanishes
 # **exponentially** in $N$, and the two lowest eigenvectors are, deep in the ordered phase, close to the symmetric and
 # antisymmetric combinations
@@ -1595,7 +1595,7 @@ fig.tight_layout(); plt.show()
 # from $1.00$ bit deep in the ordered phase to $0.13$ at $h=2$, and the critical value $0.47$ is in between. The
 # ordered phase of a finite open chain has a cat-state ground state whose entanglement approaches one bit
 # **independently of $N$**, while the critical entropy of an open chain grows like $\tfrac{c}{6}\log_2N$ with central
-# charge $c=\tfrac12$, i.e. $\tfrac1{12}\log_2N$ [[9]](#ref-9): $1/12$ of a bit per doubling of $N$,
+# charge $c=\tfrac12$, i.e. $\tfrac1{12}\log_2N$ [[10]](#ref-10): $1/12$ of a bit per doubling of $N$,
 # so the critical value overtakes the cat-state bit only for very long chains. What distinguishes the
 # critical point is the scaling with $N$ of both the entropy and the gap, which closes as $1/N$ there and
 # exponentially in the ordered phase; a single size $N=6$ cannot show either.
@@ -1609,7 +1609,7 @@ fig.tight_layout(); plt.show()
 # ## 12. An excited state: variational quantum deflation
 #
 # VQE minimises. To get the *first excited* state one changes the cost so that its minimum is the first excited state.
-# **Variational quantum deflation** [[10]](#ref-10) adds an orthogonality penalty: having found an
+# **Variational quantum deflation** [[11]](#ref-11) adds an orthogonality penalty: having found an
 # approximation $\vert\psi_\star\rangle$ to the ground state, minimise
 #
 # $$C_1(\boldsymbol\theta)=\langle\psi(\boldsymbol\theta)\vert H\vert\psi(\boldsymbol\theta)\rangle
@@ -1798,7 +1798,7 @@ def energy_shots(key, psi, shots):
 theta_chk = random_starts(1, n_sn, seed=71)[0][0]
 psi_chk = hardware_efficient_ansatz(theta_chk, N_SN, L_SN)
 E_chk = float(energy(terms_sn, psi_chk))
-# predicted single-shot constant sigma = sqrt(M Var) = sqrt(2 [Var(A) + Var(B)]) (notebook 40, Eq. (27)), computed
+# predicted single-shot constant sigma = sqrt(M Var) = sqrt(2 [Var(A) + Var(B)]), computed
 # EXACTLY from the outcome distributions of the two settings -- no sampling involved
 bits = (np.arange(2 ** N_SN)[:, None] >> (N_SN - 1 - np.arange(N_SN))) & 1        # C order: qubit 0 = top bit
 zv = 1 - 2 * bits                                                                # +-1 eigenvalues per outcome
@@ -1833,7 +1833,7 @@ for M in (32, 128, 512, 2048):
 # STEP 16: the two gradient rules with shots, and the equal-budget comparison
 # ==============================================================================
 def grad_ps_shots(M):
-    """Parameter-shift gradient in which each of the 2n circuits is estimated from M shots (notebook 40, Eq. (18))."""
+    """Parameter-shift gradient in which each of the 2n circuits is estimated from M shots."""
     eye = jnp.eye(n_sn)
 
     def rule(theta, key, k):
@@ -1964,8 +1964,8 @@ fig.tight_layout(); plt.show()
 # cost at fixed depth ([notebook 40, parametrised gates and gradients](40_parametrized_gates_and_gradients.ipynb), Section 13.2). An energy is a sum of $O(N)$ local terms, so it is on the favourable
 # side: its gradient variance shows no decay at fixed depth ([notebook 42a, VQE: Hamiltonians, ansätze and training](42a_variational_quantum_eigensolver_hamiltonians_ansatze_training.ipynb), Section 9), but a circuit whose depth grows with $N$ approaches the exponential
 # 2-design value, and a gradient that is exponentially small must be resolved above shot noise that falls only as
-# $M^{-1/2}$. The remedy has to change the ansatz or the cost; a better optimiser does not help [[11]](#ref-11),
-# [[12]](#ref-12). The random-angle initialisation used throughout this notebook is precisely the distribution the
+# $M^{-1/2}$. The remedy has to change the ansatz or the cost; a better optimiser does not help [[12]](#ref-12),
+# [[13]](#ref-13). The random-angle initialisation used throughout this notebook is precisely the distribution the
 # plateau theorems assume.
 #
 # **Measurement cost.** Every energy evaluation here was exact and free. On hardware, an accuracy $\varepsilon$ on
@@ -2086,40 +2086,43 @@ fig.tight_layout(); plt.show()
 # <span id="ref-4">[4]</span> D. Wecker, M. B. Hastings and M. Troyer, *Progress towards practical quantum variational
 # algorithms*, Phys. Rev. A **92**, 042303 (2015) — the Hamiltonian-variational ansatz.
 #
-# <span id="ref-5">[5]</span> W. W. Ho and T. H. Hsieh, *Efficient variational simulation of non-trivial quantum
+# <span id="ref-5">[5]</span> H. F. Trotter, *On the product of semi-groups of operators*, Proc. Amer. Math. Soc. **10**, 545 (1959) — the product
+# formula behind Trotterised time evolution.
+#
+# <span id="ref-6">[6]</span> W. W. Ho and T. H. Hsieh, *Efficient variational simulation of non-trivial quantum
 # states*, SciPost Phys. **6**, 029 (2019) — alternating Ising and field evolutions, the ansatz family of Eq. (13),
 # prepare the GHZ state and the critical transverse-field Ising ground state of an $N$-site ring exactly with $N/2$
 # layers.
 #
-# <span id="ref-6">[6]</span> M. Larocca, N. Ju, D. García-Martín, P. J. Coles and M. Cerezo, *Theory of
+# <span id="ref-7">[7]</span> M. Larocca, N. Ju, D. García-Martín, P. J. Coles and M. Cerezo, *Theory of
 # overparametrization in quantum neural networks*, Nat. Comput. Sci. **3**, 542 (2023) — overparametrisation sets in
 # when the rank of the quantum Fisher information saturates, at most at the dimension of the dynamical Lie algebra and,
 # for a pure state, at $2\cdot2^N-2$; the threshold used in Section 10.2.
 #
-# <span id="ref-7">[7]</span> P. Pfeuty, *The one-dimensional Ising model with a transverse field*, Ann. Phys. **57**,
+# <span id="ref-8">[8]</span> P. Pfeuty, *The one-dimensional Ising model with a transverse field*, Ann. Phys. **57**,
 # 79 (1970) — the exact solution of the transverse-field Ising chain and its critical point.
 #
-# <span id="ref-8">[8]</span> C. Holzhey, F. Larsen and F. Wilczek, *Geometric and renormalized entropy in conformal
+# <span id="ref-9">[9]</span> C. Holzhey, F. Larsen and F. Wilczek, *Geometric and renormalized entropy in conformal
 # field theory*, Nucl. Phys. B **424**, 443 (1994) — the logarithmic entanglement entropy of a critical system.
 #
-# <span id="ref-9">[9]</span> P. Calabrese and J. Cardy, *Entanglement entropy and quantum field theory*, J. Stat. Mech.
+# <span id="ref-10">[10]</span> P. Calabrese and J. Cardy, *Entanglement entropy and quantum field theory*, J. Stat. Mech.
 # (2004) P06002 — the logarithmic growth of the entanglement entropy at a critical point, $(c/6)\log$ for an open chain.
 #
-# <span id="ref-10">[10]</span> O. Higgott, D. Wang and S. Brierley, *Variational quantum computation of excited
+# <span id="ref-11">[11]</span> O. Higgott, D. Wang and S. Brierley, *Variational quantum computation of excited
 # states*, Quantum **3**, 156 (2019) — variational quantum deflation: the penalised cost of our Eq. (11) (their Eq. (2))
 # and the sufficient condition $\beta_i>E_k-E_i$ on the penalty weights, our Eq. (12).
 #
-# <span id="ref-11">[11]</span> J. R. McClean, S. Boixo, V. N. Smelyanskiy, R. Babbush and H. Neven, *Barren plateaus in
+# <span id="ref-12">[12]</span> J. R. McClean, S. Boixo, V. N. Smelyanskiy, R. Babbush and H. Neven, *Barren plateaus in
 # quantum neural network training landscapes*, Nat. Commun. **9**, 4812 (2018) — the exponential concentration of
 # gradients.
 #
-# <span id="ref-12">[12]</span> M. Cerezo, A. Arrasmith, R. Babbush, S. C. Benjamin, S. Endo, K. Fujii, J. R. McClean,
+# <span id="ref-13">[13]</span> M. Cerezo, A. Arrasmith, R. Babbush, S. C. Benjamin, S. Endo, K. Fujii, J. R. McClean,
 # K. Mitarai, X. Yuan, L. Cincio and P. J. Coles, *Variational quantum algorithms*, Nat. Rev. Phys. **3**, 625 (2021) —
 # ansatz design, trainability and barren plateaus.
 #
-# <span id="ref-13">[13]</span> J. R. McClean, J. Romero, R. Babbush and A. Aspuru-Guzik, *The theory of variational
+# <span id="ref-14">[14]</span> J. R. McClean, J. Romero, R. Babbush and A. Aspuru-Guzik, *The theory of variational
 # hybrid quantum-classical algorithms*, New J. Phys. **18**, 023023 (2016) — the general framework, and the variational
 # principle in this setting.
 #
-# <span id="ref-14">[14]</span> S. Sachdev, *Quantum Phase Transitions*, 2nd ed., Cambridge University Press (2011) —
+# <span id="ref-15">[15]</span> S. Sachdev, *Quantum Phase Transitions*, 2nd ed., Cambridge University Press (2011) —
 # the transverse-field Ising chain, its critical point and the symmetry-broken doublet of Section 11.

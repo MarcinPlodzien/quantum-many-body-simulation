@@ -145,6 +145,8 @@ website:
         contents:
           - href: ch07_tensor_networks/18_mps_tebd.ipynb
             text: "Beyond the state vector — matrix product states, DMRG and TEBD"
+          - href: ch07_tensor_networks/18b_engine_vs_tenpy_cross_check.ipynb
+            text: "Cross-checking the MPS engine against TeNPy — conventions, DMRG and TEBD"
       - section: "8 · Quantum information protocols"
         href: chapters/ch08_quantum_information_protocols.qmd
         contents:
@@ -188,14 +190,10 @@ website:
             text: "Spin squeezing by one-axis twisting"
           - href: ch10_quantum_metrology_protocols/34_oat_to_ghz_full_metrology_protocol.ipynb
             text: "From one-axis twisting to GHZ — the full metrology protocol"
-          - href: ch10_quantum_metrology_protocols/35_oat_plus_haar_scrambling.ipynb
-            text: "Scrambling a metrological probe — entanglement is necessary but not sufficient"
           - href: ch10_quantum_metrology_protocols/36_qfi_with_classical_shadows.ipynb
             text: "Measuring the quantum Fisher information with classical shadows"
           - href: ch10_quantum_metrology_protocols/37_qfi_particle_loss_and_magic.ipynb
             text: "Particle loss, magic and encoded probes — the quantum Fisher information of the survivors"
-          - href: ch10_quantum_metrology_protocols/38_scramblers_and_qfi.ipynb
-            text: "Scramblers and the locking of metrological information — analog, digital, and the Haar limit"
           - href: ch10_quantum_metrology_protocols/39_qfi_spreading_in_spin_chains.ipynb
             text: "The spreading of metrological usefulness — quantum Fisher information in quenched spin chains"
       - section: "11 · Quantum phase transitions"

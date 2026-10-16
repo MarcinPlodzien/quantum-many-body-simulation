@@ -98,7 +98,7 @@
 from jax.scipy.linalg import expm          # dense matrix exponential (Section 5)
 
 # ==============================================================================
-# STEP 1: Pauli matrices and embedded operators (conventions of notebook 03; two_site_operator takes a 4x4 bond matrix here)
+# STEP 1: Pauli matrices and embedded operators (conventions of 'Quantum many-body spin systems'; two_site_operator takes a 4x4 bond matrix here)
 # ==============================================================================
 I2 = jnp.eye(2, dtype=CDTYPE)
 X = jnp.array([[0, 1], [1, 0]], dtype=CDTYPE)
@@ -218,7 +218,7 @@ def basis_state(bits):
     """Computational basis state |s_0 s_1 ... s_{N-1}> as a flat vector of length 2^N.
 
     MATH   flat index  i = sum_j s_j 2^(N-1-j)   (spin 0 = most significant bit);  0 = up, 1 = down.
-    JAX    arrays are immutable: `.at[i].set(1)` returns an updated copy (see notebook 01).
+    JAX    arrays are immutable: `.at[i].set(1)` returns an updated copy.
     """
     N = len(bits)
     i = sum(int(s) << (N - 1 - j) for j, s in enumerate(bits))

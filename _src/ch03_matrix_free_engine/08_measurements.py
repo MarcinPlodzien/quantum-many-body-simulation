@@ -638,6 +638,7 @@ assert float(jnp.min(overlap)) > 1 - 1e2 * TOL
 N, M = 4, 20000
 psi = haar_state(jax.random.PRNGKey(4), N)
 p_exact = np.abs(np.asarray(psi).reshape(-1)) ** 2
+print(f"smallest exact probability {p_exact.min():.4f}  ->  smallest expected count M p_min = {M * p_exact.min():.0f}")
 
 
 def histogram(bits):
@@ -758,7 +759,7 @@ print("GHZ_10, 5000 shots (CDF sampler): distinct records =", sorted(set(bits_to
 # $$\mathrm{Var}\Big(\sum_ie_i\Big)=\sum_i\mathrm{Var}(e_i)+\sum_{i\ne j}\mathrm{Cov}(e_i,e_j),$$
 #
 # and the bond terms $z_iz_{i+1}$ and $z_{i+1}z_{i+2}$ measured in the *same* shot are strongly correlated. For this ground state the covariances are positive and raise the variance of $e^{ZZ}$ by a factor $1.30$ over the sum of the individual
-# variances, so estimating each bond separately and adding the standard errors in quadrature would report an error bar $\sqrt{1.30}=1.14$ times ($12\,\%$) too small; the cell below shows this on the samples. The sample standard deviation of the single-shot sum contains the covariances automatically.
+# variances, so estimating each bond separately and adding the standard errors in quadrature would report an error bar $\sqrt{1.30}=1.14$ times ($12\,\%$) too small; the cell below prints this exact ratio and shows the same effect on the samples. The sample standard deviation of the single-shot sum contains the covariances automatically.
 # Across the two settings the situation is different: they use different keys and different shots, so their covariance really is
 # zero and *their* errors do add in quadrature.
 
@@ -802,6 +803,14 @@ e_x = -H_FIELD * jnp.sum(x, axis=1)                                             
 E_est, E_se = E_zz + E_x, np.sqrt(se_zz ** 2 + se_x ** 2)
 se_bonds = np.sqrt(sum(mean_and_se(-J_ISING * z[:, i] * z[:, i + 1])[1] ** 2 for i in range(N - 1)))   # WRONG: covariances dropped
 print(f"bond energy: SE of the single-shot sum = {se_zz:.4f};  per-bond SEs added in quadrature = {se_bonds:.4f}  (ratio {se_zz / se_bonds:.2f})")
+# the same ratio without sampling noise: the exact covariance matrix of the bond terms z_i z_{i+1} under |psi_gs|^2
+p_gs = np.abs(np.asarray(psi_gs).reshape(-1)) ** 2
+z_all = 1 - 2 * np.array(list(itertools.product([0, 1], repeat=N)))             # (2^N, N), spin 0 = most significant bit
+b_all = z_all[:, :-1] * z_all[:, 1:]                                             # (2^N, N-1) bond values
+mean_b = p_gs @ b_all
+cov_b = (b_all * p_gs[:, None]).T @ b_all - np.outer(mean_b, mean_b)
+var_ratio = cov_b.sum() / np.trace(cov_b)
+print(f"exact: Var(sum of bonds) / sum of bond variances = {var_ratio:.2f},  SE ratio sqrt = {np.sqrt(var_ratio):.2f}")
 print(f"\nenergy from 2 x {N_SHOTS} shots: E = {E_est:.3f} +- {E_se:.3f}    exact E0 = {E0:.3f}    deviation = {(E_est - E0) / E_se:+.2f} SE")
 assert abs(E_est - E0) < 4 * E_se
 

@@ -141,16 +141,34 @@ section_timer("3 data")
 # $0\dots255$; the cell prints its source, and `data/README.md` lists checksums, processing and licence. Smaller images keep the CPU time of the notebook within a few minutes, at the price of less
 # information per image, the same trade-off that [[1]](#ref-1) describes.
 #
-# A pixel value $g\in\{0,\dots,255\}$ becomes $x=g/255\in[0,1]$, with $0$ for the background. The pixels are put
+# A stored pixel value between $0$ and $255$, divided by $255$, becomes $x\in[0,1]$, with $0$ for the background. The pixels are put
 # in a line row by row, each row from left to right, as in Fig. 8 of [[1]](#ref-1): the pixel in row $r$ and column $q$
 # (both from 0 to 13) becomes site $j=14r+q$ of the chain. The MPS will be a chain along this line. The text of
 # [[1]](#ref-1) calls this ordering "zig-zag".
 
 # %%
 # ==============================================================================
-# STEP 1: load the 14x14 MNIST subset (stored in the repository, no download)
+# STEP 1: load the 14x14 MNIST subset (stored in the repository; downloaded only where it is missing)
 # ==============================================================================
-MNIST = np.load("../data/mnist_14x14.npz")
+import hashlib, pathlib, urllib.request
+
+def data_file(name, sha256):
+    """data/<name>: the repository copy, or (where it is missing, e.g. on Colab) a download from the public repository."""
+    path = pathlib.Path("../data") / name
+    if path.exists():
+        return path
+    path = pathlib.Path("data") / name
+    if not path.exists():
+        url = "https://raw.githubusercontent.com/MarcinPlodzien/quantum-many-body-simulation/main/data/" + name
+        print(f"downloading {url}")
+        path.parent.mkdir(exist_ok=True)
+        urllib.request.urlretrieve(url, path.with_suffix(".part"))
+        path.with_suffix(".part").rename(path)
+    if hashlib.sha256(path.read_bytes()).hexdigest() != sha256:
+        raise RuntimeError(f"{path} differs from data/{name} of the repository: delete it and run the cell again")
+    return path
+
+MNIST = np.load(data_file("mnist_14x14.npz", "7a11bf18ef6d01757487ed3c01c3bed75173a710a454e49e7d879b712f0bd012"))
 print(str(MNIST["info"]))
 print()
 
@@ -180,8 +198,9 @@ plt.show()
 
 # %% [markdown]
 # The ten labels are roughly equally frequent, so random guessing scores $10\,\%$. Three quarters of all pixels are
-# exactly zero (background), almost none is exactly one, and a quarter is grey: the averaging over $2\times2$ blocks
-# turns the edges of the strokes into intermediate values. Grey pixels will matter in Section 7.3.
+# exactly zero (background), almost none is exactly one, and a quarter is grey. The grey values come from the
+# anti-aliasing of the original $28\times28$ images and from the averaging over $2\times2$ blocks, both of which turn
+# the edges of the strokes into intermediate values. Grey pixels will matter in Section 7.3.
 
 # %%
 section_timer("4 feature maps")
@@ -349,7 +368,7 @@ section_timer("5 MPS classifier")
 # ### 5.3 Long products: rescaling and the logarithm of the norm
 #
 # A product of 98 matrices can grow or shrink exponentially. If the typical factor multiplies a vector's norm by
-# $g$, the result is of order $g^{98}$; already $g=3$ gives $10^{47}$, beyond the largest single-precision number
+# $\gamma$, the result is of order $\gamma^{98}$; already $\gamma=3$ gives $10^{47}$, beyond the largest single-precision number
 # $3.4\times10^{38}$. The scan therefore divides the vector by its norm after every site and adds the logarithm of that
 # norm to a running sum $\log Z$; the score is $f^\ell=\hat f^\ell\,e^{\log Z}$ with $\hat f^\ell$ of order one. The
 # rescaling is exact: it only moves a positive factor out of the product. The cell checks the contraction against the full
@@ -547,11 +566,16 @@ section_timer("6 DMRG sweeps")
 # needs only products with $\tilde\Phi$ and $\tilde\Phi^{\rm T}$; the estimate is slightly below the true value, well
 # within the factor 2 of margin.
 #
-# Fitting $B$ exactly is not the aim. A minimiser of the local cost, when it exists, or any point far along the descent
-# path, has in general rank up to $2\chi$ in the split of Section 6.4, and its truncation to $\chi$ is chosen by the
-# Frobenius norm of $B$, without regard to the cost, so it can undo much of the fit (Exercise 2 tests this). A few steps
-# from the current $B$, which has rank $\chi$, change it only slightly, and the truncation then discards little
-# (Section 6.7 measures the discarded weight). This matches the "small update" of [[1]](#ref-1), Sec. V.
+# Fitting $B$ exactly is not the aim. In the split of Section 6.4, moving right, $B$ is a matrix with the $2\chi$ rows
+# $(a,s)$ and the columns $(t,\ell,b)$, so its rank can reach $2\chi$, and in general it does so even before any update.
+# The label leg sits on the left tensor, and for each label value $\ell$ the columns are combinations of the $\chi$
+# columns of $A^{[j]\ell}$ (rows $(a,s)$), which differ from label to label; only a label-independent tensor, such as
+# the initial one, gives rank $\chi$. The split that moves the label to the next site therefore discards weight even
+# when $B$ has not changed, and this weight is small when the columns of all ten labels lie close to one
+# $\chi$-dimensional space (moving left, the same holds with rows and columns exchanged). The truncation to $\chi$ is
+# chosen by the Frobenius norm of $B$, without regard to the cost, so it can undo much of a long fit of $B$ (Exercise 2
+# tests this). We therefore take only a few gradient steps per bond, the "small update" of [[1]](#ref-1), Sec. V;
+# Section 6.7 measures the discarded weight.
 #
 # ### 6.4 The SVD split and the moving label
 #
@@ -571,7 +595,7 @@ section_timer("6 DMRG sweeps")
 # ### 6.5 Environments: cached, advanced by one site, and rescaled
 #
 # Recomputing $L_n$ and $R_n$ from the ends of the chain at every bond would cost $O(N)$ per step and $O(N^2)$ per
-# sweep. As in DMRG they are cached and advanced by one site ([[1]](#ref-1), Fig. 7(c)): after the split at bond $j$
+# sweep. As in DMRG they are cached and advanced by one site ([[1]](#ref-1), Fig. 7(c)): after the split of sites $j$ and $j+1$
 # moving right,
 #
 # $$L^{(j+1)}_{n,b}=\sum_{a,s}L^{(j)}_{n,a}\,\phi_s(x_{n,j})\,A^{[j]s}_{ab}\qquad(\text{einsum }\texttt{"na,ns,asb->nb"}), \tag{10}$$
@@ -877,7 +901,7 @@ def train_sweeps(chi, n_train, n_sweeps, n_steps=10, key=jax.random.PRNGKey(6)):
 # We train with $\chi=8$ on the first 5000 training images for three sweeps and evaluate on all 10000 test images
 # after each sweep. The first sweep includes the compilation of the two half-sweep functions. The last checkpoint
 # compares the cost reported by the last bond update with the cross-entropy recomputed from the final MPS by a full
-# contraction; they differ only by the effect of the last truncation.
+# contraction and requires agreement to within one percent.
 
 # %%
 # ==============================================================================
@@ -917,16 +941,17 @@ plt.show()
 # **Interpretation.** The plotted $C(B)$ is the cross-entropy of the whole classifier on the 5000 training images after
 # each bond update, a training curve. It starts at $2.29$, close to $\ln10\approx2.30$ (all labels equally likely), falls
 # quickly during the first half sweep and then slowly: $0.68$, $0.50$ and $0.44$ at the end of the three sweeps. The test
-# accuracy rises from $81.55\,\%$ after one sweep to $86.9\,\%$ after three. The discarded weight is at most $6.6\times10^{-3}$ in the first sweep
-# and $1.3\times10^{-4}$ in the third: each update changes the bond tensor only slightly, so it stays close to rank $\chi$
-# (Section 6.3). The discarded weight drops sharply at the turning points of the sweeps (dotted lines), where the
-# updated bonds lie at the ends of the chain, next to the white margin of the images. The cross-entropy recomputed from the
-# final MPS by a full contraction, $0.4445$, agrees with the last reported value, $0.4431$, to within the effect of the last
-# truncation.
+# accuracy rises from $81.55\,\%$ after one sweep to $86.9\,\%$ after three. The largest discarded weight is
+# $6.6\times10^{-3}$ in the first sweep, $3.6\times10^{-4}$ in the second and $1.3\times10^{-4}$ in the third: the splits
+# that move the label remove little of the bond tensor, although its rank can reach $2\chi$ (Section 6.3). The discarded
+# weight drops sharply at the first update after each turning point of the sweeps (dotted lines). That update repeats
+# the update just made on the same end bond, while the update just before the turn, on the same white margin of the
+# images, shows no such dip. The cross-entropy recomputed from the final MPS by a full contraction, $0.4445$, agrees
+# with the last reported value, $0.4431$, to within one percent.
 #
 # The accuracy after three sweeps is well below the $98\,\%$ that [[1]](#ref-1) reports for $\chi=20$. We have used a
 # twelfth of the training set, a smaller $\chi$, the linear map, a cross-entropy cost and a fixed number of small
-# gradient steps per bond; [[1]](#ref-1), Sec. VI, also converged within two or three sweeps. Section 7 trains the same model by differentiating through the whole contraction, and Section 7.5 compares
+# gradient steps per bond; [[1]](#ref-1), Sec. VI, also converged within a few sweeps. Section 7 trains the same model by differentiating through the whole contraction, and Section 7.5 compares
 # the two methods at the same $\chi$ and the same training images.
 
 # %%
@@ -1064,10 +1089,11 @@ for chi_t in (8, 16, 32):
 #
 # ### 7.3 Initialisation and normalisation
 #
-# Automatic differentiation of a product of 196 matrices is sensitive to the scale of the result. A random MPS gives
+# Gradient training through a product of 196 matrices is sensitive to the scale of the result, although automatic
+# differentiation itself returns the exact gradient at any scale. A random MPS gives
 # scores of order $10^{77}$ (Section 5.3). With scores that large the cross-entropy is almost linear in them,
-# $C\approx\max_\ell f^\ell-f^{y}$: the gradient $p-Y$ of Eq. (8) only says which label wins and carries no information on the margin, and the
-# gradients with respect to the tensors scale with the scores themselves, so they span many orders of magnitude across
+# $C\approx\max_\ell f^\ell-f^{y}$: the gradient $p-Y$ of Eq. (8) depends only on which label has the largest score and
+# not on the margin, and the gradients with respect to the tensors scale with the scores themselves, so they span many orders of magnitude across
 # images and are dominated by the images with the largest scores. `init_mps_params` therefore starts from identity matrices, $A^{[j]0}=A^{[j]1}=\mathbb 1$, plus noise of size
 # $10^{-2}$. With the linear map, $M^{[j]}=\phi_0\mathbb 1+\phi_1\mathbb 1=\mathbb 1$ for every pixel value, so every
 # image starts with scores of order one. With the cosine–sine map,
@@ -1166,14 +1192,16 @@ for name, h in VARIANTS.items():
     print(f"{name:32s} test accuracy after epochs 1-3: " + ", ".join(f"{e['test']:.4f}" for e in h))
 
 # %% [markdown]
-# With the linear map the initial scores of all images lie between $10^{-0.07}$ and $10^{0.06}$: the initial MPS treats
-# every image alike, and the training has a well-scaled starting point. With the cosine–sine map the initial scores
-# range from $10^{0.65}$ to $10^{7.9}$, set by how many grey pixels an image has. With scores that large the
-# cross-entropy is in its linear regime and the gradients are dominated by the images with the most grey pixels, and the
-# training reaches only $29\,\%$ after three epochs, against $91.6\,\%$ with the linear map. The quadratic cost with the linear map learns, but much more slowly ($28.6\,\%$ after three epochs): it
-# asks for the exact values $f^\ell=\delta_{\ell y}$, while the cross-entropy only asks for the right ordering of the
-# scores. Both observations hold for our short training runs from this initial
-# state; with long training, the authors of [[2]](#ref-2) report similar final accuracies for the two costs (their Fig. 7).
+# With the linear map the initial score $f^0$ of every image lies between $10^{-0.07}$ and $10^{0.06}$: the initial MPS
+# treats every image alike, and the training has a well-scaled starting point. With the cosine–sine map the initial
+# score $f^0$ ranges from $10^{0.65}$ to $10^{7.9}$, set by how many grey pixels an image has, and the training reaches
+# only $29\,\%$ after three epochs, against $91.6\,\%$ with the linear map. We attribute this to the scale: with scores
+# that large the cross-entropy is in its linear regime, and the gradients are dominated by the images with the most grey
+# pixels. The quadratic cost with the linear map learns, but much more slowly ($28.6\,\%$ after three epochs). We
+# attribute this to its fixed targets: it asks for the exact values $f^\ell=\delta_{\ell y}$, while the cross-entropy
+# fixes no score value and depends only on the differences between the ten scores of an image. We did not test either
+# reason. Both results hold for our short training runs from this initial state; with long training, the authors of
+# [[2]](#ref-2) report similar final accuracies for the two costs (their Fig. 7).
 #
 # ### 7.4 What not to differentiate, and memory
 #
@@ -1288,7 +1316,8 @@ print(f"{'automatic differentiation, 6 epochs':34s} {hist_ad8[-1]['test']:9.4f} 
 # contraction reaches $93.2\,\%$ after six epochs in about 3 s, three sweeps $86.9\,\%$ in about half a minute; after one pass
 # through the data both are near $81\,\%$. One epoch costs less than half a second and one sweep about 9 s (wall-clock
 # times on this CPU, which vary between runs; the first sweep and the first epoch, which include compilation, are
-# excluded from the per-pass averages). Two differences between the methods explain this at our scale:
+# excluded from the per-pass averages). Two differences between the methods may explain this at our scale, although
+# we did not test them separately:
 #
 # * a sweep spends $2\times195$ local optimisations, each over all 5000 images, while an epoch of Adam makes 50
 #   updates of all tensors at once, each on 100 images. The mini-batches give many more updates per pass through the data;
@@ -1296,10 +1325,11 @@ print(f"{'automatic differentiation, 6 epochs':34s} {hist_ad8[-1]['test']:9.4f} 
 #   curvature move slowly. Adam rescales every parameter separately.
 #
 # One property of the sweep is not used here: with a cutoff on the singular values instead of a fixed $\chi$, every
-# bond can grow or shrink to what the data need ([[1]](#ref-1), Sec. V), while automatic differentiation keeps $\chi$
+# bond can grow or shrink with the number of singular values above the cutoff ([[1]](#ref-1), Sec. V), while automatic
+# differentiation keeps $\chi$
 # fixed. The sweep also has no learning rate to tune: its step is set by the curvature. Its sensitivity to the scale of the
-# environments is removed by the gauge rescaling of Section 6.5. Automatic differentiation depends on a well-scaled
-# start, as Section 7.3 showed. Because the second method is the faster one here, Section 8 uses it for the systematic
+# environments is removed by the gauge rescaling of Section 6.5. Gradient training through the whole contraction
+# depends on a well-scaled start, as Section 7.3 suggests. Because the second method is the faster one here, Section 8 uses it for the systematic
 # study.
 
 # %%
@@ -1329,8 +1359,8 @@ for chi in CHIS:
     print(f"chi = {chi:2d}: parameters {n_par:7d},  test accuracy {ACC_CHI[chi][0]:.4f},  training time {ACC_CHI[chi][1]:5.1f} s")
 
 # %% [markdown]
-# With $\chi=1$ the classifier fails completely: $11.35\,\%$ is exactly the fraction of the digit 1 in the test set, so
-# it predicts the same label for every image. The reason is the single label leg. With $\chi=1$ every tensor is a
+# With $\chi=1$ the classifier fails completely. Its accuracy, $11.35\,\%$, is exactly the fraction of the digit 1 in
+# the test set, the accuracy of a rule that predicts the label 1 for every image. The reason is the single label leg. With $\chi=1$ every tensor is a
 # $2$-vector, and Eq. (6) becomes $f^\ell(\mathbf x)=g(\mathbf x)\,(a^\ell\phi_0(x_c)+b^\ell\phi_1(x_c))$: the product
 # $g$ of all other sites is the same for every label, and only the pixel at the label site can distinguish labels. Our
 # label site $c=98$ is the first pixel of row 7, which is white in practically every image. A product state can be a good
@@ -1440,8 +1470,8 @@ plt.show()
 # from almost every row: the model predicts the label 8 for 70 images more than there are eights in the test set, and
 # the label 9 for 68 more, while it predicts the label 4 for 102 images fewer than there are fours. Many misclassified
 # examples are badly written or ambiguous at $14\times14$ pixels. Over the last four epochs the test accuracy
-# fluctuates by up to 0.7 percentage points (between $95.6\,\%$ and $96.3\,\%$), the noise of mini-batch training with a
-# constant learning rate.
+# fluctuates by up to 0.7 percentage points (between $95.6\,\%$ and $96.3\,\%$), which we attribute to the noise of
+# mini-batch training with a constant learning rate.
 #
 # ### 8.4 Comparison with the published results
 #
@@ -1455,13 +1485,15 @@ plt.show()
 # | this notebook, Section 7.5 | 5000 / 10000 | $14\times14$ | 8 | Adam, 6 epochs, cross-entropy | $93.2\,\%$ |
 # | this notebook, Section 8.3 | 20000 / 10000 | $14\times14$ | 16 | Adam, 8 epochs, cross-entropy | $96.3\,\%$ |
 #
-# The published numbers come from runs on the full training set of 60000 images, with tens of epochs ([[2]](#ref-2)
-# needed about 50 to converge, its Sec. III) or with larger bond dimensions ([[1]](#ref-1) reports test errors of about
+# The published numbers come from runs on the full training set of 60000 images, with tens of epochs on the full
+# $28\times28$ images ([[2]](#ref-2) needed about 50 to converge, its Sec. III) or with larger bond dimensions
+# ([[1]](#ref-1) reports test errors of about
 # $5\,\%$ for $m=10$, $2\,\%$ for $m=20$ and $0.97\,\%$ for $m=120$). Our runs use a third of the training images or less, a
 # few epochs and a few minutes of one CPU. At $\chi=8$ and six epochs our test accuracy saturates near $94.4\,\%$ between
-# 10000 and 20000 images (Section 8.2), while $\chi=16$ and eight epochs on the same 20000 images reach $96.3\,\%$: at this
-# size of the training set the length of the training and $\chi$ matter as much as the number of images, and the gap to
-# the published accuracies is consistent with smaller training sets and shorter training. The independence of the accuracy from $\chi$ above $\chi\approx10$ reported in [[2]](#ref-2)
+# 10000 and 20000 images (Section 8.2), while $\chi=16$ and eight epochs on the same 20000 images reach $96.3\,\%$. These
+# two runs differ in the bond dimension, the length of the training and the learning rate, and we did not separate the
+# effects. The gap to the published accuracies is consistent with our smaller training sets, our shorter training and,
+# for [[2]](#ref-2), our smaller images, but we did not train on the full data set to test this. The independence of the accuracy from $\chi$ above $\chi\approx10$ reported in [[2]](#ref-2)
 # matches the flattening of our curve in Section 8.1.
 #
 # ### 8.5 Fashion-MNIST
@@ -1475,7 +1507,7 @@ plt.show()
 # ==============================================================================
 # STEP 15: Fashion-MNIST, chi = 8, 10000 training images, 6 epochs
 # ==============================================================================
-FASHION = np.load("../data/fashion_mnist_14x14.npz")
+FASHION = np.load(data_file("fashion_mnist_14x14.npz", "6fae7394237266f52cee15db2c6a87076c5d460137ab29c3fb2bc925592ad62f"))
 print(str(FASHION["info"]))
 FX_TRAIN = jnp.asarray(FASHION["x_train"].reshape(-1, N_SITES) / 255.0, dtype=RDTYPE)
 FY_TRAIN = jnp.asarray(FASHION["y_train"].astype(np.int32))
@@ -1512,7 +1544,7 @@ section_timer("9 entanglement")
 #
 # a sum of kernel values (4) over the training images of class $\ell$. In the map of Eq. (2) all kernel values are
 # non-negative, so every training image of class $\ell$ has $f^\ell\geq1$ from its own term. Because the kernel is so
-# peaked (Section 4.2), the sum is usually dominated by the most similar training image, and Eq. (13) behaves much like
+# peaked (Section 4.2), the sum is carried by a few of the most similar training images, and Eq. (13) behaves much like
 # a *nearest-neighbour rule*, which gives an image the label of the most similar training image. [[3]](#ref-3) observed
 # reasonable accuracies of this classifier on the training and test sets, and found that $\vert\Sigma_\ell\rangle$ is far
 # too entangled to be represented by the MPS of [[1]](#ref-1); it concludes that the trained MPS must represent a very
@@ -1551,8 +1583,9 @@ print(f"sum-state classifier, Eq. (13), 5000 training images: training accuracy 
       f"{accuracy_from_scores(f_sum_test, Y_TEST[:2000]):.4f}")
 
 # %% [markdown]
-# The sum-state classifier labels all 5000 training images correctly, because the own term $K(\mathbf x_i,\mathbf x_i)=1$
-# of each image dominates its sum, and $92.4\,\%$ of the 2000 test images, the behaviour of a nearest-neighbour rule.
+# The sum-state classifier labels all 5000 training images correctly, because each image has the overlap
+# $K(\mathbf x_i,\mathbf x_i)=1$ with itself and only tiny overlaps with the other training images (Section 4.2), and it
+# labels $92.4\,\%$ of the 2000 test images correctly, the behaviour of a nearest-neighbour rule.
 # The superposition of the training images is therefore a reasonable classifier, as [[3]](#ref-3) observed. Sections
 # 9.2 and 9.3 show that it is a very different state from the trained MPS.
 #
@@ -1651,7 +1684,8 @@ plt.show()
 # the digit 3, the spectrum across the top/bottom cut is almost flat: for $N_\Sigma=10$ all weights are close to
 # $\frac1{10}$, and the entropy stays close to its maximum $\log_2N_\Sigma$ for all $N_\Sigma$, falling slightly below it
 # as $N_\Sigma$ grows, because some images begin to overlap. This is the observation of [[3]](#ref-3), Fig. 3: the halves of different images are nearly
-# orthogonal (Section 4.2), so each image adds its own Schmidt value. An MPS that represents $\vert\Sigma_3\rangle$ to good
+# orthogonal (the argument of Section 4.2 holds for half an image as well), so each image adds about one Schmidt value
+# of its own. An MPS that represents $\vert\Sigma_3\rangle$ to good
 # accuracy would need a bond dimension comparable to the number of images, about 6000 for the full MNIST class; our
 # classifier has $\chi=16$, and the one of [[1]](#ref-1) has at most $120$.
 #
@@ -1782,16 +1816,16 @@ plt.show()
 # entropy over all bonds and labels is $2.43$ bits, against the bound $\log_2 16=4$, and the mean is $0.73$ bits. The
 # entropy is zero near the ends of the chain, where the image is white and the classifier carries no information, has a
 # first maximum of about one bit near bond 35 (row 2, the top of the digits) and its largest values, 2 to 2.4 bits, a
-# few bonds after the label site $c=98$ (maximum at the bond printed above). Around the label site the bonds carry what
-# the rest of the image says about all ten labels. The profiles of the ten labels are almost the same, because they
-# share all tensors except the label tensor.
+# few bonds after the label site $c=98$ (maximum at the bond printed above). Around the label site the bonds must carry
+# the information from the other pixels that decides the label. The ten labels share all tensors except the label
+# tensor, and their profiles are almost the same.
 #
 # The sum state is a different object. In the cosine–sine map its entropy across the middle cut is $9.9$ bits for 1280
 # images (Section 9.2). In the linear map the product states are not normalised: their norms squared range over more
 # than eight decades (printed above), and a few images with few grey pixels dominate the sum, with $50\,\%$ of the total
 # norm in the 10 largest. The entropy of this sum is $6.2$ bits, and 105 Schmidt values are needed for $90\,\%$ of the
 # weight, far more than $\chi=16$. The squared overlap of the normalised classifier state $\vert W^3\rangle$ with the
-# normalised sum state of the threes is $4\times10^{-52}$, 35 times its overlap with the sum state of the fives,
+# normalised sum state of the threes is $4\times10^{-52}$, 35 times its squared overlap with the sum state of the fives,
 # $1.2\times10^{-53}$: the classifier state is closer to its own class, and both numbers are tiny. The classifier is a much less entangled state
 # than the superposition of its training images, and it still assigns the largest score to the right label for most
 # images. This is the first conclusion of [[3]](#ref-3), here for $14\times14$ images and a classifier trained by
@@ -1814,7 +1848,7 @@ section_timer("10 cost")
 # |---|---|---|
 # | scores of one image, Eq. (6), sequential | $O(N\chi^2)$ | Sections 5, 7 |
 # | scores of one image, pairwise order | $O(N\chi^3)$ in $\log_2N$ rounds | Section 7.2 |
-# | one sweep: $2(N-1)$ bonds, each $k$ gradient steps on $N_{\rm T}$ images | $O(NkN_{\rm T}\chi^2\cdot10)$ plus $2(N-1)$ SVDs of $O(\chi^3\cdot10)$ | Section 6 |
+# | one sweep: $2(N-1)$ bonds, each $k$ gradient steps and $n_{\rm p}$ power-iteration steps on $N_{\rm T}$ images | $O(N(10k+n_{\rm p})N_{\rm T}\chi^2)$ plus $2(N-1)$ SVDs of $O(\chi^3\cdot10)$ | Section 6 |
 # | one epoch of Adam: forward and backward pass on $N_{\rm T}$ images | $O(N_{\rm T}N\chi^2)$ | Section 7 |
 # | memory of the cached environments of the sweep | $(2N+1)N_{\rm T}\chi$ numbers | Section 6.5 |
 # | Schmidt spectrum of a sum of $N_\Sigma$ product states | $O(N_\Sigma^2N+N_\Sigma^3)$ | Section 9.2 |
@@ -1851,7 +1885,8 @@ print(f"   {'total (Sections 3-10)':28s} {sum(v for k, v in SECTION_TIMES.items(
 # * **Generalisation.** A large bond dimension is not an advantage by itself: the accuracy saturates with $\chi$ and
 #   the gap between training and test accuracy is set by the number of training images (Section 8.2). [[3]](#ref-3)
 #   finds models with very high training accuracy and noticeably lower test accuracy.
-# * **Training is not convex.** Both methods find local minima of a non-convex cost; the result depends on the
+# * **Training is not convex.** Both methods descend a non-convex cost and, with our budgets, stop before converging;
+#   the result depends on the
 #   initial MPS, the learning rate and, for the sweep, the number of steps per bond.
 # * **The model is classical.** It runs on a CPU, its cost is polynomial in $N$ and $\chi$, and nothing in it requires
 #   or demonstrates a quantum computer. The quantum language is a description of the linear algebra.
@@ -1865,7 +1900,8 @@ print(f"   {'total (Sections 3-10)':28s} {sum(v for k, v in SECTION_TIMES.items(
 #   nearly orthogonal states.
 # * **Sweeps are DMRG.** The sweeping algorithm merges two sites into a bond tensor, updates it with a few gradient
 #   steps using the cached environments of all training images, splits it by an SVD and moves the label with the
-#   orthogonality centre. Small steps keep the discarded weight small (below $10^{-2}$ in our run).
+#   orthogonality centre. The split that moves the label can raise the rank of the bond tensor to $2\chi$; in our run
+#   the discarded weight stayed below $10^{-2}$.
 # * **Autodiff computes environments.** The gradient of a contraction with respect to one tensor is its environment
 #   (checked to round-off); reverse-mode differentiation computes them for all tensors in one backward pass. Keep $\chi$
 #   fixed, do not differentiate through truncated SVDs, rescale long products and track $\log Z$.
@@ -1873,10 +1909,11 @@ print(f"   {'total (Sections 3-10)':28s} {sum(v for k, v in SECTION_TIMES.items(
 #   images); our best model, $\chi=16$ and 20000 images, $96.3\,\%$, in under a minute of CPU time. The accuracy
 #   saturates in $\chi$ and grows with the training set, consistent with the published $98\,\%$ on 60000 images. With a
 #   single label leg, $\chi=1$ cannot classify at all.
-# * **Entanglement.** The superposition of the training images of a class has an almost flat Schmidt spectrum and
-#   entropy close to $\log_2N_\Sigma$; the trained classifier carries at most $2.4$ bits and has a squared overlap of
-#   $4\times10^{-52}$ with that superposition. A good classifier is a weakly entangled state, far from the sum of its
-#   examples.
+# * **Entanglement.** In the cosine–sine map the superposition of the training images of a class has an almost flat
+#   Schmidt spectrum and an entropy close to $\log_2N_\Sigma$; in the linear map it still needs 105 Schmidt values for
+#   $90\,\%$ of its weight. The trained classifier carries at most $2.4$ bits and has a squared overlap of
+#   $4\times10^{-52}$ with that superposition. On these digits a good classifier is a weakly entangled state, far from
+#   the sum of its examples.
 #
 # ## 13. Exercises
 #

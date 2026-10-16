@@ -166,7 +166,7 @@ def max_abs(a):
 
 
 def compile_timed(fn, *args):
-    """Compile `jax.jit(fn)` ahead of time for these argument shapes (notebook 44).
+    """Compile `jax.jit(fn)` ahead of time for these argument shapes.
 
     JAX   `jit(fn).lower(*args).compile()` traces and compiles WITHOUT executing; calling the returned object is then
           pure run time.  Returns (compiled function, compile seconds).

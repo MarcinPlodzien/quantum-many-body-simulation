@@ -1061,7 +1061,7 @@ def povm_fisher(E, rho, G, theta):
 def sld_full_rank(rho, drho):
     """SLD of a FULL-RANK state from Eq. (45):  L_mn = 2 (drho)_mn / (lam_m + lam_n)  in the eigenbasis of rho.
 
-    (Rank-deficient states need the kernel treatment of notebook 30; here every lam_m > 0.)
+    (Rank-deficient states need the kernel treatment of 'QFI from the symmetric logarithmic derivative'; here every lam_m > 0.)
     """
     lam, V = jnp.linalg.eigh(rho)
     D = V.conj().T @ drho @ V
@@ -2926,7 +2926,7 @@ for name, psi, n, gname in wit_states:
 # STEP 14b: QFI depth and Wineland squeezing for five states at one N
 # ==============================================================================
 N_C = 6
-mu_grid = np.linspace(0.01, 0.8, 79_001)                           # closed form of notebook 33, Eqs. (22)-(23)
+mu_grid = np.linspace(0.01, 0.8, 79_001)                           # closed form of 'Spin squeezing by one-axis twisting'
 A_mu = 1 - np.cos(2 * mu_grid) ** (N_C - 2)
 B_mu = 4 * np.sin(mu_grid) * np.cos(mu_grid) ** (N_C - 2)
 xiR_mu = (1 + (N_C - 1) / 4 * (A_mu - np.sqrt(A_mu ** 2 + B_mu ** 2))) / np.cos(mu_grid) ** (2 * (N_C - 1))
@@ -2946,14 +2946,14 @@ print(f"{'state':>16s} | {'F_Q^max':>8s} {'F_Q/N':>6s} {'depth':>5s} | {'xi_R^2'
 for name, psi, F_ana, xi_ana in cert_states:
     F_max = float(optimal_direction(psi)[0])
     mean, _ = spin_moments(psi)
-    assert abs(F_max - F_ana) < 1e4 * TOL                                  # closed forms of Section 11 and nb 33
+    assert abs(F_max - F_ana) < 1e4 * TOL                                  # closed forms of Section 11 and of 'Spin squeezing by one-axis twisting'
     if xi_ana is None:
         assert float(jnp.linalg.norm(mean)) < 1e3 * TOL                    # zero mean spin: xi_R^2 undefined
         xi_txt, bnd_txt, d_sq = "undefined", "--", "--"
     else:
         xi = float(spin_squeezing(psi))
         assert abs(xi - xi_ana) < 1e4 * TOL
-        assert N_C / xi <= F_max + 1e4 * TOL                               # F_Q >= N / xi_R^2, nb 33 Eq. (26)
+        assert N_C / xi <= F_max + 1e4 * TOL                               # F_Q >= N / xi_R^2
         xi_txt, bnd_txt, d_sq = f"{xi:9.4f}", f"{N_C / xi:9.4f}", f"{entanglement_depth(N_C / xi, N_C):5d}"
     print(f"{name:>16s} | {F_max:8.4f} {F_max / N_C:6.3f} {entanglement_depth(F_max, N_C):5d} | "
           f"{xi_txt:>9s} {bnd_txt:>9s} {d_sq:>5s}")
@@ -3204,7 +3204,7 @@ def qfi_from_derivative(rho, drho, tol=1e-12):
     """General SLD quantum Fisher information from a state and its derivative, Eq. (48).
 
     MATH   F_Q = 2 sum_{m,n} |<m|drho|n>|^2 / (lam_m + lam_n),  summed over lam_m + lam_n > tol,
-           with rho = sum_m lam_m |m><m|.   (Section 5.3; kernel treatment in notebook 30.)
+           with rho = sum_m lam_m |m><m|.   (Section 5.3; kernel treatment in 'QFI from the symmetric logarithmic derivative'.)
     COST   one Hermitian eigendecomposition, O(d^3).
     """
     lam, v = jnp.linalg.eigh(rho)

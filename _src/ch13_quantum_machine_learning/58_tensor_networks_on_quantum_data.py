@@ -8,8 +8,9 @@
 # Matrix product states have been trained on images, as classifiers and as generative models. Here the data come from
 # quantum many-body states: the bit strings that a quantum simulator returns when every qubit of a prepared state is
 # measured. Such measurement records are what experiments with trapped ions, Rydberg atoms or superconducting qubits
-# produce, and a matrix product state (MPS) suits them for two reasons: ground states of one-dimensional gapped
-# Hamiltonians carry little entanglement and are compressed efficiently into an MPS, and an MPS can be sampled exactly
+# produce, and a matrix product state (MPS) suits them for two reasons: ground states of one-dimensional Hamiltonians
+# carry little entanglement, which grows only logarithmically with $N$ at a critical point, and are compressed
+# efficiently into an MPS, and an MPS can be sampled exactly
 # and evaluated on any bit string at a cost linear in the number of qubits. The notebook assumes the matrix product
 # states and DMRG of [notebook 18, matrix product states, DMRG and TEBD](../ch07_tensor_networks/18_mps_tebd.ipynb)
 # and the two machine-learning models of
@@ -542,7 +543,7 @@ section_timer("3 data")
 #
 # For $h<J$ the ground state is ferromagnetically ordered along $Z$, for $h>J$ it is paramagnetic, and the infinite chain
 # has its critical point at $h_c=J$. The critical point and the long-range order below it follow from the exact
-# free-fermion solution [[6]](#ref-6). The correlation-length exponent $\nu=1$, which follows from the gap of that
+# free-fermion solution introduced in [[6]](#ref-6). The correlation-length exponent $\nu=1$, which follows from the gap of that
 # solution, and the exact energy of the open chain for every $N$, used below as a check, are derived in
 # [notebook 47, quantum phase transitions](../ch11_quantum_phase_transitions/47_quantum_phase_transitions.ipynb)
 # (Section 2.3). The parity $\Pi=\prod_jX_j$ commutes with $H$, and the ground state of a finite chain is a parity
@@ -595,9 +596,10 @@ section_timer("3 data")
 #
 # The ground states are computed by DMRG, introduced in [[8]](#ref-8), in its two-site form, with the MPO
 # `xxz_mpo(N, 0, 0, -J, hx=-h)` of Eq. (2). In the ordered phase the two lowest levels are split by an amount
-# exponentially small in $N$, and DMRG returns a symmetry-broken combination of them, as found in
+# exponentially small in $N$, and DMRG can return a symmetry-broken combination of them, as found in
 # [notebook 47, quantum phase transitions](../ch11_quantum_phase_transitions/47_quantum_phase_transitions.ipynb)
-# (Section 9.2): its snapshots would all point in one direction, and its amplitudes need not be positive. We therefore
+# (Section 9.2); here it did so deep in the ordered phase, at the fields printed in Section 3.4. The snapshots of such
+# a state would all point in one direction, and its amplitudes need not be positive. We therefore
 # apply the projector $\frac12(1+\Pi)$, which maps the broken state onto the parity-even ground state. On an MPS, $\Pi$ is
 # a product of single-site gates, so $\Pi\vert\psi\rangle$ is the MPS with every tensor replaced by
 # $\sum_tX_{st}A^{[j]t}$, and the sum of two MPS is an MPS with block-diagonal tensors,
@@ -856,7 +858,8 @@ for N in SIZES:
 # the first field of the ordered phase in the downward scan, ended mostly in the odd sector of the nearly degenerate pair
 # and was recomputed from $\vert+\cdots+\rangle$. The gap inside the even sector, $2(s_1+s_2)$, is smallest near the critical
 # point and shrinks with $N$, to $0.5926$, $0.3208$ and $0.1648$ for $N=16$, $32$ and $64$ (at $h=0.85$, $0.9$ and $0.95$),
-# but stays finite: the even ground state is non-degenerate at every field and size, as Eq. (5) requires.
+# but it is non-zero at every field and size used here, so the even ground state is non-degenerate, as Eq. (5)
+# requires.
 
 # %% [markdown]
 # ### 3.5 Exact state vectors at $N=16$
@@ -1028,7 +1031,8 @@ section_timer("4 reconstruction")
 # $$\psi_{\rm rec}(\mathbf s)=\sqrt{P(\mathbf s)}=\vert\phi(\mathbf s)\vert. \tag{7}$$
 #
 # The likelihood depends only on $\phi^2$ and does not control the signs of $\phi$. We start the training from an MPS
-# with positive entries, so that all amplitudes start positive. The amplitude of a string that occurs in the training set
+# whose amplitudes are all positive: its tensors are drawn with positive entries and then brought to canonical form,
+# which changes only the gauge. The amplitude of a string that occurs in the training set
 # rarely changes its sign: the cost $-\ln\phi(\mathbf s)^2$ diverges where the amplitude vanishes, so a step of the line
 # search lands near that point only if it jumps across it, which the discrete grid of step sizes and the truncation
 # after each SVD occasionally allow. The amplitudes of strings that never occurred are not protected at all, and $\phi$
@@ -1036,16 +1040,16 @@ section_timer("4 reconstruction")
 # its observables are computed by sampling (Section 4.4).
 #
 # The training uses the settings of the Born machine: one line-search step per bond, a relative SVD cutoff of
-# $10^{-7}$, a positive initial MPS of bond dimension 2, tensors stored in arrays of width 8 (enough for every cap used
+# $10^{-7}$, an initial MPS of bond dimension 2 with positive amplitudes, tensors stored in arrays of width 8 (enough for every cap used
 # here), and at most 8 loops, a loop being one sweep to the right and one back. The number of loops and the maximal bond
 # dimension $\chi_{\max}$ are chosen on a *validation set* of $M/4$ further snapshots that are not used in the training.
 # After every loop the NLL of the validation set is computed and the loop with the lowest value is kept (*early
 # stopping*); among several caps $\chi_{\max}$ the one with the lowest validation NLL is selected. The validation NLL
 # estimates the cross entropy $-\sum_{\mathbf s}p\ln P=S(p)+D_{\rm KL}(p\Vert P)$, with $S(p)=-\sum_{\mathbf s}p\ln p$ the
-# Shannon entropy of the snapshot distribution (derived in
-# [notebook 57, the MPS Born machine](57_mps_born_machine.ipynb), Eq. (6)). $S(p)$ does not depend on the model, so the
-# model with the lowest validation NLL is the one with the smallest divergence from the truth, up to the statistical
-# error of the validation set.
+# Shannon entropy, introduced in [[9]](#ref-9), of the snapshot distribution (derived in
+# [notebook 57, the MPS Born machine](57_mps_born_machine.ipynb), Eq. (6)). $S(p)$ does not depend on the model, so among
+# the candidate models the one with the lowest validation NLL is the one with the smallest divergence from the truth,
+# up to the statistical error of the validation set.
 #
 # ### 4.3 Kullback–Leibler divergence and fidelity
 #
@@ -1094,7 +1098,8 @@ section_timer("4 reconstruction")
 # If $\psi_{\rm rec}$ is an exact eigenstate,
 # $H\psi_{\rm rec}=E\psi_{\rm rec}$, then $E_{\rm loc}(\mathbf s)=E$ for every string: the estimate has zero variance,
 # which makes the spread of $E_{\rm loc}$ a sensitive test of a ground state. Each sample needs $N$ further amplitudes,
-# one per flipped bit, at $O(N\chi^2)$ each.
+# one per flipped bit, at $O(N\chi^2)$ each as implemented here; with the partial products of the chain from the left
+# and from the right cached, all $N$ of them together cost $O(N\chi^2)$.
 #
 # These estimates need only $Z$ snapshots and the prior. Without the prior, $\langle X_j\rangle$ must be measured in the
 # $X$ basis, and the *direct* estimate of the energy takes two data sets, $Z$ snapshots for the bond terms and $X$
@@ -1267,8 +1272,9 @@ assert np.abs(z_X).max() < 4.5 and abs(obs_true["E"][0] - gs32["E"]) < 1e-6 * ab
 #
 # The local estimator (10), fed with the exact amplitudes of the 32-site ground state, reproduces $\langle X_j\rangle$ on
 # all 32 sites within $2.61$ standard errors. The local energy reproduces the DMRG energy to $1.4\times10^{-6}$, and its
-# standard deviation over the 4000 snapshots is only $4\times10^{-5}$, against a typical $\vert E_{\rm loc}\vert$ of 40:
-# the zero-variance property at work. The residual spread measures how far the DMRG state is from an exact eigenstate.
+# standard deviation over the 4000 snapshots is only $4\times10^{-5}$, against a typical $\vert E_{\rm loc}\vert$ of 40,
+# consistent with the zero variance of an exact eigenstate; the residual spread measures how far the DMRG state is from
+# being one.
 #
 # ### 4.6 Fidelity against the number of snapshots and the bond dimension
 #
@@ -1276,13 +1282,14 @@ assert np.abs(z_X).max() < 4.5 and abs(obs_true["E"][0] - gs32["E"]) < 1e-6 * ab
 # snapshots) with $\chi_{\max}\in\{2,4,8\}$ and grade every model on the same $20000$ test snapshots. The first lines
 # print the entropy $S(p)$ of the snapshot distribution and, for reference, the infidelity of the true state truncated
 # to bond dimensions 2, 4 and 8 by one sweep of SVDs, together with the discarded weights of that sweep. The truncated
-# state is, to a good approximation, the best MPS of that bond dimension, so its infidelity is the floor that a model of
-# that size cannot pass with any amount of data. For small discarded weights the infidelity is close to their sum over
+# state is, to a good approximation, the best MPS of that bond dimension, so its infidelity is approximately the floor that a
+# model of that size cannot pass with any amount of data. For small discarded weights the infidelity is close to their sum over
 # the 31 bonds, since every truncation removes a nearly orthogonal part of the state.
 #
-# The dotted line in the left panel is $\propto1/M$, drawn through the $\chi_{\max}=4$ point at $M=10^4$. A maximum-likelihood
-# fit with a fixed number of parameters has parameter errors of order $M^{-1/2}$, and the divergence is quadratic in the
-# parameter error near its minimum, so the statistical part of $D_{\rm KL}$ falls as $1/M$.
+# The dotted line in the left panel is $\propto1/M$, drawn through the $\chi_{\max}=4$ point at $M=10^4$. For a converged
+# maximum-likelihood fit with a fixed number of parameters the parameter errors are of order $M^{-1/2}$, and the
+# divergence is quadratic in them near its minimum, so the statistical part of $D_{\rm KL}$ falls as $1/M$; our
+# early-stopped fits can be expected to follow this line only roughly.
 
 # %%
 # ==============================================================================
@@ -1369,15 +1376,15 @@ plt.show()
 
 # %% [markdown]
 # **Interpretation.** The snapshot distribution at the critical point has an entropy of $15.25$ nats, so a typical
-# snapshot has probability $e^{-15.25}\approx2.4\times10^{-7}$ and the $M\leq20000$ training snapshots are almost all
-# different: the model must generalise from a tiny sample of the $2^{32}$ strings. The validation NLLs sit just above
+# snapshot has probability $e^{-15.25}\approx2.4\times10^{-7}$, far below $1/M$ for every $M\leq20000$ used here, and
+# occurs only once in a training set: the model must generalise from a tiny sample of the $2^{32}$ strings. The validation NLLs sit just above
 # $S(p)$, for example $15.265$ against $15.246$ for the selected model at $M=20000$, whose test divergence is $0.0144$.
 #
 # * **$\chi_{\max}=2$** is limited by the truncation error. For $M\geq10^4$ its divergence levels off at $0.11$ nats and
 #   its fidelity at $0.946$, against the infidelity floor $5.2\times10^{-2}$ of the truncated true state (dashed line); at $M=1000$
 #   and $3000$ it is also limited by the data ($F=0.918$ and $0.937$).
 # * **$\chi_{\max}=4$** is limited by the data. Its divergence falls from $0.466$ to $0.0144$ nats between $M=1000$ and
-#   $20000$, close to the $1/M$ line, and its fidelity rises from $0.833$ to $0.9931\pm0.0012$, a fidelity per site of
+#   $20000$, roughly following the $1/M$ line, and its fidelity rises from $0.833$ to $0.9931\pm0.0012$, a fidelity per site of
 #   $F^{1/32}=0.99978$. Its truncation floor, $4.6\times10^{-4}$, lies far below.
 # * **$\chi_{\max}=8$** is worse than $\chi_{\max}=4$ at every $M$, although it can represent the state more accurately:
 #   with more parameters to estimate from the same snapshots, the statistical error is larger. Early stopping keeps the
@@ -1387,7 +1394,8 @@ plt.show()
 #
 # At $M=1000$ the validation set picks $\chi_{\max}=2$: with few snapshots the smaller model wins, because its larger
 # truncation error is outweighed by its smaller statistical error. Above it picks $\chi_{\max}=4$ (open squares), the best
-# of the three fidelities in every case (at $M=3000$ the first two caps are nearly tied on the validation set and in fidelity).
+# of the three fidelities in every case (at $M=3000$ the first two caps are nearly tied on the validation set and in fidelity, and the selected
+# $\chi_{\max}=4$ has the slightly larger divergence, $0.1455$ against $0.1306$).
 # The bound (9) holds in every run, and the overlap of the MPS $\phi$ itself stays within $0.002$ of $F$ for the selected
 # models: with the positive initial state the training rarely flips a sign. For the overfitted $\chi_{\max}=8$ model at
 # $M=1000$ it is $0.634$ against $F=0.723$; Eq. (7) recovers the difference.
@@ -1510,7 +1518,7 @@ plt.show()
 # $\sqrt2$ times the printed one. The correlator $\langle Z_8Z_{24}\rangle$ of the reconstruction agrees with DMRG within
 # $1.8$ standard errors, as does its direct estimate from the snapshots.
 #
-# The energy separates statistical error from bias. The reconstruction's energy per site has a statistical error of $2$ to
+# The energy shows a bias in addition to the statistical error. The reconstruction's energy per site has a statistical error of $2$ to
 # $5\times10^{-4}$, but it lies *above* the exact value at every field, by $0.0006$ to $0.0041$, and at $h=1$ the spread
 # over three data sets ($0.0005$) is far smaller than this offset. The sign follows from the variational principle: the
 # reconstruction is a normalised state, so its energy cannot lie below $E_0$. The size is not fixed by the fidelity. The
@@ -1519,9 +1527,10 @@ plt.show()
 # symmetry-broken one with $F\approx\frac12$, can have almost the ground-state energy. The direct estimate from $Z$ and
 # $X$ snapshots is unbiased and agrees with the exact energy within $1.5$ standard errors at every field. Its error,
 # $0.0018$ to $0.0035$ per site from $10000$ snapshots in two bases, is larger than the reconstruction's statistical error,
-# but at $h=0.8$ and $h=1$ the reconstruction's bias ($0.0041$ and $0.0037$) exceeds it, so there the direct estimate is
-# the more accurate one. The prior turns a single basis into precise estimates of the observables it gives, with a bias that
-# must be checked; the direct estimate is unbiased, noisier, and limited to what was measured.
+# but at $h=0.8$ the reconstruction's bias, $0.00413$, exceeds the error of the direct estimate, $0.00279$, and at
+# $h=1$ the two are comparable ($0.00372$ against $0.00335$). The reconstruction gives precise estimates of
+# observables that were never measured, with a bias that has to be checked; the direct estimate is unbiased, noisier,
+# and limited to the measured bases.
 #
 # ### 4.8 Exact state-vector check of the reconstruction at $N=16$
 #
@@ -1600,7 +1609,9 @@ print(f"three models from DMRG snapshots: F = {F_dmrg_runs.mean():.5f}, spread {
 #
 # The sampled estimates of the first model are checked against its exact values. With $20000$ test snapshots,
 # Eq. (8) gives $F=0.9952\pm0.0013$, $2.7$ standard errors above the exact $0.99181$; with $200000$ test snapshots it
-# gives $0.9923\pm0.0004$, $1.3$ standard errors from it, so the first value is a statistical fluctuation. The local energy,
+# gives $0.9923\pm0.0004$, $1.3$ standard errors above it. Both deviations have the same sign; the ratio
+# $\sqrt{P/p}$ can take rare large values, so the quoted standard errors of sampled fidelities may be slightly
+# optimistic. The local energy,
 # $-1.24870\pm0.00066$, and $\langle X_8\rangle=0.6744\pm0.0121$ agree with the exact values of the same reconstruction,
 # $-1.247516$ and $0.66407$, within two standard errors.
 #
@@ -1704,7 +1715,8 @@ print(f"corrected reconstruction prod_j g_j^(s_j) sqrt(P): F with psi_sigma = {F
 # $1.9$ standard errors from zero), a median of $24$ combined errors from the prediction. The signs read from the $X$ data are
 # correct on all 32 sites, and the corrected reconstruction has the fidelity $0.9833\pm0.0018$ with $\psi_\sigma$, the
 # value the uncorrected one has with $\psi$. One extra basis was enough here because the unknown sign pattern had only
-# $N$ free bits; no second basis can repair a dephased state, which is not pure.
+# $N$ free bits. For the dephased state, in contrast, no pure-state reconstruction is correct, whatever bases are
+# measured.
 #
 # ### 4.10 Towards general MPS tomography
 #
@@ -1717,10 +1729,10 @@ print(f"corrected reconstruction prod_j g_j^(s_j) sqrt(P): F with psi_sigma = {F
 # $\mathrm{tr}(\hat T_i\rho_i)$ and the gap of that Hamiltonian, without any assumption on the laboratory state. Giving
 # every $k$-th qubit the same Pauli basis measures all blocks at once, so $3^k$ settings suffice whatever $N$ is: $3^2=9$ or $3^3=27$
 # for $k=2$ or $3$, against $3^{32}\approx1.9\times10^{15}$ for full tomography of 32 qubits. The scheme was carried out
-# on up to 14 trapped ions in [[9]](#ref-9), with $k=3$. Generative models extend the same way: states with phases were
+# on up to 14 trapped ions in [[10]](#ref-10), with $k=3$. Generative models extend the same way: states with phases were
 # reconstructed in [[2]](#ref-2) by adding snapshots in rotated bases, and the MPS Born machine was trained on snapshots in
-# random local bases, which determine a pure state, in [[10]](#ref-10). The likelihood then becomes a sum over bases with
-# a complex MPS; the sign prior of Eq. (5) is dropped, and the data pay for it. A matrix product operator does the same
+# random local bases, which determine a pure state, in [[11]](#ref-11). The likelihood then becomes a sum over bases with
+# a complex MPS, and the sign prior of Eq. (5) is dropped. A matrix product operator does the same
 # for mixed states, with two physical indices per site.
 
 # %%
@@ -1736,7 +1748,7 @@ section_timer("5 classification")
 # on both sides of the transition and reads the transition off the crossing of the outputs, there for a lattice the
 # network was not trained on. An MPS classifier trained on $Z$ and $X$ snapshots of six central sites of 32-site
 # antiferromagnetic transverse-field Ising ground states, taken far from the transition, was studied in
-# [[11]](#ref-11); evaluated on entangled input states, translation-invariant matrix product states of the infinite chain
+# [[12]](#ref-12); evaluated on entangled input states, translation-invariant matrix product states of the infinite chain
 # loaded on a trapped-ion quantum computer, it placed the transition at $h=0.962$ and $0.994$ (for classifier bond
 # dimensions 2 and 4), the point where the output crosses $\frac12$, located by a linear fit near the crossing; the test
 # states there describe the infinite chain.
@@ -1755,7 +1767,8 @@ section_timer("5 classification")
 #
 # $$\bar q_{\rm ord}(h)=\frac1{n_{\rm test}}\sum_{m=1}^{n_{\rm test}}q\big(\ell=0\,\vert\,\mathbf s_m\big),\qquad\mathbf s_m\sim p_h, \tag{12}$$
 #
-# is recorded. The field $h^*(N)$ where $\bar q_{\rm ord}=\frac12$, found by linear interpolation between grid points, is
+# with $p_h$ the snapshot distribution of the ground state at field $h$ in the measured basis, is recorded. The field
+# $h^*(N)$ where $\bar q_{\rm ord}=\frac12$, found by linear interpolation between grid points, is
 # the transition seen by the classifier. Each experiment is repeated with three independent training and test sets; the
 # standard error of $h^*$ is the standard deviation of the three values divided by $\sqrt3$, a rough estimate with two
 # degrees of freedom.
@@ -1831,7 +1844,7 @@ for N in SIZES:
 # the classifiers separate the training phases better the longer the chain: the mean probability of the correct phase on
 # fresh snapshots of the training fields rises from $0.936$ ($N=16$) to $0.983$ ($N=64$) in the $Z$ basis and from $0.911$
 # to $0.971$ in the $X$ basis. All crossings lie below $h_c=1$. In the $Z$ basis they move up with $N$, from
-# $0.878\pm0.006$ to $0.921\pm0.004$ and $0.948\pm0.004$. In the $X$ basis they move up from $N=16$ to $32$ and back down
+# $0.878\pm0.006$ to $0.921\pm0.004$ and $0.948\pm0.004$. In the $X$ basis they move up from $N=16$ to $32$ and not further
 # from $32$ to $64$ ($0.873\pm0.007$, $0.924\pm0.006$, $0.915\pm0.006$). Where these sequences are heading is the subject
 # of Sections 5.2 and 5.3.
 #
@@ -1969,7 +1982,7 @@ plt.show()
 # $0.881$, $0.915$, $0.938$ for $\langle m_z^2\rangle$, and far from the local correlator $\langle Z_jZ_{j+1}\rangle$
 # ($0.931$, $0.960$, $0.979$). The $X$-basis classifier follows no single statistic: it lies between the local transverse
 # magnetisation ($0.838$, $0.884$, $0.904$) and the disorder string ($0.936$, $0.990$, $1.004$), and from $N=32$ to $64$ it
-# moves down while both of them move up. The string is the parity of $N/2$ bits, a product of single-site factors that
+# does not move up ($0.924\pm0.006$ against $0.915\pm0.006$), while both of them do. The string is the parity of $N/2$ bits, a product of single-site factors that
 # the MPS represents with bond dimension 1, so the model could express it; deep in the two phases the density of zeros
 # separates the training windows just as well, and the training has no reason to prefer the string.
 #
@@ -1984,11 +1997,12 @@ plt.show()
 # the infinite chain $\langle Z_0Z_r\rangle\to m^2$ for $r\to\infty$, with $m^2=(1-h^2)^{1/4}$ below $h_c$ [[6]](#ref-6);
 # the level set by the windows is crossed where $m^2(h)$ equals it, a field below $h_c$. By the duality of Eq. (13) the
 # string tends to $(1-h^{-2})^{1/4}$ above $h_c$, and its fixed-level crossing lies above $h_c$. Near the critical point
-# the order correlator has the finite-size scaling form [[12]](#ref-12)
+# the order correlator has the finite-size scaling form introduced in [[13]](#ref-13)
 #
 # $$\langle Z_{j_1}Z_{j_2}\rangle\approx N^{-2\beta/\nu}f\big((h-h_c)N^{1/\nu}\big),\qquad\frac{2\beta}\nu=\frac14,\quad\nu=1, \tag{14}$$
 #
-# with a scaling function $f$. At $h_c$ the correlator vanishes as $N^{-1/4}$, so for large $N$ a fixed level is reached at
+# with a scaling function $f$, the correlation-length exponent $\nu$ of Section 3.1 and the order-parameter exponent
+# $\beta=\frac18$, defined by $m\propto(h_c-h)^\beta$ (consistent with $m^2=(1-h^2)^{1/4}$). At $h_c$ the correlator vanishes as $N^{-1/4}$, so for large $N$ a fixed level is reached at
 # a field that tends to the field $h<h_c$ where $m^2(h)$ equals the level. A *scale-invariant* combination removes the prefactor: the
 # curves of $N^{1/4}\langle Z_{j_1}Z_{j_2}\rangle$ for $N$ and $2N$ are both $f(x)$ with $x=(h-h_c)N$, and they cross where
 # $f(x)=f(2x)$, that is at $x=0$ up to corrections to scaling. The Binder cumulant
@@ -2000,7 +2014,7 @@ plt.show()
 # form like Eq. (14), with its own prefactor.
 #
 # The free-fermion solution of the chain [[6]](#ref-6), written here for the open chain with Majorana operators, gives
-# all four statistics without sampling. The Jordan–Wigner mapping of the spins to fermions writes each spin through two Majorana
+# all four statistics without sampling. The Jordan–Wigner mapping of the spins to fermions, introduced in [[14]](#ref-14), writes each spin through two Majorana
 # operators, $\gamma_{2j}=\big(\prod_{k<j}X_k\big)Z_j$ and
 # $\gamma_{2j+1}=\big(\prod_{k<j}X_k\big)Y_j$, with $\gamma_m^2=1$ and $\gamma_m\gamma_n=-\gamma_n\gamma_m$ for $m\neq n$.
 # Then $X_j=i\gamma_{2j}\gamma_{2j+1}$ and $Z_jZ_{j+1}=i\gamma_{2j+1}\gamma_{2j+2}$, and the Hamiltonian is quadratic,
@@ -2024,8 +2038,9 @@ plt.show()
 # $$\langle Z_{j_1}Z_{j_2}\rangle=\big\vert\det\big[G_{2k+1,\,2l+2}\big]_{k,l=j_1}^{j_2-1}\big\vert,\qquad
 # \Big\langle\prod_{k=j_1}^{j_2-1}X_k\Big\rangle=\big\vert\det\big[G_{2k,\,2l+1}\big]_{k,l=j_1}^{j_2-1}\big\vert, \tag{16}$$
 #
-# at a cost of $O(N^3)$ for any $N$ (the absolute value fixes the sign convention; both are positive in the ground
-# state). For the infinite chain, the derivatives of the exact energy per site
+# at a cost of $O(N^3)$ for any $N$ (the absolute value fixes the sign convention; both quantities are non-negative in
+# the ground state, because the string flips bits in the $Z$ basis, $Z_{j_1}Z_{j_2}$ flips two bits in the $X$ basis,
+# and in both bases the ground state has non-negative amplitudes, Section 3.1). For the infinite chain, the derivatives of the exact energy per site
 # $e=-\frac1\pi\int_0^\pi\sqrt{J^2+h^2+2hJ\cos q}\,{\rm d}q$ with respect to $h$ and $J$ give the two local expectation
 # values by the Hellmann–Feynman theorem: the derivative of the ground-state energy with respect to a parameter of $H$ equals the expectation value
 # of the derivative of $H$ ($\partial e/\partial h=-\langle X_j\rangle$, $\partial e/\partial J=-\langle Z_jZ_{j+1}\rangle$):
@@ -2035,7 +2050,7 @@ plt.show()
 #
 # The cell checks Eqs. (15)–(16) against the energies and the DMRG states at $N=16$, $32$ and $64$, tabulates the exact
 # fixed-level crossings of the four statistics for $N=16$ to $256$ and their limits from $m^2$, the dual string and
-# Eq. (17), and then compares three scale-invariant crossings with $h_c$: the exact $N^{1/4}\langle Z_{j_1}Z_{j_2}\rangle$
+# Eq. (17), and then compares three two-size crossings with $h_c$: the exact $N^{1/4}\langle Z_{j_1}Z_{j_2}\rangle$
 # for $N$ and $2N$, the Binder cumulants of the $Z$ snapshots (standard error from 200 bootstrap resamples of the
 # snapshots), and the $Z$-basis classifier curves of Section 5.1. It also prints how far the fixed-level crossings of the
 # $Z$-basis classifier lie from the exact order-parameter crossings at the same $N$. The exact crossings use a grid of
@@ -2207,7 +2222,7 @@ plt.show()
 # classifier crossing therefore tracks a sequence whose limit lies below $h_c$; the classifier itself was not run at
 # larger $N$.
 #
-# The scale-invariant crossings go to the critical point. The exact $N^{1/4}\langle Z_{j_1}Z_{j_2}\rangle$ curves for
+# The two-size crossings go to the critical point. The exact $N^{1/4}\langle Z_{j_1}Z_{j_2}\rangle$ curves for
 # $N$ and $2N$ cross at $0.99896$, $0.99969$, $0.99992$ and $0.99998$ for $N=16$ to $128$, approaching $h_c$ roughly as $1/N^2$. The unscaled curves of two sizes
 # cross at $0.9734$, $0.9869$, $0.9935$ and $0.9968$, approaching $h_c$ as $1/N$, as the scaling argument predicts. From the snapshots, the Binder cumulants
 # cross at $0.996\pm0.008$ for $(16,32)$ and $1.005\pm0.008$ for $(32,64)$, and the $Z$-basis classifier curves of two sizes cross at $1.002\pm0.017$
@@ -2349,7 +2364,7 @@ section_timer("6 cost")
 # | parity projection, Eq. (6) | $O(N\chi^3)$, bond dimension doubled | `parity_project` |
 # | one exact snapshot | $O(N\chi^2)$ | `sample_mps` |
 # | $\ln\vert\psi(\mathbf s)\vert$ of one string | $O(N\chi^2)$ | `log_amplitude`, `log_psi` |
-# | local estimator (10)–(11), one sample | $N+1$ amplitudes, $O(N^2\chi^2)$ | `local_observables` |
+# | local estimator (10)–(11), one sample | $N+1$ amplitudes, $O(N^2\chi^2)$ as implemented, $O(N\chi^2)$ with cached partial products | `local_observables` |
 # | one Born-machine loop | $O(N(M\chi^2+\chi^3))$ | `training_loop` |
 # | one classifier sweep, two labels | $O(N(n_{\rm steps}+n_{\rm power})M\chi^2+N\chi^3)$, $n_{\rm steps}=10$ gradient and $n_{\rm power}=20$ power-iteration steps per bond | `half_sweep_right/left` |
 # | exact statistics, Eqs. (15)–(16) | $O(N^3)$ per field | `exact_statistics` |
@@ -2402,10 +2417,11 @@ print(f"N = 16, time per field: DMRG {T_DMRG[16] / len(FIELDS):.2f} s,  exact ev
 # so at $N=32$ it would need $60\times68.7\ {\rm GB}\approx4.1\ {\rm TB}$, half that for the real vectors used here, and its time per step grows as $2^N$ as well. At
 # $N=16$ the exact even ground state already costs more time per field than DMRG, and every further spin doubles it. The
 # DMRG time per field only doubles from $N=16$ to $32$ and again to $64$, in proportion to $N$ at fixed bond dimension.
-# The MPS side continues to $N=64$, $128$ and beyond because the ground states of the chain carry little entanglement: a
+# DMRG and the MPS models continue to $N=64$, $128$ and beyond because the ground states of the chain carry little
+# entanglement, growing only logarithmically with $N$ at the critical point: a
 # bond dimension of 16 stores them to a relative energy error of at most $5.1\times10^{-10}$ (Section 3.4), with
 # $O(N\chi^2)$ numbers, and DMRG, exact sampling, the Born machine and the classifier all work on the tensors without
-# ever forming the $2^N$ amplitudes. The state-vector side stops between $N=16$ and $N=32$.
+# ever forming the $2^N$ amplitudes. Exact state vectors become impractical between $N=16$ and $N=32$.
 #
 # The whole computation takes between three and four minutes (the printed total); the times vary between runs. Section 3
 # takes the largest share, close to two minutes, roughly half of it DMRG and half the exact state vectors at $N=16$; the
@@ -2417,8 +2433,8 @@ print(f"N = 16, time per field: DMRG {T_DMRG[16] / len(FIELDS):.2f} s,  exact ev
 #
 # ## 7. Limits of the methods
 #
-# * **The prior decides everything in Part A.** One basis determines the state only if the amplitudes are non-negative
-#   and the state is pure. Section 4.9 showed that a sign pattern or complete dephasing leaves the $Z$ snapshots unchanged
+# * **The prior decides everything in Part A.** One basis determines the state only if the state is pure and the phases
+#   of its amplitudes are known in advance, here non-negative. Section 4.9 showed that a sign pattern or complete dephasing leaves the $Z$ snapshots unchanged
 #   and destroys the fidelity, and that only measurements in another basis reveal the failure. For a laboratory state
 #   that is neither exactly pure nor exactly sign-free, the reconstruction is the closest positive pure state in the
 #   likelihood sense, and Eq. (8) cannot be evaluated without knowing the true state.
@@ -2432,9 +2448,10 @@ print(f"N = 16, time per field: DMRG {T_DMRG[16] / len(FIELDS):.2f} s,  exact ev
 #   with the width of the system.
 # * **A classifier crossing is not a pseudo-critical point.** The field where a classifier output crosses a fixed level
 #   tracks the field where the statistic it follows reaches the level set by the training windows, whose limit is
-#   $0.973$ for the order parameter tracked by the $Z$-basis classifier here and $1.020$ for the disorder string. Which
-#   statistic a classifier follows is not controlled (the $X$-basis classifier mixed a local one with the string). The crossing of the outputs for two
-#   system sizes, or a scale-invariant statistic such as the Binder cumulant, converges to $h_c$.
+#   $0.973$ for the order parameter, tracked up to $N=64$ by the $Z$-basis classifier here, and $1.020$ for the
+#   disorder string. Which statistic a classifier follows is not controlled (the $X$-basis classifier crossed between a
+#   local statistic and the string). Crossings of two system sizes of a quantity with a scaling form, such as the
+#   Binder cumulant, converge to $h_c$; those of our $Z$-basis classifier agree with $h_c$ within their errors.
 # * **Labels need prior knowledge.** The supervised classifier needs two fields known to lie in different phases. The
 #   confusion scheme of Exercise 6 trains with trial labels instead and needs no prior knowledge of where the phases lie.
 #
@@ -2481,7 +2498,7 @@ print(f"N = 16, time per field: DMRG {T_DMRG[16] / len(FIELDS):.2f} s,  exact ev
 #    Show that the $Z$ snapshots do not change, that $\langle X_j\rangle$ of the new state equals
 #    $\langle Z_{j-1}X_jZ_{j+1}\rangle$ of the old one, and compute it with the MPS. Which three-site measurement settings
 #    detect the signs, and how does this relate to the blocks of $k=3$ qubits of Section 4.10?
-# 6. ★★ **Learning by confusion.** The confusion scheme was introduced in [[13]](#ref-13): label the snapshots of all fields
+# 6. ★★ **Learning by confusion.** The confusion scheme was introduced in [[15]](#ref-15): label the snapshots of all fields
 #    below a trial field $h'$ as one phase and the rest as the other, train the classifier and record its accuracy on
 #    fresh snapshots, for $h'$ on the grid. Plot the accuracy against $h'$ for $N=32$ in the $Z$ basis; where is the peak
 #    of the W-shaped curve?
@@ -2541,27 +2558,32 @@ print(f"N = 16, time per field: DMRG {T_DMRG[16] / len(FIELDS):.2f} s,  exact ev
 # Lett. **69**, 2863 (1992) — the density-matrix renormalization group, presented as a generalisation of the numerical
 # renormalization group, with results for Heisenberg chains (abstract).
 #
-# <span id="ref-9">[9]</span> B. P. Lanyon, C. Maier, M. Holzäpfel, T. Baumgratz, C. Hempel, P. Jurcevic, I. Dhand,
+# <span id="ref-9">[9]</span> C. E. Shannon, *A mathematical theory of communication*, Bell Syst. Tech. J. **27**, 379 (1948) — the Shannon entropy.
+#
+# <span id="ref-10">[10]</span> B. P. Lanyon, C. Maier, M. Holzäpfel, T. Baumgratz, C. Hempel, P. Jurcevic, I. Dhand,
 # A. S. Buyskikh, A. J. Daley, M. Cramer, M. B. Plenio, R. Blatt and C. F. Roos, *Efficient tomography of a quantum
 # many-body system*, Nat. Phys. **13**, 1158 (2017), arXiv:1612.08000 — MPS tomography of up to 14 trapped ions from
 # all three-site reduced density matrices (27 bases), with certified fidelities.
 #
-# <span id="ref-10">[10]</span> J. Wang, Z.-Y. Han, S.-B. Wang, Z. Li, L.-Z. Mu, H. Fan and L. Wang, *Scalable quantum
+# <span id="ref-11">[11]</span> J. Wang, Z.-Y. Han, S.-B. Wang, Z. Li, L.-Z. Mu, H. Fan and L. Wang, *Scalable quantum
 # tomography with fidelity estimation*, Phys. Rev. A **101**, 032321 (2020), arXiv:1712.03213 — the MPS Born machine
 # trained on single-shot measurements in random local bases (Sec. II A; informational completeness, Appendix A),
 # applied to W, cluster, dimer and random MPS states.
 #
-# <span id="ref-11">[11]</span> M. L. Wall, P. Titum, G. Quiroz, M. Foss-Feig and K. R. A. Hazzard, *Tensor-network
+# <span id="ref-12">[12]</span> M. L. Wall, P. Titum, G. Quiroz, M. Foss-Feig and K. R. A. Hazzard, *Tensor-network
 # discriminator architecture for classification of quantum data on quantum computers*, Phys. Rev. A **105**, 062439
 # (2022), arXiv:2202.10911 — an MPS classifier trained on $x$- and $z$-basis snapshots of six central sites of 32-site
 # antiferromagnetic transverse-field Ising ground states at $h=0.1$ and $h=10$ (Sec. IV A); evaluated on entangled
 # infinite-MPS input states on the H1-2 trapped-ion computer, the point where its output crosses $\frac12$, located by a
 # linear fit, is $h=0.962$ ($\chi=2$) and $0.994$ ($\chi=4$) (Figs. 8–9).
 #
-# <span id="ref-12">[12]</span> M. E. Fisher and M. N. Barber, *Scaling theory for finite-size effects in the critical
+# <span id="ref-13">[13]</span> M. E. Fisher and M. N. Barber, *Scaling theory for finite-size effects in the critical
 # region*, Phys. Rev. Lett. **28**, 1516 (1972) — a scaling theory of finite-size effects near a critical point, with
 # separate exponents for the shift and the rounding of the transition (abstract).
 #
-# <span id="ref-13">[13]</span> E. P. L. van Nieuwenburg, Y.-H. Liu and S. D. Huber, *Learning phase transitions by
+# <span id="ref-14">[14]</span> P. Jordan and E. Wigner, *Über das Paulische Äquivalenzverbot*, Z. Phys. **47**, 631 (1928) — the Jordan–Wigner
+# transformation.
+#
+# <span id="ref-15">[15]</span> E. P. L. van Nieuwenburg, Y.-H. Liu and S. D. Huber, *Learning phase transitions by
 # confusion*, Nat. Phys. **13**, 435 (2017), arXiv:1610.02048 — the confusion scheme and its W-shaped performance
 # curve (Sec. II C).

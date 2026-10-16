@@ -1372,7 +1372,7 @@ assert abs(chi_bob - 2.0) < 1e-9 and abs(chi_eve) < 1e-9
 # ### 14.1 The rate of this protocol
 #
 # Equation (11) turns the quantum problem into a classical one, so we can use classical information theory. The quantity to compute
-# is the mutual information $I(M{:}O)=H(O)-H(O\vert M)$ between the message and Bob's read-out, with $H$ the Shannon entropy in
+# is the mutual information $I(M{:}O)=H(O)-H(O\vert M)$ between the message and Bob's read-out, with $H$ the Shannon entropy, introduced in [[13]](#ref-13), in
 # bits; both, and the binary symmetric channel used below, are introduced in
 # [notebook 50, information, entropy and noisy channels](../ch12_quantum_communication_and_cryptography/50_information_entropy_and_noisy_channels.ipynb). For an additive channel on a group the channel matrix
 # $P(o\vert m)=q_{o\ominus m}$ is doubly stochastic and every row is a permutation of every other, so a uniform prior maximises
@@ -1399,7 +1399,7 @@ assert abs(chi_bob - 2.0) < 1e-9 and abs(chi_eve) < 1e-9
 # Equation (12) is the capacity of the *classical* channel that this particular encode-and-decode scheme induces. That is not
 # automatically the same as the **dense-coding capacity of the shared state**, which is the maximum over all encodings Alice could
 # apply to her qubit and all decoding measurements Bob could perform. For a shared state $\rho_{AB}$ and unitary encodings on a
-# system $A$ of dimension $d_A$ that maximum is known in closed form [[13]](#ref-13), [[14]](#ref-14), [[15]](#ref-15):
+# system $A$ of dimension $d_A$ that maximum is known in closed form [[14]](#ref-14), [[15]](#ref-15), [[16]](#ref-16):
 #
 # $$C_{\text{dc}}(\rho_{AB})=\log_2 d_A+S(\rho_B)-S(\rho_{AB}) . \tag{13}$$
 #
@@ -1411,11 +1411,11 @@ assert abs(chi_bob - 2.0) < 1e-9 and abs(chi_eve) < 1e-9
 # itself is noiseless, Alice's encodings are unitary, and the rate is reached asymptotically, with block codes and collective
 # measurements over many uses (the Holevo quantity is achievable in that limit). The formula is additive over copies, so encoding
 # unitarily on many pairs at once does not help either. If Alice and Bob may consume an unlimited number of noisy pairs per
-# transmitted qubit, the question changes and so does the answer [[16]](#ref-16).
+# transmitted qubit, the question changes and so does the answer [[17]](#ref-17).
 #
 # Alice is, however, not restricted to unitaries. She can discard the pair and send a freshly prepared qubit, which carries
 # $\log_2 d_A=1$ bit, or more generally apply any channel $\Lambda$ to her half before a unitary encoding. For such general encodings
-# Ref. [[17]](#ref-17) gives the single-copy capacity as
+# Ref. [[18]](#ref-18) gives the single-copy capacity as
 #
 # $$C^{(1)}_{\text{dc}}(\rho_{AB})=\log_2 d_A+S(\rho_B)-\min_{\Lambda}S\big((\Lambda\otimes\mathbb 1)\rho_{AB}\big) . \tag{14}$$
 #
@@ -1425,7 +1425,7 @@ assert abs(chi_bob - 2.0) < 1e-9 and abs(chi_eve) < 1e-9
 # below one bit. A numerical minimisation over qubit channels (Exercise 9) finds no $\Lambda$ that lowers the entropy below
 # $\min\big(1,H(q)\big)$ for the depolarised and dephased pairs of this section, so for these states the bound appears to be an
 # equality; this is a numerical observation, for which we know no general proof. Whether general encodings acting jointly on many
-# pairs can exceed the single-copy value is an additivity question [[18]](#ref-18) that Eq. (14) leaves open. The curve we are about
+# pairs can exceed the single-copy value is an additivity question [[19]](#ref-19) that Eq. (14) leaves open. The curve we are about
 # to plot is therefore the rate of *this* protocol: above $1$ bit it equals the unitary-encoding capacity, and below $1$ bit Alice does better by discarding the pair.
 #
 # We now measure the full $4\times4$ confusion matrix on the density tensor, extract the empirical mutual information, and compare it
@@ -1852,30 +1852,32 @@ print("\n(The first call includes tracing and XLA compilation; it is paid once p
 # <span id="ref-12">[12]</span> A. S. Holevo, *Bounds for the quantity of information transmitted by a quantum communication
 # channel*, Problems of Information Transmission **9**(3), 177–183 (1973) — the bound of Section 13.
 #
-# <span id="ref-13">[13]</span> T. Hiroshima, *Optimal dense coding with mixed state entanglement*, J. Phys. A: Math. Gen.
+# <span id="ref-13">[13]</span> C. E. Shannon, *A mathematical theory of communication*, Bell Syst. Tech. J. **27**, 379 (1948) — the Shannon entropy, the mutual information and the capacity of a noisy channel.
+#
+# <span id="ref-14">[14]</span> T. Hiroshima, *Optimal dense coding with mixed state entanglement*, J. Phys. A: Math. Gen.
 # **34**, 6907 (2001) — the dense-coding capacity $\log_2d_A+S(\rho_B)-S(\rho_{AB})$ for unitary encodings, Eq. (13).
 #
-# <span id="ref-14">[14]</span> G. Bowen, *Classical information capacity of superdense coding*, Phys. Rev. A **63**, 022302
+# <span id="ref-15">[15]</span> G. Bowen, *Classical information capacity of superdense coding*, Phys. Rev. A **63**, 022302
 # (2001) — the dense-coding capacity of Eq. (13).
 #
-# <span id="ref-15">[15]</span> D. Bruß, G. M. D'Ariano, M. Lewenstein, C. Macchiavello, A. Sen(De) and U. Sen, *Distributed
+# <span id="ref-16">[16]</span> D. Bruß, G. M. D'Ariano, M. Lewenstein, C. Macchiavello, A. Sen(De) and U. Sen, *Distributed
 # quantum dense coding*, Phys. Rev. Lett. **93**, 210501 (2004) — the same formula for $d_A\ne d_B$ and for several senders.
 #
-# <span id="ref-16">[16]</span> M. Horodecki, P. Horodecki, R. Horodecki, D. Leung and B. Terhal, *Classical capacity of a
+# <span id="ref-17">[17]</span> M. Horodecki, P. Horodecki, R. Horodecki, D. Leung and B. Terhal, *Classical capacity of a
 # noiseless quantum channel assisted by noisy entanglement*, Quantum Inf. Comput. **1**(3), 70 (2001) — the capacity when an
 # arbitrary amount of noisy entanglement may be used per channel use.
 #
-# <span id="ref-17">[17]</span> M. Horodecki and M. Piani, *On quantum advantage in dense coding*, J. Phys. A: Math. Theor.
+# <span id="ref-18">[18]</span> M. Horodecki and M. Piani, *On quantum advantage in dense coding*, J. Phys. A: Math. Theor.
 # **45**, 105306 (2012) — general encoding operations; the single-copy capacity Eq. (14), with the minimisation over Alice's
 # pre-processing channel.
 #
-# <span id="ref-18">[18]</span> A. Winter, *Scalable programmable quantum gates and a new aspect of the additivity problem
+# <span id="ref-19">[19]</span> A. Winter, *Scalable programmable quantum gates and a new aspect of the additivity problem
 # for the classical capacity of quantum channels*, J. Math. Phys. **43**, 4341 (2002) — noisy dense coding with general
 # encodings and the associated additivity problem.
 #
-# <span id="ref-19">[19]</span> C. H. Bennett, G. Brassard, C. Crépeau, R. Jozsa, A. Peres and W. K. Wootters, *Teleporting
+# <span id="ref-20">[20]</span> C. H. Bennett, G. Brassard, C. Crépeau, R. Jozsa, A. Peres and W. K. Wootters, *Teleporting
 # an unknown quantum state via dual classical and Einstein-Podolsky-Rosen channels*, Phys. Rev. Lett. **70**, 1895 (1993) —
 # the dual protocol of Section 12.3.
 #
-# <span id="ref-20">[20]</span> M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information* (Cambridge
+# <span id="ref-21">[21]</span> M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information* (Cambridge
 # University Press, 2000) — Chapters 2, 8 and 12 cover Bell measurements, channels, the Holevo bound and both protocols.

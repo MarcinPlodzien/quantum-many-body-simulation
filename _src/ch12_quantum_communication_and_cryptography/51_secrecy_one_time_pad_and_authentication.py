@@ -82,7 +82,7 @@
 
 # %%
 # ==============================================================================
-# PLOT STYLE + small helpers (entropy functions as in notebook 50)
+# PLOT STYLE + small helpers (entropy functions)
 # ==============================================================================
 PALETTE = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#4a3aa7"]   # colour-blind-friendly, fixed order
 MARKERS = ["o", "s", "^", "D", "v", "P"]
@@ -108,14 +108,14 @@ def random_bits(key, n, p=0.5):
 
 
 def entropy(probs):
-    """Shannon entropy in bits of a probability vector or table (notebook 50, Eq. (2)); 0 log 0 = 0."""
+    """Shannon entropy in bits of a probability vector or table; 0 log 0 = 0."""
     p = np.asarray(probs, dtype=float).ravel()
     p = p[p > 0]
     return float(-(p * np.log2(p)).sum()) + 0.0
 
 
 def h2(q):
-    """Binary entropy h(q) = -q log2 q - (1-q) log2(1-q) (notebook 50, Eq. (4)); scalars and arrays."""
+    """Binary entropy h(q) = -q log2 q - (1-q) log2(1-q); scalars and arrays."""
     q = np.asarray(q, dtype=float)
     with np.errstate(divide="ignore", invalid="ignore"):
         out = -q * np.log2(np.where(q > 0, q, 1.0)) - (1 - q) * np.log2(np.where(q < 1, 1 - q, 1.0))
@@ -123,7 +123,7 @@ def h2(q):
 
 
 def info_quantities(pxy):
-    """Joint table p(x, y) -> H(X), H(Y), H(X,Y), H(X|Y), I(X:Y) (notebook 50, Eqs. (8)-(10))."""
+    """Joint table p(x, y) -> H(X), H(Y), H(X,Y), H(X|Y), I(X:Y)."""
     pxy = np.asarray(pxy, dtype=float)
     HX, HY, HXY = entropy(pxy.sum(1)), entropy(pxy.sum(0)), entropy(pxy)
     return {"H(X)": HX, "H(Y)": HY, "H(X,Y)": HXY, "H(X|Y)": HXY - HY, "I(X:Y)": HX + HY - HXY}

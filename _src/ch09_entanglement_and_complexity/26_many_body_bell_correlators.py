@@ -1833,8 +1833,7 @@ assert abs(rows[8] / 8 - t_bell_fixed) < 1e-6                     # the sums rep
 assert all(2.98 < rows[N] < 3.0 for N in Ns_fp)                   # exact onset close to 3/N
 
 # %% [markdown]
-# The exact onset is $N\chi t_{\rm B}=2.983$ at $N=8$ and grows slowly to $2.994$ at $N=64$; the same sums evaluated with
-# 60-digit arithmetic give $2.997$ at $N=256$. The large-$N$ estimate of Eq. (15) gives $1.77$. At $N=8$, Eq. (15) gives
+# The exact onset is $N\chi t_{\rm B}=2.983$ at $N=8$ and grows slowly to $2.994$ at $N=64$. The large-$N$ estimate of Eq. (15) gives $1.77$. At $N=8$, Eq. (15) gives
 # $\chi t=0.221$; the value $\pi/8=0.393$ quoted for $N=8$ in the discussion of Fig. 2 of [[14]](#ref-14) is close to the exact
 # $0.373$. The exact onset also scales as $N^{-1}$, so the conclusion that fixed-plane Bell correlations appear before the
 # squeezing optimum at large $N$ is unchanged; the prefactor sets the size from which this holds (Exercise 9).

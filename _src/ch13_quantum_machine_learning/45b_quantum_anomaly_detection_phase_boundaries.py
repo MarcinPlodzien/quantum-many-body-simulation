@@ -444,7 +444,7 @@ fig.tight_layout(); plt.show()
 #   crossover, and Section 6.4 shows how its finite-size precursors locate the transition.
 # * **Small-field antiferromagnetic region** ($\Delta\gtrsim-1$, below the lowest dashed line):
 #   $\langle Z_iZ_{i+1}\rangle<0$, $\langle X_i\rangle\approx0$. No map shows a feature at $\Delta=1$, where the infinite
-#   chain has its Kosterlitz–Thouless transition at $h_x=0$ and a gapless line between Néel order along $z$ and along
+#   chain has its Berezinskii–Kosterlitz–Thouless transition, introduced in [[7]](#ref-7), [[8]](#ref-8) and [[9]](#ref-9), at $h_x=0$ and a gapless line between Néel order along $z$ and along
 #   $y$ at small $h_x>0$.
 # * **Middle band** (between the lowest and the highest dashed line): the parity of the ground state alternates from
 #   one dashed line to the next, and $\langle Y_iY_{i+1}\rangle$ is strongly negative ($-0.673$ at $(0,1)$), i.e.
@@ -484,7 +484,7 @@ fig.tight_layout(); plt.show()
 # ### 4.1 The encoder and the trash register
 #
 # The encoder $U(\boldsymbol\theta)$ is the hardware-efficient ansatz, introduced in
-# [[7]](#ref-7), applied to the input
+# [[10]](#ref-10), applied to the input
 # state: $L$ layers of [$R_y$ and $R_z$ on every qubit, then a chain of $CZ$ gates], and a final rotation block, with
 # $n=2N(L+1)$ angles. A set $T$ of $k$ qubits is declared the trash register. We place the trash at the two ends of
 # the chain ($k=2$: qubits $0$ and $7$); Exercise 4 compares this choice with two adjacent trash qubits at one end.
@@ -692,7 +692,7 @@ assert max_abs(dh_id - 0.5) < 1e-8
 # ### 4.5 Local and global cost at random initialisation
 #
 # For $k=1$ the two costs of Eqs. (4) and (5) are the same function. For $k>1$ the global cost asks whether *all*
-# trash qubits are in $\vert0\rangle$ at once: it is a global cost on the trash register, while $D_H$ is a sum of single-qubit terms. The authors of [[8]](#ref-8) proved
+# trash qubits are in $\vert0\rangle$ at once: it is a global cost on the trash register, while $D_H$ is a sum of single-qubit terms. The authors of [[11]](#ref-11) proved
 # for a class of layered circuits that global costs have gradients whose variance vanishes exponentially with the
 # number of qubits the cost acts on, already at shallow depth, while local costs keep a variance that decays at worst
 # polynomially when the depth grows at most logarithmically; they used the quantum autoencoder as an example.
@@ -730,7 +730,7 @@ for k in (1, 2, 3, 4):
 # For $k=1$ the two costs are the same function and the variances agree exactly. At $k=2$ and $k=3$ the gradient
 # variances of the two costs agree within $7\,\%$; at $k=4$ the global cost has the smaller variance, by a factor
 # $0.55\pm0.02$. At these sizes local and global cost differ by at most a factor of two in gradient variance. The
-# exponential separation proved in [[8]](#ref-8) concerns how the variance scales with the number of qubits the
+# exponential separation proved in [[11]](#ref-11) concerns how the variance scales with the number of qubits the
 # observable acts on, and four trash qubits are too few to display it. The reasons to use $D_H$ here are therefore its
 # favourable scaling, its direct measurement as a mean of single-qubit outcomes, and Eq. (7), which makes it as strict a
 # criterion of compression as the global cost. Whether either cost trains better at $N=8$ is measured next.
@@ -740,10 +740,10 @@ for k in (1, 2, 3, 4):
 #
 # ### 5.1 A training loop shared by every experiment
 #
-# Training minimises Eq. (4) (or Eq. (5)) for one input state with Adam [[9]](#ref-9), as a `lax.scan`
+# Training minimises Eq. (4) (or Eq. (5)) for one input state with Adam [[12]](#ref-12), as a `lax.scan`
 # over iterations. Both costs are recorded at every iteration, whichever one is being minimised, so that every run is
 # judged by the same criterion. We call a run **successful** if it ends with $1-p_0<10^{-2}$, and report the success
-# fraction with its 68 % Wilson score interval [[10]](#ref-10); by Eq. (7) the
+# fraction with its 68 % Wilson score interval [[13]](#ref-13); by Eq. (7) the
 # reconstruction fidelity of such an encoder is at least $0.98$. Each argument of the training function — start
 # angles, input state, trash mask, cost selector, step size — is an array with a batch dimension, so a whole study
 # is one `vmap`.
@@ -780,7 +780,7 @@ def train_run(theta0, psi, mask, use_global, lr):
     def body(carry, i):
         th, m, v = carry
         (_, both), grad = jax.value_and_grad(cost, has_aux=True)(th)
-        m = 0.9 * m + 0.1 * grad                                           # Adam moments (notebook 41)
+        m = 0.9 * m + 0.1 * grad                                           # Adam moments
         v = 0.999 * v + 0.001 * grad ** 2
         th = th - lr * (m / (1 - 0.9 ** i)) / (jnp.sqrt(v / (1 - 0.999 ** i)) + 1e-8)
         return (th, m, v), both                                            # `both` belongs to the angles BEFORE the step
@@ -1169,7 +1169,7 @@ for name in ref_names:
 # over three chain lengths, $N=6$, $8$ and $10$. For chains this short a dense diagonalisation inside each parity sector
 # (dimension $2^{N-1}\le512$) gives all levels at once.
 #
-# * The **fidelity susceptibility** of the ground state, introduced in [[11]](#ref-11) and written $\vert0\rangle$ here with excited levels $\vert m\rangle$
+# * The **fidelity susceptibility** of the ground state, introduced in [[14]](#ref-14) and written $\vert0\rangle$ here with excited levels $\vert m\rangle$
 #   (energy eigenstates, not qubit states), with respect to the field
 #   ([notebook 47, quantum phase transitions](../ch11_quantum_phase_transitions/47_quantum_phase_transitions.ipynb), Section 7),
 #
@@ -1233,7 +1233,7 @@ def cut_spectrum(n, delta, hs, periodic=False):
 
     Returns, per field value: E0 of the even and the odd sector, the gap E1 - E0 inside the even sector, the fidelity
     susceptibility per site of the even ground state, and its end-to-end correlator <Z_0 Z_{n-1}>.
-    MATH   chi_F = sum_{m>0} |<m| sum_i X_i |0>|^2 / (E_m - E_0)^2  (notebook 47, Sec. 7), evaluated inside the even
+    MATH   chi_F = sum_{m>0} |<m| sum_i X_i |0>|^2 / (E_m - E_0)^2, evaluated inside the even
            sector, which the derivative dH/dh_x = sum_i X_i does not leave.
     COST   the three parts of H are projected on the sectors once; then one dense eigendecomposition of dimension
            2^(n-1) per sector and field value (512 for n = 10).
@@ -1595,21 +1595,30 @@ fig.tight_layout(); plt.show()
 # **74**, 031123 (2006) — the overlap of ground states at neighbouring couplings as a detector of transitions (the
 # neighbour infidelity of Section 3.2).
 #
-# <span id="ref-7">[7]</span> A. Kandala, A. Mezzacapo, K. Temme, M. Takita, M. Brink, J. M. Chow and J. M. Gambetta,
+# <span id="ref-7">[7]</span> V. L. Berezinskii, *Destruction of long-range order in one-dimensional and two-dimensional systems having a continuous
+# symmetry group. I. Classical systems*, Sov. Phys. JETP **32**, 493 (1971).
+#
+# <span id="ref-8">[8]</span> V. L. Berezinskii, *Destruction of long-range order in one-dimensional and two-dimensional systems possessing a
+# continuous symmetry group. II. Quantum systems*, Sov. Phys. JETP **34**, 610 (1972).
+#
+# <span id="ref-9">[9]</span> J. M. Kosterlitz and D. J. Thouless, *Ordering, metastability and phase transitions in two-dimensional systems*,
+# J. Phys. C **6**, 1181 (1973) — the Kosterlitz–Thouless transition.
+#
+# <span id="ref-10">[10]</span> A. Kandala, A. Mezzacapo, K. Temme, M. Takita, M. Brink, J. M. Chow and J. M. Gambetta,
 # *Hardware-efficient variational quantum eigensolver for small molecules and quantum magnets*, Nature **549**, 242
 # (2017) — the hardware-efficient ansatz.
 #
-# <span id="ref-8">[8]</span> M. Cerezo, A. Sone, T. Volkoff, L. Cincio and P. J. Coles, *Cost function dependent barren
+# <span id="ref-11">[11]</span> M. Cerezo, A. Sone, T. Volkoff, L. Cincio and P. J. Coles, *Cost function dependent barren
 # plateaus in shallow parametrized quantum circuits*, Nat. Commun. **12**, 1791 (2021) — global costs give exponentially
 # vanishing gradients already at shallow depth, local costs at worst polynomially vanishing ones at logarithmic depth;
 # illustrated with a quantum autoencoder.
 #
-# <span id="ref-9">[9]</span> D. P. Kingma and J. Ba, *Adam: a method for stochastic optimization*, arXiv:1412.6980 (2014),
+# <span id="ref-12">[12]</span> D. P. Kingma and J. Ba, *Adam: a method for stochastic optimization*, arXiv:1412.6980 (2014),
 # 3rd International Conference on Learning Representations (2015) — the optimiser.
 #
-# <span id="ref-10">[10]</span> E. B. Wilson, *Probable inference, the law of succession, and statistical inference*,
+# <span id="ref-13">[13]</span> E. B. Wilson, *Probable inference, the law of succession, and statistical inference*,
 # J. Am. Stat. Assoc. **22**, 209 (1927) — the score interval used for success rates.
 #
-# <span id="ref-11">[11]</span> W.-L. You, Y.-W. Li and S.-J. Gu, *Fidelity, dynamic structure factor, and susceptibility in
+# <span id="ref-14">[14]</span> W.-L. You, Y.-W. Li and S.-J. Gu, *Fidelity, dynamic structure factor, and susceptibility in
 # critical phenomena*, Phys. Rev. E **76**, 022101 (2007) — the fidelity susceptibility, Eq. (11), as the second-order
 # term of the ground-state fidelity.

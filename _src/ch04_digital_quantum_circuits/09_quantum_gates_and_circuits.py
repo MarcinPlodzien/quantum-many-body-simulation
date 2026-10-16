@@ -1226,7 +1226,7 @@ N_tr, J_tr, h_tr, dt_tr = 6, 1.0, 1.0, 0.1
 step1 = tfim_trotter_circuit(N_tr, J_tr, h_tr, dt_tr, order=1)
 draw_circuit(step1 + step1, N_tr, title="two first-order Trotter steps of the TFIM")
 
-# CHECKPOINT: identical (as a unitary) to the engine's TEBD step of notebook 05, built from exp(-i h_k dt)
+# CHECKPOINT: identical (as a unitary) to the engine's TEBD step, built from exp(-i h_k dt)
 terms = heisenberg_terms(N_tr, Jxx=0.0, Jyy=0.0, Jzz=J_tr, hx=h_tr)               # list of local terms of the TFIM
 U_circ = circuit_unitary(strip_labels(step1), N_tr)
 U_tebd = circuit_unitary(tebd_gates(terms, dt_tr, order=1), N_tr)
@@ -1405,7 +1405,7 @@ def noisy_circuit_dm(rho, gates, p1, p2):
 
     MATH   rho -> E_p^{(q)}( U rho U^dag )  for every qubit q touched by the gate;
            p = p1 for one-qubit gates, p = p2 for multi-qubit gates.
-    COST   O(4^N) memory and O(2^k 4^N) per gate: on a 16 GB laptop N <~ 13-14 (notebook 07, Sec. 5).
+    COST   O(4^N) memory and O(2^k 4^N) per gate: on a 16 GB laptop N <~ 13-14.
     JAX    p1, p2 may be traced (the structure of the computation does not depend on them).
     """
     for qubits, U in gates:

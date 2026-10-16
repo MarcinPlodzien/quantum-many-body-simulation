@@ -1414,7 +1414,7 @@ R_B    = 40_000                    # experiments per row: the bias is ~1e-3, its
 
 
 def first_order_bias(pin, phi):
-    """b_1(phi) of nb 30, Eq. (14a): E[phi_hat] - phi = b_1/M + O(1/M^2), and the Fisher information I(phi).
+    """b_1(phi) (derived in 'QFI from the symmetric logarithmic derivative'): E[phi_hat] - phi = b_1/M + O(1/M^2), and the Fisher information I(phi).
 
     MATH   b_1 = -(1/(2 I^2)) sum_m p'_m p''_m / p_m,   I = sum_m p'_m^2 / p_m   (derivatives in phi)
     JAX    p' and p'' by forward-mode differentiation of the exact readout distribution (no finite differences).
@@ -1433,7 +1433,7 @@ b1, I_b = first_order_bias(pin_b, PHI_B)
 b1_zero, _ = first_order_bias(pin_b, 0.0)
 print(f"squeezed input, N = {N_RAM}:  b_1(phi = {PHI_B}) = {b1:+.5f},  I(phi = {PHI_B}) = {I_b:.4f};"
       f"   b_1(phi = 0) = {b1_zero:+.1e} (zero by symmetry)\n")
-print(f"{'M':>5s} | {'bias +- se':>22s} {'b_1/M (Eq. 14a of nb 30)':>25s} {'z vs b_1/M':>11s} {'z vs 0':>8s} | "
+print(f"{'M':>5s} | {'bias +- se':>22s} {'b_1/M (predicted)':>25s} {'z vs b_1/M':>11s} {'z vs 0':>8s} | "
       f"{'M I Var +- se':>16s}")
 bias_rows = []
 for j, M in enumerate(M_B):
@@ -1530,8 +1530,9 @@ fig.tight_layout(); plt.show()
 # In clock terms, $I=38.98$ against $I=10$ means the squeezed interferometer reaches a given phase uncertainty with
 # $3.9$ times fewer interrogations.
 #
-# Execution of the compiled estimator is fast: the $24\,000$ simulated experiments of Step 9 run in about $1$ s, while
-# compiling the six array shapes (one per $M$; the two inputs share them) takes about ten times longer. Steps 6 and 11
+# Execution of the compiled estimator is fast: the $24\,000$ simulated experiments of Step 9 run in a few seconds at most, while
+# compiling the six array shapes (one per $M$; the two inputs share them) takes several times longer (the exact split
+# depends on the load of the machine). Steps 6 and 11
 # print the same split.
 #
 # > **Physics insight.** The protocol uses only standard ingredients: the twisting is an interaction the atoms have
@@ -1691,6 +1692,7 @@ def make_husimi_gif(psi0, mus, theta_grid, phi_grid, phi_ax, cos_ax, title="", f
     # each frame is rescaled to its OWN maximum: the peak of Q drops by a factor ~4 during the evolution
     # (1.00 at mu=0 down to 0.26 near mu=0.84), so a common colour scale would darken the middle frames.
     frames = [np.array(husimi_q(oat_evolve(psi0, float(m)), theta_grid, phi_grid)) for m in mus]
+    peaks = np.array([f.max() for f in frames])                     # raw peak heights, printed below
     frames = [f / f.max() for f in frames]
     fig, ax = plt.subplots(figsize=figsize)
     mesh = ax.pcolormesh(phi_ax, cos_ax, frames[0], shading="auto", cmap="magma", vmin=0.0, vmax=1.0)
@@ -1717,6 +1719,9 @@ def make_husimi_gif(psi0, mus, theta_grid, phi_grid, phi_ax, cos_ax, title="", f
     tag = f'<img src="data:image/gif;base64,{b64}" alt="animation" style="max-width:100%;height:auto">'
     display({"image/gif": b64, "text/html": tag}, raw=True)
     print(f"   [{len(frames)} frames, {len(gif_bytes) / 1e6:.2f} MB embedded in the notebook]")
+    i_min = int(np.argmin(peaks))
+    print(f"   peak of Q before rescaling: {peaks[0]:.2f} at mu = {mus[0]:.3f}, lowest {peaks[i_min]:.2f} at "
+          f"mu = {mus[i_min]:.3f}, {peaks[-1]:.2f} at mu = {mus[-1]:.3f}")
 
 
 MU_FRAMES = np.linspace(0.0, np.pi / 2, 48)
@@ -1726,7 +1731,7 @@ make_husimi_gif(psi_q0, MU_FRAMES, jnp.asarray(THETA_M), jnp.asarray(PHI_M), phi
 # %% [markdown]
 # The animation runs from $\mu=0$ to $\mu=\pi/2$ in $48$ frames; each frame is rescaled to its own maximum, because the
 # peak height of $Q$ falls by a factor of about four as the state spreads (from $1.00$ at $\mu=0$ to $0.26$ near
-# $\mu=0.84$, recovering to $0.50$ at the cat). Watch three things: the blob shears
+# $\mu=0.84$, recovering to $0.50$ at the cat; printed below the animation). Watch three things: the blob shears
 # and tilts within the first few frames (that is where all the useful squeezing happens); it then smears into a band
 # that wraps the sphere; and near the end it reassembles, sharply, into a small number of lobes — the revivals of a
 # system with an *integer* energy spectrum $\chi m^2$, which is exactly periodic.

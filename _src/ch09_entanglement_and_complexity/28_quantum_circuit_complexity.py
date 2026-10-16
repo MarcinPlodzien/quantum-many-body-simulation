@@ -91,9 +91,9 @@ plt.rcParams.update({"axes.prop_cycle": plt.cycler(color=PALETTE), "axes.grid": 
                      "grid.alpha": 0.3, "font.size": 10, "legend.frameon": False})
 
 R_POISSON = 2.0 * np.log(2.0) - 1.0      # <r> for uncorrelated levels  (derived in Section 7.1)
-R_GUE = 0.5996                            # <r> for the Gaussian unitary ensemble (Ref. [21])
-R_GOE = 0.5359                            # <r> for the Gaussian orthogonal ensemble (Ref. [21])
-LOG2_4_3 = float(np.log2(4.0 / 3.0))      # magic of one T|+> state (notebook 27)
+R_GUE = 0.5996                            # <r> for the Gaussian unitary ensemble (Ref. [22])
+R_GOE = 0.5359                            # <r> for the Gaussian orthogonal ensemble (Ref. [22])
+LOG2_4_3 = float(np.log2(4.0 / 3.0))      # magic of one T|+> state
 
 print(f"reference gap ratios:  Poisson 2 ln2 - 1 = {R_POISSON:.4f} | GOE {R_GOE} | GUE {R_GUE}")
 
@@ -119,15 +119,15 @@ print(f"reference gap ratios:  Poisson 2 ln2 - 1 = {R_POISSON:.4f} | GOE {R_GOE}
 # $$ \lvert\psi\rangle=\sum_{j=1}^{\chi_{\rm exact}}\lambda_j\,\lvert u_j\rangle_A\lvert v_j\rangle_B ,\qquad \lambda_1\ge\lambda_2\ge\dots\ge0,\qquad \sum_j\lambda_j^2=1, $$
 #
 # shows that the bond index has to carry the Schmidt rank $\chi_{\rm exact}$ of that cut. The entanglement entropy across
-# the cut is $S=-\sum_jp_j\log_2p_j$ with $p_j=\lambda_j^2$, and since the Shannon entropy of a distribution supported on
+# the cut is $S=-\sum_jp_j\log_2p_j$ with $p_j=\lambda_j^2$, and since the Shannon entropy, introduced in [[2]](#ref-2), of a distribution supported on
 # $\chi$ outcomes is at most $\log_2\chi$,
 #
 # $$ \chi_{\rm exact}\;\ge\;2^{S} . \tag{1} $$
 #
 # Memory and time of the tensor-network algorithm grow like $\chi^2$ and $\chi^3$. Eq. (1) is the **entanglement
 # barrier**: a state with a half-chain entropy of $S$ bits costs at least $2^{S}$ per bond; that the cost of simulating a
-# quantum computation grows linearly in $N$ and exponentially only in its entanglement was shown in [[2]](#ref-2). Ground
-# states of gapped one-dimensional Hamiltonians obey an *area law*, $S=O(1)$ (proved in [[3]](#ref-3)), and are therefore cheap. States produced by a deep random
+# quantum computation grows linearly in $N$ and exponentially only in its entanglement was shown in [[3]](#ref-3). Ground
+# states of gapped one-dimensional Hamiltonians obey an *area law*, $S=O(1)$ (proved in [[4]](#ref-4)), and are therefore cheap. States produced by a deep random
 # circuit obey a *volume law*, $S\propto N$, and are not.
 #
 # ### 2.3 Stabilizer simulation: the magic barrier
@@ -136,14 +136,14 @@ print(f"reference gap ratios:  Poisson 2 ln2 - 1 = {R_POISSON:.4f} | GOE {R_GOE}
 # the whole state is stored in $O(N^2)$ bits, and every Clifford gate (Hadamard $H$, phase $S$, CNOT) maps Pauli strings to
 # Pauli strings and therefore updates the list in $O(N)$ steps — one column operation on each of the $O(N)$ rows of the
 # tableau. A computational-basis measurement is the expensive step, $O(N^2)$. This is the **Gottesman-Knill theorem**
-# (stated in [[4]](#ref-4));
-# the efficient tableau algorithm was introduced in [[5]](#ref-5). Such circuits can produce a half-chain
+# (stated in [[5]](#ref-5));
+# the efficient tableau algorithm was introduced in [[6]](#ref-6). Such circuits can produce a half-chain
 # entropy of $N/2$ bits, the maximum, and are still simulated in polynomial time — entanglement is *free* here.
 #
 # What is not free is **magic** (non-stabilizerness): the distance of the state from the set of stabilizer states. A
 # circuit made of Clifford gates plus $t$ non-Clifford $T=\mathrm{diag}(1,e^{i\pi/4})$ gates can still be simulated
 # classically, by decomposing each $T$ into stabilizer pieces, at a cost $2^{ct}\,\mathrm{poly}(N)$ with a constant
-# $c<1$: Ref. [[6]](#ref-6) gives $c=0.5$ for computing one output probability and $c=0.23$ for sampling from the
+# $c<1$: Ref. [[7]](#ref-7) gives $c=0.5$ for computing one output probability and $c=0.23$ for sampling from the
 # output distribution (times polynomial factors in $t$ and in the number of measured qubits). The cost is exponential in
 # the number of $T$ gates and does not depend on the entanglement. We measure magic with the **stabilizer Renyi
 # entropy** $M_2$ derived in [notebook 27, stabilizer Renyi entropy](27_stabilizer_renyi_entropy.ipynb):
@@ -151,12 +151,12 @@ print(f"reference gap ratios:  Poisson 2 ln2 - 1 = {R_POISSON:.4f} | GOE {R_GOE}
 # $$ M_\alpha(\psi)=\frac{1}{1-\alpha}\log_2\!\Big(\frac{1}{2^N}\sum_{P}\lvert\langle\psi\vert P\vert\psi\rangle\rvert^{2\alpha}\Big), $$
 #
 # the sum running over all $4^N$ Pauli strings. $M_\alpha=0$ if and only if $\lvert\psi\rangle$ is a stabilizer state
-# [[7]](#ref-7).
+# [[8]](#ref-8).
 #
 # ### 2.4 Sampling: the anticoncentration barrier
 #
 # A third notion of hardness does not ask for the state at all, only for *samples* $s\sim p_s=\lvert\psi_s\rvert^2$. The
-# hardness arguments behind random circuit sampling [[8]](#ref-8) need the distribution to be **anticoncentrated**:
+# hardness arguments behind random circuit sampling [[9]](#ref-9) need the distribution to be **anticoncentrated**:
 # spread over exponentially many bit strings in a specific, structureless way. The sharp diagnostic is the collision
 # probability, rescaled by the Hilbert-space dimension $D=2^N$:
 #
@@ -177,16 +177,16 @@ print(f"reference gap ratios:  Poisson 2 ln2 - 1 = {R_POISSON:.4f} | GOE {R_GOE}
 # algorithm: a small value certifies that the state is easy for that algorithm, while a large value is evidence, short
 # of a proof, that the state is hard for it.
 #
-# What *is* known about $\mathcal C$ itself is worth one paragraph. Ref. [[9]](#ref-9) conjectured, motivated by
+# What *is* known about $\mathcal C$ itself is worth one paragraph. Ref. [[10]](#ref-10) conjectured, motivated by
 # holography, that the complexity of a state driven by a chaotic dynamics grows *linearly* in time for an exponentially
 # long time, up to $\mathcal C\sim e^{N}$, and then saturates — a "second law of quantum complexity". The conjecture
 # resisted proof for years because lower bounds on $\mathcal C$ are hard: one must show that *no* short circuit exists.
-# Ref. [[10]](#ref-10) proved it for circuits built from Haar-random two-qubit
+# Ref. [[11]](#ref-11) proved it for circuits built from Haar-random two-qubit
 # gates: with unit probability the *exact* circuit complexity of such a circuit grows linearly in the number of gates
 # applied, and saturates only after exponentially many of them. The argument combines differential topology and
 # elementary algebraic geometry — in essence a dimension count of the set of unitaries reachable by short circuits — with
 # an inductive construction of Clifford circuits. The theorem concerns the *exact* complexity. For the robust version
-# with a tolerance, Ref. [[11]](#ref-11) proved, by relating complexity to unitary
+# with a tolerance, Ref. [[12]](#ref-12) proved, by relating complexity to unitary
 # $k$-designs, that local random quantum circuits generate unitaries whose complexity grows linearly for a long time,
 # under a definition of complexity based on optimal distinguishing measurements. Both are statements about the
 # *typical* random circuit, and they are the closest results we have to theorems about the quantity our four diagnostics
@@ -259,7 +259,7 @@ def clifford_gate_array(key, tmask, depth, N):
            tmask = 0 everywhere  ->  a pure Clifford circuit;  k True entries -> a k-doped circuit.
     JAX    `CLIFF24[idx]` is a gather with a traced index array, and `jnp.where(tmask, T, I2)` picks the optional
            T gate without a Python `if` -- both stay inside jit/vmap.
-    (Adapted from `doped_clifford_state` of notebook 27, rewritten to return the gates instead of the state.)
+    (Adapted from `doped_clifford_state` of 'Stabilizer Renyi entropy', rewritten to return the gates instead of the state.)
     """
     idx = jax.random.randint(key, (depth, N), 0, 24)                     # (depth, N) Clifford labels
     return jnp.where(tmask[..., None, None], T, I2) @ CLIFF24[idx]       # T applied AFTER the Clifford
@@ -270,7 +270,7 @@ def haar_gate_array(key, depth, N):
     return jax.vmap(lambda k: haar_unitary(k, 2))(jax.random.split(key, depth * N)).reshape(depth, N, 2, 2)
 
 
-# t_masks: copied verbatim from notebook 27 (Section 10.1, Step 15).
+# t_masks: copied verbatim from 'Stabilizer Renyi entropy'.
 def t_masks(key, n_real, depth, N, k):
     """Boolean masks of shape (n_real, depth, N) with exactly k True entries each, uniformly placed."""
     n_slots = depth * N
@@ -447,10 +447,10 @@ assert abs(float(jnp.linalg.norm(psi_deep)) - 1.0) < 100 * TOL
 # and $S_A=S_B$ for a pure state. With one gate across the central cut every second layer, the entropy can grow by at
 # most $0.5$ bit per layer in the CZ families and by at most $1$ bit per layer in a brick wall of generic two-qubit
 # gates. Growth is therefore at most linear in depth. The linear-growth-then-saturation profile is the hydrodynamic
-# picture of entanglement spreading of [[12]](#ref-12).
+# picture of entanglement spreading of [[13]](#ref-13).
 #
 # **Saturation is at the Page value.** For a Haar-random state on a bipartition of dimensions $m\le n$ the *average*
-# entanglement entropy is (conjectured in [[13]](#ref-13) and proved in [[14]](#ref-14); quoted here, in nats)
+# entanglement entropy is (conjectured in [[14]](#ref-14) and proved in [[15]](#ref-15); quoted here, in nats)
 #
 # $$ \langle S\rangle=\sum_{k=n+1}^{mn}\frac1k-\frac{m-1}{2n}\;\approx\;\ln m-\frac{m}{2n}. $$
 #
@@ -465,15 +465,15 @@ assert abs(float(jnp.linalg.norm(psi_deep)) - 1.0) < 100 * TOL
 # ==============================================================================
 def page_entropy_bits(dim_a, dim_b):
     """Page's average entanglement entropy (bits) of a Haar-random state, subsystem dimensions dim_a, dim_b.
-    (Copied from notebook 10, Section 6.3.)"""
+    (Copied from 'Random unitaries and random circuits'.)"""
     m, n = min(dim_a, dim_b), max(dim_a, dim_b)
     return (np.sum(1.0 / np.arange(n + 1, m * n + 1)) - (m - 1) / (2 * n)) / np.log(2)
 
 
-# ---- the Haar brick wall of notebook 10 (two-qubit Haar gates): our "gold standard" reference ----------------
+# ---- the Haar brick wall (two-qubit Haar gates): our "gold standard" reference ----------------
 def random_brickwall_circuit(key, N, n_double):
     """Gates of a Haar brick wall: (U_even, U_odd) of shapes (n_double, N//2, 4, 4) and (n_double, (N-1)//2, 4, 4).
-    (Copied from notebook 10, Section 6.2.)"""
+    (Copied from 'Random unitaries and random circuits'.)"""
     n_even, n_odd = N // 2, (N - 1) // 2
     k_even, k_odd = jax.random.split(key)
     draw = jax.vmap(lambda k: haar_unitary(k, 4))
@@ -482,7 +482,7 @@ def random_brickwall_circuit(key, N, n_double):
 
 
 def run_brickwall_2q(circuit, psi, observe):
-    """Run a two-qubit Haar brick wall, recording `observe` after every layer.  (Copied from notebook 10.)"""
+    """Run a two-qubit Haar brick wall, recording `observe` after every layer.  (Copied from 'Random unitaries and random circuits'.)"""
     def bond_layer(psi, U_layer, parity):
         for j in range(U_layer.shape[0]):
             psi = apply_gate(psi, U_layer[j], (parity + 2 * j, parity + 2 * j + 1))
@@ -624,7 +624,7 @@ plt.show()
 #
 # A stabilizer state has $\langle P\rangle\in\{0,\pm1\}$ with exactly $2^N$ non-zero values, so $\Xi$ is flat on $2^N$
 # strings and $M_\alpha=0$; conversely $M_\alpha=0$ forces the state to be a stabilizer state
-# [[7]](#ref-7). $M_\alpha$ is additive over tensor products and invariant under Clifford unitaries — exactly the properties a
+# [[8]](#ref-8). $M_\alpha$ is additive over tensor products and invariant under Clifford unitaries — exactly the properties a
 # resource measure needs.
 #
 # The brute-force sum over $4^N$ strings costs $O(8^N)$. The fast route writes $P=i^{a\cdot b}X^aZ^b$ with bit strings
@@ -633,9 +633,9 @@ plt.show()
 
 # %%
 # ==============================================================================
-# STEP 4: magic -- the Walsh-Hadamard algorithm for M_alpha  (copied from notebook 27, Section 9)
+# STEP 4: magic -- the Walsh-Hadamard algorithm for M_alpha  (copied from 'Stabilizer Renyi entropy')
 # ==============================================================================
-# The four functions below are copied verbatim from notebook 27; the equation numbers in their docstrings
+# The four functions below are copied verbatim from 'Stabilizer Renyi entropy'; the equation numbers in their docstrings
 # (Eqs. 9, 17, 18) refer to that notebook.
 def wht_all_axes(f):
     """Unnormalised Walsh-Hadamard transform over all N binary axes of the tensor f.
@@ -705,7 +705,7 @@ def sre_batch_of_states(psis, alpha=2.0, batch=64):
     return np.asarray(jnp.log2(total / 2 ** N) / (1.0 - alpha))
 
 
-# CHECKPOINT 2a: known exact values (notebook 27) -- stabilizer states give 0, T|+> gives log2(4/3) per copy
+# CHECKPOINT 2a: known exact values -- stabilizer states give 0, T|+> gives log2(4/3) per copy
 t_plus_4 = product_state("++++")
 for q in range(4):
     t_plus_4 = apply_gate(t_plus_4, T, [q])
@@ -726,7 +726,7 @@ assert abs(sre(t_plus_4) - 4 * LOG2_4_3) < 1e-9 and abs(sre(ghz_state(6))) < 1e-
 #
 # $$ M_2^{\rm Haar}=\log_2\frac{2^N+3}{4},\qquad M_2^{\max}=\log_2\frac{2^N+1}{2} . $$
 #
-# A third reference applies to the doped families. Ref. [[7]](#ref-7) computed the average linear
+# A third reference applies to the doped families. Ref. [[8]](#ref-8) computed the average linear
 # stabilizer entropy $M_{\rm lin}=1-2^{-M_2}$ of a state $C_kKC_{k-1}\cdots KC_0\vert0\cdots0\rangle$ in which every $C_j$
 # is a uniformly random element of the full $N$-qubit Clifford group and every $K$ is a $T$ gate on one qubit. With
 # $d=2^N$ their result (Eq. (19) of [notebook 27, stabilizer Renyi entropy](27_stabilizer_renyi_entropy.ipynb)) reads
@@ -915,7 +915,7 @@ assert abs(stages[:, 0].mean() - N_MAG * m2_one_qubit) < 4 * stages[:, 0].std() 
 # ### 6.1 Definition
 #
 # The entropy $S$ compresses the whole Schmidt decomposition into one number. The **entanglement spectrum** keeps all of
-# it; the notion was introduced in [[15]](#ref-15). With $p_j=\lambda_j^2$ the eigenvalues of $\rho_A=\mathrm{Tr}_B\lvert\psi\rangle\langle\psi\rvert$, write
+# it; the notion was introduced in [[16]](#ref-16). With $p_j=\lambda_j^2$ the eigenvalues of $\rho_A=\mathrm{Tr}_B\lvert\psi\rangle\langle\psi\rvert$, write
 #
 # $$ \rho_A=e^{-H_E},\qquad \xi_j=-\ln p_j , $$
 #
@@ -935,7 +935,7 @@ assert abs(stages[:, 0].mean() - N_MAG * m2_one_qubit) < 4 * stages[:, 0].std() 
 #
 # $$ S_A=(n_A-a)\ \text{bits, an integer},\qquad \xi_j=(n_A-a)\ln2\ \text{for every } j . $$
 #
-# The result and the proof below are those of [[16]](#ref-16); Ref. [[17]](#ref-17) computed the entanglement entropy of states stabilized by groups of spin flips.
+# The result and the proof below are those of [[17]](#ref-17); Ref. [[18]](#ref-18) computed the entanglement entropy of states stabilized by groups of spin flips.
 #
 # **Proof.** A stabilizer state is the uniform projector onto the joint $+1$ eigenspace of its stabilizers,
 #
@@ -1028,8 +1028,8 @@ for lab in (f"doped, k={K_DOPE}", "universal"):
 #
 # $$ \rho_A=\frac{1}{d_A}\,W,\qquad W=\frac{1}{d_B}GG^\dagger , $$
 #
-# and $W$ is exactly a **Wishart matrix** [[18]](#ref-18): the sample covariance of $d_B$ independent $d_A$-dimensional Gaussian vectors.
-# The Marchenko-Pastur theorem [[19]](#ref-19) gives the limiting density of its eigenvalues $x=d_A\,p$ for aspect ratio
+# and $W$ is exactly a **Wishart matrix** [[19]](#ref-19): the sample covariance of $d_B$ independent $d_A$-dimensional Gaussian vectors.
+# The Marchenko-Pastur theorem [[20]](#ref-20) gives the limiting density of its eigenvalues $x=d_A\,p$ for aspect ratio
 # $\gamma=d_A/d_B\le1$:
 #
 # $$ \rho_{\rm MP}(x)=\frac{\sqrt{(x_+-x)(x-x_-)}}{2\pi\gamma x}\quad\text{on }[x_-,x_+],\qquad x_\pm=(1\pm\sqrt\gamma)^2 . \tag{3} $$
@@ -1192,7 +1192,7 @@ plt.show()
 # The density $\rho_\xi$ of the previous section is a smooth, non-universal object: it depends on $n_A$, on $n_B$, on the
 # state. The *correlations between neighbouring levels* are different — random-matrix theory predicts them to be
 # universal. Sort the entanglement energies $\xi_1\le\xi_2\le\dots\le\xi_n$, form the gaps $\delta_j=\xi_{j+1}-\xi_j$,
-# and define the **adjacent-gap ratio** [[20]](#ref-20)
+# and define the **adjacent-gap ratio** [[21]](#ref-21)
 #
 # $$ \tilde r_j=\frac{\min(\delta_j,\delta_{j+1})}{\max(\delta_j,\delta_{j+1})}\in[0,1],\qquad \langle\tilde r\rangle=\text{average over }j\text{ within one spectrum, then over realisations}. $$
 #
@@ -1213,7 +1213,7 @@ plt.show()
 # $$ \langle\tilde r\rangle_{\rm Poisson}=\int_0^1\frac{2x}{(1+x)^2}dx=2\Big[\ln(1+x)+\frac1{1+x}\Big]_0^1=2\ln2-1=0.386294\ldots $$
 #
 # **Correlated (Wigner-Dyson) levels.** If the levels repel, small gaps are suppressed, consecutive gaps become similar
-# and $\langle\tilde r\rangle$ rises. Ref. [[21]](#ref-21) gives two sets of numbers for the Gaussian
+# and $\langle\tilde r\rangle$ rises. Ref. [[22]](#ref-22) gives two sets of numbers for the Gaussian
 # ensembles, and they must not be mixed: the **$3\times3$ surmise** evaluates to $4-2\sqrt3=0.5359$ (GOE, $\beta=1$),
 # $2\sqrt3/\pi-\tfrac12=0.6027$ (GUE, $\beta=2$) and $0.6762$ (GSE, $\beta=4$), while its fits to **large** random
 # matrices give $0.5307$, $0.5996$ and $0.6744$. The differences, $2$-$4\times10^{-3}$, are of the same size as the
@@ -1234,28 +1234,28 @@ plt.show()
 # out to be the whole story of Section 7.3.
 #
 # Level statistics of the entanglement spectrum were proposed as a measure of **entanglement complexity** in [[1]](#ref-1) and
-# [[22]](#ref-22). Their physical statement is about
+# [[23]](#ref-23). Their physical statement is about
 # *reversibility*. Both papers entangle a random product state with a random circuit and then try to disentangle it back
 # to a product state by a **stochastic search**: a single gate is drawn at random from the same gate set the circuit was
 # built from, and accepted with probability $\min\{1,e^{-\kappa\Delta S}\}$, where $S$ is the *sum* of the entanglement
 # entropies over all $N-1$ contiguous cuts and $\kappa>0$ controls how often a gate that *raises* $S$ is accepted
 # (Ref. [[1]](#ref-1) minimises the Renyi-0 entropy $S_0=\log_2(\text{rank})$ and increases $\kappa$ during the search;
-# Ref. [[22]](#ref-22) uses a fixed $\kappa=5$). The searches succeed for some gate sets and fail for others,
+# Ref. [[23]](#ref-23) uses a fixed $\kappa=5$). The searches succeed for some gate sets and fail for others,
 # and the failure coincides with the appearance of Wigner-Dyson statistics in the entanglement spectrum. The two papers
 # differ in what they test, and the distinction matters:
 #
 # | paper | gate sets | entanglement level statistics | statistic used |
 # |---|---|---|---|
 # | [[1]](#ref-1) | permutation gates: $\{$SWAP, CNOT$\}$ vs $\{$SWAP, CNOT, Toffoli$\}$ | semi-Poisson vs GOE | unfolded $P(s)$ and $\Delta_3(L)$ |
-# | [[22]](#ref-22) | Clifford $\{$CNOT, $H$, $S\}$ vs universal $\{$CNOT, $H$, $T\}$ | Poisson vs GUE | $P(r)$, $r=\delta_{j+1}/\delta_j$, no unfolding |
+# | [[23]](#ref-23) | Clifford $\{$CNOT, $H$, $S\}$ vs universal $\{$CNOT, $H$, $T\}$ | Poisson vs GUE | $P(r)$, $r=\delta_{j+1}/\delta_j$, no unfolding |
 #
-# The Clifford-versus-universal comparison that this section reproduces is therefore the one of [[22]](#ref-22),
+# The Clifford-versus-universal comparison that this section reproduces is therefore the one of [[23]](#ref-23),
 # whose abstract states that irreversibility "corresponds to Wigner-Dyson statistics in the level spacing of the
 # entanglement eigenvalues, and that this is obtained from a quantum circuit made from a set of universal gates for
 # quantum computation". (The authors of [[1]](#ref-1) work inside the permutation subgroup; their $\{$SWAP, CNOT, Toffoli$\}$ set is
 # universal for *classical* reversible computation, not for quantum computation, and they say so explicitly. Their
 # reversible set gives semi-Poisson rather than Poisson, and their irreversible set gives GOE rather than GUE, because
-# they keep the wave function real.) The authors of [[23]](#ref-23) then asked how little non-Cliffordness is
+# they keep the wave function real.) The authors of [[24]](#ref-24) then asked how little non-Cliffordness is
 # needed and concluded, from a finite-size scaling analysis at $N=10$-$20$, that "in the thermodynamic limit, inserting
 # a single $T$ ($\pi/8$) gate in the middle of a random Clifford circuit is sufficient to alter the entanglement
 # spectrum from a Poisson to a Wigner-Dyson distribution". Their scaling variable is the **product** $kN$ of the number
@@ -1390,7 +1390,7 @@ assert abs(m_sur_haar - R_POISSON) < 0.05          # 1.8 standard errors low her
 #
 # The way out is the one used in the literature on entanglement complexity: seed the circuit with a **generic product
 # state**, which carries no entanglement but is not a stabilizer state, and let the gate set decide what structure the
-# entanglement acquires. Refs. [[1]](#ref-1), [[22]](#ref-22) and [[23]](#ref-23) all use the same seed, with
+# entanglement acquires. Refs. [[1]](#ref-1), [[23]](#ref-23) and [[24]](#ref-24) all use the same seed, with
 # real amplitudes, and so do we:
 #
 # $$ \lvert\psi(0)\rangle=\bigotimes_{q=1}^{N}\big(\cos\theta_q\lvert0\rangle+\sin\theta_q\lvert1\rangle\big),\qquad \theta_q\ \text{uniform in }[0,\pi), \tag{7} $$
@@ -1530,7 +1530,7 @@ axes[1].set_xscale("symlog", linthresh=8)
 axes[1].set_xlim(-1.0, 520)
 axes[1].set_xticks([0, 8, 16, 32, 64, 128, 256, 512])
 axes[1].set_xticklabels(["0", "8", "16", "32", "64", "128", "256", "512"])
-axes[1].set_xlabel(r"$kN$  (the scaling variable of Ref. [23])")
+axes[1].set_xlabel(r"$kN$  (the scaling variable of Ref. [24])")
 axes[1].set_title("the same data against $kN$")
 axes[1].legend(fontsize=8, loc="lower right")
 fig.tight_layout()
@@ -1547,17 +1547,15 @@ plt.show()
 # **The raw Clifford value lies far below Poisson because of exact degeneracies.** At $k=0$ the estimator returns
 # $\langle\tilde r\rangle=0.09$, $0.13$, $0.16$ at $N=8,10,12$, far below $2\ln2-1=0.386$. The block printed under
 # "the pure-Clifford point looked at more closely" gives the reason: on average about half of the levels of a Clifford
-# spectrum sit in exactly degenerate pairs (the printed fractions are $0.63$, $0.63$, $0.50$; two independent runs with
-# $200$ realisations give $0.43$-$0.53$ at every $N$ from $8$ to $16$). Those pairs contribute $\tilde r=0$ by
+# spectrum sit in exactly degenerate pairs (the printed fractions are $0.63$, $0.63$, $0.50$). Those pairs contribute $\tilde r=0$ by
 # construction and pull the average down. A degeneracy reflects a symmetry of the entanglement Hamiltonian and says
 # nothing about how the remaining levels are correlated.
 #
 # Two controls support this diagnosis. First, running the same estimator with the degeneracies **resolved** (one level
-# kept per degenerate pair, the standard random-matrix prescription for a symmetry) gives $0.25$, $0.34$, $0.32$ here.
-# Two independent runs with $200$ realisations each give $0.25$-$0.28$ at $N=8$, $0.30$-$0.31$ at $N=12$, $0.31$-$0.36$ at
-# $N=14$ and $0.367$, $0.369$ ($\pm0.011$) at $N=16$, within two standard errors of $2\ln2-1$. The values do not rise
-# monotonically within one run, but the trend over $N=8$-$16$ is upward and ends at the Poisson value: the
-# non-degenerate part of a Clifford entanglement spectrum is consistent with uncorrelated levels. Second, replacing the
+# kept per degenerate pair, the standard random-matrix prescription for a symmetry) gives $0.25$, $0.34$, $0.32$ here:
+# far above the raw values, but still one to four standard errors below $2\ln2-1$. With $24$ realisations at
+# $N\le12$ these numbers neither rise monotonically nor settle whether the non-degenerate levels are uncorrelated;
+# Exercise 9 follows the resolved value to larger $N$ with more realisations. Second, replacing the
 # coplanar seed of Eq. (7) by one drawn from the **whole Bloch sphere** removes every degeneracy (the printed degenerate
 # fraction drops to exactly $0$), and the same pure-Clifford circuits then give $\langle\tilde r\rangle=0.437$,
 # $0.504$, $0.544$ at $N=8,10,12$, between Poisson and GUE. The degeneracy is therefore tied to the *coplanarity* of
@@ -1569,10 +1567,10 @@ plt.show()
 # both the GUE value $0.5996$ and the $24$ exact Haar states measured at the same size ($0.604\pm0.007$). At $N=10$ the
 # GUE value is reached at $k=16$ as well. At $N=8$ the values for $k=8$-$32$ ($0.53$-$0.57$) lie one to three standard
 # errors below the Haar reference measured with the same estimator at the same size ($0.595\pm0.012$), so the small
-# number of levels ($16$) does not explain them; the approach to the Haar value is slower at $N=8$, and a run with $200$
-# realisations reaches it only near $k=64$.
+# number of levels ($16$) does not explain them; the approach to the Haar value is slower at $N=8$ (Exercise 9 follows it
+# to larger $k$).
 #
-# The crossing of the Poisson value happens at $kN\approx48$ here ($N=12$, $k=4$). The authors of [[23]](#ref-23) find no
+# The crossing of the Poisson value happens at $kN\approx48$ here ($N=12$, $k=4$). The authors of [[24]](#ref-24) find no
 # such crossing: their undoped Clifford spectra are already Poisson, and their scaling function rises from the Poisson
 # value at $kN=0$ to the GUE value. Their variable is the product $kN$, and the right-hand panel plots our data that
 # way. At $N=8$-$12$ our three sizes cannot separate this scaling from a scaling with $k/N$: in a leave-one-size-out
@@ -1580,13 +1578,13 @@ plt.show()
 # depends on the interpolation used while this ranking does not. We therefore do **not** claim a scaling variable from
 # this data.
 #
-# A different threshold applies when the circuit starts from $\vert0\cdots0\rangle$. The authors of [[24]](#ref-24) insert single
+# A different threshold applies when the circuit starts from $\vert0\cdots0\rangle$. The authors of [[25]](#ref-25) insert single
 # $T$ gates between long random Clifford blocks acting on $\vert0\cdots0\rangle$ and find that the distribution of gap
 # ratios approaches the GUE form only beyond $k_{\min}\approx N+2$ $T$ gates, a finite density of $T$ gates. They
 # attribute the difference to the seed: a random product state already carries $O(N)$ non-Clifford resources. The same
 # linear count appears for chaos diagnostics: a Clifford circuit doped with $k$ single-qubit non-Clifford gates reaches
 # the Haar values of the 8-point out-of-time-order correlator and of the subsystem-purity fluctuations if and only if
-# $k=\Theta(N)$ [[25]](#ref-25). Our Section 9 starts from $\vert0\cdots0\rangle$ at $N=8$ (with the $T$ gates spread over a brick wall instead of being
+# $k=\Theta(N)$ [[26]](#ref-26). Our Section 9 starts from $\vert0\cdots0\rangle$ at $N=8$ (with the $T$ gates spread over a brick wall instead of being
 # separated by long Clifford blocks), and its doped column shows the same behaviour: $\langle\tilde r\rangle$ is
 # still $0.13$ at $k=8$ and reaches the GUE value only between $k=16$ and $k=32$.
 #
@@ -1620,7 +1618,7 @@ plt.show()
 #
 # $Z=2$ is the standard statement that a random circuit output is *anticoncentrated*: the distribution is spread out, but
 # with fluctuations of order one relative to the mean. It is also the number that makes cross-entropy benchmarking
-# (introduced in [[8]](#ref-8)) work:
+# (introduced in [[9]](#ref-9)) work:
 # the linear XEB of a perfect device is $\mathcal F_{\rm XEB}=Z-1\approx1$
 # ([notebook 10, random unitaries and random circuits](../ch04_digital_quantum_circuits/10_random_unitaries_and_random_circuits.ipynb), Section 9).
 #
@@ -1659,7 +1657,7 @@ plt.show()
 # At $N=12$ this gives $P(0)=P(1)=0.42$, $P(2)=0.14$ and $P(3)=0.02$: $m=0$ (perfectly uniform output, $Z=1$) is the
 # most likely case, but it occurs in fewer than half of the states, and $m=1$ is just as likely. The mean comes out as
 # $\mathbb E[2^m]=2D/(D+1)$, *exactly* the Haar value of Eq. (5). This is no coincidence: the multi-qubit Clifford group
-# is a unitary $3$-design [[26]](#ref-26), [[27]](#ref-27), so the random stabilizer states reproduce the Haar averages of all
+# is a unitary $3$-design [[27]](#ref-27), [[28]](#ref-28), so the random stabilizer states reproduce the Haar averages of all
 # polynomials of degree up to three in $\vert\psi\rangle$ and in $\langle\psi\vert$, and $Z$ is of degree two. The
 # ensemble mean of $Z$, and with it the circuit-averaged linear XEB score $\mathbb E[Z]-1$ of a perfect device, cannot
 # tell a random Clifford circuit from a Haar-random one. The difference shows up in the distribution of $Z$ over
@@ -1752,9 +1750,7 @@ assert abs(vals.mean() - D_ENT * np.sum(p_test ** 2)) < 5 * vals.std() / np.sqrt
 # circuits are $0$, $1$ and $2$. The case $m=0$, no diagonal stabilizer at all, means a *perfectly uniform*
 # distribution over all $4096$ bit strings. The measured frequencies of $m$ printed above ($8$, $15$ and $1$ of the
 # $24$ circuits for $m=0,1,2$) are within about two binomial standard deviations of Eq. (6a) for uniformly random stabilizer
-# states (expected $10.1\pm2.4$, $10.1\pm2.4$ and $3.4\pm1.7$); repeating the draw with $200$ circuits gives
-# $m=0,1,2,3$ in $47\%$, $41\%$, $10\%$, $2\%$ of them in one run and $40.5\%$, $45.5\%$, $11\%$, $2.5\%$ in another,
-# against $42\%$, $42\%$, $14\%$, $2\%$ from Eq. (6a) (Exercise 3). The ensemble mean $1.75\pm0.14$ is the average of
+# states (expected $10.1\pm2.4$, $10.1\pm2.4$ and $3.4\pm1.7$); Exercise 3 repeats the draw with more circuits. The ensemble mean $1.75\pm0.14$ is the average of
 # $2^m$ over these $24$ circuits; it lies $1.8$ standard errors below the exact average $2D/(D+1)$ of Eq. (6a).
 # For the other three families $\log_2Z$ is never an integer. The doped family, $2.008\pm0.109$, and the Haar brick
 # wall, $1.997\pm0.006$, agree with the Porter-Thomas prediction $2D/(D+1)=1.9995$; the universal family,
@@ -1789,7 +1785,7 @@ assert abs(vals.mean() - D_ENT * np.sum(p_test ** 2)) < 5 * vals.std() / np.sqrt
 # ==============================================================================
 # STEP 11: all four diagnostics on the same families
 # ==============================================================================
-# bell_pairs_across_cut: copied verbatim from notebook 27 (Section 10.2).
+# bell_pairs_across_cut: copied verbatim from 'Stabilizer Renyi entropy'.
 def bell_pairs_across_cut(N):
     """Stabilizer state with the MAXIMAL half-chain entropy: N/2 Bell pairs, each straddling the cut.
 
@@ -2018,8 +2014,8 @@ plt.show()
 # a half-chain SVD together take about $10^{-2}$ s. The magic is a different animal. It starts below $10^{-3}$ s at
 # $N=6$ and costs of order a second at $N=12$. The cell prints the cost ratio per two added qubits: it starts at only
 # a few (the small sizes are still dominated by fixed overheads) and is largest for the step $N=10\to12$, the first
-# asymptotic one. The $N4^N$ law predicts $\tfrac{12}{10}\cdot16=19$ for that step; repeated builds give $20$-$35$,
-# fluctuating with the load of the machine; the excess over $19$ is presumably memory traffic, since the
+# asymptotic one. The $N4^N$ law predicts $\tfrac{12}{10}\cdot16=19$ for that step; the printed ratio is of that size or
+# larger and fluctuates from build to build with the load of the machine; an excess over $19$ is presumably memory traffic, since the
 # Walsh-Hadamard step touches `batch` copies of the state, but it was not measured separately. Extrapolating a factor
 # of $\sim25$, one state at $N=14$ costs of order half a minute, so a single $16$-realisation ensemble of Section 9
 # would cost about ten minutes and the ten families of the complexity diagram more than an hour. That is why every
@@ -2052,27 +2048,28 @@ plt.show()
 #   (two layers of Haar single-qubit gates and two CZ layers) already puts $3.15$ of the $6.02$ available bits of $M_2$
 #   on $N=8$ qubits, while the entanglement is at a fifth of the Page value; a Clifford circuit keeps $M_2=0$ at every
 #   depth, exactly. With $k$ $T$ gates in a shallow brick wall the magic stays below the law of
-#   [[7]](#ref-7): most of the distance from $k\log_2\frac43$ is saturation, the rest is the crowding of the $T$ gates.
+#   [[8]](#ref-8): most of the distance from $k\log_2\frac43$ is saturation, the rest is the crowding of the $T$ gates.
 # * **A Haar-random state has a Marchenko-Pastur spectrum.** The Haar brick wall reaches a Kolmogorov distance of
 #   $0.0084$ from the MP law, against $0.0066$ for exact Haar states and $0.42$ for the Clifford family.
 # * **The level statistics of the entanglement spectrum respond to the $T$ gates while the entropy does not.** Doping a
 #   Clifford circuit seeded with a random product state with $k$ $T$ gates moves $\langle\tilde r\rangle$ from
 #   $\approx0.1$ to the GUE value $0.5996$ while the half-chain entropy changes by at most $0.1$ bit. It crosses the
-#   Poisson value at $kN\approx50$ (the undoped spectra of [[23]](#ref-23) are already Poisson, so the
+#   Poisson value at $kN\approx50$ (the undoped spectra of [[24]](#ref-24) are already Poisson, so the
 #   scaling function there has no such crossing), and reaches the GUE value at $k=16$ for $N=10$ and $12$;
 #   at $N=8$-$12$ our data cannot say whether $k/N$ or $kN$ is the scaling variable. Seeded with
-#   $\vert0\cdots0\rangle$, the circuit needs more $T$ gates, as found in [[24]](#ref-24) ($k_{\min}\approx N+2$).
+#   $\vert0\cdots0\rangle$, the circuit needs more $T$ gates, as found in [[25]](#ref-25) ($k_{\min}\approx N+2$).
 # * **The undoped Clifford value, $0.09$-$0.16$, comes from exact degeneracies.** About half the levels sit in exactly
-#   degenerate pairs when the seed has *coplanar* Bloch vectors. With one level kept per pair the value rises to about
-#   $0.37$ at $N=16$, close to the Poisson value $0.386$; a seed from the whole Bloch sphere has no degeneracies at all.
+#   degenerate pairs when the seed has *coplanar* Bloch vectors. With one level kept per pair the value rises to
+#   $0.25$-$0.34$, below but approaching the Poisson value $0.386$ (Exercise 9 continues to larger $N$); a seed from
+#   the whole Bloch sphere has no degeneracies at all.
 # * **A random Clifford output is uniform on an affine subspace**, $Z=2^m$ in every realisation, with $m$ distributed as
 #   in Eq. (6a) ($m=0$ and $m=1$ each with probability $0.42$). The ensemble mean of $Z$, and hence the average linear
 #   XEB score, equals the Haar value because the Clifford group is a $3$-design, so an XEB average alone cannot
 #   distinguish these classically simulable circuits from hard ones.
 # * **None of this is circuit complexity.** $\mathcal C(\psi)$, the minimal gate count, is not computable at these
 #   sizes; the four diagnostics are witnesses. What is proved about complexity itself for random circuits is the linear
-#   growth of the exact complexity [[10]](#ref-10) and of a robust complexity for a long time
-#   [[11]](#ref-11), the rigorous counterparts of the Brown-Susskind conjecture.
+#   growth of the exact complexity [[11]](#ref-11) and of a robust complexity for a long time
+#   [[12]](#ref-12), the rigorous counterparts of the Brown-Susskind conjecture.
 #
 # ## 12. Exercises
 #
@@ -2119,7 +2116,7 @@ plt.show()
 # [[1]](#ref-1). Starting from the final state, propose one gate drawn at random from the same gate set the circuit was
 # built from, and accept it with probability $\min\{1,e^{-\kappa\Delta S}\}$ where $S=\sum_{n_A=1}^{N-1}S_2(n_A)$ is the
 # sum of the second Renyi entropies over *all* contiguous cuts (summing over cuts makes the search sensitive to a gate
-# acting anywhere; Ref. [[22]](#ref-22) uses $\kappa=5$, Ref. [[1]](#ref-1) increases $\kappa$ with the number of attempts). Ref. [[1]](#ref-1)
+# acting anywhere; Ref. [[23]](#ref-23) uses $\kappa=5$, Ref. [[1]](#ref-1) increases $\kappa$ with the number of attempts). Ref. [[1]](#ref-1)
 # minimises the Renyi-0 entropy $S_0=\log_2(\text{Schmidt rank})$ and reports similar results with $S_2$; for the
 # brick walls of this notebook seeded with a random product state, $S_0$ is maximal on every cut and no single gate
 # lowers it, so the $S_0$ search does not move, and $S_2$ is the usable cost. Run the search on the Clifford family and
@@ -2129,10 +2126,10 @@ plt.show()
 # stays at about $15$ bit.)
 #
 # **8. (★★★ physics) Magic and entanglement under a Trotterised Hamiltonian.** Replace the random circuit by the
-# Trotterised evolution of the Ising chain $H=-\sum_jZ_jZ_{j+1}-h_x\sum_jX_j-h_z\sum_jZ_j$ with the tools of
+# Trotterised evolution (product formula introduced in [[29]](#ref-29)) of the Ising chain $H=-\sum_jZ_jZ_{j+1}-h_x\sum_jX_j-h_z\sum_jZ_j$ with the tools of
 # [notebook 12, TEBD](../ch05_ground_states_and_unitary_dynamics/12_tebd_trotter_suzuki.ipynb). For $h_z=0$ this is the
 # transverse-field Ising chain, which is integrable for every $h_x$ (it maps to free fermions by the Jordan-Wigner
-# transformation); a longitudinal field $h_z\neq0$ breaks integrability. Start from the product state with
+# transformation, introduced in [[30]](#ref-30)); a longitudinal field $h_z\neq0$ breaks integrability. Start from the product state with
 # every spin along $+y$, which has $\langle H\rangle=0$ for both models, and measure $S$, $M_2$ and
 # $\langle\tilde r\rangle$ against time for $h_x=1$ with $h_z=0$ and with $h_z=0.5$. Determine which of the three
 # separates the two models first. (Check values from exact evolution at $N=10$, averaged over $t=8$-$80$: integrable
@@ -2141,81 +2138,98 @@ plt.show()
 # $t\approx2$-$3$ on; a single $32$-level spectrum is too noisy for $\langle\tilde r\rangle$ to do so before time
 # averaging.)
 #
+# **9. (★★★) Resolved Clifford spectra at larger $N$.** Raise `R_LEV` in Section 7 to $200$ and extend `N_LEV` to
+# $N=14$ and $16$ for the pure-Clifford block ("the pure-Clifford point looked at more closely"). Follow the
+# degenerate fraction and the resolved $\langle\tilde r\rangle$ with $N$ and compare the latter with $2\ln2-1$. Then
+# extend the $T$ count at $N=8$ beyond $k=32$ and find where $\langle\tilde r\rangle$ reaches the Haar reference.
+# (Check values from two independent runs: degenerate fraction $0.43$-$0.53$ at every $N$ from $8$ to $16$; resolved
+# $\langle\tilde r\rangle=0.25$-$0.28$ at $N=8$, $0.30$-$0.31$ at $N=12$, $0.31$-$0.36$ at $N=14$ and $0.367$, $0.369$
+# ($\pm0.011$) at $N=16$, within two standard errors of $2\ln2-1$, so the non-degenerate part of a Clifford
+# entanglement spectrum is consistent with uncorrelated levels; at $N=8$ the Haar value is reached only near $k=64$.)
+#
 # ## 13. References
 #
 # <span id="ref-1">[1]</span> C. Chamon, A. Hamma and E. R. Mucciolo, *Emergent irreversibility and entanglement spectrum statistics*,
 # Phys. Rev. Lett. **112**, 240501 (2014).
 #
-# <span id="ref-2">[2]</span> G. Vidal, *Efficient classical simulation of slightly entangled quantum computations*, Phys. Rev. Lett. **91**,
+# <span id="ref-2">[2]</span> C. E. Shannon, *A mathematical theory of communication*, Bell Syst. Tech. J. **27**, 379 (1948) — the Shannon entropy, the mutual information and the capacity of a noisy channel.
+#
+# <span id="ref-3">[3]</span> G. Vidal, *Efficient classical simulation of slightly entangled quantum computations*, Phys. Rev. Lett. **91**,
 # 147902 (2003).
 #
-# <span id="ref-3">[3]</span> M. B. Hastings, *An area law for one-dimensional quantum systems*, J. Stat. Mech. P08024 (2007).
+# <span id="ref-4">[4]</span> M. B. Hastings, *An area law for one-dimensional quantum systems*, J. Stat. Mech. P08024 (2007).
 #
-# <span id="ref-4">[4]</span> D. Gottesman, *The Heisenberg representation of quantum computers*, in *Group22: Proceedings of the XXII International
+# <span id="ref-5">[5]</span> D. Gottesman, *The Heisenberg representation of quantum computers*, in *Group22: Proceedings of the XXII International
 # Colloquium on Group Theoretical Methods in Physics*, edited by S. P. Corney, R. Delbourgo and P. D. Jarvis
 # (International Press, Cambridge MA, 1999), pp. 32-43; arXiv:quant-ph/9807006 — the Gottesman-Knill theorem.
 #
-# <span id="ref-5">[5]</span> S. Aaronson and D. Gottesman, *Improved simulation of stabilizer circuits*, Phys. Rev. A **70**, 052328 (2004).
+# <span id="ref-6">[6]</span> S. Aaronson and D. Gottesman, *Improved simulation of stabilizer circuits*, Phys. Rev. A **70**, 052328 (2004).
 #
-# <span id="ref-6">[6]</span> S. Bravyi and D. Gosset, *Improved classical simulation of quantum circuits dominated by Clifford gates*,
+# <span id="ref-7">[7]</span> S. Bravyi and D. Gosset, *Improved classical simulation of quantum circuits dominated by Clifford gates*,
 # Phys. Rev. Lett. **116**, 250501 (2016).
 #
-# <span id="ref-7">[7]</span> L. Leone, S. F. E. Oliviero and A. Hamma, *Stabilizer Renyi entropy*, Phys. Rev. Lett. **128**, 050402 (2022).
+# <span id="ref-8">[8]</span> L. Leone, S. F. E. Oliviero and A. Hamma, *Stabilizer Renyi entropy*, Phys. Rev. Lett. **128**, 050402 (2022).
 #
-# <span id="ref-8">[8]</span> S. Boixo, S. V. Isakov, V. N. Smelyanskiy, R. Babbush, N. Ding, Z. Jiang, M. J. Bremner, J. M. Martinis and
+# <span id="ref-9">[9]</span> S. Boixo, S. V. Isakov, V. N. Smelyanskiy, R. Babbush, N. Ding, Z. Jiang, M. J. Bremner, J. M. Martinis and
 # H. Neven, *Characterizing quantum supremacy in near-term devices*, Nat. Phys. **14**, 595 (2018).
 #
-# <span id="ref-9">[9]</span> A. R. Brown and L. Susskind, *Second law of quantum complexity*, Phys. Rev. D **97**, 086015 (2018).
+# <span id="ref-10">[10]</span> A. R. Brown and L. Susskind, *Second law of quantum complexity*, Phys. Rev. D **97**, 086015 (2018).
 #
-# <span id="ref-10">[10]</span> J. Haferkamp, P. Faist, N. B. T. Kothakonda, J. Eisert and N. Yunger Halpern, *Linear growth of quantum circuit
+# <span id="ref-11">[11]</span> J. Haferkamp, P. Faist, N. B. T. Kothakonda, J. Eisert and N. Yunger Halpern, *Linear growth of quantum circuit
 # complexity*, Nat. Phys. **18**, 528 (2022).
 #
-# <span id="ref-11">[11]</span> F. G. S. L. Brandão, W. Chemissany, N. Hunter-Jones, R. Kueng and J. Preskill, *Models of quantum complexity
+# <span id="ref-12">[12]</span> F. G. S. L. Brandão, W. Chemissany, N. Hunter-Jones, R. Kueng and J. Preskill, *Models of quantum complexity
 # growth*, PRX Quantum **2**, 030316 (2021).
 #
-# <span id="ref-12">[12]</span> A. Nahum, J. Ruhman, S. Vijay and J. Haah, *Quantum entanglement growth under random unitary dynamics*, Phys. Rev. X
+# <span id="ref-13">[13]</span> A. Nahum, J. Ruhman, S. Vijay and J. Haah, *Quantum entanglement growth under random unitary dynamics*, Phys. Rev. X
 # **7**, 031016 (2017).
 #
-# <span id="ref-13">[13]</span> D. N. Page, *Average entropy of a subsystem*, Phys. Rev. Lett. **71**, 1291 (1993) — the formula for the average
+# <span id="ref-14">[14]</span> D. N. Page, *Average entropy of a subsystem*, Phys. Rev. Lett. **71**, 1291 (1993) — the formula for the average
 # entanglement entropy, conjectured there.
 #
-# <span id="ref-14">[14]</span> S. K. Foong and S. Kanno, *Proof of Page's conjecture on the average entropy of a subsystem*,
-# Phys. Rev. Lett. **72**, 1148 (1994) — the proof of the formula of [13].
+# <span id="ref-15">[15]</span> S. K. Foong and S. Kanno, *Proof of Page's conjecture on the average entropy of a subsystem*,
+# Phys. Rev. Lett. **72**, 1148 (1994) — the proof of the formula of [14].
 #
-# <span id="ref-15">[15]</span> H. Li and F. D. M. Haldane, *Entanglement spectrum as a generalization of entanglement entropy: identification of
+# <span id="ref-16">[16]</span> H. Li and F. D. M. Haldane, *Entanglement spectrum as a generalization of entanglement entropy: identification of
 # topological order in non-Abelian fractional quantum Hall effect states*, Phys. Rev. Lett. **101**, 010504 (2008).
 #
-# <span id="ref-16">[16]</span> D. Fattal, T. S. Cubitt, Y. Yamamoto, S. Bravyi and I. L. Chuang, *Entanglement in the stabilizer formalism*,
+# <span id="ref-17">[17]</span> D. Fattal, T. S. Cubitt, Y. Yamamoto, S. Bravyi and I. L. Chuang, *Entanglement in the stabilizer formalism*,
 # arXiv:quant-ph/0406168 (2004) — the reduced state and entanglement entropy of a stabilizer state, Section 6.2.
 #
-# <span id="ref-17">[17]</span> A. Hamma, R. Ionicioiu and P. Zanardi, *Bipartite entanglement and entropic boundary law in lattice spin systems*,
+# <span id="ref-18">[18]</span> A. Hamma, R. Ionicioiu and P. Zanardi, *Bipartite entanglement and entropic boundary law in lattice spin systems*,
 # Phys. Rev. A **71**, 022315 (2005).
 #
-# <span id="ref-18">[18]</span> J. Wishart, *The generalised product moment distribution in samples from a normal multivariate population*,
+# <span id="ref-19">[19]</span> J. Wishart, *The generalised product moment distribution in samples from a normal multivariate population*,
 # Biometrika **20A**, 32 (1928).
 #
-# <span id="ref-19">[19]</span> V. A. Marchenko and L. A. Pastur, *Distribution of eigenvalues for some sets of random matrices*, Math. USSR Sbornik
+# <span id="ref-20">[20]</span> V. A. Marchenko and L. A. Pastur, *Distribution of eigenvalues for some sets of random matrices*, Math. USSR Sbornik
 # **1**, 457 (1967).
 #
-# <span id="ref-20">[20]</span> V. Oganesyan and D. A. Huse, *Localization of interacting fermions at high temperature*, Phys. Rev. B **75**,
+# <span id="ref-21">[21]</span> V. Oganesyan and D. A. Huse, *Localization of interacting fermions at high temperature*, Phys. Rev. B **75**,
 # 155111 (2007).
 #
-# <span id="ref-21">[21]</span> Y. Y. Atas, E. Bogomolny, O. Giraud and G. Roux, *Distribution of the ratio of consecutive level spacings in random
+# <span id="ref-22">[22]</span> Y. Y. Atas, E. Bogomolny, O. Giraud and G. Roux, *Distribution of the ratio of consecutive level spacings in random
 # matrix ensembles*, Phys. Rev. Lett. **110**, 084101 (2013). (Table I: the $3\times3$ surmise gives
 # $\langle\tilde r\rangle=0.5359/0.6027/0.6762$ for GOE/GUE/GSE, the large-$N$ fits $0.5307/0.5996/0.6744$.)
 #
-# <span id="ref-22">[22]</span> D. Shaffer, C. Chamon, A. Hamma and E. R. Mucciolo, *Irreversibility and entanglement spectrum statistics in
+# <span id="ref-23">[23]</span> D. Shaffer, C. Chamon, A. Hamma and E. R. Mucciolo, *Irreversibility and entanglement spectrum statistics in
 # quantum circuits*, J. Stat. Mech. **2014**, P12007 (2014).
 #
-# <span id="ref-23">[23]</span> S. Zhou, Z.-C. Yang, A. Hamma and C. Chamon, *Single T gate in a Clifford circuit drives transition to universal
+# <span id="ref-24">[24]</span> S. Zhou, Z.-C. Yang, A. Hamma and C. Chamon, *Single T gate in a Clifford circuit drives transition to universal
 # entanglement spectrum statistics*, SciPost Phys. **9**, 087 (2020).
 #
-# <span id="ref-24">[24]</span> S. True and A. Hamma, *Transitions in entanglement complexity in random circuits*, Quantum **6**, 818 (2022).
+# <span id="ref-25">[25]</span> S. True and A. Hamma, *Transitions in entanglement complexity in random circuits*, Quantum **6**, 818 (2022).
 # (Reports $k_{\min}\approx N+2$ $T$ gates, inserted between long Clifford blocks acting on $\vert0\cdots0\rangle$,
 # for the entanglement-spectrum statistics to become Wigner-Dyson.)
 #
-# <span id="ref-25">[25]</span> L. Leone, S. F. E. Oliviero, Y. Zhou and A. Hamma, *Quantum chaos is quantum*, Quantum **5**, 453 (2021).
+# <span id="ref-26">[26]</span> L. Leone, S. F. E. Oliviero, Y. Zhou and A. Hamma, *Quantum chaos is quantum*, Quantum **5**, 453 (2021).
 #
-# <span id="ref-26">[26]</span> Z. Webb, *The Clifford group forms a unitary 3-design*, Quantum Inf. Comput. **16**, 1379 (2016).
+# <span id="ref-27">[27]</span> Z. Webb, *The Clifford group forms a unitary 3-design*, Quantum Inf. Comput. **16**, 1379 (2016).
 #
-# <span id="ref-27">[27]</span> H. Zhu, *Multiqubit Clifford groups are unitary 3-designs*, Phys. Rev. A **96**, 062336 (2017).
+# <span id="ref-28">[28]</span> H. Zhu, *Multiqubit Clifford groups are unitary 3-designs*, Phys. Rev. A **96**, 062336 (2017).
+#
+# <span id="ref-29">[29]</span> H. F. Trotter, *On the product of semi-groups of operators*, Proc. Amer. Math. Soc. **10**, 545 (1959) — the product
+# formula behind Trotterised time evolution.
+#
+# <span id="ref-30">[30]</span> P. Jordan and E. Wigner, *Über das Paulische Äquivalenzverbot*, Z. Phys. **47**, 631 (1928) — the Jordan–Wigner
+# transformation.

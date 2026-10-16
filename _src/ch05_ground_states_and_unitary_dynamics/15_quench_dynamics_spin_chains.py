@@ -27,7 +27,7 @@
 #   couplings [[6]](#ref-6), [[7]](#ref-7), [[8]](#ref-8);
 # * **Rydberg-atom arrays** — tens of atoms in optical tweezers (51 in [[9]](#ref-9)), initialised in a product state and released into
 #   Ising-type dynamics;
-# * **superconducting qubits** — the same dynamics run as a Trotter circuit, gate by gate.
+# * **superconducting qubits** — the same dynamics run as a Trotter circuit (product formula introduced in [[10]](#ref-10)), gate by gate.
 #
 # In all these platforms the experimental protocol is the numerical protocol of this notebook:
 # prepare a product state → evolve with $H$ → measure local observables and correlations. Simulations like ours are
@@ -94,7 +94,7 @@
 #
 # Nothing in Eq. (1) decays — every term oscillates forever. But a many-body state overlaps with *exponentially many* eigenstates, and
 # the $\sim 4^N$ frequencies $E_m-E_n$ are incommensurate. After a short time the phases are effectively random, the second sum averages to
-# (almost) zero, and the observable settles to the first sum, the **diagonal ensemble** (so named in [[10]](#ref-10)). *Relaxation of a closed quantum system is dephasing.*
+# (almost) zero, and the observable settles to the first sum, the **diagonal ensemble** (so named in [[11]](#ref-11)). *Relaxation of a closed quantum system is dephasing.*
 # In a small system the cancellation is imperfect (we will see fluctuations that shrink with $N$), and after a very long time the phases can re-align (revivals).
 #
 # What is conserved: the energy $E=\langle\psi_0|H|\psi_0\rangle$ — and in fact every $|c_n|^2$. A quench from a product state injects an
@@ -103,9 +103,9 @@
 #
 # > **Physics insight.** By Eq. (1) the long-time value of an observable is fixed by the weights $|c_n|^2$, i.e. by what the initial state and $H$ have in
 # > common. How much of the initial state survives in these weights depends on $H$. A generic ("non-integrable") Hamiltonian conserves little besides the
-# > energy, and the local observables of initial states with the same energy relax to nearly the same stationary values (eigenstate thermalization: [[11]](#ref-11), [[12]](#ref-12), [[10]](#ref-10)). *Integrable* models — models with an
+# > energy, and the local observables of initial states with the same energy relax to nearly the same stationary values (eigenstate thermalization: [[12]](#ref-12), [[13]](#ref-13), [[11]](#ref-11)). *Integrable* models — models with an
 # > extensive number of local conservation laws $Q_\alpha$, such as free fermions or Bethe-ansatz solvable chains — keep much more memory: every
-# > $\langle Q_\alpha\rangle$ is fixed by the initial state, and the stationary values of local observables depend on all of them, through the generalized Gibbs ensemble introduced in [[13]](#ref-13) (review: [[2]](#ref-2)).
+# > $\langle Q_\alpha\rangle$ is fixed by the initial state, and the stationary values of local observables depend on all of them, through the generalized Gibbs ensemble introduced in [[14]](#ref-14) (review: [[2]](#ref-2)).
 # > We will meet both kinds.
 #
 # ### 2.3 The models
@@ -119,7 +119,7 @@
 # |---|---|---|---|
 # | XXZ chain in a transverse field | $J_{xx}=J_{yy}=1,\ J_{zz}=0.5,\ h_x=1$ | generic (no known exact solution); the field breaks the conservation of $\sum_j Z_j$ | §4, §5 |
 # | transverse-field Ising (TFIM) | $J_{zz}=-J,\ h_x=-h$ | integrable: maps to free fermions | §6, §9 |
-# | XXZ chain | $J_{xx}=J_{yy}=J,\ J_{zz}=J\Delta$ | integrable (Bethe ansatz: [[14]](#ref-14), [[15]](#ref-15)); conserves $\sum_j Z_j$; $\Delta=0$: free fermions, $\Delta=1$: Heisenberg | §7 |
+# | XXZ chain | $J_{xx}=J_{yy}=J,\ J_{zz}=J\Delta$ | integrable (Bethe ansatz: [[15]](#ref-15), [[16]](#ref-16)); conserves $\sum_j Z_j$; $\Delta=0$: free fermions, $\Delta=1$: Heisenberg | §7 |
 # | tilted-field Ising | $J_{zz}=J,\ h_x=g,\ h_z$ | non-integrable for $h_z\neq0$, integrable TFIM for $h_z=0$ | §8 |
 #
 # ### 2.4 The observables
@@ -147,7 +147,7 @@
 #    is a finite-size number.
 # 3. **Revivals and recurrences.** Reflected quasiparticles re-focus, so local observables show partial revivals on the scale $t\sim N/v_{\max}$;
 #    they are strong in integrable chains, where the quasiparticles keep their identity, and weak in generic ones, where they scatter. A *full*
-#    Poincaré recurrence of the state (guaranteed for a finite quantum system by the recurrence theorem proved in [[16]](#ref-16)) needs a time exponentially long in $N$ and is never reached here.
+#    Poincaré recurrence of the state (guaranteed for a finite quantum system by the recurrence theorem proved in [[17]](#ref-17)) needs a time exponentially long in $N$ and is never reached here.
 #
 # Read as a rule: **the window in which a finite chain imitates an infinite one is $t\lesssim t_{\rm edge}$** ($t_{\rm edge}/2$ for correlations), and every plot in this notebook that
 # extends beyond it does so deliberately — §8 wants the plateau, §9 wants many critical times. The concrete numbers ($v_{\max}=2\min(J,h)$ for the
@@ -231,7 +231,7 @@ def evolve_and_observe(psi0, gates, n_meas, n_sub, observe):
 # [notebook 06, states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb)). Then
 #
 # * entanglement entropy $S_A=-\sum_k\lambda_k^2\log_2\lambda_k^2$ (in bits);
-# * **negativity.** For a mixed state, the negativity is $\mathcal N=\sum(\text{absolute values of the negative eigenvalues of }\rho^{T_A})$, where $T_A$ is the partial transpose on $A$ [[17]](#ref-17).
+# * **negativity.** For a mixed state, the negativity is $\mathcal N=\sum(\text{absolute values of the negative eigenvalues of }\rho^{T_A})$, where $T_A$ is the partial transpose on $A$ [[18]](#ref-18).
 #   For a pure state in Schmidt form, $\rho=\sum_{kl}\lambda_k\lambda_l\,|u_k\rangle\langle u_l|\otimes|v_k\rangle\langle v_l|$, and transposing only the $A$ factor
 #   ($(|u_k\rangle\langle u_l|)^{T}=|u_l^{*}\rangle\langle u_k^{*}|$, where $|u^*\rangle$ has the complex-conjugated components) gives
 #   $\rho^{T_A}=\sum_{kl}\lambda_k\lambda_l\,|u_l^{*}\rangle\langle u_k^{*}|\otimes|v_k\rangle\langle v_l|$. Acting with it on $|u_m^{*}\rangle|v_n\rangle$ leaves only the terms $k=m$, $l=n$ and returns
@@ -240,7 +240,7 @@ def evolve_and_observe(psi0, gates, n_meas, n_sub, observe):
 #
 #   $$\mathcal N=\sum_{k<l}\lambda_k\lambda_l=\frac{(\sum_k\lambda_k)^2-\sum_k\lambda_k^2}{2}=\frac{(\sum_k\lambda_k)^2-1}{2},\qquad E_{\mathcal N}=\log_2(2\mathcal N+1)=2\log_2\sum_k\lambda_k .$$
 #
-#   No $4^N$-sized density matrix is needed. ($E_{\mathcal N}$ of a pure state is its Rényi-$\tfrac12$ entropy; the Rényi-$\alpha$ entropy (introduced in [[18]](#ref-18)) $S_\alpha=\frac{1}{1-\alpha}\log_2\sum_k\lambda_k^{2\alpha}$ gives $S_A$ for $\alpha\to1$ and the Rényi-2 entropy for $\alpha=2$, and it decreases with $\alpha$ (Exercise 8), hence $E_{\mathcal N}\ge S_A$.)
+#   No $4^N$-sized density matrix is needed. ($E_{\mathcal N}$ of a pure state is its Rényi-$\tfrac12$ entropy; the Rényi-$\alpha$ entropy (introduced in [[19]](#ref-19)) $S_\alpha=\frac{1}{1-\alpha}\log_2\sum_k\lambda_k^{2\alpha}$ gives $S_A$ for $\alpha\to1$ and the Rényi-2 entropy for $\alpha=2$, and it decreases with $\alpha$ (Exercise 8), hence $E_{\mathcal N}\ge S_A$.)
 #
 # We return the *Schmidt values themselves* from the time loop and post-process them; this also gives us the entanglement spectrum for §8.
 
@@ -693,12 +693,12 @@ plt.tight_layout(); plt.show()
 # ### 6.1 Lieb–Robinson bounds
 #
 # The Schrödinger equation is non-relativistic; nothing forbids, in principle, that flipping a spin at site 0 is felt instantly at site 100. Yet for lattice Hamiltonians with **short-range**
-# interactions Ref. [[19]](#ref-19) proved that there is an emergent maximal velocity: for local operators $A_x$, $B_y$,
+# interactions Ref. [[20]](#ref-20) proved that there is an emergent maximal velocity: for local operators $A_x$, $B_y$,
 #
 # $$\big\|[A_x(t),B_y]\big\|\;\le\;c\,\|A\|\,\|B\|\;e^{-(|x-y|-v_{\rm LR}t)/\xi},$$
 #
 # (quoted without proof; $A_x(t)=e^{iHt}A_xe^{-iHt}$ and $\|\cdot\|$ is the operator norm). Outside the "light cone" $|x-y|=v_{\rm LR}t$ the influence is not strictly zero but *exponentially small*.
-# A corollary [[20]](#ref-20) concerns quenches from product states: connected correlations $C_{ij}(t)$ between two sites can only build up after the time $t\approx|i-j|/(2v)$ —
+# A corollary [[21]](#ref-21) concerns quenches from product states: connected correlations $C_{ij}(t)$ between two sites can only build up after the time $t\approx|i-j|/(2v)$ —
 # the factor 2 because *both* sites receive signals from a common source in between.
 #
 # Two things about this theorem matter for what follows. First, it is an **existence statement**: it guarantees that *some* finite $v_{\rm LR}$ works, and the proof produces one — for a chain with
@@ -709,10 +709,10 @@ plt.tight_layout(); plt.show()
 #
 # ### 6.2 The quasiparticle picture
 #
-# Refs. [[21]](#ref-21), [[22]](#ref-22) gave this an intuitive form. The quench injects energy everywhere; every point of the chain emits **pairs of entangled quasiparticles** with opposite momenta $\pm k$,
+# Refs. [[22]](#ref-22), [[23]](#ref-23) gave this an intuitive form. The quench injects energy everywhere; every point of the chain emits **pairs of entangled quasiparticles** with opposite momenta $\pm k$,
 # which then fly apart freely with the group velocity $v_k=d\varepsilon_k/dk$. Two sites at distance $r$ become correlated when they are hit by the two partners of a pair emitted half-way: $t=r/(2v_{\max})$.
 #
-# For the transverse-field Ising chain $H=-J\sum_jZ_jZ_{j+1}-h\sum_jX_j$ the quasiparticles are exactly known free fermions ([[23]](#ref-23); quoted without proof) with dispersion and maximal group velocity
+# For the transverse-field Ising chain $H=-J\sum_jZ_jZ_{j+1}-h\sum_jX_j$ the quasiparticles are exactly known free fermions ([[24]](#ref-24); quoted without proof) with dispersion and maximal group velocity
 #
 # $$\varepsilon_k=2\sqrt{J^2+h^2-2Jh\cos k},\qquad v_k=\frac{2Jh\sin k}{\sqrt{J^2+h^2-2Jh\cos k}},\qquad v_{\max}=2\min(J,h)$$
 #
@@ -865,13 +865,13 @@ print("chain-averaged <Z> at t = 0, 1, 2, 3:", {float(h): np.round(mz2[k][[0, 25
 #
 # $XX+YY=2(\sigma^+_j\sigma^-_{j+1}+{\rm h.c.})$, with $\sigma^\pm=(X\pm iY)/2$ ($\sigma^-=|1\rangle\langle0|$ lowers spin up $|0\rangle$ to spin down $|1\rangle$), *hops* a flipped spin to the neighbouring site; the $\Delta$ term is an interaction between neighbouring flipped spins. The total magnetisation $\sum_jZ_j$ is conserved
 # (each bond gate commutes with $Z_j+Z_{j+1}$), so the only thing that can happen is **transport** of magnetisation across the wall — the spin-chain version of opening a valve between a full and an empty container.
-# This *inhomogeneous quench* is the standard probe of transport [[24]](#ref-24), [[25]](#ref-25), and the answer depends dramatically on $\Delta$:
+# This *inhomogeneous quench* is the standard probe of transport [[25]](#ref-25), [[26]](#ref-26), and the answer depends dramatically on $\Delta$:
 #
 # * $\lvert\Delta\rvert<1$: **ballistic** — the wall melts into a front that expands linearly in time, and the transferred magnetisation grows $\propto t$;
 # * $\Delta=1$ (the isotropic Heisenberg point): slower than ballistic. From *weakly polarised* inhomogeneous initial states (close to infinite temperature) transport is **superdiffusive**: the transferred magnetisation
-#   grows as $t^{1/z}$ with the dynamical exponent $z=3/2$, i.e. $\propto t^{2/3}$ [[25]](#ref-25), and the infinite-temperature magnetisation dynamics is described by the scaling function of the
-#   Kardar–Parisi–Zhang universality class [[26]](#ref-26), [[27]](#ref-27). For the *fully polarised* wall used here the same study finds an exponent closer to $3/5$, and larger simulations up to $t=350$ are
-#   compatible with diffusive spreading with slowly decaying corrections [[28]](#ref-28): the long-time law of this particular initial state is not settled;
+#   grows as $t^{1/z}$ with the dynamical exponent $z=3/2$, i.e. $\propto t^{2/3}$ [[26]](#ref-26), and the infinite-temperature magnetisation dynamics is described by the scaling function of the
+#   Kardar–Parisi–Zhang universality class [[27]](#ref-27), [[28]](#ref-28). For the *fully polarised* wall used here the same study finds an exponent closer to $3/5$, and larger simulations up to $t=350$ are
+#   compatible with diffusive spreading with slowly decaying corrections [[29]](#ref-29): the long-time law of this particular initial state is not settled;
 # * $\Delta>1$: the wall is essentially **frozen** — the domain-wall state is close to an eigenstate of the Ising-dominated Hamiltonian, and the transferred magnetisation saturates at an $\mathcal O(1)$ value.
 #
 # The three regimes are statements about an *infinite* chain at *long* times. Our chain has 16 sites and the fastest front reaches its ends at $t=2$ (§2.5), so we can hope to see the ballistic case
@@ -879,7 +879,7 @@ print("chain-averaged <Z> at t = 0, 1, 2, 3:", {float(h): np.round(mz2[k][[0, 25
 #
 # ### 7.2 An exact benchmark at any $N$: free fermions
 #
-# At $\Delta=0$ the chain is equivalent to non-interacting fermions. The Jordan–Wigner transformation ([[29]](#ref-29), [[30]](#ref-30); quoted without proof) maps a down spin to a fermion, $n_j=(1-Z_j)/2$, and
+# At $\Delta=0$ the chain is equivalent to non-interacting fermions. The Jordan–Wigner transformation ([[30]](#ref-30), [[31]](#ref-31); quoted without proof) maps a down spin to a fermion, $n_j=(1-Z_j)/2$, and
 # $J(XX+YY)$ to a hopping Hamiltonian $\sum_{ij}h_{ij}c_i^\dagger c_j$ with the $N\times N$ matrix $h_{j,j+1}=h_{j+1,j}=2J$. Free fermions evolve independently: a particle starting on site $l$ has amplitude
 # $u_{jl}(t)=[e^{-iht}]_{jl}$ on site $j$, and the density is the sum over the initially occupied sites,
 #
@@ -887,7 +887,7 @@ print("chain-averaged <Z> at t = 0, 1, 2, 3:", {float(h): np.round(mz2[k][[0, 25
 #
 # An $N\times N$ matrix instead of $2^N\times2^N$: this is what "integrable" buys you, and it gives us an **independent exact reference at sizes where dense diagonalisation is impossible**.
 # In the infinite chain the front moves with the maximal group velocity of $\varepsilon_k=4J\cos k$, i.e. $v_{\max}=\max_k\lvert d\varepsilon_k/dk\rvert=4J$ sites per unit time, and the magnetisation transferred
-# across the wall grows asymptotically as $4Jt/\pi$ [[31]](#ref-31). The front of a *melting wall* moves at $v_{\max}$, half the speed of the correlation front of §6: a domain wall is a single-particle
+# across the wall grows asymptotically as $4Jt/\pi$ [[32]](#ref-32). The front of a *melting wall* moves at $v_{\max}$, half the speed of the correlation front of §6: a domain wall is a single-particle
 # disturbance carried by the dynamics, whereas a correlation front needs both partners of an entangled pair to travel. Watching which of the two velocities a given observable picks up is the cleanest way to tell the
 # two mechanisms apart (Exercise 3).
 #
@@ -994,7 +994,7 @@ assert abs(alpha3[0] - 1.0) < 0.05 and alpha3[1] < 0.95      # control: exact ba
 #   of weakly polarised walls; a bias of that size covers the $3/5$ and the diffusive $1/2$ discussed for the fully polarised wall as well. The data support only the ordering "slower than ballistic, faster than frozen".
 # * **$\Delta=2$: frozen.** After a quick rearrangement of the two spins next to the wall nothing moves: moving a spin across costs an energy $\sim J\Delta$ that the hopping $J$ cannot supply.
 # * **Entanglement.** At $\Delta=0$ the entropy across the wall shoots up to about one bit while the first particles cross and then only oscillates between $0.9$ and $1.25$ bits. Analytically it grows like
-#   $\tfrac16\ln t$ in nats [[32]](#ref-32), some $0.24$ bits per $e$-folding of the time, far too slowly to be visible in our window, where it is masked by the oscillations of the
+#   $\tfrac16\ln t$ in nats [[33]](#ref-33), some $0.24$ bits per $e$-folding of the time, far too slowly to be visible in our window, where it is masked by the oscillations of the
 #   free-fermion front. The interacting cases ($\Delta=0.5,1$) keep entangling the two halves and end up around $1.6$–$1.75$ bits. At $t=2.4$ the $\Delta=1$ chain has transported the *least*
 #   magnetisation of the three mobile cases but generated the *most* entanglement, so the amount of transport does not fix the amount of entanglement.
 
@@ -1009,14 +1009,14 @@ assert abs(alpha3[0] - 1.0) < 0.05 and alpha3[1] < 0.95      # control: exact ba
 #
 # $$\frac{dS}{dt}\;\propto\;\int\frac{dk}{2\pi}\,\lvert v_k\rvert\,s(k),\qquad s(k)=-n_k\log_2 n_k-(1-n_k)\log_2(1-n_k), \qquad (4)$$
 #
-# with $n_k$ the occupation that the quench puts into mode $k$ ([[21]](#ref-21); Ref. [[33]](#ref-33) turned this into an exact statement for integrable models). Eq. (4) is quoted without derivation; we use only its structure. The growth stops when the pairs emitted at the far end of one half have reached the cut,
+# with $n_k$ the occupation that the quench puts into mode $k$ ([[22]](#ref-22); Ref. [[34]](#ref-34) turned this into an exact statement for integrable models). Eq. (4) is quoted without derivation; we use only its structure. The growth stops when the pairs emitted at the far end of one half have reached the cut,
 #
 # $$t_{\rm sat}\simeq\frac{N/2}{v_{\max}}=\frac{N}{2v_{\max}},$$
 #
 # and then the entropy **saturates at a value proportional to the subsystem size** (a *volume law*):
 # $S_\infty\simeq s_\infty\,N/2$, with $s_\infty$ an entropy *per site* fixed by the quench energy and by what the dynamics conserves. Two cases matter here.
 #
-# * A **chaotic** chain started at the centre of the spectrum ($e=0$) fills its half-chain Hilbert space as evenly as a random vector does, so $s_\infty=1$ bit per site up to the $O(1)$ correction computed in [[34]](#ref-34):
+# * A **chaotic** chain started at the centre of the spectrum ($e=0$) fills its half-chain Hilbert space as evenly as a random vector does, so $s_\infty=1$ bit per site up to the $O(1)$ correction computed in [[35]](#ref-35):
 #   $S_{\rm Page}=N/2-\frac{1}{2\ln2}$ bits for an equal bipartition. A state at $e\neq0$ saturates below it (§5.1).
 # * An **integrable** chain keeps its mode occupations $n_k$ for ever (each of them is conserved), and $s_\infty=\int\frac{dk}{2\pi}s(k)$ is the entropy of the occupations that the quench happens to produce.
 #   Unless $n_k=\tfrac12$ for every $k$, this is *less* than one bit per site: an integrable chain saturates below the Page value even when its energy lies exactly at the centre of the spectrum.
@@ -1035,9 +1035,9 @@ assert abs(alpha3[0] - 1.0) < 0.05 and alpha3[1] < 0.95      # control: exact ba
 #
 # $$H=J\sum_jZ_jZ_{j+1}+g\sum_jX_j+h_z\sum_jZ_j,\qquad J=1,\ g=0.9045,\qquad h_z=\begin{cases}0&\text{integrable (TFIM, free fermions)}\\0.809&\text{non-integrable}\end{cases}$$
 #
-# The non-integrable parameters are those of [[35]](#ref-35). The two chains differ by one term. At $h_z=0$ the longitudinal field is absent, the Jordan–Wigner transformation of §7.2 turns $H$ into free fermions, and the model has an extensive set of conserved mode
+# The non-integrable parameters are those of [[36]](#ref-36). The two chains differ by one term. At $h_z=0$ the longitudinal field is absent, the Jordan–Wigner transformation of §7.2 turns $H$ into free fermions, and the model has an extensive set of conserved mode
 # occupations. A longitudinal field maps to a string operator and destroys that structure: nothing is conserved beyond the energy, and the model is believed to be non-integrable — the usual numerical evidence
-# being the level-spacing statistics of the energy spectrum, which is Poissonian for an integrable model and Wigner–Dyson for a chaotic one ([[36]](#ref-36), [[37]](#ref-37); for the ratio of consecutive spacings used today, [[38]](#ref-38)). We take the classification as given here and
+# being the level-spacing statistics of the energy spectrum, which is Poissonian for an integrable model and Wigner–Dyson for a chaotic one ([[37]](#ref-37), [[38]](#ref-38); for the ratio of consecutive spacings used today, [[39]](#ref-39)). We take the classification as given here and
 # test its *consequences*; the level statistics of exactly these two chains is a natural exercise for the dense diagonalisation (`eigh`) of
 # [notebook 03, quantum many-body spin systems](../ch02_spin_systems_textbook_way/03_quantum_many_body_spin_systems.ipynb). Both chains are evolved from the same state, with the same code, at the same energy: "integrable" and "non-integrable"
 # are properties of $H$ alone.
@@ -1144,7 +1144,7 @@ for N in SIZES4:
 #   bits per unit time becomes a velocity once it is divided by the entropy per site of the final ensemble, $dS/dt=s_\infty v_E$: it is the speed at which the maximally entangled region eats into the un-entangled one.
 #   For the non-integrable chain $s_\infty\approx1$ bit per site (the random-state value), so $v_E\approx0.90$ sites per unit time — **half** of $v_{\max}=1.81$ and a quarter of the correlation-front velocity
 #   $2v_{\max}=3.62$. ($v_{\max}=2\min(J,g)$ is exact only for the free chain $h_z=0$; for $h_z\neq0$ it is a velocity *scale* built from the same couplings, not a dispersion relation — the tilted chain has
-#   no free quasiparticles.) That entanglement spreads strictly more slowly than information is the generic situation, and it is the point of [[35]](#ref-35). For the integrable chain
+#   no free quasiparticles.) That entanglement spreads strictly more slowly than information is the generic situation, and it is the point of [[36]](#ref-36). For the integrable chain
 #   the bare slope is *smaller* ($0.68$) but so is the available entropy density ($s_\infty=0.49$ bits per site, next bullet), and the ratio $v_E=0.68/0.49=1.4$ sites per unit time is *larger*: free
 #   quasiparticles carry their entropy at their own group velocity, while in a chaotic chain the entropy has to be generated by scattering.
 # * **Non-integrable chain:** the plateau sits at 94–98 % of the Page value (dotted) at every size we can reach — for all local purposes the state is as entangled as a random vector. (The percentage does not *increase* with $N$ here only because
@@ -1186,14 +1186,14 @@ for N in SIZES4:
 #
 # ### 9.2 Dynamical quantum phase transitions
 #
-# Ref. [[39]](#ref-39) showed (review: [[40]](#ref-40)) that
+# Ref. [[40]](#ref-40) showed (review: [[41]](#ref-41)) that
 # $\lambda(t)$ of the TFIM becomes **non-analytic (kinks) at critical times** whenever the quench crosses the ground-state critical point $h_c=J$ — a *dynamical quantum phase transition* (DQPT). For a quench from $h_0=0$ to $h>J$
 # their free-fermion result (quoted without proof) gives
 #
 # $$t_n=\Big(n+\tfrac12\Big)\,t^*,\qquad t^*=\frac{\pi}{\varepsilon_{k^*}}=\frac{\pi}{2\sqrt{h^2-J^2}},\qquad n=0,1,2,\dots$$
 #
 # Our initial state $|\!\uparrow\dots\uparrow\rangle$ is one of **two** degenerate ground states at $h=0$. The appropriate return probability is then the one to the ground-state manifold,
-# $P(t)=P_\uparrow(t)+P_\downarrow(t)$ with $P_{\uparrow/\downarrow}=|\langle\uparrow\!..\!\uparrow/\downarrow\!..\!\downarrow|\psi(t)\rangle|^2$ [[41]](#ref-41). Both pieces are exponentially small in $N$, so for large $N$ the larger one wins completely:
+# $P(t)=P_\uparrow(t)+P_\downarrow(t)$ with $P_{\uparrow/\downarrow}=|\langle\uparrow\!..\!\uparrow/\downarrow\!..\!\downarrow|\psi(t)\rangle|^2$ [[42]](#ref-42). Both pieces are exponentially small in $N$, so for large $N$ the larger one wins completely:
 # $\lambda(t)=\min(\lambda_\uparrow,\lambda_\downarrow)$, and a **kink appears whenever the two branches cross** — the state switches from being "closer to all-up" to "closer to all-down". This is what was measured with strings of up to 10 trapped ions in [[8]](#ref-8).
 #
 # ### 9.3 Code
@@ -1414,67 +1414,70 @@ plt.tight_layout(); plt.show()
 #
 # <span id="ref-9">[9]</span> H. Bernien *et al.*, *Probing many-body dynamics on a 51-atom quantum simulator*, Nature **551**, 579 (2017).
 #
-# <span id="ref-10">[10]</span> M. Rigol, V. Dunjko, M. Olshanii, *Thermalization and its mechanism for generic isolated quantum systems*, Nature **452**, 854 (2008) — eigenstate thermalization and the diagonal ensemble.
+# <span id="ref-10">[10]</span> H. F. Trotter, *On the product of semi-groups of operators*, Proc. Amer. Math. Soc. **10**, 545 (1959) — the product
+# formula behind Trotterised time evolution.
 #
-# <span id="ref-11">[11]</span> J. M. Deutsch, *Quantum statistical mechanics in a closed system*, Phys. Rev. A **43**, 2046 (1991).
+# <span id="ref-11">[11]</span> M. Rigol, V. Dunjko, M. Olshanii, *Thermalization and its mechanism for generic isolated quantum systems*, Nature **452**, 854 (2008) — eigenstate thermalization and the diagonal ensemble.
 #
-# <span id="ref-12">[12]</span> M. Srednicki, *Chaos and quantum thermalization*, Phys. Rev. E **50**, 888 (1994).
+# <span id="ref-12">[12]</span> J. M. Deutsch, *Quantum statistical mechanics in a closed system*, Phys. Rev. A **43**, 2046 (1991).
 #
-# <span id="ref-13">[13]</span> M. Rigol, V. Dunjko, V. Yurovsky, M. Olshanii, *Relaxation in a completely integrable many-body quantum system: an ab initio study of the dynamics of the highly excited states of 1D lattice hard-core bosons*, Phys. Rev. Lett. **98**, 050405 (2007) — the generalized Gibbs ensemble.
+# <span id="ref-13">[13]</span> M. Srednicki, *Chaos and quantum thermalization*, Phys. Rev. E **50**, 888 (1994).
 #
-# <span id="ref-14">[14]</span> H. Bethe, *Zur Theorie der Metalle. I. Eigenwerte und Eigenfunktionen der linearen Atomkette*, Z. Phys. **71**, 205 (1931).
+# <span id="ref-14">[14]</span> M. Rigol, V. Dunjko, V. Yurovsky, M. Olshanii, *Relaxation in a completely integrable many-body quantum system: an ab initio study of the dynamics of the highly excited states of 1D lattice hard-core bosons*, Phys. Rev. Lett. **98**, 050405 (2007) — the generalized Gibbs ensemble.
 #
-# <span id="ref-15">[15]</span> R. Orbach, *Linear antiferromagnetic chain with anisotropic coupling*, Phys. Rev. **112**, 309 (1958).
+# <span id="ref-15">[15]</span> H. Bethe, *Zur Theorie der Metalle. I. Eigenwerte und Eigenfunktionen der linearen Atomkette*, Z. Phys. **71**, 205 (1931).
 #
-# <span id="ref-16">[16]</span> P. Bocchieri, A. Loinger, *Quantum recurrence theorem*, Phys. Rev. **107**, 337 (1957).
+# <span id="ref-16">[16]</span> R. Orbach, *Linear antiferromagnetic chain with anisotropic coupling*, Phys. Rev. **112**, 309 (1958).
 #
-# <span id="ref-17">[17]</span> G. Vidal, R. F. Werner, *Computable measure of entanglement*, Phys. Rev. A **65**, 032314 (2002).
+# <span id="ref-17">[17]</span> P. Bocchieri, A. Loinger, *Quantum recurrence theorem*, Phys. Rev. **107**, 337 (1957).
 #
-# <span id="ref-18">[18]</span> A. Rényi, *On measures of entropy and information*, in *Proc. 4th Berkeley Symposium on Mathematical Statistics and Probability* **1**, 547 (1961) — the Rényi-$\alpha$ entropies.
+# <span id="ref-18">[18]</span> G. Vidal, R. F. Werner, *Computable measure of entanglement*, Phys. Rev. A **65**, 032314 (2002).
 #
-# <span id="ref-19">[19]</span> E. H. Lieb, D. W. Robinson, *The finite group velocity of quantum spin systems*, Commun. Math. Phys. **28**, 251 (1972).
+# <span id="ref-19">[19]</span> A. Rényi, *On measures of entropy and information*, in *Proc. 4th Berkeley Symposium on Mathematical Statistics and Probability* **1**, 547 (1961) — the Rényi-$\alpha$ entropies.
 #
-# <span id="ref-20">[20]</span> S. Bravyi, M. B. Hastings, F. Verstraete, *Lieb–Robinson bounds and the generation of correlations and topological quantum order*, Phys. Rev. Lett. **97**, 050401 (2006).
+# <span id="ref-20">[20]</span> E. H. Lieb, D. W. Robinson, *The finite group velocity of quantum spin systems*, Commun. Math. Phys. **28**, 251 (1972).
 #
-# <span id="ref-21">[21]</span> P. Calabrese, J. Cardy, *Evolution of entanglement entropy in one-dimensional systems*, J. Stat. Mech. P04010 (2005).
+# <span id="ref-21">[21]</span> S. Bravyi, M. B. Hastings, F. Verstraete, *Lieb–Robinson bounds and the generation of correlations and topological quantum order*, Phys. Rev. Lett. **97**, 050401 (2006).
 #
-# <span id="ref-22">[22]</span> P. Calabrese, J. Cardy, *Time dependence of correlation functions following a quantum quench*, Phys. Rev. Lett. **96**, 136801 (2006).
+# <span id="ref-22">[22]</span> P. Calabrese, J. Cardy, *Evolution of entanglement entropy in one-dimensional systems*, J. Stat. Mech. P04010 (2005).
 #
-# <span id="ref-23">[23]</span> P. Pfeuty, *The one-dimensional Ising model with a transverse field*, Ann. Phys. **57**, 79 (1970).
+# <span id="ref-23">[23]</span> P. Calabrese, J. Cardy, *Time dependence of correlation functions following a quantum quench*, Phys. Rev. Lett. **96**, 136801 (2006).
 #
-# <span id="ref-24">[24]</span> D. Gobert, C. Kollath, U. Schollwöck, G. Schütz, *Real-time dynamics in spin-1/2 chains with adaptive time-dependent density matrix renormalization group*, Phys. Rev. E **71**, 036102 (2005).
+# <span id="ref-24">[24]</span> P. Pfeuty, *The one-dimensional Ising model with a transverse field*, Ann. Phys. **57**, 79 (1970).
 #
-# <span id="ref-25">[25]</span> M. Ljubotina, M. Žnidarič, T. Prosen, *Spin diffusion from an inhomogeneous quench in an integrable system*, Nat. Commun. **8**, 16117 (2017) — inhomogeneous quenches at $\Delta=1$: exponent $2/3$ for weakly polarised walls, closer to $3/5$ near the pure domain wall.
+# <span id="ref-25">[25]</span> D. Gobert, C. Kollath, U. Schollwöck, G. Schütz, *Real-time dynamics in spin-1/2 chains with adaptive time-dependent density matrix renormalization group*, Phys. Rev. E **71**, 036102 (2005).
 #
-# <span id="ref-26">[26]</span> M. Kardar, G. Parisi, Y.-C. Zhang, *Dynamic scaling of growing interfaces*, Phys. Rev. Lett. **56**, 889 (1986).
+# <span id="ref-26">[26]</span> M. Ljubotina, M. Žnidarič, T. Prosen, *Spin diffusion from an inhomogeneous quench in an integrable system*, Nat. Commun. **8**, 16117 (2017) — inhomogeneous quenches at $\Delta=1$: exponent $2/3$ for weakly polarised walls, closer to $3/5$ near the pure domain wall.
 #
-# <span id="ref-27">[27]</span> M. Ljubotina, M. Žnidarič, T. Prosen, *Kardar–Parisi–Zhang physics in the quantum Heisenberg magnet*, Phys. Rev. Lett. **122**, 210602 (2019) — the KPZ scaling function of the magnetisation dynamics at infinite temperature.
+# <span id="ref-27">[27]</span> M. Kardar, G. Parisi, Y.-C. Zhang, *Dynamic scaling of growing interfaces*, Phys. Rev. Lett. **56**, 889 (1986).
 #
-# <span id="ref-28">[28]</span> G. Misguich, K. Mallick, P. L. Krapivsky, *Dynamics of the spin-1/2 Heisenberg chain initialized in a domain-wall state*, Phys. Rev. B **96**, 195151 (2017).
+# <span id="ref-28">[28]</span> M. Ljubotina, M. Žnidarič, T. Prosen, *Kardar–Parisi–Zhang physics in the quantum Heisenberg magnet*, Phys. Rev. Lett. **122**, 210602 (2019) — the KPZ scaling function of the magnetisation dynamics at infinite temperature.
 #
-# <span id="ref-29">[29]</span> P. Jordan, E. Wigner, *Über das Paulische Äquivalenzverbot*, Z. Phys. **47**, 631 (1928).
+# <span id="ref-29">[29]</span> G. Misguich, K. Mallick, P. L. Krapivsky, *Dynamics of the spin-1/2 Heisenberg chain initialized in a domain-wall state*, Phys. Rev. B **96**, 195151 (2017).
 #
-# <span id="ref-30">[30]</span> E. Lieb, T. Schultz, D. Mattis, *Two soluble models of an antiferromagnetic chain*, Ann. Phys. **16**, 407 (1961).
+# <span id="ref-30">[30]</span> P. Jordan, E. Wigner, *Über das Paulische Äquivalenzverbot*, Z. Phys. **47**, 631 (1928).
 #
-# <span id="ref-31">[31]</span> T. Antal, Z. Rácz, A. Rákos, G. M. Schütz, *Transport in the XX chain at zero temperature: Emergence of flat magnetization profiles*, Phys. Rev. E **59**, 4912 (1999).
+# <span id="ref-31">[31]</span> E. Lieb, T. Schultz, D. Mattis, *Two soluble models of an antiferromagnetic chain*, Ann. Phys. **16**, 407 (1961).
 #
-# <span id="ref-32">[32]</span> V. Eisler, F. Iglói, I. Peschel, *Entanglement in spin chains with gradients*, J. Stat. Mech. P02011 (2009) — the logarithmic entanglement growth after the XX domain-wall quench.
+# <span id="ref-32">[32]</span> T. Antal, Z. Rácz, A. Rákos, G. M. Schütz, *Transport in the XX chain at zero temperature: Emergence of flat magnetization profiles*, Phys. Rev. E **59**, 4912 (1999).
 #
-# <span id="ref-33">[33]</span> V. Alba, P. Calabrese, *Entanglement and thermodynamics after a quantum quench in integrable systems*, Proc. Natl. Acad. Sci. USA **114**, 7947 (2017) — the quasiparticle formula, Eq. (4), made exact.
+# <span id="ref-33">[33]</span> V. Eisler, F. Iglói, I. Peschel, *Entanglement in spin chains with gradients*, J. Stat. Mech. P02011 (2009) — the logarithmic entanglement growth after the XX domain-wall quench.
 #
-# <span id="ref-34">[34]</span> D. N. Page, *Average entropy of a subsystem*, Phys. Rev. Lett. **71**, 1291 (1993).
+# <span id="ref-34">[34]</span> V. Alba, P. Calabrese, *Entanglement and thermodynamics after a quantum quench in integrable systems*, Proc. Natl. Acad. Sci. USA **114**, 7947 (2017) — the quasiparticle formula, Eq. (4), made exact.
 #
-# <span id="ref-35">[35]</span> H. Kim, D. A. Huse, *Ballistic spreading of entanglement in a diffusive nonintegrable system*, Phys. Rev. Lett. **111**, 127205 (2013) — the parameters of the non-integrable chain of §8 and the entanglement velocity.
+# <span id="ref-35">[35]</span> D. N. Page, *Average entropy of a subsystem*, Phys. Rev. Lett. **71**, 1291 (1993).
 #
-# <span id="ref-36">[36]</span> M. V. Berry, M. Tabor, *Level clustering in the regular spectrum*, Proc. R. Soc. Lond. A **356**, 375 (1977).
+# <span id="ref-36">[36]</span> H. Kim, D. A. Huse, *Ballistic spreading of entanglement in a diffusive nonintegrable system*, Phys. Rev. Lett. **111**, 127205 (2013) — the parameters of the non-integrable chain of §8 and the entanglement velocity.
 #
-# <span id="ref-37">[37]</span> O. Bohigas, M. J. Giannoni, C. Schmit, *Characterization of chaotic quantum spectra and universality of level fluctuation laws*, Phys. Rev. Lett. **52**, 1 (1984).
+# <span id="ref-37">[37]</span> M. V. Berry, M. Tabor, *Level clustering in the regular spectrum*, Proc. R. Soc. Lond. A **356**, 375 (1977).
 #
-# <span id="ref-38">[38]</span> Y. Y. Atas, E. Bogomolny, O. Giraud, G. Roux, *Distribution of the ratio of consecutive level spacings in random matrix ensembles*, Phys. Rev. Lett. **110**, 084101 (2013).
+# <span id="ref-38">[38]</span> O. Bohigas, M. J. Giannoni, C. Schmit, *Characterization of chaotic quantum spectra and universality of level fluctuation laws*, Phys. Rev. Lett. **52**, 1 (1984).
 #
-# <span id="ref-39">[39]</span> M. Heyl, A. Polkovnikov, S. Kehrein, *Dynamical quantum phase transitions in the transverse-field Ising model*, Phys. Rev. Lett. **110**, 135704 (2013).
+# <span id="ref-39">[39]</span> Y. Y. Atas, E. Bogomolny, O. Giraud, G. Roux, *Distribution of the ratio of consecutive level spacings in random matrix ensembles*, Phys. Rev. Lett. **110**, 084101 (2013).
 #
-# <span id="ref-40">[40]</span> M. Heyl, *Dynamical quantum phase transitions: a review*, Rep. Prog. Phys. **81**, 054001 (2018).
+# <span id="ref-40">[40]</span> M. Heyl, A. Polkovnikov, S. Kehrein, *Dynamical quantum phase transitions in the transverse-field Ising model*, Phys. Rev. Lett. **110**, 135704 (2013).
 #
-# <span id="ref-41">[41]</span> M. Heyl, *Dynamical quantum phase transitions in systems with broken-symmetry phases*, Phys. Rev. Lett. **113**, 205701 (2014).
+# <span id="ref-41">[41]</span> M. Heyl, *Dynamical quantum phase transitions: a review*, Rep. Prog. Phys. **81**, 054001 (2018).
+#
+# <span id="ref-42">[42]</span> M. Heyl, *Dynamical quantum phase transitions in systems with broken-symmetry phases*, Phys. Rev. Lett. **113**, 205701 (2014).
 

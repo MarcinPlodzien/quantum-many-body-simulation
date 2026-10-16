@@ -989,13 +989,41 @@ def physical_from_counts(counts, N, SIGN, COMPAT):
 # ==============================================================================
 # EXPERIMENT: OLS vs WLS on three states, many independent data sets each
 # ==============================================================================
+def gauss_markov_rms(p_true, N, M, eta=1e-9):
+    """Exact rms Frobenius error of OLS and of the best linear unbiased estimator (Gauss-Markov bound).
+
+    MATH   C = block-diagonal multinomial covariance of Eq. (5);  E||rho_hat - rho||_F^2 = Tr Cov(r_hat) / 2^N.
+           OLS:  Cov = A^+ C (A^+)^T.
+           Bound: Cov = (A'^T C'^{-1} A')^{-1}, where one outcome per setting is dropped (each block of C is
+           singular because the frequencies of a setting sum to one) and the known column r_I = 1 is removed.
+    IMPL   probabilities that are exactly zero make further directions singular: p -> max(p, eta), eta -> 0
+           (the result is stable for eta between 1e-4 and 1e-10).  Dense algebra on a 36 x 16 problem for N = 2.
+    """
+    A = np.asarray(design_matrix(N))
+    rows = np.asarray(row_index(N))
+    p = np.asarray(p_true)
+    C = np.zeros((A.shape[0], A.shape[0]))
+    for b in range(p.shape[0]):
+        C[np.ix_(rows[b], rows[b])] = (np.diag(p[b]) - np.outer(p[b], p[b])) / M
+    A_plus = np.linalg.pinv(A)
+    mse_ols = np.trace(A_plus @ C @ A_plus.T) / 2 ** N
+    fisher = np.zeros((A.shape[1] - 1,) * 2)                    # sum over settings of A_b'^T C_b'^{-1} A_b'
+    for b in range(p.shape[0]):
+        pb = np.maximum(p[b, :-1], eta)
+        Ab = A[rows[b, :-1], 1:]
+        fisher += Ab.T @ np.linalg.solve((np.diag(pb) - np.outer(pb, pb)) / M, Ab)
+    mse_gm = np.trace(np.linalg.inv(fisher)) / 2 ** N
+    return np.sqrt(mse_ols), np.sqrt(mse_gm)
+
+
 N, M_W, N_REP_W = 2, 100, 200
 set2, SIGN2, COMPAT2 = all_settings(N), sign_table(N), compat_table(N)
 states_w = {"Bell |Phi+>": to_dm(bell_state("phi+")),
             "Werner v=0.6": dm_tensor(mixed_with_identity(dm_matrix(to_dm(bell_state("psi-"))), 0.6), N),
             "random mixed": dm_tensor(rdm(haar_state(jax.random.PRNGKey(6), 4), (0, 1)), N)}
 
-print(f"{'state':>16s} {'rms ||rho_hat-rho||_F  OLS':>28s} {'WLS':>10s} {'gain':>7s} {'max |Tr rho_WLS - 1|':>21s}")
+print(f"{'state':>16s} {'rms ||rho_hat-rho||_F  OLS':>28s} {'WLS':>10s} {'gain':>7s} {'max |Tr rho_WLS - 1|':>21s} "
+      f"{'exact OLS':>10s} {'bound':>8s} {'OLS/bound':>10s}")
 for name, rho in states_w.items():
     p_true = all_setting_probs(rho, set2)
     rho_m = dm_matrix(rho)
@@ -1011,17 +1039,20 @@ for name, rho in states_w.items():
     errs = jax.jit(jax.vmap(both))(jax.random.split(jax.random.PRNGKey(31), N_REP_W))
     errs = np.asarray(errs)
     rms = np.sqrt(errs[:, :2].mean(0))
-    print(f"{name:>16s} {rms[0]:28.4f} {rms[1]:10.4f} {rms[0] / rms[1]:6.2f}x {errs[:, 2].max():21.2e}")
+    rms_ols_exact, rms_gm = gauss_markov_rms(p_true, N, M_W)
+    print(f"{name:>16s} {rms[0]:28.4f} {rms[1]:10.4f} {rms[0] / rms[1]:6.2f}x {errs[:, 2].max():21.2e} "
+          f"{rms_ols_exact:10.4f} {rms_gm:8.4f} {rms_ols_exact / rms_gm:9.4f}x")
 
 # %% [markdown]
 # The measured gain is a **few per cent** in root-mean-square error, largest for the Bell state (whose outcome distributions are far
 # from uniform, so the weights differ most) and smallest for the Werner state. The gain is small because there is almost nothing to
 # win, even with perfect weights. The Gauss–Markov theorem gives the variance of the *best possible* linear unbiased estimator,
 # $\mathrm{Cov}=\big(A^{\mathsf T}C^{-1}A\big)^{-1}$ with $C$ the exact block covariance of Eq. (5), and that bound can be evaluated
-# in closed form for each of these states. At $M=100$ it sits only $5.4\%$ below OLS for the Bell state, $1.0\%$ for the Werner state
-# and $5.6\%$ for the random mixed state — so the simple diagonal weights above already capture essentially the whole available gain.
+# in closed form for each of these states (last three columns of the table: the exact rms error of OLS, the bound, and their ratio).
+# At $M=100$ the rms error of OLS is only $1.0541$ times the bound for the Bell state, $1.0097$ times for the Werner state
+# and $1.0265$ times for the random mixed state, a few per cent at most — so the simple diagonal weights above already capture essentially the whole available gain.
 # With equal shots in every setting and a design matrix as symmetric as Eq. (6), ordinary least squares is close to optimal, and the
-# within-setting *correlations* that a diagonal $W$ ignores are worth almost nothing. (Exercise 4 asks you to reproduce these numbers.)
+# within-setting *correlations* that a diagonal $W$ ignores are worth almost nothing. (Exercise 4 turns the bound into an estimator.)
 #
 # The gain also costs us the matrix-free form — WLS has to build and invert a $4^N\times4^N$ Gram matrix — the estimated weights
 # introduce a mild bias, and the estimate is no longer exactly unit-trace (the last column: up to about $1\%$ at $M=100$).
@@ -1171,8 +1202,7 @@ fig.tight_layout(); plt.show()
 # the certificate and — for illustration only — the distance to a cloud of random physical states.
 #
 # > **Numerical practice.** The random-state comparison is the test one writes first and it is nearly worthless: the Hilbert–Schmidt
-# > measure puts its mass far from the boundary, so even $2\cdot10^5$ random states never come within $40\%$ of the projection
-# > distance, and a *wrong* projection (for instance the popular "clip the negative eigenvalues and rescale", which is on average
+# > measure puts its mass far from the boundary, so even $40\times200=8000$ random states never come closer than the projection, and a *wrong* projection (for instance the popular "clip the negative eigenvalues and rescale", which is on average
 # > $3\%$ farther away than $\rho_\star$ in the run below) passes it every single time. The certificate catches that same wrong projection every
 # > single time. A checkpoint is only worth writing if it can fail for the error it exists to catch.
 
@@ -2461,7 +2491,8 @@ fig.tight_layout(); plt.show()
 # iteration — grows fastest. At these tiny sizes the measured factor per added qubit is still well below the asymptotic
 # $24=6\times4$ and varies from run to run, because fixed overheads (dispatch, the $O(d^3)$ pieces) still contribute; it approaches
 # $24$ only as $N$ grows. Extrapolating the measured $N=4$
-# time with the asymptotic factor puts a single $N=6$ reconstruction at tens of seconds and $N=8$ at hours on this machine, and that
+# time with the asymptotic factor puts a single $N=6$ reconstruction at tens of seconds to minutes (depending on the load of the
+# machine) and $N=8$ at hours, and that
 # is *after* collecting a data set of $3^{8}M\approx7\cdot10^6$ shots at $M=1000$ shots per setting.
 # A real example of that scale: the eight-ion W-state tomography of [[14]](#ref-14) measured all $3^8=6561$ bases with $100$
 # repetitions each, $656\,100$ runs and ten hours of measurement, and reconstructed $\rho$ with an iterative maximum-likelihood
@@ -2533,13 +2564,14 @@ fig.tight_layout(); plt.show()
 #    cannot help here — a tetrahedral POVM is not a projective measurement, so compute $p_i=\mathrm{Tr}(\rho\,\Pi_i)$
 #    directly, as `povm_probs` does, and sample from the $4^N$ probabilities in one `categorical` draw.)
 # 4. ★★ **Weighted least squares done right (extend the code).** Our `weighted_least_squares` uses a diagonal weight matrix, but
-#    Eq. (5) says the multinomial covariance is block-diagonal with full blocks. Evaluate the Gauss-Markov bound
-#    $\mathrm{Cov}=(A^{\mathsf T}C^{-1}A)^{-1}$ exactly and compare it with OLS and with diagonal WLS on the three states of
-#    Section 9. Two traps: each block of $C$ is singular because the frequencies of a setting sum to one (drop one outcome per
+#    Eq. (5) says the multinomial covariance is block-diagonal with full blocks. `gauss_markov_rms` of Section 9 evaluates the
+#    Gauss-Markov bound $\mathrm{Cov}=(A^{\mathsf T}C^{-1}A)^{-1}$ with the exact $C$; turn it into an estimator. Build the full
+#    blocks of $C$ from the first-pass model, run block-weighted least squares on the data sets of Section 9 and compare its rms
+#    error with OLS, with diagonal WLS and with the bound. Two traps: each block of $C$ is singular because the frequencies of a setting sum to one (drop one outcome per
 #    setting and work with the remaining $2^N-1$), and for the Bell state further directions are singular because some probabilities
 #    are exactly zero (regularise $p\to\max(p,\eta)$ and take $\eta\to0$). A naive `pinv` of the full block gives a "bound" that is
-#    *worse* than OLS, which is how you know you have fallen into the first trap. Target answers at $M=100$: the bound lies
-#    $5.4\%$ below OLS for the Bell state, $1.0\%$ for the Werner state and $5.6\%$ for the random mixed state.
+#    *worse* than OLS, which is how you know you have fallen into the first trap. For reference, at $M=100$ the rms error of
+#    OLS lies $5.4\%$ above the bound for the Bell state, $1.0\%$ for the Werner state and $2.6\%$ for the random mixed state.
 # 5. ★★ **Convergence of the diluted iteration.** For the Bell data set of Section 13, plot the number of iterations needed to reach
 #    $\lVert\tilde R\rho-\rho\rVert<10^{-6}$ as a function of $\epsilon\in\{0.05,0.1,0.2,0.5,1,2,5,10\}$ and of the plain step, and
 #    check at each $\epsilon$ whether $\log L$ ever decreases. You will find that the cost falls roughly like $1/\epsilon$ for small

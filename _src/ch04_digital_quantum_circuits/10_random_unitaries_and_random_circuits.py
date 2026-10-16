@@ -447,8 +447,8 @@ print(f"largest probability                  : {x_haar.max():.2f}/D   "
 # A Haar unitary on all $N$ qubits is a mathematical idealisation: generic $2^N\times2^N$ unitaries need exponentially
 # many elementary gates. Physical dynamics is **local**. The minimal local model is the *brick-wall circuit*: in even
 # layers Haar-random two-qubit gates act on the bonds $(0,1),(2,3),\dots$, in odd layers on $(1,2),(3,4),\dots$; every
-# gate is drawn independently. One layer is exactly the structure of one half Trotter step of a nearest-neighbour
-# Hamiltonian - with the interaction replaced by "anything".
+# gate is drawn independently. One layer is exactly the structure of one half Trotter step (the product formula was introduced in
+# [[22]](#ref-22)) of a nearest-neighbour Hamiltonian - with the interaction replaced by "anything".
 
 # %%
 # ==============================================================================
@@ -569,15 +569,15 @@ print(f"engine `brickwall`, N=8, depth 24: norm = {float(jnp.linalg.norm(psi_eng
 #
 # Two facts set the expectations. (i) A gate can change the entanglement across a cut only if it *acts across the cut*, and a
 # single two-qubit gate can change the entropy by at most 2 bits. The bound follows from two inequalities of the von
-# Neumann entropy that we quote without proof, subadditivity $S_{XY}\le S_X+S_Y$ and the Araki-Lieb inequality [[22]](#ref-22)
+# Neumann entropy that we quote without proof, subadditivity $S_{XY}\le S_X+S_Y$ and the Araki-Lieb inequality [[23]](#ref-23)
 # $S_{XY}\ge\lvert S_X-S_Y\rvert$ for disjoint subsystems $X,Y$. Let the gate act
 # on qubit $a\in A$ and qubit $b\in B$, and write $A=\{a\}\cup A'$. The gate does not touch $A'$, so $S_{A'}$ is the same
 # before and after, while both $S_A$ obey $\lvert S_{A'}-S_a\rvert\le S_A\le S_{A'}+S_a$ with $S_a\le1$ bit; the two
 # inequalities together give $\lvert\Delta S_A\rvert\le 2$ bits. In our geometry one gate crosses the
 # central cut every second layer - so the entropy can grow at most **linearly** in depth. (ii) It cannot exceed $N/2$ bits.
 # For a Haar-random state Ref. [[1]](#ref-1) conjectured the average entropy of a subsystem of dimension $m$ in a bipartite
-# system of dimensions $m\le n$ (in nats) and derived its asymptotic form; the exact sum was proved in [[23]](#ref-23),
-# and more simply in [[24]](#ref-24):
+# system of dimensions $m\le n$ (in nats) and derived its asymptotic form; the exact sum was proved in [[24]](#ref-24),
+# and more simply in [[25]](#ref-25):
 #
 # $$ \langle S\rangle = \sum_{k=n+1}^{mn}\frac1k-\frac{m-1}{2n}\;\approx\;\ln m-\frac{m}{2n}. $$
 #
@@ -722,7 +722,7 @@ assert dev_haar < 0.05
 
 # %% [markdown]
 # The Haar states follow Page's formula to within $0.004$ bit (the fluctuations from state to state are
-# tiny - a manifestation of *typicality* [[25]](#ref-25), [[26]](#ref-26): almost every state has almost exactly the average entropy). The deep brick-wall
+# tiny - a manifestation of *typicality* [[26]](#ref-26), [[27]](#ref-27): almost every state has almost exactly the average entropy). The deep brick-wall
 # states lie on the same curve; any remaining deviation is located at the central cuts, which are the last to
 # saturate.
 
@@ -732,7 +732,7 @@ assert dev_haar < 0.05
 # ### 7.1 Definition and construction
 #
 # Haar-random unitaries form a continuum. For many purposes a *finite* set of gates is just as good. The
-# **Clifford group** [[27]](#ref-27) consists of the unitaries that map Pauli operators to Pauli operators under conjugation,
+# **Clifford group** [[28]](#ref-28) consists of the unitaries that map Pauli operators to Pauli operators under conjugation,
 #
 # $$ C\,P\,C^\dagger = \pm P' ,\qquad P,P'\in\{X,Y,Z\}. $$
 #
@@ -793,17 +793,17 @@ except ValueError:
 #
 # ### 7.2 Frame potentials and unitary designs
 #
-# A finite set $\mathcal E=\{U_a\}$ is called a **unitary $t$-design** [[28]](#ref-28), [[29]](#ref-29) if averaging any polynomial of degree $\le t$ in
+# A finite set $\mathcal E=\{U_a\}$ is called a **unitary $t$-design** [[29]](#ref-29), [[30]](#ref-30) if averaging any polynomial of degree $\le t$ in
 # the matrix elements of $U$ (and $t$ in those of $U^*$) over $\mathcal E$ gives the same result as averaging over the
 # Haar measure. The moments $\mathbb E\lvert U_{ij}\rvert^2=1/d$ and $\mathbb E\lvert U_{ij}\rvert^4=2/(d(d+1))$ of
 # Section 4.3 are examples with $t=1$ and $t=2$. A convenient single-number test is the **frame potential**
 #
 # $$ \mathcal F_t(\mathcal E)=\frac{1}{|\mathcal E|^2}\sum_{a,b}\big\lvert\mathrm{Tr}(U_a^\dagger U_b)\big\rvert^{2t}\;\ge\;\mathcal F_t^{\rm Haar}, $$
 #
-# with equality if and only if $\mathcal E$ is a $t$-design (quoted; see [[29]](#ref-29)). Because
+# with equality if and only if $\mathcal E$ is a $t$-design (quoted; see [[30]](#ref-30)). Because
 # $U_a^\dagger U_b$ is itself Haar distributed when $U_a,U_b$ are independent Haar, the Haar value is a single moment,
 # $\mathcal F_t^{\rm Haar}=\mathbb E\lvert\mathrm{Tr}\,U\rvert^{2t}$. In dimension $d$ this moment equals $t!$ as long as
-# $t\le d$ ([[30]](#ref-30): $\mathrm{Tr}\,U$ behaves like a standard complex Gaussian until the finite
+# $t\le d$ ([[31]](#ref-31): $\mathrm{Tr}\,U$ behaves like a standard complex Gaussian until the finite
 # size of the matrix is felt); for $t>d$ it is smaller. For $d=2$ the four values we need are the Catalan numbers
 # $\mathcal F_t^{\rm Haar}=1,2,5,14$ for $t=1,2,3,4$ - equal to $t!$ for $t=1,2$ and below it for $t=3,4$.
 # We compute $\mathcal F_t$ for the Clifford group exactly (a $24\times24$
@@ -837,12 +837,12 @@ for t, exact in zip((1, 2, 3, 4), (1, 2, 5, 14)):
 # %% [markdown]
 # The four Paulis match Haar only for $t=1$ (they form a 1-design: averaging over random Paulis completely depolarises a
 # qubit - the content of the depolarising channel). The Clifford group matches for $t=1,2,3$ and
-# deviates at $t=4$ ($15$ instead of $14$): **the Clifford group is a unitary 3-design, but not a 4-design** [[31]](#ref-31), [[32]](#ref-32).
+# deviates at $t=4$ ($15$ instead of $14$): **the Clifford group is a unitary 3-design, but not a 4-design** [[32]](#ref-32), [[33]](#ref-33).
 # Protocols whose analysis involves only second or third moments - randomised benchmarking, classical shadows - can
 # therefore replace Haar-random unitaries by random Clifford gates, which are easy to implement and to track classically
-# (Ref. [[28]](#ref-28) uses the Clifford 2-design property to estimate the fidelity of a quantum process).
+# (Ref. [[29]](#ref-29) uses the Clifford 2-design property to estimate the fidelity of a quantum process).
 # But Clifford circuits are *not* generic in every respect: they generate no "magic", their output distributions are
-# flat on their support instead of Porter-Thomas (next section), and they can be simulated efficiently [[27]](#ref-27).
+# flat on their support instead of Porter-Thomas (next section), and they can be simulated efficiently [[28]](#ref-28).
 
 # %% [markdown]
 # ## 8. Random circuit sampling with a discrete gate set
@@ -1076,7 +1076,7 @@ plt.show()
 #    number is far from 1 and the normalisation is doing most of the work (Exercise 8).
 #
 # The XEB therefore estimates the fidelity only within a noise model, and classical algorithms are known that produce a
-# large $\mathcal F_{\rm XEB}$ without preparing the state at all [[33]](#ref-33). It remains the standard
+# large $\mathcal F_{\rm XEB}$ without preparing the state at all [[34]](#ref-34). It remains the standard
 # diagnostic of random-circuit-sampling experiments.
 #
 # ### 9.2 Ideal versus uniform samples
@@ -1247,7 +1247,7 @@ print(f"D sum p^2 = {float(2 ** N_big * jnp.sum(jnp.abs(psi_big) ** 4)):.4f}")
 # after 20 layers is about 0.33 bit per layer, the same few-tenths-of-a-bit rate as in Section 6.3 - and at
 # this rate reaching the Page value of 9.28 bits would need some 30 layers: the saturation depth grows proportionally to
 # $N$, while the collision probability is already within a few per cent of its final value. For brick-wall circuits
-# anticoncentration sets in after a depth $O(\log N)$ [[34]](#ref-34), whereas the
+# anticoncentration sets in after a depth $O(\log N)$ [[35]](#ref-35), whereas the
 # entanglement needs a depth $O(N)$ to saturate [[2]](#ref-2).
 
 # %% [markdown]
@@ -1353,38 +1353,41 @@ print(f"D sum p^2 = {float(2 ** N_big * jnp.sum(jnp.abs(psi_big) ** 4)):.4f}")
 #
 # <span id="ref-21">[21]</span> E. J. Gumbel, *Statistics of Extremes* (Columbia University Press, 1958).
 #
-# <span id="ref-22">[22]</span> H. Araki and E. H. Lieb, *Entropy inequalities*, Commun. Math. Phys. **18**, 160 (1970).
+# <span id="ref-22">[22]</span> H. F. Trotter, *On the product of semi-groups of operators*, Proc. Amer. Math. Soc. **10**, 545 (1959) — the product
+# formula behind Trotterised time evolution.
 #
-# <span id="ref-23">[23]</span> S. K. Foong and S. Kanno, *Proof of Page's conjecture on the average entropy of a subsystem*, Phys. Rev. Lett.
+# <span id="ref-23">[23]</span> H. Araki and E. H. Lieb, *Entropy inequalities*, Commun. Math. Phys. **18**, 160 (1970).
+#
+# <span id="ref-24">[24]</span> S. K. Foong and S. Kanno, *Proof of Page's conjecture on the average entropy of a subsystem*, Phys. Rev. Lett.
 #   **72**, 1148 (1994).
 #
-# <span id="ref-24">[24]</span> J. Sánchez-Ruiz, *Simple proof of Page's conjecture on the average entropy of a subsystem*,
+# <span id="ref-25">[25]</span> J. Sánchez-Ruiz, *Simple proof of Page's conjecture on the average entropy of a subsystem*,
 #   Phys. Rev. E **52**, 5653 (1995).
 #
-# <span id="ref-25">[25]</span> S. Popescu, A. J. Short and A. Winter, *Entanglement and the foundations of statistical mechanics*, Nat. Phys. **2**,
+# <span id="ref-26">[26]</span> S. Popescu, A. J. Short and A. Winter, *Entanglement and the foundations of statistical mechanics*, Nat. Phys. **2**,
 #   754 (2006).
 #
-# <span id="ref-26">[26]</span> S. Goldstein, J. L. Lebowitz, R. Tumulka and N. Zanghì, *Canonical typicality*, Phys. Rev. Lett. **96**,
+# <span id="ref-27">[27]</span> S. Goldstein, J. L. Lebowitz, R. Tumulka and N. Zanghì, *Canonical typicality*, Phys. Rev. Lett. **96**,
 #   050403 (2006).
 #
-# <span id="ref-27">[27]</span> D. Gottesman, *The Heisenberg representation of quantum computers*, arXiv:quant-ph/9807006 (1998).
+# <span id="ref-28">[28]</span> D. Gottesman, *The Heisenberg representation of quantum computers*, arXiv:quant-ph/9807006 (1998).
 #
-# <span id="ref-28">[28]</span> C. Dankert, R. Cleve, J. Emerson and E. Livine, *Exact and approximate unitary 2-designs and their application to
+# <span id="ref-29">[29]</span> C. Dankert, R. Cleve, J. Emerson and E. Livine, *Exact and approximate unitary 2-designs and their application to
 #   fidelity estimation*, Phys. Rev. A **80**, 012304 (2009).
 #
-# <span id="ref-29">[29]</span> D. Gross, K. Audenaert and J. Eisert, *Evenly distributed unitaries: on the structure of unitary designs*,
+# <span id="ref-30">[30]</span> D. Gross, K. Audenaert and J. Eisert, *Evenly distributed unitaries: on the structure of unitary designs*,
 #   J. Math. Phys. **48**, 052104 (2007).
 #
-# <span id="ref-30">[30]</span> P. Diaconis and M. Shahshahani, *On the eigenvalues of random matrices*, J. Appl. Probab. **31A**, 49-62 (1994) -
+# <span id="ref-31">[31]</span> P. Diaconis and M. Shahshahani, *On the eigenvalues of random matrices*, J. Appl. Probab. **31A**, 49-62 (1994) -
 #   the moments $\mathbb E\lvert\mathrm{Tr}\,U\rvert^{2t}=t!$ for $t\le d$.
 #
-# <span id="ref-31">[31]</span> Z. Webb, *The Clifford group forms a unitary 3-design*, Quantum Inf. Comput. **16**, 1379 (2016).
+# <span id="ref-32">[32]</span> Z. Webb, *The Clifford group forms a unitary 3-design*, Quantum Inf. Comput. **16**, 1379 (2016).
 #
-# <span id="ref-32">[32]</span> H. Zhu, *Multiqubit Clifford groups are unitary 3-designs*, Phys. Rev. A **96**, 062336 (2017).
+# <span id="ref-33">[33]</span> H. Zhu, *Multiqubit Clifford groups are unitary 3-designs*, Phys. Rev. A **96**, 062336 (2017).
 #
-# <span id="ref-33">[33]</span> X. Gao, M. Kalinowski, C.-N. Chou, M. D. Lukin, B. Barak and S. Choi, *Limitations of linear cross-entropy as a
+# <span id="ref-34">[34]</span> X. Gao, M. Kalinowski, C.-N. Chou, M. D. Lukin, B. Barak and S. Choi, *Limitations of linear cross-entropy as a
 #   measure for quantum advantage*, PRX Quantum **5**, 010334 (2024).
 #
-# <span id="ref-34">[34]</span> A. M. Dalzell, N. Hunter-Jones and F. G. S. L. Brandão, *Random quantum circuits anticoncentrate in log depth*,
+# <span id="ref-35">[35]</span> A. M. Dalzell, N. Hunter-Jones and F. G. S. L. Brandão, *Random quantum circuits anticoncentrate in log depth*,
 #   PRX Quantum **3**, 010333 (2022).
 

@@ -123,7 +123,7 @@ def pauli_direction(n):
 
 
 def qfi_matrix_exact(psi):
-    """EXACT 3x3 quantum Fisher information matrix of a pure state (the reference of notebook 29).
+    """EXACT 3x3 quantum Fisher information matrix of a pure state (the exact reference).
 
     MATH   Fcal[a,b] = 4 ( (1/2)<J_a J_b + J_b J_a> - <J_a><J_b> ),   F_Q(n) = n^T Fcal n.
     """
@@ -237,7 +237,7 @@ def snapshot_values(bases, bits, digits):
 
 # --- CHECKPOINT: Eq. (1) against the engine and against the exact values ----------------
 N_DEMO, M_DEMO = 5, 20_000
-psi_demo = oat_evolve(product_state("+" * N_DEMO), np.pi / 2)          # the one-axis-twisting cat of notebook 34
+psi_demo = oat_evolve(product_state("+" * N_DEMO), np.pi / 2)          # the one-axis-twisting cat state
 t0 = time.time()
 bases_demo, bits_demo = collect_shadows(jax.random.PRNGKey(0), psi_demo, M_DEMO)
 print(f"collected {M_DEMO} snapshots of a {N_DEMO}-qubit state in {time.time() - t0:.1f} s "
@@ -991,7 +991,8 @@ fig.tight_layout(); plt.show()
 # * one-axis-twisting states [[10]](#ref-10) at three twisting angles — squeezed, over-squeezed, and the cat at $\mu=\pi/2$;
 # * the GHZ state [[11]](#ref-11), $F_Q=N^2$;
 # * a Haar-scrambled cat, whose collective quantum Fisher information has collapsed to about $N$ (its average over
-#   Haar unitaries is $Nd/(d+1)$ with $d=2^N$ for a fixed generator, derived in [notebook 35, scrambling a metrological probe](35_oat_plus_haar_scrambling.ipynb), Section 6.1; the
+#   Haar unitaries is $Nd/(d+1)$ with $d=2^N$ for a fixed generator, from the Haar averages
+#   $\mathbb E\langle J_z^2\rangle=\mathrm{Tr}\,J_z^2/d=N/4$ and $\mathbb E\langle J_z\rangle^2=\mathrm{Tr}\,J_z^2/[d(d+1)]$; the
 #   largest eigenvalue over directions, reported below, lies above that average).
 #
 # For each we report the estimate of $\lambda_{\max}(\mathcal{F})$ with its bootstrap error bar, the entanglement
@@ -1010,7 +1011,7 @@ N_SIGMA = 3.0                      # how many standard deviations of safety marg
 
 
 def entanglement_depth(F_value, N):
-    """Largest k+1 excluded by the k-producibility bound F_Q <= floor(N/k) k^2 + (N mod k)^2 (notebook 29)."""
+    """Largest k+1 excluded by the k-producibility bound F_Q <= floor(N/k) k^2 + (N mod k)^2."""
     depth = 1
     for k in range(1, N + 1):
         s, r = divmod(N, k)
@@ -1799,8 +1800,8 @@ for N in (4, 6, 8, 10):
 #    monotonically to $0$ as $p_Z\to1$ (at $N=6$: $1440$ at $p_Z=1/3$, $660$ at $1/2$). (c) Implement the biased
 #    protocol, check (b) numerically, and measure what happens to the error of $\widehat{\mathcal{F}}_{xx}$ as
 #    $p_Z\to1$.
-# 6. ★★ **The scrambled probe, harder (physics).** [Notebook 35, scrambling a metrological probe](35_oat_plus_haar_scrambling.ipynb), Section 8.2, shows that a scrambled collective generator
-#    $UJ_zU^\dagger$ is a sum of Pauli strings of typical weight $\approx3N/4$. For $N=4$, a Haar-random $U$ and the
+# 6. ★★ **The scrambled probe, harder (physics).** A Haar-scrambled collective generator $UJ_zU^\dagger$ spreads its
+#    weight almost uniformly over the non-identity Pauli strings, so its strings have typical weight $\approx3N/4$. For $N=4$, a Haar-random $U$ and the
 #    scrambled cat $U\vert\mathrm{cat}\rangle$, estimate $\langle UJ_zU^\dagger\rangle$ (exact value
 #    $\langle\mathrm{cat}\vert J_z\vert\mathrm{cat}\rangle$) from shadows by decomposing the operator into Pauli
 #    strings and summing the estimates with their coefficients, and measure how the error grows when strings up to

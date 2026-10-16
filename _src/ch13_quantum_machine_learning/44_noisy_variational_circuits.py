@@ -91,7 +91,7 @@
 
 # %%
 # ==============================================================================
-# PLOT STYLE + helpers reused from notebook 41 (training loop, statistics)
+# PLOT STYLE + helpers reused from 'Optimisers for variational circuits' (training loop, statistics)
 # ==============================================================================
 PALETTE = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#4a3aa7"]   # colour-blind-friendly, fixed order
 MARKERS = ["o", "s", "^", "D", "v", "P"]
@@ -117,7 +117,7 @@ def mean_and_se(x):
 
 
 def opt_adam(lr, b1=0.9, b2=0.999, eps=1e-8):
-    """Adam as a pair (init, update) of pure functions -- the optimiser interface of notebook 41."""
+    """Adam as a pair (init, update) of pure functions -- the optimiser interface of 'Optimisers for variational circuits'."""
     def init(theta):
         return (jnp.zeros_like(theta), jnp.zeros_like(theta))
 
@@ -131,7 +131,7 @@ def opt_adam(lr, b1=0.9, b2=0.999, eps=1e-8):
 
 
 def train(theta0, key, grad_rule, opt, monitor, n_steps):
-    """One training run compiled as a single `lax.scan` (notebook 41, Step 8).
+    """One training run compiled as a single `lax.scan`.
 
     grad_rule(theta, key, k) -> gradient estimate;  opt = (init, update);  monitor(theta) -> recorded diagnostic.
     """
@@ -1329,7 +1329,7 @@ def cost_traj(key, theta, M=M_TRAJ):
 
 
 def grad_spsa_traj(c=C_SPSA, gamma=GAMMA_SPSA):
-    """SPSA gradient rule (notebook 41, Eq. 12) evaluated on the trajectory cost -- 2 estimates per iteration."""
+    """SPSA gradient rule evaluated on the trajectory cost -- 2 estimates per iteration."""
     def rule(theta, key, k):
         c_k = c / k ** gamma
         kd, kp, km = jax.random.split(key, 3)
@@ -1630,14 +1630,12 @@ fig.tight_layout(); plt.show()
 #
 # * On a **perfect** device ($p_2=0$) the best energy falls from $-4.376$ at $L=1$ to $-4.4545$ at $L=6$, within
 #   $3\cdot10^{-4}$ of $E_0$, but not monotonically: $L=3$ ($-4.4391$) ends above $L=2$ ($-4.4406$). That inversion
-#   belongs to the training budget of 150 constant-step Adam iterations from eight starts (BFGS run to convergence from
-#   the same starts reaches $E_0$ to four digits at every $L\ge3$); every entry of the table is the best energy found
-#   within that budget.
+#   reflects the training budget of 150 constant-step Adam iterations from eight starts: every entry of the table is the
+#   best energy found within that budget, not the minimum of the ansatz.
 # * At $p_2=5\cdot10^{-4}$ (two-qubit error per gate $r_2=\tfrac45[1-(1-p_2)^2]=8.0\cdot10^{-4}$, Section 3.2) this
-#   budget puts the optimum at $L=2$ ($-4.4191$, against $-4.4114$ at $L=3$), but the optimum depends on the optimiser:
-#   BFGS from the same eight starts, run until the gradient is below $10^{-8}$, reaches $-4.4275$ at $L=2$ and
-#   $-4.4282$ at $L=3$, i.e. $L^\star=3$ by a margin of $7\cdot10^{-4}$. At this error rate the study fixes $L^\star$
-#   only to $2$–$3$.
+#   budget puts the optimum at $L=2$ ($-4.4191$, against $-4.4114$ at $L=3$). The noiseless column shows that the same
+#   budget does not converge every depth (the inversion at $L=3$), so this ranking may belong to the optimiser rather than
+#   to the noise: at this error rate the study fixes $L^\star$ only to $2$–$3$.
 # * At $p_2=2\cdot10^{-3}$ the optimum is $L=2$ by a wider margin; at $p_2=8\cdot10^{-3}$ and $p_2=2\cdot10^{-2}$
 #   it has dropped to $L=1$, the shallowest circuit in the study.
 #
@@ -1912,8 +1910,8 @@ fig.tight_layout(); plt.show()
 #   few $10^{-2}$; at $0.01$ it is smaller than the run-to-run differences of the optimisation.
 # * **There is an optimal depth and it shrinks with the error rate.** Measured with a fixed training budget:
 #   $L^\star=6$ (the largest tried) at $p_2=0$, $L^\star=2$ at $p_2=5\cdot10^{-4}$ and $2\cdot10^{-3}$, $L^\star=1$
-#   at $8\cdot10^{-3}$ and $2\cdot10^{-2}$. At $5\cdot10^{-4}$ the answer depends on the optimiser: converged BFGS from
-#   the same starts gives $L^\star=3$, by $7\cdot10^{-4}$, and leaves $L^\star$ unchanged from $2\cdot10^{-3}$ upwards.
+#   at $8\cdot10^{-3}$ and $2\cdot10^{-2}$. At $5\cdot10^{-4}$ the fixed budget leaves the choice between $L=2$ and
+#   $L=3$ open, since it does not converge every depth even without noise.
 # * **Zero-noise extrapolation removes bias order by order and costs variance.** Richardson extrapolation from three
 #   noise levels reduced the error at $p_2=2.5\cdot10^{-3}$ from $7.7\cdot10^{-2}$ to $2.2\cdot10^{-5}$, with residuals
 #   scaling as $p_2^m$ for $m=1,2,3$, at $57$ times the shots of an unmitigated estimate of equal statistical error; at

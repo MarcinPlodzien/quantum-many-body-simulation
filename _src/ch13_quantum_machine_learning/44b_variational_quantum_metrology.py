@@ -117,7 +117,7 @@ def max_abs(a):
 
 
 def wilson_interval(k, n, z=1.96):
-    """95% Wilson score interval for a success probability estimated as k successes out of n runs (notebook 41).
+    """95% Wilson score interval for a success probability estimated as k successes out of n runs.
 
     MATH   centre = (p + z^2/2n) / (1 + z^2/n),  half-width = z sqrt(p(1-p)/n + z^2/4n^2) / (1 + z^2/n),  p = k/n.
     """
@@ -129,7 +129,7 @@ def wilson_interval(k, n, z=1.96):
 
 
 def compile_timed(fn, *args):
-    """Compile `jax.jit(fn)` ahead of time for these argument shapes (notebook 44).
+    """Compile `jax.jit(fn)` ahead of time for these argument shapes.
 
     JAX   `jit(fn).lower(*args).compile()` traces and compiles WITHOUT executing; calling the returned object is then
           pure run time.  Returns (compiled function, compile seconds).
@@ -313,7 +313,7 @@ def channel_on_all(rho, kraus):
 
 
 def f_ghz_dephasing(N, p):
-    """Eq. (5a): F_Q of a GHZ state after local dephasing, N^2 (1-2p)^(2N)  (notebook 32, Eq. 16)."""
+    """Eq. (5a): F_Q of a GHZ state after local dephasing, N^2 (1-2p)^(2N)."""
     return N ** 2 * (1 - 2 * p) ** (2 * N)
 
 
@@ -449,7 +449,7 @@ def qfi_and_sld(rho_mat, m, tol=1e-12):
     """QFI of rho for the unitary family exp(-i theta G) rho exp(i theta G), G = diag(m), and its SLD L.
 
     MATH   rho = sum_k lam_k |k><k|,   (d rho)_{kl} = <k| -i[G, rho] |l> = -i G_kl (lam_l - lam_k)
-           L_kl = 2 (d rho)_kl / (lam_k + lam_l)            for lam_k + lam_l > tol, else 0          (notebook 30)
+           L_kl = 2 (d rho)_kl / (lam_k + lam_l)            for lam_k + lam_l > tol, else 0
            F_Q  = 2 sum_kl |(d rho)_kl|^2 / (lam_k + lam_l)                                          (Eq. 9)
     IMPLEMENTATION  one `eigh`; the division is guarded by a double `jnp.where` (no inf/NaN).
     COST   O(d^3), d = 2^N.   Returns (F_Q, L) with L in the computational basis.
@@ -582,7 +582,7 @@ assert abs(fast - brute) < 1e3 * TOL
 
 # (c) gradients: Eq. (12) against central finite differences of the value and against jax.grad of a Lyapunov solve
 def qfi_lyapunov(rho_mat, m):
-    """F_Q from the vectorised Lyapunov equation (notebook 30, Exercise 8): differentiable when rho has full rank.
+    """F_Q from the vectorised Lyapunov equation: differentiable when rho has full rank.
 
     MATH   (1/2)(rho x 1 + 1 x rho^T) vec(L) = vec(d rho)   (row-major vec),   F_Q = Tr(d rho L)
     COST   a 4^N x 4^N linear solve: O(64^N), affordable only for validation at small N.
@@ -713,7 +713,7 @@ print(f"condition number of the Lyapunov matrix: pure probe {float(jnp.linalg.co
 def ascend(cost, theta0, lr, n_steps, decay=0.1):
     """Maximise cost(theta) with the engine's Adam (`adam_update` minimises, so it is fed -grad).
 
-    MATH   theta_{k+1} = theta_k + lr_k * mhat_k / (sqrt(vhat_k) + eps)     (Adam on -F; notebook 41, Section 6)
+    MATH   theta_{k+1} = theta_k + lr_k * mhat_k / (sqrt(vhat_k) + eps)     (Adam on -F)
            lr_k = lr * decay^(k / n_steps): the step shrinks geometrically from lr to decay * lr   (Section 5.2)
     JAX    the loop is a `lax.scan` (compiled once, whatever n_steps); vmap this function over theta0 to run many
            random starts in one program.  Returns (final angles, history): the history holds the cost before each step
@@ -889,7 +889,7 @@ def oat_probe(params, N):
     """One-axis-twisted probe:  e^{-i b J_y} e^{-i a J_x} e^{-i mu J_z^2} |+x>^N,   params = (mu, a, b).
 
     MATH   e^{-i a J_x} = prod_q R_x(a) because J_x = (1/2) sum_q X_q and the terms commute (same for J_y);
-           the twisting is the engine's exact diagonal `oat_evolve` (notebook 33).
+           the twisting is the engine's exact diagonal `oat_evolve`.
     """
     mu, a, b = params
     psi = oat_evolve(product_state("+" * N), mu)

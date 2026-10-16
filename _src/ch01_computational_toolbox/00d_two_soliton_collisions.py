@@ -202,10 +202,10 @@ print("extra imports OK")
 
 # %%
 # ==============================================================================
-# STEP 1: everything inherited from notebook 00c  (grid, exact soliton, energetics)
+# STEP 1: everything inherited from 'Bright solitons'  (grid, exact soliton, energetics)
 # ==============================================================================
 def make_grid(L, N_x):
-    """Centred periodic grid on [-L/2, L/2) and the matching FFT wave numbers -- derived in notebook 00c.
+    """Centred periodic grid on [-L/2, L/2) and the matching FFT wave numbers -- derived in 'Bright solitons'.
 
     MATH
         x_j = (j - N_x/2) dx,  j = 0..N_x-1,  dx = L / N_x
@@ -218,7 +218,7 @@ def make_grid(L, N_x):
 
 
 def soliton_exact(x, t=0.0, g=2.0, x_c=0.0, k_0=0.0, n=1.0):
-    """Bright soliton of norm n, boosted to velocity k_0 -- derived in notebook 00c (Eqs. (25), (26) there).
+    """Bright soliton of norm n, boosted to velocity k_0 -- derived in 'Bright solitons'.
 
     MATH
         kappa = n g / 2,   mu = -kappa^2 / 2,   amplitude = kappa / sqrt(g)
@@ -234,22 +234,22 @@ def soliton_exact(x, t=0.0, g=2.0, x_c=0.0, k_0=0.0, n=1.0):
 
 
 def d_dx(psi, k):
-    """Spectral first derivative -- derived in notebook 00a:  psi' = IFFT[ i k FFT[psi] ]."""
+    """Spectral first derivative -- derived in 'A free Gaussian wave packet on a ring':  psi' = IFFT[ i k FFT[psi] ]."""
     return np.fft.ifft(1j * k * np.fft.fft(psi))
 
 
 def d2_dx2(psi, k):
-    """Spectral second derivative -- derived in notebook 00a:  psi'' = IFFT[ -k^2 FFT[psi] ]."""
+    """Spectral second derivative -- derived in 'A free Gaussian wave packet on a ring':  psi'' = IFFT[ -k^2 FFT[psi] ]."""
     return np.fft.ifft(-(k ** 2) * np.fft.fft(psi))
 
 
 def gp_hamiltonian(psi, k, g, V=0.0):
-    """Apply the Gross-Pitaevskii operator -- derived in notebook 00c:  -(1/2) psi'' - g|psi|^2 psi + V psi."""
+    """Apply the Gross-Pitaevskii operator -- derived in 'Bright solitons':  -(1/2) psi'' - g|psi|^2 psi + V psi."""
     return -0.5 * d2_dx2(psi, k) - g * np.abs(psi) ** 2 * psi + V * psi
 
 
 def gp_energy(psi, k, dx, g, V=0.0, parts=False):
-    """Energy of the field -- derived in notebook 00c.
+    """Energy of the field -- derived in 'Bright solitons'.
 
     MATH
         E = dx sum_j [ (1/2)|psi'_j|^2 - (g/2)|psi_j|^4 + V_j |psi_j|^2 ]
@@ -263,24 +263,24 @@ def gp_energy(psi, k, dx, g, V=0.0, parts=False):
 
 
 def gp_chemical_potential(psi, k, dx, g, V=0.0):
-    """mu = <psi| H_GP[psi] |psi> for a normalised psi -- derived in notebook 00c."""
+    """mu = <psi| H_GP[psi] |psi> for a normalised psi -- derived in 'Bright solitons'."""
     return float(dx * np.sum(np.conj(psi) * gp_hamiltonian(psi, k, g, V)).real)
 
 
 def grid_norm(psi, dx):
-    """Norm squared:  dx sum_j |psi_j|^2  -- notebook 00a."""
+    """Norm squared:  dx sum_j |psi_j|^2  -- derived in 'A free Gaussian wave packet on a ring'."""
     return float(dx * np.sum(np.abs(psi) ** 2))
 
 
 def mean_position(psi, x, dx, L):
-    """Circular mean of |psi|^2 -- notebook 00c.  Meaningful only for a state confined to much less than L."""
+    """Circular mean of |psi|^2 -- derived in 'Bright solitons'.  Meaningful only for a state confined to much less than L."""
     w = np.abs(psi) ** 2 * dx
     z = np.sum(w * np.exp(2j * np.pi * x / L))
     return float(np.angle(z)) * L / (2.0 * np.pi)
 
 
 def mean_momentum(psi, k):
-    """Momentum PER PARTICLE, evaluated in Fourier space -- notebook 00c.
+    """Momentum PER PARTICLE, evaluated in Fourier space -- derived in 'Bright solitons'.
 
     MATH
         <p>/N = sum_n k_n |psi_hat_n|^2 / sum_n |psi_hat_n|^2
@@ -293,7 +293,7 @@ def mean_momentum(psi, k):
 
 
 def _split_step_body(k, g, V, dt):
-    """One Strang step in real time -- derived in notebook 00c. Each factor has modulus one."""
+    """One Strang step in real time -- derived in 'Bright solitons'. Each factor has modulus one."""
     exp_kin = jnp.exp(-0.25j * k ** 2 * dt)             # exp(-i (k^2/2)(dt/2))
 
     def step(psi, _):
@@ -305,7 +305,7 @@ def _split_step_body(k, g, V, dt):
 
 @partial(jax.jit, static_argnames=("n_steps",))
 def split_step_evolve(psi, k, g, V, dt, n_steps):
-    """Propagate by n_steps * dt with the unitary Strang split-step Fourier method -- notebook 00c.
+    """Propagate by n_steps * dt with the unitary Strang split-step Fourier method -- derived in 'Bright solitons'.
 
     COST
         2 FFTs per step, O(N_x log N_x); no stability limit, the step is chosen by accuracy alone.
@@ -315,7 +315,7 @@ def split_step_evolve(psi, k, g, V, dt, n_steps):
 
 @partial(jax.jit, static_argnames=("n_inner", "n_frames"))
 def split_step_frames(psi, k, g, V, dt, n_inner, n_frames):
-    """Same propagation, returning a snapshot every n_inner steps: shape (n_frames+1, N_x) -- notebook 00c."""
+    """Same propagation, returning a snapshot every n_inner steps: shape (n_frames+1, N_x) -- derived in 'Bright solitons'."""
     step = _split_step_body(k, g, V, dt)
 
     def outer(psi, _):
@@ -326,7 +326,7 @@ def split_step_frames(psi, k, g, V, dt, n_inner, n_frames):
     return jnp.concatenate([psi[None, :], frames], axis=0)
 
 
-print("STEP 1: inherited from 00c -->", ", ".join(
+print("STEP 1: inherited from 'Bright solitons' -->", ", ".join(
     ["make_grid", "soliton_exact", "gp_energy", "gp_chemical_potential", "mean_position", "mean_momentum",
      "split_step_evolve", "split_step_frames"]))
 
@@ -344,13 +344,13 @@ print("STEP 1: inherited from 00c -->", ", ".join(
 # ==============================================================================
 # PARAMETERS of the main experiment  (change them and re-run the whole notebook)
 # ==============================================================================
-G      = 2.0        # dimensionless coupling, attractive           (00c, Section 3.3)
+G      = 2.0        # dimensionless coupling, attractive           (as in 'Bright solitons')
 L      = 120.0      # circumference of the ring                    [x_0]
 N_X    = 1024       # number of grid points                        [-]
 N_1    = 0.5        # norm fraction of the left soliton            [-]
 N_2    = 0.5        # norm fraction of the right soliton           [-]
 X0     = 20.0       # each soliton starts at -X0 / +X0             [x_0]
-M_MAIN = 8          # main collision: k = 2 pi M_MAIN / L          (commensurate with the ring, rule 1 of 00a)
+M_MAIN = 8          # main collision: k = 2 pi M_MAIN / L          (commensurate with the ring)
 DT     = 0.005      # real-time step for the showcase runs         [t_0]
 
 x, k, dx = make_grid(L, N_X)
@@ -381,7 +381,7 @@ def two_solitons(x, x_0, g=2.0, n_1=0.5, n_2=0.5, k_1=0.0, k_2=0.0, d_phi=0.0):
         psi(x,0) = phi_{n1}(x + x_0) exp(i k_1 x) + exp(i d_phi) phi_{n2}(x - x_0) exp(i k_2 x)
     IMPLEMENTATION
         Each term is soliton_exact at t = 0, so the profile, the amplitude and the boost phase all come
-        from the single formula validated in notebook 00c.
+        from the single formula validated in 'Bright solitons'.
     ACCURACY
         NOT an exact solution of Eq. (1): the residual is O(exp(-kappa_min * 2 x_0)), Eqs. (5)-(6).
     """
@@ -1861,9 +1861,9 @@ for n_pts in (128, 192, 256, 384, 512, 1024):
     dg, _, _ = asymptote_shift(t_g, cg)
     print(f"{n_pts:6d} {dxg:8.4f} {np.pi / dxg:8.3f} {need:14.3f} {dg:13.7f} {dg - d_ref:+11.2e}")
 
-dt_rk4 = 2.0 * np.sqrt(2.0) / ((np.pi / dx) ** 2 / 2.0)     # 00c, Eq. (43): the RK4 limit on this grid
+dt_rk4 = 2.0 * np.sqrt(2.0) / ((np.pi / dx) ** 2 / 2.0)     # the RK4 stability limit on this grid, derived in 'Bright solitons'
 print(f"\n(b) time step at fixed N_x = {N_X}  "
-      f"(an explicit RK4 integrator would be limited to dt = {dt_rk4:.5f} here, 00c Eq. (43))")
+      f"(an explicit RK4 integrator would be limited to dt = {dt_rk4:.5f} here)")
 print(f"{'dt':>9s} {'dt/dt_RK4':>10s} {'dx measured':>13s} {'error':>11s} {'max|E(t)-E(0)|':>16s} {'ratio':>8s}")
 prev_e = None
 for nin_t in (5, 10, 20, 40):
@@ -2019,7 +2019,7 @@ print(f"   the 10-velocity vmapped sweep, already compiled: {t_sweep:.3f} s for 
 
 # %%
 # ==============================================================================
-# STEP 5: "stack of curves -> embedded animated GIF"  (copied from notebook 00a, Section 10)
+# STEP 5: "stack of curves -> embedded animated GIF"  (the same routine as in 'A free Gaussian wave packet on a ring')
 # ==============================================================================
 def make_density_gif(x, densities, times, overlay=None, mean_x=None, envelope=None, band=None,
                      title="", xlabel=r"$x$  [$x_0$]", ylabel=r"$|\psi(x,t)|^2$", time_label=r"t",

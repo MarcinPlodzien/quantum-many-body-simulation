@@ -26,7 +26,7 @@
 #
 # ### 1.2 The Born rule as a model
 #
-# Quantum mechanics has a ready-made answer. A state of $N$ qubits is a vector of $2^N$ amplitudes $\psi(\mathbf v)$,
+# The Born rule of quantum mechanics gives one way to build such a model. A state of $N$ qubits is a vector of $2^N$ amplitudes $\psi(\mathbf v)$,
 # one per basis state $\vert v_0v_1\cdots v_{N-1}\rangle$, and a measurement of all qubits in the computational basis
 # returns the string $\mathbf v$ with the probability $\vert\psi(\mathbf v)\vert^2$ (the Born rule [[2]](#ref-2)). Any
 # wave function therefore defines a probability distribution over bit strings, positive by construction. A *Born
@@ -197,7 +197,8 @@ section_timer("3 model")
 # bond, is used to make $Z$ even cheaper. A tensor is
 # *right-canonical* if $\sum_sA^{[j]s}(A^{[j]s})^{\rm T}=\mathbb 1$, *left-canonical* if
 # $\sum_s(A^{[j]s})^{\rm T}A^{[j]s}=\mathbb 1$ (here for real tensors). If every tensor
-# right of site $c$ is right-canonical, the transfer matrices summed from the right end are all identities, and if every
+# right of site $c$ is right-canonical, the transfer matrices summed from the right end,
+# $\bar E^{[j]}=\sum_sA^{[j]s}\bar E^{[j+1]}(A^{[j]s})^{\rm T}$ with $\bar E^{[N]}=1$, are all identities, and if every
 # tensor left of $c$ is left-canonical, so are those from the left end. In this *mixed-canonical form* with the
 # *centre* $c$ ([[1]](#ref-1), Appendix A, Eq. (A2)), only the centre tensor remains:
 #
@@ -359,7 +360,7 @@ section_timer("4 learning")
 #
 # The second term is the Kullback–Leibler divergence [[3]](#ref-3) of the model from the empirical distribution. It is
 # non-negative and zero only for $P=\hat p$, so minimising $\mathcal L$ minimises $D_{\rm KL}$, as stated in
-# [[1]](#ref-1), Sec. II B. The first term, the Shannon entropy of the data, is the lower bound of $\mathcal L$. If all
+# [[1]](#ref-1), Sec. II B. The first term, the Shannon entropy (introduced in [[4]](#ref-4)) of the data, is the lower bound of $\mathcal L$. If all
 # $N_{\rm T}$ examples are different, $H(\hat p)=\ln N_{\rm T}$, and a model that reaches it has memorised the training
 # set: it gives probability $1/N_{\rm T}$ to every example and zero to everything else, including every image not in
 # the training set. Generalisation is measured instead by the NLL of a separate *test set*.
@@ -433,7 +434,7 @@ section_timer("4 learning")
 # is the new centre on site $j+1$; moving left, $A^{[j+1]}=V^{\rm T}$ is right-canonical and $U\mathrm{diag}(\lambda)$
 # is the new centre on site $j$. Either way the state stays in mixed-canonical form, and the new centre is divided by
 # its norm so that $Z=1$. Keeping the largest singular values is the best approximation of $B$ of that rank in the
-# Frobenius norm (the Eckart–Young theorem [[4]](#ref-4)), and the squared relative error is the discarded weight
+# Frobenius norm (the Eckart–Young theorem [[5]](#ref-5)), and the squared relative error is the discarded weight
 # $\varepsilon=\sum_{\rm dropped}\lambda_k^2/\sum_k\lambda_k^2$.
 #
 # A *loop* of [[1]](#ref-1) is a sweep from one end of the chain to the other and back. [[1]](#ref-1) starts from the
@@ -733,9 +734,9 @@ section_timer("5 sampling")
 # $$P(v_0,\dots,v_{N-1})=P(v_0)\,P(v_1\vert v_0)\,P(v_2\vert v_0v_1)\cdots P(v_{N-1}\vert v_0\cdots v_{N-2}), \tag{11}$$
 #
 # a string is drawn by drawing $v_0$ from its marginal, then $v_1$ from its distribution conditioned on $v_0$, and so on.
-# Each draw needs a marginal of the first $k+1$ bits, a sum over the $2^{N-k-1}$ values of the others. The
-# right-canonical form makes this sum trivial: summing $\psi^2$ over the bits right of site $k$ produces the transfer
-# matrices of Eq. (3) from the right end, which are identities for right-canonical tensors. With the centre on site 0
+# The factor $P(v_k\vert v_0\cdots v_{k-1})$ needs the marginal of the first $k+1$ bits, a sum over the $2^{N-k-1}$
+# values of the others. The right-canonical form makes this sum trivial: summing $\psi^2$ over the bits right of site
+# $k$ produces the transfer matrices $\bar E$ of Section 3.4, which are identities for right-canonical tensors. With the centre on site 0
 # and $Z=1$,
 #
 # $$P(v_0,\dots,v_k)=\big\Vert x^{(k)}\big\Vert^2,\qquad x^{(k)}=A^{[0]v_0}A^{[1]v_1}\cdots A^{[k]v_k}, \tag{12}$$
@@ -748,7 +749,8 @@ section_timer("5 sampling")
 # sample is independent of the others: there is no Markov chain, no equilibration and no autocorrelation. This is
 # [[1]](#ref-1), Sec. II C, Eqs. (6)–(9), there written from the right end with left-canonical tensors. Measuring the
 # sites of an MPS one after the other with these probabilities, within one half-sweep, was introduced in
-# [[5]](#ref-5); its extension to other tensor networks is described in [[6]](#ref-6). For a state vector the same
+# [[6]](#ref-6), after a similar site-by-site sampling of two-dimensional classical lattice models in [[7]](#ref-7);
+# its extension to other tensor networks is described in [[8]](#ref-8). For a state vector the same
 # procedure costs $O(2^N)$ per sample.
 #
 # ### 5.2 Conditional sampling with fixed bits
@@ -783,7 +785,7 @@ section_timer("5 sampling")
 # * the likelihood-ratio statistic
 #   $G=2\sum_{\mathbf v}m(\mathbf v)\ln\frac{m(\mathbf v)}{M_{\rm s}P(\mathbf v)}=2M_{\rm s}D_{\rm KL}(m/M_{\rm s}\Vert P)$
 #   is, for a correct sampler and many samples per outcome, distributed approximately as the chi-squared distribution
-#   with (number of outcomes $-1$) degrees of freedom [[7]](#ref-7), whose mean is that number. This is the test used in
+#   with (number of outcomes $-1$) degrees of freedom [[9]](#ref-9), whose mean is that number. This is the test used in
 #   [[1]](#ref-1), Sec. III A. The law is asymptotic: it needs a large expected count $M_{\rm s}P(\mathbf v)$ in every
 #   outcome. Outcomes with fewer than 5 expected counts are therefore merged into one bin before the test, and the
 #   cell prints how many were merged. The TV test with its exact multinomial reference has no such condition and is
@@ -1090,8 +1092,8 @@ assert abs(nll_bs_full - BS_RUNS[0][1][-1]["train"]) < 1e3 * TOL
 # data exactly. This is the intended result here, because the 30 images are the whole distribution.
 #
 # Not every run reaches the minimal bond dimensions (the runs marked "False" above). The NLL fixes only
-# $\psi(\mathbf v)^2$, so every sign pattern $\sigma(\mathbf v)$ is a perfect model, and the signs are inherited from
-# the random initial state. The sign is a redundancy of the model that does not affect any probability, but it does
+# $\psi(\mathbf v)^2$, so every sign pattern $\sigma(\mathbf v)$ is a perfect model, and the pattern a run ends with
+# depends on its random initial state. The sign is a redundancy of the model that does not affect any probability, but it does
 # affect the Schmidt ranks. For bars and stripes the effect can be worked out exactly with the blocks of Section 6.1.
 # The bar images other than all white and all black are isolated blocks at the bonds that separate image rows, so their
 # signs never matter there. The 16 stripe images form one block, whose signs $\sigma(r_0,r_1,r_2,r_3)$ are a
@@ -1193,7 +1195,7 @@ section_timer("7 MNIST")
 #
 # ### 7.1 Binarised MNIST at $14\times14$ pixels
 #
-# [[1]](#ref-1), Sec. III C, trains on MNIST digits [[8]](#ref-8) turned into binary images by a threshold and put on the
+# [[1]](#ref-1), Sec. III C, trains on MNIST digits [[10]](#ref-10) turned into binary images by a threshold and put on the
 # chain row by row; its capacity experiments use $28\times28$ images, its generalisation study (Fig. 7) $14\times14$
 # images. We use the $14\times14$ MNIST file stored with this course (pixel values $0\dots255$ averaged over $2\times2$
 # blocks), and set a pixel to 1 if its value is at least 128 and to 0 otherwise. [[1]](#ref-1) does not state its
@@ -1215,7 +1217,25 @@ section_timer("7 MNIST")
 # ==============================================================================
 # STEP 8: binarised 14 x 14 MNIST and the independent-pixel baseline
 # ==============================================================================
-MNIST = np.load("../data/mnist_14x14.npz")
+import hashlib, pathlib, urllib.request
+
+def data_file(name, sha256):
+    """data/<name>: the repository copy, or (where it is missing, e.g. on Colab) a download from the public repository."""
+    path = pathlib.Path("../data") / name
+    if path.exists():
+        return path
+    path = pathlib.Path("data") / name
+    if not path.exists():
+        url = "https://raw.githubusercontent.com/MarcinPlodzien/quantum-many-body-simulation/main/data/" + name
+        print(f"downloading {url}")
+        path.parent.mkdir(exist_ok=True)
+        urllib.request.urlretrieve(url, path.with_suffix(".part"))
+        path.with_suffix(".part").rename(path)
+    if hashlib.sha256(path.read_bytes()).hexdigest() != sha256:
+        raise RuntimeError(f"{path} differs from data/{name} of the repository: delete it and run the cell again")
+    return path
+
+MNIST = np.load(data_file("mnist_14x14.npz", "7a11bf18ef6d01757487ed3c01c3bed75173a710a454e49e7d879b712f0bd012"))
 print(str(MNIST["info"]))
 SIDE, N_PIX, THRESHOLD = 14, 196, 128
 X_ALL = (MNIST["x_train"].reshape(-1, N_PIX) >= THRESHOLD).astype(np.int32)
@@ -1364,14 +1384,18 @@ fig.tight_layout()
 plt.show()
 
 # %% [markdown]
-# **Interpretation.** A larger $\chi_{\max}$ lowers the training NLL at every loop: the bond dimension is the capacity
-# of the model, as in [[1]](#ref-1), Fig. 3. The test NLL improves with $\chi_{\max}$ only up to a point. At
+# **Interpretation.** From the second loop on, a larger $\chi_{\max}$ lowers the training NLL, to $38.15$, $32.64$,
+# $27.87$ and $25.32$ after five loops; after the first loop the $\chi_{\max}=32$ model still lies above the
+# $\chi_{\max}=16$ one ($40.56$ against $39.30$). The bond dimension is the capacity of the model, as in
+# [[1]](#ref-1), Fig. 3. The test NLL improves with $\chi_{\max}$ only up to a point. At
 # $\chi_{\max}=4$ the model underfits: the training NLL is high and the test NLL only about 4 nats above it. At
 # $\chi_{\max}=8$, 16 and 32 the gap grows to 7, 12 and 16 nats. At 32 the test NLL passes through a minimum after
 # the third loop and rises again, by more than its uncertainty (Section 7.2): the model overfits. At 16 it is flat over
 # the last three loops, within 0.1 nats. The test NLL after five loops at $\chi_{\max}=16$, $39.60$, is lower than at
-# $\chi_{\max}=8$ by about $0.4$ nats, comparable to the standard error of either mean, about $0.3$: between 8 and 16
-# the bond dimension hardly matters for the test set at this training-set size.
+# $\chi_{\max}=8$ by $0.39$ nats. Both values come from the same test images, so the error of this difference is that
+# of the per-image differences (Section 7.2), which the cell does not print; the standard error of either mean, about
+# $0.3$, is not the right measure for it. The improvement from $\chi_{\max}=8$ to $16$ is small at this training-set size, and
+# $\chi_{\max}=32$ makes the test NLL worse ($41.07$).
 #
 # With three times as many training images at the same $\chi_{\max}=16$, the training NLL is higher (the model has
 # more images to fit with the same capacity), the test NLL, $35.74\pm0.26$ after five loops, is lower than any value
@@ -1483,12 +1507,12 @@ plt.show()
 # %% [markdown]
 # The samples have blank margins, strokes of the right thickness and about the right number of black pixels. Some are
 # recognisable digits, many are fragments of strokes, as in [[1]](#ref-1), Fig. 5. The connection between rows is weak:
-# a stroke in one row often does not continue in the next, because every correlation between two rows has to pass
-# through all bonds of the row between them.
+# a stroke in one row often does not continue in the next. A likely reason is that a vertical correlation must be
+# carried through the 14 bonds of a row, each of dimension at most 32, but we did not test this.
 #
 # The numbers resolve how "overfitting" and "memorising" relate. The entropy of the model, $31.8$ nats, lies between
-# the training NLL, $25.3$, and the test NLL, $41.1$: on average the model gives a training image $e^{15.8}$ times the
-# probability of a test image, which is the overfitting of Section 7.3. Yet the whole training set together receives a
+# the training NLL, $25.3$, and the test NLL, $41.1$: the geometric mean of $P$ over the training images is $e^{15.8}$
+# times that over the test images, which is the overfitting of Section 7.3. Yet the whole training set together receives a
 # probability of only $2\times10^{-5}$, none of the 5000 samples is a training image, and the samples are even farther
 # from the nearest training image (median Hamming distance 16) than real test digits are (median 10). The model
 # favours its training images but is very far from having memorised them; a memorising model would give the training
@@ -1550,13 +1574,15 @@ plt.show()
 # The known pixels are never changed, and the sampled pixels continue the strokes into the missing region with
 # plausible, though not always correct, shapes. The pixel error is a harsh measure for a single sample: a stroke drawn
 # one pixel off counts twice, while the all-white guess makes no error on the background and pays only the ink
-# coverage. The MPS beats the independent-pixel baseline for every mask and both image groups. It beats the all-white
+# coverage. The MPS has a lower error than the independent-pixel baseline for every mask and both image groups, clearly
+# so for missing columns; for missing rows the difference is within $1.5$ standard errors of the MPS error, except on
+# the top rows of the training images. It beats the all-white
 # guess only for missing columns of training images; for test images and for missing rows its single samples have more
 # wrong pixels than the white guess. Relative to the ink coverage, missing columns are filled better than missing rows,
 # as [[1]](#ref-1), Fig. 6, observed and explained by the row-by-row order: a missing column leaves the known part of
 # every row next to the missing part in the chain, whereas a missing block of rows must be generated from correlations
 # that span whole rows. For three of the four masks the training images are reconstructed better than the test images,
-# by 1.4 to 2.7 combined standard errors, a further trace of the overfitting of Section 7.3; for the bottom rows there
+# by roughly one and a half to three combined standard errors (from the printed means and errors), a further trace of the overfitting of Section 7.3; for the bottom rows there
 # is no difference.
 
 # %%
@@ -1566,7 +1592,7 @@ section_timer("8 autodiff")
 # ## 8. Training by automatic differentiation
 #
 # The NLL (5) can also be minimised by differentiating the whole contraction with `jax.grad` and Adam
-# [[9]](#ref-9): $\ln Z$ from the transfer matrices (3), $\ln\vert\psi\vert$ from
+# [[11]](#ref-11): $\ln Z$ from the transfer matrices (3), $\ln\vert\psi\vert$ from
 # `log_psi`, both differentiable, all tensors updated at once, mini-batches of 100 images, a fixed bond dimension
 # $\chi=16$ in the bulk and no SVD. The initial state is the same kind of random right-canonical MPS, now with all inner
 # bonds of dimension 16, because nothing would make the bond dimensions grow. We compare with the sweep at
@@ -1639,10 +1665,11 @@ plt.show()
 # %% [markdown]
 # The sweeps win clearly per pass: after one loop they have a lower training and test NLL than Adam after four epochs,
 # and in steady state a sweep loop takes two to four times as long as an Adam epoch in our runs (timings vary on a
-# shared CPU), so at equal time the sweep is still ahead. Two differences explain the gap. Each bond update of the sweep chooses its step by the exact line search
+# shared CPU), so at equal time the sweep is still ahead. Two differences may explain the gap, although we did not test them
+# separately. Each bond update of the sweep chooses its step by the exact line search
 # of Section 4.4 on all training images, while Adam takes many small steps with one learning rate ($10^{-2}$, untuned).
-# And the sweep starts from bond dimension 2 and lets the SVD split add directions where the data need them, while the
-# gradient method has to shape all directions of a full $\chi=16$ state from a random start. The gradient method has
+# And the sweep starts from bond dimension 2 and lets the SVD split add directions where singular values exceed the
+# cutoff, while the gradient method trains all parameters of a full $\chi=16$ state from a random start. The gradient method has
 # its own advantages: no SVD, any cost function, and a code that is the same for any network that `jax.grad` can
 # differentiate.
 
@@ -1657,7 +1684,8 @@ section_timer("9 entanglement")
 # Eq. (15). Its entanglement entropy across a bond, $S=-\sum_k\lambda_k^2\ln\lambda_k^2$ in nats, is computed by
 # `data_state_profile` of Section 6.1, together with the number of blocks. For the trained MPS, which after a loop is
 # right-canonical with the centre on site 0, one sweep of SVDs from the left gives the Schmidt values of every bond:
-# the singular values of the centre at each bond. The cell checks this profile against the
+# at site $j$ the singular values of the centre, written as a matrix with the rows $(a,s)$ and the columns $b$, are the
+# Schmidt values of bond $j+1$, the cut to its right. The cell checks this profile against the
 # dense state of the learned bars-and-stripes MPS, then compares the learned states with their data states and with
 # the bound $\ln\chi_{\max}$.
 
@@ -1751,7 +1779,8 @@ plt.show()
 # For MNIST the data state of 1000 images has an entropy close to $\ln1000\approx6.9$ nats, at least $6.4$ nats,
 # only at the bonds inside image rows 5 to 9 (bonds 73 to 129); it is lower towards the top and bottom of the image,
 # where most pixels are white, for example $2.22$ at bond 42 and $1.17$ at bond 168. In the middle the halves of
-# different images are almost all different, so each image contributes its own Schmidt value.
+# different images are almost all different (912 blocks at bond 98, printed above), so each image contributes about one
+# Schmidt value of its own.
 # The learned states peak at $3.08$ nats
 # ($\chi_{\max}=32$, 89 % of $\ln32$) and $2.44$ nats ($N_{\rm T}=3000$, $\chi_{\max}=16$, 88 % of $\ln16$), far
 # below the data state.
@@ -1761,8 +1790,10 @@ plt.show()
 # matrix with this block structure and at least one non-zero entry per block, so its Schmidt rank at bond 98 is at
 # least 912. A model with $\chi_{\max}=32$ and a finite training NLL gives every training image $P>0$, so it cannot be
 # supported on the training set alone: it must put probability on other strings. Section 7.5 measured how much: the
-# training set receives only $2\times10^{-5}$ of the probability. The bond dimension does not decide where the rest
-# goes; the training decides that, and the test NLL of Section 7.3 shows that a good part of it lands near real digits.
+# training set receives only $2\times10^{-5}$ of the probability. The block count only forces probability off the
+# training set; where it goes is set by the model and its training. The test NLL of Section 7.3, at its best about
+# 8 nats below the independent-pixel model, shows that unseen digits receive far more probability than under the
+# product state, although many samples are fragments of strokes rather than digits (Section 7.5).
 
 # %%
 section_timer("10 cost")
@@ -1812,8 +1843,9 @@ print(f"   {'total (Sections 3-10)':24s} {sum(v for k, v in SECTION_TIMES.items(
 # ## 11. Limits of the method
 #
 # * **One dimension for two-dimensional data.** The chain orders the pixels row by row. Correlations between vertically
-#   neighbouring pixels pass through a whole row of bonds, which shows in the generated digits (Section 7.5) and in the
-#   reconstruction of missing rows (Section 7.6). [[1]](#ref-1), Sec. IV, names projected entangled pair states as the
+#   neighbouring pixels pass through a whole row of bonds. This is a likely reason why strokes of generated digits
+#   often break between rows (Section 7.5) and why missing rows are reconstructed worse than missing columns
+#   (Section 7.6), but we did not test it. [[1]](#ref-1), Sec. IV, names projected entangled pair states as the
 #   two-dimensional alternative, at the price of a harder contraction and the loss of the convenient canonical forms.
 # * **Capacity against generalisation.** The bond dimension sets the capacity. Too small, and the model underfits;
 #   larger, and the training NLL keeps falling while the test NLL rises (Section 7.3). The number of loops,
@@ -1838,7 +1870,8 @@ print(f"   {'total (Sections 3-10)':24s} {sum(v for k, v in SECTION_TIMES.items(
 #   model from them. Its gradient with respect to a two-site bond tensor is exact, $2B/Z$ minus a sum over the examples
 #   of environment outer products (Eq. (8), checked against `jax.grad`); it is orthogonal to $B$, so the step can be
 #   chosen by an exact line search on a great circle.
-# * **Adaptive bond dimensions.** The SVD split with a relative cutoff lets every bond dimension follow the data. The
+# * **Adaptive bond dimensions.** The SVD split with a relative cutoff keeps a bond small wherever the singular
+#   values fall below the cutoff, up to the cap $\chi_{\max}$. The
 #   number of blocks of the data across a bond bounds the bond dimension of any exact model; for bars and stripes it is
 #   reached when the signs of the stripe images factorise over the rows.
 # * **Exact samples.** In right-canonical form a sample costs $O(N\chi^2)$ and is independent of all others; with fixed
@@ -1898,22 +1931,29 @@ print(f"   {'total (Sections 3-10)':24s} {sum(v for k, v in SECTION_TIMES.items(
 # <span id="ref-3">[3]</span> S. Kullback and R. A. Leibler, *On information and sufficiency*, Ann. Math. Statist.
 # **22**, 79 (1951) — the Kullback–Leibler divergence.
 #
-# <span id="ref-4">[4]</span> C. Eckart and G. Young, *The approximation of one matrix by another of lower rank*,
+# <span id="ref-4">[4]</span> C. E. Shannon, *A mathematical theory of communication*, Bell Syst. Tech. J. **27**, 379 (1948) — the Shannon entropy.
+#
+# <span id="ref-5">[5]</span> C. Eckart and G. Young, *The approximation of one matrix by another of lower rank*,
 # Psychometrika **1**, 211 (1936) — optimality of the truncated SVD.
 #
-# <span id="ref-5">[5]</span> S. R. White, *Minimally entangled typical quantum states at finite temperature*, Phys.
+# <span id="ref-6">[6]</span> S. R. White, *Minimally entangled typical quantum states at finite temperature*, Phys.
 # Rev. Lett. **102**, 190601 (2009), arXiv:0902.4475 — the sequential measurement of the sites of an MPS with the
 # Born probabilities, in one half-sweep (Eq. (7) and the text around it).
 #
-# <span id="ref-6">[6]</span> A. J. Ferris and G. Vidal, *Perfect sampling with unitary tensor networks*, Phys. Rev. B
+# <span id="ref-7">[7]</span> K. Ueda, R. Otani, Y. Nishio, A. Gendiar and T. Nishino, *Snapshot observation for 2D
+# classical lattice models by corner transfer matrix renormalization group*, J. Phys. Soc. Jpn. **74** Suppl., 111
+# (2005), arXiv:cond-mat/0409445 — spins of a classical lattice model fixed one by one with the conditional
+# probabilities given by the matrix product structure of the variational state.
+#
+# <span id="ref-8">[8]</span> A. J. Ferris and G. Vidal, *Perfect sampling with unitary tensor networks*, Phys. Rev. B
 # **85**, 165146 (2012), arXiv:1201.3974 — direct sampling of configurations of unitary tensor networks without a
 # Markov chain.
 #
-# <span id="ref-7">[7]</span> S. S. Wilks, *The large-sample distribution of the likelihood ratio for testing composite
+# <span id="ref-9">[9]</span> S. S. Wilks, *The large-sample distribution of the likelihood ratio for testing composite
 # hypotheses*, Ann. Math. Statist. **9**, 60 (1938) — the chi-squared distribution of the likelihood-ratio statistic.
 #
-# <span id="ref-8">[8]</span> Y. LeCun, L. Bottou, Y. Bengio and P. Haffner, *Gradient-based learning applied to document
+# <span id="ref-10">[10]</span> Y. LeCun, L. Bottou, Y. Bengio and P. Haffner, *Gradient-based learning applied to document
 # recognition*, Proc. IEEE **86**, 2278 (1998) — the MNIST database (Sec. III-A).
 #
-# <span id="ref-9">[9]</span> D. P. Kingma and J. Ba, *Adam: a method for stochastic optimization*, 3rd International
+# <span id="ref-11">[11]</span> D. P. Kingma and J. Ba, *Adam: a method for stochastic optimization*, 3rd International
 # Conference on Learning Representations (ICLR 2015), arXiv:1412.6980 — the optimiser of Section 8.

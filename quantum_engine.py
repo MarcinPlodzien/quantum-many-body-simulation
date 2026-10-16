@@ -852,7 +852,7 @@ def spectral_bounds(terms, N, m=40, key=None):
 
 
 def chebyshev_evolve(psi, terms, t, bounds, tol=1e-13, safety=1.02):
-    """exp(-iHt)|psi> by Chebyshev expansion (Tal-Ezer & Kosloff) -- no Trotter error.
+    """exp(-iHt)|psi> by Chebyshev expansion -- no Trotter error.
 
     MATH   rescale  Ht = (H - b)/a  with a = (Emax-Emin)/2, b = (Emax+Emin)/2   => spectrum in [-1,1]
            Jacobi-Anger:   e^{-i a t x} = sum_k (2 - delta_k0) (-i)^k J_k(a t) T_k(x)
@@ -985,7 +985,7 @@ def qfi_pure(psi, P=Z, qubits=None):
     """Quantum Fisher information of a pure state for the phase imprinted by exp(-i theta J),
     J = (1/2) sum_q P_q:
         F_Q = 4 Var(J) = <G^2> - <G>^2   with G = sum_q P_q = 2J.
-    Cramer-Rao: Delta theta >= 1/sqrt(M F_Q).  Product states F_Q <= N (standard quantum limit);
+    Cramér–Rao: Delta theta >= 1/sqrt(M F_Q).  Product states F_Q <= N (standard quantum limit);
     GHZ: F_Q = N^2 (Heisenberg limit).   Matrix-free: |phi> = G|psi>,  <G^2> = <phi|phi>,  <G> = <psi|phi>."""
     phi = apply_collective(psi, P, qubits)
     return jnp.real(jnp.vdot(phi, phi)) - jnp.real(jnp.vdot(psi, phi)) ** 2
@@ -1103,7 +1103,7 @@ def single_qubit_cliffords():
 # 13. Classical shadows (random Pauli measurements)
 # ==============================================================================
 def collect_pauli_shadows(key, psi, n_shadows):
-    """Randomised-measurement data set (Huang, Kueng, Preskill 2020).
+    """Randomised-measurement data set for classical shadows (random Pauli measurements).
     Each snapshot: draw a basis b_q in {X,Y,Z} for every qubit, rotate, measure all qubits once.
     Returns (bases, bits), int arrays of shape (n_shadows, N); basis code 0=X, 1=Y, 2=Z.
     JAX: one snapshot is a pure function of its key  ->  `vmap` over keys gives all snapshots in parallel;
@@ -1237,7 +1237,7 @@ def parameter_shift_grad(f, theta, shift=jnp.pi / 2):
 
 
 def spsa_grad(key, f, theta, c=0.1):
-    """SPSA gradient estimate (Spall 1992): perturb ALL parameters at once along a random +-1 direction Delta,
+    """SPSA gradient estimate (simultaneous perturbation): perturb ALL parameters at once along a random +-1 direction Delta,
         g = [f(theta + c Delta) - f(theta - c Delta)] / (2c) * Delta        (Delta_k^{-1} = Delta_k)
     Two evaluations regardless of the number of parameters; unbiased up to O(c^2); noisy but cheap --
     the method of choice for shot-noise-limited / stochastic cost functions."""
@@ -1251,7 +1251,7 @@ def adam_init(theta):
 
 
 def adam_update(theta, g, state, lr=0.05, b1=0.9, b2=0.999, eps=1e-8):
-    """One Adam step (Kingma & Ba):  m <- b1 m + (1-b1) g,  v <- b2 v + (1-b2) g^2,
+    """One Adam step:  m <- b1 m + (1-b1) g,  v <- b2 v + (1-b2) g^2,
         theta <- theta - lr * m_hat / (sqrt(v_hat) + eps),   hats = bias-corrected moments.
     Momentum (m) averages noisy gradients (great with SPSA); v gives a per-parameter step size."""
     m, v, t = state
@@ -1265,7 +1265,7 @@ def adam_update(theta, g, state, lr=0.05, b1=0.9, b2=0.999, eps=1e-8):
 # ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════
 # MATRIX PRODUCT STATES: canonical forms, observables, DMRG and TEBD
 # ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════
-# Derived step by step in notebook 18 (Chapter 7) and copied here VERBATIM so that
+# Derived step by step in the notebook 'Beyond the state vector' and copied here VERBATIM so that
 # later notebooks can reach beyond the state vector without re-deriving the algorithm.  The storage is the padded,
 # fixed-bond-dimension format: B (N, chi, 2, chi) right-canonical tensors plus lam (N+1, chi) Schmidt values,
 # lam[j] belonging to the cut on the LEFT of site j.
@@ -1303,7 +1303,7 @@ def state_to_mps_left(psi, cut=1e-13):
 
 def mps_list_to_state(tensors):
     """Contract a list of rank-3 tensors back into the state tensor (validation only: O(2^N) memory).
-    MATH   Eq. (1): the bond legs are summed.  `tensordot(.., axes=([-1],[0]))` ties the last leg of what we
+    MATH   psi = A[0]^{s_0} ... A[N-1]^{s_{N-1}}: the bond legs are summed.  `tensordot(.., axes=([-1],[0]))` ties the last leg of what we
     have so far to the first leg of the next tensor."""
     psi = tensors[0]
     for A in tensors[1:]:
@@ -1314,7 +1314,7 @@ def state_to_mps(psi, chi, cut=1e-13):
     """State tensor -> right-canonical MPS with bond dimension <= chi, stored in fixed-shape padded arrays.
 
     MATH
-        psi ~ B[0]^{s_0} B[1]^{s_1} ... B[N-1]^{s_{N-1}},    sum_s B^s B^s^dag = 1  (right-canonical, Eq. 3)
+        psi ~ B[0]^{s_0} B[1]^{s_1} ... B[N-1]^{s_{N-1}},    sum_s B^s B^s^dag = 1  (right-canonical)
         Sweep j = N-1..1:   R (rest, 2*chi_{j+1}) = U S V^dag ;  B[j] = V^dag (first chi rows) ;
                             lam[j] = S[:chi]/||S[:chi]|| ;  eps[j] = sum_{k>=chi} S_k^2 / sum_k S_k^2 ;  R <- U S.
     RETURNS
@@ -1450,7 +1450,7 @@ def mpo_to_dense(Ws):
     return M[0]
 
 def left_env_update(L, A, W):
-    """L_{j+1}[b,w,b'] = sum L_j[a,v,a'] A[a,s,b] W[v,w,t,s] conj(A)[a',t,b']      Eq. (12).
+    """L_{j+1}[b,w,b'] = sum L_j[a,v,a'] A[a,s,b] W[v,w,t,s] conj(A)[a',t,b']
 
     Letters  a v x = L_j (x = a', the bra bond);  a s b = A (ket);  v w t s = W (t = s_out, s = s_in);  x t c = conj(A) (bra, c = b').
              The BRA tensor carries the OUTPUT leg of W, because <psi|H|psi> = sum conj(A) (W A).
@@ -1458,14 +1458,14 @@ def left_env_update(L, A, W):
     return jnp.einsum("avx,asb,vwts,xtc->bwc", L, A, W, jnp.conj(A))
 
 def right_env_update(R, B, W):
-    """R_j[a,v,a'] = sum B[a,s,b] W[v,w,t,s] conj(B)[a',t,b'] R_{j+1}[b,w,b']        Eq. (13).
+    """R_j[a,v,a'] = sum B[a,s,b] W[v,w,t,s] conj(B)[a',t,b'] R_{j+1}[b,w,b']
 
     Letters  a s b = B (ket);  v w t s = W (t = s_out, s = s_in);  x t c = conj(B) (bra, x = a', c = b');  b w c = R_{j+1}.
     """
     return jnp.einsum("asb,vwts,xtc,bwc->avx", B, W, jnp.conj(B), R)
 
 def mpo_expectation(B, W):
-    """<psi|H|psi> of a normalised MPS (any gauge) for an MPO: contract all sites with Eq. (13) and read R_0[0, D-1, 0]."""
+    """<psi|H|psi> of a normalised MPS (any gauge) for an MPO: contract all sites with right_env_update and read R_0[0, D-1, 0]."""
     chi, D = B.shape[1], W.shape[1]
     R = jnp.zeros((chi, D, chi), dtype=CDTYPE).at[0, 0, 0].set(1.0)
     for j in range(B.shape[0] - 1, -1, -1):
@@ -1479,7 +1479,7 @@ def boundary_environments(chi, D):
     return L0, RN
 
 def heff_apply(L, W1, W2, R, theta):
-    """(H_eff theta)[a',s',t',b'] = sum L[a,v,a'] W1[v,w,s',s] W2[w,u,t',t] R[b,u,b'] theta[a,s,t,b]      Eq. (14).
+    """(H_eff theta)[a',s',t',b'] = sum L[a,v,a'] W1[v,w,s',s] W2[w,u,t',t] R[b,u,b'] theta[a,s,t,b]
     Letters: a v x = L (x = a'), v w y s = W1 (y = s'), w u z t = W2 (z = t'), b u q = R (q = b'), a s t b = theta.
     COST O(chi^3 D d^2) with the contraction order chosen by optimize="optimal"; the (4 chi^2)^2 matrix is never formed."""
     return jnp.einsum("avx,vwys,wuzt,buq,astb->xyzq", L, W1, W2, R, theta, optimize="optimal")
@@ -1487,7 +1487,7 @@ def heff_apply(L, W1, W2, R, theta):
 def lanczos_lowest(matvec, v0, m, mask=None, key=None):
     """Lowest eigenpair (E, x) of a Hermitian operator given only matvec, from m Lanczos steps started at v0.
 
-    MATH    beta_j v_{j+1} = H v_j - alpha_j v_j - beta_{j-1} v_{j-1}  (notebook 11), full reorthogonalisation (twice);
+    MATH    beta_j v_{j+1} = H v_j - alpha_j v_j - beta_{j-1} v_{j-1}  (Lanczos recurrence), full reorthogonalisation (twice);
             Ritz vector x = sum_j s_j v_j of the lowest eigenvector s of the tridiagonal T.
     BREAKDOWN  beta_j <= 1e-12 ||H||, with ||H|| estimated by the largest ||H v_j|| seen (a RELATIVE test: the rounding
             residual of an exhausted Krylov space grows with ||H||).  The Krylov space K is then invariant, but it need
@@ -1641,7 +1641,7 @@ def mps_recanonicalise(B):
     A[0] = A[0].at[1:].set(0.0)                                        # unused rows of the dummy left bond: exactly zero
     return jnp.stack(A), lam
 
-def dmrg(W, M, chi, n_sweeps, m=20, trace=False):
+def dmrg(W, M, chi, n_sweeps, m=20, trace=False, check_convergence=True):
     """Two-site DMRG for the MPO W (N, D, D, 2, 2), starting from the padded MPS M (N, chi, 2, chi).
 
     RETURNS  B (N, chi, 2, chi) right-canonical, lam (N+1, chi) Schmidt values of all bonds, history list of
@@ -1660,6 +1660,11 @@ def dmrg(W, M, chi, n_sweeps, m=20, trace=False):
     SYMMETRY Lanczos keeps the symmetry sector of its start vector (e.g. S^z_tot for an XXZ chain).  On a breakdown it
              restarts from a random vector (`lanczos_lowest`), which happens on the short bonds near the chain ends and
              for an eigenstate start; this lets the state leave the sector of the start, but nothing guarantees it.
+    CONVERGENCE  The sweeps stop after n_sweeps.  With check_convergence, the energy change dE of the last sweep is
+             compared with the truncation error of the energy, which is about eps_max |E| (eps_max = largest discarded
+             weight of the last sweep): the run counts as converged if |dE| <= max(10 eps_max |E|, 100 eps_mach |E|),
+             the second term being the rounding of E.  Otherwise one line is printed (not raised).  A single sweep
+             has no energy change to compare and is reported as not checked.
     """
     N, D = W.shape[0], W.shape[1]
     M, _ = mps_recanonicalise(jnp.asarray(M, dtype=CDTYPE))        # right-canonical, padding exactly zero
@@ -1677,7 +1682,7 @@ def dmrg(W, M, chi, n_sweeps, m=20, trace=False):
     step_right, step_left = make_local_step(chi, m, True), make_local_step(chi, m, False)
     L, R = [None] * (N + 1), [None] * (N + 1)
     L[0], R[N] = boundary_environments(chi, D)
-    for j in range(N - 1, 1, -1):                                  # right environments of the initial state, Eq. (13)
+    for j in range(N - 1, 1, -1):                                  # right environments of the initial state
         R[j] = right_env_update(R[j + 1], M[j], W[j])
     M = list(M)
     lam = jnp.zeros((N + 1, chi), dtype=RDTYPE).at[0, 0].set(1.0).at[N, 0].set(1.0)
@@ -1702,6 +1707,16 @@ def dmrg(W, M, chi, n_sweeps, m=20, trace=False):
     nrm = float(jnp.linalg.norm(B[0]))
     if not abs(nrm - 1.0) < tol:
         raise RuntimeError(f"dmrg: the final MPS has norm {nrm:.3e} instead of 1")
+    if check_convergence:                                          # energy change of the last sweep vs its truncation
+        if n_sweeps < 2:
+            print(f"dmrg: convergence not checked after {n_sweeps} sweep(s) (it needs the energy change between two); "
+                  "run more sweeps")
+        else:
+            E, dE = history[-1][3], history[-1][3] - [h[3] for h in history if h[0] == n_sweeps - 2][-1]
+            eps = max(h[4] for h in history if h[0] == n_sweeps - 1)
+            if abs(dE) > max(10 * eps * abs(E), 100 * float(jnp.finfo(RDTYPE).eps) * abs(E)):
+                print(f"dmrg: not converged after {n_sweeps} sweeps (last-sweep energy change {dE:.1e} vs largest "
+                      f"discarded weight {eps:.1e}); run more sweeps")
     return B, lam, history
 
 
@@ -1762,7 +1777,7 @@ def tebd_layer(B, lam, G, idx):
     JAX   gather with integer-array indexing, ONE vmapped two_site_update (batched einsums + batched SVD),
           scatter with .at[].set().
     RETURNS  the new (B, lam), the summed discarded weight sum_b eps_b of the layer, and sum_b sqrt(eps_b),
-             the quantity that enters the triangle-inequality error estimate of Sec. 9."""
+             the quantity that enters the triangle-inequality bound on the accumulated truncation error."""
     B1, B2, lam_new, eps = jax.vmap(two_site_update)(lam[idx], B[idx], B[idx + 1], G)
     B = B.at[idx].set(B1).at[idx + 1].set(B2)
     lam = lam.at[idx + 1].set(lam_new)
@@ -1814,7 +1829,7 @@ def mps_tebd_evolve(B, lam, h_bonds, dt, n_steps):
     RETURNS   (B, lam) at the final time and a dict of arrays with leading axis = time step:
         "z"    (n_steps, N)     <Z_j>                      "S"   (n_steps, N+1) entanglement entropy of every cut
         "E"    (n_steps,)       energy <H>                 "eps" (n_steps,)     discarded weight summed over the step
-        "sqeps" (n_steps,)      sum of sqrt(eps) over the ~1.5 N truncations of the step  (Sec. 9)
+        "sqeps" (n_steps,)      sum of sqrt(eps) over the ~1.5 N truncations of the step  (triangle-inequality error bound)
     COST      per step ~ 1.5 N SVDs of (2chi x 2chi) matrices: O(N chi^3) time, O(N chi^2) memory.
     JAX       lax.scan over time (carry = MPS of fixed shape), vmap over the bonds of a layer, jit around everything.
     """

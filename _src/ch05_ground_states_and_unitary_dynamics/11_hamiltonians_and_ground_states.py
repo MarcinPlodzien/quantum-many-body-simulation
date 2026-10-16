@@ -1517,7 +1517,7 @@ for N in N_XF:
           f"{max(xf[(l, N)]['res'].max() for l in POINTS_XF):.1e}")
 
 # ------------------------------------------------------------------------------
-# CHECKPOINTS: the exact XX gap at every N (notebook 06, Eq. (14)), and dense diagonalisation inside the sectors at N = 10
+# CHECKPOINTS: the exact XX gap at every N, and dense diagonalisation inside the sectors at N = 10
 # ------------------------------------------------------------------------------
 for N in N_XF:
     exact = 4 * np.sin(np.pi / (2 * (N + 1)))
@@ -1528,7 +1528,7 @@ D10, idx10 = 2 ** 10, np.arange(2 ** 9)
 for label, (D, h) in POINTS_XF.items():
     H10 = np.real(np.asarray(dense_hamiltonian(heisenberg_terms(10, 1.0, 1.0, D, hx=h), 10)))
     w_sec = {}
-    for s in (+1, -1):                                                      # sector bases |i,+-> of notebook 06, Eq. (15)
+    for s in (+1, -1):                                                      # sector bases |i,+->
         B = np.zeros((D10, D10 // 2)); B[idx10, idx10] = 1 / np.sqrt(2); B[D10 - 1 - idx10, idx10] = s / np.sqrt(2)
         w_sec[s] = np.linalg.eigvalsh(B.T @ H10 @ B)
     s0 = min(w_sec, key=lambda s: w_sec[s][0])
@@ -1565,13 +1565,13 @@ plt.tight_layout(); plt.show()
 # **Results for the larger chains** (numbers printed above).
 #
 # * **Checkpoints.** At the XX point the gap in the sector equals $4\sin\frac{\pi}{2(N+1)}$ for every $N$ up to $18$, and at $N=10$ all five gaps agree with dense diagonalisation inside the sectors.
-#   The residuals of both Ritz pairs stay at the level of $10^{-8}$ or below except for the second pair (row $\rho_1$) at the ferromagnetic point and at $(0,2)$ for $N=16$ and $18$. At the ferromagnetic point the second Ritz value belongs to a pair of magnons
+#   The residuals of both Ritz pairs stay at the level of $10^{-8}$ or below except for the second pair (row $\rho_1$) at the ferromagnetic point and at $(0,2)$ for $N=16$ and $18$. At the ferromagnetic point the second Ritz value belongs to a pair of magnons (quanta of the spin waves introduced in [[36]](#ref-36))
 #   bound to the two ends of the chain (derived in [notebook 06, Section 10.7, states, observables, entanglement](../ch03_matrix_free_engine/06_states_observables_entanglement.ipynb), Eq. (16)): the two levels are split only by $\sim3\times10^{-5}$ at $N=18$, the relative gap $\gamma$ of Eq. (6) is tiny, and the residual of
 #   $\theta_1$ stops at $\sim6\times10^{-5}$. The gap value $\approx2.99998$ is still accurate to about that level — the rule "energies to $\rho^2/\Delta$" of Section 8.2 with a $\Delta$ that is itself $3\times10^{-5}$.
 #   At $(0,2)$ the residual of $\theta_1$ is $1.3\times10^{-4}$, so that gap is known to about four digits — enough for the conclusions below.
 # * **The field at $\Delta=0$, $h_x=1$.** The gap in the sector decreases from $1.53$ ($N=6$) to $0.68$ ($N=18$), but *more slowly than $1/N$*: $N\Delta_N$ keeps growing, and the ratio to the
 #   gapless XX chain rises from $1.7$ to $2.1$. At the same time the splitting between the two parity sectors, between $0.4$ and $0.5$ up to $N=12$, collapses to $0.07$ at $N=18$, and the staggered
-#   $y$ correlation, after fluctuating at small $N$, is $0.24$ at both distance $7$ and distance $9$. Both are the fingerprints of the prediction of [[36]](#ref-36): the field opens a gap and the ground state
+#   $y$ correlation, after fluctuating at small $N$, is $0.24$ at both distance $7$ and distance $9$. Both are the fingerprints of the prediction of [[37]](#ref-37): the field opens a gap and the ground state
 #   orders antiferromagnetically along $y$, which breaks $P$ (the operator $P=\prod_iX_i$ reverses every $Y_i$), so the two sector ground states become a near-degenerate doublet.
 #   Eighteen spins make this strongly suggestive; a proof needs the extrapolation of the splitting and of $C^{yy}_{\rm st}$ to $N\to\infty$.
 # * **Deep in the field-induced phase, $(0,2)$.** $C^{yy}_{\rm st}$ at the largest distance stays between $0.36$ and $0.58$ for all sizes, with its largest value at the largest distance, and the parity splitting
@@ -1589,7 +1589,7 @@ plt.tight_layout(); plt.show()
 # Nothing in our solver referred to one dimension. We now change **only the bond list**:
 #
 # * a $4\times4$ open square lattice (24 bonds, 16 spins). Each bulk spin now has four neighbours, so the ferromagnetic term is stronger relative to the field and the transition moves to a larger field. For the infinite
-#   square lattice quantum Monte Carlo gives $h_c\approx3.044\,J$ [[37]](#ref-37); the model is *not* exactly solvable, so there is no free-fermion check — we rely on the validation of the builder in Section 3, on the ladder test of
+#   square lattice quantum Monte Carlo gives $h_c\approx3.044\,J$ [[38]](#ref-38); the model is *not* exactly solvable, so there is no free-fermion check — we rely on the validation of the builder in Section 3, on the ladder test of
 #   Section 8 and on the residual;
 # * an open chain of $N=12$ spins with ferromagnetic power-law couplings $-J\,Z_iZ_j/|i-j|^\alpha$ as realised with trapped ions (66 bonds). Longer-range couplings stabilise the ferromagnet against the field.
 #
@@ -1654,13 +1654,13 @@ for alpha in (3.0, 1.5):
 
 # %% [markdown]
 # With the *same solver* and a different list of bonds, the ordered phase of the square lattice survives to clearly larger fields than in the chain: the printed crossover field, where $m_z^2$ has dropped to $1/2$, moves
-# from $\approx0.9\,J$ to $\approx1.8\,J$, a factor of two. The dotted lines mark the thermodynamic-limit critical fields, $h_c=J$ for the chain and $h_c\approx3.04J$ for the infinite square lattice [[37]](#ref-37).
+# from $\approx0.9\,J$ to $\approx1.8\,J$, a factor of two. The dotted lines mark the thermodynamic-limit critical fields, $h_c=J$ for the chain and $h_c\approx3.04J$ for the infinite square lattice [[38]](#ref-38).
 # Our $4\times4$ patch sits well below the latter, for two reasons that both shrink the effective coupling: with open boundaries only four of its sixteen spins have the full four neighbours, so $\bar w=2\cdot24/16=3$ rather than
 # $4$ — mean field would already move $h_c$ down by a quarter — and the block is only four sites wide, so the order parameter has not yet saturated (the same finite-size drift that pulled the chain's crossover from $J$ to $0.91J$).
 #
 # The long-range chains behave the same way, and the printed table separates the two contributions. Going from nearest-neighbour to $\alpha=3$ multiplies $\bar w$ by $1.17$ and the crossover field by $1.32$; going to
 # $\alpha=1.5$ multiplies them by $1.72$ and $2.22$. Most of the extra robustness of the long-range ferromagnet therefore comes from the larger total coupling per spin; what is left over
-# (factors $1.13$ and $1.29$) is the genuine long-range effect. A fair comparison at fixed energy scale uses the Kac rescaling $J\to J/\bar w$ [[38]](#ref-38), which is also what keeps the energy extensive for $\alpha<1$. The genuinely long-range physics —
+# (factors $1.13$ and $1.29$) is the genuine long-range effect. A fair comparison at fixed energy scale uses the Kac rescaling $J\to J/\bar w$ [[39]](#ref-39), which is also what keeps the energy extensive for $\alpha<1$. The genuinely long-range physics —
 # a changed universality class, correlations that never decay — needs larger systems than a state vector allows. What the experiment does show is that the *cost* is unchanged: the $\alpha$ runs touch $66$ bonds instead
 # of $11$ and are one line of code apart, whereas analytical solutions (and also matrix-product-state methods) are tied to one dimension and short-range couplings.
 
@@ -1729,7 +1729,7 @@ if RUN_LARGE:
 # A million-dimensional eigenproblem solved to many digits on a single CPU in the wall time printed above, using nothing but einsum contractions with $2\times2$ and $4\times4$ matrices. That number is machine dependent
 # (and, on a busy laptop, load dependent), so read it as an order of magnitude: it is $2m=100$ matrix–vector products on a vector of 17 MB, plus the reorthogonalisation against a Krylov basis of 0.84 GB, and the cost is set by memory
 # traffic rather than by floating-point work. Going further is a matter of
-# memory ($N=24$: 270 MB per vector) and patience; with a GPU, single precision for the basis, restarts with small $m$ and symmetry-reduced bases, state-of-the-art exact-diagonalisation codes reach $N\approx40$–$50$ spins on supercomputers (Ref. [[39]](#ref-39) reports spin-1/2 models of up to 50 sites). Beyond that, one
+# memory ($N=24$: 270 MB per vector) and patience; with a GPU, single precision for the basis, restarts with small $m$ and symmetry-reduced bases, state-of-the-art exact-diagonalisation codes reach $N\approx40$–$50$ spins on supercomputers (Ref. [[40]](#ref-40) reports spin-1/2 models of up to 50 sites). Beyond that, one
 # needs a compressed representation of the state itself.
 
 # %% [markdown]
@@ -1767,8 +1767,8 @@ if RUN_LARGE:
 #    $E_0(M=2)-E_0(M=0)$ for $N=8,\dots,16$ and show that $N\cdot\Delta$ tends to a constant (the chain is gapless; logarithmic corrections at the Heisenberg point make the approach slow).
 # 7. **(★★★) Excited states by deflation.** Without using symmetries, obtain the first excited state by running Lanczos on $H'=H+\mu|\psi_0\rangle\langle\psi_0|$ with $\mu>E_1-E_0$ (implement the projector term matrix-free inside `matvec`). Apply
 #    it to the TFIM with an additional longitudinal field $h_z\sum_iZ_i$, which destroys the parity symmetry, and plot the gap versus $h_z$.
-# 8. **(★★★) Differentiate through Lanczos.** `ground_state_scan` is differentiable. Compute $dE_0/dh$ for the TFIM with `jax.grad` and compare it with the Hellmann–Feynman theorem [[40]](#ref-40), $dE_0/dh=\langle\psi_0|\partial_hH|\psi_0\rangle=-N m_x$.
-#    Then compute the "fidelity susceptibility" [[41]](#ref-41), [[42]](#ref-42) $\chi_F(h)=2\,[1-|\langle\psi_0(h)|\psi_0(h+\delta)\rangle|]/\delta^2$ and locate its maximum for $N=8,12,16$.
+# 8. **(★★★) Differentiate through Lanczos.** `ground_state_scan` is differentiable. Compute $dE_0/dh$ for the TFIM with `jax.grad` and compare it with the Hellmann–Feynman theorem [[41]](#ref-41), $dE_0/dh=\langle\psi_0|\partial_hH|\psi_0\rangle=-N m_x$.
+#    Then compute the "fidelity susceptibility" [[42]](#ref-42), [[43]](#ref-43) $\chi_F(h)=2\,[1-|\langle\psi_0(h)|\psi_0(h+\delta)\rangle|]/\delta^2$ and locate its maximum for $N=8,12,16$.
 
 # %% [markdown]
 # ## 17. References
@@ -1844,19 +1844,21 @@ if RUN_LARGE:
 #
 # <span id="ref-35">[35]</span> J. des Cloizeaux and M. Gaudin, *Anisotropic linear magnetic chain*, J. Math. Phys. **7**, 1384–1400 (1966) — the exact XXZ gap and its essential singularity at $\Delta=1$.
 #
-# <span id="ref-36">[36]</span> D. V. Dmitriev, V. Ya. Krivnov and A. A. Ovchinnikov, *Gap generation in the XXZ model in a transverse magnetic field*, Phys. Rev. B **65**, 172409 (2002) — the field-induced gap and Néel order along $y$.
+# <span id="ref-36">[36]</span> F. Bloch, *Zur Theorie des Ferromagnetismus*, Z. Phys. **61**, 206 (1930) — spin waves, whose quanta are magnons.
 #
-# <span id="ref-37">[37]</span> H. W. J. Blöte and Y. Deng, *Cluster Monte Carlo simulation of the transverse Ising model*, Phys. Rev. E **66**, 066110 (2002) — $h_c/J=3.04438$ for the square lattice.
+# <span id="ref-37">[37]</span> D. V. Dmitriev, V. Ya. Krivnov and A. A. Ovchinnikov, *Gap generation in the XXZ model in a transverse magnetic field*, Phys. Rev. B **65**, 172409 (2002) — the field-induced gap and Néel order along $y$.
 #
-# <span id="ref-38">[38]</span> M. Kac, G. E. Uhlenbeck and P. C. Hemmer, *On the van der Waals theory of the vapor-liquid equilibrium. I. Discussion of a one-dimensional model*, J. Math. Phys. **4**, 216–228 (1963).
+# <span id="ref-38">[38]</span> H. W. J. Blöte and Y. Deng, *Cluster Monte Carlo simulation of the transverse Ising model*, Phys. Rev. E **66**, 066110 (2002) — $h_c/J=3.04438$ for the square lattice.
 #
-# <span id="ref-39">[39]</span> A. Wietek and A. M. Läuchli, *Sublattice coding algorithm and distributed memory parallelization for large-scale exact diagonalizations of quantum many-body systems*, Phys. Rev. E **98**, 033309 (2018) — how far the method reaches today.
+# <span id="ref-39">[39]</span> M. Kac, G. E. Uhlenbeck and P. C. Hemmer, *On the van der Waals theory of the vapor-liquid equilibrium. I. Discussion of a one-dimensional model*, J. Math. Phys. **4**, 216–228 (1963).
 #
-# <span id="ref-40">[40]</span> R. P. Feynman, *Forces in molecules*, Phys. Rev. **56**, 340–343 (1939).
+# <span id="ref-40">[40]</span> A. Wietek and A. M. Läuchli, *Sublattice coding algorithm and distributed memory parallelization for large-scale exact diagonalizations of quantum many-body systems*, Phys. Rev. E **98**, 033309 (2018) — how far the method reaches today.
 #
-# <span id="ref-41">[41]</span> P. Zanardi and N. Paunković, *Ground state overlap and quantum phase transitions*, Phys. Rev. E **74**, 031123 (2006).
+# <span id="ref-41">[41]</span> R. P. Feynman, *Forces in molecules*, Phys. Rev. **56**, 340–343 (1939).
 #
-# <span id="ref-42">[42]</span> W.-L. You, Y.-W. Li and S.-J. Gu, *Fidelity, dynamic structure factor, and susceptibility in critical phenomena*, Phys. Rev. E **76**, 022101 (2007).
+# <span id="ref-42">[42]</span> P. Zanardi and N. Paunković, *Ground state overlap and quantum phase transitions*, Phys. Rev. E **74**, 031123 (2006).
 #
-# <span id="ref-43">[43]</span> Y. Saad, *Numerical Methods for Large Eigenvalue Problems*, revised ed., Classics in Applied Mathematics **66**, SIAM (2011).
+# <span id="ref-43">[43]</span> W.-L. You, Y.-W. Li and S.-J. Gu, *Fidelity, dynamic structure factor, and susceptibility in critical phenomena*, Phys. Rev. E **76**, 022101 (2007).
+#
+# <span id="ref-44">[44]</span> Y. Saad, *Numerical Methods for Large Eigenvalue Problems*, revised ed., Classics in Applied Mathematics **66**, SIAM (2011).
 

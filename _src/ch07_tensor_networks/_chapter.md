@@ -8,7 +8,7 @@ environments, the effective Hamiltonian applied matrix-free, Lanczos as the loca
 Time evolution follows with a compiled TEBD two-site update at fixed bond dimension, validated against
 state-vector evolution and then applied to quenches of chains far longer than a state vector can hold.
 
-The chapter is one long notebook. Sections 2–5 (why entanglement decides compressibility, the construction, canonical
+Notebook 18 is the core of the chapter. Its Sections 2–5 (why entanglement decides compressibility, the construction, canonical
 forms, truncation, measurements) are needed for everything else; Section 6 (DMRG) and Sections 7–10 (TEBD, quenches of
 40 and 60 spins and the entanglement barrier) are independent of each other and can be read in either order; Sections
 11–12 give the cost and the limits of the method. Prerequisites are notebooks 01 and 02 (`jit`, `vmap`, `lax.scan`,
@@ -17,3 +17,9 @@ entanglement entropy and the area law of notebook 06 in [Chapter 3](ch03_matrix_
 [Chapter 5](ch05_ground_states_and_unitary_dynamics.qmd), the Lanczos algorithm of notebook 11 (for DMRG), the
 Trotter–Suzuki gates of notebook 12 (for TEBD) and, helpful for the physics of the quenches, notebook 15. DMRG returns
 for the critical Ising chain in [Chapter 11](ch11_quantum_phase_transitions.qmd).
+
+The companion notebook 18b repeats the central calculations with an established tensor-network library, TeNPy
+(`pip install physics-tenpy`; the notebook installs it when it is missing). It derives the dictionary between the
+conventions of the two codes and tests it on the full Hamiltonian matrix, compares DMRG ground states of the
+transverse-field Ising and XXZ chains and TEBD quenches of the XX chain, grades both codes against exact free-fermion
+solutions, and shows what the agreement of two codes proves and what it does not. It assumes Sections 2–10 of notebook 18.

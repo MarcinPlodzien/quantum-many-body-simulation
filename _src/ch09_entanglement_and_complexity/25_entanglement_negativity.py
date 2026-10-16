@@ -1637,7 +1637,7 @@ assert size_scan[18][2][0] - size_scan[10][2][0] > 2.0
 #   two-site blocks five sites apart NPT. Their negativity appears only later, at a time set by the chain length, which marks
 #   a finite-size revival. The $N=10$ onsets at $\ell=5$, and any front speed computed from them,
 #   are finite-size numbers. Whether such blocks ever become NPT in an infinite chain cannot be decided from $N\le18$.
-# * At $\ell=1$ the two blocks are *adjacent*: sites $4$ and $5$ share a bond, the very first Trotter gate acts across it, and
+# * At $\ell=1$ the two blocks are *adjacent*: sites $4$ and $5$ share a bond, the very first Trotter gate (product formula introduced in [[18]](#ref-18)) acts across it, and
 #   $t_{\rm on}=0.05=dt$ at every threshold and every $N$. This is earlier than $\ell/4=0.25$, and no threshold argument can
 #   move it. The quasiparticle formula is an asymptotic statement about distances large compared with a lattice spacing; at
 #   $\ell=1$ the onset is set by the time step, not by the light cone.
@@ -1659,9 +1659,9 @@ assert size_scan[18][2][0] - size_scan[10][2][0] > 2.0
 # ### 10.2 Entanglement sudden death
 #
 # Under local noise the entanglement of a pair does not decay exponentially and vanish only asymptotically. It can reach
-# **exactly zero at a finite time** and stay there while the coherences that produced it are still non-zero. Ref. [[18]](#ref-18)
+# **exactly zero at a finite time** and stay there while the coherences that produced it are still non-zero. Ref. [[19]](#ref-19)
 # showed this for two atoms decaying by spontaneous emission; the name **entanglement sudden death**, under which the review
-# [[19]](#ref-19) collects the subject, came into use afterwards.
+# [[20]](#ref-20) collects the subject, came into use afterwards.
 #
 # Take the initial pure state
 #
@@ -1772,7 +1772,7 @@ fig.tight_layout(); plt.show()
 # > evolution from $t^*$ to any later time is again a product of local channels, which map separable states to separable
 # > states. Section 10.3 shows that this argument fails once the qubits also interact, and there the negativity can return.
 # > Sudden death is a property of the boundary of the set of separable states, not of any physical process being switched off.
-# > It has been observed in photonic and atomic experiments; Ref. [[19]](#ref-19) reviews them.
+# > It has been observed in photonic and atomic experiments; Ref. [[20]](#ref-20) reviews them.
 #
 # ### 10.3 Sudden death in a many-body quench
 #
@@ -1989,8 +1989,8 @@ print(f"  the full density tensor of {N_big} spins would need {16*4**N_big/1e9:.
 #   Under local noise the negativity reaches exactly zero at a finite time — **entanglement sudden death** — with
 #   $\Gamma t^*=-\ln(1-\sqrt{a/b})$ for the two-qubit model (verified to the grid step) and $\gamma\,t_{\rm death}$ between
 #   $0.48$ and $0.77$ for the dephased chain over a factor of ten in rate, a sawtooth caused by the oscillating signal.
-# * **Cost**: $O(8^N)$ and $16\cdot4^N$ bytes for a genuinely mixed state of $N$ qubits (about $40\,$s on one thread at
-#   $N=12$); $O(2^N)$ via the Schmidt formula for a pure state (at least two orders of magnitude faster than the brute-force
+# * **Cost**: $O(8^N)$ and $16\cdot4^N$ bytes for a genuinely mixed state of $N$ qubits (tens of seconds on one thread at
+#   $N=12$, extrapolated from the timing at $N=10$); $O(2^N)$ via the Schmidt formula for a pure state (at least two orders of magnitude faster than the brute-force
 #   partial transpose at $N=10$, though the ratio of two wall-clock times is far too noisy to read a scaling exponent from);
 #   and, for
 #   two small blocks of a pure state, a cost set by
@@ -2031,7 +2031,7 @@ print(f"  the full density tensor of {N_big} spins would need {16*4**N_big/1e9:.
 #    This is a state that everything else in this notebook declares unentangled.
 # 8. ★★★ **Negativity scaling at criticality.** For the critical TFIM at $h=1$, compute the negativity between two *adjacent*
 #    blocks of $\ell$ spins each, centred in a chain of $N=14$, for $\ell=1,2,3$. Fit $E_{\mathcal N}$ against $\log_2\ell$ and
-#    compare the slope with the conformal-field-theory prediction $c/4$ with $c=1/2$ [[20]](#ref-20). Comment
+#    compare the slope with the conformal-field-theory prediction $c/4$ with $c=1/2$ [[21]](#ref-21). Comment
 #    on whether three points at such small $\ell$ can determine a slope.
 #
 # ## 14. References
@@ -2092,17 +2092,20 @@ print(f"  the full density tensor of {N_big} spins would need {16*4**N_big/1e9:.
 # <span id="ref-17">[17]</span> E. H. Lieb and D. W. Robinson, *The finite group velocity of quantum spin systems*,
 # Commun. Math. Phys. **28**, 251 (1972) — the light cone of Section 10.1.
 #
-# <span id="ref-18">[18]</span> T. Yu and J. H. Eberly, *Finite-time disentanglement via spontaneous emission*, Phys.
+# <span id="ref-18">[18]</span> H. F. Trotter, *On the product of semi-groups of operators*, Proc. Amer. Math. Soc. **10**, 545 (1959) — the product
+# formula behind Trotterised time evolution.
+#
+# <span id="ref-19">[19]</span> T. Yu and J. H. Eberly, *Finite-time disentanglement via spontaneous emission*, Phys.
 # Rev. Lett. **93**, 140404 (2004) — entanglement sudden death, Section 10.2.
 #
-# <span id="ref-19">[19]</span> T. Yu and J. H. Eberly, *Sudden death of entanglement*, Science **323**, 598 (2009) —
+# <span id="ref-20">[20]</span> T. Yu and J. H. Eberly, *Sudden death of entanglement*, Science **323**, 598 (2009) —
 # the review, including experiments.
 #
-# <span id="ref-20">[20]</span> P. Calabrese, J. Cardy and E. Tonni, *Entanglement negativity in quantum field theory*,
+# <span id="ref-21">[21]</span> P. Calabrese, J. Cardy and E. Tonni, *Entanglement negativity in quantum field theory*,
 # Phys. Rev. Lett. **109**, 130502 (2012) — the conformal-field-theory scaling of $E_{\mathcal N}$, Exercise 8.
 #
-# <span id="ref-21">[21]</span> R. Horodecki, P. Horodecki, M. Horodecki and K. Horodecki, *Quantum entanglement*, Rev.
+# <span id="ref-22">[22]</span> R. Horodecki, P. Horodecki, M. Horodecki and K. Horodecki, *Quantum entanglement*, Rev.
 # Mod. Phys. **81**, 865 (2009) — the standard review; separability criteria, measures, bound entanglement.
 #
-# <span id="ref-22">[22]</span> M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information* (Cambridge
+# <span id="ref-23">[23]</span> M. A. Nielsen and I. L. Chuang, *Quantum Computation and Quantum Information* (Cambridge
 # University Press, 2000) — chapters 2, 11 and 12 for density matrices, entropy and entanglement measures.

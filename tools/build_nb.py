@@ -140,7 +140,8 @@ class Engine:
             start = min([node.lineno] + [d.lineno for d in getattr(node, "decorator_list", [])]) - 1
             banner = max((b for b in self.banners if b[0] < start), default=None)
             if banner and banner != last_banner:
-                out.append(f"\n# {'-' * 76}\n{banner[1]}\n# {'-' * 76}")
+                title = re.sub(r"^# \d+\.\s+", "# ", banner[1])   # engine section numbers mean nothing in a notebook
+                out.append(f"\n# {'-' * 76}\n{title}\n# {'-' * 76}")
                 last_banner = banner
             seg = "\n".join(self.lines[start:node.end_lineno])
             out.append(seg + ("\n" if isinstance(node, ast.FunctionDef) else ""))
@@ -148,8 +149,8 @@ class Engine:
                   '(click to expand)"\n'
                   "# ==============================================================================\n"
                   "# ENGINE RECAP: the functions of quantum_engine.py (SmoQ.jax) used in this notebook.\n"
-                  "# Each one is derived, with its mathematics and an independent check, in notebook 08b\n"
-                  "# (Chapter 3), 'Building the quantum simulator engine'.\n"
+                  "# All of them are collected, with their mathematics, in the notebook\n"
+                  "# 'Building the quantum simulator engine'.\n"
                   "# States are rank-N tensors of shape (2,)*N; every operator acts through ONE einsum.\n"
                   "# ==============================================================================\n")
         if show:   # the function was derived in this notebook -> show its engine form, unfolded
@@ -161,7 +162,9 @@ class Engine:
     def config_cell(self):
         # CONFIG_HEAD already imports os; the engine's per-routine einsum-label budget (apply_gate_dm, apply_kraus_dm)
         # belongs to the engine file, not to the cell that opens every notebook -> one short comment instead
-        pre = "\n".join(l for l in self.preamble.splitlines() if l.strip() != "import os")
+        # the QE_PRECISION fallback serves only `import quantum_engine`; in a notebook PRECISION is set in CONFIG_HEAD
+        pre = "\n".join(l for l in self.preamble.splitlines()
+                         if l.strip() != "import os" and "QE_PRECISION" not in l)
         pre = re.sub(r"^_LETTERS = string\.ascii_letters.*(?:\n[ \t]+#.*)*",
                      "_LETTERS = string.ascii_letters  # the 52 einsum index labels a-z, A-Z", pre, flags=re.M)
         return CONFIG_HEAD + pre + CONFIG_TAIL
